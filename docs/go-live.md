@@ -254,7 +254,7 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - **who:** Myra · **needs:** 0.1 (A14)
 - **done when:** the repo exists and `gh repo view myrakrusemark/shwarm` works for Claude.
 
-**0.6 Package names** · done
+**0.6 Package names** · doing
 - **what:** npm account with 2FA; Claude publishes a `shwarm` 0.0.0 placeholder to hold the name; reserve the `@shwarm` scope.
 - **who:** both · **needs:** 0.3
 - **done when:** `npm view shwarm` shows Myra as owner.
