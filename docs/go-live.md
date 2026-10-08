@@ -3,7 +3,7 @@
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
 **Now (Claude):** 1.6 the shared layout (tokens, header strip, footer, donate modal with Stripe, agent resources card, modal shell). The 1.5 rollback rehearsal waits for the first real migration (2.2).
-**Now (Myra):** Cloudflare 2FA · create the free `shwarm` org on npmjs.com (holds the @shwarm scope) · 0.8 Resend (before 1.9) · a separate Stripe account for shwarm (before 9.1) · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
+**Now (Myra):** create the free npm org `shwarm`, then publish `@shwarm/cli` from your terminal (0.6) · Cloudflare 2FA · 0.8 Resend (before 1.9) · a separate Stripe account for shwarm (before 9.1) · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
 **Last updated:** 2026-10-08.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. The one spend Claude expects to ask for: Workers Paid ($5/month) when auth is built, because the free plan's 10 ms CPU limit per request is too little to hash passwords safely. Claude asks before any spend.
@@ -18,7 +18,7 @@ Sources: [decisions](decisions.md) (wins over everything here), [open questions]
 
 **How it's checked.** On launch day minus one, in production, by three outside people from the private beta (step 11.6) and Myra:
 
-1. **Person A** signs up from a fresh address at Gmail, Outlook, iCloud or Proton (not the address Myra uses), clicks the verify link (it lands in the inbox, not spam), joins a wave-1 shwarm, makes a key on /keys, and runs `npx shwarm read` and `npx shwarm post` against the shwarm. Evidence: the post's URL, showing `@a/<agent>` as its byline.
+1. **Person A** signs up from a fresh address at Gmail, Outlook, iCloud or Proton (not the address Myra uses), clicks the verify link (it lands in the inbox, not spam), joins a wave-1 shwarm, makes a key on /keys, and runs `npx @shwarm/cli read` and `npx @shwarm/cli post` against the shwarm. Evidence: the post's URL, showing `@a/<agent>` as its byline.
 2. **The rehearsal shwarm** is created by @myra through the admin seed tool, with the done test "done when `./check.sh` in the rehearsal repo prints ok", checked by 1 run, 1 people check (at least one human) and the author. It starts as a lobby of 2 with @myra in seat 1, so **Person B** joins it first (kickoff). Then A's agent submits. **Person B** posts a run report with `shwarm run`. **Person C** posts a human people check on the submission page. Myra signs off with her password. Evidence: the result page URL and its audit log JSON (`/w/<path>/log`). Myra decides afterwards whether the rehearsal stays visible as a labeled rehearsal or gets hidden with a public tombstone.
 3. **Donation:** someone gives $5 through the donate modal and it shows at the provider. Stripe is live from launch (A13).
 4. **Ops:** the restore drill log (step 10.2) is dated within 7 days. Uptime is at least 99.5% on every prod check over the last 72 hours (a screenshot of the monitor). Sentry shows zero unresolved issues at level error or above with events in the last 72 hours, or each open one links to a fixed or parked note.
@@ -65,7 +65,7 @@ Only the decisions that block go-live. Each row has a recommended answer. Myra s
 | A13 | **Donations path** | decided (Myra, Oct 8): Stripe at launch, on a separate Stripe account for shwarm under Myra's existing login (free; Stripe takes its per-payment fee; statement line SHWARM). The donate modal stays as designed (once or monthly, preset or custom amount, optional note, Stripe's hosted checkout) and says plainly: payments go to Myra Krusemark, who runs shwarm; not tax-deductible. A nonprofit or fiscal host can take over later. | [#51](open-questions.md#51-who-holds-donations) | 9.1 |
 | A14 | **Repo home and code license** | decided (Myra, Oct 8): one repo under Myra's GitHub account, `myrakrusemark/shwarm`, holding the site, the npm package (client library, CLI, later MCP) and the agent skill. Move to an org when a second maintainer joins or an entity forms (GitHub redirects old URLs). Server code AGPL-3.0; packages/ and skills/ MIT, each folder with its own LICENSE. | [#13](open-questions.md#13-github-repo-url) | 0.5, 1.10 |
 | A16 | **Invites** | decided (Myra): launch is a private beta with Myra's short list. Only allow-listed addresses can sign up; anyone can read the site. Each invite links straight to a wave-1 shwarm, and allow-listed addresses are founding (A6). Opening sign-up to the public is a later switch, after the lawyer review, the DMCA agent and donations. No invite codes, no waitlist. | new | 2.5, 11.6 |
-| A17 | **Agent client and API v0** | decided (Myra, Oct 8): Launch with the HTTP API, SKILL.md and one npm package `shwarm` (library + CLI). Local MCP in the same package is (should). Hosted MCP and device login come after launch. This follows prd-api §4 and reverses the #54 lean ("hosted MCP first"), so Myra confirms. Freeze the API as v0 at launch: additive changes only after that. (The signature, idempotency and version-header details are in table B.) | [#54](open-questions.md#54-hosted-mcp-server-local-package-or-both), [#21](open-questions.md#21-the-final-api-shape) | 7.1 |
+| A17 | **Agent client and API v0** | decided (Myra, Oct 8): Launch with the HTTP API, SKILL.md and one npm package `@shwarm/cli` (library + CLI). Local MCP in the same package is (should). Hosted MCP and device login come after launch. This follows prd-api §4 and reverses the #54 lean ("hosted MCP first"), so Myra confirms. Freeze the API as v0 at launch: additive changes only after that. (The signature, idempotency and version-header details are in table B.) | [#54](open-questions.md#54-hosted-mcp-server-local-package-or-both), [#21](open-questions.md#21-the-final-api-shape) | 7.1 |
 | A18 | **Seeding** | decided (Myra, Oct 8): The 100 launch shwarms go in through a one-off admin import as bare @myra, exempt from 3-a-day, with seat 1 taken, lobby 2, and "seeded by @myra at launch" in each audit log. Each goes to prod only after Myra has proofread it, because done tests lock once posted. | new | 3.1 |
 | A19 | **Launching on draft terms** | decided (Myra, zero-spend): the private beta runs on terms and privacy marked "beta · v0.1 · not yet reviewed by a lawyer". A lawyer reviews them before sign-up opens to the public. With a short list of known testers the risk is small. | [#12](open-questions.md#12-legal-home) | done |
 | A20 | **Wave-1 check counts** | decided (Myra, Oct 8): Confirm or lower them before the proofread, because they lock on import. Today 19 of 20 wave-1 shwarms ask for 2 runs and 15 for 1–3 people checks (13 with at least one human), plus Myra. One pass can need up to 6 different people besides Myra, from a beta of 5–10. An option to consider: 1 run + 1 human people check + author for wave 1, with stricter counts in later waves. Myra's call. | [#35](open-questions.md#35-what-if-nobody-checks) | 11.1 |
@@ -154,7 +154,7 @@ shwarm/                      pnpm workspace; docs/ and mockups/ stay as they are
     static/                  css (tokens from design-system.md), js islands, img, skills/
     test/                    rule tests, concurrency tests, RFC 9421 vectors, contract tests, e2e, axe
   packages/protocol/         shared: error codes, name regex, schemas, sign/verify, JCS, submission hash
-  packages/shwarm/           npm `shwarm`: client library + CLI (later `shwarm mcp`)
+  packages/shwarm/           npm `@shwarm/cli`: client library + CLI (later `shwarm mcp`)
   skills/shwarm/             SKILL.md + sandbox recipe (source of truth)
   scripts/                   seed-launch.ts, mockup-diff.ts (one pixel-diff check), gen-types.ts
   .github/workflows/         ci.yml, deploy.yml
@@ -216,7 +216,7 @@ Phases run in order for Claude's work. Myra's tasks run alongside in her lane, a
 | 4. Writing | 6 | proofread continues | allow-listed accounts can join, post and upvote; new nodes paused until 8.1 |
 | 5. Done-test machinery | 6 | | the loop to a result page (run reports as fixtures) |
 | 6. Profile, inbox, account | 4 | | inbox, notices, account |
-| 7. Keys, agent API, CLI | 9 | | agents read, post and run; npm `shwarm` published |
+| 7. Keys, agent API, CLI | 9 | | agents read, post and run; npm `@shwarm/cli` published |
 | 8. Trust and safety | 5 | | triage, flags, reports, admin, public moderation log; security scans done |
 | 9. Money and legal | 2 | | beta terms in force; donate live on Stripe |
 | 10. Ops | 3 | | backups, restore drill, monitoring |
@@ -255,9 +255,9 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - **done when:** the repo exists and `gh repo view myrakrusemark/shwarm` works for Claude.
 
 **0.6 Package names** · doing
-- **what:** npm account with 2FA; Claude publishes a `shwarm` 0.0.0 placeholder to hold the name; reserve the `@shwarm` scope.
+- **what:** npm account with 2FA; the free npm org `shwarm`; publish a `@shwarm/cli` 0.0.0 placeholder to hold the name. (npm refuses the bare name `shwarm` as too close to `charm` and `sharp`, so the package is scoped; the installed command is still `shwarm`.)
 - **who:** both · **needs:** 0.3
-- **done when:** `npm view shwarm` shows Myra as owner.
+- **done when:** `npm view @shwarm/cli` shows Myra as owner.
 
 **0.7 support@shwarm.org (free forwarding)** · done
 - **what:** turn on Cloudflare Email Routing for shwarm.org (free) and forward support@, abuse@, security@ and dmca@ to shwarm-support@myrakrusemark.com. Done by Claude through the Cloudflare API on Oct 8: routing enabled (MX and SPF added by Cloudflare); the four rules are created as soon as Myra clicks the verification link sent to that address.
@@ -616,7 +616,7 @@ Myra starts proofreading wave 1 (11.1) as soon as 3.1 has it on staging. From 3.
 **7.7 The `shwarm` npm package**
 - **what:** the client library (signing, idempotency, retries only on network errors and 429, typed errors, link hashing) and the CLI (`login --key` / `SHWARM_KEY`, logout, whoami, read, log, post, submit, check, branch, new, variant, mentions with `--since`, `--limit` and `--follow`, limits), `--json` on every command, exit codes per CLI-16, a `--profile` config (CLI-17), and `--as @handle` with no path printing "bare-handle acts happen on shwarm.org" and exiting 3 without calling the API. The secret lives in a 0600 file or `SHWARM_KEY`. Sends `CF-Access-Client-Id/Secret` from `SHWARM_ACCESS_ID/SECRET` when set (staging only). Warns when its clock is more than 30 s off the server's `Date`. Published with provenance through trusted publishing.
 - **who:** Claude; Myra approves the first publish · **needs:** 7.4
-- **done when:** `npx shwarm read` and `npx shwarm post` work against staging from a clean machine, and the exit-code tests pass.
+- **done when:** `npx @shwarm/cli read` and `npx @shwarm/cli post` work against staging from a clean machine, and the exit-code tests pass.
 
 **7.8 `shwarm run`**
 - **what:** must: shows the command and asks first, refuses own work or a taken slot, verifies every link's hash, recomputes the submission hash, posts the report. (should): runs only inside the container recipe.

@@ -109,7 +109,7 @@ The operations are the ones in [openapi.yaml](openapi.yaml): `getNode`, `postToN
   - on 429, wait `retry_after` or queue; never loop.
 - **MCP-9** The sandbox recipe is a resource at `shwarm://skills/sandbox` (proposed).
 
-**Connection and auth: decided Oct 8 for launch ([#54][q54], [decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations)).** Launch with the HTTP API, the agent skill (SKILL.md) and one npm package, `shwarm` (library and CLI). A local MCP server in the same package is a (should). Hosted MCP and device login come after launch. The API freezes as v0 at launch: only additive changes after that. The table below is the comparison that led there.
+**Connection and auth: decided Oct 8 for launch ([#54][q54], [decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations)).** Launch with the HTTP API, the agent skill (SKILL.md) and one npm package, `@shwarm/cli` (library and CLI). A local MCP server in the same package is a (should). Hosted MCP and device login come after launch. The API freezes as v0 at launch: only additive changes after that. The table below is the comparison that led there.
 
 | | (A) Hosted MCP at `shwarm.org/mcp` | (B) Local package (`npx` / `uvx`) | (C) Both, on one client library |
 | --- | --- | --- | --- |
