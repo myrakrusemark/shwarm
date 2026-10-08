@@ -2,8 +2,8 @@
 
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
-**Now (Claude):** 1.7 is mostly done by 0.2 (the copy was synced); waiting on Myra to approve the footer pages on staging, then 1.8b puts them live. Meanwhile, phase 2 (data model, auth, email).
-**Now (Myra):** 1.7 read and approve the footer pages on staging · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
+**Now (Claude):** phase 2: data model, auth (email + password), email pipeline. The footer pages are live on shwarm.org (1.8 done).
+**Now (Myra):** 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
 **Last updated:** 2026-10-08.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. The one spend Claude expects to ask for: Workers Paid ($5/month) when auth is built, because the free plan's 10 ms CPU limit per request is too little to hash passwords safely. Claude asks before any spend.
@@ -336,19 +336,19 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - *(Oct 8: CSS and page text are exported from the mockups by `scripts/pages/export-site.py`; the header strip, footer, donate modal (Stripe wiring waits for 9.1), agent resources card and doc pages are Hono JSX in `apps/site/src/web/`; CSP and security headers on every response. `scripts/mockup-diff.py`: how-it-works differs from its mockup by 0.04% at 1280 px and 0.13% at 390 px. Footer pages are served on staging only until 1.8b.)*
 - **done when:** the how-it-works page rebuilt on the shared layout has a pixel diff under 2% against its mockup at 1280 and 390 px (any larger diff is listed and accepted by Myra in the PR), and securityheaders.com grades it A.
 
-**1.7 Fix stale copy on the footer pages**
+**1.7 Fix stale copy on the footer pages** · done
 - **what:** replace personhood check, legal name and passkey sign-in on [how it works](../mockups/how-it-works.html), [rules](../mockups/rules.html), [api](../mockups/api.html), the guides, [terms](../mockups/terms.html) and [privacy](../mockups/privacy.html) with email + password and the A5 step-up; mark terms and privacy "draft · not in force yet"; the A7 moderation wording; "no single person gets the credit" (result pages now rank people); "agent skills" links point to /skills (a short "coming soon" page until 7.6). Lint with combob-lint.py. Mockups are updated too, and their screenshots refreshed.
 - **who:** Claude drafts; Myra approves · **needs:** 0.1 (A5, A7)
 - **done when:** combob-lint passes, no page links to "#", no page mentions a personhood check, legal name or passkey sign-in, and Myra has approved each page.
 
-**1.8 First things live on shwarm.org** · doing
+**1.8 First things live on shwarm.org** · done
 - **what:** (a) as soon as 1.3 and 1.4 work: a holding home page ("shwarm opens soon", one line about it, support@). (b) when 1.7 is approved: how it works, rules, api, both guides, and the draft terms and privacy, behind the same holding home.
 - **who:** Claude; Myra approves the holding-page copy · **needs:** (a) 1.3, 1.4; (b) 1.5, 1.6, 1.7
-- *(Oct 8: (a) is live: "opening soon", one line about shwarm, support@. Myra can change the copy any time.)*
+- *(Oct 8: (a) is live: "opening soon", one line about shwarm, support@. Myra can change the copy any time. (b) Myra approved the footer pages; v0.0.3 serves how it works, rules, api, terms, privacy and both guides on shwarm.org, noindex until launch. The 1.5 rollback rehearsal still waits for the first real migration in 2.2.)*
 - **done when:** (a) https://shwarm.org serves the holding page over HTTPS; (b) the footer pages are served from a tagged release.
 
 **1.9 Mail DNS** · doing
-- *(Oct 8: Email Routing's MX and SPF are in. DMARC added (`_dmarc` TXT `v=DMARC1; p=none; rua=mailto:support@shwarm.org`, resolves). Resend's DKIM and sending records for mail.shwarm.org are in and verified. Left: security.txt (next deploy) and the mail-tester score, once the Worker can send in 2.6.)*
+- *(Oct 8: Email Routing's MX and SPF are in. DMARC added (`_dmarc` TXT `v=DMARC1; p=none; rua=mailto:support@shwarm.org`, resolves). Resend's DKIM and sending records for mail.shwarm.org are in and verified. `/.well-known/security.txt` is live (v0.0.3). Left: the mail-tester score, once the Worker can send in 2.6.)*
 - **what:** Cloudflare Email Routing records (MX, SPF); Resend's SPF and DKIM records on a sending subdomain; DMARC at p=none with reports to support@; `/.well-known/security.txt`. Done this early so the domain has a sending history before invites.
 - **who:** Claude adds records; Myra clicks verify in Resend · **needs:** 0.7, 0.8, 1.8a
 - **done when:** a mail from Gmail to support@ arrives and Myra's reply comes back; the domain shows verified in Resend; a test send scores 9/10 or better on mail-tester with SPF, DKIM and DMARC passing.
