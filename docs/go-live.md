@@ -2,7 +2,7 @@
 
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
-**Now (Claude):** phase 2: 2.1, 2.2, 2.4 done; next 2.3 (domain core and the ShwarmTree actor), then 2.5 sign-up, 2.6 email, 2.7 sign-in pages, 2.8 step-up.
+**Now (Claude):** phase 2 is running as a multi-agent workflow: 2.3 core and tree actor, 2.6 email, 2.5/2.7/2.8 accounts, each built in its own worktree, reviewed adversarially and fixed; then Claude merges, deploys to staging and reports.
 **Now (Myra):** copy the two production lines from `~/.config/shwarm/secrets.txt` into your password manager · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
 **Last updated:** 2026-10-08.
 
