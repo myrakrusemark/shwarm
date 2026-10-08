@@ -2,7 +2,7 @@
 
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
-**Now (Claude):** 1.6 the shared layout (tokens, header strip, footer, donate modal with Stripe, agent resources card, modal shell). The 1.5 rollback rehearsal waits for the first real migration (2.2).
+**Now (Claude):** 1.7 is mostly done by 0.2 (the copy was synced); waiting on Myra to approve the footer pages on staging, then 1.8b puts them live. Meanwhile, phase 2 (data model, auth, email).
 **Now (Myra):** Cloudflare 2FA · 0.8 Resend (before 1.9) · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
 **Last updated:** 2026-10-08.
 
@@ -328,9 +328,10 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - *(Oct 8: main → staging after CI passes, with a smoke test; a `v*` tag → production with tests, a Time Travel bookmark, migrations and a smoke test. Pushing the tag is the approval (GitHub's required reviewers need a paid plan on private repos). v0.0.1 reached production through CI. Still to do: the rollback rehearsal, once there's a real migration in phase 2.)*
 - **done when:** a tagged release reaches prod through CI only, and a rollback rehearsal on staging that includes a migration is logged, with the previous release still passing against the new schema.
 
-**1.6 Shared layout**
+**1.6 Shared layout** · done
 - **what:** lift the `:root` tokens and shared CSS into one stylesheet (kept in sync with [design system](design-system.md)); shared partials for header, strip (signed out: "sign in · join", and "welcome new friends!"), footer, donate modal ("donations open soon" for now), agent resources card, modal shell (×, Esc, scrim, focus trap); favicon, default social card; security headers and CSP (inline scripts moved to files). `scripts/mockup-diff.ts`: one small Playwright + pixelmatch check.
 - **who:** Claude · **needs:** 1.3
+- *(Oct 8: CSS and page text are exported from the mockups by `scripts/pages/export-site.py`; the header strip, footer, donate modal (Stripe wiring waits for 9.1), agent resources card and doc pages are Hono JSX in `apps/site/src/web/`; CSP and security headers on every response. `scripts/mockup-diff.py`: how-it-works differs from its mockup by 0.04% at 1280 px and 0.13% at 390 px. Footer pages are served on staging only until 1.8b.)*
 - **done when:** the how-it-works page rebuilt on the shared layout has a pixel diff under 2% against its mockup at 1280 and 390 px (any larger diff is listed and accepted by Myra in the PR), and securityheaders.com grades it A.
 
 **1.7 Fix stale copy on the footer pages**

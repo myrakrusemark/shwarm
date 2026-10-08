@@ -1,5 +1,7 @@
 import { Hono } from 'hono'
 import { basicAuth } from 'hono/basic-auth'
+import { html } from 'hono/html'
+import { DocPage, findPage } from './web/doc'
 
 type Env = { DB: D1Database; ENV: string; SITE_MODE: string; STAGING_PASSWORD?: string }
 
@@ -19,6 +21,7 @@ app.use('*', async (c, next) => {
   c.header('Referrer-Policy', 'strict-origin-when-cross-origin')
   c.header('X-Frame-Options', 'DENY')
   c.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  c.header('Content-Security-Policy', "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com")
 })
 
 // Staging is private: a shared password (wrangler secret STAGING_PASSWORD). Health stays open for uptime checks.
@@ -69,6 +72,14 @@ const HOLDING = `<!doctype html>
 </main>
 </body>
 </html>`
+
+// Footer pages and guides: on staging now; production gets them at go-live step 1.8b (after Myra approves the copy).
+app.get('/:slug{[a-z0-9-]+}', (c, next) => {
+  const page = findPage(c.req.param('slug'))
+  if (!page || c.env.ENV === 'production') return next()
+  c.header('X-Robots-Tag', 'noindex')
+  return c.html(html`<!doctype html>${DocPage({ page })}`)
+})
 
 app.get('/', c => {
   c.header('X-Robots-Tag', 'noindex')

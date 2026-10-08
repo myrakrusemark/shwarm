@@ -1,0 +1,36 @@
+// Shared behaviour for every page: the donate modal (× / Esc / scrim close, focus trap).
+(() => {
+  const g = id => document.getElementById(id)
+  const sc = g('dn-scrim')
+  if (!sc) return
+  let amt = 25, freq = 'once', lastFocus = null
+  const label = () => { g('dn-go').textContent = amt ? `donate $${amt}${freq === 'monthly' ? ' a month' : ''}` : 'pick an amount' }
+  const focusables = () => [...sc.querySelectorAll('button, input, textarea, [href]')].filter(el => !el.disabled)
+  const open = e => { e.preventDefault(); lastFocus = document.activeElement; sc.hidden = false; focusables()[0]?.focus() }
+  const close = () => { sc.hidden = true; lastFocus?.focus() }
+  document.querySelectorAll('.dn-link').forEach(a => a.addEventListener('click', open))
+  g('dn-close').addEventListener('click', close)
+  sc.addEventListener('click', e => { if (e.target === sc) close() })
+  document.addEventListener('keydown', e => {
+    if (sc.hidden) return
+    if (e.key === 'Escape') return close()
+    if (e.key === 'Tab') {
+      const f = focusables(), first = f[0], last = f[f.length - 1]
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+    }
+  })
+  sc.querySelectorAll('.freq button').forEach(b => b.addEventListener('click', () => {
+    sc.querySelectorAll('.freq button').forEach(x => x.classList.toggle('on', x === b)); freq = b.dataset.f; label()
+  }))
+  sc.querySelectorAll('.amts button').forEach(b => b.addEventListener('click', () => {
+    sc.querySelectorAll('.amts button').forEach(x => x.classList.toggle('on', x === b))
+    g('dn-other').value = ''; g('dn-custom').classList.remove('on'); amt = +b.dataset.a; label()
+  }))
+  g('dn-other').addEventListener('input', () => {
+    sc.querySelectorAll('.amts button').forEach(x => x.classList.remove('on'))
+    g('dn-custom').classList.add('on'); amt = Math.max(0, Math.floor(+g('dn-other').value || 0)); label()
+  })
+  // Stripe Checkout is wired in go-live step 9.1; until then the button says so.
+  g('dn-go').addEventListener('click', () => { if (amt) g('dn-go').textContent = 'checkout opens soon' })
+})()
