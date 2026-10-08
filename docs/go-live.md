@@ -296,7 +296,7 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - **who:** Myra · **needs:** money · **due before:** public sign-up
 - **done when:** the review date is in decisions.md.
 
-**0.14 NCMEC registration**
+**0.14 NCMEC registration** · doing
 - **what:** register shwarm as an electronic service provider with the NCMEC CyberTipline, under the operator, so a report can be filed the day it's needed. (Not legal advice; confirm with the lawyer if one is booked.)
 - **who:** Myra · **needs:** 0.10 · **due before:** 11.6
 - **done when:** the registration is confirmed and on the accounts list.
@@ -324,10 +324,10 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - *(Oct 8: apex and www on the production Worker (www 301s to apex), HSTS (short max-age), nosniff, frame and referrer headers, and plain `python-requests` isn't challenged. Staging uses a shared password in the Worker (secret `STAGING_PASSWORD`, kept in Myra's ~/.config/shwarm/staging.txt) instead of Cloudflare Access, which keeps it free and simple; `/healthz` stays open for uptime checks. Always HTTPS, TLS 1.2 minimum, automatic HTTPS rewrites and strict SSL applied by the `zone-settings` workflow (run by hand; the token stays in GitHub). CAA records skipped: Cloudflare manages its own certificate authorities, and a wrong CAA record can block certificate renewal.)*
 - **done when:** `curl -I` shows the redirects and headers, staging asks for Access in a browser, a curl with the service token reaches staging, and `curl -A python-requests https://shwarm.org/` isn't challenged.
 
-**1.5 Deploy pipeline** · doing
+**1.5 Deploy pipeline** · done
 - **what:** merge to main → migrations + deploy to staging + smoke test; a tag with approval → production. Migrations are expand-then-contract: every migration works with the previous release's code, and dropping a column waits one release. Before migrating prod, CI records a D1 Time Travel bookmark (`wrangler d1 time-travel info`) in the deploy log. CI runs the previous tag's tests against the new schema. Rollback with `wrangler rollback`.
 - **who:** Claude · **needs:** 1.2, 1.3
-- *(Oct 8: main → staging after CI passes, with a smoke test; a `v*` tag → production with tests, a Time Travel bookmark, migrations and a smoke test. Pushing the tag is the approval (GitHub's required reviewers need a paid plan on private repos). v0.0.1 reached production through CI. Still to do: the rollback rehearsal, once there's a real migration in phase 2.)*
+- *(Oct 8: main → staging after CI passes, with a smoke test; a `v*` tag → production with tests, a Time Travel bookmark, migrations and a smoke test. Pushing the tag is the approval (GitHub's required reviewers need a paid plan on private repos). v0.0.1 reached production through CI. Rollback rehearsed on staging with migration 0002 (Oct 8): the previous release stayed healthy on the new schema, and a Time Travel restore took 4 seconds; steps and log in [the runbook](runbook.md).)*
 - **done when:** a tagged release reaches prod through CI only, and a rollback rehearsal on staging that includes a migration is logged, with the previous release still passing against the new schema.
 
 **1.6 Shared layout** · done
@@ -344,7 +344,7 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 **1.8 First things live on shwarm.org** · done
 - **what:** (a) as soon as 1.3 and 1.4 work: a holding home page ("shwarm opens soon", one line about it, support@). (b) when 1.7 is approved: how it works, rules, api, both guides, and the draft terms and privacy, behind the same holding home.
 - **who:** Claude; Myra approves the holding-page copy · **needs:** (a) 1.3, 1.4; (b) 1.5, 1.6, 1.7
-- *(Oct 8: (a) is live: "opening soon", one line about shwarm, support@. Myra can change the copy any time. (b) Myra approved the footer pages; v0.0.3 serves how it works, rules, api, terms, privacy and both guides on shwarm.org, noindex until launch. The 1.5 rollback rehearsal still waits for the first real migration in 2.2.)*
+- *(Oct 8: (a) is live: "opening soon", one line about shwarm, support@. Myra can change the copy any time. (b) Myra approved the footer pages; v0.0.3 serves how it works, rules, api, terms, privacy and both guides on shwarm.org, noindex until launch. )*
 - **done when:** (a) https://shwarm.org serves the holding page over HTTPS; (b) the footer pages are served from a tagged release.
 
 **1.9 Mail DNS** · doing
@@ -371,7 +371,8 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - **who:** Claude · **needs:** 0.1
 - **done when:** unit tests cover every name and hash case.
 
-**2.2 Schema**
+**2.2 Schema** · done
+- *(Oct 8: `migrations/0002_schema.sql` (0001 already held the meta table): every table in §4 with constraints for the decided rules (one done test, four states, one check slot per person per submission, fail needs a repro, no bare-handle key patterns), FTS5 on nodes with triggers, append-only audit_event, settings seeded closed (holding, allow-list sign-up). Applied on local and staging; 9 schema tests, including an audit update and delete that fail.)*
 - **what:** migration 0001 with every table in section 4, FTS triggers, and append-only triggers on audit_event.
 - **who:** Claude · **needs:** 2.1
 - **done when:** migrations apply on local and staging, and a test confirms that updating an audit event fails.
