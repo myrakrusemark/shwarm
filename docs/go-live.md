@@ -2,7 +2,7 @@
 
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
-**Now (Claude):** 1.2 CI, then the rest of 1.4 (staging behind Access, security headers) and 1.5 the deploy pipeline.
+**Now (Claude):** 1.6 the shared layout (tokens, header strip, footer, donate modal with Stripe, agent resources card, modal shell). The 1.5 rollback rehearsal waits for the first real migration (2.2).
 **Now (Myra):** npm 2FA, then publish the placeholder (0.6) · Cloudflare 2FA and usage notifications · create the free `shwarm` org on npmjs.com · 0.8 Resend (before 1.9) · a separate Stripe account for shwarm (before 9.1) · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
 **Last updated:** 2026-10-08.
 
@@ -316,15 +316,16 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - **who:** Claude · **needs:** 0.4, 1.1
 - **done when:** a hello page deploys to both environments and `/healthz` reads D1. *(Oct 8: done. D1 `shwarm-staging` and `shwarm-production` in eastern North America; Workers `shwarm-staging` and `shwarm-production`; production on shwarm.org and www (301 to apex). Durable Objects, cron and R2 get added in the step that first needs them; Queues are skipped while on the free plan.)*
 
-**1.4 DNS, TLS and edge settings** · doing
+**1.4 DNS, TLS and edge settings** · done
 - **what:** Worker on the apex, www → apex 301, staging.shwarm.org behind Cloudflare Access (Myra's email plus later the committed invitees) with noindex; an Access service token for CI, uptime checks and agent tests; an Access bypass for `/webhooks/*` (those routes check their own secret); Always HTTPS, TLS 1.2 minimum, CAA records, HSTS with a short max-age; Bot Fight Mode and "block AI bots" off, with WAF skip rules for `/w/*` and API paths; robots.txt.
 - **who:** Claude · **needs:** 1.3
-- *(Oct 8: apex and www on the production Worker (www 301s to apex), HSTS (short max-age), nosniff, frame and referrer headers, and plain `python-requests` isn't challenged. Staging uses a shared password in the Worker (secret `STAGING_PASSWORD`, kept in Myra's ~/.config/shwarm/staging.txt) instead of Cloudflare Access, which keeps it free and simple; `/healthz` stays open for uptime checks. Still to do: CAA records and the Always-HTTPS / TLS 1.2 zone settings, which need a Cloudflare API token with zone-settings access (1.5).)*
+- *(Oct 8: apex and www on the production Worker (www 301s to apex), HSTS (short max-age), nosniff, frame and referrer headers, and plain `python-requests` isn't challenged. Staging uses a shared password in the Worker (secret `STAGING_PASSWORD`, kept in Myra's ~/.config/shwarm/staging.txt) instead of Cloudflare Access, which keeps it free and simple; `/healthz` stays open for uptime checks. Always HTTPS, TLS 1.2 minimum, automatic HTTPS rewrites and strict SSL applied by the `zone-settings` workflow (run by hand; the token stays in GitHub). CAA records skipped: Cloudflare manages its own certificate authorities, and a wrong CAA record can block certificate renewal.)*
 - **done when:** `curl -I` shows the redirects and headers, staging asks for Access in a browser, a curl with the service token reaches staging, and `curl -A python-requests https://shwarm.org/` isn't challenged.
 
-**1.5 Deploy pipeline**
+**1.5 Deploy pipeline** · doing
 - **what:** merge to main → migrations + deploy to staging + smoke test; a tag with approval → production. Migrations are expand-then-contract: every migration works with the previous release's code, and dropping a column waits one release. Before migrating prod, CI records a D1 Time Travel bookmark (`wrangler d1 time-travel info`) in the deploy log. CI runs the previous tag's tests against the new schema. Rollback with `wrangler rollback`.
 - **who:** Claude · **needs:** 1.2, 1.3
+- *(Oct 8: main → staging after CI passes, with a smoke test; a `v*` tag → production with tests, a Time Travel bookmark, migrations and a smoke test. Pushing the tag is the approval (GitHub's required reviewers need a paid plan on private repos). v0.0.1 reached production through CI. Still to do: the rollback rehearsal, once there's a real migration in phase 2.)*
 - **done when:** a tagged release reaches prod through CI only, and a rollback rehearsal on staging that includes a migration is logged, with the previous release still passing against the new schema.
 
 **1.6 Shared layout**
