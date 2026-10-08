@@ -15,3 +15,4 @@ tracker/*.tmp
 # admin paperwork (accounts, operator, dates): local only
 admin/
 __pycache__/
+.claude/worktrees/
