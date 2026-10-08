@@ -102,19 +102,11 @@ export const JoinPage: FC<{ token: string; siteKey?: string; inviteOnly: boolean
   </Shell>
 )
 
-export const InviteOnlyPage: FC = () => (
-  <Shell title="invite-only for now" heading="invite-only for now">
-    <div class="in">
-      <p>shwarm is invite-only while it's new, so that address can't join yet.</p>
-      <p>you can still read everything. if you got an invite, join with the address it came to.</p>
-      <p><a href="/">back to shwarm</a></p>
-    </div>
-  </Shell>
-)
-
 // ---------- check your email ----------
 
-export const CheckEmailPage: FC<{ token: string; kind: 'verify' | 'reset'; sent?: boolean; unverified?: boolean }> = ({ token, kind, sent, unverified }) => (
+export const CheckEmailPage: FC<{ token: string; kind: 'verify' | 'reset'; sent?: boolean; unverified?: boolean; inviteOnly?: boolean }> = ({
+  token, kind, sent, unverified, inviteOnly,
+}) => (
   <Shell title="check your email" heading="check your email">
     {sent && <Msg ok text="sent again. it can take a minute or two." />}
     <div class="in">
@@ -125,7 +117,16 @@ export const CheckEmailPage: FC<{ token: string; kind: 'verify' | 'reset'; sent?
         </>
       ) : (
         <>
-          {unverified ? <p>your email isn't verified yet. until it is, you can read and sign in, nothing else.</p> : <p>we sent the next step to that address. a link to verify it works for 7 days.</p>}
+          {unverified ? (
+            <p>your email isn't verified yet. until it is, you can read and sign in, nothing else.</p>
+          ) : inviteOnly ? (
+            <>
+              <p>if that address can join, we sent the next step to it. a link to verify it works for 7 days.</p>
+              <p>shwarm is invite-only while it's new. if you got an invite, join with the address it came to.</p>
+            </>
+          ) : (
+            <p>we sent the next step to that address. a link to verify it works for 7 days.</p>
+          )}
           <p>nothing there? look in spam, or send it again.</p>
           <form method="post" action="/check-email">
             <Token value={token} />
@@ -139,8 +140,12 @@ export const CheckEmailPage: FC<{ token: string; kind: 'verify' | 'reset'; sent?
 
 // ---------- links from email ----------
 
-export const VerifyPage: FC<{ token: string; t: string }> = ({ token, t }) => (
+export const VerifyPage: FC<{ token: string; t: string; handle: string }> = ({ token, t, handle }) => (
   <Shell title="verify your email" heading="verify your email">
+    <div class="in">
+      <p>this link finishes joining as <strong>@{handle}</strong>.</p>
+      <p>didn't sign up as @{handle}? don't press the button. an account that's never verified is deleted after 7 days.</p>
+    </div>
     <form method="post" action="/verify">
       <Token value={token} />
       <input type="hidden" name="t" value={t} />

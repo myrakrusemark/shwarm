@@ -15,6 +15,10 @@ export const LIMITS = {
   signupIp: { tripAt: 6, windowMs: HOUR, blockMs: HOUR },
   /** sign-up attempts at one email domain: 30 an hour */
   signupDomain: { tripAt: 31, windowMs: HOUR, blockMs: HOUR },
+  /** "send it again" for one pending account: 3 an hour */
+  resendPerson: { tripAt: 4, windowMs: HOUR, blockMs: HOUR },
+  /** "send it again" from one network: 10 an hour */
+  resendIp: { tripAt: 11, windowMs: HOUR, blockMs: HOUR },
 } satisfies Record<string, Limit>
 
 const iso = (ms: number) => new Date(ms).toISOString()
@@ -45,6 +49,25 @@ export async function bump(db: D1Database, scope: string, limit: Limit, now = Da
     .bind(scope, count, start, blocked)
     .run()
   return blocked ? Math.ceil(limit.blockMs / 1000) : 0
+}
+
+/** Events counted in this scope's current window (or while it's blocked); 0 when it's clean. */
+export async function recentCount(db: D1Database, scope: string, limit: Limit, now = Date.now()): Promise<number> {
+  const row = await db.prepare('SELECT count, window_start, blocked_until FROM auth_throttle WHERE scope = ?').bind(scope).first<Row>()
+  if (!row) return 0
+  if (row.blocked_until && Date.parse(row.blocked_until) > now) return row.count
+  return now - Date.parse(row.window_start) < limit.windowMs ? row.count : 0
+}
+
+/** Records that something happened now in this scope, without counting toward a limit. */
+export async function stamp(db: D1Database, scope: string, now = Date.now()) {
+  await db
+    .prepare(
+      `INSERT INTO auth_throttle (scope, count, window_start, blocked_until) VALUES (?, 0, ?, NULL)
+       ON CONFLICT (scope) DO UPDATE SET count = 0, window_start = excluded.window_start, blocked_until = NULL`,
+    )
+    .bind(scope, iso(now))
+    .run()
 }
 
 export async function clearThrottle(db: D1Database, scope: string) {

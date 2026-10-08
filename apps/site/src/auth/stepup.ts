@@ -31,16 +31,34 @@ function backTo(c: Context): string {
 }
 
 /**
- * Guard for a gated act. Returns null when the session's window is open; otherwise a redirect to
- * /step-up?next=… (or to /signin when signed out). `next` must be a same-site path; anything else becomes "/".
+ * Guard for an everyday bare-handle act (A5): a signed-in session whose email is verified. Returns null when
+ * that holds; otherwise a redirect to /signin?next=… (signed out) or /check-email (unverified).
+ *
+ *   const stop = await requireVerified(c); if (stop) return stop
+ */
+export async function requireVerified<E extends { Bindings: { DB: D1Database } }>(c: Context<E>, opts: { next?: string; now?: number } = {}): Promise<Response | null> {
+  const session = await readSession((c.env as { DB: D1Database }).DB, getCookie(c, COOKIE), opts.now ?? Date.now())
+  return gate(c, session, opts.next) ?? null
+}
+
+/**
+ * Guard for a gated act. Returns null when the session is verified and its window is open; otherwise a
+ * redirect to /step-up?next=… (or to /signin when signed out, /check-email when unverified). `next` must be
+ * a same-site path; anything else becomes "/".
  *
  *   const stop = await requireStepUp(c); if (stop) return stop
  */
 export async function requireStepUp<E extends { Bindings: { DB: D1Database } }>(c: Context<E>, opts: { next?: string; now?: number } = {}): Promise<Response | null> {
   const now = opts.now ?? Date.now()
   const session = await readSession((c.env as { DB: D1Database }).DB, getCookie(c, COOKIE), now)
+  const stop = gate(c, session, opts.next)
+  if (stop) return stop
   if (stepUpOpen(session, now)) return null
-  const next = safeNext(opts.next ?? backTo(c)) ?? '/'
-  const to = session ? `/step-up?next=${encodeURIComponent(next)}` : `/signin?next=${encodeURIComponent(next)}`
-  return c.redirect(to, 303)
+  return c.redirect(`/step-up?next=${encodeURIComponent(safeNext(opts.next ?? backTo(c)) ?? '/')}`, 303)
+}
+
+/** Signed out goes to sign-in, unverified goes to check-your-email; undefined when neither. */
+function gate(c: Context, session: Session | null, next?: string): Response | undefined {
+  if (!session) return c.redirect(`/signin?next=${encodeURIComponent(safeNext(next ?? backTo(c)) ?? '/')}`, 303)
+  if (!session.verified) return c.redirect('/check-email', 303)
 }

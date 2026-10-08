@@ -68,8 +68,29 @@ export function safeNext(raw: unknown): string | null {
     const base = 'https://shwarm.invalid'
     const u = new URL(raw, base)
     if (u.origin !== base) return null
-    return u.pathname + u.search + u.hash
+    // Check the normalized path too: dot segments collapse, so "/.//evil.example" comes back as "//evil.example".
+    const out = u.pathname + u.search + u.hash
+    if (out.startsWith('//') || out.includes('\\')) return null
+    return out
   } catch {
     return null
   }
+}
+
+/**
+ * Runs `work` after the response when the runtime gives an ExecutionContext (so its time doesn't show in the
+ * response), else right now. Errors after the response are logged; errors now are thrown.
+ */
+export async function later(c: Context, work: () => Promise<unknown>): Promise<void> {
+  let ctx: { waitUntil(p: Promise<unknown>): void } | undefined
+  try {
+    ctx = c.executionCtx
+  } catch {
+    // no ExecutionContext (tests, direct calls)
+  }
+  if (!ctx) {
+    await work()
+    return
+  }
+  ctx.waitUntil(work().catch(e => console.error('deferred work failed', e)))
 }

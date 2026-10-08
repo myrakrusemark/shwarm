@@ -6,11 +6,11 @@ import { getCookie } from 'hono/cookie'
 import { html } from 'hono/html'
 import type { Child } from 'hono/jsx'
 import {
-  CheckEmailPage, ExpiredPage, ForgotPage, FormExpiredPage, InviteOnlyPage, JoinPage, ResetPage, SignInPage, SlowDownPage,
+  CheckEmailPage, ExpiredPage, ForgotPage, FormExpiredPage, JoinPage, ResetPage, SignInPage, SlowDownPage,
   StepUpPage, VerifiedPage, VerifyPage,
 } from '../web/auth-pages'
 import { isPwned, passwordProblem } from './password'
-import { clientIp, formOf, pageToken, postedTokenOk, safeNext, who, type AuthContext, type AuthEnv, type Who } from './request'
+import { clientIp, formOf, later, pageToken, postedTokenOk, safeNext, who, type AuthContext, type AuthEnv, type Who } from './request'
 import { clearCookie, endSession, sessionCookie } from './session'
 import { applyReset, markVerified, sendReset, signIn, stepUp } from './signin'
 import { COPY, PEND_COOKIE, PEND_SECONDS, resendVerify, setting, signUp } from './signup'
@@ -57,10 +57,11 @@ auth.post('/join', async c => {
     return render(c, <JoinPage token={await pageToken(c, w)} siteKey={c.env.TURNSTILE_SITE_KEY} inviteOnly={inviteOnly} values={values} errors={errors} />, 400)
   }
   if (!(await turnstileOk(c.env, f[TURNSTILE_FIELD], clientIp(c)))) return again({ turnstile: COPY.turnstile })
-  const r = await signUp(c.env.DB, c.env, f, { ip: clientIp(c), origin: origin(c), pend: getCookie(c, PEND_COOKIE), sessionPersonId: w.session?.personId })
+  const r = await signUp(c.env.DB, c.env, f, {
+    ip: clientIp(c), origin: origin(c), pend: getCookie(c, PEND_COOKIE), sessionPersonId: w.session?.personId, defer: work => later(c, work),
+  })
   if (r.kind === 'errors') return again(r.errors)
   if (r.kind === 'slow') return slow(c, r.seconds)
-  if (r.kind === 'invite_only') return render(c, <InviteOnlyPage />, 403)
   c.header('Set-Cookie', `${PEND_COOKIE}=${r.pend}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=${PEND_SECONDS}`, { append: true })
   return c.redirect('/check-email', 303)
 })
@@ -69,13 +70,15 @@ auth.get('/check-email', async c => {
   const w = await who(c)
   const p = await personOf(c, w)
   const kind = c.req.query('r') === 'reset' ? 'reset' : 'verify'
-  return render(c, <CheckEmailPage token={await pageToken(c, w)} kind={kind} sent={c.req.query('sent') === '1'} unverified={!!p && !p.email_verified_at} />)
+  const inviteOnly = (await setting<string>(c.env.DB, 'signup')) !== 'open'
+  return render(c, <CheckEmailPage token={await pageToken(c, w)} kind={kind} sent={c.req.query('sent') === '1'} unverified={!!p && !p.email_verified_at} inviteOnly={inviteOnly} />)
 })
 
 auth.post('/check-email', async c => {
   const w = await who(c)
   if (!(await postedTokenOk(c, w, await formOf(c)))) return formExpired(c)
-  await resendVerify(c.env.DB, c.env, { origin: origin(c), pend: getCookie(c, PEND_COOKIE), sessionPersonId: w.session?.personId })
+  const wait = await resendVerify(c.env.DB, c.env, { ip: clientIp(c), origin: origin(c), pend: getCookie(c, PEND_COOKIE), sessionPersonId: w.session?.personId })
+  if (wait) return slow(c, wait)
   return c.redirect('/check-email?sent=1', 303)
 })
 
@@ -83,9 +86,11 @@ auth.post('/check-email', async c => {
 
 auth.get('/verify', async c => {
   const t = c.req.query('t') ?? ''
-  if (!(await peekToken(c.env.DB, t, 'verify'))) return render(c, <ExpiredPage kind="verify" />, 410)
+  const personId = await peekToken(c.env.DB, t, 'verify')
+  const p = personId ? await c.env.DB.prepare('SELECT handle FROM person WHERE id = ?').bind(personId).first<{ handle: string }>() : null
+  if (!p) return render(c, <ExpiredPage kind="verify" />, 410)
   const w = await who(c)
-  return render(c, <VerifyPage token={await pageToken(c, w)} t={t} />)
+  return render(c, <VerifyPage token={await pageToken(c, w)} t={t} handle={p.handle} />)
 })
 
 auth.post('/verify', async c => {
@@ -94,7 +99,8 @@ auth.post('/verify', async c => {
   if (!(await postedTokenOk(c, w, f))) return formExpired(c)
   const personId = await consumeToken(c.env.DB, f.t, 'verify')
   if (!personId) return render(c, <ExpiredPage kind="verify" />, 410)
-  await markVerified(c.env.DB, personId, origin(c))
+  // Every other session of the account ends: whoever signed in before never proved they hold this inbox.
+  await markVerified(c.env.DB, personId, origin(c), { keepSession: w.session?.personId === personId ? w.session.id : undefined })
   return c.redirect('/verified', 303)
 })
 
@@ -150,7 +156,8 @@ auth.post('/forgot', async c => {
   if (!(await postedTokenOk(c, w, f))) return formExpired(c)
   const again = async (error: string) => render(c, <ForgotPage token={await pageToken(c, w)} siteKey={c.env.TURNSTILE_SITE_KEY} email={f.email} error={error} />, 400)
   if (!(await turnstileOk(c.env, f[TURNSTILE_FIELD], clientIp(c)))) return again(COPY.turnstile)
-  await sendReset(c.env.DB, f.email ?? '', origin(c))
+  // After the response, so the time taken doesn't show whether the address has an account.
+  await later(c, () => sendReset(c.env.DB, f.email ?? '', origin(c)))
   return c.redirect('/check-email?r=reset', 303)
 })
 

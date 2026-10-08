@@ -12,11 +12,20 @@ export function testEnv(db = testDb()) {
 }
 export type TestEnv = ReturnType<typeof testEnv>
 
-type Fetcher = { fetch: (req: Request, env?: any) => Response | Promise<Response> }
+type Fetcher = { fetch: (req: Request, env?: any, ctx?: any) => Response | Promise<Response> }
 
 export class Browser {
   jar = new Map<string, string>()
+  /** Set to give requests an ExecutionContext; work passed to waitUntil collects in `pending`. */
+  ctx?: { waitUntil(p: Promise<unknown>): void; passThroughOnException(): void; pending: Promise<unknown>[] }
   constructor(public env: TestEnv, public ip = '203.0.113.9', public site: Fetcher = app) {}
+
+  /** Requests from now on get an ExecutionContext, as on Workers. */
+  withContext(): this {
+    const pending: Promise<unknown>[] = []
+    this.ctx = { pending, waitUntil: p => void pending.push(p), passThroughOnException() {} }
+    return this
+  }
 
   async req(path: string, init: { method?: string; form?: Record<string, string>; headers?: Record<string, string> } = {}): Promise<Response> {
     const method = init.method ?? (init.form ? 'POST' : 'GET')
@@ -26,7 +35,7 @@ export class Browser {
     if (init.form) headers['content-type'] = 'application/x-www-form-urlencoded'
     Object.assign(headers, init.headers)
     const body = init.form ? new URLSearchParams(init.form).toString() : undefined
-    const res = await this.site.fetch(new Request(ORIGIN + path, { method, headers, body }), this.env)
+    const res = await this.site.fetch(new Request(ORIGIN + path, { method, headers, body }), this.env, this.ctx)
     for (const sc of (res.headers as unknown as { getSetCookie(): string[] }).getSetCookie()) {
       const [pair, ...attrs] = sc.split(';')
       const i = pair.indexOf('=')

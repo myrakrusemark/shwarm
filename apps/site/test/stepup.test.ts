@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { hashPassword } from '../src/auth/password'
-import { requireStepUp } from '../src/auth/stepup'
+import { requireStepUp, requireVerified } from '../src/auth/stepup'
 import app from '../src/index'
 import { addPerson, T0 } from './d1'
 import { body, Browser, fakeFetch, GOOD_PASSWORD, pepper, testEnv } from './browser'
@@ -13,6 +13,7 @@ const site = new Hono<{ Bindings: { DB: D1Database } }>()
 site.route('/', app)
 site.get('/keys', async c => (await requireStepUp(c)) ?? c.text('your keys'))
 site.post('/keys/new', async c => (await requireStepUp(c)) ?? c.text('key made'))
+site.post('/reply', async c => (await requireVerified(c)) ?? c.text('posted'))
 
 beforeEach(() => {
   vi.stubGlobal('fetch', fakeFetch())
@@ -24,10 +25,10 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-async function signedIn() {
+async function signedIn(opts: { verified?: boolean } = {}) {
   const env = testEnv()
   const id = await addPerson(env.DB, 'myra', { hash: await hashPassword(GOOD_PASSWORD, pepper) })
-  env.DB.raw.prepare('UPDATE person SET email_verified_at = ? WHERE id = ?').run(new Date(T0).toISOString(), id)
+  if (opts.verified !== false) env.DB.raw.prepare('UPDATE person SET email_verified_at = ? WHERE id = ?').run(new Date(T0).toISOString(), id)
   const b = new Browser(env, '203.0.113.9', site)
   expect((await b.post('/signin', { email: 'myra@example.org', password: GOOD_PASSWORD })).status).toBe(303)
   return { env, b }
@@ -74,6 +75,24 @@ describe('step-up', () => {
     // a POST from a page on another site never becomes the next
     res = await b.req('/keys/new', { method: 'POST', headers: { referer: 'https://evil.example/x' } })
     expect(res.headers.get('location')).toBe('/signin?next=%2F')
+  })
+
+  it('refuses gated and everyday acts to an unverified account, even with the window open', async () => {
+    const { env, b } = await signedIn({ verified: false })
+    let res = await b.get('/keys')
+    expect(res.status).toBe(303)
+    expect(res.headers.get('location')).toBe('/check-email')
+    res = await b.post('/keys/new')
+    expect(res.headers.get('location')).toBe('/check-email')
+    res = await b.req('/reply', { method: 'POST' })
+    expect(res.headers.get('location')).toBe('/check-email')
+    // verified, the same session goes through
+    env.DB.raw.prepare('UPDATE person SET email_verified_at = ?').run(new Date(T0).toISOString())
+    expect(await (await b.get('/keys')).text()).toBe('your keys')
+    expect(await (await b.req('/reply', { method: 'POST' })).text()).toBe('posted')
+    // signed out, an everyday act asks for sign-in
+    res = await new Browser(env, '203.0.113.9', site).req('/reply', { method: 'POST', headers: { referer: 'https://shwarm.org/w/minecraft-in-doom' } })
+    expect(res.headers.get('location')).toBe('/signin?next=%2Fw%2Fminecraft-in-doom')
   })
 
   it('is throttled like sign-in', async () => {

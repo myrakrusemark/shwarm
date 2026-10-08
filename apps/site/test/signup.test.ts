@@ -3,7 +3,7 @@ import { deleteUnverified } from '../src/auth/cleanup'
 import { isDisposable, parseEmail } from '../src/auth/email'
 import { bump, LIMITS } from '../src/auth/throttle'
 import { T0, testDb } from './d1'
-import { allow, body, Browser, fakeFetch, joinForm, linkIn, mails, sameShape, setSignup, testEnv } from './browser'
+import { allow, body, Browser, fakeFetch, GOOD_PASSWORD, joinForm, linkIn, mails, sameShape, setSignup, testEnv } from './browser'
 
 let fetcher: ReturnType<typeof fakeFetch>
 beforeEach(() => {
@@ -140,15 +140,66 @@ describe('sign-up', () => {
     expect(await bump(db, 'signup:domain:example.org', LIMITS.signupDomain, T0 + 61 * 60_000)).toBe(0) // not for good
   })
 
-  it('shows the invite-only page to an address off the allow-list', async () => {
+  it('turns away an address off the allow-list with the same answer an existing account gets', async () => {
     const env = testEnv() // signup setting starts as allow_list
-    const b = new Browser(env)
-    expect(await (await b.get('/join')).text()).toContain('invite-only for now')
-    const res = await b.post('/join', joinForm('stranger', 'stranger@example.org'))
-    expect(res.status).toBe(403)
-    expect(await body(res)).toContain('invite-only while it')
+    await allow(env.DB, 'member@example.org')
+    const m = new Browser(env, '192.0.2.1')
+    await m.post('/join', joinForm('member', 'member@example.org'))
+    expect(await (await new Browser(env).get('/join')).text()).toContain('invite-only for now')
+    // a stranger, and someone typing the member's address with a fresh handle
+    const stranger = new Browser(env, '192.0.2.2')
+    const probe = new Browser(env, '192.0.2.3')
+    const r1 = await stranger.post('/join', joinForm('stranger', 'stranger@example.org'))
+    const r2 = await probe.post('/join', joinForm('prober', 'member@example.org'))
+    for (const r of [r1, r2]) {
+      expect(r.status).toBe(303)
+      expect(r.headers.get('location')).toBe('/check-email')
+    }
+    expect([...stranger.jar.keys()].sort()).toEqual([...probe.jar.keys()].sort())
+    const page = await body(await stranger.get('/check-email'))
+    expect(page).toContain("invite-only while it's new")
+    expect(sameShape(page)).toBe(sameShape(await body(await probe.get('/check-email'))))
     expect(person(env, 'stranger')).toBeUndefined()
-    expect(mails(env.DB)).toHaveLength(0)
+    expect(person(env, 'prober')).toBeUndefined()
+    // only the member's own address hears about it
+    expect(mails(env.DB).map(x => [x.template, x.to_email])).toEqual([['verify', 'member@example.org'], ['signup_existing', 'member@example.org']])
+  })
+
+  it("answers a taken handle the same whether or not the address has an account", async () => {
+    const env = testEnv()
+    await setSignup(env.DB, 'open')
+    await new Browser(env, '192.0.2.1').post('/join', joinForm('someone', 'someone@example.org'))
+    await new Browser(env, '192.0.2.2').post('/join', joinForm('victim', 'victim@example.org'))
+    const before = mails(env.DB).length
+    const a = await new Browser(env, '192.0.2.3').post('/join', joinForm('someone', 'victim@example.org'))
+    const b = await new Browser(env, '192.0.2.4').post('/join', joinForm('someone', 'nobody@example.org'))
+    for (const r of [a, b]) {
+      expect(r.status).toBe(400)
+      expect(await body(r)).toContain('that handle is taken')
+    }
+    expect(mails(env.DB)).toHaveLength(before) // no "you already have an account" mail either
+  })
+
+  it('does its writes after the response when there is an ExecutionContext', async () => {
+    const env = testEnv()
+    await setSignup(env.DB, 'open')
+    const b = new Browser(env).withContext()
+    // hold the batch until the response is out
+    let release!: () => void
+    const gate = new Promise<void>(r => (release = r))
+    const batch = env.DB.batch.bind(env.DB)
+    env.DB.batch = (async (stmts: D1PreparedStatement[]) => (await gate, batch(stmts))) as typeof env.DB.batch
+    const res = await b.post('/join', joinForm('myra', 'myra@example.org'))
+    expect(res.status).toBe(303)
+    expect(b.ctx!.pending).toHaveLength(1)
+    expect(person(env, 'myra')).toBeUndefined()
+    release()
+    await Promise.all(b.ctx!.pending)
+    expect(person(env, 'myra')).toBeTruthy()
+    expect(mails(env.DB).map(m => m.template)).toEqual(['verify'])
+    // the cookie it set still finds the account
+    await b.post('/check-email')
+    expect(mails(env.DB).map(m => m.template)).toEqual(['verify', 'verify'])
   })
 
   it('makes an allow-listed address founding when it is verified, not before', async () => {
@@ -227,6 +278,72 @@ describe('sign-up', () => {
     expect(res.status).toBe(400)
     expect(await body(res)).toContain('that handle is taken')
     expect(person(env, 'myra').email).toBe('myra@example.org')
+  })
+
+  it('keeps the 7-day clock when the same browser signs up again, so a handle is never held for good', async () => {
+    const env = testEnv()
+    await setSignup(env.DB, 'open')
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(T0)
+    const b = new Browser(env)
+    await b.post('/join', joinForm('coolname', 'not-mine@example.org'))
+    const first = person(env, 'coolname').created_at
+    vi.setSystemTime(T0 + 6 * 86_400_000)
+    expect((await b.post('/join', joinForm('coolname', 'not-mine@example.org'))).status).toBe(303)
+    expect(person(env, 'coolname').created_at).toBe(first)
+    expect(await deleteUnverified(env.DB, T0 + 7 * 86_400_000 + 1000)).toBe(1)
+    expect(person(env, 'coolname')).toBeUndefined()
+  })
+
+  it('throttles "send it again" and keeps only the newest verify link', async () => {
+    const env = testEnv()
+    await setSignup(env.DB, 'open')
+    const b = new Browser(env)
+    await b.post('/join', joinForm('myra', 'myra@example.org'))
+    const first = linkIn(env.DB, 'verify')
+    for (let i = 0; i < 3; i++) expect((await b.post('/check-email')).headers.get('location')).toBe('/check-email?sent=1')
+    expect((await b.get(first)).status).toBe(410) // replaced by the newer links
+    expect((await b.get(linkIn(env.DB, 'verify'))).status).toBe(200)
+    expect(env.DB.raw.prepare('SELECT COUNT(*) AS n FROM email_token WHERE used_at IS NULL').get().n).toBe(1)
+    const res = await b.post('/check-email')
+    expect(res.status).toBe(429)
+    expect(Number(res.headers.get('retry-after'))).toBeGreaterThan(0)
+    expect(mails(env.DB).filter(m => m.template === 'verify')).toHaveLength(4)
+    // and per network, even with no account behind the presses
+    const other = new Browser(env, '198.51.100.1')
+    for (let i = 0; i < 10; i++) expect((await other.post('/check-email')).status).toBe(303)
+    expect((await other.post('/check-email')).status).toBe(429)
+  })
+
+  it('names the handle on the verify page, and verifying ends sessions made before', async () => {
+    const env = testEnv()
+    await allow(env.DB, 'invitee@example.org')
+    // someone signs up with the invitee's address and signs in while it's unverified
+    const attacker = new Browser(env, '192.0.2.66')
+    await attacker.post('/join', joinForm('attacker', 'invitee@example.org'))
+    expect((await attacker.post('/signin', { email: 'invitee@example.org', password: GOOD_PASSWORD })).status).toBe(303)
+    expect(attacker.jar.has('__Host-shwarm')).toBe(true)
+    // the invitee opens the link from their mail
+    const invitee = new Browser(env, '192.0.2.7')
+    const html = await body(await invitee.get(linkIn(env.DB, 'verify')))
+    expect(html).toContain('finishes joining as <strong>@attacker</strong>')
+    expect(html).toContain("didn't sign up as @attacker? don't press the button")
+    // if it's pressed anyway, the session made before is gone
+    await invitee.req('/verify', { form: { form_token: /name="form_token" value="([^"]+)"/.exec(html)![1], t: /name="t" value="([^"]+)"/.exec(html)![1] } })
+    expect(person(env, 'attacker').email_verified_at).toBeTruthy()
+    expect(env.DB.raw.prepare('SELECT COUNT(*) AS n FROM session').get().n).toBe(0)
+    expect(await body(await attacker.get('/signin'))).not.toContain('signed in as')
+  })
+
+  it('keeps the session of the browser that verifies', async () => {
+    const env = testEnv()
+    await setSignup(env.DB, 'open')
+    const b = new Browser(env)
+    await b.post('/join', joinForm('myra', 'myra@example.org'))
+    await b.post('/signin', { email: 'myra@example.org', password: GOOD_PASSWORD })
+    const html = await (await b.get(linkIn(env.DB, 'verify'))).text()
+    await b.req('/verify', { form: { form_token: /name="form_token" value="([^"]+)"/.exec(html)![1], t: /name="t" value="([^"]+)"/.exec(html)![1] } })
+    expect(await body(await b.get('/signin'))).toContain("you're signed in as @myra")
   })
 
   it('sends the verify link again only for the browser that signed up', async () => {

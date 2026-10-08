@@ -1,5 +1,6 @@
 // Unverified accounts and their handles are deleted after 7 days (table B). Run daily from the cron handler.
-// TODO(orchestrator): call deleteUnverified(env.DB) from the scheduled() job once the cron wiring lands.
+// TODO(orchestrator): call deleteUnverified(env.DB) and pruneThrottle(env.DB) from the scheduled() job once the
+// cron wiring lands.
 
 export const UNVERIFIED_DAYS = 7
 
@@ -14,4 +15,22 @@ export async function deleteUnverified(db: D1Database, now = Date.now()): Promis
     db.prepare(`DELETE FROM person WHERE id IN (${stale})`).bind(cutoff),
   ])
   return gone.meta.changes ?? 0
+}
+
+/**
+ * Drops throttle rows that no longer matter: windows and blocks long over (every limit is an hour or less), and
+ * familiar-network stamps older than 30 days (IP-derived data is kept 30 days, #61). Returns how many went.
+ */
+export async function pruneThrottle(db: D1Database, now = Date.now()): Promise<number> {
+  const day = new Date(now - 86_400_000).toISOString()
+  const month = new Date(now - 30 * 86_400_000).toISOString()
+  const r = await db
+    .prepare(
+      `DELETE FROM auth_throttle WHERE
+         (scope LIKE '%:known:%' AND window_start < ?)
+         OR (scope NOT LIKE '%:known:%' AND window_start < ? AND (blocked_until IS NULL OR blocked_until < ?))`,
+    )
+    .bind(month, day, day)
+    .run()
+  return r.meta.changes ?? 0
 }

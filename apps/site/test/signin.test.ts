@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { pruneThrottle } from '../src/auth/cleanup'
 import { hashPassword } from '../src/auth/password'
 import { safeNext } from '../src/auth/request'
 import { readSession, sessionId } from '../src/auth/session'
@@ -115,6 +116,58 @@ describe('sign in', () => {
     expect((await signIn(new Browser(env, '198.51.11.1'), 'myra@example.org')).status).toBe(303)
   })
 
+  it("can't keep the owner out: a familiar network still gets in during an address block", async () => {
+    const env = testEnv()
+    await member(env, 'myra')
+    // myra has signed in from home before
+    const home = new Browser(env, '203.0.113.9')
+    await signIn(home, 'myra@example.org')
+    await home.post('/signout')
+    // someone sends 10 wrong passwords for her address from 10 networks
+    for (let i = 1; i <= 10; i++) await signIn(new Browser(env, `198.51.${i}.1`), 'myra@example.org', 'wrong')
+    // a new network waits, even with the right password; home gets in
+    expect((await signIn(new Browser(env, '192.0.2.1'), 'myra@example.org')).status).toBe(429)
+    const res = await signIn(new Browser(env, '203.0.113.20'), 'myra@example.org')
+    expect(res.status).toBe(303)
+    expect(res.headers.get('location')).toBe('/')
+  })
+
+  it('forgets a familiar network after 30 days, and prunes old throttle rows', async () => {
+    const env = testEnv()
+    await member(env, 'myra')
+    await signIn(new Browser(env, '203.0.113.9'), 'myra@example.org')
+    vi.setSystemTime(T0 + 31 * 86_400_000)
+    for (let i = 1; i <= 10; i++) await signIn(new Browser(env, `198.51.${i}.1`), 'myra@example.org', 'wrong')
+    expect((await signIn(new Browser(env, '203.0.113.9'), 'myra@example.org')).status).toBe(429)
+    const rows = () => env.DB.raw.prepare('SELECT scope FROM auth_throttle').all().map((r: { scope: string }) => r.scope) as string[]
+    expect(rows().some(r => r.includes(':known:'))).toBe(true)
+    expect(await pruneThrottle(env.DB, T0 + 31 * 86_400_000 + 20 * MIN)).toBe(1) // only the old stamp; this hour's misses stay
+    expect(rows().some(r => r.includes(':known:'))).toBe(false)
+    const left = rows().length
+    expect(left).toBeGreaterThan(0)
+    expect(await pruneThrottle(env.DB, T0 + 33 * 86_400_000)).toBe(left)
+    expect(rows()).toEqual([])
+  })
+
+  it('a familiar network with a miss for that address waits like any other, and a block looks the same for unknown addresses', async () => {
+    const env = testEnv()
+    await member(env, 'myra')
+    const home = new Browser(env, '203.0.113.9')
+    await signIn(home, 'myra@example.org')
+    for (const email of ['myra@example.org', 'nobody@example.org']) {
+      for (let i = 1; i <= 10; i++) await signIn(new Browser(env, `198.51.${i}.1`), email, 'wrong')
+    }
+    // from home: one wrong try during the block, then even the right one waits
+    const wrong = await signIn(new Browser(env, '203.0.113.30'), 'myra@example.org', 'wrong again')
+    const unknown = await signIn(new Browser(env, '203.0.113.31'), 'nobody@example.org', 'wrong again')
+    expect(wrong.status).toBe(429)
+    expect(unknown.status).toBe(429)
+    expect(unknown.headers.get('retry-after')).toBe(wrong.headers.get('retry-after'))
+    expect((await signIn(new Browser(env, '203.0.113.32'), 'myra@example.org')).status).toBe(429)
+    vi.setSystemTime(T0 + 16 * MIN)
+    expect((await signIn(new Browser(env, '203.0.113.33'), 'myra@example.org')).status).toBe(303)
+  })
+
   it('refuses a suspended account with the same answer as a wrong password', async () => {
     const env = testEnv()
     const id = await member(env, 'spam_bot')
@@ -191,6 +244,19 @@ describe('forgot and reset', () => {
     expect(known.headers.get('location')).toBe('/check-email?r=reset')
     expect(await body(await b.get('/check-email?r=reset'))).toContain('if that address has an account')
     expect(mails(env.DB).map(m => [m.template, m.to_email])).toEqual([['reset', 'myra@example.org']])
+  })
+
+  it('does the reset work after the response, so its time shows nothing', async () => {
+    const env = testEnv()
+    await member(env, 'myra')
+    const b = new Browser(env).withContext()
+    const res = await b.post('/forgot', { email: 'myra@example.org' })
+    expect(res.headers.get('location')).toBe('/check-email?r=reset')
+    expect(b.ctx!.pending).toHaveLength(1)
+    await Promise.all(b.ctx!.pending)
+    expect(mails(env.DB).map(m => m.template)).toEqual(['reset'])
+    await b.post('/forgot', { email: 'nobody@example.org' })
+    expect(b.ctx!.pending).toHaveLength(2)
   })
 
   it('a reset link survives a scanner, sets the password once, ends every session and sends a security mail', async () => {
@@ -278,7 +344,7 @@ describe('forgot and reset', () => {
 describe('next= stays on this site', () => {
   it('accepts only same-site paths', () => {
     expect(safeNext('/w/minecraft-in-doom?tab=new#p_1')).toBe('/w/minecraft-in-doom?tab=new#p_1')
-    for (const bad of ['//evil.example', '/\\evil.example', '\\\\evil.example', 'https://evil.example/', 'evil.example', '/\t/evil.example', 'javascript:alert(1)', '', '/' + 'a'.repeat(600)]) {
+    for (const bad of ['//evil.example', '/\\evil.example', '\\\\evil.example', 'https://evil.example/', 'evil.example', '/\t/evil.example', 'javascript:alert(1)', '', '/' + 'a'.repeat(600), '/.//evil.example/x', '/..//evil.example', '/%2e//evil.example', '/%2E%2E//evil.example', '/a/..//evil.example']) {
       expect(safeNext(bad), bad).toBeNull()
     }
     expect(safeNext(undefined)).toBeNull()
@@ -289,7 +355,8 @@ describe('next= stays on this site', () => {
     await member(env, 'myra')
     const b = new Browser(env)
     expect(await body(await b.get('/signin?next=//evil.example'))).not.toContain('evil.example')
-    for (const next of ['https://evil.example/', '//evil.example', '/\\evil.example']) {
+    expect(await body(await b.get('/signin?next=%2F.%2F%2Fevil.example%2Fphish'))).not.toContain('evil.example')
+    for (const next of ['https://evil.example/', '//evil.example', '/\\evil.example', '/.//evil.example/phish', '/..//evil.example', '/%2e//evil.example']) {
       const res = await signIn(b, 'myra@example.org', GOOD_PASSWORD, { next })
       expect(res.headers.get('location'), next).toBe('/')
     }
@@ -301,8 +368,10 @@ describe('next= stays on this site', () => {
     const b = new Browser(env)
     await signIn(b, 'myra@example.org')
     expect(await body(await b.get('/step-up?next=https://evil.example'))).not.toContain('evil.example')
-    const res = await b.post('/step-up', { password: GOOD_PASSWORD, next: '//evil.example/keys' })
-    expect(res.headers.get('location')).toBe('/')
+    for (const next of ['//evil.example/keys', '/.//evil.example/keys', '/%2e//evil.example']) {
+      const res = await b.post('/step-up', { password: GOOD_PASSWORD, next })
+      expect(res.headers.get('location'), next).toBe('/')
+    }
   })
 })
 
