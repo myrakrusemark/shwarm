@@ -3,7 +3,7 @@
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
 **Now (Claude):** 1.7 is mostly done by 0.2 (the copy was synced); waiting on Myra to approve the footer pages on staging, then 1.8b puts them live. Meanwhile, phase 2 (data model, auth, email).
-**Now (Myra):** Cloudflare 2FA (it's off; the one account that can take everything down) · 0.8 Resend (before 1.9) · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
+**Now (Myra):** 0.8 Resend (before 1.9) · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
 **Last updated:** 2026-10-08.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. The one spend Claude expects to ask for: Workers Paid ($5/month) when auth is built, because the free plan's 10 ms CPU limit per request is too little to hash passwords safely. Claude asks before any spend.
@@ -284,8 +284,8 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - **who:** Myra; Claude drafts the tracker columns and who to ask per wave-1 shwarm · **needs:** nothing
 - **done when:** the tracker exists and has at least 10 names. (It keeps growing until 11.4.)
 
-**0.12 Where everything lives** · doing
-- *(Oct 8: Claude made the list in `admin/accounts.md` (local only, gitignored, no secrets). Checked: npm 2FA on; **Cloudflare 2FA off**; GitHub and Stripe 2FA per Myra. Open: Cloudflare 2FA. Emergency access stays a todo (Myra, Oct 8); it doesn't hold up this step.)*
+**0.12 Where everything lives** · done
+- *(Oct 8: Claude made the list in `admin/accounts.md` (local only, gitignored, no secrets). Checked: Cloudflare 2FA on (Oct 8, recovery codes saved), npm 2FA on; GitHub and Stripe 2FA per Myra. Emergency access stays a todo (Myra, Oct 8); it doesn't hold up this step.)*
 - **what:** one private list of every account (Cloudflare, GitHub, npm, Resend, Anthropic, later Sentry, uptime, donations, NCMEC), each with 2FA and recovery codes stored offline. Emergency access for one trusted person is a todo, not part of done.
 - **who:** Claude keeps the list; Myra turns on 2FA · **needs:** grows with each account
 - **done when:** every account made in phase 0 is on the list with 2FA on.
