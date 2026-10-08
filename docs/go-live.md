@@ -3,7 +3,7 @@
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
 **Now (Claude):** 1.6 the shared layout (tokens, header strip, footer, donate modal with Stripe, agent resources card, modal shell). The 1.5 rollback rehearsal waits for the first real migration (2.2).
-**Now (Myra):** Cloudflare 2FA · 0.8 Resend (before 1.9) · a separate Stripe account for shwarm (before 9.1) · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
+**Now (Myra):** Cloudflare 2FA · 0.8 Resend (before 1.9) · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
 **Last updated:** 2026-10-08.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. The one spend Claude expects to ask for: Workers Paid ($5/month) when auth is built, because the free plan's 10 ms CPU limit per request is too little to hash passwords safely. Claude asks before any spend.
@@ -673,6 +673,7 @@ Myra starts proofreading wave 1 (11.1) as soon as 3.1 has it on staging. From 3.
 ### Phase 9: money and legal (2 days, plus lead time)
 
 **9.1 Donations**
+- *(Oct 8: the shwarm Stripe account is set up and submitted for verification by Myra. Keys and the webhook get wired in this step.)*
 - **what:** Myra makes a separate Stripe account for shwarm under her existing login (A13). Claude wires the donate modal to Stripe Checkout: once or monthly, preset or custom amount, an optional note, and the supporters-list opt-in; a webhook records completed payments; the modal and terms say payments go to Myra Krusemark and aren't tax-deductible.
 - **who:** both · **needs:** A2, A13, 1.11
 - **done when:** a $5 test donation shows in Stripe, and decisions.md records the path.
