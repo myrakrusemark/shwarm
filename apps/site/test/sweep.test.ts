@@ -11,13 +11,15 @@ const at = (ms: number) => new Date(ms).toISOString()
 
 type Call = { url: string; headers: Record<string, string>; body: any }
 
-/** A fake Resend: records each call; `fail` makes the next n calls fail. */
-function fakeResend(opts: { fail?: number; status?: number } = {}) {
+/** A fake Resend: records each call; `fail` makes the next n calls fail; `reply` can answer a call itself. */
+function fakeResend(opts: { fail?: number; status?: number; reply?: (n: number) => Response | null } = {}) {
   const calls: Call[] = []
   let fail = opts.fail ?? 0
   const f = (async (url: string, init: RequestInit) => {
     await new Promise(r => setTimeout(r, 1)) // a real network wait, so overlapping sweeps interleave
     calls.push({ url, headers: init.headers as Record<string, string>, body: JSON.parse(String(init.body)) })
+    const r = opts.reply?.(calls.length)
+    if (r) return r
     if (fail > 0) {
       fail--
       return new Response(JSON.stringify({ name: 'internal_server_error', message: 'try later' }), { status: opts.status ?? 500 })
@@ -45,7 +47,7 @@ describe('outbox sweep', () => {
     const c = calls[0]
     expect(c.url).toBe('https://api.resend.com/emails')
     expect(c.headers.Authorization).toBe('Bearer re_key')
-    expect(c.headers['Idempotency-Key']).toBe('outbox-production-1')
+    expect(c.headers['Idempotency-Key']).toBe('outbox-production-1-20261008120000000')
     expect(c.body).toMatchObject({ from: 'shwarm <hello@mail.shwarm.org>', to: ['myra@example.org'], reply_to: 'support@shwarm.org', subject: 'verify your email for shwarm' })
     expect(c.body.text).toContain('https://shwarm.org/verify?t=tok')
     expect(c.body.headers).toBeUndefined() // account mail has no List-Unsubscribe
@@ -93,7 +95,7 @@ describe('outbox sweep', () => {
     const { f, calls } = fakeResend({ fail: 1 })
     await sweepOutbox(e, { now: T0, fetch: f })
     await sweepOutbox(e, { now: T0 + MIN, fetch: f })
-    expect(calls.map(c => c.headers['Idempotency-Key'])).toEqual(['outbox-production-1', 'outbox-production-1'])
+    expect(calls.map(c => c.headers['Idempotency-Key'])).toEqual(['outbox-production-1-20261008120000000', 'outbox-production-1-20261008120000000'])
     expect(rows(e)[0]).toMatchObject({ provider_id: 're_2', last_error: null, attempts: 2 })
   })
 
@@ -150,7 +152,7 @@ describe('outbox sweep', () => {
     expect(await sweepOutbox(e, { now: T0, fetch: f })).toMatchObject({ sent: 1, skipped: 2 })
     expect(calls.map(c => c.body.to[0])).toEqual(['fr.iend+beta@gmail.com'])
     expect(calls[0].body.text).toContain('https://shwarm-staging.myrakrusemark.workers.dev/verify?t=tok')
-    expect(calls[0].headers['Idempotency-Key']).toBe('outbox-staging-2')
+    expect(calls[0].headers['Idempotency-Key']).toBe('outbox-staging-2-20261008120000000')
     const r = rows(e)
     expect(r[0].last_error).toBe('skipped: staging: not on the allow-list')
     expect(r[2].last_error).toBe('skipped: staging: not on the allow-list')
@@ -224,6 +226,115 @@ describe('outbox sweep', () => {
     expect(calls.length).toBe(2)
     expect(calls[1].body.headers['List-Unsubscribe']).toContain('unsubscribe?t=u1.')
     expect(rows(e)[1].last_error).toBe('skipped: turned off mention notices')
+  })
+})
+
+const resendError = (status: number, name: string, headers: Record<string, string> = {}) =>
+  new Response(JSON.stringify({ name, message: name.replace(/_/g, ' ') }), { status, headers })
+
+describe('outbox sweep, when things go wrong', () => {
+  it('one row\'s database error doesn\'t stop the rest of the batch', async () => {
+    const e = env()
+    await enqueueMail(e.DB, verify('a@example.org'), at(T0))
+    await enqueueMail(e.DB, verify('b@example.org'), at(T0))
+    const prepare = e.DB.prepare
+    let boom = true
+    e.DB.prepare = (sql: string) => {
+      if (boom && sql.includes('FROM email_suppression')) {
+        boom = false
+        throw new Error('D1_ERROR: network')
+      }
+      return prepare(sql)
+    }
+    const { f, calls } = fakeResend()
+    expect(await sweepOutbox(e, { now: T0, fetch: f })).toMatchObject({ sent: 1, retrying: 1 })
+    expect(calls.map(c => c.body.to[0])).toEqual(['b@example.org'])
+    expect(rows(e)[0]).toMatchObject({ sent_at: null, attempts: 1, send_after: at(T0 + MIN), last_error: 'D1_ERROR: network' })
+    await sweepOutbox(e, { now: T0 + MIN, fetch: f })
+    expect(calls.length).toBe(2)
+  })
+
+  it('closes a row whose last attempt was claimed but never finished', async () => {
+    const e = env()
+    await enqueueMail(e.DB, verify('a@example.org'), at(T0))
+    // what a claim of the 5th attempt leaves behind if the Worker dies before finishing
+    e.DB.raw.prepare('UPDATE email_outbox SET attempts = ?, send_after = ?').run(MAX_ATTEMPTS, at(T0 + 5 * MIN))
+    const { f, calls } = fakeResend()
+    await sweepOutbox(e, { now: T0 + MIN, fetch: f })
+    expect(rows(e)[0].sent_at).toBeNull() // its lease still runs
+    await sweepOutbox(e, { now: T0 + 5 * MIN, fetch: f })
+    expect(rows(e)[0]).toMatchObject({ sent_at: at(T0 + 5 * MIN), provider_id: null, last_error: 'failed: the last attempt never finished' })
+    expect(calls.length).toBe(0)
+  })
+
+  it('caps account mail over a rolling hour, not a fixed window', async () => {
+    const e = env()
+    const { f, calls } = fakeResend()
+    for (const t of [0, 58, 59, 60.1, 60.5, 61, 118.5, 119]) {
+      await enqueueMail(e.DB, { to: 'v@example.org', template: 'reset', stream: 'account', payload: { link: accountLink('reset', 'x') } }, at(T0 + t * MIN))
+      await sweepOutbox(e, { now: T0 + t * MIN, fetch: f })
+    }
+    // a fixed window let 0, 58, 59, then 60.1, 60.5 and 61 all through; a rolling hour holds 60.5 and 61
+    const sent = rows(e).filter((r: any) => r.provider_id).map((r: any) => (Date.parse(r.sent_at) - T0) / MIN)
+    expect(sent).toEqual([0, 58, 59, 60.1, 118.5, 119])
+    for (const t of sent) expect(sent.filter((u: number) => u > t - 60 && u <= t).length).toBeLessThanOrEqual(3)
+  })
+
+  it('sends the same body on every attempt of a notice, so the Idempotency-Key holds', async () => {
+    const e = env()
+    const me = await addPerson(e.DB, 'myra')
+    await enqueueMail(e.DB, { to: 'myra@example.org', template: 'welcome', stream: 'notices', personId: me, payload: { handle: 'myra', notice: 'mention' } }, at(T0))
+    const { f, calls } = fakeResend({ fail: 1 })
+    await sweepOutbox(e, { now: T0, fetch: f })
+    await sweepOutbox(e, { now: T0 + MIN, fetch: f })
+    expect(calls.length).toBe(2)
+    expect(calls[1].headers['Idempotency-Key']).toBe(calls[0].headers['Idempotency-Key'])
+    expect(calls[1].body).toEqual(calls[0].body)
+  })
+
+  it('gives each row a key of its own, even when a remade database reuses its id', async () => {
+    const keys: string[] = []
+    for (const t of [T0, T0 + 3 * MIN]) {
+      const e = env({ ENV: undefined })
+      e.DB.raw.prepare(`INSERT INTO signup_allow (email_norm, added_at) VALUES ('myra@example.org', ?)`).run(at(t))
+      await enqueueMail(e.DB, { to: 'myra@example.org', template: 'welcome', stream: 'account', payload: { handle: 'myra' } }, at(t))
+      const { f, calls } = fakeResend()
+      await sweepOutbox(e, { now: t, fetch: f })
+      keys.push(calls[0].headers['Idempotency-Key'])
+    }
+    expect(keys[0]).toMatch(/^outbox-dev-1-\d+$/)
+    expect(keys[1]).not.toBe(keys[0])
+  })
+
+  it('on a 429, holds the row without using an attempt, and sends nothing more that sweep', async () => {
+    const e = env()
+    for (const to of ['a@example.org', 'b@example.org', 'c@example.org']) await enqueueMail(e.DB, verify(to), at(T0))
+    const quota = fakeResend({ reply: () => resendError(429, 'daily_quota_exceeded') })
+    const now = T0 + 3 * 3_600_000 // 15:00 UTC
+    expect(await sweepOutbox(e, { now, fetch: quota.f })).toMatchObject({ retrying: 3, failed: 0 })
+    expect(quota.calls.length).toBe(1)
+    const midnight = at(Date.UTC(2026, 9, 9))
+    for (const r of rows(e)) expect(r).toMatchObject({ attempts: 0, send_after: midnight, sent_at: null })
+    // Retry-After wins when Resend sends one
+    const slow = fakeResend({ reply: () => resendError(429, 'rate_limit_exceeded', { 'retry-after': '120' }) })
+    e.DB.raw.prepare('UPDATE email_outbox SET send_after = ?').run(at(now))
+    await sweepOutbox(e, { now, fetch: slow.f })
+    expect(rows(e)[0]).toMatchObject({ attempts: 0, send_after: at(now + 2 * MIN) })
+    // after midnight they go
+    const ok = fakeResend()
+    expect(await sweepOutbox(e, { now: Date.UTC(2026, 9, 9), fetch: ok.f })).toMatchObject({ sent: 3 })
+  })
+
+  it('gives up at once on a bad address or a reused key, and retries a key problem on our side', async () => {
+    const e = env()
+    for (const to of ['a@example.org', 'b@example.org', 'c@example.org']) await enqueueMail(e.DB, verify(to), at(T0))
+    const answers = [resendError(422, 'validation_error'), resendError(409, 'invalid_idempotent_request'), resendError(403, 'invalid_api_key')]
+    const { f } = fakeResend({ reply: n => answers[n - 1] ?? null })
+    expect(await sweepOutbox(e, { now: T0, fetch: f })).toMatchObject({ failed: 2, retrying: 1 })
+    const [a, b, c] = rows(e)
+    expect(a.last_error).toBe('failed: resend 422: validation error')
+    expect(b.last_error).toBe('failed: resend 409: invalid idempotent request')
+    expect(c).toMatchObject({ sent_at: null, send_after: at(T0 + MIN), last_error: 'resend 403: invalid api key' })
   })
 })
 
