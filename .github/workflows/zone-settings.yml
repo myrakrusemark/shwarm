@@ -1,0 +1,20 @@
+name: zone-settings
+# Run by hand (Actions tab or `gh workflow run zone-settings`). Idempotent: sets shwarm.org's HTTPS settings.
+on: workflow_dispatch
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    env:
+      CF: https://api.cloudflare.com/client/v4
+      TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: apply settings
+        run: |
+          set -euo pipefail
+          api() { curl -fsS -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" "$@"; }
+          ZID=$(api "$CF/zones?name=shwarm.org" | jq -r '.result[0].id')
+          for kv in always_use_https:on min_tls_version:1.2 automatic_https_rewrites:on ssl:strict; do
+            k=${kv%%:*}; v=${kv#*:}
+            api -X PATCH "$CF/zones/$ZID/settings/$k" -d "{\"value\":\"$v\"}" | jq -r '"\(.result.id) = \(.result.value)"'
+          done
