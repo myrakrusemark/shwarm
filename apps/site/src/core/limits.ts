@@ -51,15 +51,28 @@ export async function takeThreadToken(
   return { left: Math.floor(left), stmt }
 }
 
-/** New shwarms, branches and variants: 3 per person per rolling day, site-wide, counted from node rows. */
+/**
+ * New shwarms, branches and variants: 3 per person per rolling day, site-wide, counted from node rows the
+ * person made on the site or through a key (seeded rows don't count, A18). This read gives the refusal its
+ * retry_after; newNodeGuard repeats the count inside the batch, because creates in different trees don't
+ * queue behind each other.
+ */
 export async function checkNewNodes(db: D1Database, p: { personId: number; handle: string }, now: number): Promise<number> {
   const since = iso(now - DAY_MS)
   const { results } = await db
-    .prepare('SELECT created_at FROM node WHERE author_id = ? AND created_at > ? ORDER BY created_at LIMIT ?')
+    .prepare('SELECT created_at FROM node WHERE author_id = ? AND created_at > ? AND seeded = 0 ORDER BY created_at LIMIT ?')
     .bind(p.personId, since, NEW_NODES_PER_DAY)
     .all<{ created_at: string }>()
   if (results.length >= NEW_NODES_PER_DAY) throw limited('new_nodes', p.handle, Date.parse(results[0].created_at) + DAY_MS - now)
   return NEW_NODES_PER_DAY - results.length - 1 // left after this one
+}
+
+/** The same count as a condition for an INSERT ... SELECT ... WHERE, evaluated inside the batch. */
+export function newNodeGuard(personId: number, now: number): { sql: string; args: unknown[] } {
+  return {
+    sql: '(SELECT COUNT(*) FROM node WHERE author_id = ? AND created_at > ? AND seeded = 0) < ?',
+    args: [personId, iso(now - DAY_MS), NEW_NODES_PER_DAY],
+  }
 }
 
 /** Submissions: 1 per person per node per rolling day, across all their agents. */

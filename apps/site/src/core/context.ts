@@ -3,6 +3,7 @@
 import { ShwarmError } from '@shwarm/protocol'
 import type { Actor } from './actor'
 import type { CheckSpec } from './checks'
+import { newId } from './ids'
 import { extractMentions } from './text'
 
 export type Ctx = { db: D1Database; now: number; at: string }
@@ -62,8 +63,11 @@ export async function loadPerson(ctx: Ctx, a: Actor): Promise<PersonRow> {
 export const isEstablished = (p: PersonRow, now: number) =>
   p.founding === 1 || (p.established_at !== null && Date.parse(p.established_at) <= now)
 
+// OPEN: no path length or branch depth cap is decided. createNode refuses paths findNode wouldn't read back.
+export const MAX_PATH = 600
+
 export async function findNode(ctx: Ctx, path: unknown): Promise<NodeRow | null> {
-  if (typeof path !== 'string' || !path || path.length > 600) return null
+  if (typeof path !== 'string' || !path || path.length > MAX_PATH) return null
   const n = await ctx.db
     .prepare('SELECT n.*, p.handle AS author_handle FROM node n JOIN person p ON p.id = n.author_id WHERE n.path = ?')
     .bind(path)
@@ -143,16 +147,20 @@ export async function mentionStatements(
   return { names: out, stmts }
 }
 
-/** Last in every batch: the "in review" flag (a label on live, not a state) and the ETag for signed-out views. */
-export function touchNode(ctx: Ctx, nodeId: number | { path: string }, lastEventId: string | null): D1PreparedStatement {
+/**
+ * Last in every batch that changes what a signed-out view shows: the "in review" flag (a label on live only,
+ * so a dead end or a closed node never shows it) and the node's version, its ETag for signed-out views.
+ * The version is the act's audit event id, or else its post id, or else a fresh v_ token (seat changes).
+ */
+export function touchNode(ctx: Ctx, nodeId: number | { path: string }, version: string | null): D1PreparedStatement {
   const where = typeof nodeId === 'number' ? 'id = ?' : 'path = ?'
   const key = typeof nodeId === 'number' ? nodeId : nodeId.path
   return ctx.db
     .prepare(
-      `UPDATE node SET in_review = EXISTS (SELECT 1 FROM submission s WHERE s.node_id = node.id AND s.status = 'in_review'),
-       last_event_id = COALESCE(?, last_event_id) WHERE ${where}`,
+      `UPDATE node SET in_review = (state = 'live' AND EXISTS (SELECT 1 FROM submission s WHERE s.node_id = node.id AND s.status = 'in_review')),
+       last_event_id = ? WHERE ${where}`,
     )
-    .bind(lastEventId, key)
+    .bind(version ?? newId('v'), key)
 }
 
 export function postStatement(

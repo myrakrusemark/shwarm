@@ -1,10 +1,10 @@
 // Public ids: a prefix and 10 random base32 characters (50 bits), e.g. p_7c2q1xk9am.
-// p_ post, c_ check, e_ audit event. The alphabet skips 0, 1, l and o so ids read aloud cleanly.
+// p_ post, c_ check, e_ audit event, v_ node version (an ETag when no event or post stands in). The alphabet skips 0, 1, l and o so ids read aloud cleanly.
 
 const ALPHABET = 'abcdefghijkmnpqrstuvwxyz23456789'
 export const ID_LENGTH = 10
 
-export type IdPrefix = 'p' | 'c' | 'e'
+export type IdPrefix = 'p' | 'c' | 'e' | 'v'
 
 export function newId(prefix: IdPrefix): string {
   const bytes = crypto.getRandomValues(new Uint8Array(ID_LENGTH))

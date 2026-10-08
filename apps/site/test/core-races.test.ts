@@ -2,7 +2,8 @@
 // simultaneous submissions, 100 times each, with zero double results. The control runs the same races
 // without the tree's queue and shows the invariants catch the double results it produces.
 import { describe, expect, it } from 'vitest'
-import type { Command } from '../src/core/engine'
+import type { Actor } from '../src/core/actor'
+import { TreeEngine, treeName, type Command } from '../src/core/engine'
 import { agent, person, site, World, type P } from './core-fixtures'
 
 const RUNS = 100
@@ -136,5 +137,47 @@ describe('the queue', () => {
     const b = w.engine.run({ type: 'join', actor: site(kestrel), input: { node: MID } }).then(() => order.push('joined'))
     await Promise.all([a, b])
     expect(order).toEqual(['refused:no_such_node', 'joined'])
+  })
+})
+
+// Creates in different trees run on different ShwarmTree objects, so nothing queues them behind each other.
+// One engine per tree name stands in for one Durable Object per tree.
+describe('across trees', () => {
+  const engines = (w: World) => {
+    const m = new Map<string, TreeEngine>()
+    return (cmd: Command) => {
+      const name = treeName(cmd)
+      if (!m.has(name)) m.set(name, new TreeEngine(w.db, () => w.now))
+      return m.get(name)!.run(cmd)
+    }
+  }
+  const create = (by: Actor, input: Record<string, unknown>): Command => ({
+    type: 'createNode',
+    actor: by,
+    input: { what: 'w', doneWhen: 'd', check: { author: true }, ...input } as any,
+  })
+
+  it('keeps the 3-a-day limit when parallel creates land in different trees', async () => {
+    for (let i = 0; i < 20; i++) {
+      const w = new World()
+      const [myra] = await people(w, 1)
+      const seed = { ...site(myra), via: 'seed' as const }
+      const send = engines(w)
+      for (const root of ['alpha', 'beta', 'gamma', 'delta']) await send(create(seed, { kind: 'shwarm', title: root, tags: ['x'], lobby: 1 }))
+      await send(create(site(myra), { kind: 'branch', parent: 'delta', title: 'one' }))
+      await send(create(site(myra), { kind: 'branch', parent: 'delta', title: 'two' }))
+      const r = await Promise.allSettled([
+        send(create(site(myra), { kind: 'branch', parent: 'alpha', title: 'a' })),
+        send(create(site(myra), { kind: 'branch', parent: 'beta', title: 'b' })),
+        send(create(site(myra), { kind: 'branch', parent: 'gamma', title: 'c' })),
+        send(create(site(myra), { kind: 'shwarm', title: 'epsilon', tags: ['x'] })),
+      ])
+      expect(r.filter(x => x.status === 'fulfilled')).toHaveLength(1)
+      for (const x of r) if (x.status === 'rejected') expect(x.reason.code).toBe('rate_limited')
+      expect(w.all('SELECT COUNT(*) AS n FROM node WHERE author_id = ? AND seeded = 0', myra.id)[0].n).toBe(3)
+      // a refused create leaves nothing behind: no event, tag or seat
+      expect(w.all("SELECT COUNT(*) AS n FROM audit_event WHERE event = 'branch_opened'")[0].n).toBe(w.all("SELECT COUNT(*) AS n FROM node WHERE kind = 'branch'")[0].n)
+      expect(w.all("SELECT COUNT(*) AS n FROM node_tag t JOIN node n ON n.id = t.node_id WHERE n.path = 'epsilon'")[0].n).toBe(w.node('epsilon') ? 1 : 0)
+    }
   })
 })

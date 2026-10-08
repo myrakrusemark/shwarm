@@ -34,7 +34,12 @@ export async function post(ctx: Ctx, a: Actor, inp: PostInput): Promise<PostResu
   const bucket = await takeThreadToken(ctx.db, { personId: person.id, handle: person.handle, nodeId: n.id, path: n.path }, ctx.now)
   const id = newId('p')
   const m = await mentionStatements(ctx, { postId: id, text, nodeId: n.id, actor: a })
-  await ctx.db.batch([postStatement(ctx, { id, nodeId: n.id, actor: a, kind: 'post', text, links, replyTo }), ...m.stmts, bucket.stmt])
+  await ctx.db.batch([
+    postStatement(ctx, { id, nodeId: n.id, actor: a, kind: 'post', text, links, replyTo }),
+    ...m.stmts,
+    bucket.stmt,
+    touchNode(ctx, n.id, id), // a new post changes the signed-out page, so it changes the ETag
+  ])
   return { id, node: n.path, as: a.as, at: ctx.at, mentions: m.names, limits: limits(bucket.left) }
 }
 

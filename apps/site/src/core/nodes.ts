@@ -9,9 +9,9 @@ import { ShwarmError } from '@shwarm/protocol'
 import { authorize, humanName, needHuman, type Actor } from './actor'
 import { auditStatement } from './audit'
 import { parseCheckSpec } from './checks'
-import { findNode, loadNode, loadPerson, notifyStatement, postStatement, touchNode, type Ctx, type NodeKind } from './context'
+import { findNode, loadNode, loadPerson, MAX_PATH, notifyStatement, postStatement, touchNode, type Ctx, type NodeKind, type NodeRow } from './context'
 import { newId } from './ids'
-import { checkNewNodes } from './limits'
+import { checkNewNodes, newNodeGuard } from './limits'
 import { checkWritable, readSettings } from './settings'
 import { MAX_TITLE, needText, RESERVED_SLUGS, slugify } from './text'
 
@@ -57,15 +57,25 @@ function parseTags(v: unknown): string[] {
   return tags
 }
 
+// OPEN: building on a node that is still open isn't described; the protocol only builds on closed shwarms.
+function needClosed(n: NodeRow): void {
+  if (n.state !== 'closed') throw bad(`${n.path} isn't closed. to change an open shwarm's done test, start a variant`)
+}
+
+/** Variants are only for open shwarms (lobby or live); a closed one is built on instead. */
+function needOpen(n: NodeRow): void {
+  if (n.state === 'closed' || n.state === 'dead_end')
+    throw new ShwarmError('shwarm_closed', `${n.path} is ${n.state.replace('_', ' ')}. variants are only for open shwarms; build on it instead`, { node: n.path })
+}
+
 /** builds_on: a closed shwarm's path, or an outside project {name, url?, license}. Either way its license carries over. */
-async function parseBuildsOn(ctx: Ctx, v: CreateNodeInput['buildsOn']): Promise<{ json: string; license: string } | null> {
+async function parseBuildsOn(ctx: Ctx, v: CreateNodeInput['buildsOn']): Promise<{ json: string; license: string; node?: NodeRow } | null> {
   if (v === undefined || v === null || v === '') return null
   if (typeof v === 'string') {
     const n = await findNode(ctx, v)
     if (!n) throw bad('builds_on names a shwarm on shwarm, or an outside project as {name, url, license}')
-    // OPEN: building on a node that is still open isn't described; the protocol only builds on closed shwarms.
-    if (n.state !== 'closed') throw bad(`${n.path} isn't closed. to change an open shwarm's done test, start a variant`)
-    return { json: JSON.stringify({ node: n.path }), license: n.license }
+    needClosed(n)
+    return { json: JSON.stringify({ node: n.path }), license: n.license, node: n }
   }
   if (typeof v !== 'object') throw bad('builds_on is a path or {name, url, license}')
   const name = needText(v.name, 'builds_on.name', 200)
@@ -113,6 +123,7 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
   let original = null
   let license: string
   let buildsOn: string | null = null
+  let upstream: NodeRow | null = null // builds_on another node, in another tree
   let tags: string[] = []
   let lobby: number | null = null
   if (kind === 'branch') {
@@ -131,8 +142,7 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
     if (kind === 'variant') {
       original = await loadNode(ctx, inp.variantOf)
       if (original.kind === 'branch') throw bad('variants are of shwarms only. disagree with a branch? open a sibling branch')
-      if (original.state === 'closed' || original.state === 'dead_end')
-        throw new ShwarmError('shwarm_closed', `${original.path} is ${original.state.replace('_', ' ')}. variants are only for open shwarms; build on it instead`, { node: original.path })
+      needOpen(original)
     }
     tags = parseTags(inp.tags)
     lobby = inp.lobby === undefined || inp.lobby === null ? DEFAULT_LOBBY : (inp.lobby as number)
@@ -140,6 +150,7 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
     const b = await parseBuildsOn(ctx, inp.buildsOn)
     if (b) {
       buildsOn = b.json
+      upstream = b.node ?? null
       license = b.license // the upstream license wins; any license sent is ignored (protocol §8)
     } else {
       license = inp.license ?? DEFAULT_LICENSE
@@ -151,18 +162,37 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
   const base = slugify(title)
   if (!base) throw bad('the title needs at least one letter or digit')
   const path = await freePath(ctx, parent ? parent.path + '/' : '', base)
+  if (path.length > MAX_PATH) throw bad(`that path would be over ${MAX_PATH} characters. use a shorter title, or branch higher up`)
 
   // The author takes seat 1 when they start it themselves; an agent's shwarm opens with no seat (decisions, "agents may start").
   const seated = kind !== 'branch' && a.via !== 'key'
   const filled = kind !== 'branch' && seated && (lobby as number) <= 1
   const state = kind === 'branch' || filled ? 'live' : 'lobby'
   const ref = { path }
+  // What was read from outside this tree is checked again inside the batch: the daily limit (creates in
+  // other trees don't queue behind this one), and the state of the original or upstream node, whose own
+  // tree may close or reopen it meanwhile. If any fails, the INSERT writes nothing, and nor does the rest.
+  const guards: string[] = []
+  const guardArgs: unknown[] = []
+  if (a.via !== 'seed') {
+    const g = newNodeGuard(person.id, ctx.now)
+    guards.push(g.sql)
+    guardArgs.push(...g.args)
+  }
+  if (original) {
+    guards.push("EXISTS (SELECT 1 FROM node WHERE id = ? AND state IN ('lobby', 'live'))")
+    guardArgs.push(original.id)
+  }
+  if (upstream) {
+    guards.push("EXISTS (SELECT 1 FROM node WHERE id = ? AND state = 'closed')")
+    guardArgs.push(upstream.id)
+  }
   const stmts: D1PreparedStatement[] = [
     ctx.db
       .prepare(
         `INSERT INTO node (path, slug, kind, parent_id, root_id, variant_of_id, title, what, done_when, checks, lobby_size, license,
-           builds_on, author_id, posted_by, state, created_at, live_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           builds_on, author_id, posted_by, state, created_at, live_at, seeded)
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE ${guards.length ? guards.join(' AND ') : '1'}`,
       )
       .bind(
         path,
@@ -183,6 +213,8 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
         state,
         ctx.at,
         state === 'live' ? ctx.at : null,
+        a.via === 'seed' ? 1 : 0,
+        ...guardArgs,
       ),
   ]
   // OPEN: triage (A8) holds new nodes; until phase 8 builds it, node.triage stays at its 'pending' default.
@@ -201,7 +233,18 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
     last = e.id
   }
   stmts.push(touchNode(ctx, ref, last))
-  await ctx.db.batch(stmts)
+  const res = await ctx.db.batch(stmts)
+  if (!res[0]?.meta?.changes) {
+    // A guard failed: say which, from a fresh read.
+    if (a.via !== 'seed') await checkNewNodes(ctx.db, { personId: person.id, handle: person.handle }, ctx.now)
+    if (original) needOpen(await loadNode(ctx, original.path))
+    if (upstream) {
+      const u = await findNode(ctx, upstream.path)
+      if (!u) throw bad('builds_on names a shwarm on shwarm, or an outside project as {name, url, license}')
+      needClosed(u)
+    }
+    throw bad('something changed while this was sent. try again')
+  }
   return {
     path,
     kind,
@@ -267,7 +310,10 @@ export async function leave(ctx: Ctx, a: Actor, inp: { node: string }): Promise<
   if (n.kind === 'branch') throw bad('branches have no seats')
   if (n.state !== 'lobby') throw bad('seats are kept after kickoff')
   if (n.author_id === person.id) throw bad("the author can't leave their own lobby")
-  await ctx.db.prepare('UPDATE seat SET left_at = ? WHERE node_id = ? AND person_id = ? AND left_at IS NULL').bind(ctx.at, n.id, person.id).run()
+  await ctx.db.batch([
+    ctx.db.prepare('UPDATE seat SET left_at = ? WHERE node_id = ? AND person_id = ? AND left_at IS NULL').bind(ctx.at, n.id, person.id),
+    touchNode(ctx, n.id, null), // the seat count shows signed out
+  ])
   const r = await ctx.db.prepare('SELECT COUNT(*) AS filled FROM seat WHERE node_id = ? AND left_at IS NULL').bind(n.id).first<{ filled: number }>()
   return { node: n.path, seats: { filled: r!.filled, of: n.lobby_size as number } }
 }

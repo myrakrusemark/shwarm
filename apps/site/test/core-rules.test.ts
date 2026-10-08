@@ -546,3 +546,117 @@ describe('the audit log', () => {
     expect(w.all('SELECT COUNT(*) AS n FROM rate_bucket')[0].n).toBe(0)
   })
 })
+
+/** Run `fn` just before the next batch commits: another tree's write landing between this command's read and its write. */
+function beforeNextBatch(fn: () => void) {
+  const db = w.db as any
+  const batch = db.batch
+  db.batch = async (stmts: unknown[]) => {
+    db.batch = batch
+    fn()
+    return batch(stmts)
+  }
+}
+
+const seed = (p: P) => ({ ...site(p), via: 'seed' as const })
+
+describe('creating nodes: what other trees and the seed import can change', () => {
+  it("doesn't count seeded nodes against the seeder's daily limit (A18)", async () => {
+    for (let i = 1; i <= 5; i++) await w.shwarm(seed(myra), { title: `seed ${i}` })
+    expect(w.all('SELECT seeded FROM node').map(n => n.seeded)).toEqual([1, 1, 1, 1, 1])
+    w.tick(HOUR)
+    const r = await w.shwarm(site(myra))
+    expect(r.limits.new_nodes_today.left).toBe(2)
+    expect(w.node(MID).seeded).toBe(0)
+  })
+
+  it('refuses a variant when the original closes before the variant commits', async () => {
+    await live({ people: 1 })
+    beforeNextBatch(() => w.db.raw.prepare("UPDATE node SET state = 'closed', closed_at = ? WHERE path = ?").run(new Date(w.now).toISOString(), MID))
+    await refused(
+      w.run({ type: 'createNode', actor: site(lumpy), input: { kind: 'variant', variantOf: MID, title: 'minecraft in doom: stricter', what: 'w', doneWhen: 'd', check: { author: true }, tags: ['games'] } }),
+      'shwarm_closed',
+      { node: MID },
+    )
+    expect(w.node('minecraft-in-doom-stricter')).toBeUndefined()
+    expect(w.all('SELECT 1 FROM seat s JOIN person p ON p.id = s.person_id WHERE p.handle = ?', 'lumpy')).toHaveLength(0)
+  })
+
+  it('refuses builds_on when the upstream reopens before the create commits', async () => {
+    await live({ people: 1 })
+    const s = await w.submit(agent(kestrel), MID)
+    await w.pass(site(lumpy), MID, s.id)
+    expect(w.node(MID).state).toBe('closed')
+    beforeNextBatch(() => w.db.raw.prepare("UPDATE node SET state = 'live', closed_at = NULL WHERE path = ?").run(MID))
+    await refused(w.shwarm(site(finn), { title: 'minecraft in doom 2', buildsOn: MID }), 'bad_request')
+    expect(w.node('minecraft-in-doom-2')).toBeUndefined()
+  })
+
+  it('refuses a path longer than a node can be loaded by', async () => {
+    const long = (c: string) => c.repeat(80)
+    await w.run({ type: 'createNode', actor: seed(myra), input: { kind: 'shwarm', title: long('r'), what: 'w', doneWhen: 'd', check: { author: true }, tags: ['x'], lobby: 1 } })
+    let path = long('r')
+    for (let i = 0; i < 6; i++) path = (await w.run<any>({ type: 'createNode', actor: seed(myra), input: { kind: 'branch', parent: path, title: long('b'), what: 'w', doneWhen: 'd', check: { author: true } } })).path
+    expect(path.length).toBe(566)
+    expect((await w.post(site(kestrel), path)).node).toBe(path) // the deepest node still works
+    await refused(w.run({ type: 'createNode', actor: seed(myra), input: { kind: 'branch', parent: path, title: long('b'), what: 'w', doneWhen: 'd', check: { author: true } } }), 'bad_request')
+    expect(w.all('SELECT COUNT(*) AS n FROM node')[0].n).toBe(7)
+  })
+})
+
+describe('an author fail after a reopen', () => {
+  it('resets checks only on submissions that never passed, and leaves the old pass on record', async () => {
+    await live() // author only
+    const s1 = await w.submit(agent(kestrel), MID)
+    await w.pass(site(myra), MID, s1.id, { text: 'played it, works' })
+    expect(w.node(MID).state).toBe('closed')
+    await w.fail(site(lumpy), MID, s1.id) // the repro that reopens it
+    expect(w.node(MID).state).toBe('live')
+    const s2 = await w.submit(agent(finn), MID)
+    expect((await w.fail(site(myra), MID, s2.id)).node_checks).toBe('reset')
+    // #1's sign-off and the repro that reopened the node stand
+    expect(w.all('SELECT reset_at FROM check_report WHERE submission_id = ?', s1.id).map(c => c.reset_at)).toEqual([null, null])
+    expect(w.sub(s1.id).status).toBe('passed')
+    // and the author can't fail the passed submission now
+    await refused(w.fail(site(myra), MID, s1.id), 'bad_request')
+    await refused(w.pass(site(myra), MID, s1.id, { text: 'again' }), 'bad_request')
+    expect(w.sub(s1.id).status).toBe('passed')
+    expect(w.events(MID, 'failed').map(e => e.number)).toEqual([2])
+  })
+})
+
+describe('the in review flag and the ETag', () => {
+  it('shows in review only on a live node', async () => {
+    await live()
+    await w.submit(agent(kestrel), MID)
+    expect(w.node(MID).in_review).toBe(1)
+    await w.run({ type: 'deadEnd', actor: site(myra), input: { node: MID, note: 'the engine cannot do it' } })
+    expect(w.node(MID)).toMatchObject({ state: 'dead_end', in_review: 0 })
+    await w.run({ type: 'reopen', actor: site(myra), input: { node: MID } })
+    expect(w.node(MID)).toMatchObject({ state: 'live', in_review: 1 }) // the submission is still waiting
+  })
+
+  it('changes the version on every write a signed-out view shows: posts, joins, leaves', async () => {
+    const seen: string[] = []
+    const look = () => {
+      const v = w.node(MID).last_event_id
+      expect(v).toBeTruthy()
+      expect(seen).not.toContain(v)
+      seen.push(v)
+    }
+    await w.shwarm(site(myra), { lobby: 3 })
+    look()
+    await w.join(site(kestrel), MID)
+    look()
+    await w.run({ type: 'leave', actor: site(kestrel), input: { node: MID } })
+    look()
+    await w.post(site(lumpy), MID, 'is anyone here?')
+    look()
+    await w.join(site(kestrel), MID)
+    await w.join(site(finn), MID) // kickoff: the version is the lobby_filled event
+    expect(w.node(MID).last_event_id).toBe(w.events(MID, 'lobby_filled')[0].id)
+    look()
+    const p = await w.post(site(lumpy), MID, 'live now')
+    expect(w.node(MID).last_event_id).toBe(p.id)
+  })
+})

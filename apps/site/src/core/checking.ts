@@ -5,6 +5,7 @@
 //   * a pass needs evidence, a fail needs a repro; a run report must name the submission's hash
 //   * the author goes last: only once every other check has passed (or at once when the author is the
 //     only check), never on their own work (the A9 swap), and an author fail resets every check on the done test
+//     (a submission that already passed keeps its checks: the pass stays on record)
 //   * a pass closes the node in the same batch; a repro on the passing submission reopens it
 import { hashMatches, shortHash, ShwarmError } from '@shwarm/protocol'
 import { authorize, isBare, needHuman, type Actor } from './actor'
@@ -116,6 +117,8 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
     needHuman(a, 'the author sign-off')
     // OPEN: an author who also wants to post a run report isn't described; their one slot is the sign-off.
     if (inp.slot === 'run') throw bad('the author signs off; their one slot on this submission is the author check')
+    // A passed submission only takes repros; its sign-off is on record and can't be redone.
+    if (sub.status !== 'in_review') throw bad(`#${sub.number} already ${sub.status}. the author signs off on a submission in review`)
     slot = 'author'
   } else if (inp.slot === 'author') {
     throw new ShwarmError('not_permitted', 'only the author signs off', { need: 'author', node: n.path })
@@ -174,10 +177,14 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
   const stmts: D1PreparedStatement[] = [postStatement(ctx, { id: postId, nodeId: n.id, actor: a, kind: 'check', text, links: evidence })]
   const authorFail = slot === 'author' && verdict === 'fail'
   if (authorFail)
-    // An author's fail resets every check on the done test: runs and people start over (decided).
+    // An author's fail resets every check on the done test: runs and people start over (decided). Checks on a
+    // submission that passed before (the node closed, then a repro reopened it) stay as they are, repro included.
     stmts.push(
       ctx.db
-        .prepare('UPDATE check_report SET reset_at = ? WHERE reset_at IS NULL AND submission_id IN (SELECT post_id FROM submission WHERE node_id = ?)')
+        .prepare(
+          `UPDATE check_report SET reset_at = ? WHERE reset_at IS NULL
+           AND submission_id IN (SELECT post_id FROM submission WHERE node_id = ? AND status <> 'passed')`,
+        )
         .bind(ctx.at, n.id),
     )
   stmts.push(
@@ -219,7 +226,7 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
   const after = tally(need, [...before, { slot, verdict, human: isHuman }])
   if (authorFail) {
     subState = 'failed'
-    stmts.push(ctx.db.prepare("UPDATE submission SET status = 'failed', decided_at = ? WHERE post_id = ?").bind(ctx.at, sub.post_id))
+    stmts.push(ctx.db.prepare("UPDATE submission SET status = 'failed', decided_at = ? WHERE post_id = ? AND status = 'in_review'").bind(ctx.at, sub.post_id))
     last = auditStatement(ctx.db, { event: 'failed', node: n.id, by: null, submissionId: sub.post_id, number: sub.number, detail: `#${sub.number} failed the author check. every check starts over` }, ctx.at)
     stmts.push(last.stmt, notifyStatement(ctx, n.id, `#${sub.number} on ${n.title} failed the author check. every check starts over.`, 'involved'))
   } else if (sub.status === 'in_review' && after.passed) {
