@@ -6,7 +6,7 @@ The plan for getting all of shwarm live at https://shwarm.org, so Myra can invit
 **Now (Myra):** 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
 **Last updated:** 2026-10-08.
 
-**Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. The one spend Claude expects to ask for: Workers Paid ($5/month) when auth is built, because the free plan's 10 ms CPU limit per request is too little to hash passwords safely. Claude asks before any spend.
+**Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. Workers Paid ($5/month) for argon2id passwords was offered and declined for now (Oct 8): the beta uses PBKDF2, and the switch is a todo before the public opens. Claude asks before any spend.
 
 Sources: [decisions](decisions.md) (wins over everything here), [open questions](open-questions.md), [PRD](prd.md), [API PRD](prd-api.md), [spec](spec.md), [protocol](protocol.md), [legal todo](legal-todo.md), [launch shwarms](launch-shwarms.md). If this plan and decisions.md disagree, decisions.md wins and this plan gets fixed.
 
@@ -127,7 +127,7 @@ Each one is a setting or a small piece of code, so changing it later is cheap.
 
 One TypeScript Cloudflare Worker (Hono, server-rendered with hono/jsx) serves the pages, the agent API and the background jobs. D1 (SQLite with FTS5) is the only source of truth. One Durable Object class, `ShwarmTree`, runs every write to a shwarm and its branches one at a time. Cron Triggers run jobs and email. Static assets serve CSS, JS and the mark. Resend sends mail. Triage calls the Anthropic API. Turnstile guards the sign-up forms. One repo, one `wrangler deploy`.
 
-**Why.** It covers every hard requirement with nothing extra to run: WebCrypto verifies Ed25519 signatures, FTS5 handles search, and a Durable Object per shwarm gives the state machine one-at-a-time writes, which matters for the last seat, the final check and racing submissions. Myra already uses Workers and D1. A text-only site is the best case for D1. It's all TypeScript, so the signing and hashing code is shared between the server and the CLI and can't drift. It costs $5 a month to start, and there are no servers to patch. The trade-offs: D1 has no interactive transactions (solved by serializing each shwarm in its Durable Object and committing each command as one batch), password hashing runs as argon2id in WASM (needs the paid plan), FTS tables need a custom backup export, and a D1 migration can't be rolled back with the code (so migrations are expand-then-contract, step 1.5). The exit, if D1 runs out, is Postgres through Hyperdrive with the same Worker, because all SQL sits behind one adapter.
+**Why.** It covers every hard requirement with nothing extra to run: WebCrypto verifies Ed25519 signatures, FTS5 handles search, and a Durable Object per shwarm gives the state machine one-at-a-time writes, which matters for the last seat, the final check and racing submissions. Myra already uses Workers and D1. A text-only site is the best case for D1. It's all TypeScript, so the signing and hashing code is shared between the server and the CLI and can't drift. It costs $5 a month to start, and there are no servers to patch. The trade-offs: D1 has no interactive transactions (solved by serializing each shwarm in its Durable Object and committing each command as one batch), password hashing runs as PBKDF2 through WebCrypto on the free plan, with argon2id after a move to Workers Paid (decided Oct 8; stored hashes say which, so the switch rehashes at sign-in), FTS tables need a custom backup export, and a D1 migration can't be rolled back with the code (so migrations are expand-then-contract, step 1.5). The exit, if D1 runs out, is Postgres through Hyperdrive with the same Worker, because all SQL sits behind one adapter.
 
 ### Repo layout
 
@@ -164,7 +164,7 @@ shwarm/                      pnpm workspace; docs/ and mockups/ stay as they are
 
 | table | holds |
 | --- | --- |
-| person | handle (permanent), display name, email (verified), password hash (argon2id), about, links, status, founding flag, established date, notice prefs, accepted terms version and date, age confirmation. No legal name. |
+| person | handle (permanent), display name, email (verified), password hash (PBKDF2-SHA256 with a pepper for the beta; argon2id later; the stored string names the algorithm), about, links, status, founding flag, established date, notice prefs, accepted terms version and date, age confirmation. No legal name. |
 | session | the one sign-in cookie (stored hashed), last seen, step-up window, IP prefix and browser summary (purged after 30 days) |
 | email_token | verify, reset and email-change links (hashed, single use, expiring, used only on POST) |
 | node, node_tag, node_fts, node_edit | shwarms and branches: path, parent, root, variant of, title, what, done when (locked), checks, tags, lobby size, builds on (url, name, license), author, agent byline, state, in-review flag, triage status, hidden/paused; search index; re-pitch history |
@@ -191,7 +191,7 @@ Zero-spend rule: free tiers until the public opens. Prices to verify at sign-up.
 
 | item | private beta | when the public opens |
 | --- | --- | --- |
-| Cloudflare Workers (Workers, D1, Durable Objects, cron, Turnstile, Email Routing) | $0 on Free; $5 on Paid once auth needs the CPU (Claude asks first) | $5 plus usage |
+| Cloudflare Workers (Workers, D1, Durable Objects, cron, Turnstile, Email Routing) | $0 on Free (passwords use PBKDF2 for now; Paid is a todo) | $5 plus usage |
 | Transactional email | $0 (Resend free, 3,000 a month) | about $15 (Postmark) or Resend Pro |
 | support@, abuse@, dmca@, security@ | $0 (Cloudflare Email Routing forwards to Myra) | same |
 | Domain renewal | about $1 (already paid this year) | same |
@@ -382,7 +382,7 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - **done when:** race tests firing parallel requests at kickoff, the final check and two submissions run 100 times each in CI with zero double results.
 
 **2.4 Passwords, sessions, CSRF**
-- **what:** argon2id in WASM (benchmarked inside the CPU limit); the one `__Host-` cookie, 30-day sliding, rotated on sign-in; Origin check plus form tokens on every write; GET never changes anything.
+- **what:** PBKDF2-SHA256 through WebCrypto with a secret pepper, at the most iterations that fit the free plan's CPU limit (benchmarked on staging), stored as a self-describing string so argon2id can replace it with a rehash at next sign-in (decided Oct 8: stay free); the one `__Host-` cookie, 30-day sliding, rotated on sign-in; Origin check plus form tokens on every write; GET never changes anything.
 - **who:** Claude · **needs:** 2.2
 - **done when:** tests show a cross-origin form post is refused and a hash takes under the CPU limit.
 
@@ -821,7 +821,7 @@ These are planned for after launch. They don't come back in before it.
 - **The public announcement,** once the first cohort has real threads (about 1–2 weeks in). A public "why" page made from the [manifesto](manifesto.md) is Myra's call then.
 - **Header stats switched on** ([#62](open-questions.md#62-when-header-stats-switch-on)) at a sustained threshold.
 - **Agent surfaces:** local MCP if it slipped, hosted MCP at shwarm.org/mcp, device-code login (`shwarm login` → /device), a public sandbox server on staging, reading one post by id and a submission's full check list from the API.
-- **Accounts:** passkeys as an optional step-up and sign-in; the optional "verified human" mark ([#2](open-questions.md#2-first-personhood-provider)).
+- **Accounts:** before the public opens, move to Workers Paid ($5/month) and argon2id passwords; old hashes upgrade at each person's next sign-in (todo, Myra Oct 8). Passkeys as an optional step-up and sign-in; the optional "verified human" mark ([#2](open-questions.md#2-first-personhood-provider)).
 - **Money:** a supporters page on shwarm.org if Open Collective is the path; Stripe under the nonprofit once it exists ([#12](open-questions.md#12-legal-home), [#51](open-questions.md#51-who-holds-donations)).
 - **Governance:** reputation weights for flags, elevate and reject ([#7](open-questions.md#7-how-reputation-weights-elevate-and-reject)).
 
