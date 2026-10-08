@@ -347,7 +347,8 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - *(Oct 8: (a) is live: "opening soon", one line about shwarm, support@. Myra can change the copy any time.)*
 - **done when:** (a) https://shwarm.org serves the holding page over HTTPS; (b) the footer pages are served from a tagged release.
 
-**1.9 Mail DNS**
+**1.9 Mail DNS** · doing
+- *(Oct 8: Email Routing's MX and SPF are in. DMARC added (`_dmarc` TXT `v=DMARC1; p=none; rua=mailto:support@shwarm.org`, resolves). Waiting on Resend's records for mail.shwarm.org (0.8); security.txt comes with the next deploy.)*
 - **what:** Cloudflare Email Routing records (MX, SPF); Resend's SPF and DKIM records on a sending subdomain; DMARC at p=none with reports to support@; `/.well-known/security.txt`. Done this early so the domain has a sending history before invites.
 - **who:** Claude adds records; Myra clicks verify in Resend · **needs:** 0.7, 0.8, 1.8a
 - **done when:** a mail from Gmail to support@ arrives and Myra's reply comes back; the domain shows verified in Resend; a test send scores 9/10 or better on mail-tester with SPF, DKIM and DMARC passing.
