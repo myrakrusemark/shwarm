@@ -12,7 +12,10 @@
       "vars": { "ENV": "staging", "SITE_MODE": "holding" },
       "d1_databases": [
         { "binding": "DB", "database_name": "shwarm-staging", "database_id": "debfa9a2-1b5f-47ff-b2e9-6e2c397974ad", "migrations_dir": "migrations" }
-      ]
+      ],
+      // One-at-a-time writes per shwarm tree (go-live 2.3). SQLite-backed, as the free plan requires.
+      "durable_objects": { "bindings": [{ "name": "TREE", "class_name": "ShwarmTree" }] },
+      "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ShwarmTree"] }]
     },
     "production": {
       "name": "shwarm-production",
@@ -23,7 +26,10 @@
       ],
       "d1_databases": [
         { "binding": "DB", "database_name": "shwarm-production", "database_id": "a6803669-1bdf-4ed5-833b-400b8037ec02", "migrations_dir": "migrations" }
-      ]
+      ],
+      // One-at-a-time writes per shwarm tree (go-live 2.3). SQLite-backed, as the free plan requires.
+      "durable_objects": { "bindings": [{ "name": "TREE", "class_name": "ShwarmTree" }] },
+      "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ShwarmTree"] }]
     }
   }
 }
