@@ -13,7 +13,8 @@
     "migrate:check": "wrangler d1 migrations apply DB --env staging --local"
   },
   "dependencies": {
-    "hono": "^4"
+    "hono": "^4",
+    "@shwarm/protocol": "*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4",

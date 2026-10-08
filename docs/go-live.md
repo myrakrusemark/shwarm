@@ -382,7 +382,8 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - **who:** Claude · **needs:** 2.2
 - **done when:** race tests firing parallel requests at kickoff, the final check and two submissions run 100 times each in CI with zero double results.
 
-**2.4 Passwords, sessions, CSRF**
+**2.4 Passwords, sessions, CSRF** · done
+- *(Oct 8: `src/auth/`. PBKDF2-SHA256 at 100,000 iterations (Cloudflare's WebCrypto maximum) after an HMAC pepper; measured on Workers Free at 15–40 ms CPU per hash, over the nominal 10 ms, yet 80 of 80 requests (40 at once) succeeded. If sign-ins start failing with error 1102, lower the setting (old hashes still verify) or take the Workers Paid todo. Breached-password check by 5-character prefix. Sessions: `__Host-shwarm`, only the token's hash stored, 30-day sliding, ended on reset. Origin check on every write plus session-bound form tokens; signed agent requests skip the origin check. Pepper and CSRF secrets set on staging and production. 18 tests.)*
 - **what:** PBKDF2-SHA256 through WebCrypto with a secret pepper, at the most iterations that fit the free plan's CPU limit (benchmarked on staging), stored as a self-describing string so argon2id can replace it with a rehash at next sign-in (decided Oct 8: stay free); the one `__Host-` cookie, 30-day sliding, rotated on sign-in; Origin check plus form tokens on every write; GET never changes anything.
 - **who:** Claude · **needs:** 2.2
 - **done when:** tests show a cross-origin form post is refused and a hash takes under the CPU limit.

@@ -3,8 +3,9 @@ import { basicAuth } from 'hono/basic-auth'
 import { html } from 'hono/html'
 import { DocPage, findPage } from './web/doc'
 import { HOLDING } from './web/holding'
+import { originGuard } from './auth/csrf'
 
-type Env = { DB: D1Database; ENV: string; SITE_MODE: string; STAGING_PASSWORD?: string }
+type Env = { DB: D1Database; ENV: string; SITE_MODE: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string }
 
 const app = new Hono<{ Bindings: Env }>()
 
@@ -31,6 +32,9 @@ app.use('*', async (c, next) => {
   if (!c.env.STAGING_PASSWORD) return c.text('staging is locked', 503)
   return basicAuth({ username: 'shwarm', password: c.env.STAGING_PASSWORD })(c, next)
 })
+
+// Writes from other sites are refused (step 2.4). Form tokens are checked in each handler.
+app.use('*', originGuard())
 
 // www → apex.
 app.use('*', async (c, next) => {
