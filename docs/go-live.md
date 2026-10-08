@@ -2,8 +2,8 @@
 
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
-**Now (Claude):** 1.1, the repo is on GitHub (private); waiting on Myra's OK for the Syncthing ignore patterns. Then 1.2 CI and 1.3 the Worker.
-**Now (Myra):** turn on npm 2FA, then publish the placeholder (0.6, command in chat) · Cloudflare 2FA and usage notifications (0.4) · create the free `shwarm` org on npmjs.com · 0.7 email forwarding and 0.8 Resend (before 1.9) · a separate Stripe account for shwarm (before 9.1) · 0.11 your tester list (ongoing).
+**Now (Claude):** 1.2 CI and 1.3 the Worker with staging and production. (0.7 forwarding finishes on its own once Myra clicks the verify link.)
+**Now (Myra):** click the Cloudflare verify link sent to shwarm-support@myrakrusemark.com (0.7) · npm 2FA, then publish the placeholder (0.6) · Cloudflare 2FA and usage notifications · create the free `shwarm` org on npmjs.com · 0.8 Resend (before 1.9) · a separate Stripe account for shwarm (before 9.1) · 0.11 your tester list (ongoing).
 **Last updated:** 2026-10-08.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. The one spend Claude expects to ask for: Workers Paid ($5/month) when auth is built, because the free plan's 10 ms CPU limit per request is too little to hash passwords safely. Claude asks before any spend.
@@ -259,8 +259,8 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - **who:** both · **needs:** 0.3
 - **done when:** `npm view shwarm` shows Myra as owner.
 
-**0.7 support@shwarm.org (free forwarding)**
-- **what:** turn on Cloudflare Email Routing for shwarm.org (free) and forward support@, abuse@, security@ and dmca@ to Myra's inbox. Claude adds the DNS records in 1.9.
+**0.7 support@shwarm.org (free forwarding)** · doing
+- **what:** turn on Cloudflare Email Routing for shwarm.org (free) and forward support@, abuse@, security@ and dmca@ to shwarm-support@myrakrusemark.com. Done by Claude through the Cloudflare API on Oct 8: routing enabled (MX and SPF added by Cloudflare); the four rules are created as soon as Myra clicks the verification link sent to that address.
 - **who:** Myra · **needs:** 0.4
 - **done when:** Email Routing shows the four addresses with Myra's inbox verified as the destination.
 
@@ -270,7 +270,7 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - **done when:** the account exists and the staging and prod keys are in Myra's password manager.
 
 **0.9 Triage model (when the public opens)** · done
-- **what:** decided (Myra, Oct 8): triage runs on **Clef-flash**, Cloudflare's decision model, through the Workers AI binding in our own Worker (`@cf/cloudflare/clef-flash`). No outside key, no Anthropic account. It answers one question per new shwarm, branch or variant: "does this hit a hard block? yes / no / unsure"; yes or unsure goes to Myra's queue, no publishes. Triage volume is tiny, so it should fit Workers AI's free daily allowance (checked in 8.1). Done-test suggestions are skipped at first. The model sits behind one setting (`TRIAGE_MODEL`), with Clef (27B) and Jev as fallbacks if flash misses cases. Before the public opens, an eval: about 30 crafted hard-block cases plus all 100 launch shwarms; the model must block every bad case and pass every launch shwarm. Not used in the beta (Myra clears new nodes by hand).
+- **what:** decided (Myra, Oct 8): triage runs on **Clef-flash**, Cloudflare's decision model, through the Workers AI binding in our own Worker (`@cf/cloudflare/clef-flash`). No outside key, no Anthropic account. It answers one question per new shwarm, branch or variant: "does this hit a hard block? yes / no / unsure"; yes or unsure goes to Myra's queue, no publishes. Triage volume is tiny, so it should fit Workers AI's free daily allowance (checked in 8.1). Done-test suggestions are skipped at first. The model sits behind one setting (`TRIAGE_MODEL`), with Clef (27B) and Jev as fallbacks if flash misses cases. Before the public opens, an eval: about 30 crafted hard-block cases plus all 100 launch shwarms; the model must block every bad case and pass every launch shwarm. Runs during the beta too (Myra, Oct 8: "clef"), as practice for launch; yes or unsure still lands in Myra's queue.
 - **who:** Claude · **needs:** 0.4 · **due before:** public sign-up
 - **done when:** the eval passes on the chosen model.
 
@@ -301,7 +301,7 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 
 ### Phase 1: foundation (4 days)
 
-**1.1 git repo** · doing
+**1.1 git repo** · done
 - **what:** `git init`, .gitignore, npm workspaces with the layout above (npm, not pnpm: one less tool), push to `myrakrusemark/shwarm` (private for now). The folder syncs through Syncthing, not Dropbox, so build folders are kept out with Syncthing ignore patterns for this project (node_modules, .wrangler, dist), with Myra's OK since it's her sync config.
 - **who:** Claude · **needs:** 0.5, A1
 - **done when:** the repo is on GitHub and Syncthing isn't syncing this project's build folders.
