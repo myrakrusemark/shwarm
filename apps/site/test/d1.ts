@@ -9,6 +9,10 @@ export function testDb(): D1Database & { raw: any } {
   raw.exec('PRAGMA foreign_keys = ON')
   const dir = new URL('../migrations/', import.meta.url)
   for (const f of readdirSync(dir).filter(f => f.endsWith('.sql')).sort()) raw.exec(readFileSync(new URL(f, dir), 'utf8'))
+  const runSync = (sql: string, args: unknown[]) => {
+    const r = raw.prepare(sql).run(...args)
+    return { success: true, meta: { changes: Number(r.changes), last_row_id: Number(r.lastInsertRowid) }, results: [] }
+  }
   const stmt = (sql: string, args: unknown[] = []): any => ({
     bind: (...a: unknown[]) => stmt(sql, a),
     first: async (col?: string) => {
@@ -16,20 +20,19 @@ export function testDb(): D1Database & { raw: any } {
       return r === undefined ? null : col ? r[col] : { ...r }
     },
     all: async () => ({ results: raw.prepare(sql).all(...args).map((r: any) => ({ ...r })), success: true, meta: {} }),
-    run: async () => {
-      const r = raw.prepare(sql).run(...args)
-      return { success: true, meta: { changes: Number(r.changes), last_row_id: Number(r.lastInsertRowid) }, results: [] }
-    },
+    run: async () => runSync(sql, args),
+    runSync: () => runSync(sql, args),
     raw: async () => raw.prepare(sql).all(...args).map((r: any) => Object.values(r)),
   })
   return {
     raw,
     prepare: (sql: string) => stmt(sql),
+    // Like D1, a batch is one transaction that nothing else interleaves with: no await inside it.
     batch: async (stmts: any[]) => {
       raw.exec('BEGIN')
       try {
         const out = []
-        for (const s of stmts) out.push(await s.run())
+        for (const s of stmts) out.push(s.runSync())
         raw.exec('COMMIT')
         return out
       } catch (e) {

@@ -4,8 +4,9 @@ import { html } from 'hono/html'
 import { DocPage, findPage } from './web/doc'
 import { HOLDING } from './web/holding'
 import { originGuard } from './auth/csrf'
+export { ShwarmTree } from './do/shwarm-tree'
 
-type Env = { DB: D1Database; ENV: string; SITE_MODE: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string }
+type Env = { DB: D1Database; TREE: DurableObjectNamespace; ENV: string; SITE_MODE: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string }
 
 const app = new Hono<{ Bindings: Env }>()
 

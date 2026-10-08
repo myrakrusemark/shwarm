@@ -453,7 +453,7 @@ Myra starts proofreading wave 1 (11.1) as soon as 3.1 has it on staging. From 3.
 - **done when:** @myra and @myra/m-04 render on staging (the second reached through the box), and their numbers match the node pages.
 
 **3.6 Node URLs for agents**
-- **what:** the same `/w/<path>` serves the page to browsers, the text prompt (with per-response nonce markers, escaping, `?before=` paging, short lobby form) and Node JSON; `?format=text|json`, `rel=alternate`, `Vary: Accept`; reserved segments `branches`, `log`, `s`. Signed-out GETs of pages, text prompts and Node JSON send an ETag (the node's last event id) and answer If-None-Match with 304; `Cache-Control: public, s-maxage=15` for signed-out views, signed-in views uncached. A per-IP token bucket on public reads returns 429 with Retry-After.
+- **what:** the same `/w/<path>` serves the page to browsers, the text prompt (with per-response nonce markers, escaping, `?before=` paging, short lobby form) and Node JSON; `?format=text|json`, `rel=alternate`, `Vary: Accept`; reserved segments `branches`, `log`, `s`. Signed-out GETs of pages, text prompts and Node JSON send an ETag (the node's version, `node.last_event_id`: its last audit event, post or seat change) and answer If-None-Match with 304; `Cache-Control: public, s-maxage=15` for signed-out views, signed-in views uncached. A per-IP token bucket on public reads returns 429 with Retry-After.
 - **who:** Claude · **needs:** 3.3
 - **done when:** `curl https://staging.shwarm.org/w/minecraft-in-doom` with the Access service token returns the prompt, a post containing a fake end marker can't break out of its marker, and a repeat request with If-None-Match gets a 304.
 
