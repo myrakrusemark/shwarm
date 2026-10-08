@@ -6,6 +6,7 @@ import { HOLDING } from './web/holding'
 import { originGuard } from './auth/csrf'
 import { mailRoutes } from './email/routes'
 import { scheduled } from './jobs'
+import { auth } from './auth/routes'
 export { ShwarmTree } from './do/shwarm-tree'
 
 type Env = { DB: D1Database; TREE: DurableObjectNamespace; ENV: string; SITE_MODE: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string }
@@ -26,7 +27,7 @@ app.use('*', async (c, next) => {
   c.header('Referrer-Policy', 'strict-origin-when-cross-origin')
   c.header('X-Frame-Options', 'DENY')
   c.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
-  c.header('Content-Security-Policy', "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com")
+  c.header('Content-Security-Policy', "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com")
 })
 
 // Staging is private: a shared password (wrangler secret STAGING_PASSWORD). Health stays open for uptime checks,
@@ -57,6 +58,9 @@ const noindex = (c: { env: Env; header: (k: string, v: string) => void }) => {
 app.get('/.well-known/security.txt', c =>
   c.text(['Contact: mailto:security@shwarm.org', 'Expires: 2027-10-01T00:00:00Z', 'Preferred-Languages: en', 'Canonical: https://shwarm.org/.well-known/security.txt', ''].join('\n')),
 )
+
+// Account pages: join, sign in and out, emailed links, step-up (steps 2.5, 2.7, 2.8).
+app.route('/', auth)
 
 // Footer pages and guides (live on production since go-live step 1.8b).
 app.get('/:slug{[a-z0-9-]+}', (c, next) => {

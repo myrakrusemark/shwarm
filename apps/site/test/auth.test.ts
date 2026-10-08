@@ -114,6 +114,13 @@ describe('sessions', () => {
   it('keeps only coarse network and browser details', () => {
     expect(ipPrefix('2001:db8:85a3:8d3:1319:8a2e:370:7348')).toBe('2001:db8:85a3::/48')
     expect(ipPrefix(null)).toBeNull()
+    // every spelling of one /48 is one scope
+    for (const ip of ['2001:db8::1', '2001:db8:0:0:1::1', '2001:0DB8:0000:0000:0000:0000:0000:0001', '2001:db8:0::ffff:192.0.2.1']) {
+      expect(ipPrefix(ip), ip).toBe('2001:db8:0::/48')
+    }
+    expect(ipPrefix('::ffff:192.0.2.1')).toBe('192.0.2.0/24')
+    expect(ipPrefix('fe80::1%eth0')).toBe('fe80:0:0::/48')
+    for (const bad of ['1::2::3', '1:2:3:4:5:6:7:8:9', '12345::1', 'g::1', '1:2:3']) expect(ipPrefix(bad), bad).toBeNull()
     expect(browserSummary('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit Safari/605.1')).toBe('safari · ios')
   })
 })

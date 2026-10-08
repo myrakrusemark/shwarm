@@ -1,0 +1,23 @@
+/* account pages: join, sign in, check your email, verify, forgot, reset, step-up. tokens come from site.css */
+.auth { max-width: 470px; margin: 34px auto 0; }
+.auth .f { padding: 12px 14px; border-bottom: 1px dashed rgba(19,38,27,.3); }
+.auth .f:last-child { border-bottom: 0; }
+.auth .f > label, .auth .f > .lbl { display: block; font-weight: 700; margin-bottom: 2px; }
+.auth .hint { font-size: 12px; opacity: .75; margin: 0 0 6px; }
+.auth .hint a, .auth .lbl a { font-weight: 400; }
+.auth input[type=text], .auth input[type=email], .auth input[type=password] {
+  font: inherit; width: 100%; border: 1.5px solid var(--ink); background: var(--paper); padding: 6px 8px; color: var(--ink); }
+.auth input:focus { outline: 3px solid var(--sun); outline-offset: 0; }
+.auth .chk { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; font-weight: 400; }
+.auth .chk input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--moss); flex: 0 0 auto; }
+.auth .err { color: var(--clay); font-weight: 700; font-size: 12.5px; margin: 4px 0 0; }
+.auth .msg { padding: 10px 14px; border-bottom: var(--rule); background: rgba(196,87,45,.12); }
+.auth .msg.ok { background: rgba(92,154,62,.18); }
+.auth .go { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; }
+.auth .go form { margin: 0; }
+.auth .in form { margin: 10px 0 0; }
+.auth .below { margin: 12px 2px 0; font-size: 13px; }
+.auth .cf-turnstile { min-height: 65px; }
+.auth button.link { all: unset; color: var(--sky); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.auth button.link:hover { background: var(--sun); color: var(--ink); }
+.auth form.inline { display: inline; margin: 0; }

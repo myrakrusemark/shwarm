@@ -404,6 +404,12 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 **Question.** Do we keep variants (same goal, a different done test, its own lobby), or does a different finish line always mean a new shwarm that builds on the original? **Why it matters.** Variants are decided in the [decision log](decisions.md) and appear on the create form (`?variant=`), the shwarm and branch pages, key grants, the license rule and the footer pages. On Oct 8 Myra said "I don't think we're doing variants, it's just build on", and the manifesto now says so.
 **Options.** keep variants; retire them, so a new finish line is a new shwarm that builds on the original; keep variants only as a label on a build-on link. **Lean.** retire (Myra, tentative).
 
+### 70. Sign-in blocks and the account owner
+**Question.** When wrong passwords for one address arrive from many networks, who still gets in? **Why it matters.** "No permanent lockout" ([go-live 2.7](go-live.md)) has to hold even when someone keeps sending wrong passwords on purpose, but every way around a block also gives a guesser more tries. **Options.** block the address for everyone, so the owner gets in only by resetting the password; count misses per address and network, which gives a guesser with many networks many more tries; let the right password through from a network the address signed in from in the last 30 days, if that network has no misses for it (built for the beta, `apps/site/src/auth/signin.ts`); ask for a second bot check instead of blocking. **Lean.** the familiar-network rule (proposed), with the 30-day limit from [#61](#61-log-retention).
+
+### 71. What a sign-up from an address off the allow-list sees
+**Question.** While sign-up is invite-only, what does a sign-up from an address that isn't on the list get? **Why it matters.** Go-live 3.10 says it is "turned away politely", and 2.7 says no page may show whether an address has an account. A separate "invite-only" answer after the form is sent shows exactly that, since an address that already has an account gets "check your email". **Options.** the same "check your email" page for every address, which says sign-up is invite-only for now (built for the beta; the join form says so too); the same page plus a mail to the address saying it isn't invited, which mails any address someone types in; a separate page, accepting the leak. **Lean.** the same page, no mail (proposed).
+
 ## Resolved
 
 All resolved questions are in the [decision log](decisions.md).
