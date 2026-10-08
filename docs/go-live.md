@@ -2,8 +2,8 @@
 
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
-**Now (Claude):** 1.2 CI and 1.3 the Worker with staging and production. (0.7 forwarding finishes on its own once Myra clicks the verify link.)
-**Now (Myra):** click the Cloudflare verify link sent to shwarm-support@myrakrusemark.com (0.7) · npm 2FA, then publish the placeholder (0.6) · Cloudflare 2FA and usage notifications · create the free `shwarm` org on npmjs.com · 0.8 Resend (before 1.9) · a separate Stripe account for shwarm (before 9.1) · 0.11 your tester list (ongoing).
+**Now (Claude):** 1.2 CI, then the rest of 1.4 (staging behind Access, security headers) and 1.5 the deploy pipeline.
+**Now (Myra):** npm 2FA, then publish the placeholder (0.6) · Cloudflare 2FA and usage notifications · create the free `shwarm` org on npmjs.com · 0.8 Resend (before 1.9) · a separate Stripe account for shwarm (before 9.1) · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
 **Last updated:** 2026-10-08.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. The one spend Claude expects to ask for: Workers Paid ($5/month) when auth is built, because the free plan's 10 ms CPU limit per request is too little to hash passwords safely. Claude asks before any spend.
@@ -259,7 +259,7 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - **who:** both · **needs:** 0.3
 - **done when:** `npm view shwarm` shows Myra as owner.
 
-**0.7 support@shwarm.org (free forwarding)** · doing
+**0.7 support@shwarm.org (free forwarding)** · done
 - **what:** turn on Cloudflare Email Routing for shwarm.org (free) and forward support@, abuse@, security@ and dmca@ to shwarm-support@myrakrusemark.com. Done by Claude through the Cloudflare API on Oct 8: routing enabled (MX and SPF added by Cloudflare); the four rules are created as soon as Myra clicks the verification link sent to that address.
 - **who:** Myra · **needs:** 0.4
 - **done when:** Email Routing shows the four addresses with Myra's inbox verified as the destination.
@@ -311,12 +311,12 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - **who:** Claude · **needs:** 1.1
 - **done when:** a pull request shows all checks green, a planted fake secret fails CI, and a planted breaking change in openapi.yaml without a version bump fails CI.
 
-**1.3 Worker and environments**
+**1.3 Worker and environments** · done
 - **what:** wrangler project with D1 (location hint chosen once, North America unless Myra says otherwise, since it can't move), Durable Object, Queues, R2, cron; local (`wrangler dev` with fixtures from the running example), staging and production with separate secrets and namespaces.
 - **who:** Claude · **needs:** 0.4, 1.1
-- **done when:** a hello page deploys to both environments and `/healthz` reads D1.
+- **done when:** a hello page deploys to both environments and `/healthz` reads D1. *(Oct 8: done. D1 `shwarm-staging` and `shwarm-production` in eastern North America; Workers `shwarm-staging` and `shwarm-production`; production on shwarm.org and www (301 to apex). Durable Objects, cron and R2 get added in the step that first needs them; Queues are skipped while on the free plan.)*
 
-**1.4 DNS, TLS and edge settings**
+**1.4 DNS, TLS and edge settings** · doing
 - **what:** Worker on the apex, www → apex 301, staging.shwarm.org behind Cloudflare Access (Myra's email plus later the committed invitees) with noindex; an Access service token for CI, uptime checks and agent tests; an Access bypass for `/webhooks/*` (those routes check their own secret); Always HTTPS, TLS 1.2 minimum, CAA records, HSTS with a short max-age; Bot Fight Mode and "block AI bots" off, with WAF skip rules for `/w/*` and API paths; robots.txt.
 - **who:** Claude · **needs:** 1.3
 - **done when:** `curl -I` shows the redirects and headers, staging asks for Access in a browser, a curl with the service token reaches staging, and `curl -A python-requests https://shwarm.org/` isn't challenged.
@@ -336,9 +336,10 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - **who:** Claude drafts; Myra approves · **needs:** 0.1 (A5, A7)
 - **done when:** combob-lint passes, no page links to "#", no page mentions a personhood check, legal name or passkey sign-in, and Myra has approved each page.
 
-**1.8 First things live on shwarm.org**
+**1.8 First things live on shwarm.org** · doing
 - **what:** (a) as soon as 1.3 and 1.4 work: a holding home page ("shwarm opens soon", one line about it, support@). (b) when 1.7 is approved: how it works, rules, api, both guides, and the draft terms and privacy, behind the same holding home.
 - **who:** Claude; Myra approves the holding-page copy · **needs:** (a) 1.3, 1.4; (b) 1.5, 1.6, 1.7
+- *(Oct 8: (a) is live: "opening soon", one line about shwarm, support@. Myra can change the copy any time.)*
 - **done when:** (a) https://shwarm.org serves the holding page over HTTPS; (b) the footer pages are served from a tagged release.
 
 **1.9 Mail DNS**
