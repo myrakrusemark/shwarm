@@ -9,7 +9,7 @@
   "env": {
     "staging": {
       "name": "shwarm-staging",
-      "vars": { "ENV": "staging", "SITE_MODE": "holding" },
+      "vars": { "ENV": "staging", "SITE_MODE": "holding", "TURNSTILE_SITE_KEY": "1x00000000000000000000AA" },
       "d1_databases": [
         { "binding": "DB", "database_name": "shwarm-staging", "database_id": "debfa9a2-1b5f-47ff-b2e9-6e2c397974ad", "migrations_dir": "migrations" }
       ]

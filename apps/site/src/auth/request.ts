@@ -1,0 +1,75 @@
+// Per-request helpers for the account pages: who is signed in, the pre-session cookie that form tokens bind
+// to when nobody is, and safe `next=` paths.
+import type { Context } from 'hono'
+import { getCookie } from 'hono/cookie'
+import { toBase64url } from '@shwarm/protocol'
+import { formToken, formTokenOk } from './csrf'
+import { COOKIE, readSession, type Session } from './session'
+
+export type AuthEnv = {
+  DB: D1Database
+  ENV: string
+  PASSWORD_PEPPER: string
+  CSRF_SECRET: string
+  TURNSTILE_SECRET?: string
+  TURNSTILE_SITE_KEY?: string
+}
+export type AuthContext = Context<{ Bindings: AuthEnv }>
+
+// Signed out, form tokens bind to this random cookie, so another site can't forge a form for this browser.
+export const PRE_COOKIE = '__Host-shwarm-pre'
+const PRE_SECONDS = 2 * 3600 // refreshed on every page with a form
+export const FORM_FIELD = 'form_token'
+
+export const clientIp = (c: Context) => c.req.header('cf-connecting-ip') ?? null
+
+export type Who = { session: Session | null; token: string | undefined; pre: string | undefined }
+
+export async function who(c: AuthContext): Promise<Who> {
+  const token = getCookie(c, COOKIE)
+  const session = await readSession(c.env.DB, token)
+  const pre = getCookie(c, PRE_COOKIE)
+  return { session, token, pre: pre && /^[A-Za-z0-9_-]{43}$/.test(pre) ? pre : undefined }
+}
+
+/** The form token for a page, setting (or refreshing) the pre-session cookie when signed out. */
+export async function pageToken(c: AuthContext, w: Who): Promise<string> {
+  if (w.session) return formToken(c.env.CSRF_SECRET, w.session.id)
+  const pre = w.pre ?? toBase64url(crypto.getRandomValues(new Uint8Array(32)))
+  w.pre = pre
+  c.header('Set-Cookie', `${PRE_COOKIE}=${pre}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=${PRE_SECONDS}`, { append: true })
+  return formToken(c.env.CSRF_SECRET, 'pre:' + pre)
+}
+
+/** A posted form token is good if it matches this browser's session or its pre-session cookie. */
+export async function postedTokenOk(c: AuthContext, w: Who, form: Record<string, unknown>): Promise<boolean> {
+  const t = form[FORM_FIELD]
+  if (w.session && (await formTokenOk(c.env.CSRF_SECRET, w.session.id, t))) return true
+  return !!w.pre && (await formTokenOk(c.env.CSRF_SECRET, 'pre:' + w.pre, t))
+}
+
+/** Form fields as single strings (repeated or file fields are ignored). */
+export async function formOf(c: Context): Promise<Record<string, string>> {
+  const out: Record<string, string> = {}
+  try {
+    const body = await c.req.parseBody()
+    for (const [k, v] of Object.entries(body)) if (typeof v === 'string') out[k] = v
+  } catch {
+    // not a form: every field missing
+  }
+  return out
+}
+
+/** A same-site path for `next=`, or null. One leading slash, no scheme or host, no backslashes or control characters. */
+export function safeNext(raw: unknown): string | null {
+  if (typeof raw !== 'string' || raw.length === 0 || raw.length > 512) return null
+  if (!raw.startsWith('/') || raw.startsWith('//') || /[\\\x00-\x1f\x7f]/.test(raw)) return null
+  try {
+    const base = 'https://shwarm.invalid'
+    const u = new URL(raw, base)
+    if (u.origin !== base) return null
+    return u.pathname + u.search + u.hash
+  } catch {
+    return null
+  }
+}
