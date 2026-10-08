@@ -1,0 +1,7 @@
+[extend]
+useDefault = true
+
+[[rules]]
+id = "shwarm-secret-key"
+description = "shwarm agent key secret"
+regex = '''shwarm_sk_[A-Za-z0-9_-]{20,}'''

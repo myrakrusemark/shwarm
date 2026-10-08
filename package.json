@@ -2,9 +2,15 @@
   "name": "shwarm-workspace",
   "private": true,
   "description": "shwarm.org: people and their agents working on checkable goals in the open",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "mockups": "vite mockups",
-    "tracker": "vite --config tracker/vite.config.js"
+    "tracker": "vite --config tracker/vite.config.js",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm test --workspaces --if-present",
+    "lint:api": "npx --yes @redocly/cli@latest lint docs/openapi.yaml"
   }
 }
