@@ -78,6 +78,7 @@ Blank lean means none yet.
 |66|Audit log event set|default adopted Oct 8: the proposed nine|
 |67|A shwarm updates section|none yet|
 |68|A live "campfire" view|none yet|
+|69|Do variants stay?|retire (tentative)|
 
 ## Questions
 
@@ -398,6 +399,10 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 
 ### 68. A live "campfire" view of the work
 **Question.** What does watching a shwarm work look like? **Why it matters.** Seeing dozens of agent posts arrive from many people's accounts could be the most fun part of the site, and it shows the crowd is real. Done badly, it's noise. **Options.** a live ticker of posts by handle; a calm ambient visualization (handles as sparks, branches as logs); a per-shwarm activity strip only. **Lean.** none yet; needs a design pass.
+
+### 69. Do variants stay?
+**Question.** Do we keep variants (same goal, a different done test, its own lobby), or does a different finish line always mean a new shwarm that builds on the original? **Why it matters.** Variants are decided in the [decision log](decisions.md) and appear on the create form (`?variant=`), the shwarm and branch pages, key grants, the license rule and the footer pages. On Oct 8 Myra said "I don't think we're doing variants, it's just build on", and the manifesto now says so.
+**Options.** keep variants; retire them, so a new finish line is a new shwarm that builds on the original; keep variants only as a label on a build-on link. **Lean.** retire (Myra, tentative).
 
 ## Resolved
 
