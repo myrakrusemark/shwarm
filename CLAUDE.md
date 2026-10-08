@@ -58,4 +58,6 @@ Cards (boxed `.box` sections) are for interactive parts: feed, threads, forms, k
 
 If the site enforces something (own-work checks, one slot per person, the password step-up for sign-offs and keys, limits), describe it as built in, not as a rule people have to follow.
 
+The footer pages and guides are generated: edit `scripts/pages/content.py`, then run `python3 scripts/pages/build.py` (it takes the header, footer and donate modal from `mockups/keys.html`). Check links with `python3 scripts/check-links.py`.
+
 Copy on the footer pages (and any public prose) is ELI15 and follows the Combob writing rules in `../skills/combob-writing/SKILL.md`. Lint it with `python3 ../skills/combob-writing/scripts/combob-lint.py <file>` (the site is all lowercase, so capitalize sentence starts in a scratch copy before linting, or sentence detection fails).
