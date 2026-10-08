@@ -31,10 +31,15 @@ export async function formTokenOk(secret: string, binding: string, token: unknow
   return diff === 0
 }
 
+/** Paths that prove themselves another way and take server-to-server POSTs, which carry no Origin header:
+ *  /hooks/* check HTTP basic auth with their own secret; /unsubscribe checks an HMAC-signed token (RFC 8058 one-click). */
+export const selfAuthenticated = (path: string) => path.startsWith('/hooks/') || path === '/unsubscribe'
+
 /** Middleware: same-origin check on every write. Form-token checks happen in each handler, which knows the binding. */
 // Requests with an HTTP message signature skip it: a browser on another site can't add that header without a
 // CORS preflight, which we never allow, and those routes refuse anything whose signature doesn't verify.
 export const originGuard = (): MiddlewareHandler => async (c, next) => {
+  if (selfAuthenticated(c.req.path)) return next()
   if (!c.req.raw.headers.has('signature-input') && !sameOrigin(c.req.raw)) return c.text('this form came from another site, so it was refused.', 403)
   await next()
 }

@@ -4,6 +4,8 @@ import { html } from 'hono/html'
 import { DocPage, findPage } from './web/doc'
 import { HOLDING } from './web/holding'
 import { originGuard } from './auth/csrf'
+import { mailRoutes } from './email/routes'
+import { scheduled } from './jobs'
 export { ShwarmTree } from './do/shwarm-tree'
 
 type Env = { DB: D1Database; TREE: DurableObjectNamespace; ENV: string; SITE_MODE: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string }
@@ -27,9 +29,11 @@ app.use('*', async (c, next) => {
   c.header('Content-Security-Policy', "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com")
 })
 
-// Staging is private: a shared password (wrangler secret STAGING_PASSWORD). Health stays open for uptime checks.
+// Staging is private: a shared password (wrangler secret STAGING_PASSWORD). Health stays open for uptime checks,
+// and /hooks/* stay open because they check their own secret.
 app.use('*', async (c, next) => {
-  if (c.env.ENV !== 'staging' || new URL(c.req.url).pathname === '/healthz') return next()
+  const path = new URL(c.req.url).pathname
+  if (c.env.ENV !== 'staging' || path === '/healthz' || path.startsWith('/hooks/')) return next()
   if (!c.env.STAGING_PASSWORD) return c.text('staging is locked', 503)
   return basicAuth({ username: 'shwarm', password: c.env.STAGING_PASSWORD })(c, next)
 })
@@ -68,4 +72,7 @@ app.get('/', c => {
   return c.html(HOLDING)
 })
 
-export default app
+app.route('/', mailRoutes) // /unsubscribe, /hooks/resend (step 2.6)
+
+// The runtime calls fetch for requests and scheduled for cron (the outbox sweep, step 2.6).
+export default Object.assign(app, { scheduled })

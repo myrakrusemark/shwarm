@@ -1,6 +1,9 @@
 // The email outbox (go-live 2.6). Every mail is a row written in the same batch as the act that causes it;
 // a cron sweep sends due rows through Resend with retries. Callers only ever use enqueueMail / mailStatement.
 // Contract shared by sign-up and sign-in (2.5, 2.7) and the sender (2.6). Keep this signature stable.
+// Payloads: account templates take { handle, link }, where link is accountLink('verify', token) from ./templates
+// (a path; the sender adds SITE_URL). A notices-stream mail also needs personId and { notice: '<type>' }, which
+// names the per-type opt-out in person.notice_prefs. The sender and the row states are in ../jobs/mail.ts.
 
 export type MailStream = 'account' | 'security' | 'notices'
 export type MailTemplate =
