@@ -61,7 +61,7 @@ const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string)
     blocks: [
       hi(p),
       'the password for your shwarm account was just changed.',
-      // OPEN: /forgot is the 2.7 "forgot" page; keep in step with its path.
+      // /forgot is the 2.7 "forgot" page.
       "if you did this, there's nothing to do. if you didn't, reset it now and reply to this mail so we can help:",
       { href: `${base(site)}/forgot` },
     ],

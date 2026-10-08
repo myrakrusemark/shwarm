@@ -20,7 +20,7 @@
     },
     "production": {
       "name": "shwarm-production",
-      "vars": { "ENV": "production", "SITE_MODE": "holding", "SITE_URL": "https://shwarm.org" },
+      "vars": { "ENV": "production", "SITE_MODE": "holding", "SITE_URL": "https://shwarm.org", "TURNSTILE_SITE_KEY": "0x4AAAAAAFRu8ijzk1oyexJx" },
       "triggers": { "crons": ["* * * * *"] },
       "routes": [
         { "pattern": "shwarm.org", "custom_domain": true },

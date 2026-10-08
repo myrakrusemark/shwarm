@@ -1,5 +1,5 @@
 // Email addresses at sign-up: shape check, the normalized form that stops one inbox holding two accounts,
-// and the disposable-domain block (table disposable_domain, seeded by migration 0003).
+// and the disposable-domain block (table disposable_domain, seeded by migration 0004).
 
 export type Email = { email: string; norm: string; domain: string }
 

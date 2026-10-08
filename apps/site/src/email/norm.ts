@@ -1,15 +1,10 @@
-// One key per inbox: lowercase, no +tag, and Gmail ignores dots. Used for suppression, the allow-list and mail caps.
-// OPEN: sign-up (2.5) owns the normalizer stored in person.email_norm and signup_allow; use that one when it lands.
-// Lookups match the plain lowercased address too, so a small difference between the two can't block mail.
+// One key per inbox, the same one sign-up stores in person.email_norm and signup_allow (auth/email.ts):
+// lowercase, no +tag, and Gmail ignores dots. Used for suppression, the allow-list and mail caps.
+// Lookups match the plain lowercased address too.
+import { parseEmail } from '../auth/email'
+
 export function emailNorm(email: string): string {
-  const e = email.trim().toLowerCase()
-  const at = e.lastIndexOf('@')
-  if (at < 1) return e
-  let local = e.slice(0, at).split('+')[0]
-  let domain = e.slice(at + 1)
-  if (domain === 'googlemail.com') domain = 'gmail.com'
-  if (domain === 'gmail.com') local = local.replace(/\./g, '')
-  return `${local}@${domain}`
+  return parseEmail(email)?.norm ?? email.trim().toLowerCase()
 }
 
 /** The keys to look an address up by: as stored (lowercased) and normalized. */
