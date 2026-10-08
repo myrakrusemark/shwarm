@@ -3,7 +3,7 @@
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
 **Now (Claude):** 1.7 is mostly done by 0.2 (the copy was synced); waiting on Myra to approve the footer pages on staging, then 1.8b puts them live. Meanwhile, phase 2 (data model, auth, email).
-**Now (Myra):** 0.8 Resend: add mail.shwarm.org, two keys, tracking off · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
+**Now (Myra):** 0.8 make the two Resend keys (shwarm-staging, shwarm-production) · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
 **Last updated:** 2026-10-08.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. The one spend Claude expects to ask for: Workers Paid ($5/month) when auth is built, because the free plan's 10 ms CPU limit per request is too little to hash passwords safely. Claude asks before any spend.
@@ -265,7 +265,7 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - **done when:** Email Routing shows the four addresses with Myra's inbox verified as the destination.
 
 **0.8 Resend** · doing
-- *(Oct 8: Myra already has a Resend account. Sending domain `mail.shwarm.org` (the sending subdomain in 1.9). Claude's wrangler login can only read DNS, so Resend's records go in through Resend's Cloudflare auto-configure or by hand.)*
+- *(Oct 8: Myra's main Resend account already uses its one free domain (another project), so shwarm uses her second free account. Claude added `mail.shwarm.org` (us-east-1) and put its DKIM TXT and two sending CNAMEs into Cloudflare by hand (DNS only); all resolve. Tracking is off (no tracking subdomain); receiving off. Left for Myra: the two API keys.)*
 - **what:** free account, the shwarm.org domain added (records go in at 1.9), one API key per environment, click and open tracking off.
 - **who:** Myra · **needs:** 0.1 (A12)
 - **done when:** the account exists and the staging and prod keys are in Myra's password manager.
