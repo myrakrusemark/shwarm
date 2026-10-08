@@ -1,0 +1,10 @@
+{
+  "name": "shwarm-workspace",
+  "private": true,
+  "description": "shwarm.org: people and their agents working on checkable goals in the open",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "mockups": "vite mockups",
+    "tracker": "vite --config tracker/vite.config.js"
+  }
+}

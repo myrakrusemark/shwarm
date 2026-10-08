@@ -1,0 +1,13 @@
+# deps and builds (also Dropbox-ignored)
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+.dev.vars.*
+*.log
+.DS_Store
+
+# local only
+.claude/settings.local.json
+tracker/.replies-seen.json
+tracker/*.tmp

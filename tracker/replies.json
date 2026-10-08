@@ -1,0 +1,303 @@
+{
+  "A1": [
+    {
+      "choice": "change",
+      "text": "What is the impact of going worker only? Is there a philisophical benefit to using Lemmy? Im sure we would have more control if we just took it on ourself, but i would also like to make sure we are future-forward.",
+      "at": "2026-10-08T15:36:22.593Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "Good question. **What Lemmy gives:** federation (anyone can run a server, and the network outlives shwarm.org), which matches \"everything belongs to everyone\". **What it costs:** Lemmy is communities, posts, comments and votes. Nearly everything that makes shwarm shwarm (done tests, lobbies, the branch tree, submissions, checks, signed agent keys, per-person limits, the private inbox) would be custom code fighting its Rust and Postgres model. It needs a paid server (breaks zero-spend) and ships an image host (breaks only-text). Federation also breaks \"one human, one voice\": we can't guard votes from other servers. **How we stay future-forward without it:** the platform code is open source from day one, so anyone can run their own; every shwarm is exportable as text and JSON through the public API; the code is Hono on SQLite, which also runs on Node, Deno or Bun, so we can leave Cloudflare if we need to; and federation can be added later as a layer (parking lot, #50), for example so Mastodon users can follow a shwarm. **My recommendation:** keep A1 and add those four promises to it. Say yes and I'll record it that way.",
+      "at": "2026-10-08T15:37:51.127649+00:00"
+    },
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-08T15:39:12.913Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "Recorded in the decision log with the four promises. A1 is decided.",
+      "at": "2026-10-08T15:39:29.043226+00:00"
+    }
+  ],
+  "A2": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-08T15:39:21.388Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "Recorded in the decision log. A2 is decided.",
+      "at": "2026-10-08T15:40:01.385870+00:00"
+    }
+  ],
+  "A4": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-08T15:39:33.760Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "Recorded in the decision log. A4 is decided.",
+      "at": "2026-10-08T15:40:01.472779+00:00"
+    }
+  ],
+  "A5": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-08T15:40:37.137Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "Recorded in the decision log. A5 is decided.",
+      "at": "2026-10-08T15:40:49.347564+00:00"
+    }
+  ],
+  "A6": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-08T15:42:05.314Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "Recorded in the decision log. A6 is decided.",
+      "at": "2026-10-08T15:42:24.199177+00:00"
+    }
+  ],
+  "A7": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-08T15:42:52.550Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "Recorded in the decision log. A7 is decided.",
+      "at": "2026-10-08T15:43:14.653871+00:00"
+    }
+  ],
+  "A8": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-08T15:43:59.380Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "Recorded in the decision log. A8 is decided.",
+      "at": "2026-10-08T15:44:09.939547+00:00"
+    }
+  ],
+  "A9": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "so my first 100 shwarms do not have author check set? that's fine. is this to reduce startup friction?\n\ni would like for my own agent to submit to my own shwarms tho, dont see any reason not to.",
+      "at": "2026-10-08T15:45:33.690Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "Small mix-up, my fault for the wording. All 100 of your launch shwarms **do** have the author check: you sign off last. The issue is a built-in rule: **nobody checks their own work**. If your agent submits to your shwarm, your sign-off would be you approving yourself. **The recommendation already lets your agents submit.** On those submissions only, your sign-off is swapped for one extra people check from someone outside your account, and the submission page says so. On everyone else's submissions you sign off as usual. (The fallback, \"Myra's agents don't submit to her own shwarms\", is the one I'd drop, since you don't want it.) It's not about startup friction; it keeps a pass meaning someone else agreed. Say yes and I'll record it that way.",
+      "at": "2026-10-08T15:45:48.778197+00:00"
+    },
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-08T15:53:47.171Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "Recorded in the decision log. A9 is decided.",
+      "at": "2026-10-08T15:53:58.508155+00:00"
+    }
+  ],
+  "A11": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "In review without a locked down shwarm might muddy things a bit. Or do we rely on agents agreeing to stop work until review is done? If code, I can see a specific commit being the one to review in case any further work is done while flagged.",
+      "at": "2026-10-08T15:47:01.761Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "Your commit idea is exactly how it already works, so nobody has to stop. **What gets reviewed is the submission, not the live shwarm.** Every submission is frozen when it's posted: each link is pinned to a commit (code) or a sha256 fingerprint (files), and the submission itself gets a hash over its text and links. Runs and people checks are done against that exact snapshot, and a runner's report has to match the hash. So agents can keep working while it's in review; their new work simply becomes the next submission. Locking the whole shwarm would stall everyone, including people working on other branches. That's why \"in review\" is only a label on a live shwarm (\"a submission is being checked\"), not a separate state. **Proposed tweak from your note:** the submission page shows the pinned commit or fingerprint up top, so reviewers always see exactly which version they're checking. Say yes and I'll record A11 with that.",
+      "at": "2026-10-08T15:47:14.845293+00:00"
+    },
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-08T15:54:19.916Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "Recorded in the decision log. A11 is decided.",
+      "at": "2026-10-08T15:54:31.798760+00:00"
+    }
+  ],
+  "A12": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-08T15:47:26.984Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "Recorded in the decision log. A12 is decided.",
+      "at": "2026-10-08T15:47:35.393127+00:00"
+    }
+  ],
+  "A13": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "I already have a Stripe account, don't see why we can't just make it live in this setup pass",
+      "at": "2026-10-08T15:48:06.804Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "Yes, that works, and it's free (Stripe only takes its per-payment fee). Two things to keep it clean: **1. Make a separate Stripe account for shwarm** under your same login (Stripe lets one login hold several accounts, free). Then the money, the payout and the statement line (SHWARM) stay apart from your other business. **2. Say plainly who gets the money.** Without a nonprofit, gifts go to you personally, so they're income for you and not tax-deductible for the giver. The donate modal and terms will say \"support shwarm: payments go to Myra Krusemark, who runs it; not tax-deductible.\" (Not tax advice; worth a word with whoever does your taxes.) The modal stays as designed: once or monthly, preset or custom amount, an optional note, through Stripe's hosted checkout. A nonprofit or fiscal host can take over later. Say yes and I'll record A13 as Stripe at launch.",
+      "at": "2026-10-08T15:48:23.074298+00:00"
+    },
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-08T15:54:55.225Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "Recorded in the decision log. A13 is decided.",
+      "at": "2026-10-08T15:55:09.828734+00:00"
+    }
+  ],
+  "A14": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "whats the problem with it being a repo under myrakrusemark",
+      "at": "2026-10-08T15:49:28.954Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "Honestly, no real problem for the beta. github.com/myrakrusemark/shwarm is less setup, and you're the only maintainer. What an org buys: other maintainers with their own access, a home that can be handed to a nonprofit later, and the platform repo plus the agent-skills repo under one shwarm name instead of your personal one. None of that matters yet, and moving later is cheap: GitHub redirects old repo URLs (web and git) after a transfer. **Revised recommendation:** start under myrakrusemark (repos `shwarm` and `shwarm-skills`), move to an org when a second maintainer joins or an entity forms. Code licenses stay as proposed: server AGPL-3.0, client/CLI/skills MIT. Say yes and I'll record it.",
+      "at": "2026-10-08T15:49:40.771842+00:00"
+    },
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-08T15:55:14.284Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "Recorded in the decision log. A14 is decided.",
+      "at": "2026-10-08T15:55:32.732387+00:00"
+    }
+  ],
+  "A17": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-08T15:50:08.356Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "Recorded in the decision log. A17 is decided.",
+      "at": "2026-10-08T15:50:16.676684+00:00"
+    }
+  ],
+  "A18": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-08T15:50:26.254Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "Recorded in the decision log. A18 is decided.",
+      "at": "2026-10-08T15:50:34.224784+00:00"
+    }
+  ],
+  "A20": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "for these first shwarms, perhaps 2 people, 1 run, 1 check, no author check, is fine. Well, we do want at least a couple author checks to test the functionality.",
+      "at": "2026-10-08T15:51:59.172Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "Recorded in the decision log. A20 is decided.",
+      "at": "2026-10-08T15:52:38.029994+00:00"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "Applied to all 100 in launch-shwarms.json and .md. Kept the author check on minecraft in doom, a year of earthquakes played and hand-pixeled world (swap any during your proofread).",
+      "at": "2026-10-08T15:52:38.090311+00:00"
+    }
+  ],
+  "B": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "what is section 3",
+      "at": "2026-10-08T15:52:17.077Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "Section 3 is \"Decisions to lock first\" in the plan file. Sorry, that's not something you can see from here, so I've put all the table B rows right inside this box now: open it and scroll the numbered list. Each row is a default we'd build with, all cheap to change later. Say yes to accept them all, or \"change\" with the row numbers you want different.",
+      "at": "2026-10-08T15:52:48.860537+00:00"
+    },
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-08T15:57:19.999Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "Recorded: all of table B is accepted as the build defaults.",
+      "at": "2026-10-08T15:57:37.865059+00:00"
+    }
+  ]
+}

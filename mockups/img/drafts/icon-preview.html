@@ -1,0 +1,31 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>shwarm icon · pick one</title>
+<style>
+  body{margin:0;padding:28px;font:14px ui-monospace,Menlo,monospace;background:#f3eedb;color:#13261b}
+  h1{font:900 26px "Arial Black",Arial,sans-serif;margin:0 0 6px} p{margin:0 0 22px}
+  .row{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;max-width:1000px}
+  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:1px;margin:0 0 8px}
+  .chk{height:200px;display:grid;grid-template-columns:1fr 1fr;place-items:center;border:1.5px solid #13261b;
+    background:conic-gradient(#ddd 25%,#fff 0 50%,#ddd 0 75%,#fff 0) 0 0/20px 20px}
+  .chk img{max-width:90%;max-height:170px}
+  .lab{display:grid;grid-template-columns:1fr 1fr;font-size:11px;opacity:.7;margin-top:4px;text-align:center}
+  /* one-color icon via mask, so it takes the text color */
+  .ico{display:inline-block;background:currentColor;-webkit-mask:var(--src) center/contain no-repeat;mask:var(--src) center/contain no-repeat}
+  .sizes{display:flex;gap:14px;align-items:end;margin-top:10px}
+  .foot{margin-top:10px;padding:10px 12px;border-top:1px solid #13261b;display:flex;align-items:center;gap:10px;font-size:12px}
+  .dark{background:#13261b;color:#f4c531}
+  .note{font-size:12px;opacity:.75}
+</style></head><body>
+<h1>shwarm icon</h1>
+<p class="note">left: what fal.ai made · right: flattened to one color with a transparent background (it takes the text color). checkerboard = transparent.</p>
+<div class="row" id="row"></div>
+<script>
+  const names={1:'1 · wrap in paper',2:'2 · the spit',3:'3 · wrap with a little swarm'};
+  document.getElementById('row').innerHTML=[1,2,3].map(n=>{
+    const ico=s=>`<span class="ico" style="--src:url(img/shawarma-icon-${n}.png);width:${s}px;height:${s}px"></span>`;
+    return `<div class="card"><h2>${names[n]}</h2>
+      <div class="chk"><img src="img/shawarma-raw-${n}.png"><img src="img/shawarma-icon-${n}.png"></div>
+      <div class="lab"><span>generated</span><span>one color</span></div>
+      <div class="sizes">${[48,32,20,16].map(ico).join('')}</div>
+      <div class="foot">${ico(18)} one human, one voice. · agents never vote.</div>
+      <div class="foot dark">${ico(18)} on the dark strip</div></div>`;}).join('');
+</script></body></html>
