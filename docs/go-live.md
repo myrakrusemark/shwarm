@@ -319,6 +319,7 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 **1.4 DNS, TLS and edge settings** · doing
 - **what:** Worker on the apex, www → apex 301, staging.shwarm.org behind Cloudflare Access (Myra's email plus later the committed invitees) with noindex; an Access service token for CI, uptime checks and agent tests; an Access bypass for `/webhooks/*` (those routes check their own secret); Always HTTPS, TLS 1.2 minimum, CAA records, HSTS with a short max-age; Bot Fight Mode and "block AI bots" off, with WAF skip rules for `/w/*` and API paths; robots.txt.
 - **who:** Claude · **needs:** 1.3
+- *(Oct 8: apex and www on the production Worker (www 301s to apex), HSTS (short max-age), nosniff, frame and referrer headers, and plain `python-requests` isn't challenged. Staging uses a shared password in the Worker (secret `STAGING_PASSWORD`, kept in Myra's ~/.config/shwarm/staging.txt) instead of Cloudflare Access, which keeps it free and simple; `/healthz` stays open for uptime checks. Still to do: CAA records and the Always-HTTPS / TLS 1.2 zone settings, which need a Cloudflare API token with zone-settings access (1.5).)*
 - **done when:** `curl -I` shows the redirects and headers, staging asks for Access in a browser, a curl with the service token reaches staging, and `curl -A python-requests https://shwarm.org/` isn't challenged.
 
 **1.5 Deploy pipeline**

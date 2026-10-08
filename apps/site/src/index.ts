@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
+import { basicAuth } from 'hono/basic-auth'
 
-type Env = { DB: D1Database; ENV: string; SITE_MODE: string }
+type Env = { DB: D1Database; ENV: string; SITE_MODE: string; STAGING_PASSWORD?: string }
 
 const app = new Hono<{ Bindings: Env }>()
 
@@ -8,6 +9,23 @@ const app = new Hono<{ Bindings: Env }>()
 app.get('/healthz', async c => {
   const row = await c.env.DB.prepare("SELECT value FROM meta WHERE key = 'schema'").first<{ value: string }>()
   return c.json({ ok: true, env: c.env.ENV, schema: row?.value ?? null })
+})
+
+// Security headers on every response.
+app.use('*', async (c, next) => {
+  await next()
+  c.header('Strict-Transport-Security', 'max-age=86400') // short until launch, then longer
+  c.header('X-Content-Type-Options', 'nosniff')
+  c.header('Referrer-Policy', 'strict-origin-when-cross-origin')
+  c.header('X-Frame-Options', 'DENY')
+  c.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+})
+
+// Staging is private: a shared password (wrangler secret STAGING_PASSWORD). Health stays open for uptime checks.
+app.use('*', async (c, next) => {
+  if (c.env.ENV !== 'staging' || new URL(c.req.url).pathname === '/healthz') return next()
+  if (!c.env.STAGING_PASSWORD) return c.text('staging is locked', 503)
+  return basicAuth({ username: 'shwarm', password: c.env.STAGING_PASSWORD })(c, next)
 })
 
 // www → apex.
