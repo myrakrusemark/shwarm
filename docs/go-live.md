@@ -2,7 +2,7 @@
 
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
-**Now (Claude):** step 0.2, syncing the docs and mockups to the Oct 8 decisions (password sign-in, no legal name, the license field, launch checks).
+**Now (Claude):** 1.1, the repo is on GitHub (private); waiting on Myra's OK for the Syncthing ignore patterns. Then 1.2 CI and 1.3 the Worker.
 **Now (Myra):** turn on npm 2FA, then publish the placeholder (0.6, command in chat) · Cloudflare 2FA and usage notifications (0.4) · create the free `shwarm` org on npmjs.com · 0.7 email forwarding and 0.8 Resend (before 1.9) · a separate Stripe account for shwarm (before 9.1) · 0.11 your tester list (ongoing).
 **Last updated:** 2026-10-08.
 
@@ -301,10 +301,10 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 
 ### Phase 1: foundation (4 days)
 
-**1.1 git repo**
-- **what:** `git init`, .gitignore, mark node_modules, .wrangler and dist as Dropbox-ignored, pnpm workspace with the layout above, push to the GitHub org (private for now).
+**1.1 git repo** · doing
+- **what:** `git init`, .gitignore, npm workspaces with the layout above (npm, not pnpm: one less tool), push to `myrakrusemark/shwarm` (private for now). The folder syncs through Syncthing, not Dropbox, so build folders are kept out with Syncthing ignore patterns for this project (node_modules, .wrangler, dist), with Myra's OK since it's her sync config.
 - **who:** Claude · **needs:** 0.5, A1
-- **done when:** the repo is on GitHub and Dropbox isn't syncing build folders.
+- **done when:** the repo is on GitHub and Syncthing isn't syncing this project's build folders.
 
 **1.2 CI**
 - **what:** typecheck, unit tests, gitleaks (pre-commit and CI, with a rule for `shwarm_sk_` secrets), OpenAPI lint, an oasdiff breaking-change check against the last tag (API-5), a check that regenerated types match the committed ones (LIB-3), migration dry run. No branch protection while it's a one-person repo.
