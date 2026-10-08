@@ -306,10 +306,10 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - **who:** Claude · **needs:** 0.5, A1
 - **done when:** the repo is on GitHub and Syncthing isn't syncing this project's build folders.
 
-**1.2 CI**
+**1.2 CI** · done
 - **what:** typecheck, unit tests, gitleaks (pre-commit and CI, with a rule for `shwarm_sk_` secrets), OpenAPI lint, an oasdiff breaking-change check against the last tag (API-5), a check that regenerated types match the committed ones (LIB-3), migration dry run. No branch protection while it's a one-person repo.
 - **who:** Claude · **needs:** 1.1
-- **done when:** a pull request shows all checks green, a planted fake secret fails CI, and a planted breaking change in openapi.yaml without a version bump fails CI.
+- **done when:** a pull request shows all checks green, a planted fake secret fails CI, and a planted breaking change in openapi.yaml without a version bump fails CI. *(Oct 8: green on main; a planted `shwarm_sk_` secret failed the scan (PR #1, closed). The oasdiff breaking-change check and the generated-types check join in 1.5 and 7.x, once there's a tag to diff against and types to generate.)*
 
 **1.3 Worker and environments** · done
 - **what:** wrangler project with D1 (location hint chosen once, North America unless Myra says otherwise, since it can't move), Durable Object, Queues, R2, cron; local (`wrangler dev` with fixtures from the running example), staging and production with separate secrets and namespaces.
