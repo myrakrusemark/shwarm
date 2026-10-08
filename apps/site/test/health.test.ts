@@ -29,6 +29,21 @@ describe('site', () => {
     expect(res.headers.get('strict-transport-security')).toContain('max-age=')
     expect(res.headers.get('x-frame-options')).toBe('DENY')
   })
+  it('serves the footer pages on production, noindex until open', async () => {
+    const prod = { ...env, ENV: 'production' }
+    const res = await app.request('/rules', {}, prod)
+    expect(res.status).toBe(200)
+    expect(await res.text()).toContain('<!doctype html>')
+    expect(res.headers.get('x-robots-tag')).toBe('noindex')
+    const open = await app.request('/rules', {}, { ...prod, SITE_MODE: 'open' })
+    expect(open.headers.get('x-robots-tag')).toBeNull()
+    expect((await app.request('/no-such-page', {}, prod)).status).toBe(404)
+  })
+  it('serves security.txt', async () => {
+    const body = await (await app.request('/.well-known/security.txt', {}, env)).text()
+    expect(body).toContain('Contact: mailto:security@shwarm.org')
+    expect(body).toMatch(/Expires: \d{4}-/)
+  })
   it('sends www to the apex', async () => {
     const res = await app.request('https://www.shwarm.org/rules?x=1', {}, env)
     expect(res.status).toBe(301)

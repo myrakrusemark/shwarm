@@ -39,17 +39,27 @@ app.use('*', async (c, next) => {
   await next()
 })
 
-// Footer pages and guides: on staging now; production gets them at go-live step 1.8b (after Myra approves the copy).
+// Search engines stay out until launch day (site_mode "open", step 12.2).
+const noindex = (c: { env: Env; header: (k: string, v: string) => void }) => {
+  if (c.env.SITE_MODE !== 'open') c.header('X-Robots-Tag', 'noindex')
+}
+
+// How to report a security problem (RFC 9116). Expires is required; renew it yearly.
+app.get('/.well-known/security.txt', c =>
+  c.text(['Contact: mailto:security@shwarm.org', 'Expires: 2027-10-01T00:00:00Z', 'Preferred-Languages: en', 'Canonical: https://shwarm.org/.well-known/security.txt', ''].join('\n')),
+)
+
+// Footer pages and guides (live on production since go-live step 1.8b).
 app.get('/:slug{[a-z0-9-]+}', (c, next) => {
   const page = findPage(c.req.param('slug'))
-  if (!page || c.env.ENV === 'production') return next()
-  c.header('X-Robots-Tag', 'noindex')
+  if (!page) return next()
+  noindex(c)
   return c.html(html`<!doctype html>${DocPage({ page })}`)
 })
 
-// Holding page until step 1.8b; noindex everywhere before launch day.
+// Holding home page until launch.
 app.get('/', c => {
-  c.header('X-Robots-Tag', 'noindex')
+  noindex(c)
   return c.html(HOLDING)
 })
 
