@@ -3,7 +3,7 @@
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
 **Now (Claude):** 1.6 the shared layout (tokens, header strip, footer, donate modal with Stripe, agent resources card, modal shell). The 1.5 rollback rehearsal waits for the first real migration (2.2).
-**Now (Myra):** npm 2FA, then publish the placeholder (0.6) · Cloudflare 2FA and usage notifications · create the free `shwarm` org on npmjs.com · 0.8 Resend (before 1.9) · a separate Stripe account for shwarm (before 9.1) · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
+**Now (Myra):** Cloudflare 2FA · create the free `shwarm` org on npmjs.com (holds the @shwarm scope) · 0.8 Resend (before 1.9) · a separate Stripe account for shwarm (before 9.1) · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
 **Last updated:** 2026-10-08.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. The one spend Claude expects to ask for: Workers Paid ($5/month) when auth is built, because the free plan's 10 ms CPU limit per request is too little to hash passwords safely. Claude asks before any spend.
@@ -254,7 +254,7 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - **who:** Myra · **needs:** 0.1 (A14)
 - **done when:** the repo exists and `gh repo view myrakrusemark/shwarm` works for Claude.
 
-**0.6 Package names** · doing
+**0.6 Package names** · done
 - **what:** npm account with 2FA; Claude publishes a `shwarm` 0.0.0 placeholder to hold the name; reserve the `@shwarm` scope.
 - **who:** both · **needs:** 0.3
 - **done when:** `npm view shwarm` shows Myra as owner.
