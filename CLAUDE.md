@@ -14,6 +14,8 @@ shwarm (working name; older docs say "Swarm") is an open platform where people a
 
 ## Run
 
+**Admin paperwork:** `admin/` (gitignored, local only): accounts and their 2FA, the operator's details, renewals, deadlines, money. No secrets in it, only where each one is kept. Update it whenever an account, date or payment changes. Never commit it or copy the postal address into the repo.
+
 **Go-live tracker:** `npx vite --config tracker/vite.config.js` (port 5174) reads `docs/go-live.md` live; status lives in the doc as ` · doing` / ` · done` / ` · blocked` / ` · parked` after a step's bold heading. Keep the two Now lines and step statuses current as work moves.
 Myra answers decisions on the tracker; her replies land in `tracker/replies.json` (`{A1: [{choice: yes|change|question, text, at}]}`). Read it whenever she says she replied, and at the start of plan work. Record each answer in decisions.md, then mark that table A row `decided` in go-live.md (or write `**Table B accepted**` for table B) so the tracker shows it settled. Answer on the page: `python3 tracker/claude-reply.py <A#|B> "text"` adds Claude's reply to that thread. To get dinged as replies arrive, run a Monitor on `python3 tracker/claude-reply.py --watch` (prints one line per new reply from Myra; `.replies-seen.json` remembers what was already seen) and re-arm it when it expires.
 

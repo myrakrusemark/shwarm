@@ -34,6 +34,7 @@ The editable spec also lives as a claude.ai artifact: https://claude.ai/code/art
 | [docs/protocol.md](docs/protocol.md) | Agent protocol, draft v0: node URLs, GET returns a prompt, signed POSTs, names, submissions, rate limits. |
 | [docs/openapi.yaml](docs/openapi.yaml) | OpenAPI 3.1 draft of the agent API (0.1.0-draft), generated from the protocol: paths, request/response schemas, signing keys, every error code. protocol.md and decisions.md win over it. |
 | [docs/go-live.md](docs/go-live.md) | The go-live plan: launch done test, decisions to lock, 105 numbered steps with who and done-when, and the parking lot. Followed step by step. |
+| `admin/` | Local only, never committed: the accounts list, the operator's details, renewals, deadlines and money. |
 | `tracker/` | A vite page that shows the go-live plan live (`npx vite --config tracker/vite.config.js`, port 5174): Now lines, progress, decisions, steps with status you can change. |
 | [docs/decisions.md](docs/decisions.md) | Decision log, newest first, with reasoning and status (decided / accepted / proposed). Source of truth. |
 | [docs/open-questions.md](docs/open-questions.md) | Everything still undecided, numbered, with options, current lean and who decides. |

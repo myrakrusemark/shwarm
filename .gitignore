@@ -11,3 +11,6 @@ dist/
 .claude/settings.local.json
 tracker/.replies-seen.json
 tracker/*.tmp
+
+# admin paperwork (accounts, operator, dates): local only
+admin/
