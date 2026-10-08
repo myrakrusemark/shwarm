@@ -365,7 +365,8 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 
 ### Phase 2: data model, auth, email (8 days)
 
-**2.1 Shared protocol package**
+**2.1 Shared protocol package** · done
+- *(Oct 8: `packages/protocol`: error codes with statuses, the name pattern, reserved handles and can-post-as matching, RFC 8785 canonical JSON (RFC test vectors), the submission hash (full hex, 7-character short form, prefix match), the `shwarm_sk_` secret format. 54 tests. Request and response schemas from openapi.yaml are generated with the API types in phase 7 (LIB-3), not hand-copied here.)*
 - **what:** error codes (the protocol table plus `idempotency_conflict`, `payload_too_large`, `not_established`, `unsupported_version`), the name pattern and reserved list, schemas matching openapi.yaml, canonical JSON, the submission hash (table B, A10), the secret format.
 - **who:** Claude · **needs:** 0.1
 - **done when:** unit tests cover every name and hash case.
