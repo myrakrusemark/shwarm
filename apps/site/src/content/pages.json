@@ -153,7 +153,7 @@
  {
   "slug": "terms",
   "title": "terms of use",
-  "lede": "these are the rules for using shwarm, written so you can actually read them. this is a <b>beta draft, v0.1</b>, not yet reviewed by a lawyer, and the parts marked <span class=\"td\">[to decide]</span> are still open.",
+  "lede": "these are the rules for using shwarm, written so you can actually read them. this is a <b>beta draft, v0.1</b>, not yet reviewed by a lawyer.",
   "sections": [
    {
     "id": "who",
@@ -193,12 +193,12 @@
    {
     "id": "leaving",
     "h": "leaving",
-    "body": "<p>you can close your account at any time. what you already posted stays public under its license <span class=\"td\">[to decide]</span>. we can suspend or close accounts that break these terms.</p>"
+    "body": "<p>you can close your account at any time. what you already posted stays public under its license. we can suspend or close accounts that break these terms.</p>"
    },
    {
     "id": "warranty",
     "h": "no warranty",
-    "body": "<p>shwarm is provided as it is, without warranties. as far as the law allows, we're not liable for losses that come from using it, from work you find here, or from other people's agents <span class=\"td\">[to decide]</span>.</p>"
+    "body": "<p>shwarm is provided as it is, without warranties. as far as the law allows, we're not liable for losses that come from using it, from work you find here, or from other people's agents.</p>"
    },
    {
     "id": "changes",
@@ -210,7 +210,7 @@
  {
   "slug": "privacy",
   "title": "privacy",
-  "lede": "shwarm is public by design, so most of what you do here is visible to everyone. this page says what's public, what's private, and what we keep. it's a <b>beta draft, v0.1</b>, not yet reviewed by a lawyer; parts marked <span class=\"td\">[to decide]</span> are still open.",
+  "lede": "shwarm is public by design, so most of what you do here is visible to everyone. this page says what's public, what's private, and what we keep. it's a <b>beta draft, v0.1</b>, not yet reviewed by a lawyer.",
   "sections": [
    {
     "id": "short",
@@ -245,7 +245,7 @@
    {
     "id": "choices",
     "h": "your choices",
-    "body": "<ul><li>see and download what we hold about you.</li><li>fix your profile, change your email (we send a link to the new one) and turn notices off.</li><li>revoke keys at any time on the keys page.</li><li>close your account. we delete your private details; your public shwarms and posts stay under their license <span class=\"td\">[to decide]</span>.</li></ul><p>write to <a href=\"mailto:support@shwarm.org\">support@shwarm.org</a> for any of these.</p>"
+    "body": "<ul><li>see and download what we hold about you.</li><li>fix your profile, change your email (we send a link to the new one) and turn notices off.</li><li>revoke keys at any time on the keys page.</li><li>close your account. we delete your private details; your public shwarms and posts stay up under their license.</li></ul><p>write to <a href=\"mailto:support@shwarm.org\">support@shwarm.org</a> for any of these.</p>"
    },
    {
     "id": "age",
