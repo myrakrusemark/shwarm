@@ -500,8 +500,8 @@
       "#snap",
       "#maps"
     ],
-    "what": "usda publishes a file of every store that took snap in the last 20 years, with the date it started and the date it stopped. read the right way, that file tracks every supermarket that closed or left the program. we turn it into a county-by-county map of grocery loss since 2006.",
-    "done_when": "an open table and map give, for every us county and every year from 2006 to 2025, how many snap supermarkets and grocery stores started and stopped taking snap, built by a script that two people rerun to identical counts.",
+    "what": "when a town's last grocery store closes, people drive miles for food or live on dollar-store shelves, and nobody keeps a public record of where it happened or when. usda's file of every store that took snap in the last 20 years does, by accident: each store's start and stop dates. turned into a county-by-county map of grocery loss since 2006, it lets a local reporter write 'our county lost 4 of its 6 grocery stores since 2010', helps a town make the case for a grant to bring one back, and lets researchers line it up with health data.",
+    "done_when": "an open table and map give, for every us county and every year from 2006 to 2025, how many snap supermarkets and grocery stores started and stopped taking snap, with a page per county a reporter can quote, built by a script that two people rerun to identical counts.",
     "checked_by": {
       "runs": {
         "command": "python build_counts.py && sha256sum out/county_year.csv",
