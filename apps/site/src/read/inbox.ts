@@ -36,10 +36,11 @@ export type InboxItem = {
   post_text: string | null // a mention's post
   number: number | null // a sign-off's submission
   status: 'in_review' | 'passed' | 'failed' | 'superseded' | null
-  waiting: boolean // a sign-off still waiting on its owner (not done)
+  waiting: boolean // a sign-off still waiting (not done): on its owner, or on the author when `theirs`
   reopened: boolean // passed, but a repro reopened the node since
   others: boolean // its node has checks besides the author's, so "passed its other checks" is true
-  operator: boolean // a sign-off its owner makes as the operator: the node's author is gone (table B)
+  operator: boolean // a sign-off its owner makes as the operator: the node's author is gone and the owner is an admin (table B)
+  theirs: boolean // an operator's item whose author is back (or whose owner is no longer an admin): the author signs it, not the owner
 }
 
 /** Items the inbox shows before "show all". */
@@ -55,6 +56,7 @@ export async function readInbox(db: D1Database, personId: number, o: { all: bool
   const { results } = await db
     .prepare(
       `SELECT i.id, ${INBOX_LINK_COLS}, i.text, i.created_at, i.read_at, i.done_at, i.node_id, n.title, n.author_id,
+              (SELECT status FROM person WHERE id = n.author_id) AS author_status, (SELECT is_admin FROM person WHERE id = ?1) AS admin,
               p.as_name, p.text AS post_text, s.status,
               (s.status = 'passed' AND NOT (n.state = 'closed' AND s.number = (SELECT MAX(x.number) FROM submission x WHERE x.node_id = n.id AND x.status = 'passed'))) AS reopened,
               (json_extract(n.checks, '$.runs') IS NOT NULL OR json_extract(n.checks, '$.people') IS NOT NULL) AS others
@@ -75,14 +77,21 @@ export async function readInbox(db: D1Database, personId: number, o: { all: bool
       node_id: number | null
       title: string | null
       author_id: number | null
+      author_status: string | null
+      admin: number | null
       as_name: string | null
       post_text: string | null
       status: InboxItem['status']
       reopened: number | null
       others: number | null
     }>()
-  const items = results.slice(0, limit).map(
-    (r): InboxItem => ({
+  const items = results.slice(0, limit).map((r): InboxItem => {
+    // Someone else's node: the item came to this admin while its author was gone (core signOffStatements). They sign it
+    // only while that is still so, as core and the submission page decide; once the author is back it is the author's.
+    // OPEN (#75): the item stays with the admins, and says it waits on the author.
+    const other = r.kind === 'sign_off' && r.author_id !== null && r.author_id !== personId
+    const operator = other && r.author_status !== 'active' && r.admin === 1
+    return {
       id: r.id,
       kind: r.kind,
       href: inboxHref(r),
@@ -100,9 +109,10 @@ export async function readInbox(db: D1Database, personId: number, o: { all: bool
       waiting: r.kind === 'sign_off' && r.done_at === null && r.status === 'in_review',
       reopened: !!r.reopened,
       others: !!r.others,
-      operator: r.kind === 'sign_off' && r.author_id !== null && r.author_id !== personId,
-    }),
-  )
+      operator,
+      theirs: other && !operator,
+    }
+  })
   return { items, more: results.length > limit, upto: items.reduce((m, i) => Math.max(m, i.id), 0) }
 }
 

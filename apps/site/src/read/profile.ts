@@ -63,9 +63,14 @@ export const LIST_MAX = 500
 const UP = 'LEFT JOIN node up ON up.id = COALESCE(n.parent_id, n.variant_of_id)'
 const UP_TITLE = `CASE WHEN ${PUBLIC_NODE('up')} THEN up.title END AS up_title`
 const SEATS = `CASE WHEN n.state = 'lobby' THEN (SELECT COUNT(*) FROM seat x WHERE x.node_id = n.id AND x.left_at IS NULL) END AS seats`
-/** "Waiting on you" (PROF-9, SUB-24): the owner (?1) has a sign-off item there not yet done; `owner` is the bind saying it's them. */
+/**
+ * "Waiting on you" (PROF-9, SUB-24): the owner (?1) has a sign-off item there not yet done, and can make it now: it's
+ * their node, or its author is gone and they are an admin (the operator, table B; as read/inbox.ts readInbox decides).
+ * `owner` is the bind saying it's them.
+ */
 const WAITING = (owner: string) =>
-  `(${owner} AND EXISTS (SELECT 1 FROM inbox_item i WHERE i.person_id = ?1 AND i.kind = 'sign_off' AND i.done_at IS NULL AND i.node_id = n.id)) AS waiting`
+  `(${owner} AND EXISTS (SELECT 1 FROM inbox_item i WHERE i.person_id = ?1 AND i.kind = 'sign_off' AND i.done_at IS NULL AND i.node_id = n.id)
+    AND (n.author_id = ?1 OR ((SELECT status FROM person WHERE id = n.author_id) != 'active' AND (SELECT is_admin FROM person WHERE id = ?1) = 1))) AS waiting`
 
 /**
  * Working on, created and the head figures.

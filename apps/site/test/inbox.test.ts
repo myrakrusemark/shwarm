@@ -244,6 +244,20 @@ describe('the inline reply (6.1)', () => {
     expect(await unreadCount(env.DB, myraId)).toBeGreaterThan(0)
   })
 
+  it('the same words to two different mentions are two replies, not a double click', async () => {
+    const { env, get, all, myra, item } = await mentioned()
+    const bo = await signIn(env, 'bo')
+    await post(bo, EXAMPLE_ROOT, '@myra question two?')
+    const second = get("SELECT id, post_id FROM inbox_item WHERE kind = 'mention' AND id > ? ORDER BY id DESC LIMIT 1", item.id)
+    const first = await inboxAct(myra, 'myra', { do: 'reply', item: String(item.id), text: 'yes.' })
+    const next = await inboxAct(myra, 'myra', { do: 'reply', item: String(second.id), text: 'yes.' })
+    const replies = all("SELECT id, reply_to FROM post WHERE text = 'yes.'")
+    expect(replies.map((r: any) => r.reply_to).sort()).toEqual([item.post_id, second.post_id].sort())
+    const to = (r: Response) => r.headers.get('location')!.split('#')[1]
+    expect(to(first)).toBe(replies.find((r: any) => r.reply_to === item.post_id).id)
+    expect(to(next)).toBe(replies.find((r: any) => r.reply_to === second.post_id).id)
+  })
+
   it('an empty reply and the thread limit come back under the item, with the draft kept', async () => {
     const { env, myra, item, myraId, get } = await mentioned()
     const empty = await inboxAct(myra, 'myra', { do: 'reply', item: String(item.id), text: '   ' })
@@ -333,9 +347,29 @@ describe('sign-off items and "waiting on you" (6.1, PROF-9)', () => {
     const op = Number(
       env.DB.raw.prepare("INSERT INTO inbox_item (person_id, kind, node_id, post_id, text, created_at) VALUES (?, 'sign_off', ?, ?, '', ?)").run(myraId, item.node_id, item.post_id, new Date(T0).toISOString()).lastInsertRowid,
     )
+    env.DB.raw.prepare("UPDATE person SET status = 'suspended' WHERE id = ?").run(pid)
+    env.DB.raw.prepare('UPDATE person SET is_admin = 1 WHERE id = ?').run(myraId)
     const myra = await signIn(env, 'myra', true)
-    const entry = itemOf(await body(await myra.get('/@myra')), op)!
+    let html = await body(await myra.get('/@myra'))
+    let entry = itemOf(html, op)!
     expect(entry).toContain("by @myra/m-07 needs a sign-off. its author's account is gone, so you sign off as the operator.")
     expect(entry).toContain('<span class="stp wait">waiting on you</span>')
+    expect(html).toMatch(/>block placement<\/a><span class="sub">minecraft in doom · waiting on you · last post/)
+
+    // The author is back before signing: the sign-off is theirs again (core and the submission page refuse the operator),
+    // so the operator's item and rows stop saying it waits on them.
+    env.DB.raw.prepare("UPDATE person SET status = 'active' WHERE id = ?").run(pid)
+    html = await body(await myra.get('/@myra'))
+    entry = itemOf(html, op)!
+    expect(entry).toContain('<span class="stp wait">waiting on author</span>')
+    expect(entry).toContain("by @myra/m-07 needs its author's sign-off.")
+    expect(entry).not.toContain('operator')
+    expect(html).not.toContain('waiting on you')
+    // the same while the author is still gone but the item's owner is no longer an admin
+    env.DB.raw.prepare("UPDATE person SET status = 'closed' WHERE id = ?").run(pid)
+    env.DB.raw.prepare('UPDATE person SET is_admin = 0 WHERE id = ?').run(myraId)
+    html = await body(await myra.get('/@myra'))
+    expect(itemOf(html, op)).toContain('<span class="stp wait">waiting on author</span>')
+    expect(html).not.toContain('waiting on you')
   })
 })

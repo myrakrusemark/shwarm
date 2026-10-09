@@ -237,9 +237,10 @@ export type InboxView = { items: InboxItem[]; more: boolean; upto: number; limit
 
 /** A sign-off item's words, after its link and who submitted. As the mockup while there were checks before the author's. */
 function signOffWords(i: InboxItem): string {
-  // OPEN (#83): no mockup draws an author-only item or the operator's; their words wait on Myra's yes.
+  // OPEN (#83): no mockup draws an author-only item, the operator's, or the operator's once the author is back (#75); their words wait on Myra's yes.
   const others = i.others ? 'passed its other checks' : ''
   if (i.operator) return `${others || 'needs a sign-off'}. its author's account is gone, so you sign off as the operator.`
+  if (i.theirs) return others ? `${others} and needs its author's sign-off.` : "needs its author's sign-off."
   return others ? `${others} and needs your sign-off.` : 'needs your sign-off.'
 }
 
@@ -280,7 +281,7 @@ const InboxEntry: FC<{ i: InboxItem; inbox: InboxView; handle: string; action: s
   const cls = ['c', !i.read && 'new', i.kind === 'sign_off' && 'signoff'].filter(Boolean).join(' ')
   if (i.kind === 'sign_off') {
     // The pill is the submission's state now; the item itself has no pass or fail (the author decides on the submission page).
-    const pill = pillOf(i.status ?? 'in_review', i.waiting, true, i.reopened)
+    const pill = pillOf(i.status ?? 'in_review', i.waiting, !i.theirs, i.reopened)
     return (
       <div class={cls} id={`i${i.id}`}>
         <div class="who"><PillView p={pill} />{isNew} · <Ago at={i.created_at} now={now} /></div>
@@ -541,7 +542,7 @@ async function reply(c: Context<{ Bindings: Env }>, s: Session, url: URL, f: Rec
   const actor = siteActor({ id: s.personId, handle: s.handle })
   const now = Date.now()
   const to = threadHref(target.path, target)
-  const dup = await justPosted(db, { nodeId: target.node_id, personId: s.personId, as: actor.as, text, now })
+  const dup = await justPosted(db, { nodeId: target.node_id, personId: s.personId, as: actor.as, text, now, replyTo: target.post_id })
   // OPEN (#83): replying reads the item, as "mark read" would.
   if (dup) {
     await markRead(db, s.personId, id, true, new Date(now).toISOString())
