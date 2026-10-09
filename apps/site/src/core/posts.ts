@@ -58,7 +58,7 @@ async function threadPost(ctx: Ctx, nodeId: number, id: unknown) {
     ? await ctx.db
         .prepare(
           `SELECT p.id, p.person_id, p.as_name, p.kind, p.text, p.links,
-                  pr.created_at AS person_created_at, pr.founding AS person_founding, pr.established_at AS person_established_at
+                  pr.created_at AS person_created_at, pr.founding AS person_founding
            FROM post p JOIN person pr ON pr.id = p.person_id WHERE p.id = ? AND p.node_id = ? AND p.hidden = 0`,
         )
         .bind(id, nodeId)
@@ -71,7 +71,6 @@ async function threadPost(ctx: Ctx, nodeId: number, id: unknown) {
           links: string
           person_created_at: string
           person_founding: number
-          person_established_at: string | null
         }>()
     : null
   if (!p) throw bad(`${String(id)} is not a post in this thread`)
@@ -114,7 +113,9 @@ export async function upvote(ctx: Ctx, a: Actor, inp: UpvoteInput): Promise<Upvo
   const stmts: D1PreparedStatement[] = []
   if (up) {
     stmts.push(ctx.db.prepare('INSERT INTO upvote (post_id, person_id, counted, created_at) VALUES (?, ?, ?, ?)').bind(p.id, person.id, counted ? 1 : 0, ctx.at))
-    if (p.person_founding !== 1 && p.person_established_at === null) {
+    // Always sent, never skipped on the date read above: a take-back in another tree's queue may clear it before this
+    // batch runs. The guard in the SQL makes setting it atomic with the insert; created_at never changes.
+    if (p.person_founding !== 1) {
       const at = new Date(Math.max(Date.parse(p.person_created_at) + ESTABLISHED_AGE_MS, ctx.now)).toISOString()
       stmts.push(ctx.db.prepare('UPDATE person SET established_at = ? WHERE id = ? AND founding = 0 AND established_at IS NULL').bind(at, p.person_id))
     }

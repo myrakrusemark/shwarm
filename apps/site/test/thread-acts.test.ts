@@ -123,6 +123,26 @@ describe('upvotes (4.7): the rules', () => {
     expect(isEstablished(row, w.now)).toBe(true)
   })
 
+  it("an upvote racing a take-back in another tree still leaves the poster's date (A6)", async () => {
+    await w.shwarm(site(myra), { title: 'tetris in excel' })
+    await w.join(site(kestrel), 'tetris-in-excel')
+    const a = (await w.post(site(newbie), MID, 'first post here.')).id
+    const b = (await w.post(site(newbie), 'tetris-in-excel', 'a second one.')).id
+    await up(site(myra), a)
+    expect(established(newbie)).toBe(iso(T0 + 7 * DAY))
+    // Trees queue apart: @lumpy's upvote on b reads the date, then @myra's take-back on a (the other tree) clears it
+    // before @lumpy's batch runs.
+    const batch = w.db.batch
+    w.db.batch = (async (stmts: D1PreparedStatement[]) => {
+      w.db.batch = batch
+      await w.engine.exec({ type: 'upvote', actor: site(myra), input: { node: MID, post: a, up: false } })
+      return batch(stmts)
+    }) as typeof batch
+    await w.run({ type: 'upvote', actor: site(lumpy), input: { node: 'tetris-in-excel', post: b } })
+    expect(w.all('SELECT post_id FROM upvote')).toEqual([{ post_id: b }])
+    expect(established(newbie)).toBe(iso(T0 + 7 * DAY))
+  })
+
   it('tallies and impact roll up with the stats job, from counted upvotes only', async () => {
     await w.post(site(myra), MID, 'a second post.')
     await up(site(myra), kPost)
@@ -368,6 +388,42 @@ describe('on the page', () => {
       const empty = await act(b, { do: 'edit', post: pinned, text: '  ' })
       expect(empty.status).toBe(400)
       expect(postIn(await body(empty), pinned)).toMatch(/<details class="edit" open="">[\s\S]*write something first\./)
+    })
+
+    it('the same text again with the pin ticked is pinned, not taken for a double click; a double click still posts once', async () => {
+      const { env, q } = await world()
+      const b = await signIn(env, 'myra', { make: false })
+      const text = 'where we are: placement is the last blocker.'
+      await act(b, { do: 'post', text })
+      const first = q<{ id: string }>('SELECT id FROM post WHERE text = ?', text).id
+      const res = await act(b, { do: 'post', text, pin: '1' })
+      const pinned = q<{ pinned_post_id: string }>('SELECT pinned_post_id FROM node WHERE path = ?', EXAMPLE_ROOT).pinned_post_id
+      expect(pinned).not.toBe(first)
+      expect(q<{ text: string }>('SELECT text FROM post WHERE id = ?', pinned).text).toBe(text)
+      expect(res.headers.get('location')).toBe(`/w/${EXAMPLE_ROOT}#${pinned}`)
+      expect((await act(b, { do: 'post', text, pin: '1' })).headers.get('location')).toBe(`/w/${EXAMPLE_ROOT}#${pinned}`)
+      expect(q<{ n: number }>('SELECT COUNT(*) AS n FROM post WHERE text = ?', text).n).toBe(2)
+    })
+
+    it('a submission with the pin ticked is refused in the submit form, every field kept and the pin cleared', async () => {
+      const { env, q } = await world()
+      const b = await signIn(env, 'myra', { make: false })
+      const before = q<{ pinned_post_id: string }>('SELECT pinned_post_id FROM node WHERE path = ?', EXAMPLE_ROOT).pinned_post_id
+      const res = await act(b, {
+        do: 'submit',
+        pin: '1',
+        text: 'where we are: renderer done.',
+        links: `https://codeberg.org/myra/doom-blocks/archive/v0.2.zip ${'5c'.repeat(32)}`,
+        how_to_check: 'play it for 10 minutes.',
+      })
+      expect(res.status).toBe(400)
+      const html = await body(res)
+      expect(html).toMatch(/<details class="submit" open="">[\s\S]*a submission can't be pinned\. submit it without the pin, or post it to pin it\./)
+      expect(html).toContain('>where we are: renderer done.</textarea>')
+      expect(html).toContain('play it for 10 minutes.')
+      expect(html).toContain('<input type="checkbox" name="pin" value="1"/> pin it')
+      expect(q<{ n: number }>("SELECT COUNT(*) AS n FROM post WHERE text = 'where we are: renderer done.'").n).toBe(0)
+      expect(q<{ pinned_post_id: string }>('SELECT pinned_post_id FROM node WHERE path = ?', EXAMPLE_ROOT).pinned_post_id).toBe(before)
     })
 
     it("nobody else gets the pin box or the edit form; a forged edit is refused", async () => {

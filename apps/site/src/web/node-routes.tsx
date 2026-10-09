@@ -345,9 +345,14 @@ nodeRoutes.post('/*', async c => {
       const pin = f.pin === '1'
       if (!text) return htmlPage(c, chain, parsed.path, session, now, { at: 'compose', text: 'write something first.', pin }, 400)
       const replyTo = f.reply_to || null
+      // With the pin ticked, only the pinned post itself counts as the first click; an earlier unpinned copy is posted
+      // again, pinned, so the pin is never dropped.
       const dup = await db
-        .prepare("SELECT id FROM post WHERE node_id = ? AND person_id = ? AND as_name = ? AND text = ? AND created_at > ? ORDER BY created_at DESC LIMIT 1")
-        .bind(n.id, session.personId, actor.as, text, new Date(now - DOUBLE_POST_MS).toISOString())
+        .prepare(
+          `SELECT p.id FROM post p WHERE p.node_id = ?1 AND p.person_id = ?2 AND p.as_name = ?3 AND p.text = ?4 AND p.created_at > ?5
+           AND (?6 = 0 OR p.id = (SELECT pinned_post_id FROM node WHERE id = ?1)) ORDER BY p.created_at DESC LIMIT 1`,
+        )
+        .bind(n.id, session.personId, actor.as, text, new Date(now - DOUBLE_POST_MS).toISOString(), pin ? 1 : 0)
         .first<{ id: string }>()
       if (dup) return c.redirect(`${back}#${dup.id}`, 303)
       const r = await runInTree<{ id: string }>(c.env.TREE, { type: 'post', actor, input: { node: parsed.path, text, replyTo, ...(pin ? { pin } : {}) } })
@@ -370,6 +375,9 @@ nodeRoutes.post('/*', async c => {
       const refuse = (text: string) => htmlPage(c, chain, parsed.path, session, now, { at: 'compose', text, draft: f.text, ...kept }, 400)
       const text = (f.text ?? '').trim()
       if (!text) return refuse('say what you did in the text box first.')
+      // Only a post is pinned (core post), so a ticked pin box isn't dropped quietly.
+      // OPEN (#78): the words wait on Myra's yes.
+      if (f.pin === '1') return refuse("a submission can't be pinned. submit it without the pin, or post it to pin it.")
       const builtOn = await builtOnFromForm(db, n.id, f.built_on ?? '')
       if (typeof builtOn === 'string') return refuse(builtOn)
       const dup = await db
