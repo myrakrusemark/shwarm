@@ -6,6 +6,7 @@ import { ago, countNum, exactTime, perDay, shortNum } from '../render/numbers'
 import { LINK_REL, linkParts, Name, Text } from '../render/text'
 import { HOLDING } from './holding'
 import { Layout } from './layout'
+import { overReadCap } from './read-limit'
 import { page } from './viewer'
 
 // The feed (go-live 3.2), ported from mockups/index.html: the sort bar with search, one card per shwarm, "more ↓".
@@ -27,6 +28,8 @@ export const home = new Hono<{ Bindings: Env }>()
 home.get('/', async c => {
   if (c.env.SITE_MODE !== 'open') c.header('X-Robots-Tag', 'noindex') // search engines stay out until launch day
   if (!homeShowsFeed(c.env)) return c.html(HOLDING)
+  const capped = overReadCap(c)
+  if (capped) return capped
   const now = Date.now()
   const feed = await loadFeed(c.env.DB, { tab: c.req.query('tab'), q: c.req.query('q'), tag: c.req.query('tag'), after: c.req.query('after') }, now)
   return page(c, <FeedPage feed={feed} now={now} />)

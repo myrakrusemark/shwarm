@@ -39,7 +39,7 @@ import { sendError, waitText } from './errors'
 import { pickFormat, type Format } from './format'
 import { NodePage, type Flash } from './node-page'
 import { SubmissionPage, type SubFlash } from './submission-page'
-import { takeRead } from './read-limit'
+import { overReadCap } from './read-limit'
 import { page } from './viewer'
 
 export { pickFormat, type Format }
@@ -111,10 +111,8 @@ nodeRoutes.get('/*', async c => {
   common(c, null)
   if (!readingOpen(c.env)) return notFound(c, f)
 
-  const wait = takeRead(clientIp(c))
-  if (wait !== null) {
-    return sendError(c, { status: 429, text: 'too many reads from your network.', wait, extra: { limit: 'public_reads' } }, f)
-  }
+  const capped = overReadCap(c, f)
+  if (capped) return capped
   if (!format) return errorOut(c, f, 400, 'bad_request', 'format is text, json or html')
 
   const rest = url.pathname.slice('/w/'.length)

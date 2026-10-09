@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { basicAuth } from 'hono/basic-auth'
+import { bodyLimit } from 'hono/body-limit'
 import { DocPage, findPage } from './web/doc'
 import { home } from './web/feed'
 import { originGuard } from './auth/csrf'
@@ -10,7 +11,7 @@ import { create } from './web/create'
 import { page } from './web/viewer'
 import { nodeRoutes } from './web/node-routes'
 import { profile } from './web/profile'
-import { errorHandler, notFoundHandler } from './web/errors'
+import { errorHandler, notFoundHandler, sendError } from './web/errors'
 export { ShwarmTree } from './do/shwarm-tree'
 
 type Env = { DB: D1Database; TREE: DurableObjectNamespace; AI: Ai; TRIAGE_MODEL?: string; ENV: string; SITE_MODE: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string }
@@ -27,6 +28,10 @@ app.use('*', async (c, next) => {
   c.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
   c.header('Content-Security-Policy', "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com")
 })
+
+// Request bodies are capped at 256 KB (table B, technical caps), before anything parses them (4.9).
+const MAX_BODY = 256 * 1024
+app.use('*', bodyLimit({ maxSize: MAX_BODY, onError: c => sendError(c, { status: 413 }) }))
 
 // Health check: proves the Worker runs and can read D1. After the security headers, so they cover it too. A failure
 // is a plain JSON 500 for the uptime check, not the site's error page.

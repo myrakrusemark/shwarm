@@ -1,12 +1,17 @@
 // The per-IP token bucket on public reads (go-live 3.6, table B "technical caps"): a burst, then a steady refill;
-// past it, 429 with Retry-After.
+// past it, 429 with Retry-After. It covers every public page that reads D1: shwarm and branch pages (with their
+// submissions), the feed and profiles (4.9), all from one bucket per network.
 //
 // OPEN: the bucket lives in the Worker isolate's memory, not in D1's rate_bucket table. A D1 bucket costs one row
 // write per page view, and the free plan's 100,000 writes a day would then be spent by readers (a crawler could use
 // up the writes that posting needs). In memory it costs nothing, but each isolate keeps its own count, so a reader
 // spread over many isolates gets more. The numbers are first guesses; nothing is decided. A Workers rate-limit
 // binding, or rate_bucket for heavy hitters only, is the step up (4.9 tests the cap).
+import type { Context } from 'hono'
+import { clientIp } from '../auth/request'
 import { ipPrefix } from '../auth/session'
+import { sendError } from './errors'
+import type { Format } from './format'
 
 export const READ_BURST = 120 // requests
 export const READ_REFILL_PER_S = 2 // requests per second, per network (/24 or /48)
@@ -32,6 +37,12 @@ export function takeRead(ip: string | null | undefined, now = Date.now()): numbe
   buckets.delete(key) // re-insert, so map order is least recently used first
   buckets.set(key, { tokens: tokens - 1, at: now })
   return null
+}
+
+/** Takes one read for this request: null when allowed, else the 429 to send (in the form `f`, or the one asked for). */
+export function overReadCap(c: Context, f?: Format): Promise<Response> | null {
+  const wait = takeRead(clientIp(c))
+  return wait === null ? null : sendError(c, { status: 429, text: 'too many reads from your network.', wait, extra: { limit: 'public_reads' } }, f)
 }
 
 /** For tests. */

@@ -28,6 +28,7 @@ import {
 } from '../read/profile'
 import { formatFor, sendError, type ErrorStatus } from './errors'
 import { Layout } from './layout'
+import { overReadCap } from './read-limit'
 import { page } from './viewer'
 
 type Env = { DB: D1Database; ENV: string; SITE_MODE: string; CSRF_SECRET: string }
@@ -292,6 +293,8 @@ const NOBODY = 'nobody goes by that handle here.'
 profile.get('/:at{@[A-Za-z0-9_]+}', async c => {
   if (!readingOpen(c.env)) return c.notFound()
   if (c.env.SITE_MODE !== 'open') c.header('X-Robots-Tag', 'noindex')
+  const capped = overReadCap(c)
+  if (capped) return capped
   const url = new URL(c.req.url)
   const handle = c.req.param('at').slice(1)
   if (handle !== handle.toLowerCase()) return c.redirect(`/@${handle.toLowerCase()}${url.search}`, 301)

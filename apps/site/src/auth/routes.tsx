@@ -12,9 +12,10 @@ import { page } from '../web/viewer'
 import { isPwned, passwordProblem } from './password'
 import { clientIp, formOf, later, openNext, pageToken, postedTokenOk, safeNext, signNext, who, type AuthContext, type AuthEnv, type Who } from './request'
 import { backLabel } from './return-to'
-import { clearCookie, endSession, sessionCookie } from './session'
+import { clearCookie, endSession, ipPrefix, sessionCookie } from './session'
 import { applyReset, markVerified, sendReset, signIn, stepUp } from './signin'
 import { COPY, PEND_COOKIE, PEND_SECONDS, resendVerify, setting, signUp } from './signup'
+import { bump, LIMITS } from './throttle'
 import { consumeToken, peekToken } from './tokens'
 import { TURNSTILE_FIELD, turnstileOk } from './turnstile'
 
@@ -172,6 +173,9 @@ auth.post('/forgot', async c => {
   if (!(await postedTokenOk(c, w, f))) return formExpired(c)
   const again = async (error: string) => render(c, <ForgotPage token={await pageToken(c, w)} siteKey={c.env.TURNSTILE_SITE_KEY} email={f.email} error={error} />, 400)
   if (!(await turnstileOk(c.env, f[TURNSTILE_FIELD], clientIp(c)))) return again(COPY.turnstile)
+  // Per network, whatever the address, so a wait says nothing about whether it has an account. Each sends mail.
+  const wait = await bump(c.env.DB, `forgot:ip:${ipPrefix(clientIp(c)) ?? 'unknown'}`, LIMITS.forgotIp)
+  if (wait) return slow(c, wait)
   // After the response, so the time taken doesn't show whether the address has an account.
   await later(c, () => sendReset(c.env.DB, f.email ?? '', origin(c)))
   return c.redirect('/check-email?r=reset', 303)

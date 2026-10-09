@@ -19,6 +19,8 @@ export const LIMITS = {
   resendPerson: { tripAt: 4, windowMs: HOUR, blockMs: HOUR },
   /** "send it again" from one network: 10 an hour */
   resendIp: { tripAt: 11, windowMs: HOUR, blockMs: HOUR },
+  /** "forgot password" from one network: 10 an hour, like "send it again" (4.9; OPEN: not in table B, #80) */
+  forgotIp: { tripAt: 11, windowMs: HOUR, blockMs: HOUR },
 } satisfies Record<string, Limit>
 
 const iso = (ms: number) => new Date(ms).toISOString()

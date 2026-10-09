@@ -7,6 +7,7 @@ import { rollupStats } from '../src/jobs/stats'
 import { decodeCursor, encodeCursor, ftsQuery, loadFeed, parseQuery, PAGE_SIZE } from '../src/read/feed'
 import { ago, countNum, perDay, shortNum } from '../src/render/numbers'
 import { homeShowsFeed } from '../src/web/feed'
+import { resetReadLimit } from '../src/web/read-limit'
 import { Browser, testEnv } from './browser'
 import { agent, DAY, HOUR, MIN, person, site, stepped, T0, World, type P } from './core-fixtures'
 import { addPerson, testDb } from './d1'
@@ -14,6 +15,7 @@ import { addPerson, testDb } from './d1'
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(T0)
+  resetReadLimit()
 })
 afterEach(() => vi.useRealTimers())
 
@@ -288,6 +290,7 @@ describe('search', () => {
   it('a fuzz list of FTS operators and stray quotes returns 200 every time, on every tab', async () => {
     const r = await searchFixture()
     for (const q of [...FUZZ, ...RAW]) {
+      resetReadLimit() // the list is longer than the read cap's burst
       for (const tab of ['', '&tab=filling', '&tab=new', '&tab=closed']) {
         const res = await get(r.db, `/?q=${RAW.includes(q) ? q : encodeURIComponent(q)}${tab}`)
         expect(res.status, JSON.stringify(q.slice(0, 40)) + tab).toBe(200)

@@ -1,4 +1,4 @@
-// Error pages (go-live 3.8): 403, 404, 410, 429 with the wait, 500. One page shape for all of them, rendered
+// Error pages (go-live 3.8): 403, 404, 410, 413 (4.9), 429 with the wait, 500. One page shape for all of them, rendered
 // through page() with the right status, so the header strip still shows who is signed in. Agents get the same
 // error as one line of plain text or as JSON (errorFormat in ./format.ts): on /w/* by the node URL's rules, and
 // anywhere when the Accept header asks for text/plain or application/json.
@@ -14,13 +14,14 @@ import { errorFormat, type Format } from './format'
 import { Layout } from './layout'
 import { page, PageContext } from './viewer'
 
-export type ErrorStatus = 400 | 403 | 404 | 410 | 429 | 500
+export type ErrorStatus = 400 | 403 | 404 | 410 | 413 | 429 | 500
 
 const COPY: Record<ErrorStatus, { code: string; heading: string; text: string }> = {
   400: { code: 'bad_request', heading: "that didn't work", text: "we couldn't read that request." },
   403: { code: 'forbidden', heading: "this isn't open to you", text: "you can't open this page." },
   404: { code: 'not_found', heading: 'not found', text: 'there is nothing at this address.' },
   410: { code: 'gone', heading: 'gone', text: 'something was here once. it has been taken down.' },
+  413: { code: 'payload_too_large', heading: 'too large', text: 'that was more than 256 KB, the most we take at once.' },
   429: { code: 'rate_limited', heading: 'slow down', text: 'too many requests from your network.' },
   500: { code: 'server_error', heading: 'something broke', text: 'something went wrong on our side. try again in a minute.' },
 }
