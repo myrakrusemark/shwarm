@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" type="image/png" href="/mark.png">
-<title>proofread · shwarm</title>
+<title>shwarms · proofread and ideas</title>
 <style>
   :root {
     --paper: #f3eedb;
@@ -107,7 +107,7 @@
     <div class="mark"></div>
     <div>
       <h1>sh<span>w</span>arm proofread</h1>
-      <div class="sub">the 100 launch shwarms · step 11.1 · your verdicts reach claude as you save them</div>
+      <div class="sub">the launch shwarms and new ideas · your verdicts reach claude as you save them</div>
     </div>
     <nav><a href="/">← go-live tracker</a></nav>
   </header>
@@ -131,7 +131,7 @@ const linkify = s => esc(s).replace(/https?:\/\/[^\s)<]+[^\s)<.,;:]/g, u => `<a 
 const marked = s => linkify(s).replace(/(<a [^>]*>.*?<\/a>)|(\$?\d(?:[\d,.]*\d)?(?:\s?(?:%|percent|k\b|million|billion|fps|kb|mb|gb|ms|hours?|days?|weeks?|years?|km|miles?|people|°c))?)/gi, (m, a, n) => a ? a : `<mark>${n}</mark>`)
 const claims = s => (s || '').split(/(?<=[.!?])\s+/).filter(x => /\d/.test(x))
 
-const state = { wave: '1', status: 'all', q: '' }
+const state = { wave: new URLSearchParams(location.search).get('wave') || '1', status: 'all', q: '' }
 let shwarms = [], proof = {}, crowd = {}
 
 const last = slug => (proof[slug] || []).at(-1)
@@ -144,8 +144,8 @@ function statusOf(slug) {
 }
 
 async function load() {
-  const [a, b, c] = await Promise.all([fetch('/launch.json', { cache: 'no-store' }), fetch('/api/proof', { cache: 'no-store' }), fetch('/crowd-review.json', { cache: 'no-store' })])
-  shwarms = await a.json()
+  const [a, b, c, i] = await Promise.all([fetch('/launch.json', { cache: 'no-store' }), fetch('/api/proof', { cache: 'no-store' }), fetch('/crowd-review.json', { cache: 'no-store' }), fetch('/ideas.json', { cache: 'no-store' })])
+  shwarms = [...(await a.json()), ...(i.ok ? await i.json() : [])]
   proof = await b.json()
   crowd = c.ok ? (await c.json()).rows || {} : {}
   render()
@@ -155,12 +155,12 @@ function render() {
   const inWave = shwarms.filter(s => state.wave === 'all' || String(s.wave) === state.wave)
   const count = k => inWave.filter(s => statusOf(s.slug) === k).length
   const ok = count('approve'), ch = count('change'), q = count('question') + count('answered'), n = inWave.length
-  $('strip').innerHTML = `<span>${state.wave === 'all' ? 'all waves' : 'wave ' + state.wave}: <b>${ok}</b> approved · <b>${ch}</b> to change · <b>${q}</b> questions · <b>${n - ok - ch - q}</b> waiting</span>
+  $('strip').innerHTML = `<span>${state.wave === 'all' ? 'all waves' : state.wave === 'idea' ? 'ideas' : 'wave ' + state.wave}: <b>${ok}</b> approved · <b>${ch}</b> to change · <b>${q}</b> questions · <b>${n - ok - ch - q}</b> waiting</span>
     <span class="bar"><i class="ok" style="width:${100 * ok / n}%"></i><i class="ch" style="width:${100 * ch / n}%"></i><i class="q" style="width:${100 * q / n}%"></i></span>`
 
   const btn = (key, val, label) => `<button data-k="${key}" data-v="${val}" class="${state[key] === val ? 'on' : ''}">${label}</button>`
   const qEl = $('q'), hadFocus = document.activeElement === qEl, caret = qEl?.selectionStart
-  $('filters').innerHTML = btn('wave', '1', 'wave 1 (20)') + btn('wave', '2', 'wave 2') + btn('wave', '3', 'wave 3') + btn('wave', 'all', 'all') + '<span class="sep"></span>' +
+  $('filters').innerHTML = btn('wave', '1', 'wave 1 (20)') + btn('wave', '2', 'wave 2') + btn('wave', '3', 'wave 3') + btn('wave', 'all', 'all') + btn('wave', 'idea', 'ideas') + '<span class="sep"></span>' +
     btn('status', 'all', 'any') + btn('status', 'waiting', 'waiting') + btn('status', 'change', 'to change') + btn('status', 'approve', 'approved') + btn('status', 'solo', 'solo-sized') +
     `<input id="q" placeholder="search title, tags, text" value="${esc(state.q)}">`
   if (hadFocus) { $('q').focus(); $('q').setSelectionRange(caret, caret) }
@@ -169,7 +169,14 @@ function render() {
   const shown = inWave.filter(s => state.status === 'all' || (state.status === 'solo' && ['fail', 'borderline'].includes(crowd[s.slug]?.verdict) && statusOf(s.slug) !== 'approve') || statusOf(s.slug) === state.status || (state.status === 'change' && ['question', 'answered'].includes(statusOf(s.slug))))
     .filter(s => !q2 || JSON.stringify(s).toLowerCase().includes(q2))
 
-  $('list').innerHTML = shown.length ? shown.map(card).join('') : '<div class="empty">nothing here.</div>'
+  $('list').innerHTML = (state.wave === 'idea' ? suggestBox() : '') + (shown.length ? shown.map(card).join('') : '<div class="empty">nothing here.</div>')
+}
+
+// Myra's own ideas: a free-text box on the ideas tab, saved under _suggest; claude turns them into cards
+function suggestBox() {
+  const said = (proof._suggest || []).map(m => `<div class="said ${m.from === 'claude' ? 'claude' : ''}"><span class="by">${m.from === 'claude' ? 'claude' : 'myra'}</span>${esc(m.text || '')} <span class="when">· ${new Date(m.at).toLocaleString()}</span></div>`).join('')
+  return `<article class="card"><div class="head"><h2>add an idea</h2><span class="meta">claude turns it into a card here</span></div>
+    <div class="thread">${said}<div class="reply" data-slug="_suggest"><textarea placeholder="a goal people could reach together: what, and why it would be worth it"></textarea><button class="approve" data-c="idea">add idea</button></div></div></article>`
 }
 
 function card(s) {
@@ -183,13 +190,13 @@ function card(s) {
   const thread = (proof[s.slug] || []).map(m => `<div class="said ${m.from === 'claude' ? 'claude' : ''}"><span class="by">${m.from === 'claude' ? 'claude' : 'myra · ' + m.choice}</span>${esc(m.text || '')} <span class="when">· ${new Date(m.at).toLocaleString()}</span></div>`).join('')
   return `<article class="card ${st}" id="${esc(s.slug)}">
     <div class="head"><span class="num">#${i}</span><h2>${esc(s.title)}</h2>
-      <span class="meta">wave ${s.wave} · ${esc(s.category)} · ${esc(s.size || '')} · lobby ${s.lobby}</span>
+      <span class="meta">${s.wave === 'idea' ? 'idea' : 'wave ' + s.wave} · ${esc(s.category)} · ${esc(s.size || '')} · lobby ${s.lobby}</span>
       <span class="pill ${st}">${st === 'answered' ? 'claude answered' : st}</span></div>
     <div class="body">
       <div class="sec tags">${(s.tags || []).map(esc).join(' ')}</div>
       ${crowd[s.slug] ? `<div class="sec crowd ${crowd[s.slug].verdict}"><h3>crowd check: ${crowd[s.slug].verdict === 'pass' ? 'needs a crowd' : crowd[s.slug].verdict === 'fail' ? 'one person could do this' : 'borderline'}</h3><p>${esc(crowd[s.slug].why)}</p>${crowd[s.slug].fix ? `<p><b>crowd-sized version:</b> ${esc(crowd[s.slug].fix)}</p>` : ''}</div>` : ''}
       <div class="sec"><h3>what</h3><p>${marked(s.what)}</p></div>
-      <div class="sec"><h3>why now</h3><p>${marked(s.why_now)}</p></div>
+      ${s.why_now ? `<div class="sec"><h3>why now</h3><p>${marked(s.why_now)}</p></div>` : ''}
       <div class="sec done"><h3>done when</h3><p>${marked(s.done_when)}</p></div>
       <div class="sec"><h3>checked by</h3><div class="checks">${runs}${people}${author}</div></div>
       <div class="cols">
@@ -198,6 +205,7 @@ function card(s) {
       </div>
       ${s.builds_on ? `<div class="sec"><h3>builds on</h3><p>${linkify(s.builds_on)}</p></div>` : ''}
       ${s.needs_humans ? `<div class="sec"><h3>needs humans</h3><p>${esc(s.needs_humans)}</p></div>` : ''}
+      ${s.origin ? `<div class="sec risk"><h3>where it came from</h3><p>${esc(s.origin)}${(s.sources || []).length ? '' : ' · sources not checked yet'}</p></div>` : ''}
       <div class="sec risk"><h3>risk notes</h3><p>${esc(s.risk_notes || 'none')}</p></div>
     </div>
     <div class="thread">${thread}
