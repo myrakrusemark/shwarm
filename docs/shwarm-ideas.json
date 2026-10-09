@@ -547,5 +547,74 @@
     "needs_humans": "makers and labs who can build test rigs and sensitive balances in different places, and physicists to review protocols.",
     "risk_notes": "most likely outcome is careful nulls; the pitch says so honestly, and a clean null is a real result. high voltage, rf power and superconductors are dangerous: safety rules per build; no claims that endanger people. pre-register before measuring. emdrive replication (tu dresden, 2021) and the claims list still to check.",
     "origin": "myra, oct 9 ('make floating cars, or find the technology behind it')"
+  },
+  {
+    "slug": "explain-every-light-in-the-sky",
+    "wave": "idea",
+    "title": "explain every light in the sky",
+    "category": "science",
+    "tags": [
+      "#uap",
+      "#sky",
+      "#hardware",
+      "#citizen-science",
+      "#open-data"
+    ],
+    "what": "people keep seeing things in the sky they can't explain, and the debate never ends because nobody has good data. cheap all-sky cameras in hundreds of backyards could track everything that crosses overhead, then name it: planes by their transponder broadcasts, satellites by their published orbits, plus meteors, birds and balloons. whatever is left unexplained gets published with every frame of raw data, so anyone can look. either way, the arguments finally get real evidence.",
+    "done_when": "at least 100 open-design sky-camera stations in at least 10 countries log at least 10,000 station-nights, the open pipeline identifies at least 99% of tracked objects automatically against public plane and satellite data, and every unidentified track is published with its raw frames from at least 2 stations and reviewed by 2 people.",
+    "checked_by": {
+      "runs": {
+        "command": "python sky_report.py tracks/ (recomputes the identification rate per station and lists every unidentified track with its raw-frame links)",
+        "count": 1
+      },
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "pick five 'unidentified' tracks, look at the raw frames from both stations, and try to identify them yourself before agreeing."
+      },
+      "author": false
+    },
+    "lobby": 2,
+    "builds_on": "",
+    "sources": [],
+    "why_now": "",
+    "size": "months",
+    "needs_humans": "people in many countries to host a camera on their roof or balcony, and reviewers for the unidentified tracks.",
+    "risk_notes": "the done test is about finishing the search honestly, not finding aliens; an unidentified track is not evidence of anything until people rule out the ordinary. cameras point up, never at neighbors' windows; follow local privacy and aviation rules. related work to cite and study: harvard's galileo project. sources still to check.",
+    "origin": "myra, oct 9 ('find real evidence of extraterrestrial aliens')"
+  },
+  {
+    "slug": "listen-for-them-in-open-radio-data",
+    "wave": "idea",
+    "title": "listen for them: search open radio telescope data",
+    "category": "science",
+    "tags": [
+      "#seti",
+      "#space",
+      "#radio",
+      "#open-data"
+    ],
+    "what": "if anyone out there is broadcasting, the evidence could already be sitting in public data. breakthrough listen has released a huge archive of radio observations, far more than its own team can comb by hand. a crowd with agents can search more of it, throw out signals from earth, and publish what's left. finding nothing is still worth it: it sets real limits on who could be out there, and how loud.",
+    "done_when": "a frozen list of public breakthrough listen observations totaling at least 1,000 targets is searched with an open pipeline, every candidate signal is checked against the standard on-off test and an interference database by 2 people, and the results are published as open candidates plus signal-strength limits for every target.",
+    "checked_by": {
+      "runs": {
+        "command": "python rerun_search.py targets.csv (reruns the pipeline on a random 5% of targets and checks the published candidates and limits match)",
+        "count": 1
+      },
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "review three published candidates and their on-off plots and confirm the interference checks were done."
+      },
+      "author": false
+    },
+    "lobby": 2,
+    "builds_on": "",
+    "sources": [],
+    "why_now": "",
+    "size": "months",
+    "needs_humans": "people to vet candidate signals, volunteers sharing computer time, and someone who knows radio interference.",
+    "risk_notes": "never announce a detection; candidates go to the breakthrough listen team and the seti community for follow-up. data size is large: check the archive's access and terms before posting. sources still to check.",
+    "origin": "myra, oct 9 ('find real evidence of extraterrestrial aliens')"
   }
 ]
