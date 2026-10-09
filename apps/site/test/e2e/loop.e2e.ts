@@ -6,9 +6,10 @@
 //   4. @runner's agent posts a passing run report, through core (signed `shwarm run` reports come in phase 7; 7.10
 //      repeats this loop with them).
 //   5. @checker posts a people check through the check form. That is the last check before the author's, so @myra
-//      gets the sign_off inbox item and its mail in the same batch (read from the database until 6.1 builds the inbox
-//      page), and the node and the submission say "waiting on you" to her.
-//   6. @myra passes it from the sign-off box, entering her password inline.
+//      gets the sign_off inbox item and its mail in the same batch: the item appears in the inbox on her profile
+//      ("waiting on you", "for you" counts it, "open" goes to the submission), and the node and the submission say
+//      "waiting on you" to her. Nobody else sees it.
+//   6. @myra passes it from the sign-off box, entering her password inline; the item's pill says "approved".
 //   7. The shwarm's address now shows the result page, and /w/<path>/log lists every event of the run.
 // Each new page is checked as the page suite checks pages: no sideways scroll at 390–1280 px, no serious or critical
 // axe findings at 390 and 1280 px.
@@ -184,6 +185,25 @@ runIt('the whole loop, end to end (5.8)', () => {
     expect(mail[0]).toMatchObject({ person_id: myra, stream: 'notices' })
     expect(JSON.parse(mail[0].payload)).toMatchObject({ notice: 'sign_off', handle: 'myra', number: 1, title: TITLE, link: `/w/${path}/s/1` })
 
+    // the item on @myra's inbox page (6.1): new, waiting on her, counted in "for you", and it opens the submission
+    const item = all("SELECT i.id FROM inbox_item i WHERE i.kind = 'sign_off' AND i.post_id = ?", sub)[0].id
+    await open('myra', '/@myra')
+    const entry = pages.myra.locator(`#addressed ~ #i${item}`)
+    expect(await entry.getAttribute('class')).toBe('c new signoff')
+    expect(await entry.locator('.stp').textContent()).toBe('waiting on you')
+    expect(await entry.textContent()).toContain(`${TITLE} · submission #1 by @submitter passed its other checks and needs your sign-off.`)
+    expect(Number(await pages.myra.locator('.strip .me .n').textContent())).toBeGreaterThan(0)
+    expect(await pages.myra.locator('.made li', { hasText: TITLE }).locator('.st').textContent()).toBe('waiting on you')
+    await pageChecks(pages.myra, 'the profile, with the inbox')
+    const opened = await send(pages.myra, `#i${item} .acts a:text-is("open")`)
+    expect(opened.pathname).toBe(`/w/${path}/s/1`)
+    // nobody else sees it
+    for (const who of ['checker', 'out'] as const) {
+      await open(who, '/@myra')
+      expect(await pages[who].locator('#addressed').count(), who).toBe(0)
+      expect(await pages[who].getByText('waiting on you').count(), who).toBe(0)
+    }
+
     // "waiting on you" to the author, on the node and on the submission; "waiting on author" to everyone else
     await open('myra', `/w/${path}`)
     expect(await pages.myra.locator('.stat').textContent()).toContain('waiting on you')
@@ -206,8 +226,10 @@ runIt('the whole loop, end to end (5.8)', () => {
     expect(all('SELECT status FROM submission WHERE post_id = ?', sub)[0].status).toBe('passed')
     expect(all('SELECT state FROM node WHERE path = ?', path)[0].state).toBe('closed')
     expect(await my.locator('#status').textContent()).toBe('approved')
-    // the inbox item is done
+    // the inbox item is done, and its pill says so
     expect(signOffItems()[0].done_at).not.toBeNull()
+    await open('myra', '/@myra')
+    expect(await my.locator('#addressed ~ .c.signoff', { hasText: TITLE }).locator('.stp').textContent()).toBe('approved')
   })
 
   it("7. the shwarm's address is its result page", async () => {

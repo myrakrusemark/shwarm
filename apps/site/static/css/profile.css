@@ -40,3 +40,24 @@ td .sub { display: block; font-size: 11.5px; opacity: .75; }
 .who-head.tomb .about { opacity: .8; }
 td a, .made a { overflow-wrap: anywhere; }
 @media (max-width: 860px) { .who-head .path { overflow-wrap: anywhere; } }
+
+/* the owner's inbox (go-live 6.1): the pill sizes, the bar and the item rule as in mockups/profile.html */
+.stp { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; padding: 0 5px; border: 1px solid var(--ink); }
+.stp.wait { background: var(--sun); }
+.stp.ok { background: var(--leaf); color: var(--paper); border-color: var(--leaf); }
+.stp.no { background: var(--clay); color: var(--paper); border-color: var(--clay); }
+.abar { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 12px; font-size: 11.5px; background: var(--paper-2); border-bottom: 1px solid var(--ink); }
+.inbox .c { border-bottom: 1px dashed rgba(19,38,27,.3); overflow-wrap: anywhere; }
+.inbox .c:last-child { border-bottom: 0; }
+
+/* not in the mockup: its actions as forms that work without script (mark read, mark all read, the reply box), the reply's error */
+.inbox-act { display: inline; margin: 0; }
+.inbox-act > button { font: inherit; color: var(--sky); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.inbox-act > button:hover { background: var(--sun); color: var(--ink); }
+.inbox-act > button[aria-busy="true"], .rbox .btn[aria-busy="true"] { opacity: .55; cursor: progress; }
+.inbox .acts details { display: inline; }
+.inbox .acts summary { display: inline; cursor: pointer; list-style: none; color: var(--sky); text-decoration: underline; text-underline-offset: 2px; }
+.inbox .acts summary::-webkit-details-marker { display: none; }
+.inbox .acts details[open] > form { display: block; }
+.inbox .rbox .err { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 6px 0 0; }
+.inbox .c .txt { margin-top: 2px; }

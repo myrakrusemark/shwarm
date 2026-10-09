@@ -7,6 +7,7 @@ import { createContext, type Child, type FC } from 'hono/jsx'
 import { formToken } from '../auth/csrf'
 import { sessionOf } from '../auth/request'
 import { here } from '../auth/return-to'
+import { unreadCount } from '../read/inbox'
 
 /** A signed-in viewer: their handle, whether their email is verified, unread inbox items, the sign-out form token. */
 export type Viewer = { handle: string; verified: boolean; unread: number; token: string }
@@ -24,12 +25,9 @@ const envOf = (c: Context) => c.env as PageEnv['Bindings']
 export async function viewerOf<E extends PageEnv>(c: Context<E>): Promise<Viewer | null> {
   const s = await sessionOf(c)
   if (!s) return null
-  // OPEN: "for you N" counts unread inbox items (not yet opened); 100 or more shows as 99+.
-  const unread = s.verified
-    ? ((await envOf(c).DB.prepare('SELECT COUNT(*) AS n FROM (SELECT 1 FROM inbox_item WHERE person_id = ? AND read_at IS NULL LIMIT 100)')
-        .bind(s.personId)
-        .first<number>('n')) ?? 0)
-    : 0
+  // "for you N" counts the unread items the inbox shows (read/inbox.ts); 100 or more shows as 99+.
+  // OPEN (#83): only "mark read", "mark all read" and a reply read an item; opening one doesn't.
+  const unread = s.verified ? await unreadCount(envOf(c).DB, s.personId) : 0
   return { handle: s.handle, verified: s.verified, unread, token: await formToken(envOf(c).CSRF_SECRET, s.id) }
 }
 

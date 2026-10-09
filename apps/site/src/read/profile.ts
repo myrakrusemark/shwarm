@@ -48,8 +48,9 @@ export function linksOf(json: string): { label: string; url: string }[] {
 
 type NodeBits = { id: number; path: string; kind: NodeKind; title: string; state: NodeState; in_review: number; lobby_size: number | null; up_title: string | null; seats: number | null }
 
-export type WorkingRow = NodeBits & { last_post: string | null; joined_at: string | null; figures: Figures | null }
-export type CreatedRow = NodeBits & { done_when: string; triage: string; public: number }
+// `waiting`: a submission there waits on the owner's sign-off (PRD PROF-9); always 0 when someone else is looking.
+export type WorkingRow = NodeBits & { last_post: string | null; joined_at: string | null; figures: Figures | null; waiting: number }
+export type CreatedRow = NodeBits & { done_when: string; triage: string; public: number; waiting: number }
 export type Head = { workingOn: number; workingMore: boolean; postsThisWeek: number; perPost: number | null; siteAvg: number | null }
 
 export type Profile = { working: WorkingRow[]; created: CreatedRow[]; createdMore: boolean; head: Head }
@@ -62,6 +63,9 @@ export const LIST_MAX = 500
 const UP = 'LEFT JOIN node up ON up.id = COALESCE(n.parent_id, n.variant_of_id)'
 const UP_TITLE = `CASE WHEN ${PUBLIC_NODE('up')} THEN up.title END AS up_title`
 const SEATS = `CASE WHEN n.state = 'lobby' THEN (SELECT COUNT(*) FROM seat x WHERE x.node_id = n.id AND x.left_at IS NULL) END AS seats`
+/** "Waiting on you" (PROF-9, SUB-24): the owner (?1) has a sign-off item there not yet done; `owner` is the bind saying it's them. */
+const WAITING = (owner: string) =>
+  `(${owner} AND EXISTS (SELECT 1 FROM inbox_item i WHERE i.person_id = ?1 AND i.kind = 'sign_off' AND i.done_at IS NULL AND i.node_id = n.id)) AS waiting`
 
 /**
  * Working on, created and the head figures.
@@ -69,6 +73,7 @@ const SEATS = `CASE WHEN n.state = 'lobby' THEN (SELECT COUNT(*) FROM seat x WHE
  * hold a seat, posted there (themselves or by agent) in the last 7 days, or authored it. A node drops off a week
  * after their last post unless they hold a seat or wrote it. The row still shows their last post, however old.
  * Created: nodes they authored; the owner also sees their own nodes that are still being checked, held or blocked.
+ * The owner's rows also say where a submission waits on their sign-off.
  */
 export async function readProfile(db: D1Database, personId: number, o: { owner: boolean; now: number }): Promise<Profile> {
   const weekAgo = new Date(o.now - WEEK_MS).toISOString()
@@ -78,7 +83,7 @@ export async function readProfile(db: D1Database, personId: number, o: { owner: 
         `WITH mine AS (SELECT node_id, MAX(created_at) AS last_post, SUM(created_at > ?2) AS n7 FROM post WHERE person_id = ?1 AND hidden = 0 GROUP BY node_id),
               seats AS (SELECT node_id, joined_at FROM seat WHERE person_id = ?1 AND left_at IS NULL),
               ids AS (SELECT node_id FROM mine WHERE n7 > 0 UNION SELECT node_id FROM seats UNION SELECT id FROM node WHERE author_id = ?1)
-         SELECT n.id, n.path, n.kind, n.title, n.state, n.in_review, n.lobby_size, n.created_at, ${UP_TITLE}, ${SEATS},
+         SELECT n.id, n.path, n.kind, n.title, n.state, n.in_review, n.lobby_size, n.created_at, ${UP_TITLE}, ${SEATS}, ${WAITING('?4')},
                 m.last_post, COALESCE(m.n7, 0) AS n7, s.joined_at, st.posts, st.upvotes
          FROM ids JOIN node n ON n.id = ids.node_id ${UP}
          LEFT JOIN mine m ON m.node_id = n.id
@@ -87,12 +92,12 @@ export async function readProfile(db: D1Database, personId: number, o: { owner: 
          WHERE ${PUBLIC_NODE('n')}
          ORDER BY COALESCE(m.last_post, s.joined_at, n.created_at) DESC, n.id DESC LIMIT ?3`,
       )
-      .bind(personId, weekAgo, LIST_MAX + 1)
-      .all<NodeBits & { created_at: string; last_post: string | null; n7: number; joined_at: string | null; posts: number | null; upvotes: number | null }>(),
+      .bind(personId, weekAgo, LIST_MAX + 1, o.owner ? 1 : 0)
+      .all<NodeBits & { waiting: number; created_at: string; last_post: string | null; n7: number; joined_at: string | null; posts: number | null; upvotes: number | null }>(),
     db
       .prepare(
         `SELECT n.id, n.path, n.kind, n.title, n.done_when, n.state, n.in_review, n.lobby_size, n.triage, ${UP_TITLE}, ${SEATS},
-                ${PUBLIC_NODE('n')} AS public
+                ${PUBLIC_NODE('n')} AS public, ${WAITING('?2')}
          FROM node n ${UP}
          WHERE n.author_id = ?1 AND n.hidden = 0 AND (?2 OR ${PUBLIC_NODE('n')})
          ORDER BY n.created_at DESC, n.id DESC LIMIT ?3`,

@@ -381,6 +381,26 @@ type Act = (typeof ACTS)[number]
 /** Same person, same thread, same text within this long: a double click, so the first post stands. */
 const DOUBLE_POST_MS = 30_000
 
+/**
+ * The id of the same post, by the same person as the same name in the same thread, sent within DOUBLE_POST_MS: a double
+ * click, so the first post stands (the compose box here, the inbox's inline reply in web/profile.tsx). With `pin` ticked,
+ * only the pinned post itself counts as the first click; an earlier unpinned copy is posted again, pinned, so the pin is
+ * never dropped.
+ */
+export async function justPosted(db: D1Database, o: { nodeId: number; personId: number; as: string; text: string; now: number; pin?: boolean }): Promise<string | null> {
+  const dup = await db
+    .prepare(
+      `SELECT p.id FROM post p WHERE p.node_id = ?1 AND p.person_id = ?2 AND p.as_name = ?3 AND p.text = ?4 AND p.created_at > ?5
+       AND (?6 = 0 OR p.id = (SELECT pinned_post_id FROM node WHERE id = ?1)) ORDER BY p.created_at DESC LIMIT 1`,
+    )
+    .bind(o.nodeId, o.personId, o.as, o.text, new Date(o.now - DOUBLE_POST_MS).toISOString(), o.pin ? 1 : 0)
+    .first<{ id: string }>()
+  return dup?.id ?? null
+}
+
+/** Where a node's thread is: on a closed shwarm it's behind the result page (5.7), so a new post lands there. */
+export const threadHref = (path: string, n: { state: string; kind: string }) => (n.state === 'closed' && n.kind !== 'branch' ? `/w/${path}?thread=1` : `/w/${path}`)
+
 nodeRoutes.post('/*', async c => {
   const url = new URL(c.req.url)
   const parsed = parseNodePath(url.pathname.slice('/w/'.length).replace(/\/+$/, ''))
@@ -446,18 +466,9 @@ nodeRoutes.post('/*', async c => {
       const pin = f.pin === '1'
       if (!text) return htmlPage(c, chain, parsed.path, session, now, { at: 'compose', text: 'write something first.', pin }, 400)
       const replyTo = f.reply_to || null
-      // With the pin ticked, only the pinned post itself counts as the first click; an earlier unpinned copy is posted
-      // again, pinned, so the pin is never dropped.
-      const dup = await db
-        .prepare(
-          `SELECT p.id FROM post p WHERE p.node_id = ?1 AND p.person_id = ?2 AND p.as_name = ?3 AND p.text = ?4 AND p.created_at > ?5
-           AND (?6 = 0 OR p.id = (SELECT pinned_post_id FROM node WHERE id = ?1)) ORDER BY p.created_at DESC LIMIT 1`,
-        )
-        .bind(n.id, session.personId, actor.as, text, new Date(now - DOUBLE_POST_MS).toISOString(), pin ? 1 : 0)
-        .first<{ id: string }>()
-      // On a closed shwarm the thread is behind the result page (5.7): back to the thread, where the post is.
-      const to = n.state === 'closed' && n.kind !== 'branch' ? `${back}?thread=1` : back
-      if (dup) return c.redirect(`${to}#${dup.id}`, 303)
+      const dup = await justPosted(db, { nodeId: n.id, personId: session.personId, as: actor.as, text, now, pin })
+      const to = threadHref(parsed.path, n)
+      if (dup) return c.redirect(`${to}#${dup}`, 303)
       const r = await runInTree<{ id: string }>(c.env.TREE, { type: 'post', actor, input: { node: parsed.path, text, replyTo, ...(pin ? { pin } : {}) } })
       return c.redirect(`${to}#${r.id}`, 303)
     }

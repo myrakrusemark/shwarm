@@ -1,22 +1,34 @@
-// The public profile and the name view (go-live 3.5, PRD §6.8, mockups/profile.html).
+// The public profile and the name view (go-live 3.5, PRD §6.8, mockups/profile.html), and the owner's inbox (6.1).
 //   /@handle            head (handle, display name, joined, about, links, three figures), working on, created,
 //                       and the "look up a name" box
 //   /@handle?as=@h/x    the same head, then only that name's posts (not its mentions)
+//   POST /@handle       the owner's inbox forms: an inline reply, mark read or unread, mark all read
 // Profiles are about the human: no agent profiles, no list of names under a person, no agent counts, no passes.
-// The private parts of the mockup (the inbox and the account modal) come in phase 6.
-// OPEN: the owner sees the same page as everyone else for now, plus their own nodes still being checked in
-// "created"; no account button, inbox or "waiting on you" (PROF-9) until phase 6.
+// The owner, signed in, also sees the private inbox (PROF-5: mentions of the bare handle, sign-off items with their
+// live status, system items), "waiting on you" on working on and created (PROF-9), and their own nodes still being
+// checked in "created". Nobody else's session ever reads the inbox: the page asks for it only when the session is the
+// profile's own, and the POST refuses anyone else.
+// OPEN: the account button and modal come with go-live 6.2.
 import { Hono, type Context } from 'hono'
-import type { Child, FC } from 'hono/jsx'
-import { HANDLE_RE, isValidName } from '@shwarm/protocol'
-import { sessionOf } from '../auth/request'
+import { useContext, type Child, type FC } from 'hono/jsx'
+import { HANDLE_RE, isValidName, ShwarmError } from '@shwarm/protocol'
+import { formOf, postedTokenOk, sessionOf, who, type AuthContext } from '../auth/request'
+import { signInHref } from '../auth/return-to'
+import type { Session } from '../auth/session'
+import { siteActor } from '../core/actor'
+import { peekThreadTokensMany } from '../core/limits'
+import { MAX_TEXT } from '../core/text'
+import { runInTree } from '../do/shwarm-tree'
 import { ago } from '../render/ago'
+import { cut } from '../render/format'
 import { exactTime } from '../render/numbers'
-import { Name, Text } from '../render/text'
+import { Name, Plain, Text } from '../render/text'
 import { impactMark, oneDecimal } from '../read/figures'
+import { markAllRead, markRead, readInbox, readReplyTarget, UNREAD_CAP, type InboxItem } from '../read/inbox'
 import {
   findPerson,
   linksOf,
+  LIST_MAX,
   readNamePosts,
   readProfile,
   type CreatedRow,
@@ -26,12 +38,15 @@ import {
   type Profile,
   type WorkingRow,
 } from '../read/profile'
-import { formatFor, sendError, type ErrorStatus } from './errors'
+import { formatFor, sendError, waitText, type ErrorStatus } from './errors'
 import { Layout } from './layout'
+import { limitLine } from './node-page'
+import { justPosted, threadHref } from './node-routes'
 import { overReadCap } from './read-limit'
-import { page } from './viewer'
+import { pillOf, PillView } from './submission-page'
+import { page, PageContext } from './viewer'
 
-type Env = { DB: D1Database; ENV: string; SITE_MODE: string; CSRF_SECRET: string }
+type Env = { DB: D1Database; TREE: DurableObjectNamespace; ENV: string; SITE_MODE: string; CSRF_SECRET: string }
 
 /** Rows each list shows before "show all". */
 export const SHOWN = 25
@@ -53,11 +68,15 @@ const kindLabel = (r: { kind: string; up_title: string | null }, branchOf = fals
     </>
   )
 
-/** The node's state as the profile says it. OPEN (#18): a passed node says "passed" here, "closed" in the feed. */
-function stateLabel(r: { state: string; in_review: number; lobby_size: number | null; seats: number | null }): string {
+/**
+ * The node's state as the profile says it. OPEN (#18): a passed node says "passed" here, "closed" in the feed.
+ * To the owner, a node whose submission waits on their sign-off says "waiting on you" (PROF-9, as the mockup).
+ */
+function stateLabel(r: { state: string; in_review: number; lobby_size: number | null; seats: number | null; waiting?: number }): string {
   if (r.state === 'lobby') return `lobby ${r.seats ?? 0}/${r.lobby_size ?? 0}`
   if (r.state === 'closed') return 'passed'
   if (r.state === 'dead_end') return 'dead end'
+  if (r.waiting) return 'waiting on you'
   return r.in_review ? 'submission in review' : ''
 }
 
@@ -67,6 +86,7 @@ function badge(r: CreatedRow): { cls: string; text: string } {
   if (r.state === 'lobby') return { cls: 'st', text: `${r.seats ?? 0}/${r.lobby_size ?? 0}` }
   if (r.state === 'closed') return { cls: 'st done', text: 'passed' }
   if (r.state === 'dead_end') return { cls: 'st dead', text: 'dead end' }
+  if (r.waiting) return { cls: 'st live', text: 'waiting on you' }
   return { cls: 'st live', text: 'live' }
 }
 
@@ -207,9 +227,126 @@ const LookUp: FC<{ handle: string; value: string; error?: string }> = ({ handle,
   </div>
 )
 
-type View = { person: Person; profile: Profile; all: boolean; now: number; name?: { name: string; value: string; error?: string; posts: NamePost[]; next: string | null } }
+// ---------- the owner's inbox (go-live 6.1) ----------
 
-export const ProfilePage: FC<View> = ({ person, profile, all, now, name }) => (
+/** A refused inline reply: shown under its item, with the draft kept. */
+export type ReplyFlash = { item: number; text: string; draft: string }
+
+/** The owner's inbox: the items, whether there are more, the newest id ("mark all read" stops there), each thread's reply pace. */
+export type InboxView = { items: InboxItem[]; more: boolean; upto: number; limits: Map<number, { left: number; wait: number }>; flash?: ReplyFlash }
+
+/** A sign-off item's words, after its link and who submitted. As the mockup while there were checks before the author's. */
+function signOffWords(i: InboxItem): string {
+  // OPEN (#83): no mockup draws an author-only item or the operator's; their words wait on Myra's yes.
+  const others = i.others ? 'passed its other checks' : ''
+  if (i.operator) return `${others || 'needs a sign-off'}. its author's account is gone, so you sign off as the operator.`
+  return others ? `${others} and needs your sign-off.` : 'needs your sign-off.'
+}
+
+/** A small form in an item's action line: mark it read or unread, or mark all read. One submit per click (static/js/node.js). */
+const InboxAct: FC<{ action: string; token: string; act: string; fields?: Record<string, string | number>; label: string }> = ({ action, token, act, fields, label }) => (
+  <form method="post" action={action} class="inbox-act">
+    <input type="hidden" name="form_token" value={token} />
+    <input type="hidden" name="do" value={act} />
+    {Object.entries(fields ?? {}).map(([k, v]) => <input type="hidden" name={k} value={String(v)} />)}
+    <button type="submit">{label}</button>
+  </form>
+)
+
+/**
+ * "reply" on a mention: posts as the bare handle, as a reply to the post that named them, in its thread (the pace
+ * limit is that thread's). No script needed: a details box, open again with the reason and the draft after a refusal.
+ */
+const Reply: FC<{ i: InboxItem; handle: string; action: string; token: string; limit?: { left: number; wait: number }; flash?: ReplyFlash }> = ({ i, handle, action, token, limit, flash }) => (
+  <details class="rep" open={flash ? true : undefined}>
+    <summary>reply</summary>
+    <form method="post" action={action} class="rbox inbox-act">
+      <input type="hidden" name="form_token" value={token} />
+      <input type="hidden" name="do" value="reply" />
+      <input type="hidden" name="item" value={String(i.id)} />
+      <textarea name="text" required maxlength={MAX_TEXT} aria-label={`reply to ${i.as_name ?? 'this post'}`} placeholder={`reply as @${handle}…`}>{flash?.draft ?? ''}</textarea>
+      {flash && <p class="err" role="alert">{flash.text}</p>}
+      <div class="rrow">
+        <span class="note">{limitLine(limit)}</span>
+        <button class="btn plain" type="submit">post</button>
+      </div>
+    </form>
+  </details>
+)
+
+const InboxEntry: FC<{ i: InboxItem; inbox: InboxView; handle: string; action: string; token: string; now: number }> = ({ i, inbox, handle, action, token, now }) => {
+  const isNew = !i.read && <span class="newb">new</span>
+  const toggle = <InboxAct action={action} token={token} act={i.read ? 'unread' : 'read'} fields={{ item: i.id }} label={i.read ? 'mark unread' : 'mark read'} />
+  const cls = ['c', !i.read && 'new', i.kind === 'sign_off' && 'signoff'].filter(Boolean).join(' ')
+  if (i.kind === 'sign_off') {
+    // The pill is the submission's state now; the item itself has no pass or fail (the author decides on the submission page).
+    const pill = pillOf(i.status ?? 'in_review', i.waiting, true, i.reopened)
+    return (
+      <div class={cls} id={`i${i.id}`}>
+        <div class="who"><PillView p={pill} />{isNew} · <Ago at={i.created_at} now={now} /></div>
+        <a href={i.href}><b>{i.title ? <Name name={i.title} /> : 'a shwarm'} · submission #{i.number ?? '?'}</b></a>
+        {i.as_name && <> by <Name name={i.as_name} /></>} {signOffWords(i)}
+        <div class="acts"><a href={i.href}>open</a> · {toggle}</div>
+      </div>
+    )
+  }
+  if (i.kind === 'mention')
+    return (
+      <div class={cls} id={`i${i.id}`}>
+        <div class="who">
+          {i.as_name && <b><Name name={i.as_name} link /></b>}{isNew} · <Ago at={i.created_at} now={now} />
+          {i.path && i.title && <> · <a href={nodeHref(i.path)}><Name name={i.title} /></a></>}
+        </div>
+        {/* OPEN (#83): a long post shows its first 400 characters here, on one line; "see thread" has the rest. */}
+        <Text text={cut(i.post_text ?? '', 400)} addressed />
+        <div class="acts">
+          <a href={i.href}>see thread</a> · <Reply i={i} handle={handle} action={action} token={token} limit={i.node_id === null ? undefined : inbox.limits.get(i.node_id)} flash={inbox.flash?.item === i.id ? inbox.flash : undefined} /> · {toggle}
+        </div>
+      </div>
+    )
+  // A system item (table B): core's words about a node they're in. No reply.
+  return (
+    <div class={cls} id={`i${i.id}`}>
+      <div class="who"><Ago at={i.created_at} now={now} />{isNew}</div>
+      <div class="txt"><Plain text={i.text} /></div>
+      <div class="acts"><a href={i.href}>open</a> · {toggle}</div>
+    </div>
+  )
+}
+
+/**
+ * The private inbox (PROF-5), in the sidebar as the mockup: "N new" (the strip's count, so the two always agree) and
+ * "mark all read", then the items, newest first. Only rendered for the signed-in owner.
+ */
+const Inbox: FC<{ inbox: InboxView; handle: string; all: boolean; now: number }> = ({ inbox, handle, all, now }) => {
+  const viewer = useContext(PageContext).viewer
+  const unread = viewer?.unread ?? 0
+  const token = viewer?.token ?? ''
+  const action = `/@${handle}${all ? '?all=1' : ''}`
+  return (
+    <div class="box inbox">
+      <h2 id="addressed">inbox <span>only you see this</span></h2>
+      <div class="abar">
+        <span id="newcount">{unread ? `${unread >= UNREAD_CAP ? '99+' : unread} new` : 'all read'}</span>
+        {unread > 0 && <InboxAct action={action} token={token} act="all_read" fields={{ upto: inbox.upto }} label="mark all read" />}
+      </div>
+      {inbox.items.map(i => <InboxEntry i={i} inbox={inbox} handle={handle} action={action} token={token} now={now} />)}
+      {!inbox.items.length && <div class="in"><p class="note">nothing yet.</p></div>}
+      {inbox.more && <div class="in more">{all ? `showing the newest ${inbox.items.length}.` : <a href={`/@${handle}?all=1#addressed`}>show all</a>}</div>}
+    </div>
+  )
+}
+
+type View = {
+  person: Person
+  profile: Profile
+  all: boolean
+  now: number
+  name?: { name: string; value: string; error?: string; posts: NamePost[]; next: string | null }
+  inbox?: InboxView // the owner's own, signed in
+}
+
+export const ProfilePage: FC<View> = ({ person, profile, all, now, name, inbox }) => (
   <Layout title={`@${person.handle} · shwarm`}>
     <link rel="stylesheet" href="/css/profile.css" />
     <WhoHead person={person} head={profile.head} now={now} />
@@ -226,9 +363,11 @@ export const ProfilePage: FC<View> = ({ person, profile, all, now, name }) => (
       </main>
       <aside>
         {/* OPEN: profile sidebars have no agent resources card (CHROME-6: keys and profile are human-only pages). */}
+        {inbox && <Inbox inbox={inbox} handle={person.handle} all={all} now={now} />}
         <LookUp handle={person.handle} value={name?.value ?? ''} error={name?.error} />
       </aside>
     </div>
+    {inbox && <script src="/js/node.js" defer></script>}
   </Layout>
 )
 
@@ -310,8 +449,17 @@ profile.get('/:at{@[A-Za-z0-9_]+}', async c => {
   // OPEN: a suspension's public tombstone with its reason comes with the moderation log (8.5); for now, one line.
   if (person.status === 'suspended') return cannot(c, 403, <Tombstone handle={handle} text="this account is suspended." />, 'this account is suspended.')
 
+  return profileView(c, person, url, (await sessionOf(c))?.personId === person.id)
+})
+
+/**
+ * The profile as `url` asks for it (the name view, ?all=1), with the owner's inbox when `owner`. Also the page for a
+ * refused inline reply, with the reason under its item and the draft kept (`flash`).
+ */
+async function profileView(c: Context<{ Bindings: Env }>, person: Person, url: URL, owner: boolean, flash?: ReplyFlash, status: 200 | 400 | 429 = 200) {
   const now = Date.now()
-  const owner = (await sessionOf(c))?.personId === person.id
+  const handle = person.handle
+  const all = url.searchParams.get('all') === '1'
   const asRaw = url.searchParams.get('as')
   let name: View['name']
   let posts: ReturnType<typeof readNamePosts> | undefined
@@ -326,7 +474,90 @@ profile.get('/:at{@[A-Za-z0-9_]+}', async c => {
       posts = readNamePosts(c.env.DB, person.id, n.name, url.searchParams.get('before'))
     }
   }
-  const [prof, found] = await Promise.all([readProfile(c.env.DB, person.id, { owner, now }), posts])
+  const [prof, found, inbox] = await Promise.all([readProfile(c.env.DB, person.id, { owner, now }), posts, owner ? ownInbox(c.env.DB, person.id, all, now) : undefined])
   if (name && found) Object.assign(name, found)
-  return page(c, <ProfilePage person={person} profile={prof} all={url.searchParams.get('all') === '1'} now={now} name={name} />, name?.error ? 400 : 200)
+  if (inbox) inbox.flash = flash
+  return page(c, <ProfilePage person={person} profile={prof} all={all} now={now} name={name} inbox={inbox} />, name?.error ? 400 : status)
+}
+
+/** The owner's inbox, and the reply pace in each thread a mention is in (one read for all of them). */
+async function ownInbox(db: D1Database, personId: number, all: boolean, now: number): Promise<InboxView> {
+  const box = await readInbox(db, personId, { all, max: LIST_MAX })
+  const threads = box.items.filter(i => i.kind === 'mention' && i.node_id !== null).map(i => i.node_id as number)
+  return { ...box, limits: await peekThreadTokensMany(db, personId, threads, now) }
+}
+
+/** An inbox item id from a form field, or null. */
+const itemId = (v: string | undefined) => (/^[1-9]\d{0,15}$/.test(v ?? '') ? Number(v) : null)
+
+/**
+ * POST /@handle: the owner's inbox forms, picked by `do`. read, unread: one item. all_read: every unread item up to the
+ * newest one the page showed (`upto`). reply: an inline reply to a mention, run in its tree as a post with reply_to,
+ * which reads the item and lands on the reply in its thread; a refusal re-renders the profile with the reason under
+ * the item and the draft kept. Signed out, it goes to sign-in and back; anyone but the owner is refused.
+ */
+profile.post('/:at{@[A-Za-z0-9_]+}', async c => {
+  if (!readingOpen(c.env)) return c.notFound()
+  const url = new URL(c.req.url)
+  const handle = c.req.param('at').slice(1).toLowerCase()
+  const back = `/@${handle}${url.searchParams.get('all') === '1' ? '?all=1' : ''}`
+  const w = await who(c as unknown as AuthContext)
+  if (!w.session) return c.redirect(signInHref(`/@${handle}`), 303)
+  const f = await formOf(c)
+  if (!(await postedTokenOk(c as unknown as AuthContext, w, f))) return sendError(c, { status: 403, heading: 'this form expired', text: 'go back, reload the page and try again.' }, 'html')
+  // Nobody acts on someone else's inbox, and the profile has no other forms.
+  if (w.session.handle !== handle || !w.session.verified) return sendError(c, { status: 403 }, 'html')
+  const s = w.session
+  const db = c.env.DB
+  const at = new Date().toISOString()
+  if (f.do === 'read' || f.do === 'unread') {
+    const id = itemId(f.item)
+    if (id === null) return sendError(c, { status: 400 }, 'html')
+    await markRead(db, s.personId, id, f.do === 'read', at)
+    return c.redirect(`${back}#i${id}`, 303)
+  }
+  if (f.do === 'all_read') {
+    const upto = itemId(f.upto)
+    if (upto === null) return sendError(c, { status: 400 }, 'html')
+    await markAllRead(db, s.personId, upto, at)
+    return c.redirect(`${back}#addressed`, 303)
+  }
+  if (f.do === 'reply') return reply(c, s, url, f)
+  return sendError(c, { status: 400, text: 'that form asked for nothing we know.' }, 'html')
 })
+
+async function reply(c: Context<{ Bindings: Env }>, s: Session, url: URL, f: Record<string, string>) {
+  const db = c.env.DB
+  const id = itemId(f.item)
+  const target = id === null ? null : await readReplyTarget(db, s.personId, id)
+  // An item that isn't theirs, isn't a mention, or no longer shows (its post deleted or hidden).
+  if (id === null || !target) return sendError(c, { status: 404 }, 'html')
+  const person = await findPerson(db, s.handle)
+  if (!person) return sendError(c, { status: 404 }, 'html')
+  const draft = f.text ?? ''
+  const refuse = (text: string, status: 400 | 429 = 400) => profileView(c, person, url, true, { item: id, text, draft }, status)
+  const text = draft.trim()
+  if (!text) return refuse('write something first.')
+  const actor = siteActor({ id: s.personId, handle: s.handle })
+  const now = Date.now()
+  const to = threadHref(target.path, target)
+  const dup = await justPosted(db, { nodeId: target.node_id, personId: s.personId, as: actor.as, text, now })
+  // OPEN (#83): replying reads the item, as "mark read" would.
+  if (dup) {
+    await markRead(db, s.personId, id, true, new Date(now).toISOString())
+    return c.redirect(`${to}#${dup}`, 303)
+  }
+  try {
+    const r = await runInTree<{ id: string }>(c.env.TREE, { type: 'post', actor, input: { node: target.path, text, replyTo: target.post_id } })
+    await markRead(db, s.personId, id, true, new Date(now).toISOString())
+    return c.redirect(`${to}#${r.id}`, 303)
+  } catch (e) {
+    if (!(e instanceof ShwarmError)) throw e
+    if (e.code === 'rate_limited') {
+      const wait = Number(e.details.retry_after) || 60
+      c.header('Retry-After', String(wait))
+      return refuse(`slow down: you can post here again in ${waitText(wait)}.`, 429)
+    }
+    return refuse(e.message.replace(/\.?$/, '.'))
+  }
+}

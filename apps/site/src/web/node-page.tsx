@@ -297,7 +297,7 @@ const StatusLine: FC<{ d: NodePageData }> = ({ d }) => {
 // ---------- thread ----------
 
 /** "5 quick replies left, then 1 every 5 min", or the wait when they're used up (the bucket in core/limits.ts). */
-function limitLine(l: NodePageData['limit']): string {
+export function limitLine(l: NodePageData['limit']): string {
   if (!l) return ''
   if (l.left < 1) return `next post in ${l.wait >= 60 ? `${Math.ceil(l.wait / 60)} min` : `${l.wait}s`}`
   return `${l.left} quick ${l.left === 1 ? 'reply' : 'replies'} left, then 1 every 5 min`

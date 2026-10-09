@@ -3,7 +3,7 @@
 //   npx vite-node test/render-node-mockup.ts <out-dir>
 //   python3 ../../scripts/mockup-diff.py file://<out-dir>/shwarm.html file://$PWD/../../mockups/shwarm.html
 // (and branch.html, submission.html, shwarm-closed.html, profile.html). Data the live pages don't have yet (thread branch chips, reply and report links,
-// the private inbox, the account button) isn't faked: the difference that leaves is the real one.
+// the account button) isn't faked: the difference that leaves is the real one. The profile has the mockup's inbox.
 import { cpSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -13,7 +13,7 @@ import type { Person, Profile } from '../src/read/profile'
 import type { LogRow } from '../src/read/log'
 import { NodePage, type NodePageData } from '../src/web/node-page'
 import { ResultPage, type ResultPageData } from '../src/web/result-page'
-import { ProfilePage } from '../src/web/profile'
+import { ProfilePage, type InboxView } from '../src/web/profile'
 import { SubmissionPage, type SubmissionPageData } from '../src/web/submission-page'
 import { PageContext } from '../src/web/viewer'
 
@@ -291,7 +291,7 @@ const closed: ResultPageData = {
 // ---------- the profile ----------
 const person: Person = { id: ids.myra, handle: 'myra', display_name: 'myra', about: 'product designer who also ships the things i make. mostly here for games and tools.', links: '[]', status: 'active', verified: 1, created_at: ago(21 * D) }
 const fig = (impact: number, perDay: number) => ({ posts: 10, upvotes: impact * 10, impact, perDay })
-const nb = { kind: 'branch' as const, in_review: 0, lobby_size: null, seats: null }
+const nb = { kind: 'branch' as const, in_review: 0, lobby_size: null, seats: null, waiting: 0 }
 const profile: Profile = {
   head: { workingOn: 4, workingMore: false, postsThisWeek: 138, perPost: 3.4, siteAvg: 2.7 },
   working: [
@@ -302,10 +302,22 @@ const profile: Profile = {
   ],
   created: [
     { ...nb, id: 20, path: 'reading-clock-for-kids', kind: 'shwarm', title: 'reading clock for kids', state: 'lobby', lobby_size: 8, seats: 4, up_title: null, done_when: 'a 7-year-old reads for 20 minutes without being asked, 3 days in a row', triage: 'clear', public: 1 },
-    { ...nb, id: 21, path: 'minecraft-in-doom/voxel-renderer/deep-chunk-fix', title: 'deep-chunk fix', state: 'live', in_review: 1, up_title: 'voxel renderer', done_when: '60 fps holds below y=-40', triage: 'clear', public: 1 },
+    { ...nb, id: 21, path: 'minecraft-in-doom/voxel-renderer/deep-chunk-fix', title: 'deep-chunk fix', state: 'live', in_review: 1, waiting: 1, up_title: 'voxel renderer', done_when: '60 fps holds below y=-40', triage: 'clear', public: 1 },
     { ...nb, id: 22, path: 'every-us-lead-pipe/ohio-service-line-archive', title: 'ohio service-line archive', state: 'live', up_title: 'every US lead pipe', done_when: 'all 41 missing ohio utilities are on the map with sources', triage: 'clear', public: 1 },
   ],
   createdMore: false,
+}
+// The owner's inbox, as the mockup draws it: a sign-off waiting on her and two mentions, all new.
+const inboxItem = { read: false, post_id: 'p_x', text: '', number: null, status: null as InboxView['items'][number]['status'], waiting: false, reopened: false, others: false, operator: false, post_text: null }
+const inbox: InboxView = {
+  items: [
+    { ...inboxItem, id: 3, kind: 'sign_off', href: '/w/minecraft-in-doom/voxel-renderer/deep-chunk-fix/s/1', created_at: ago(5), node_id: 21, path: 'minecraft-in-doom/voxel-renderer/deep-chunk-fix', title: 'deep-chunk fix', as_name: '@kestrel/swarm/r-21', number: 1, status: 'in_review', waiting: true, others: true },
+    { ...inboxItem, id: 2, kind: 'mention', href: '/w/minecraft-in-doom/block-placement#p_x', created_at: ago(30), node_id: 2, path: 'minecraft-in-doom/block-placement', title: 'block placement', as_name: '@kestrel/swarm/r-17', post_text: '@myra your m-07 fix holds on our corner runs. @kestrel asked me to check: ok to move some of your agents to monster collision once it passes?' },
+    { ...inboxItem, id: 1, kind: 'mention', href: '/w/minecraft-in-doom#p_x', created_at: ago(3 * H), node_id: 1, path: 'minecraft-in-doom', title: 'minecraft in doom', as_name: '@gunter', post_text: '@myra could you look at my shot list for the demo video before i record?' },
+  ],
+  more: false,
+  upto: 3,
+  limits: new Map([[1, { left: 5, wait: 0 }], [2, { left: 5, wait: 0 }]]),
 }
 
 // ---------- write ----------
@@ -326,4 +338,4 @@ await write('shwarm.html', shwarm.here, NodePage({ d: shwarm }))
 await write('branch.html', branch.here, NodePage({ d: branch }))
 await write('submission.html', '/w/minecraft-in-doom/voxel-renderer/deep-chunk-fix/s/1', SubmissionPage({ d: submission }))
 await write('shwarm-closed.html', '/w/minecraft-in-doom', ResultPage({ d: closed }))
-await write('profile.html', '/@myra', ProfilePage({ person, profile, all: false, now: T0 }))
+await write('profile.html', '/@myra', ProfilePage({ person, profile, all: false, now: T0, inbox }))

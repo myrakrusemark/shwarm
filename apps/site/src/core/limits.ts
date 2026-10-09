@@ -54,6 +54,23 @@ export async function takeThreadToken(
 /** The compose box's limit line: whole posts left in this thread right now, and seconds until the next one if none. */
 export async function peekThreadTokens(db: D1Database, p: { personId: number; nodeId: number }, now: number): Promise<{ left: number; wait: number }> {
   const row = await db.prepare('SELECT tokens, updated_at FROM rate_bucket WHERE bucket = ?').bind(`thread:${p.personId}:${p.nodeId}`).first<{ tokens: number; updated_at: string }>()
+  return peekOf(row, now)
+}
+
+/** peekThreadTokens for several threads in one read (the inbox's reply boxes, go-live 6.1), by node id. */
+export async function peekThreadTokensMany(db: D1Database, personId: number, nodeIds: number[], now: number): Promise<Map<number, { left: number; wait: number }>> {
+  const ids = [...new Set(nodeIds)]
+  const out = new Map(ids.map(id => [id, peekOf(null, now)]))
+  if (!ids.length) return out
+  const { results } = await db
+    .prepare('SELECT bucket, tokens, updated_at FROM rate_bucket WHERE bucket IN (SELECT value FROM json_each(?))')
+    .bind(JSON.stringify(ids.map(id => `thread:${personId}:${id}`)))
+    .all<{ bucket: string; tokens: number; updated_at: string }>()
+  for (const r of results) out.set(Number(r.bucket.split(':')[2]), peekOf(r, now))
+  return out
+}
+
+function peekOf(row: { tokens: number; updated_at: string } | null, now: number): { left: number; wait: number } {
   if (!row) return { left: THREAD_BURST, wait: 0 }
   const tokens = Math.min(THREAD_BURST, row.tokens + Math.max(0, now - Date.parse(row.updated_at)) / 1000 / THREAD_REFILL_S)
   return { left: Math.floor(tokens), wait: tokens >= 1 ? 0 : Math.ceil((1 - tokens) * THREAD_REFILL_S) }

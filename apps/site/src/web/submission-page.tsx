@@ -35,13 +35,13 @@ export type SubmissionPageData = {
  */
 export type SubFlash = { at: 'check' | 'signoff'; text: string; fields: Record<string, string> }
 
-type Pill = { cls: 'wait' | 'ok' | 'no' | ''; text: string }
+export type Pill = { cls: 'wait' | 'ok' | 'no' | ''; text: string }
 
 /**
  * A submission's state as a pill. The author sees "waiting on you", "approved" and "failed" (design system .stp).
  * OPEN: the wording others see ("waiting on author", "in review", "superseded", "reopened") isn't in a mockup yet.
  */
-function pillOf(status: SubmissionRow['status'], waitingOnAuthor: boolean, mine: boolean, reopened = false): Pill {
+export function pillOf(status: SubmissionRow['status'], waitingOnAuthor: boolean, mine: boolean, reopened = false): Pill {
   if (status === 'passed') return reopened ? { cls: 'no', text: 'reopened' } : { cls: 'ok', text: 'approved' }
   if (status === 'failed') return { cls: 'no', text: 'failed' }
   if (status === 'superseded') return { cls: '', text: 'superseded' }
@@ -49,7 +49,7 @@ function pillOf(status: SubmissionRow['status'], waitingOnAuthor: boolean, mine:
   return { cls: 'wait', text: 'in review' }
 }
 
-const PillView: FC<{ p: Pill; id?: string }> = ({ p, id }) => <span class={p.cls ? `stp ${p.cls}` : 'stp'} id={id}>{p.text}</span>
+export const PillView: FC<{ p: Pill; id?: string }> = ({ p, id }) => <span class={p.cls ? `stp ${p.cls}` : 'stp'} id={id}>{p.text}</span>
 
 export const SubmissionPage: FC<{ d: SubmissionPageData }> = ({ d }) => {
   const n = d.chain.node
