@@ -48,6 +48,8 @@ export type NodePageData = {
 
 export const nodeHref = (path: string) => `/w/${path}`
 export const subHref = (path: string, n: number) => `/w/${path}/s/${n}` // the submission page (go-live 5.2)
+/** A closed shwarm's "build on this": the create form with builds-on filled in (go-live 4.3). */
+export const buildOnHref = (path: string) => `/new?builds_on=${encodeURIComponent(path)}`
 export const Ago: FC<{ at: string | null; now: number; short?: boolean }> = ({ at, now, short }) => <span title={exact(at)}>{ago(at, now, short)}</span>
 const Imp: FC<{ q: number; ppd: number }> = ({ q, ppd }) => (
   <span class="imp" style={`--q:${q1(q)}`} title={`▲${q1(q)} per post · ${perDay(ppd)} posts a day`}>{perDay(ppd)}/day</span>
@@ -597,14 +599,22 @@ export const CheckRowView: FC<{ row: ReviewRow; n: NodeHead; sub: SubmissionRow;
 }
 
 /**
- * A closed node takes only a repro on the submission that passed it (A25, A11), which reopens it: the way there.
+ * A closed node takes only a repro on the submission that passed it (A25, A11), which reopens it: the way there. A
+ * closed shwarm is also built on.
  * OPEN: the closed mockup's words, on the live template until the result page (5.7) replaces it for shwarms.
  */
 const ReproLink: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
   const passed = n.state === 'closed' ? d.subs.find(s => s.status === 'passed') : undefined
-  if (!passed) return null
-  return <div class="alt"><a href={`${subHref(n.path, passed.number)}#check`}>it's broken? post a repro</a></div>
+  // Closed shwarms offer "build on this", not "start a variant" (decisions, Oct 7; shwarm-closed.html's "what's next").
+  const buildOn = n.state === 'closed' && n.kind !== 'branch' && <div class="alt"><a href={buildOnHref(n.path)}>build on this</a></div>
+  if (!passed) return buildOn || null
+  return (
+    <>
+      {buildOn}
+      <div class="alt"><a href={`${subHref(n.path, passed.number)}#check`}>it's broken? post a repro</a></div>
+    </>
+  )
 }
 
 /**

@@ -64,10 +64,25 @@ function needClosed(n: NodeRow): void {
   if (n.state !== 'closed') throw bad(`${n.path} isn't closed. to change an open shwarm's done test, start a variant`)
 }
 
+type NodeAt = Pick<NodeRow, 'path' | 'kind' | 'state'>
+
 /** Variants are only for open shwarms (lobby or live); a closed one is built on instead. */
-function needOpen(n: NodeRow): void {
+function needOpen(n: Pick<NodeRow, 'path' | 'state'>): void {
   if (n.state === 'closed' || n.state === 'dead_end')
     throw new ShwarmError('shwarm_closed', `${n.path} is ${n.state.replace('_', ' ')}. variants are only for open shwarms; build on it instead`, { node: n.path })
+}
+
+/** A variant's original: an open shwarm or variant, never a branch. The create form (web/create.tsx) asks before it shows. */
+export function needVariantable(n: NodeAt): void {
+  if (n.kind === 'branch') throw bad('variants are of shwarms only. disagree with a branch? open a sibling branch')
+  needOpen(n)
+}
+
+/** A branch's parent: live only. Branches open at kickoff, and a closed or dead-end node takes none. */
+export function needBranchable(n: NodeAt): void {
+  if (n.state === 'lobby') throw new ShwarmError('lobby_not_open', `${n.path} is still a lobby. branches open at kickoff`, { node: n.path })
+  // OPEN: branching a closed or dead-end node isn't described; refused until decided.
+  if (n.state !== 'live') throw new ShwarmError('shwarm_closed', `${n.path} is ${n.state.replace('_', ' ')}`, { node: n.path })
 }
 
 /** builds_on: a closed shwarm's path, or an outside project {name, url?, license}. Either way its license carries over. */
@@ -131,9 +146,7 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
   let lobby: number | null = null
   if (kind === 'branch') {
     parent = await loadNode(ctx, inp.parent)
-    if (parent.state === 'lobby') throw new ShwarmError('lobby_not_open', `${parent.path} is still a lobby. branches open at kickoff`, { node: parent.path })
-    // OPEN: branching a closed or dead-end node isn't described; refused until decided.
-    if (parent.state !== 'live') throw new ShwarmError('shwarm_closed', `${parent.path} is ${parent.state.replace('_', ' ')}`, { node: parent.path })
+    needBranchable(parent)
     if (inp.license !== undefined && inp.license !== null && inp.license !== parent.license)
       throw new ShwarmError('bad_license', `branches take the parent's license (${parent.license})`)
     if (inp.buildsOn !== undefined && inp.buildsOn !== null) throw bad("branches take the parent's builds on. send none")
@@ -144,8 +157,7 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
   } else {
     if (kind === 'variant') {
       original = await loadNode(ctx, inp.variantOf)
-      if (original.kind === 'branch') throw bad('variants are of shwarms only. disagree with a branch? open a sibling branch')
-      needOpen(original)
+      needVariantable(original)
     }
     tags = parseTags(inp.tags)
     lobby = inp.lobby === undefined || inp.lobby === null ? DEFAULT_LOBBY : (inp.lobby as number)

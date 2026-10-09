@@ -76,6 +76,11 @@ const CASES: Case[] = [
   { path: '/verify?t=no-such-token', status: 410 },
   { path: '/reset?t=no-such-token', status: 410 },
   { path: '/step-up', status: 200, only: 'in' },
+  // the create form in its three modes (go-live 4.2, 4.3); the long branch title must wrap in the crumbs and the done test
+  { path: '/new', status: 200, only: 'in' },
+  { path: `/new?parent=${LONG_BRANCH}`, status: 200, only: 'in' },
+  { path: `/new?variant=${EXAMPLE_ROOT}`, status: 200, only: 'in' },
+  { path: `/new?builds_on=${EXAMPLE_ROOT}`, status: 200, only: 'in' },
   // error pages
   { path: '/no-such-page', status: 404 },
   { path: '/w/no-such-shwarm', status: 404 },
