@@ -3,7 +3,8 @@
 // to apply with `wrangler d1 execute --file`. Nothing here talks to Cloudflare; scripts/seed-launch.ts does.
 //
 // The local copy holds what the plan needs to read: the @myra row (with its real id), the target's settings, and
-// a hidden placeholder for every path already there (so slugs are checked against them). Rows the plan creates
+// a stand-in for every node already there, with its real kind, state, license, hidden and paused, so slugs are
+// checked against them and a variant can name an original that went in earlier (go-live 3.10, 11.1). Rows the plan creates
 // get ids from a sentinel range and are written into the SQL as subqueries by path or handle (see sql.ts).
 import type { Actor } from '../core/actor'
 import { TreeEngine, type Command } from '../core/engine'
@@ -19,10 +20,13 @@ export const NODE_BASE = 9_000_000_000_000 // nodes the plan creates (and placeh
 
 export type PersonState = { id: number; handle: string; status: string; email_verified_at: string | null; founding: number; established_at: string | null }
 
+/** A node already on the target: what core reads when a planned node names it (a variant's original). */
+export type ExistingNode = { path: string; kind: string; state: string; license: string; hidden: number; paused: number }
+
 /** What the plan reads from the target first. */
 export type TargetState = {
   myra: PersonState | null
-  paths: string[] // every node path already there
+  nodes: ExistingNode[] // every node already there
   handles: string[] // which of the example's handles are taken
   settings: { key: string; value: string }[]
 }
@@ -95,15 +99,16 @@ async function setUpCopy(db: D1Database, state: TargetState, at: string): Promis
         .bind(m.id, m.handle, m.email_verified_at, m.status, m.founding, m.established_at, at, at, at),
     )
   }
-  // Paths already on the target: hidden placeholders, so core sees the slug as taken but never loads them.
-  for (const path of state.paths)
+  // Nodes already on the target, as core would load them. Branches and variants point at the anchor, which
+  // the schema needs; their ids map back to the real rows by path when the SQL is written.
+  for (const n of state.nodes)
     stmts.push(
       db
         .prepare(
-          `INSERT INTO node (path, slug, kind, title, what, done_when, checks, lobby_size, license, author_id, posted_by, state, hidden, created_at)
-           VALUES (?, ?, 'shwarm', 'x', 'x', 'x', '{}', 1, 'x', ?, '@seed_anchor', 'closed', 1, ?)`,
+          `INSERT INTO node (path, slug, kind, parent_id, variant_of_id, title, what, done_when, checks, lobby_size, license, author_id, posted_by, state, hidden, paused, dead_end_note, created_at)
+           VALUES (?, ?, ?, ?, ?, 'x', 'x', 'x', '{}', 1, ?, ?, '@seed_anchor', ?, ?, ?, 'x', ?)`,
         )
-        .bind(path, path.split('/').pop(), PERSON_BASE, at),
+        .bind(n.path, n.path.split('/').pop(), n.kind, n.kind === 'branch' ? NODE_BASE : null, n.kind === 'variant' ? NODE_BASE : null, n.license, PERSON_BASE, n.state, n.hidden ? 1 : 0, n.paused ? 1 : 0, at),
     )
   await db.batch(stmts)
 }
@@ -143,6 +148,7 @@ export async function planSeed(copy: D1Database, entries: unknown[], state: Targ
 
   // ---- the launch shwarms ----
   const only = o.only ? new Set(o.only) : null
+  const there = new Set(state.nodes.map(n => n.path))
   const listed = new Set<string>()
   const made = new Set<string>()
   for (const e of entries) {
@@ -151,7 +157,7 @@ export async function planSeed(copy: D1Database, entries: unknown[], state: Targ
     if (only && !only.has(m.slug)) continue
     const r: ShwarmReport = { slug: m.slug, wave: m.wave, status: 'new', notes: m.notes }
     report.shwarms.push(r)
-    if (state.paths.includes(m.slug)) {
+    if (there.has(m.slug)) {
       r.status = 'exists'
       r.notes = []
       continue
@@ -183,7 +189,7 @@ export async function planSeed(copy: D1Database, entries: unknown[], state: Targ
   if (o.example) {
     const ex = report.example
     const taken = EXAMPLE_PEOPLE.filter(h => state.handles.includes(h))
-    if (state.paths.includes(EXAMPLE_BRANCH)) ex.status = 'exists'
+    if (there.has(EXAMPLE_BRANCH)) ex.status = 'exists'
     else if (!made.has(EXAMPLE_ROOT))
       ex.notes.push({ field: 'example', kind: 'warning', text: `skipped: it goes in with ${EXAMPLE_ROOT}, which this run doesn't create. reset the target (--replace) to add both` })
     else if (taken.length) ex.notes.push({ field: 'example', kind: 'warning', text: `skipped: the example's handles are taken (${taken.map(h => '@' + h).join(', ')})` })

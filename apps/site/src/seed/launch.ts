@@ -38,6 +38,12 @@ export type MappedShwarm = {
   notes: Note[]
 }
 
+// Every field launch-shwarms.json may hold (table B). Anything else is reported, never dropped quietly.
+const KNOWN_FIELDS = new Set(['slug', 'wave', 'title', 'category', 'tags', 'what', 'done_when', 'checked_by', 'lobby', 'builds_on', 'sources', 'why_now', 'size', 'needs_humans', 'risk_notes', 'variant_of'])
+const KNOWN_CHECK = new Set(['runs', 'people', 'author'])
+const KNOWN_RUNS = new Set(['command', 'count', 'description'])
+const KNOWN_PEOPLE = new Set(['count', 'human', 'instructions'])
+
 /** Fields the import never copies: risk notes stay private (table B); the rest has no place on a node yet. */
 export const NOT_IMPORTED = ['wave', 'category', 'size', 'needs_humans', 'risk_notes'] as const
 
@@ -95,13 +101,17 @@ export function splitRunCommand(raw: string): { command: string; description?: s
     const inner = raw.slice(start + 1, end)
     const before = raw[start - 1]
     const after = raw[end + 1]
-    return (
+    const ok =
       start > 0 &&
       /\s/.test(before) &&
       (after === undefined || /\s/.test(after)) &&
       inner.trim().split(/\s+/).length >= 3 &&
       !/&&|\|\||;|\||`|\$\(/.test(inner)
-    )
+    if (!ok) return false
+    // "time (python bench.py)": a command that runs the next one makes the brackets a subshell, so they stay.
+    const lead = startsSubshell(raw.slice(0, start))
+    if (lead) notes.push({ field: 'check.runs', kind: 'warning', text: `the words in brackets after "${lead}" stay in the command, as a subshell. if they describe it, put them in runs.description` })
+    return !lead
   })
   if (!prose.length) return { command: raw.trim(), notes }
   let command = raw
@@ -115,6 +125,20 @@ export function splitRunCommand(raw: string): { command: string; description?: s
   // In full: the command locks with the done test, so the proofread needs every character.
   notes.push({ field: 'check.runs', kind: 'changed', text: `command split: "${command}", and the words in brackets went to runs.description: "${description}"` })
   return { command, description, notes }
+}
+
+// Commands that run the command after them. Their options and numbers come between ("nice -n 10", "timeout 60").
+const PREFIX_COMMANDS = new Set(['time', 'nice', 'env', 'sudo', 'doas', 'xargs', 'nohup', 'timeout', 'exec', 'command', 'builtin', 'stdbuf', 'ionice', 'chrt', 'taskset', 'strace', 'ltrace', 'watch', 'eval', 'unbuffer', 'setsid', 'caffeinate', 'hyperfine', 'perf'])
+
+/** The prefix command when the text before a bracket group is only one (plus its options), else null. */
+function startsSubshell(before: string): string | null {
+  const segment = before.split(/&&|\|\||;|\|/).pop()!.trim()
+  const words = segment.split(/\s+/).filter(Boolean)
+  const head = words.findIndex(w => !/^[A-Za-z_][A-Za-z0-9_]*=/.test(w)) // skip FOO=bar assignments
+  if (head < 0) return null
+  const cmd = words[head].split('/').pop()!
+  if (!PREFIX_COMMANDS.has(cmd)) return null
+  return words.slice(head + 1).every(w => /^-|^\d+(\.\d+)?[smhd]?$|^[A-Za-z_][A-Za-z0-9_]*=/.test(w)) ? cmd : null
 }
 
 // ---------- licenses ----------
@@ -153,6 +177,27 @@ export function findLicenses(text: string): FoundLicense[] {
   }
   return out
 }
+
+// Non-commercial and no-derivatives terms aren't open (A2), so any of them stops the import.
+const NOT_OPEN_RE = /\bcc[ -]?by(?:[ -]?sa)?[ -]?n[cd]\b|\bnon[ -]?commercial\b|\bno[ -]?deriv(?:ative)?s?\b/
+// License names the table above doesn't read. Named alone, they fail instead of leaving the default license in place.
+const UNKNOWN_LICENSE_RE =
+  /\b(?:mpl|eupl|isc|unlicense|epl|cddl|artistic[ -]licen[cs]e|zlib|wtfpl|ofl|sil open font|osl|bsl|boost software|sspl|busl|business source|elastic licen[cs]e|commons clause|proprietary|all rights reserved|cc[ -]?by[ -]?[1-3]\.0|cc[ -]?by[ -]?sa[ -]?[1-3]\.0)\b/
+
+/** A license term in the text that isn't open (non-commercial, no derivatives), if any. */
+export function notOpen(text: string): string | null {
+  return text.replace(URL_RE, ' ').toLowerCase().match(NOT_OPEN_RE)?.[0] ?? null
+}
+
+/** A license name the import doesn't know, if any. */
+export function unknownLicense(text: string): string | null {
+  return text.replace(URL_RE, ' ').toLowerCase().match(UNKNOWN_LICENSE_RE)?.[0] ?? null
+}
+
+// What builds_on can carry: the A2 list, plus the open licenses the table above reads that aren't on it.
+// OPEN: which upstream licenses outside the A2 list count as open isn't decided; this is the short list the
+// launch text needs. Anything else is refused, so Myra decides it in the proofread.
+const OPEN_IDS = new Set([...LICENSES, 'GPL-2.0', 'LGPL-2.1', 'LGPL-3.0', 'BSD-2-Clause', 'BSD-3-Clause', 'ODbL-1.0', 'DbCL-1.0'])
 
 /** One license a node can take from what was found: MIT with CC BY 4.0 is the A2 default pair. */
 function oneLicense(found: FoundLicense[]): { id: string; from: FoundLicense[] } | null {
@@ -265,20 +310,34 @@ export function parseBuildsOn(v: LaunchShwarm['builds_on']): BuildsOnResult {
   if (v === undefined || v === null || (typeof v === 'string' && !v.trim()) || v === 'None') return { buildsOn: null, keepText: false, notes }
   if (typeof v === 'object') {
     // Already structured (Myra can write this in the JSON during the proofread): check it, don't guess.
-    const lic = typeof v.license === 'string' ? oneLicense(findLicenses(v.license)) : null
-    const id = typeof v.license === 'string' && (LICENSES.includes(v.license) || /^[A-Za-z0-9.+-]{2,40}$/.test(v.license)) ? v.license : lic?.id
-    if (typeof v.name !== 'string' || !v.name.trim() || !id) return { buildsOn: null, keepText: false, notes: [{ field: 'builds_on', kind: 'failed', text: 'builds_on as an object needs a name and a license' }] }
-    if (v.url !== undefined && !isHttpUrl(v.url)) return { buildsOn: null, keepText: false, notes: [{ field: 'builds_on', kind: 'failed', text: `builds_on.url ${q(String(v.url))} is not a web address` }] }
+    const failed = (text: string): BuildsOnResult => ({ buildsOn: null, keepText: false, notes: [{ field: 'builds_on', kind: 'failed', text }] })
+    if (typeof v.name !== 'string' || !v.name.trim() || typeof v.license !== 'string' || !v.license.trim()) return failed('builds_on as an object needs a name and a license')
+    const raw = v.license.trim()
+    const no = notOpen(raw)
+    if (no) return failed(`builds_on.license ${q(raw)} isn't open (${no}). A2 takes no non-commercial or no-derivatives license`)
+    let id = raw
+    if (!OPEN_IDS.has(raw)) {
+      const lic = unknownLicense(raw) ? null : oneLicense(findLicenses(raw))
+      if (!lic || lic.from.some(f => f.assumed)) return failed(`builds_on.license ${q(raw)} isn't an open license the import knows. write one of ${[...OPEN_IDS].join(', ')}`)
+      id = lic.id
+      notes.push({ field: 'builds_on', kind: 'normalized', text: `license ${q(raw)} → ${id}` })
+    }
+    if (v.url !== undefined && !isHttpUrl(v.url)) return failed(`builds_on.url ${q(String(v.url))} is not a web address`)
+    if (!LICENSES.includes(id)) notes.push({ field: 'builds_on', kind: 'warning', text: `${id} isn't on the A2 list; the shwarm takes it anyway, since builds on takes the upstream license` })
     return { buildsOn: { name: v.name.trim(), ...(v.url ? { url: v.url } : {}), license: id }, keepText: false, notes }
   }
   const text = v.trim()
+  const no = notOpen(text)
+  if (no) return { buildsOn: null, keepText: false, notes: [{ field: 'builds_on', kind: 'failed', text: `${q(no)} isn't an open license. A2 takes no non-commercial or no-derivatives license` }] }
   const ps = pieces(text)
   for (const p of ps) if (p.url && !isHttpUrl(p.url)) notes.push({ field: 'builds_on', kind: 'failed', text: `${q(p.url)} is not a web address` })
 
   const parsed = ps.map(p => ({ p, name: nameOf(p), found: findLicenses(`${p.head} ${p.tail}`) }))
   const pick = parsed.find(x => x.p.url !== null && oneLicense(x.found)) ?? parsed.find(x => oneLicense(x.found))
   let buildsOn: BuildsOnResult['buildsOn'] = null
-  if (pick) {
+  const odd = pick ? unknownLicense(`${pick.p.head} ${pick.p.tail}`) : null
+  if (odd) notes.push({ field: 'builds_on', kind: 'failed', text: `${q(odd)} is a license the import doesn't know, beside ${oneLicense(pick!.found)!.id}. write builds_on as {name, url, license}` })
+  if (pick && !odd) {
     const lic = oneLicense(pick.found)!
     const name = pick.name || (pick.p.url ? new URL(pick.p.url).host : '')
     if (!name) notes.push({ field: 'builds_on', kind: 'failed', text: `no name before ${q(pick.p.url ?? text)}` })
@@ -289,7 +348,9 @@ export function parseBuildsOn(v: LaunchShwarm['builds_on']): BuildsOnResult {
     for (const f of lic.from) if (f.assumed) notes.push({ field: 'builds_on', kind: 'warning', text: `${q(f.raw)} names no version; assumed ${f.assumed}` })
     if (!LICENSES.includes(lic.id)) notes.push({ field: 'builds_on', kind: 'warning', text: `${lic.id} isn't on the A2 list; the shwarm takes it anyway, since builds on takes the upstream license` })
     notes.push({ field: 'license', kind: 'changed', text: `${lic.id}, taken from ${short(name, 40)} (builds on takes the upstream license)` })
-  } else {
+  } else if (!pick && unknownLicense(text)) {
+    notes.push({ field: 'builds_on', kind: 'failed', text: `${q(unknownLicense(text)!)} is a license the import doesn't know. write builds_on as {name, url, license} with one it knows` })
+  } else if (!pick) {
     const pd = parsed.some(x => x.found.some(f => !f.inherit))
     const many = parsed.find(x => x.found.filter(f => f.inherit).length > 1)
     notes.push({
@@ -369,14 +430,28 @@ export function mapLaunchShwarm(raw: unknown, all: unknown[] = []): MappedShwarm
   const doneWhen = str(e.done_when).trim()
   if (!doneWhen || doneWhen.length > 2000) fail('done_when', 'the done test is empty or over 2000 characters')
 
+  const extra = (o: object, known: Set<string>, at: string) => {
+    for (const k of Object.keys(o)) if (!known.has(k)) notes.push({ field: at, kind: 'warning', text: `ignored: ${q(k)} isn't a field the import reads` })
+  }
+  extra(e, KNOWN_FIELDS, 'entry')
+  // OPEN: table B gives the JSON no license field; a shwarm takes the A2 default or its builds-on license. Refused
+  // rather than ignored, so a license written here never goes in quietly as another one.
+  if ('license' in e) fail('license', "license isn't a launch-shwarms.json field yet (table B); the shwarm takes the default or its builds-on license")
+
   const cb = e.checked_by
   const check: { runs?: { command: string; count: number; description?: string }; people?: { count: number; human: boolean; instructions?: string }; author: boolean } = { author: false }
+  // An empty object, or null, means no such check. Anything else has to be whole: check specs lock on import.
+  const given = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 'object' && Object.keys(x).length > 0
   if (!cb || typeof cb !== 'object') fail('checked_by', 'checked_by is missing')
   else {
+    extra(cb, KNOWN_CHECK, 'checked_by')
     const r = cb.runs
-    if (r && typeof r === 'object' && (r.command !== undefined || r.count !== undefined)) {
+    if (r !== undefined && r !== null && (typeof r !== 'object' || Array.isArray(r))) fail('check.runs', 'runs is an object: {command, count}')
+    else if (given(r)) {
+      extra(r, KNOWN_RUNS, 'check.runs')
       if (typeof r.command !== 'string' || !r.command.trim()) fail('check.runs', 'runs need a command')
       else if (!Number.isInteger(r.count) || (r.count as number) < 1) fail('check.runs', 'runs.count must be a whole number from 1')
+      else if (r.description !== undefined && typeof r.description !== 'string') fail('check.runs', 'runs.description is text')
       else if (typeof r.description === 'string' && r.description.trim()) {
         // Already split in the JSON: keep both as written.
         if (HIDDEN.test(r.command)) fail('check.runs', 'the command holds a bidi control or zero-width character')
@@ -388,8 +463,12 @@ export function mapLaunchShwarm(raw: unknown, all: unknown[] = []): MappedShwarm
       }
     }
     const p = cb.people
-    if (p && typeof p === 'object' && p.count !== undefined) {
+    if (p !== undefined && p !== null && (typeof p !== 'object' || Array.isArray(p))) fail('check.people', 'people is an object: {count, human, instructions}')
+    else if (given(p)) {
+      extra(p, KNOWN_PEOPLE, 'check.people')
       if (!Number.isInteger(p.count) || (p.count as number) < 1) fail('check.people', 'people.count must be a whole number from 1')
+      else if (p.human !== undefined && typeof p.human !== 'boolean') fail('check.people', 'people.human must be true or false')
+      else if (p.instructions !== undefined && p.instructions !== null && typeof p.instructions !== 'string') fail('check.people', 'people.instructions is text')
       else {
         const instructions = str(p.instructions).trim()
         check.people = { count: p.count as number, human: p.human === true, ...(instructions ? { instructions } : {}) }
@@ -397,7 +476,7 @@ export function mapLaunchShwarm(raw: unknown, all: unknown[] = []): MappedShwarm
     }
     if (cb.author !== undefined && typeof cb.author !== 'boolean') fail('check.author', 'author must be true or false')
     check.author = cb.author === true
-    if (!check.runs && !check.people && !check.author) fail('checked_by', 'the done test names no check')
+    if (!check.runs && !check.people && !check.author && !notes.some(n => n.kind === 'failed' && n.field.startsWith('check.'))) fail('checked_by', 'the done test names no check')
   }
 
   const tags: string[] = []

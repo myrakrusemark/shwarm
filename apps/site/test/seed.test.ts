@@ -1,8 +1,10 @@
 // Go-live 3.1, the seed import tool: mapping every launch shwarm, SQL quoting, the plan end to end (applied to a
 // fresh database), idempotency, the guards, and production refusal.
-import { readFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, test } from 'vitest'
-import { checkArgs, parseArgs, Refused } from '../../../scripts/seed-launch'
+import { bookmarkBeforeFirstSeed, checkArgs, parseArgs, Refused, reset, type Wrangler } from '../../../scripts/seed-launch'
 import { seededLogRow } from '../src/core/audit'
 import { parseCheckSpec } from '../src/core/checks'
 import { EXAMPLE_BRANCH, EXAMPLE_PEOPLE, EXAMPLE_ROOT } from '../src/seed/example'
@@ -13,7 +15,7 @@ import { person, refused, site, World } from './core-fixtures'
 import { addPerson, T0, testDb } from './d1'
 
 const LIST: any[] = JSON.parse(readFileSync(new URL('../../../docs/launch-shwarms.json', import.meta.url), 'utf8'))
-const EMPTY: TargetState = { myra: null, paths: [], handles: [], settings: [] }
+const EMPTY: TargetState = { myra: null, nodes: [], handles: [], settings: [] }
 const NOW = T0
 
 /** What scripts/seed-launch.ts reads from a target, read from a test database instead. */
@@ -21,7 +23,7 @@ function stateOf(db: any): TargetState {
   const all = (sql: string) => db.raw.prepare(sql).all().map((r: any) => ({ ...r }))
   return {
     myra: all("SELECT id, handle, status, email_verified_at, founding, established_at FROM person WHERE handle = 'myra'")[0] ?? null,
-    paths: all('SELECT path FROM node').map((r: any) => r.path),
+    nodes: all('SELECT path, kind, state, license, hidden, paused FROM node'),
     handles: all(`SELECT handle FROM person WHERE handle IN (${EXAMPLE_PEOPLE.map(h => `'${h}'`).join(', ')})`).map((r: any) => r.handle),
     settings: all('SELECT key, value FROM setting'),
   }
@@ -367,9 +369,9 @@ describe('the plan end to end', () => {
 })
 
 describe('production', () => {
-  const args = (s: string) => {
+  const args = (s: string, tty = true) => {
     const a = parseArgs(s.split(' ').filter(Boolean))
-    checkArgs(a)
+    checkArgs(a, tty)
     return a
   }
   test('refused without --allow-production and named slugs; never --replace, --yes or the example', () => {
@@ -380,6 +382,11 @@ describe('production', () => {
     expect(() => args('--target production --allow-production --slugs a --yes')).toThrow(/--yes/)
     expect(() => args('--target staging --allow-production')).toThrow(/only with --target production/)
     expect(args('--target production --allow-production --slugs a,b')).toMatchObject({ target: 'production', slugs: ['a', 'b'], example: false })
+  })
+  test('with no terminal, production is refused: wrangler would apply without asking', () => {
+    expect(() => args('--target production --allow-production --slugs a', false)).toThrow(/only from a terminal/)
+    expect(args('--target production --allow-production --slugs a --dry-run', false)).toMatchObject({ dryRun: true })
+    expect(args('--target staging', false)).toMatchObject({ target: 'staging' })
   })
   test('other argument mistakes', () => {
     expect(() => args('')).toThrow(/say where/)
@@ -431,5 +438,109 @@ describe('core additions for the seed', () => {
     expect(w.node('minecraft-in-doom').pinned_post_id).toBe(p.id)
     const q = await w.post(site(myra), 'minecraft-in-doom', 'where we are: renderer done.', { pin: true })
     expect(w.node('minecraft-in-doom').pinned_post_id).toBe(q.id)
+  })
+})
+
+describe('review fixes (go-live 3.1)', () => {
+  const failedFields = (e: unknown) => mapLaunchShwarm(e).notes.filter(n => n.kind === 'failed').map(n => n.field)
+
+  test('a variant goes in alone when its original is already on the target', async () => {
+    const { db } = await stagingLike()
+    db.raw.exec((await planSeed(testDb(), LIST, stateOf(db), { target: 'production', now: NOW, example: false, only: ['minecraft-in-doom'] })).sql)
+    const plan = await planSeed(testDb(), LIST, stateOf(db), { target: 'production', now: NOW, example: false, only: ['minecraft-in-doom-survival'] })
+    expect(plan.report.failures).toBe(0)
+    expect(plan.newPaths).toEqual(['minecraft-in-doom-survival'])
+    db.raw.exec(plan.sql)
+    const parent = db.raw.prepare("SELECT id FROM node WHERE path = 'minecraft-in-doom'").get().id
+    expect(db.raw.prepare("SELECT kind, variant_of_id, seeded FROM node WHERE path = 'minecraft-in-doom-survival'").get()).toMatchObject({ kind: 'variant', variant_of_id: parent, seeded: 1 })
+    // The original's real state counts: closed or hidden on the target, the variant fails.
+    const variantAlone = async () => (await planSeed(testDb(), LIST, { ...stateOf(db), nodes: stateOf(db).nodes.filter((n: any) => n.path === 'minecraft-in-doom') }, { target: 'production', now: NOW, example: false, only: ['minecraft-in-doom-survival'] })).report.shwarms[0]
+    db.raw.prepare("UPDATE node SET state = 'closed' WHERE id = ?").run(parent)
+    expect((await variantAlone()).notes.at(-1)?.text).toMatch(/shwarm_closed/)
+    db.raw.prepare("UPDATE node SET state = 'lobby', hidden = 1 WHERE id = ?").run(parent)
+    expect((await variantAlone()).notes.at(-1)?.text).toMatch(/no_such_node/)
+  })
+
+  test('non-commercial, no-derivatives and unknown licenses fail; they are never read as an open one', () => {
+    const failed = (v: any) => parseBuildsOn(v).notes.some(n => n.kind === 'failed')
+    for (const s of ['some dataset (cc by-nc 4.0) https://example.org/d', 'x (cc by-nc-sa 4.0) https://example.org/d', 'x (cc by-nd) https://example.org/d', 'x, non-commercial use only https://example.org/d'])
+    {
+      expect(parseBuildsOn(s).buildsOn, s).toBeNull()
+      expect(failed(s), s).toBe(true)
+    }
+    for (const s of ['lib (mpl-2.0) https://example.org/l', 'lib (eupl) https://example.org/l', 'font (ofl) https://example.org/f', 'lib (mit, mpl-2.0) https://example.org/l'])
+      expect(failed(s), s).toBe(true)
+    for (const license of ['CC-BY-NC-4.0', 'proprietary', 'none', 'MPL-2.0', 'gpl']) expect(failed({ name: 'x', license }), license).toBe(true)
+    expect(parseBuildsOn({ name: 'x', license: 'mit' })).toMatchObject({ buildsOn: { license: 'MIT' }, notes: [{ kind: 'normalized' }] })
+    expect(parseBuildsOn({ name: 'x', license: 'GPL-2.0' }).notes.map(n => n.kind)).toEqual(['warning'])
+    expect(parseBuildsOn({ name: 'x', license: 'GPL-3.0' }).notes).toEqual([])
+  })
+
+  test('malformed or unknown fields are reported, never dropped quietly', () => {
+    const base = LIST[0]
+    const people = (p: any) => failedFields({ ...base, checked_by: { ...base.checked_by, people: p } })
+    expect(people({ human: true, instructions: 'watch two replays' })).toEqual(['check.people'])
+    expect(people({ count: 2, human: 'true' })).toEqual(['check.people'])
+    expect(people({ count: 2, human: 1 })).toEqual(['check.people'])
+    expect(failedFields({ ...base, checked_by: { runs: { description: 'plays the demo' }, author: true } })).toEqual(['check.runs'])
+    expect(failedFields({ ...base, checked_by: { author: 'yes' } })).toEqual(['check.author'])
+    expect(failedFields({ ...base, license: 'GPL-3.0' })).toEqual(['license'])
+    const warned = mapLaunchShwarm({ ...base, variantof: 'minecraft-in-doom', 'why now': 'x', checked_by: { ...base.checked_by, peeple: {} } }).notes.filter(n => n.kind === 'warning' && n.text.startsWith('ignored'))
+    expect(warned.map(n => n.text)).toEqual([expect.stringContaining('variantof'), expect.stringContaining('why now'), expect.stringContaining('peeple')])
+  })
+
+  test('brackets after a command that runs another stay in the command, as a subshell', () => {
+    for (const s of ['time (python bench.py --runs 10)', 'nice -n 10 (make check all)', 'FOO=1 timeout 60 (python a.py b c)', 'make && time (python bench.py now)']) {
+      const r = splitRunCommand(s)
+      expect(r.command, s).toBe(s)
+      expect(r.description).toBeUndefined()
+      expect(r.notes.map(n => n.kind)).toEqual(['warning'])
+    }
+    expect(splitRunCommand('./bench.sh (plays the demo and prints fps)').description).toBe('plays the demo and prints fps')
+  })
+
+  /** A stand-in for wrangler: answers the seeded-count query, records every call. */
+  const fakeWrangler = (seeded: () => number) => {
+    const calls: string[] = []
+    const w: Wrangler = args => {
+      calls.push(args.slice(0, 3).join(' '))
+      if (args.includes('--command')) return JSON.stringify([{ results: [{ n: seeded() }] }])
+      if (args[1] === 'time-travel' && args[2] === 'info') return JSON.stringify({ bookmark: 'bm-now' })
+      return ''
+    }
+    return { w, calls }
+  }
+  const stateFile = () => join(mkdtempSync(join(tmpdir(), 'seed-state-')), 'seed-state.json')
+
+  test('a bookmark is saved only while staging holds no seeded node', () => {
+    const quiet = console.log
+    console.log = () => {}
+    try {
+      const seeded = stateFile()
+      bookmarkBeforeFirstSeed(fakeWrangler(() => 3).w, seeded)
+      expect(existsSync(seeded)).toBe(false)
+      const fresh = stateFile()
+      bookmarkBeforeFirstSeed(fakeWrangler(() => 0).w, fresh)
+      expect(JSON.parse(readFileSync(fresh, 'utf8')).staging.bookmark).toBe('bm-now')
+    } finally {
+      console.log = quiet
+    }
+  })
+
+  test('--replace on staging applies the migrations again after the restore, and stops if the restore was declined', () => {
+    const quiet = console.log
+    console.log = () => {}
+    try {
+      const file = stateFile()
+      writeFileSync(file, JSON.stringify({ staging: { bookmark: 'bm-1', at: '2026-10-01T00:00:00Z' } }))
+      const ok = fakeWrangler(() => 0)
+      reset('staging', ok.w, file)
+      expect(ok.calls).toEqual(['d1 time-travel restore', 'd1 execute DB', 'd1 migrations apply'])
+      const declined = fakeWrangler(() => 100)
+      expect(() => reset('staging', declined.w, file)).toThrow(/did not happen/)
+      expect(declined.calls).not.toContain('d1 migrations apply')
+    } finally {
+      console.log = quiet
+    }
   })
 })
