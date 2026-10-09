@@ -14,7 +14,8 @@ export function ago(at: string | number, now = Date.now()): string {
   if (d < DAY) return `${Math.floor(d / HOUR)}h ago`
   if (d < WEEK) return `${Math.floor(d / DAY)}d ago`
   const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'} ago`
-  if (d < 8 * WEEK) return plural(Math.floor(d / WEEK), 'week')
-  if (d < 365 * DAY) return plural(Math.floor(d / (30 * DAY)), 'month')
+  // Weeks up to 60 days, so the switch to months never goes backwards (56 days is "8 weeks", 60 is "2 months").
+  if (d < 60 * DAY) return plural(Math.floor(d / WEEK), 'week')
+  if (d < 365 * DAY) return plural(Math.max(2, Math.floor(d / (30 * DAY))), 'month')
   return plural(Math.floor(d / (365 * DAY)), 'year')
 }

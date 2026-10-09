@@ -303,6 +303,93 @@ describe('what shows and what doesn’t', () => {
     expect(await body(await get(env, '/@myra?as=@myra/m-04'))).toContain('no posts from @myra/m-04 yet.')
   })
 
+  // A small tree of its own, beside staging: @alice and @bob, verified, and nodes made straight in the table.
+  async function tree() {
+    const db = testDb()
+    const alice = await addPerson(db, 'alice')
+    const bob = await addPerson(db, 'bob')
+    db.raw.prepare('UPDATE person SET email_verified_at = ?').run(iso(NOW - 86_400_000))
+    let k = 0
+    const node = (o: { path: string; kind: 'shwarm' | 'branch' | 'variant'; title: string; author: number; parent?: number; root?: number; variantOf?: number; triage?: string; hidden?: number }) =>
+      Number(
+        db.raw
+          .prepare(
+            `INSERT INTO node (path, slug, kind, parent_id, root_id, variant_of_id, title, what, done_when, checks, lobby_size, license, author_id, posted_by, state, triage, hidden, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'w', 'it works', '{}', ?, 'MIT', ?, '@x', 'live', ?, ?, ?)`,
+          )
+          .run(o.path, o.path.split('/').pop(), o.kind, o.parent ?? null, o.root ?? null, o.variantOf ?? null, o.title, o.kind === 'branch' ? null : 2, o.author, o.triage ?? 'clear', o.hidden ?? 0, iso(NOW - 40 * 86_400_000))
+          .lastInsertRowid,
+      )
+    const post = (nodeId: number, person: number, as: string, text: string, at = NOW - 60_000 * ++k) =>
+      db.raw.prepare("INSERT INTO post (id, node_id, person_id, as_name, kind, text, created_at) VALUES (?, ?, ?, ?, 'post', ?, ?)").run(`p_t${++k}`, nodeId, person, as, text, iso(at))
+    return { db, env: testEnv(db), alice, bob, node, post }
+  }
+
+  it("a variant never shows the title of a hidden, held or pending original", async () => {
+    const { db, env, alice, bob, node, post } = await tree()
+    const hidden = node({ path: 'secret-orig', kind: 'shwarm', title: 'hidden original title', author: alice, hidden: 1 })
+    const held = node({ path: 'held-orig', kind: 'shwarm', title: 'held original title', author: alice, triage: 'held' })
+    const pending = node({ path: 'pending-orig', kind: 'shwarm', title: 'pending original title', author: alice, triage: 'pending' })
+    const open = node({ path: 'open-orig', kind: 'shwarm', title: 'open original title', author: alice })
+    const v1 = node({ path: 'v-hidden', kind: 'variant', title: 'variant one', author: bob, variantOf: hidden })
+    node({ path: 'v-held', kind: 'variant', title: 'variant two', author: bob, variantOf: held })
+    node({ path: 'v-pending', kind: 'variant', title: 'variant three', author: bob, variantOf: pending })
+    node({ path: 'v-open', kind: 'variant', title: 'variant four', author: bob, variantOf: open })
+    post(v1, bob, '@bob', 'hi')
+    await rollupStats(db, NOW)
+    const html = await body(await get(env, '/@bob'))
+    for (const t of ['hidden original title', 'held original title', 'pending original title']) expect(html).not.toContain(t)
+    expect(html).toContain('>variant one</a><span class="sub">variant · ')
+    expect(html).toMatch(/>variant two<\/a><div class="sub">variant · done when /)
+    expect(html).toContain('variant of open original title') // a public original still names itself
+  })
+
+  it('a hidden or held middle branch takes everything under it down, posts included', async () => {
+    const { db, env, alice, bob, node, post } = await tree()
+    const a = node({ path: 'a', kind: 'shwarm', title: 'root a', author: alice })
+    const b = node({ path: 'a/b', kind: 'branch', title: 'middle b', author: alice, parent: a, root: a, hidden: 1 })
+    const c = node({ path: 'a/b/c', kind: 'branch', title: 'child c', author: bob, parent: b, root: a })
+    const d = node({ path: 'a/b/c/d', kind: 'branch', title: 'grandchild d', author: bob, parent: c, root: a })
+    // A sibling whose path starts the same way ("a/b-side", not under "a/b") stays up.
+    const side = node({ path: 'a/b-side', kind: 'branch', title: 'side branch', author: bob, parent: a, root: a })
+    post(d, bob, '@bob/x', 'deep post')
+    post(side, bob, '@bob/x', 'side post')
+    await rollupStats(db, NOW)
+    const check = async (shown: boolean) => {
+      const html = await body(await get(env, '/@bob'))
+      for (const t of ['child c', 'grandchild d']) expect(html.includes(`>${t}</a>`), t).toBe(shown)
+      expect(html).toContain('>side branch</a>')
+      expect(html).toContain(`<div>${shown ? 2 : 1}<small>posts this week</small></div>`)
+      const names = await body(await get(env, '/@bob?as=x'))
+      expect(names.includes('deep post')).toBe(shown)
+      expect(names).toContain('side post')
+    }
+    await check(false)
+    db.raw.prepare("UPDATE node SET hidden = 0, triage = 'held' WHERE id = ?").run(b)
+    await check(false)
+    db.raw.prepare("UPDATE node SET triage = 'clear' WHERE id = ?").run(b)
+    await check(true)
+  })
+
+  it('working on: a seat, a post in the last 7 days, or a node they wrote (table B #44)', async () => {
+    const { db, env, alice, bob, node, post } = await tree()
+    const old = node({ path: 'old-one', kind: 'shwarm', title: 'posted a month ago', author: alice })
+    const recent = node({ path: 'recent-one', kind: 'shwarm', title: 'posted this week', author: alice })
+    const seated = node({ path: 'seated-one', kind: 'shwarm', title: 'holds a seat', author: alice })
+    node({ path: 'own-one', kind: 'shwarm', title: 'wrote it', author: bob })
+    post(old, bob, '@bob', 'long ago', NOW - 30 * 86_400_000)
+    post(recent, bob, '@bob/x', 'lately', NOW - 3 * 86_400_000)
+    post(seated, bob, '@bob', 'long ago too', NOW - 30 * 86_400_000)
+    db.raw.prepare('INSERT INTO seat (node_id, person_id, number, joined_at) VALUES (?, ?, 2, ?)').run(seated, bob, iso(NOW - 30 * 86_400_000))
+    await rollupStats(db, NOW)
+    const html = await body(await get(env, '/@bob'))
+    expect(html).not.toContain('>posted a month ago</a>')
+    expect(html).toContain('>posted this week</a>')
+    expect(html).toContain('>holds a seat</a><span class="sub">shwarm · last post 4 weeks ago</span>')
+    expect(html).toContain('>wrote it</a>')
+    expect(html).toContain('<div>3<small>working on</small></div>')
+  })
+
   it('unknown and unverified handles are a 404; a closed account is a 410 tombstone; suspended is a 403 tombstone', async () => {
     const { env, db } = await staging()
     const none = await get(env, '/@nobody_here')
@@ -398,5 +485,20 @@ describe('ago', () => {
     expect(ago(NOW - 86_400_000, NOW)).toBe('1d ago')
     expect(ago(NOW - 21 * 86_400_000, NOW)).toBe('3 weeks ago')
     expect(ago(NOW - 90 * 86_400_000, NOW)).toBe('3 months ago')
+  })
+
+  it('never goes backwards where weeks turn into months', () => {
+    const D = 86_400_000
+    expect(ago(NOW - 55 * D, NOW)).toBe('7 weeks ago')
+    expect(ago(NOW - 56 * D, NOW)).toBe('8 weeks ago')
+    expect(ago(NOW - 59 * D, NOW)).toBe('8 weeks ago')
+    expect(ago(NOW - 60 * D, NOW)).toBe('2 months ago')
+    const n = (s: string) => (s.includes('week') ? 7 : s.includes('month') ? 30 : 365) * parseInt(s)
+    let last = 0
+    for (let d = 7; d < 800; d++) {
+      const v = n(ago(NOW - d * D, NOW))
+      expect(v, `${d} days`).toBeGreaterThanOrEqual(last)
+      last = v
+    }
   })
 })

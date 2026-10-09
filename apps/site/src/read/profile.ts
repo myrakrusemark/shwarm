@@ -57,13 +57,17 @@ export type Profile = { working: WorkingRow[]; created: CreatedRow[]; createdMor
 /** Rows a list reads at most; the page shows fewer unless asked for all (OPEN: no paging is mocked). */
 export const LIST_MAX = 500
 
+// The parent's or original's title, only while that node is public (A7, A8): a variant of a hidden or held
+// shwarm reads plain "variant", never the original's title.
 const UP = 'LEFT JOIN node up ON up.id = COALESCE(n.parent_id, n.variant_of_id)'
+const UP_TITLE = `CASE WHEN ${PUBLIC_NODE('up')} THEN up.title END AS up_title`
 const SEATS = `CASE WHEN n.state = 'lobby' THEN (SELECT COUNT(*) FROM seat x WHERE x.node_id = n.id AND x.left_at IS NULL) END AS seats`
 
 /**
  * Working on, created and the head figures.
- * Working on: open nodes where the person holds a seat or posted (themselves or by agent). OPEN: "active" (#44) is
- * read as "ever": a node stays on the list after they stop posting, as long as their posts or seat are there.
+ * Working on: open nodes where the person counts among the node's people (table B #44, core/stats people()): they
+ * hold a seat, posted there (themselves or by agent) in the last 7 days, or authored it. A node drops off a week
+ * after their last post unless they hold a seat or wrote it. The row still shows their last post, however old.
  * Created: nodes they authored; the owner also sees their own nodes that are still being checked, held or blocked.
  */
 export async function readProfile(db: D1Database, personId: number, o: { owner: boolean; now: number }): Promise<Profile> {
@@ -73,21 +77,21 @@ export async function readProfile(db: D1Database, personId: number, o: { owner: 
       .prepare(
         `WITH mine AS (SELECT node_id, MAX(created_at) AS last_post, SUM(created_at > ?2) AS n7 FROM post WHERE person_id = ?1 AND hidden = 0 GROUP BY node_id),
               seats AS (SELECT node_id, joined_at FROM seat WHERE person_id = ?1 AND left_at IS NULL),
-              ids AS (SELECT node_id FROM mine UNION SELECT node_id FROM seats)
-         SELECT n.id, n.path, n.kind, n.title, n.state, n.in_review, n.lobby_size, n.created_at, up.title AS up_title, ${SEATS},
+              ids AS (SELECT node_id FROM mine WHERE n7 > 0 UNION SELECT node_id FROM seats UNION SELECT id FROM node WHERE author_id = ?1)
+         SELECT n.id, n.path, n.kind, n.title, n.state, n.in_review, n.lobby_size, n.created_at, ${UP_TITLE}, ${SEATS},
                 m.last_post, COALESCE(m.n7, 0) AS n7, s.joined_at, st.posts, st.upvotes
          FROM ids JOIN node n ON n.id = ids.node_id ${UP}
          LEFT JOIN mine m ON m.node_id = n.id
          LEFT JOIN seats s ON s.node_id = n.id
          LEFT JOIN person_node_stats st ON st.person_id = ?1 AND st.node_id = n.id
          WHERE ${PUBLIC_NODE('n')}
-         ORDER BY COALESCE(m.last_post, s.joined_at) DESC, n.id DESC LIMIT ?3`,
+         ORDER BY COALESCE(m.last_post, s.joined_at, n.created_at) DESC, n.id DESC LIMIT ?3`,
       )
       .bind(personId, weekAgo, LIST_MAX + 1)
       .all<NodeBits & { created_at: string; last_post: string | null; n7: number; joined_at: string | null; posts: number | null; upvotes: number | null }>(),
     db
       .prepare(
-        `SELECT n.id, n.path, n.kind, n.title, n.done_when, n.state, n.in_review, n.lobby_size, n.triage, up.title AS up_title, ${SEATS},
+        `SELECT n.id, n.path, n.kind, n.title, n.done_when, n.state, n.in_review, n.lobby_size, n.triage, ${UP_TITLE}, ${SEATS},
                 ${PUBLIC_NODE('n')} AS public
          FROM node n ${UP}
          WHERE n.author_id = ?1 AND n.hidden = 0 AND (?2 OR ${PUBLIC_NODE('n')})
