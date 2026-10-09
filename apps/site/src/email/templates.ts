@@ -118,6 +118,19 @@ function signOffReady(p: Record<string, unknown>, site: string): Draft {
   const n = p.number
   if (!Number.isSafeInteger(n) || (n as number) < 1) throw new MailRenderError('bad number')
   const title = printable(oneLine(text(p, 'title'), 80))
+  // Author gone (table B): the admins get it, and are told why it's theirs. OPEN (#76): these words wait on Myra's yes.
+  if (p.author_gone === true) {
+    const author = typeof p.author === 'string' && HANDLE.test(p.author) ? `@${p.author}` : 'its author'
+    return {
+      subject: `#${n} on ${title} is ready for sign-off`,
+      blocks: [
+        hi(p),
+        `#${n} on ${title} is ready for its author's sign-off, but ${author}'s account is suspended or closed. the operator signs off in their place.`,
+        'open the submission to pass it with what you checked, or fail it with a repro:',
+        { href: siteLink(site, p.link) },
+      ],
+    }
+  }
   return {
     subject: `#${n} on ${title} is ready for your sign-off`,
     blocks: [

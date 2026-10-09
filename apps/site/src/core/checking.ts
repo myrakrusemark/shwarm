@@ -6,7 +6,8 @@
 //   * the author goes last: only once every other check has passed (or at once when the author is the
 //     only check), never on their own work (the A9 swap), and an author fail resets every check on the done test
 //     (a submission that already passed keeps its checks: the pass stays on record)
-//   * the sign-off is asked for by name (slot 'author'), on the site, with the password re-entered (A5)
+//   * the sign-off is asked for by name (slot 'author'), on the site, with the password re-entered (A5); while the
+//     author's account is suspended or closed, the operator signs off in their place (table B "author gone")
 //   * a pass closes the node in the same batch; a closed node then takes only a repro on the passing
 //     submission (A25, A11), which reopens it
 import { hashMatches, shortHash, ShwarmError } from '@shwarm/protocol'
@@ -141,7 +142,12 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
   const need = needs(spec, sub.author_swap === 1)
   let slot: CheckResult['slot']
   const isAuthor = need.author && person.id === n.author_id
-  if (isAuthor && inp.slot === 'author') {
+  // Author gone (table B): while the author's account is suspended or closed, the operator (any admin) takes the author's
+  // slot, asked for by name and behind the password like the author's own. OPEN (open-questions #75): the usual refusals
+  // stand, so an operator who submitted it or already checked it can't sign off; the rule covers branch authors too, but
+  // only the sign-off (not dead ends or reopening); and the slot goes back to the author once their account is active.
+  const byOperator = need.author && !isAuthor && inp.slot === 'author' && n.author_status !== 'active' && person.is_admin === 1
+  if ((isAuthor || byOperator) && inp.slot === 'author') {
     // The author's one slot on someone else's submission is the sign-off, made on the site behind the password.
     needHuman(a, 'the author sign-off')
     needStepUp(a, 'the author sign-off')
@@ -256,7 +262,7 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
       by: a.as,
       submissionId: sub.post_id,
       number: sub.number,
-      detail: `${verdict} · ${slot}${runDetail}`,
+      detail: `${verdict} · ${slot}${runDetail}${byOperator ? ' · author gone, signed off by the operator' : ''}`,
       evidence: submissionHref(n.path, sub.number, checkId),
     },
     ctx.at,

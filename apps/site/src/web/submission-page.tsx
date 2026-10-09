@@ -1,15 +1,18 @@
 // The submission page, /w/<path>/s/<n> (go-live 5.2, SUB-21), ported from mockups/submission.html: what was
 // submitted with its pinned hash, the done test it answers, its checks grouped runs / people / author, its history,
-// and the node's submissions. The author's sign-off box comes with 5.5. Participant text goes through render/text.tsx.
+// and the node's submissions; the people check form (5.3) and the author's sign-off box behind the password (5.5).
+// Participant text goes through render/text.tsx.
 import type { FC } from 'hono/jsx'
 import { shortHash } from '@shwarm/protocol'
+import { signInHref } from '../auth/return-to'
+import { MAX_TEXT } from '../core/text'
 import type { BuiltOnLink, Chain, CheckReport, HistoryRow, SubmissionDetail, SubmissionRow } from '../read/node'
 import { groupBySlot, isOpen, review, waitingDays, type Review, type ReviewRow } from '../read/review'
 import { cut, plural, triageNote } from '../render/format'
 import { showHidden } from '../render/hidden'
 import { Name, Plain, Text } from '../render/text'
 import { AgentResources, Layout } from './layout'
-import { Ago, CheckedBy, CheckRowView, Links, nodeHref, parseLinks, subHref, type Me } from './node-page'
+import { Ago, CheckedBy, CheckRowView, humanOf, Links, nodeHref, parseLinks, StepUpField, subHref, type Me } from './node-page'
 
 export type SubmissionPageData = {
   chain: Chain
@@ -20,7 +23,17 @@ export type SubmissionPageData = {
   history: HistoryRow[]
   me: Me
   now: number
+  token?: string // the form token, signed in
+  steppedUp?: boolean // the password was entered in the last 10 minutes: the sign-off doesn't ask again
+  operator?: boolean // the viewer is an admin and the author is gone, so the viewer signs off (table B)
+  flash?: SubFlash
 }
+
+/**
+ * A refused check or sign-off, shown at its form with the draft kept: `fields` holds what was typed (verdict, text,
+ * links). A refusal whose form isn't on the page (a forged or stale post) shows at the top instead.
+ */
+export type SubFlash = { at: 'check' | 'signoff'; text: string; fields: Record<string, string> }
 
 type Pill = { cls: 'wait' | 'ok' | 'no' | ''; text: string }
 
@@ -45,7 +58,9 @@ export const SubmissionPage: FC<{ d: SubmissionPageData }> = ({ d }) => {
   const standing = d.checks.filter(c => !c.reset_at)
   const r = review(n.spec, n.author, sub, standing)
   // A dead end keeps its submission in review but takes no checks or sign-off, so nobody is waited on (isOpen).
-  const pill = pillOf(sub.status, isOpen(n, sub) && r.waitingOn === 'author', isAuthor)
+  const pill = pillOf(sub.status, isOpen(n, sub) && r.waitingOn === 'author', isAuthor || !!d.operator)
+  const forms = whichForms(d, r)
+  const lost = d.flash && !(d.flash.at === 'check' ? forms.check : forms.signOff)
   const what = cut(showHidden(sub.text), 200)
   return (
     <Layout title={`submission #${sub.number} · ${showHidden(n.title)} · shwarm`} description={what}>
@@ -77,8 +92,11 @@ export const SubmissionPage: FC<{ d: SubmissionPageData }> = ({ d }) => {
       </section>
       <div class="grid">
         <main id="main" tabindex={-1}>
+          {lost && <p class="err flash" role="alert">{d.flash!.text}</p>}
           <Submitted d={d} />
           <ChecksBox d={d} r={r} isAuthor={isAuthor} />
+          {forms.signOff && <SignOff d={d} />}
+          {forms.checkBox && <CheckForm d={d} why={forms.why} />}
           <History d={d} />
         </main>
         <aside>
@@ -107,8 +125,42 @@ export const SubmissionPage: FC<{ d: SubmissionPageData }> = ({ d }) => {
           <AgentResources />
         </aside>
       </div>
+      <script src="/js/submission.js" defer></script>
     </Layout>
   )
+}
+
+/**
+ * Which forms the viewer gets. The sign-off box: the author (or, author gone, the operator) once every other check has
+ * passed. The check box: anyone else while the submission takes checks, or, on a closed node, a repro on the passing
+ * submission (fail only); in it, the form itself or why this viewer can't check (signed out, unverified, their own
+ * work, a slot they already hold). Core decides every refusal anyway; this only keeps forms off a page that can't use them.
+ */
+function whichForms(d: SubmissionPageData, r: Review): { signOff: boolean; checkBox: boolean; check: boolean; why: string | null } {
+  const n = d.chain.node
+  const sub = d.sub
+  const me = d.me
+  const open = isOpen(n, sub)
+  const repro = n.state === 'closed' && sub.status === 'passed' && d.subs.find(s => s.status === 'passed')?.number === sub.number
+  const mine = !!me && sub.person_id === me.personId
+  const holds = !!me && d.checks.some(c => !c.reset_at && humanOf(c.as_name) === '@' + me.handle)
+  const signer = !!me?.verified && open && r.need.author && (me.personId === n.author_id || !!d.operator)
+  const signOff = signer && r.waitingOn === 'author' && !mine && !holds
+  // The author's check on a submission in review is the sign-off; until it's their turn there's nothing to fill.
+  const authorWaits = !!me && open && r.need.author && me.personId === n.author_id
+  const checkBox = (open || repro) && !signOff && !authorWaits
+  const why = !me
+    ? null
+    : !me.verified
+      ? 'verify your email to check it.'
+      : mine
+        ? `you can't check it: it's ${sub.as_name.includes('/') ? 'from your agent' : 'yours'}.`
+        : holds
+          ? 'you have a check on it already.'
+          : null
+  // A refused check comes back to its form with the draft, whatever kept the form off before.
+  const refused = d.flash?.at === 'check' && !!me
+  return { signOff, checkBox, check: checkBox && !!me && (why === null || refused), why: refused ? null : why }
 }
 
 const Submitted: FC<{ d: SubmissionPageData }> = ({ d }) => {
@@ -241,6 +293,111 @@ const History: FC<{ d: SubmissionPageData }> = ({ d }) => {
           )
         })}
       </ul>
+    </div>
+  )
+}
+
+/**
+ * The people check form (go-live 5.3), no script needed: pass with evidence links, or fail with steps that show it
+ * failing (and optional links). A log stays a run report's, sent by an agent. On a closed node it takes only a repro.
+ * OPEN (#76): no mockup draws this form; its words wait on Myra's yes.
+ */
+const CheckForm: FC<{ d: SubmissionPageData; why: string | null }> = ({ d, why }) => {
+  const n = d.chain.node
+  const sub = d.sub
+  const repro = n.state === 'closed'
+  const f = d.flash?.at === 'check' ? d.flash : undefined
+  const v = f?.fields ?? {}
+  const here = subHref(n.path, sub.number)
+  return (
+    <div class="box checkform" id="check">
+      <h2>{repro ? "it's broken? post a repro" : 'check it'} <span>one check per person, never on their own work.</span></h2>
+      <div class="in">
+        {!d.me ? (
+          <p class="note"><a href={signInHref(here)}>sign in</a> to check it. agents send run reports with a key.</p>
+        ) : why ? (
+          <p class="note">{why}</p>
+        ) : (
+          <form method="post" action={here}>
+            <input type="hidden" name="form_token" value={d.token} />
+            <input type="hidden" name="do" value="check" />
+            {repro ? (
+              <>
+                <input type="hidden" name="verdict" value="fail" />
+                <p class="note">#{sub.number} passed. a repro on it reopens {showHidden(n.title)}.</p>
+              </>
+            ) : (
+              <fieldset class="verdict">
+                <legend>your check</legend>
+                <label><input type="radio" name="verdict" value="pass" required checked={v.verdict === 'pass' ? true : undefined} /> pass</label>
+                <label><input type="radio" name="verdict" value="fail" checked={v.verdict === 'fail' ? true : undefined} /> fail</label>
+              </fieldset>
+            )}
+            <label for="k-text">{repro ? 'what fails and how to see it' : 'what you checked, or what fails and how to see it'}</label>
+            <textarea id="k-text" name="text" rows={3} maxlength={MAX_TEXT}>{v.text ?? ''}</textarea>
+            <label for="k-links">links</label>
+            <span class="note" id="k-links-n">one per line: a url and its sha256, or a repo and a full commit id. a pass needs at least one: a recording or a rerun.</span>
+            <textarea id="k-links" name="links" rows={2} aria-describedby="k-links-n">{v.links ?? ''}</textarea>
+            {f && <p class="err" role="alert">{f.text}</p>}
+            <div class="row">
+              <span class="note">{repro ? 'a fail needs steps that show it failing.' : 'a pass needs evidence. a fail needs steps that show it failing.'}</span>
+              <button class="btn" type="submit">{repro ? 'post repro' : 'post check'}</button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * The author's sign-off box (go-live 5.5), from mockups/submission.html: pass with what you checked, or fail with a
+ * repro, which resets every check. No script: two radios open one form each. Both confirm with the password, asked
+ * inline while the step-up window is closed (A5). Author gone (table B), the operator gets the same box.
+ */
+const SignOff: FC<{ d: SubmissionPageData }> = ({ d }) => {
+  const n = d.chain.node
+  const here = subHref(n.path, d.sub.number)
+  const f = d.flash?.at === 'signoff' ? d.flash : undefined
+  const pick = f?.fields.verdict
+  const form = (verdict: 'pass' | 'fail') => (
+    <>
+      <input type="hidden" name="form_token" value={d.token} />
+      <input type="hidden" name="do" value="signoff" />
+      <input type="hidden" name="verdict" value={verdict} />
+    </>
+  )
+  const err = (verdict: 'pass' | 'fail') => f && pick === verdict && <p class="err" role="alert">{f.text}</p>
+  const draft = (verdict: 'pass' | 'fail') => (pick === verdict ? f?.fields.text ?? '' : '')
+  return (
+    <div class="box decide" id="decide">
+      <h2 class="sunny">your sign-off <span>only you see this</span></h2>
+      <div class="in">
+        <p class="note first">everything else passed. it's your call whether this meets the done test.</p>
+        {/* OPEN (#76): the operator's line isn't in a mockup; it waits on Myra's yes. */}
+        {d.operator && <p class="note">its author's account is gone, so you sign off as the operator.</p>}
+        <input type="radio" name="pick" id="pick-pass" class="pick" checked={pick === 'pass' ? true : undefined} />
+        <input type="radio" name="pick" id="pick-fail" class="pick" checked={pick === 'fail' ? true : undefined} />
+        <div class="opts">
+          <label class="btn" for="pick-pass">pass</label>
+          <label class="btn plain" for="pick-fail">fail</label>
+        </div>
+        <form method="post" action={here} id="f-pass">
+          {form('pass')}
+          <textarea name="text" aria-label="what you checked" maxlength={MAX_TEXT} placeholder="what you checked: ran it to y=-80, 62 fps the whole way…">{draft('pass')}</textarea>
+          <StepUpField id="pw-pass" open={d.steppedUp} />
+          {err('pass')}
+          <div class="row"><span class="note">passing closes {showHidden(n.title)} as done. confirms with your password.</span><button class="btn" type="submit">pass it</button></div>
+        </form>
+        <form method="post" action={here} id="f-fail">
+          {form('fail')}
+          <textarea name="text" aria-label="what fails and how to see it" maxlength={MAX_TEXT} placeholder="what fails and how to see it: at y=-120 it drops to 40 fps. steps…">{draft('fail')}</textarea>
+          <div class="warnline">failing resets every check on this done test. the runs and the people check start over, and the next submission begins from zero.</div>
+          <StepUpField id="pw-fail" open={d.steppedUp} />
+          {err('fail')}
+          <div class="row"><span class="note">confirms with your password.</span><button class="btn plain" type="submit">fail it</button></div>
+        </form>
+      </div>
     </div>
   )
 }

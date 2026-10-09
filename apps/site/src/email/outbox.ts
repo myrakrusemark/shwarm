@@ -15,7 +15,7 @@ export type MailTemplate =
   | 'email_change_old'
   | 'signup_existing'
   | 'triage_alert' // to the admins: a node triage held or flagged (go-live 8.1, triage/run.ts)
-  | 'sign_off_ready' // to a node's author: a submission waits on their sign-off (go-live 5.4, notice 'sign_off')
+  | 'sign_off_ready' // to a node's author (or, author gone, the admins): a submission waits on their sign-off (go-live 5.4, notice 'sign_off')
 
 export type Mail = {
   to: string
@@ -61,6 +61,19 @@ export function mailToPersonStatement(db: D1Database, m: Omit<Mail, 'to' | 'pers
        SELECT lower(email), id, ?, ?, ?, ?, ? FROM person WHERE id = ? AND status = 'active'`,
     )
     .bind(m.template, m.stream, JSON.stringify(m.payload ?? {}), now, m.sendAfter ?? now, m.personId)
+}
+
+/**
+ * The same mail to every active admin (the operator), each addressed and greeted by their own handle (payload.handle).
+ * For acts in core that fall to the operator, such as an author-gone sign-off (table B).
+ */
+export function mailToAdminsStatement(db: D1Database, m: Omit<Mail, 'to' | 'personId'>, now = new Date().toISOString()): D1PreparedStatement {
+  return db
+    .prepare(
+      `INSERT INTO email_outbox (to_email, person_id, template, stream, payload, created_at, send_after)
+       SELECT lower(email), id, ?, ?, json_set(?, '$.handle', handle), ?, ? FROM person WHERE is_admin = 1 AND status = 'active'`,
+    )
+    .bind(m.template, m.stream, JSON.stringify(m.payload ?? {}), now, m.sendAfter ?? now)
 }
 
 export async function enqueueMail(db: D1Database, m: Mail, now?: string): Promise<void> {

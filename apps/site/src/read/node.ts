@@ -95,6 +95,7 @@ export type NodeHead = {
   builds_on: BuildsOn | null
   author_id: number
   author: string // bare handle, with @
+  author_status: 'active' | 'suspended' | 'closed' // not active: the author is gone, and the operator signs off (table B)
   posted_by: string
   state: NodeState
   in_review: number
@@ -167,6 +168,7 @@ function toHead(r: HeadRow, viewerId: number | null): NodeHead {
     builds_on,
     author_id: r.author_id,
     author: '@' + r.author_handle,
+    author_status: r.author_status,
     posted_by: r.posted_by,
     state: r.state,
     in_review: r.in_review,
@@ -213,7 +215,7 @@ export async function readChain(db: D1Database, path: string, viewerId: number |
   const { results } = await db
     .prepare(
       `SELECT n.id, n.path, n.kind, n.parent_id, n.variant_of_id, n.title, n.what, n.done_when, n.checks, n.lobby_size, n.license,
-              n.builds_on, n.author_id, p.handle AS author_handle, n.posted_by, n.state, n.in_review, n.triage, n.hidden, n.seeded,
+              n.builds_on, n.author_id, p.handle AS author_handle, p.status AS author_status, n.posted_by, n.state, n.in_review, n.triage, n.hidden, n.seeded,
               n.paused, n.dead_end_note, n.pinned_post_id, n.last_event_id, n.created_at, n.live_at, n.closed_at, n.changed_at,
               (SELECT group_concat(tag, ' ') FROM (SELECT t.tag FROM node_tag t WHERE t.node_id = n.id ORDER BY t.rowid)) AS tags,
               s.impact AS s_impact, s.posts_per_day AS s_posts_per_day, s.people AS s_people, s.hot AS s_hot, s.upvotes AS s_upvotes,

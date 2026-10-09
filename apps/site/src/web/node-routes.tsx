@@ -8,7 +8,10 @@ import { formToken } from '../auth/csrf'
 import { clientIp, formOf, postedTokenOk, sessionOf, who, type AuthContext } from '../auth/request'
 import { signInHref } from '../auth/return-to'
 import type { Session } from '../auth/session'
-import { siteActor } from '../core/actor'
+import { stepUp } from '../auth/signin'
+import { STEP_UP_MS, stepUpOpen } from '../auth/stepup'
+import { siteActor, type Actor } from '../core/actor'
+import type { CheckInput, CheckResult } from '../core/checking'
 import { peekThreadTokens } from '../core/limits'
 import { runInTree } from '../do/shwarm-tree'
 import {
@@ -32,13 +35,13 @@ import { readTombstone } from '../read/tombstone'
 import { sendError, waitText } from './errors'
 import { pickFormat, type Format } from './format'
 import { NodePage, type Flash } from './node-page'
-import { SubmissionPage } from './submission-page'
+import { SubmissionPage, type SubFlash } from './submission-page'
 import { takeRead } from './read-limit'
 import { page } from './viewer'
 
 export { pickFormat, type Format }
 
-type Env = { Bindings: { DB: D1Database; TREE: DurableObjectNamespace; ENV: string; SITE_MODE: string; CSRF_SECRET: string } }
+type Env = { Bindings: { DB: D1Database; TREE: DurableObjectNamespace; ENV: string; SITE_MODE: string; CSRF_SECRET: string; PASSWORD_PEPPER: string } }
 type C = Context<Env>
 
 const TYPES: Record<Format, string> = { html: 'text/html', text: 'text/plain', json: 'application/json' }
@@ -151,8 +154,11 @@ export function submissionNumber(view: string): number | null {
   return m ? Number(m[1]) : null
 }
 
-/** /w/<path>/s/<n>: the page, or the submission for agents. A number with no submission, or a hidden one, is a 404. */
-async function submissionView(c: C, chain: Chain, number: number, session: Session | null, f: Format, now: number) {
+/**
+ * /w/<path>/s/<n>: the page, or the submission for agents. A number with no submission, or a hidden one, is a 404.
+ * Also the page for a refused check or sign-off, with the refusal at its form and the draft kept.
+ */
+async function submissionView(c: C, chain: Chain, number: number, session: Session | null, f: Format, now: number, flash?: SubFlash, status: 200 | 400 | 429 = 200) {
   const db = c.env.DB
   const n = chain.node
   const sub = await readSubmission(db, n.id, number)
@@ -167,7 +173,33 @@ async function submissionView(c: C, chain: Chain, number: number, session: Sessi
   if (f === 'json') return c.json(renderSubmissionJson({ ...v, origin: new URL(c.req.url).origin }))
   if (f === 'text') return c.body(renderSubmissionPrompt({ ...v, origin: new URL(c.req.url).origin }), 200, { 'Content-Type': 'text/plain; charset=utf-8' })
   const me = session ? { personId: session.personId, handle: session.handle, verified: session.verified } : null
-  return page(c, <SubmissionPage d={{ ...v, subs, history, me }} />)
+  const forms = session
+    ? { token: await formToken(c.env.CSRF_SECRET, session.id), steppedUp: stepUpOpen(session, now), operator: await isOperatorFor(db, n, session.personId) }
+    : {}
+  return page(c, <SubmissionPage d={{ ...v, subs, history, me, ...forms, flash }} />, status)
+}
+
+/** Author gone (table B): the viewer signs off in the author's place when the author isn't active and the viewer is an admin. */
+async function isOperatorFor(db: D1Database, n: Chain['node'], personId: number): Promise<boolean> {
+  if (n.author_status === 'active' || personId === n.author_id) return false
+  const p = await db.prepare('SELECT is_admin FROM person WHERE id = ?').bind(personId).first<{ is_admin: number }>()
+  return p?.is_admin === 1
+}
+
+/**
+ * The inline step-up (A5) for acts with the author's authority: the sign-off, a dead end, reopening. With the 10-minute
+ * window open nothing is asked; otherwise the form carries the password, checked and throttled as /step-up does
+ * (auth/signin.ts stepUp, which opens the window on success), so the draft never leaves for the /step-up page.
+ */
+async function steppedUp(c: C, session: Session, password: string | undefined, now: number): Promise<{ actor: Actor } | { refuse: string; status: 400 | 429; wait?: number }> {
+  if (!stepUpOpen(session, now)) {
+    if (!password) return { refuse: 'enter your password to confirm.', status: 400 }
+    const r = await stepUp(c.env.DB, c.env.PASSWORD_PEPPER, session.personId, session.id, password, clientIp(c), now)
+    if (r.kind === 'slow') return { refuse: `there have been too many tries from here. wait about ${Math.max(1, Math.ceil(r.seconds / 60))} minutes, then try again.`, status: 429, wait: r.seconds }
+    if (r.kind === 'bad') return { refuse: "that password doesn't match.", status: 400 }
+    session.stepUpUntil = new Date(now + STEP_UP_MS).toISOString() // this request's copy, so a page re-rendered after a refusal doesn't ask again
+  }
+  return { actor: siteActor({ id: session.personId, handle: session.handle }, { steppedUp: true }) }
 }
 
 /** The page itself, for a GET or for a refused form (with the refusal shown where it happened and the draft kept). */
@@ -190,14 +222,72 @@ async function htmlPage(c: C, chain: Chain, path: string, session: Session | nul
     if (session.verified) d.limit = await peekThreadTokens(c.env.DB, { personId: session.personId, nodeId: chain.node.id }, now)
   }
   d.flash = flash
+  d.steppedUp = stepUpOpen(session, now)
   return page(c, <NodePage d={d} />, status)
 }
 
-// POST /w/<path> (go-live 4.4, 4.5, 5.1): the page's forms, picked by the `do` field. post: a thread post or reply
+/**
+ * POST /w/<path>/s/<n>: a people check (or, on a closed node, a repro) and the author's sign-off, each run in the
+ * tree as one check command. The sign-off asks for the password inline when the step-up window is closed. A refusal
+ * re-renders the submission page with the reason at the form and the draft kept; a double click goes to the first.
+ */
+async function submissionPost(c: C, path: string, number: number, session: Session, f: Record<string, string>) {
+  const db = c.env.DB
+  const chain = await readChain(db, path, session.personId)
+  if (!chain) return (await gone(c, 'html', path)) ?? notFound(c, 'html')
+  const n = chain.node
+  const sub = await readSubmission(db, n.id, number)
+  if (!sub) return notFound(c, 'html', `there is no submission #${number} here.`)
+  const act = f.do === 'check' || f.do === 'signoff' ? f.do : null
+  if (!act) return errorOut(c, 'html', 400, 'bad_request', 'that form asked for nothing we know.')
+  const back = `/w/${path}/s/${number}`
+  const now = Date.now()
+  const flash = (text: string): SubFlash => ({ at: act, text, fields: { verdict: f.verdict ?? '', text: f.text ?? '', links: f.links ?? '' } })
+  const refuse = (text: string, status: 400 | 429 = 400) => submissionView(c, chain, number, session, 'html', now, flash(text), status)
+  const verdict = f.verdict === 'pass' || f.verdict === 'fail' ? (f.verdict as 'pass' | 'fail') : null
+  if (!verdict) return refuse('pick pass or fail.')
+  const dup = await db
+    .prepare('SELECT id FROM check_report WHERE submission_id = ? AND person_id = ? AND reset_at IS NULL AND created_at > ? ORDER BY created_at DESC LIMIT 1')
+    .bind(sub.post_id, session.personId, new Date(now - DOUBLE_POST_MS).toISOString())
+    .first<{ id: string }>()
+  if (dup) return c.redirect(`${back}#${dup.id}`, 303)
+  const text = (f.text ?? '').trim()
+  const base = { node: path, on: sub.post_id, verdict }
+  let actor: Actor = siteActor({ id: session.personId, handle: session.handle })
+  let input: CheckInput
+  if (act === 'signoff') {
+    // Only someone who may sign off is asked for the password; anyone else is refused by core (only the author signs off).
+    if (session.personId === n.author_id || (await isOperatorFor(db, n, session.personId))) {
+      const s = await steppedUp(c, session, f.password, now)
+      if ('refuse' in s) {
+        if (s.wait) c.header('Retry-After', String(s.wait))
+        return refuse(s.refuse, s.status)
+      }
+      actor = s.actor
+    }
+    // A pass says what was checked; a fail is a repro, and resets every check (core/checking.ts).
+    input = { ...base, slot: 'author', ...(verdict === 'pass' ? { text } : { repro: text }) }
+  } else {
+    // A people check: a pass backed by links, or a fail whose text is its repro, with any links beside it.
+    const links = linksFromForm(f.links ?? '')
+    input = verdict === 'pass' ? { ...base, text, evidence: links } : { ...base, text, repro: { steps: text, links } }
+  }
+  try {
+    const r = await runInTree<CheckResult>(c.env.TREE, { type: 'check', actor, input })
+    return c.redirect(act === 'signoff' ? `${back}#checks` : `${back}#${r.id}`, 303)
+  } catch (e) {
+    if (!(e instanceof ShwarmError)) throw e
+    return refuse(e.message.replace(/\.?$/, '.'))
+  }
+}
+
+// POST /w/<path> (go-live 4.4, 4.5, 5.1, 5.6): the page's forms, picked by the `do` field. post: a thread post or reply
 // as the bare handle. submit: the compose box's submit mode, which lands on the new submission's page. join, leave:
-// a lobby seat. Each runs in the shwarm's tree (do/shwarm-tree.ts), then goes back to the page (303). A refusal
-// re-renders the page with the reason next to the form and the draft kept. Signed out, it goes to sign-in and back.
-const ACTS = ['post', 'submit', 'join', 'leave'] as const
+// a lobby seat. dead_end (with a note), reopen: the author's own box, behind the password. Each runs in the shwarm's
+// tree (do/shwarm-tree.ts), then goes back to the page (303). A refusal re-renders the page with the reason next to the
+// form and the draft kept. Signed out, it goes to sign-in and back.
+// POST /w/<path>/s/<n> (5.3, 5.5): check (a people check or a repro) and signoff (the author's, behind the password).
+const ACTS = ['post', 'submit', 'join', 'leave', 'dead_end', 'reopen'] as const
 type Act = (typeof ACTS)[number]
 
 /** Same person, same thread, same text within this long: a double click, so the first post stands. */
@@ -206,12 +296,14 @@ const DOUBLE_POST_MS = 30_000
 nodeRoutes.post('/*', async c => {
   const url = new URL(c.req.url)
   const parsed = parseNodePath(url.pathname.slice('/w/'.length).replace(/\/+$/, ''))
-  if (!readingOpen(c.env) || parsed.kind !== 'node') return notFound(c, 'html')
-  const back = `/w/${parsed.path}`
+  const subNumber = parsed.kind === 'view' ? submissionNumber(parsed.view) : null
+  if (!readingOpen(c.env) || parsed.kind === 'bad' || (parsed.kind === 'view' && subNumber === null)) return notFound(c, 'html')
+  const back = subNumber === null ? `/w/${parsed.path}` : `/w/${parsed.path}/s/${subNumber}`
   const w = await who(c as unknown as AuthContext)
   if (!w.session) return c.redirect(signInHref(back), 303)
   const f = await formOf(c)
   if (!(await postedTokenOk(c as unknown as AuthContext, w, f))) return sendError(c, { status: 403, heading: 'this form expired', text: 'go back, reload the page and try again.' }, 'html')
+  if (subNumber !== null) return submissionPost(c, parsed.path, subNumber, w.session, f)
   const act = (ACTS as readonly string[]).includes(f.do) ? (f.do as Act) : null
   if (!act) return errorOut(c, 'html', 400, 'bad_request', 'that form asked for nothing we know.')
 
@@ -225,6 +317,22 @@ nodeRoutes.post('/*', async c => {
   // A refused submission reopens the submit form with every field as typed.
   const kept = act === 'submit' ? { mode: 'submit' as const, fields: Object.fromEntries(SUBMIT_FIELDS.map(k => [k, f[k] ?? ''])) } : {}
   try {
+    if (act === 'dead_end' || act === 'reopen') {
+      const refuse = (text: string, status: 400 | 429 = 400) => htmlPage(c, chain, parsed.path, session, now, { at: 'owner', text, draft: f.note }, status)
+      // A second click lands after the first did it: back to the page, as the first click went.
+      if ((act === 'dead_end' && n.state === 'dead_end') || (act === 'reopen' && n.state === 'live')) return c.redirect(back, 303)
+      const note = (f.note ?? '').trim()
+      // OPEN (#76): the words for a missing note wait on Myra's yes. Said before the password is checked, so it isn't spent.
+      if (act === 'dead_end' && !note) return refuse('say why it stops here, so nobody repeats it.')
+      // Only the author is asked for the password; anyone else is refused by core (only the author marks a dead end).
+      const s = n.author_id === session.personId ? await steppedUp(c, session, f.password, now) : { actor }
+      if ('refuse' in s) {
+        if (s.wait) c.header('Retry-After', String(s.wait))
+        return refuse(s.refuse, s.status)
+      }
+      await runInTree(c.env.TREE, act === 'dead_end' ? { type: 'deadEnd', actor: s.actor, input: { node: parsed.path, note } } : { type: 'reopen', actor: s.actor, input: { node: parsed.path } })
+      return c.redirect(back, 303)
+    }
     if (act === 'post') {
       const text = (f.text ?? '').trim()
       if (!text) return htmlPage(c, chain, parsed.path, session, now, { at: 'compose', text: 'write something first.' }, 400)
@@ -267,8 +375,8 @@ nodeRoutes.post('/*', async c => {
     return c.redirect(back, 303)
   } catch (e) {
     if (!(e instanceof ShwarmError)) throw e
-    const at = act === 'post' || act === 'submit' ? 'compose' : 'seats'
-    const draft = act === 'post' || act === 'submit' ? f.text : undefined
+    const at = act === 'post' || act === 'submit' ? 'compose' : act === 'dead_end' || act === 'reopen' ? 'owner' : 'seats'
+    const draft = act === 'post' || act === 'submit' ? f.text : act === 'dead_end' ? f.note : undefined
     if (e.code === 'rate_limited') {
       const wait = Number(e.details.retry_after) || 60
       c.header('Retry-After', String(wait))

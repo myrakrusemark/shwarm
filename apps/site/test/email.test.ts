@@ -90,6 +90,15 @@ describe('sign_off_ready (go-live 5.4)', () => {
     expect(renderMail('sign_off_ready', { ...payload, only: true }, notice).text).toContain("#2 on minecraft in doom is waiting on you. you're its only check.")
   })
 
+  it("author gone: tells the admin why it's theirs", () => {
+    const m = renderMail('sign_off_ready', { ...payload, handle: 'ops', author: 'bmo_fan', author_gone: true }, notice)
+    expect(m.subject).toBe('#2 on minecraft in doom is ready for sign-off')
+    expect(m.text).toContain('hi @ops,')
+    expect(m.text).toContain("#2 on minecraft in doom is ready for its author's sign-off, but @bmo_fan's account is suspended or closed. the operator signs off in their place.")
+    expect(m.text).toContain(`${SITE}/w/minecraft-in-doom/s/2`)
+    expect(renderMail('sign_off_ready', { ...payload, author: 'not a handle!', author_gone: true }, notice).text).toContain("but its author's account")
+  })
+
   it("keeps a node title to one plain line, and refuses a link off the site or a bad number", () => {
     const m = renderMail('sign_off_ready', { ...payload, title: 'doom\r\nBcc: x@evil.example <img src=x>' }, notice)
     expect(m.subject).not.toMatch(/[\r\n]/)

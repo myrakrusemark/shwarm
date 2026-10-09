@@ -1,7 +1,7 @@
 // What every command shares: the clock, loading the actor's person and the node, and the statements
 // most acts add to their batch (mentions, inbox notices, the node's review flag and ETag).
 import { ShwarmError } from '@shwarm/protocol'
-import { mailToPersonStatement } from '../email/outbox'
+import { mailToAdminsStatement, mailToPersonStatement } from '../email/outbox'
 import type { Actor } from './actor'
 import { submissionHref } from './audit'
 import type { CheckSpec } from './checks'
@@ -19,6 +19,7 @@ export type PersonRow = {
   email_verified_at: string | null
   founding: number
   established_at: string | null
+  is_admin: number // the operator (table B "author gone")
 }
 
 export type NodeKind = 'shwarm' | 'branch' | 'variant'
@@ -39,6 +40,7 @@ export type NodeRow = {
   builds_on: string | null
   author_id: number
   author_handle: string
+  author_status: PersonRow['status'] // a suspended or closed author is gone: the operator takes their sign-off (table B)
   posted_by: string
   state: NodeState
   in_review: number
@@ -52,7 +54,7 @@ export type NodeRow = {
 /** The acting person: must exist, match the actor's handle, be active and have a verified email (go-live 2.5). */
 export async function loadPerson(ctx: Ctx, a: Actor): Promise<PersonRow> {
   const p = await ctx.db
-    .prepare('SELECT id, handle, status, email_verified_at, founding, established_at FROM person WHERE id = ?')
+    .prepare('SELECT id, handle, status, email_verified_at, founding, established_at, is_admin FROM person WHERE id = ?')
     .bind(a.personId)
     .first<PersonRow>()
   if (!p || p.handle !== a.handle) throw new ShwarmError('not_your_name', `@${a.handle} is not this account`)
@@ -71,7 +73,7 @@ export const MAX_PATH = 600
 export async function findNode(ctx: Ctx, path: unknown): Promise<NodeRow | null> {
   if (typeof path !== 'string' || !path || path.length > MAX_PATH) return null
   const n = await ctx.db
-    .prepare('SELECT n.*, p.handle AS author_handle FROM node n JOIN person p ON p.id = n.author_id WHERE n.path = ?')
+    .prepare('SELECT n.*, p.handle AS author_handle, p.status AS author_status FROM node n JOIN person p ON p.id = n.author_id WHERE n.path = ?')
     .bind(path)
     .first<NodeRow>()
   return n && !n.hidden ? n : null
@@ -110,30 +112,33 @@ export function notifyStatement(ctx: Ctx, nodeId: number, text: string, who: 'se
     .bind(...args)
 }
 
+/** One inbox item, written only while the person is active: a suspended or closed account collects nothing (as notifyStatement). */
 export function inboxStatement(ctx: Ctx, i: { personId: number; kind: 'mention' | 'sign_off' | 'system'; nodeId: number; postId?: string | null; text: string }) {
   return ctx.db
-    .prepare('INSERT INTO inbox_item (person_id, kind, node_id, post_id, text, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-    .bind(i.personId, i.kind, i.nodeId, i.postId ?? null, i.text, ctx.at)
+    .prepare("INSERT INTO inbox_item (person_id, kind, node_id, post_id, text, created_at) SELECT id, ?, ?, ?, ?, ? FROM person WHERE id = ? AND status = 'active'")
+    .bind(i.kind, i.nodeId, i.postId ?? null, i.text, ctx.at, i.personId)
 }
 
 /**
  * Ready for the author (go-live 5.4): the sign_off inbox item and its mail, both in the act's batch. The mail goes
  * only to an active author (mailToPersonStatement); the notices stream honours their 'sign_off' opt-out when it sends.
  * `only`: the author is the submission's only check, so it is ready at once.
+ * Author gone (table B): while the author's account is suspended or closed, the operator signs off in their place, so
+ * the item and the mail go to every active admin instead. OPEN (#75): if the author comes back before signing, the item
+ * stays with the admins; the author sees "waiting on you" on the page, but nothing new lands in their inbox.
  */
 export function signOffStatements(ctx: Ctx, n: NodeRow, s: { postId: string; number: number }, only: boolean): D1PreparedStatement[] {
+  const payload = { notice: 'sign_off', handle: n.author_handle, number: s.number, title: n.title, link: submissionHref(n.path, s.number), ...(only ? { only: true } : {}) }
+  if (n.author_status !== 'active')
+    return [
+      ctx.db
+        .prepare("INSERT INTO inbox_item (person_id, kind, node_id, post_id, text, created_at) SELECT id, 'sign_off', ?, ?, ?, ? FROM person WHERE is_admin = 1 AND status = 'active'")
+        .bind(n.id, s.postId, `#${s.number} on ${n.title} is ready for sign-off. its author is gone, so the operator signs off.`, ctx.at),
+      mailToAdminsStatement(ctx.db, { template: 'sign_off_ready', stream: 'notices', payload: { ...payload, author: n.author_handle, author_gone: true } }, ctx.at),
+    ]
   return [
     inboxStatement(ctx, { personId: n.author_id, kind: 'sign_off', nodeId: n.id, postId: s.postId, text: `#${s.number} on ${n.title} is ready for your sign-off.` }),
-    mailToPersonStatement(
-      ctx.db,
-      {
-        template: 'sign_off_ready',
-        stream: 'notices',
-        personId: n.author_id,
-        payload: { notice: 'sign_off', handle: n.author_handle, number: s.number, title: n.title, link: submissionHref(n.path, s.number), ...(only ? { only: true } : {}) },
-      },
-      ctx.at,
-    ),
+    mailToPersonStatement(ctx.db, { template: 'sign_off_ready', stream: 'notices', personId: n.author_id, payload }, ctx.at),
   ]
 }
 

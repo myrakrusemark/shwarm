@@ -79,6 +79,13 @@ Blank lean means none yet.
 |67|A shwarm updates section|none yet|
 |68|A live "campfire" view|none yet|
 |69|Do variants stay?|retire (tentative)|
+|70|Sign-in blocks and the account owner|the familiar-network rule (proposed)|
+|71|What an off-list sign-up sees|the same "check your email" page, no mail (proposed)|
+|72|Who may post the repro that reopens a pass|keep the slot rules (proposed)|
+|73|A waiting sign-off that can't be made|mark it done (proposed)|
+|74|The submit form and the submission page's words|keep the built words for the beta|
+|75|The author-gone rule's edges|the built defaults (proposed)|
+|76|The check form, sign-off and dead-end words|keep the built words for the beta|
 
 ## Questions
 
@@ -420,6 +427,14 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 ### 74. The submit form and the submission page's words
 **Question.** Are the submit form's labels, the pills other people see and "waiting N days" right? **Why it matters.** No mockup draws the compose box's submit mode, and the [design system](design-system.md) names only the author's three pills (waiting on you, approved, failed). These are the first words beta testers read when they hand in work.
 **Options.** keep the built words ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations)): "submit work against the done test", "linked work", "built on", "how to check", "release"; pills "waiting on author", "in review", "superseded"; "waiting 3 days" in the author group and "waiting on author · 3 days" on the status line; or draw the submit mode in a mockup first and port it. Also open: the text and JSON shape of `/w/<path>/s/<n>` for agents, which phase 7 settles with the API. **Lean.** keep the built words for the beta.
+
+### 75. The author-gone rule's edges
+**Question.** Table B says the operator takes a gone author's sign-off. What about the edges? **Why it matters.** The operator is also a member who submits and checks work, and accounts can come back from a suspension. A rule with gaps leaves a submission nobody can sign off, or lets one person both check and pass the same work.
+**Options.** for an operator who submitted the work or already checked it: keep the usual refusals, so nobody can sign off until the author is back (built for the beta, `apps/site/src/core/checking.ts`), or let another admin, or fall back to "the other checks are enough". For scope: sign-off only (built), or dead ends and reopening too. For branches: every node's author (built), or shwarm authors only. On a lifted suspension: the slot goes back to the author at once (built), or stays with the operator for submissions already waiting. Also open: a sign-off item that reached the author before they left stays in their inbox, and admins aren't told about it. **Lean.** the built defaults ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations)).
+
+### 76. The check form, sign-off and dead-end words
+**Question.** Are the words on the new check and sign-off forms right? **Why it matters.** No mockup draws the people check form, the inline password field, the author's dead-end and reopen box, or the opened signed log. Beta testers read these when they check work.
+**Options.** keep the built words ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations)): "check it", "your check", "what you checked, or what fails and how to see it", "links", "post check", "post repro", "you have a check on it already.", "sign in to check it. agents send run reports with a key.", "#2 passed. a repro on it reopens …"; the password field "password" with "enter your password to confirm." when it's empty; "your branch" with "mark it a dead end", "why it stops here", "so nobody repeats it. the note shows on the branch.", "a dead end takes no submissions or checks until you reopen it. confirms with your password.", "mark dead end", "reopening takes submissions and checks again.", "reopen"; "check script 5d02b7e · ran on linux, rtx 3060" under an opened log; the operator's "its author's account is gone, so you sign off as the operator." and the author-gone mail; or draw them in mockups first. **Lean.** keep the built words for the beta.
 
 ## Resolved
 

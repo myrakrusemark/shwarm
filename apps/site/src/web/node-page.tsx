@@ -19,10 +19,11 @@ import { AgentResources, Layout } from './layout'
 export type Me = { personId: number; handle: string; verified: boolean } | null
 
 /**
- * A refused form, shown next to it: the compose box or the seats. `draft` keeps the text they wrote; a refused
- * submission (`mode: 'submit'`) keeps every field of the submit form in `fields` and opens it again.
+ * A refused form, shown next to it: the compose box, the seats, or the author's own box (dead end, reopen). `draft`
+ * keeps the text they wrote; a refused submission (`mode: 'submit'`) keeps every field of the submit form in `fields`
+ * and opens it again.
  */
-export type Flash = { at: 'compose' | 'seats'; text: string; draft?: string; mode?: 'submit'; fields?: Record<string, string> }
+export type Flash = { at: 'compose' | 'seats' | 'owner'; text: string; draft?: string; mode?: 'submit'; fields?: Record<string, string> }
 
 export type NodePageData = {
   chain: Chain
@@ -41,6 +42,7 @@ export type NodePageData = {
   now: number
   token?: string // the form token, signed in
   limit?: { left: number; wait: number } // thread posts left right now (core/limits.ts peekThreadTokens)
+  steppedUp?: boolean // the password was entered in the last 10 minutes (auth/stepup.ts stepUpOpen), so the author's acts don't ask again
   flash?: Flash
 }
 
@@ -63,7 +65,8 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
       <Head d={d} />
       <div class="grid">
         <main id="main" tabindex={-1}>
-          {d.flash?.at === 'seats' && !(n.state === 'lobby' && d.seats) && <p class="err flash" role="alert">{d.flash.text}</p>}
+          {/* a refusal whose form isn't on the page (a forged or stale one) shows at the top */}
+          {((d.flash?.at === 'seats' && !(n.state === 'lobby' && d.seats)) || (d.flash?.at === 'owner' && !hasOwnerBox(d))) && <p class="err flash" role="alert">{d.flash.text}</p>}
           <Compose d={d} />
           <ThreadView d={d} />
         </main>
@@ -75,6 +78,7 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
               <div class="url"><code id="w-url">{d.url}</code><button class="btn" id="w-copy" type="button">copy</button></div>
             </div>
           </div>
+          <Owner d={d} />
           {n.state === 'lobby' && d.seats && <Seats d={d} />}
           <Branches d={d} />
           {!isBranch && <Variants d={d} />}
@@ -167,6 +171,7 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
             {!isBranch && (n.state === 'lobby' || n.state === 'live') && (
               <div class="alt">different finish line in mind? <a href={`/new?variant=${n.path}`}>start a variant</a></div>
             )}
+            <ReproLink d={d} />
           </div>
         </div>
       </div>
@@ -561,11 +566,13 @@ export const CheckRowView: FC<{ row: ReviewRow; n: NodeHead; sub: SubmissionRow;
             {runCmd(n.spec) && <><code class="cmd"><Plain text={runCmd(n.spec)} /></code>{' '}</>}
             exit {c.exit_code} on #{sub.number} ({shortHash(c.submission_hash ?? sub.hash)}){c.machine && <> · <Plain text={c.machine} /></>} ·{' '}
             {logLink ? (
-              <LinkChip l={logLink} compact />
+              <LinkChip l={logLink} compact={!page} />
             ) : inline ? (
               <details class="log">
                 <summary>signed log</summary>
                 <Log text={c.log_text!} />
+                {/* OPEN (#76): no mockup draws the opened log; these words wait on Myra's yes. */}
+                <span class="note logmeta">check script {c.script_hash ? <code>{c.script_hash}</code> : 'not named'}{c.machine && <> · ran on <Plain text={c.machine} /></>}</span>
               </details>
             ) : c.log_inline ? (
               <a href={logHref}>signed log</a>
@@ -581,14 +588,92 @@ export const CheckRowView: FC<{ row: ReviewRow; n: NodeHead; sub: SubmissionRow;
           </>
         )}
         {c.verdict === 'fail' && repro?.links?.length ? <> · <Links links={repro.links} compact /></> : null}
-        {page && c.verdict === 'fail' && repro?.steps && <> · repro: <Text inline text={repro.steps} /></>}
+        {page && c.verdict === 'fail' && repro?.steps && repro.steps !== c.text && <> · repro: <Text inline text={repro.steps} /></>}
+        {c.slot === 'author' && humanOf(c.as_name) !== n.author && <span class="note"> · author gone, signed off by the operator</span>}
         {c.reset_at && <span class="note"> · reset</span>}
       </span>
     </li>
   )
 }
 
+/**
+ * A closed node takes only a repro on the submission that passed it (A25, A11), which reopens it: the way there.
+ * OPEN: the closed mockup's words, on the live template until the result page (5.7) replaces it for shwarms.
+ */
+const ReproLink: FC<{ d: NodePageData }> = ({ d }) => {
+  const n = d.chain.node
+  const passed = n.state === 'closed' ? d.subs.find(s => s.status === 'passed') : undefined
+  if (!passed) return null
+  return <div class="alt"><a href={`${subHref(n.path, passed.number)}#check`}>it's broken? post a repro</a></div>
+}
+
+/**
+ * The inline step-up (A5): the password field an act with the author's authority carries while the 10-minute window
+ * is closed, so the form's draft never leaves for the /step-up page. With the window open it isn't asked again.
+ */
+export const StepUpField: FC<{ id: string; open?: boolean }> = ({ id, open }) =>
+  open ? null : (
+    <label class="pw" for={id}>
+      password <input id={id} type="password" name="password" autocomplete="current-password" required maxlength={1024} />
+    </label>
+  )
+
 // ---------- sidebar ----------
+
+/**
+ * The author's own box (go-live 5.6): mark a live node a dead end, with a note, or reopen a dead end. Both act with
+ * the author's authority, so both confirm with the password. A closed node reopens only through a repro.
+ * OPEN (#76): no mockup draws this box; its words wait on Myra's yes.
+ */
+const hasOwnerBox = (d: NodePageData) => {
+  const n = d.chain.node
+  return !!d.me?.verified && d.me.personId === n.author_id && (n.state === 'live' || n.state === 'dead_end')
+}
+
+const Owner: FC<{ d: NodePageData }> = ({ d }) => {
+  const n = d.chain.node
+  if (!hasOwnerBox(d)) return null
+  const flash = d.flash?.at === 'owner' ? d.flash : undefined
+  const word = n.kind === 'branch' ? 'branch' : n.kind === 'variant' ? 'variant' : 'shwarm'
+  const err = flash && <p class="err" role="alert">{flash.text}</p>
+  return (
+    <div class="box owner" id="owner">
+      <h2 class="sunny">your {word} <span>only you see this</span></h2>
+      <div class="in">
+        {n.state === 'live' ? (
+          <details open={flash ? true : undefined}>
+            <summary>mark it a dead end</summary>
+            <form method="post" action={nodeHref(n.path)} class="owner-act">
+              <input type="hidden" name="form_token" value={d.token} />
+              <input type="hidden" name="do" value="dead_end" />
+              <label for="o-note">why it stops here</label>
+              <span class="note" id="o-note-n">so nobody repeats it. the note shows on the {word}.</span>
+              <textarea id="o-note" name="note" required maxlength={MAX_TEXT} aria-describedby="o-note-n">{flash?.draft ?? ''}</textarea>
+              <StepUpField id="o-pw" open={d.steppedUp} />
+              {err}
+              <div class="row">
+                <span class="note">a dead end takes no submissions or checks until you reopen it. confirms with your password.</span>
+                <button class="btn plain" type="submit">mark dead end</button>
+              </div>
+            </form>
+          </details>
+        ) : (
+          <form method="post" action={nodeHref(n.path)} class="owner-act">
+            <input type="hidden" name="form_token" value={d.token} />
+            <input type="hidden" name="do" value="reopen" />
+            <p class="note">reopening takes submissions and checks again.</p>
+            <StepUpField id="o-pw" open={d.steppedUp} />
+            {err}
+            <div class="row">
+              <span class="note">confirms with your password.</span>
+              <button class="btn" type="submit">reopen</button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  )
+}
 
 const Seats: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node

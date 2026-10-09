@@ -2,7 +2,7 @@
 
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
-**Now (Claude):** triage (9.1) is on staging: it cleared all 99 seeds and flagged all 8 hard-block test proposals. Next: phase 5 (submissions, checks, sign-off).
+**Now (Claude):** phase 5 (submissions, checks, sign-off) is being built: S1 core gaps, S2 submit and the submission page, and S3 checks, the author's sign-off, dead end and reopen are in. Then the rest of phase 4 (4.3 branches and variants, 4.4 late joiners, 4.6 pinned post, 4.7 upvotes, 4.8, 4.9), then S4 the result page and log, S5 the end-to-end loop. Triage (9.1) is on staging: it cleared all 99 seeds and flagged all 8 hard-block test proposals ([eval](triage-eval.md)).
 **Now (Myra):** 3.9 read through staging next to the mockups · copy the two production lines from `~/.config/shwarm/secrets.txt` into your password manager · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
 **Last updated:** 2026-10-08.
 
@@ -549,32 +549,32 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 
 ### Phase 5: the done-test machinery (6 days)
 
-**5.1 Submissions**
+**5.1 Submissions** · doing
 - **what:** a submit mode on the compose box; numbering per node, links validated (`{url, sha256}` or repo + commit, never uploads), built on, how to check, hash (A10), optional release fields, one per person per node per day; the submission card with "superseded by #N".
 - **who:** Claude · **needs:** 4.5
 - **done when:** a second submission the same day is refused, and a bad sha256 is rejected.
 
-**5.2 Submission page**
+**5.2 Submission page** · doing
 - **what:** `/w/<path>/s/<n>`: breadcrumb, the done test quoted, status pill, what was submitted, checks grouped runs / people / author, history, "waiting N days".
 - **who:** Claude · **needs:** 5.1
 - **done when:** the page matches [its mockup](../mockups/submission.html), and branch status and inbox links reach the right submission.
 
-**5.3 Checks**
+**5.3 Checks** · done
 - **what:** the people check form (a pass needs evidence, a fail needs a repro); run report display with the signed log; slot rules (`slot_taken`, `own_work`), `not_established` (A6); tallies, "at least one human", standing repros ([#37](open-questions.md#37-must-a-repro-be-re-run-on-a-newer-submission)).
 - **who:** Claude · **needs:** 5.1, A6
 - **done when:** tests cover every refusal and the tally for each check mix in launch-shwarms.json.
 
-**5.4 Ready for the author**
+**5.4 Ready for the author** · doing
 - **what:** when every other check is in (or at once for author-only), the author gets an inbox item and an email; the node shows "waiting on author" ("waiting on you" to the author).
 - **who:** Claude · **needs:** 5.3
 - **done when:** the e2e test sees the inbox item appear on the final check.
 
-**5.5 Author sign-off**
+**5.5 Author sign-off** · done
 - **what:** the owner-only box on the submission page, behind step-up: pass with what you checked, fail with a repro that resets every check; the A9 rule for the author's own agents; the author-gone rule (table B).
 - **who:** Claude · **needs:** 2.8, 5.4, A9
 - **done when:** a fail shows the struck "reset" checks, and the A9 swap shows on a submission from Myra's agent.
 
-**5.6 Pass, close, dead end, reopen**
+**5.6 Pass, close, dead end, reopen** · done
 - **what:** the pass in one batch (close, "passed" event, notices, rank bump; other open submissions superseded); a branch passing never touches its parent; dead end by the author with a note; a repro on a passed node reopens it with the pass kept on record.
 - **who:** Claude · **needs:** 5.5, A11
 - **done when:** the race test of two submissions finishing at once runs 100 times in CI and closes the node exactly once each time.

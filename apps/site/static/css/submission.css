@@ -47,3 +47,32 @@ main .box + .box { margin-top: 18px; }
 .grp details.log[open] { display: block; margin-top: 4px; }
 .grp details.log summary { display: inline; cursor: pointer; color: var(--sky); text-decoration: underline; text-underline-offset: 2px; }
 .grp details.log pre.log { margin: 4px 0 0; }
+
+/* the author's sign-off box, from submission.html; no script: the two radios open one form each */
+.decide { background: rgba(244,197,49,.16); }
+.decide .opts { display: flex; gap: 10px; margin: 8px 0; }
+.decide textarea { width: 100%; min-height: 64px; font: inherit; font-size: 13px; border: 1.5px solid var(--ink); background: var(--paper); padding: 6px 8px; resize: vertical; }
+.decide .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 8px; }
+.warnline { font-size: 12.5px; padding: 8px 10px; background: rgba(196,87,45,.12); border-left: 4px solid var(--clay); margin-top: 8px; }
+.decide .note.first { margin: 0; }
+.decide .pick { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.decide .opts label { cursor: pointer; }
+.decide form { display: none; }
+#pick-pass:checked ~ #f-pass, #pick-fail:checked ~ #f-fail { display: block; }
+#pick-pass:checked ~ .opts label[for="pick-pass"], #pick-fail:checked ~ .opts label[for="pick-fail"] { box-shadow: 2px 2px 0 var(--ink); outline: 2px solid var(--ink); }
+#pick-pass:focus-visible ~ .opts label[for="pick-pass"], #pick-fail:focus-visible ~ .opts label[for="pick-fail"] { outline: 3px solid var(--sun); outline-offset: 2px; }
+
+/* not in the mockup: the people check form (5.3), the inline password, refusals, the opened log's script and machine */
+.checkform form > label, .checkform fieldset { display: block; margin-top: 8px; font-weight: 700; font-size: 12.5px; }
+.checkform fieldset { border: 0; padding: 0; margin: 0; }
+.checkform fieldset label { font-weight: 400; margin-right: 14px; }
+.checkform form > label + .note { display: block; }
+.checkform textarea { width: 100%; min-height: 44px; margin-top: 4px; font: inherit; font-size: 13px; border: 1.5px solid var(--ink); background: var(--paper); padding: 6px 8px; resize: vertical; }
+.checkform .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 8px; }
+.checkform .in > .note:only-child { margin: 0; }
+label.pw { display: block; margin-top: 8px; font-weight: 700; font-size: 12.5px; }
+label.pw input { display: block; width: 100%; max-width: 280px; font: inherit; font-weight: 400; border: 1.5px solid var(--ink); background: var(--paper); padding: 4px 8px; margin-top: 4px; }
+.decide .err, .checkform .err, main > .err.flash { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 8px 0 0; }
+main > .err.flash { margin: 0 0 10px; }
+main form .btn[aria-busy="true"] { opacity: .55; cursor: progress; }
+.grp details.log .logmeta { display: block; margin-top: 4px; }

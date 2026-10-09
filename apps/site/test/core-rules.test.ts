@@ -723,6 +723,42 @@ describe('the sign-off is asked for by name, behind the password (A5)', () => {
   })
 })
 
+describe('author gone: the operator signs off (table B)', () => {
+  let s: any, ops: P
+  beforeEach(async () => {
+    await live({ people: 1, author: true })
+    ops = await person(w.db, 'ops')
+    await w.db.prepare('UPDATE person SET is_admin = 1 WHERE id = ?').bind(ops.id).run()
+    s = await w.submit(agent(kestrel), MID)
+    await w.pass(site(lumpy), MID, s.id)
+  })
+  const gone = (status: 'suspended' | 'closed' | 'active') => w.db.prepare('UPDATE person SET status = ? WHERE id = ?').bind(status, myra.id).run()
+
+  it('lets an admin take the author slot while the author is suspended, behind the password, logged as such', async () => {
+    await refused(w.signOff(ops, MID, s.id), 'not_permitted', { need: 'author' }) // the author is active: not the operator's call
+    await gone('suspended')
+    await refused(w.signOff(site(ops), MID, s.id), 'not_permitted', { need: 'step_up' })
+    const r = await w.signOff(ops, MID, s.id)
+    expect(r).toMatchObject({ slot: 'author', verdict: 'pass', submission_state: 'passed', node_state: 'closed' })
+    expect(w.events(MID, 'signed_off')[0]).toMatchObject({ by_name: '@ops', number: 1, detail: 'pass · author on #1 · author gone, signed off by the operator' })
+  })
+
+  it('covers a closed account too; a non-admin is still refused; the slot goes back when the author is active again', async () => {
+    await gone('closed')
+    await refused(w.signOff(finn, MID, s.id), 'not_permitted', { need: 'author' })
+    await gone('active')
+    await refused(w.signOff(ops, MID, s.id), 'not_permitted', { need: 'author' })
+    expect((await w.signOff(myra, MID, s.id)).submission_state).toBe('passed')
+    expect(w.events(MID, 'signed_off')[0].detail).toBe('pass · author on #1')
+  })
+
+  it('keeps the usual refusals for the operator: one slot per person', async () => {
+    await gone('suspended')
+    await w.pass(site(ops), MID, s.id) // an ordinary people check, one past the count
+    await refused(w.signOff(ops, MID, s.id), 'slot_taken')
+  })
+})
+
 describe('a closed node takes only a repro on the submission that passed (A25, A11)', () => {
   it('refuses a pass, and any check on another submission, with shwarm_closed', async () => {
     await live({ runs: { command: './soak.sh', count: 1 }, people: 1 })
@@ -777,12 +813,17 @@ describe('ready for the author: the inbox item and the mail (go-live 5.4)', () =
     expect(mails().map(r => JSON.parse(r.payload))).toEqual([{ notice: 'sign_off', handle: 'myra', number: 1, title: 'minecraft in doom', link: '/w/minecraft-in-doom/s/1', only: true }])
   })
 
-  it('mails only an active author', async () => {
+  it('author gone: the item and the mail go to the admins, never to the suspended author', async () => {
     await live({ author: true })
+    const ops = await person(w.db, 'ops')
+    await w.db.prepare('UPDATE person SET is_admin = 1 WHERE id = ?').bind(ops.id).run()
     await w.db.prepare("UPDATE person SET status = 'suspended' WHERE id = ?").bind(myra.id).run()
-    await w.submit(agent(kestrel), MID)
-    expect(signOffs()).toHaveLength(1)
-    expect(mails()).toEqual([])
+    const s = await w.submit(agent(kestrel), MID)
+    expect(signOffs()).toEqual([{ person_id: ops.id, post_id: s.id, done_at: null }])
+    expect(w.get("SELECT text FROM inbox_item WHERE kind = 'sign_off'").text).toBe('#1 on minecraft in doom is ready for sign-off. its author is gone, so the operator signs off.')
+    const m = mails()
+    expect(m.map(r => [r.to_email, r.person_id])).toEqual([['ops@example.org', ops.id]])
+    expect(JSON.parse(m[0].payload)).toEqual({ notice: 'sign_off', handle: 'ops', number: 1, title: 'minecraft in doom', link: '/w/minecraft-in-doom/s/1', only: true, author: 'myra', author_gone: true })
   })
 
   it('marks the item done when the submission passes, fails or is replaced', async () => {
