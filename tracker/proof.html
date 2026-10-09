@@ -77,6 +77,11 @@
   .claims li { margin: 2px 0; }
   .sources { margin: 0; padding-left: 18px; font-size: 13px; }
   .risk { font-size: 12.5px; opacity: .85; }
+  .crowd { font-size: 13px; padding: 6px 10px; border: 1.5px dashed var(--ink); }
+  .crowd.fail { background: rgba(196,87,45,.12); border-color: var(--clay); }
+  .crowd.borderline { background: rgba(244,197,49,.18); }
+  .crowd.pass { background: rgba(92,154,62,.12); border-color: var(--leaf); }
+  .crowd p { margin: 2px 0 0; }
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
 
   .thread { border-top: var(--rule); padding: 8px 14px 12px; background: rgba(233,226,198,.5); }
@@ -127,7 +132,7 @@ const marked = s => linkify(s).replace(/(<a [^>]*>.*?<\/a>)|(\$?\d(?:[\d,.]*\d)?
 const claims = s => (s || '').split(/(?<=[.!?])\s+/).filter(x => /\d/.test(x))
 
 const state = { wave: '1', status: 'all', q: '' }
-let shwarms = [], proof = {}
+let shwarms = [], proof = {}, crowd = {}
 
 const last = slug => (proof[slug] || []).at(-1)
 const verdict = slug => [...(proof[slug] || [])].reverse().find(m => m.from !== 'claude')?.choice || null
@@ -139,9 +144,10 @@ function statusOf(slug) {
 }
 
 async function load() {
-  const [a, b] = await Promise.all([fetch('/launch.json', { cache: 'no-store' }), fetch('/api/proof', { cache: 'no-store' })])
+  const [a, b, c] = await Promise.all([fetch('/launch.json', { cache: 'no-store' }), fetch('/api/proof', { cache: 'no-store' }), fetch('/crowd-review.json', { cache: 'no-store' })])
   shwarms = await a.json()
   proof = await b.json()
+  crowd = c.ok ? (await c.json()).rows || {} : {}
   render()
 }
 
@@ -155,12 +161,12 @@ function render() {
   const btn = (key, val, label) => `<button data-k="${key}" data-v="${val}" class="${state[key] === val ? 'on' : ''}">${label}</button>`
   const qEl = $('q'), hadFocus = document.activeElement === qEl, caret = qEl?.selectionStart
   $('filters').innerHTML = btn('wave', '1', 'wave 1 (20)') + btn('wave', '2', 'wave 2') + btn('wave', '3', 'wave 3') + btn('wave', 'all', 'all') + '<span class="sep"></span>' +
-    btn('status', 'all', 'any') + btn('status', 'waiting', 'waiting') + btn('status', 'change', 'to change') + btn('status', 'approve', 'approved') +
+    btn('status', 'all', 'any') + btn('status', 'waiting', 'waiting') + btn('status', 'change', 'to change') + btn('status', 'approve', 'approved') + btn('status', 'solo', 'solo-sized') +
     `<input id="q" placeholder="search title, tags, text" value="${esc(state.q)}">`
   if (hadFocus) { $('q').focus(); $('q').setSelectionRange(caret, caret) }
 
   const q2 = state.q.toLowerCase()
-  const shown = inWave.filter(s => state.status === 'all' || statusOf(s.slug) === state.status || (state.status === 'change' && ['question', 'answered'].includes(statusOf(s.slug))))
+  const shown = inWave.filter(s => state.status === 'all' || (state.status === 'solo' && ['fail', 'borderline'].includes(crowd[s.slug]?.verdict) && statusOf(s.slug) !== 'approve') || statusOf(s.slug) === state.status || (state.status === 'change' && ['question', 'answered'].includes(statusOf(s.slug))))
     .filter(s => !q2 || JSON.stringify(s).toLowerCase().includes(q2))
 
   $('list').innerHTML = shown.length ? shown.map(card).join('') : '<div class="empty">nothing here.</div>'
@@ -181,6 +187,7 @@ function card(s) {
       <span class="pill ${st}">${st === 'answered' ? 'claude answered' : st}</span></div>
     <div class="body">
       <div class="sec tags">${(s.tags || []).map(esc).join(' ')}</div>
+      ${crowd[s.slug] ? `<div class="sec crowd ${crowd[s.slug].verdict}"><h3>crowd check: ${crowd[s.slug].verdict === 'pass' ? 'needs a crowd' : crowd[s.slug].verdict === 'fail' ? 'one person could do this' : 'borderline'}</h3><p>${esc(crowd[s.slug].why)}</p>${crowd[s.slug].fix ? `<p><b>crowd-sized version:</b> ${esc(crowd[s.slug].fix)}</p>` : ''}</div>` : ''}
       <div class="sec"><h3>what</h3><p>${marked(s.what)}</p></div>
       <div class="sec"><h3>why now</h3><p>${marked(s.why_now)}</p></div>
       <div class="sec done"><h3>done when</h3><p>${marked(s.done_when)}</p></div>
