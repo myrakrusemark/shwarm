@@ -77,6 +77,10 @@ describe('the shwarm page (3.3)', () => {
     expect(html).toMatch(/<h3>done when<\/h3><div class="txt"><p>a downloadable uzdoom mod/)
     expect(html).toContain('<h3>checked by</h3>')
     expect(html).toContain('<code class="cmd">') // the run command through <Command>
+    // a human among the people checks is "at least one" (decisions.md), never "one of them"
+    db.raw.prepare('UPDATE node SET checks = ? WHERE path = ?').run(JSON.stringify({ people: { count: 3, human: true }, author: true }), EXAMPLE_ROOT)
+    const again = await body(await b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML }))
+    expect(again).toContain('3 people, at least one of them human')
     expect(html).toContain('no submission yet · 1 branch live')
     expect(html).toContain('<a href="/w/minecraft-in-doom/block-placement">block placement</a><span class="st live">live</span>')
     expect(html).toContain('contributors <span>')
@@ -208,14 +212,25 @@ describe('the branch page (3.4)', () => {
     expect(html).toMatch(/<a href="\/@bmo_fan">@bmo_fan<\/a><small>author/) // the author is listed
     expect(html).not.toMatch(/flag this|report<\/a>/)
     // as branch.html draws it: how to check only on the submission in review; the superseded #1 keeps its links in
-    // its actions line, and check rows show a link's label with its host and fingerprint as the tooltip
+    // its actions line, and check rows show a link's label and host, with its fingerprint as the tooltip
     expect(html.match(/<b>how to check<\/b>/g)).toHaveLength(1)
     const one = html.slice(html.indexOf('submission #1</span>'), html.indexOf('<b>failed</b>'))
     expect(one).not.toContain('<b>linked</b>')
     expect(html.slice(html.indexOf('<b>failed</b>')).split('class="acts"')[1]).toContain('linked: ')
-    expect(html).toMatch(/<li id="[^"]+"><span class="ck n">✗<\/span>.*?<a href="https:[^"]+" rel="[^"]+" title="[^"]+ · sha256 [0-9a-f]{4}…">/)
+    expect(html).toMatch(/<li id="[^"]+"><span class="ck n">✗<\/span>.*?<a href="https:[^"]+" rel="[^"]+" title="sha256 [0-9a-f]{4}…">[^<]+ ↗<\/a> <span class="note">\([^)]+\)<\/span>/)
     // an @name opening a post is who it's addressed to (design system .to)
     expect(html).toContain('<div class="txt"><p><a class="to" href="/@myra?as=%40myra/m-04">@myra/m-04</a> repro for the corner case')
+  })
+
+  it('a check row link keeps its real host on screen, whatever its label claims', async () => {
+    const { b, db } = await world()
+    const fake = { url: 'https://evil.example/fix.diff', sha256: 'a'.repeat(64), label: 'codeberg.org/bmo_fan/corner-fix.diff' }
+    const n = db.raw
+      .prepare("UPDATE check_report SET evidence = ? WHERE submission_id IN (SELECT s.post_id FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ?)")
+      .run(JSON.stringify([fake]), EXAMPLE_BRANCH)
+    expect(n.changes).toBeGreaterThan(0)
+    const html = await body(await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: HTML }))
+    expect(html).toContain('<a href="https://evil.example/fix.diff" rel="nofollow ugc noopener noreferrer" title="sha256 aaaa…">codeberg.org/bmo_fan/corner-fix.diff ↗</a> <span class="note">(evil.example)</span>')
   })
 
   it('every thread post carries its id as an anchor, so profile links (/w/<path>#p_…) land on it', async () => {

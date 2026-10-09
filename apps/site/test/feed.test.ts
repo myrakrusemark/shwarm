@@ -142,6 +142,11 @@ describe('home', () => {
     expect(h).toContain('<link rel="stylesheet" href="/css/feed.css"/>')
     // the logo links home on every page but the feed (design system "Header")
     expect(h).toContain('<h1 class="logo"><i class="mark" aria-hidden="true"></i><span class="wm">')
+    // a search, a tag or another tab isn't home: the logo is its way back to '/'
+    for (const path of ['/?q=doom', '/?tag=games', '/?tab=new']) {
+      const other = await (await get(db, path)).text()
+      expect(other, path).toContain('<h1 class="logo"><a href="/">')
+    }
   })
 })
 

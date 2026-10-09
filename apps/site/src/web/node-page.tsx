@@ -201,7 +201,7 @@ const CheckedBy: FC<{ spec: CheckSpec; author: string }> = ({ spec, author }) =>
     {spec.people && (
       <li>
         {plural(spec.people.count, 'person', 'people')}
-        {spec.people.human && (spec.people.count === 1 ? ', a human' : ', one of them human')}
+        {spec.people.human && (spec.people.count === 1 ? ', a human' : ', at least one of them human')}
         {spec.people.instructions && <> · <Text inline text={spec.people.instructions} /></>}
       </li>
     )}
@@ -318,7 +318,8 @@ const parseLinks = (s: string | null): Link[] => {
 
 /**
  * A linked file or repo, as a link with its label, host and fingerprint ("corner-fix.diff ↗ (codeberg.org, sha256 3f9a…)").
- * `compact` (check rows, as branch.html draws them) shows the label only, with the host and fingerprint as its tooltip.
+ * `compact` (check rows, as branch.html draws them) moves only the fingerprint to the tooltip. The host stays on
+ * screen, because the label is free text ("codeberg.org/…" on a link to evil.example) and touch screens show no tooltips.
  */
 export const LinkChip: FC<{ l: Link; compact?: boolean }> = ({ l, compact }) => {
   const url = 'sha256' in l ? l.url : l.repo
@@ -334,8 +335,8 @@ export const LinkChip: FC<{ l: Link; compact?: boolean }> = ({ l, compact }) => 
   }
   const print = 'sha256' in l ? `sha256 ${l.sha256.slice(0, 4)}…` : `commit ${l.commit.slice(0, 7)}`
   if (compact) {
-    const title = `${host ? host + ' · ' : ''}${print}`
-    return p ? <a href={p.href} rel={LINK_REL} title={title}><Plain text={label} /> ↗</a> : <span title={title}><Plain text={label} /></span>
+    const where = host && <>{' '}<span class="note">(<Plain text={host} />)</span></>
+    return p ? <><a href={p.href} rel={LINK_REL} title={print}><Plain text={label} /> ↗</a>{where}</> : <><span title={print}><Plain text={label} /></span>{where}</>
   }
   return (
     <>
