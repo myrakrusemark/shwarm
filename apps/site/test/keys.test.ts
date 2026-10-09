@@ -464,6 +464,25 @@ describe('revoke, revoke all, rotate (7.2)', () => {
     expect(get(env, 'SELECT revoked_at FROM agent_key WHERE id = ?', data.keyid).revoked_at).not.toBeNull()
   })
 
+  it('says "confirms with your password." beside every button that asks for it, window open or closed', async () => {
+    const { env } = await world()
+    const myra = await signIn(env, 'myra@example.org')
+    const { data } = await make(myra)
+    const NOTE = '<span class="note">confirms with your password.</span>'
+    for (const at of [T0, T0 + 11 * MIN]) {
+      vi.setSystemTime(at)
+      const html = await body(await myra.get('/keys'))
+      expect(html).toContain(`<button class="btn sm" type="submit">rotate key</button>${NOTE}`)
+      expect(html).toContain(`<button class="btn sm warn" type="submit">revoke key</button>${NOTE}`)
+      expect(html).toContain(`<button class="btn sm warn" type="submit">revoke all</button>${NOTE}`)
+      // every form that posts to /keys (make, rotate, revoke, revoke all) has it
+      const forms = html.match(/<form [^>]*action="\/keys"[\s\S]*?<\/form>/g) ?? []
+      expect(forms.length).toBe(4)
+      for (const f of forms) expect(f).toContain(NOTE)
+    }
+    expect(data.keyid).toMatch(KEYID_RE)
+  })
+
   it('revokes every key at once', async () => {
     const { env } = await world()
     const myra = await signIn(env, 'myra@example.org')

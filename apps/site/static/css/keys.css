@@ -120,6 +120,7 @@ td.act details.kact form { position: absolute; right: 12px; top: 100%; z-index: 
   background: var(--paper); border: var(--rule); box-shadow: 4px 4px 0 var(--ink); }
 .kact form .note { margin: 0 0 8px; font-size: 12px; }
 .kact form .btn { margin-top: 4px; }
+.kact form .btn + .note { margin: 0 0 0 8px; }
 details.revall { margin-left: 0; }
 details.revall > summary.btn { text-decoration: none; display: inline-block; color: color-mix(in srgb, var(--clay) 80%, var(--ink)); }
 details.revall > summary.btn:hover { color: var(--ink); }

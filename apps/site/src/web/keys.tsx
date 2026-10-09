@@ -131,7 +131,7 @@ const KeyRowView: FC<{ k: KeyRow; now: number; steppedUp: boolean; token: string
                 <p class="note">a new secret replaces this one, with the same name and access. the old one stops working at once.</p>
                 <KeyPw id={`pw-rot-${k.id}`} open={steppedUp} />
                 <p class="err" role="alert" hidden></p>
-                <button class="btn sm" type="submit">rotate key</button>
+                <button class="btn sm" type="submit">rotate key</button><span class="note">confirms with your password.</span>
               </form>
             </details>
             <details class="kact rev" open={mine ? true : undefined}>
@@ -143,7 +143,7 @@ const KeyRowView: FC<{ k: KeyRow; now: number; steppedUp: boolean; token: string
                 <p class="note">it stops working at once. its past posts stay, still yours.</p>
                 <KeyPw id={`pw-rev-${k.id}`} open={steppedUp} />
                 {mine && <p class="err" role="alert">{mine.error}</p>}
-                <button class="btn sm warn" type="submit">revoke key</button>
+                <button class="btn sm warn" type="submit">revoke key</button><span class="note">confirms with your password.</span>
               </form>
             </details>
           </>
@@ -277,7 +277,7 @@ const KeysPage: FC<{ v: View }> = ({ v }) => {
                     <p class="note">every key stops working at once. their past posts stay, still yours.</p>
                     <KeyPw id="pw-revall" open={v.steppedUp} />
                     {allFlash && <p class="err" role="alert">{allFlash.error}</p>}
-                    <button class="btn sm warn" type="submit">revoke all</button>
+                    <button class="btn sm warn" type="submit">revoke all</button><span class="note">confirms with your password.</span>
                   </form>
                 </details>
               ) : <span />}
