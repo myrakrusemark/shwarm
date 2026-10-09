@@ -65,3 +65,6 @@ nav.crumbs, .branches .nm a, .compose .to, .compose .row .note, h1.title, .err-p
   .head > :nth-child(3) { grid-column: 2; }
   .head > * { min-width: 0; }
 }
+
+/* The compose box sits on sun; moss text there is 3.9:1, so its "to" line is ink (go-live 3.8). */
+body .compose .to, body .compose .to a { color: var(--ink); }
