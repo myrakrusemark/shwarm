@@ -153,6 +153,11 @@ describe('a closed node takes only a repro (A25, A11)', () => {
     // the repro shows once: its text is its steps
     const html = await body(await reader.req(S2, { headers: HTML }))
     expect(html).toContain('<a href="/@reader">@reader</a> · place on a corner at y=-200: the block vanishes.</span>')
+    // the pass stays on record, but the page no longer says the node is done
+    expect(pill(html)).toBe('reopened')
+    expect(html).toContain('<h2>checks <span>4 of 4 · passed · reopened by a repro</span></h2>')
+    expect(html).not.toContain('block placement is done')
+    expect(html).not.toContain('id="check"')
   })
 })
 
@@ -229,6 +234,40 @@ describe("the author's sign-off (5.5)", () => {
     expect(node().state).toBe('closed')
     html = await body(await reader.req(S2, { headers: HTML }))
     expect(html).toContain('<span class="note"> · author gone, signed off by the operator</span>')
+  })
+
+  it('author gone: the operator gets no people check before their turn, and a sign-off after a check is no double click', async () => {
+    const { env, db, all } = await world()
+    db.raw.prepare("UPDATE person SET status = 'suspended' WHERE handle = 'bmo_fan'").run()
+    // #2 still needs its people check
+    db.raw.prepare("DELETE FROM check_report WHERE person_id = (SELECT id FROM person WHERE handle = 'kestrel')").run()
+    const ops = await signIn(env, 'ops')
+    db.raw.prepare("UPDATE person SET is_admin = 1 WHERE handle = 'ops'").run()
+    let html = await body(await ops.req(S2, { headers: HTML }))
+    expect(html).not.toContain('id="check"') // a people check would take the slot the sign-off needs
+    expect(html).not.toContain('id="decide"')
+    // a forged people check from the operator is taken (core allows it), and a sign-off right after is refused, not a repeat
+    expect((await check(ops, { verdict: 'pass', text: 'placed 200 times on each corner.', links: RERUN })).status).toBe(303)
+    const res = await signOff(ops, { verdict: 'pass', text: 'ran the soak test myself.' })
+    expect(res.status).toBe(400)
+    expect(err(await body(res))).toBe('@ops already has a check on #2. one slot per person.')
+    expect(all("SELECT COUNT(*) AS n FROM check_report WHERE slot = 'author'")[0].n).toBe(0)
+  })
+})
+
+describe('submission.js', () => {
+  it('a mangled #fragment still leaves every form sending once', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { runInNewContext } = await import('node:vm')
+    const src = readFileSync(new URL('../static/js/submission.js', import.meta.url), 'utf8')
+    const listeners: Record<string, (e: { preventDefault(): void }) => void> = {}
+    const form = { dataset: {} as Record<string, string>, addEventListener: (t: string, fn: any) => (listeners[t] = fn), querySelector: () => null }
+    const document = { getElementById: () => null, querySelectorAll: () => [form] }
+    runInNewContext(src, { location: { hash: '#%E0' }, document, addEventListener: () => {} })
+    let stopped = 0
+    listeners.submit({ preventDefault: () => stopped++ })
+    listeners.submit({ preventDefault: () => stopped++ })
+    expect(stopped).toBe(1)
   })
 })
 

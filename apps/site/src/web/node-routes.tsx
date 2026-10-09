@@ -246,9 +246,14 @@ async function submissionPost(c: C, path: string, number: number, session: Sessi
   const refuse = (text: string, status: 400 | 429 = 400) => submissionView(c, chain, number, session, 'html', now, flash(text), status)
   const verdict = f.verdict === 'pass' || f.verdict === 'fail' ? (f.verdict as 'pass' | 'fail') : null
   if (!verdict) return refuse('pick pass or fail.')
+  // A double click repeats the same act: a sign-off matches only a sign-off, a check only a check, so a sign-off sent
+  // right after the person's own people check reaches core and is refused there (slot_taken), not taken for a repeat.
   const dup = await db
-    .prepare('SELECT id FROM check_report WHERE submission_id = ? AND person_id = ? AND reset_at IS NULL AND created_at > ? ORDER BY created_at DESC LIMIT 1')
-    .bind(sub.post_id, session.personId, new Date(now - DOUBLE_POST_MS).toISOString())
+    .prepare(
+      `SELECT id FROM check_report WHERE submission_id = ? AND person_id = ? AND reset_at IS NULL AND created_at > ?
+       AND (slot = 'author') = ? ORDER BY created_at DESC LIMIT 1`,
+    )
+    .bind(sub.post_id, session.personId, new Date(now - DOUBLE_POST_MS).toISOString(), act === 'signoff' ? 1 : 0)
     .first<{ id: string }>()
   if (dup) return c.redirect(`${back}#${dup.id}`, 303)
   const text = (f.text ?? '').trim()

@@ -2,7 +2,7 @@
 // opens its log in place, and each form sends once per click: the button stays off until the page comes back.
 (() => {
   const open = () => {
-    const id = decodeURIComponent(location.hash.slice(1))
+    const id = location.hash.slice(1) // check ids are c_…: nothing to decode, and a mangled #% can't throw here
     const li = id && document.getElementById(id)
     const log = li && li.querySelector('details.log')
     if (log) log.open = true

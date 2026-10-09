@@ -39,10 +39,10 @@ type Pill = { cls: 'wait' | 'ok' | 'no' | ''; text: string }
 
 /**
  * A submission's state as a pill. The author sees "waiting on you", "approved" and "failed" (design system .stp).
- * OPEN: the wording others see ("waiting on author", "in review", "superseded") isn't in a mockup yet.
+ * OPEN: the wording others see ("waiting on author", "in review", "superseded", "reopened") isn't in a mockup yet.
  */
-function pillOf(status: SubmissionRow['status'], waitingOnAuthor: boolean, mine: boolean): Pill {
-  if (status === 'passed') return { cls: 'ok', text: 'approved' }
+function pillOf(status: SubmissionRow['status'], waitingOnAuthor: boolean, mine: boolean, reopened = false): Pill {
+  if (status === 'passed') return reopened ? { cls: 'no', text: 'reopened' } : { cls: 'ok', text: 'approved' }
   if (status === 'failed') return { cls: 'no', text: 'failed' }
   if (status === 'superseded') return { cls: '', text: 'superseded' }
   if (waitingOnAuthor) return { cls: 'wait', text: mine ? 'waiting on you' : 'waiting on author' }
@@ -58,7 +58,7 @@ export const SubmissionPage: FC<{ d: SubmissionPageData }> = ({ d }) => {
   const standing = d.checks.filter(c => !c.reset_at)
   const r = review(n.spec, n.author, sub, standing)
   // A dead end keeps its submission in review but takes no checks or sign-off, so nobody is waited on (isOpen).
-  const pill = pillOf(sub.status, isOpen(n, sub) && r.waitingOn === 'author', isAuthor || !!d.operator)
+  const pill = pillOf(sub.status, isOpen(n, sub) && r.waitingOn === 'author', isAuthor || !!d.operator, reopened(d, sub))
   const forms = whichForms(d, r)
   const lost = d.flash && !(d.flash.at === 'check' ? forms.check : forms.signOff)
   const what = cut(showHidden(sub.text), 200)
@@ -116,7 +116,7 @@ export const SubmissionPage: FC<{ d: SubmissionPageData }> = ({ d }) => {
                   <span>
                     {s.number === sub.number ? <b>#{s.number}</b> : <a href={subHref(n.path, s.number)}><b>#{s.number}</b></a>} · <Name name={s.as_name} />
                   </span>
-                  <PillView p={s.number === sub.number ? pill : pillOf(s.status, s.status === 'in_review' && s.ready_at !== null, isAuthor)} />
+                  <PillView p={s.number === sub.number ? pill : pillOf(s.status, s.status === 'in_review' && s.ready_at !== null, isAuthor, reopened(d, s))} />
                 </li>
               ))}
             </ul>
@@ -130,6 +130,15 @@ export const SubmissionPage: FC<{ d: SubmissionPageData }> = ({ d }) => {
   )
 }
 
+/** The passed submission that closed the node, while it stays closed: the one a repro reopens it from (A25, A11). */
+const closingNumber = (d: SubmissionPageData) => (d.chain.node.state === 'closed' ? d.subs.find(s => s.status === 'passed')?.number ?? null : null)
+
+/**
+ * A passed submission whose pass no longer closes the node: a repro reopened it (a pass closes the node, and only a
+ * repro on the passing submission reopens it). Its pass stays on record.
+ */
+const reopened = (d: SubmissionPageData, s: SubmissionRow) => s.status === 'passed' && closingNumber(d) !== s.number
+
 /**
  * Which forms the viewer gets. The sign-off box: the author (or, author gone, the operator) once every other check has
  * passed. The check box: anyone else while the submission takes checks, or, on a closed node, a repro on the passing
@@ -141,13 +150,14 @@ function whichForms(d: SubmissionPageData, r: Review): { signOff: boolean; check
   const sub = d.sub
   const me = d.me
   const open = isOpen(n, sub)
-  const repro = n.state === 'closed' && sub.status === 'passed' && d.subs.find(s => s.status === 'passed')?.number === sub.number
+  const repro = sub.status === 'passed' && closingNumber(d) === sub.number
   const mine = !!me && sub.person_id === me.personId
   const holds = !!me && d.checks.some(c => !c.reset_at && humanOf(c.as_name) === '@' + me.handle)
   const signer = !!me?.verified && open && r.need.author && (me.personId === n.author_id || !!d.operator)
   const signOff = signer && r.waitingOn === 'author' && !mine && !holds
-  // The author's check on a submission in review is the sign-off; until it's their turn there's nothing to fill.
-  const authorWaits = !!me && open && r.need.author && me.personId === n.author_id
+  // The author's check on a submission in review is the sign-off; until it's their turn there's nothing to fill. The
+  // same holds for the operator standing in for a gone author: a people check would take the slot the sign-off needs.
+  const authorWaits = !!me && open && r.need.author && (me.personId === n.author_id || (!!d.operator && !mine && !holds))
   const checkBox = (open || repro) && !signOff && !authorWaits
   const why = !me
     ? null
@@ -218,7 +228,8 @@ const Submitted: FC<{ d: SubmissionPageData }> = ({ d }) => {
 /** The box header's right side: the tally, or what became of the submission (as the mockup's script draws it). */
 function checksNote(d: SubmissionPageData, r: Review): string {
   const s = d.sub
-  if (s.status === 'passed') return `${r.done} of ${r.total} · ${showHidden(d.chain.node.title)} is done`
+  // OPEN (#76): "reopened by a repro" isn't in a mockup; it waits on Myra's yes.
+  if (s.status === 'passed') return reopened(d, s) ? `${r.done} of ${r.total} · passed · reopened by a repro` : `${r.done} of ${r.total} · ${showHidden(d.chain.node.title)} is done`
   if (s.status === 'failed') return 'reset · waiting for a new submission'
   if (s.status === 'superseded') return `superseded by #${s.superseded_number ?? '?'}`
   return `${r.done} of ${r.total}`
