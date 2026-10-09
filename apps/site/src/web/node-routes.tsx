@@ -5,7 +5,7 @@
 import { Hono, type Context } from 'hono'
 import { ShwarmError } from '@shwarm/protocol'
 import { formToken } from '../auth/csrf'
-import { clientIp, formOf, postedTokenOk, sessionOf, who, type AuthContext } from '../auth/request'
+import { clientIp, formOf, later, postedTokenOk, sessionOf, who, type AuthContext } from '../auth/request'
 import { signInHref } from '../auth/return-to'
 import type { Session } from '../auth/session'
 import { stepUp } from '../auth/signin'
@@ -30,7 +30,9 @@ import {
   type Sort,
 } from '../read/node'
 import { renderNodeJson, renderPrompt, renderSubmissionJson, renderSubmissionPrompt } from '../render/prompt'
+import type { RepitchResult } from '../core/nodes'
 import type { SubmitInput, SubmitResult } from '../core/posts'
+import { triageNew } from '../triage/run'
 import { loadAgentView, loadPageData } from '../read/views'
 import { readTombstone } from '../read/tombstone'
 import { sendError, waitText } from './errors'
@@ -42,7 +44,9 @@ import { page } from './viewer'
 
 export { pickFormat, type Format }
 
-type Env = { Bindings: { DB: D1Database; TREE: DurableObjectNamespace; ENV: string; SITE_MODE: string; CSRF_SECRET: string; PASSWORD_PEPPER: string } }
+type Env = {
+  Bindings: { DB: D1Database; TREE: DurableObjectNamespace; AI?: Ai; TRIAGE_MODEL?: string; ENV: string; SITE_MODE: string; CSRF_SECRET: string; PASSWORD_PEPPER: string }
+}
 type C = Context<Env>
 
 const TYPES: Record<Format, string> = { html: 'text/html', text: 'text/plain', json: 'application/json' }
@@ -188,7 +192,7 @@ async function isOperatorFor(db: D1Database, n: Chain['node'], personId: number)
 }
 
 /**
- * The inline step-up (A5) for acts with the author's authority: the sign-off, a dead end, reopening. With the 10-minute
+ * The inline step-up (A5) for acts with the author's authority: the sign-off, a re-pitch, a dead end, reopening. With the 10-minute
  * window open nothing is asked; otherwise the form carries the password, checked and throttled as /step-up does
  * (auth/signin.ts stepUp, which opens the window on success), so the draft never leaves for the /step-up page.
  */
@@ -287,14 +291,15 @@ async function submissionPost(c: C, path: string, number: number, session: Sessi
   }
 }
 
-// POST /w/<path> (go-live 4.4–4.7, 5.1, 5.6): the page's forms, picked by the `do` field. post: a thread post or reply
-// as the bare handle, pinned as "where we are" when the author ticks it. edit: the pinned post's text. upvote: the ▲ on
-// a post, either way. submit: the compose box's submit mode, which lands on the new submission's page. join, leave:
-// a lobby seat. dead_end (with a note), reopen: the author's own box, behind the password. Each runs in the shwarm's
-// tree (do/shwarm-tree.ts), then goes back to the page (303). A refusal re-renders the page with the reason next to the
-// form and the draft kept. Signed out, it goes to sign-in and back.
+// POST /w/<path> (go-live 4.4–4.8, 5.1, 5.6): the page's forms, picked by the `do` field. post: a thread post or reply
+// as the bare handle, pinned as "where we are" when the author ticks it. edit, delete: one of your own plain posts.
+// upvote: the ▲ on a post, either way. submit: the compose box's submit mode, which lands on the new submission's page.
+// join, leave: a lobby seat, or a late joiner's on a live shwarm. repitch (a lobby's title and what), dead_end (with a
+// note), reopen: the author's own box, behind the password. Each runs in the shwarm's tree (do/shwarm-tree.ts), then
+// goes back to the page (303). A refusal re-renders the page with the reason next to the form and the draft kept.
+// Signed out, it goes to sign-in and back.
 // POST /w/<path>/s/<n> (5.3, 5.5): check (a people check or a repro) and signoff (the author's, behind the password).
-const ACTS = ['post', 'edit', 'upvote', 'submit', 'join', 'leave', 'dead_end', 'reopen'] as const
+const ACTS = ['post', 'edit', 'delete', 'upvote', 'submit', 'join', 'leave', 'repitch', 'dead_end', 'reopen'] as const
 type Act = (typeof ACTS)[number]
 
 /** Same person, same thread, same text within this long: a double click, so the first post stands. */
@@ -324,6 +329,26 @@ nodeRoutes.post('/*', async c => {
   // A refused submission reopens the submit form with every field as typed.
   const kept: Partial<Flash> = act === 'submit' ? { mode: 'submit' as const, fields: Object.fromEntries(SUBMIT_FIELDS.map(k => [k, f[k] ?? ''])) } : {}
   try {
+    if (act === 'repitch') {
+      const fields = { title: f.title ?? '', what: f.what ?? '' }
+      const refuse = (text: string, status: 400 | 429 = 400) => htmlPage(c, chain, parsed.path, session, now, { at: 'owner', text, fields }, status)
+      const title = fields.title.trim()
+      const what = fields.what.trim()
+      // OPEN (#79): the words wait on Myra's yes. Said before the password is checked, so it isn't spent.
+      if (!title || !what) return refuse('a pitch needs a title and a what.')
+      // A second click lands after the first did it: back to the page, as the first click went.
+      if (title === n.title && what === n.what) return c.redirect(back, 303)
+      // Only the author is asked for the password; anyone else is refused by core (only the author re-pitches).
+      const s = n.author_id === session.personId ? await steppedUp(c, session, f.password, now) : { actor }
+      if ('refuse' in s) {
+        if (s.wait) c.header('Retry-After', String(s.wait))
+        return refuse(s.refuse, s.status)
+      }
+      const r = await runInTree<RepitchResult>(c.env.TREE, { type: 'repitch', actor: s.actor, input: { node: parsed.path, title, what } })
+      // The new words are checked like a new node's, after the response (as web/create.tsx does).
+      if (r.repitched && r.triage === 'pending') await later(c, () => triageNew(c.env, parsed.path))
+      return c.redirect(back, 303)
+    }
     if (act === 'dead_end' || act === 'reopen') {
       const refuse = (text: string, status: 400 | 429 = 400) => htmlPage(c, chain, parsed.path, session, now, { at: 'owner', text, draft: f.note }, status)
       // A second click lands after the first did it: back to the page, as the first click went.
@@ -358,7 +383,7 @@ nodeRoutes.post('/*', async c => {
       const r = await runInTree<{ id: string }>(c.env.TREE, { type: 'post', actor, input: { node: parsed.path, text, replyTo, ...(pin ? { pin } : {}) } })
       return c.redirect(`${back}#${r.id}`, 303)
     }
-    // Upvotes and edits go back to the post, on the page (sort, filter, page) the form was on.
+    // Upvotes, edits and deletes go back to the post, on the page (sort, filter, page) the form was on.
     const at = `${back}${url.search}${isId('p', f.post) ? `#${f.post}` : ''}`
     if (act === 'upvote') {
       await runInTree(c.env.TREE, { type: 'upvote', actor, input: { node: parsed.path, post: f.post ?? '', up: f.up !== '0' } })
@@ -369,6 +394,11 @@ nodeRoutes.post('/*', async c => {
       if (!text) return htmlPage(c, chain, parsed.path, session, now, { at: 'post', post: f.post, text: 'write something first.', draft: '' }, 400)
       // The same text twice (a double click) changes nothing in core.
       await runInTree(c.env.TREE, { type: 'editPost', actor, input: { node: parsed.path, post: f.post ?? '', text } })
+      return c.redirect(at, 303)
+    }
+    if (act === 'delete') {
+      // Deleting it twice (a double click) changes nothing in core; the second lands on the tombstone too.
+      await runInTree(c.env.TREE, { type: 'deletePost', actor, input: { node: parsed.path, post: f.post ?? '' } })
       return c.redirect(at, 303)
     }
     if (act === 'submit') {
@@ -404,16 +434,25 @@ nodeRoutes.post('/*', async c => {
     return c.redirect(back, 303)
   } catch (e) {
     if (!(e instanceof ShwarmError)) throw e
-    const at = act === 'post' || act === 'submit' ? 'compose' : act === 'dead_end' || act === 'reopen' ? 'owner' : act === 'edit' || act === 'upvote' ? 'post' : 'seats'
+    const at =
+      act === 'post' || act === 'submit' ? 'compose' : act === 'repitch' || act === 'dead_end' || act === 'reopen' ? 'owner' : act === 'edit' || act === 'delete' || act === 'upvote' ? 'post' : 'seats'
     const draft = act === 'post' || act === 'submit' || act === 'edit' ? f.text ?? '' : act === 'dead_end' ? f.note : undefined
-    // A refused upvote or edit shows under its post; a refused pinned post keeps its box ticked.
-    if (act === 'edit' || act === 'upvote') Object.assign(kept, { post: f.post })
+    // A refused upvote, edit or delete shows under its post; a refused pinned post keeps its box ticked; a refused
+    // re-pitch keeps its title and what.
+    if (act === 'edit' || act === 'delete' || act === 'upvote') Object.assign(kept, { post: f.post })
     if (act === 'post' && f.pin === '1') Object.assign(kept, { pin: true })
+    if (act === 'repitch') Object.assign(kept, { fields: { title: f.title ?? '', what: f.what ?? '' } })
     if (e.code === 'rate_limited') {
       const wait = Number(e.details.retry_after) || 60
       c.header('Retry-After', String(wait))
       // OPEN: the submissions wording isn't in a mockup; it waits on Myra's yes.
-      const text = e.details.limit === 'submissions' ? `one submission per person per day here. next in ${waitText(wait)}.` : `slow down: you can post here again in ${waitText(wait)}.`
+      // OPEN (#79): a re-pitch's wait is its own words, waiting on Myra's yes too.
+      const text =
+        e.details.limit === 'submissions'
+          ? `one submission per person per day here. next in ${waitText(wait)}.`
+          : act === 'repitch'
+            ? `slow down: you can re-pitch again in ${waitText(wait)}.`
+            : `slow down: you can post here again in ${waitText(wait)}.`
       return htmlPage(c, chain, parsed.path, session, now, { at, text, draft, ...kept }, 429)
     }
     return htmlPage(c, chain, parsed.path, session, now, { at, text: e.message.replace(/\.?$/, '.'), draft, ...kept }, 400)

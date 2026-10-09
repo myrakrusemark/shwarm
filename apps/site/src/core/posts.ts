@@ -28,7 +28,7 @@ export async function post(ctx: Ctx, a: Actor, inp: PostInput): Promise<PostResu
   const links = parseLinks(inp.links)
   let replyTo: string | null = null
   if (inp.replyTo !== undefined && inp.replyTo !== null) {
-    if (!isId('p', inp.replyTo) || !(await ctx.db.prepare('SELECT 1 FROM post WHERE id = ? AND node_id = ?').bind(inp.replyTo, n.id).first()))
+    if (!isId('p', inp.replyTo) || !(await ctx.db.prepare('SELECT 1 FROM post WHERE id = ? AND node_id = ? AND deleted_at IS NULL').bind(inp.replyTo, n.id).first()))
       throw bad('reply_to is not a post in this thread')
     replyTo = inp.replyTo
   }
@@ -52,12 +52,15 @@ export async function post(ctx: Ctx, a: Actor, inp: PostInput): Promise<PostResu
   return { id, node: n.path, as: a.as, at: ctx.at, mentions: m.names, limits: limits(bucket.left) }
 }
 
-/** A post in this node's thread, not hidden; anything else is refused the same way, so nothing hidden is confirmed. */
-async function threadPost(ctx: Ctx, nodeId: number, id: unknown) {
+/**
+ * A post in this node's thread, not hidden; anything else is refused the same way, so nothing hidden is confirmed.
+ * A post its poster deleted is a public tombstone, so it's refused by name, unless `deleted` lets it through.
+ */
+async function threadPost(ctx: Ctx, nodeId: number, id: unknown, o: { deleted?: boolean } = {}) {
   const p = isId('p', id)
     ? await ctx.db
         .prepare(
-          `SELECT p.id, p.person_id, p.as_name, p.kind, p.text, p.links,
+          `SELECT p.id, p.person_id, p.as_name, p.kind, p.text, p.links, p.deleted_at,
                   pr.created_at AS person_created_at, pr.founding AS person_founding
            FROM post p JOIN person pr ON pr.id = p.person_id WHERE p.id = ? AND p.node_id = ? AND p.hidden = 0`,
         )
@@ -69,11 +72,13 @@ async function threadPost(ctx: Ctx, nodeId: number, id: unknown) {
           kind: string
           text: string
           links: string
+          deleted_at: string | null
           person_created_at: string
           person_founding: number
         }>()
     : null
   if (!p) throw bad(`${String(id)} is not a post in this thread`)
+  if (p.deleted_at && !o.deleted) throw bad(`${p.id} was deleted`)
   return p
 }
 
@@ -143,7 +148,8 @@ export type EditResult = { id: string; node: string; edited: boolean; at: string
  * Edit a thread post's text (go-live 4.6; table B #30): only its poster, under the same name, and only plain posts.
  * Submissions, checks and dead-end notes never change. The version it replaces goes to post_edit with the time it
  * was replaced, so the page can show the history; links stay as posted. The same text again changes nothing.
- * The site offers it on the author's pinned post ("where we are"), which feeds the status line (table B #40).
+ * The site offers it on every plain post of the viewer's own (go-live 4.8); on the author's pinned post ("where we are")
+ * it also moves the status line (table B #40).
  * OPEN (#78): an edit spends a thread post token (as a post does), so editing can't flood the history; mentions are read
  * from the text as first posted, so a name added in an edit gets no inbox item.
  */
@@ -165,6 +171,36 @@ export async function editPost(ctx: Ctx, a: Actor, inp: EditInput): Promise<Edit
     touchNode(ctx, n.id, null), // a pinned post's first line is the status line, so the stats job rolls the node up again
   ])
   return { id: p.id, node: n.path, edited: true, at: ctx.at, limits: limits(bucket.left) }
+}
+
+export type DeleteInput = { node: string; post: string }
+export type DeleteResult = { id: string; node: string; deleted: boolean; at: string }
+
+/**
+ * Delete a thread post (go-live 4.8; table B #30): only its poster, under the same name, and only plain posts, as for
+ * edits. The row stays as a tombstone ("this post was deleted."), so its replies keep their place and links to it still
+ * land; its text, links and earlier versions are cleared, and so are its mentions. A deleted pinned post is unpinned,
+ * and the status line falls back to recorded state. Deleting it again changes nothing (a double click).
+ * OPEN (#79): a deleted post still counts toward the thread's posts, its upvotes stay with the poster, and nothing of its
+ * text is kept, not even for the operator. Deleting costs no thread post token.
+ */
+export async function deletePost(ctx: Ctx, a: Actor, inp: DeleteInput): Promise<DeleteResult> {
+  authorize(a, 'delete', String(inp?.node))
+  const person = await loadPerson(ctx, a)
+  checkWritable(await readSettings(ctx.db, ['read_only']))
+  const n = await loadNode(ctx, inp.node)
+  const p = await threadPost(ctx, n.id, inp.post, { deleted: true })
+  if (p.kind !== 'post') throw new ShwarmError('not_permitted', `a ${p.kind === 'dead_end' ? 'dead-end note' : p.kind} can't be deleted`, { kind: p.kind })
+  if (p.person_id !== person.id || p.as_name !== a.as) throw new ShwarmError('not_permitted', `only ${p.as_name} deletes this post`, { need: 'poster' })
+  if (p.deleted_at) return { id: p.id, node: n.path, deleted: false, at: p.deleted_at }
+  await ctx.db.batch([
+    ctx.db.prepare("UPDATE post SET text = '', links = '[]', deleted_at = ? WHERE id = ?").bind(ctx.at, p.id),
+    ctx.db.prepare('DELETE FROM post_edit WHERE post_id = ?').bind(p.id),
+    ctx.db.prepare('DELETE FROM mention WHERE post_id = ?').bind(p.id),
+    ctx.db.prepare('UPDATE node SET pinned_post_id = NULL WHERE id = ? AND pinned_post_id = ?').bind(n.id, p.id),
+    touchNode(ctx, n.id, null), // the tombstone shows signed out, and a pinned one moves the status line
+  ])
+  return { id: p.id, node: n.path, deleted: true, at: ctx.at }
 }
 
 export type SubmitInput = {
@@ -221,7 +257,7 @@ export async function submit(ctx: Ctx, a: Actor, inp: SubmitInput): Promise<Subm
     for (const b of inp.builtOn) {
       const id = typeof b === 'string' ? b : b?.post
       const note = typeof b === 'string' || !b ? null : optText(b.note, 'built_on.note', MAX_BUILT_ON_NOTE)
-      if (!isId('p', id) || !(await ctx.db.prepare('SELECT 1 FROM post WHERE id = ?').bind(id).first())) throw bad(`built_on: ${String(id)} is not a post`)
+      if (!isId('p', id) || !(await ctx.db.prepare('SELECT 1 FROM post WHERE id = ? AND deleted_at IS NULL').bind(id).first())) throw bad(`built_on: ${String(id)} is not a post`)
       if (!builtOn.get(id)) builtOn.set(id, note) // named twice: the first note given wins
     }
   }

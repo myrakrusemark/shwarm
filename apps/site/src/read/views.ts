@@ -7,7 +7,9 @@ import {
   readChecks,
   readChildren,
   readContributors,
+  readMySeat,
   readMyUpvotes,
+  readPitchEdits,
   readPromptPosts,
   readSeats,
   readSubmissions,
@@ -23,12 +25,13 @@ export async function loadPageData(
   o: { sort: Sort; show: Show; page: number; url: string; here: string; me: Me; now: number },
 ): Promise<NodePageData> {
   const n = chain.node
-  const [children, seats, contributors, subs, thread] = await Promise.all([
+  const [children, seats, contributors, subs, thread, pitchEdits] = await Promise.all([
     readChildren(db, n.id),
     n.kind === 'branch' ? Promise.resolve(null) : readSeats(db, n.id),
     readContributors(db, n),
     readSubmissions(db, n.id),
     readThread(db, n, o),
+    n.kind === 'branch' ? Promise.resolve([]) : readPitchEdits(db, n.id), // only a lobby is re-pitched
   ])
   // Checks for the submissions on this page of the thread, and for the one in review (the head's status line).
   const shown = new Set<string>()
@@ -36,8 +39,13 @@ export async function loadPageData(
   for (const s of subs) if (s.status === 'in_review') shown.add(s.post_id)
   // The viewer's own upvotes on the posts shown, so each ▲ says whether it's theirs.
   const onPage = [thread.pinned, ...thread.pinned?.replies ?? [], ...thread.items, ...thread.items.flatMap(i => i.replies)].flatMap(p => (p ? [p.id] : []))
-  const [checks, myUps] = await Promise.all([readChecks(db, [...shown]), o.me ? readMyUpvotes(db, o.me.personId, onPage) : Promise.resolve(new Map<string, boolean>())])
-  return { chain, branches: children.branches, variants: children.variants, seats, contributors, subs, checks, thread, myUps, sort: o.sort, show: o.show, url: o.url, here: o.here, me: o.me, now: o.now }
+  // And the viewer's seat: the seats list stops at SEAT_LIST_MAX, so it can't say on its own.
+  const [checks, myUps, mySeat] = await Promise.all([
+    readChecks(db, [...shown]),
+    o.me ? readMyUpvotes(db, o.me.personId, onPage) : Promise.resolve(new Map<string, boolean>()),
+    o.me && n.kind !== 'branch' ? readMySeat(db, n.id, o.me.personId) : Promise.resolve(null),
+  ])
+  return { chain, branches: children.branches, variants: children.variants, seats, contributors, subs, checks, thread, myUps, mySeat, pitchEdits, sort: o.sort, show: o.show, url: o.url, here: o.here, me: o.me, now: o.now }
 }
 
 /** The prompt's and the JSON's data; null when ?before= doesn't name a post in this thread. */

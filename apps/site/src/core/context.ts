@@ -34,6 +34,7 @@ export type NodeRow = {
   root_id: number | null
   variant_of_id: number | null
   title: string
+  what: string
   checks: string
   lobby_size: number | null
   license: string
@@ -44,6 +45,7 @@ export type NodeRow = {
   posted_by: string
   state: NodeState
   in_review: number
+  triage: 'pending' | 'held' | 'clear' | 'blocked'
   hidden: number
   paused: number
   next_submission: number

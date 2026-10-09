@@ -1894,6 +1894,12 @@ components:
           type: string
           format: date-time
           description: Not in protocol.md's JSON key list.
+        deleted:
+          type: boolean
+          description: |
+            Present and true when its poster deleted it (go-live 4.8): a tombstone with empty `text` and no
+            `links`, kept so replies keep their place. Not in protocol.md's JSON key list.
+          x-status: proposed
 
     # ---------- closed shwarm: result, attribution, log ----------
     Result:

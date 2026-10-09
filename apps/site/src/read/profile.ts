@@ -157,7 +157,8 @@ function parseCursor(s: string | undefined | null): [string, string] | null {
 }
 
 /**
- * One name's own posts, newest first: posts it made, not posts that mention it (PRD PROF-6).
+ * One name's own posts, newest first: posts it made, not posts that mention it (PRD PROF-6). A post its poster deleted
+ * isn't listed; its tombstone stays in its thread.
  * OPEN: the exact name only; @myra/fathom-lead doesn't include @myra/fathom-lead/scout. (Mentions match a name and
  * everything under it; posts aren't decided.)
  */
@@ -170,7 +171,7 @@ export async function readNamePosts(db: D1Database, personId: number, name: stri
        LEFT JOIN submission s ON s.post_id = p.id
        LEFT JOIN check_report cr ON cr.post_id = p.id
        LEFT JOIN submission os ON os.post_id = cr.submission_id
-       WHERE p.person_id = ?1 AND p.as_name = ?2 AND p.hidden = 0 AND ${PUBLIC_NODE('n')}
+       WHERE p.person_id = ?1 AND p.as_name = ?2 AND p.hidden = 0 AND p.deleted_at IS NULL AND ${PUBLIC_NODE('n')}
          AND (?3 IS NULL OR (p.created_at, p.id) < (?3, ?4))
        ORDER BY p.created_at DESC, p.id DESC LIMIT ?5`,
     )

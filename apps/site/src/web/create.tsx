@@ -15,6 +15,7 @@
 // in seat 1, its own license; refused once the original is closed (build on it instead). /new?builds_on=<path>
 // fills the builds-on field, and names the shwarm when it's a closed one this viewer can see (the result page's
 // "build on this"). Both modes reach the parent or original only as the node page would show it to this viewer.
+// /new?parent=<path>&from=<post id> is a post's "make it a branch" (go-live 4.8): the branch form, filled from the post.
 import { Hono, type Context } from 'hono'
 import type { FC } from 'hono/jsx'
 import { ShwarmError } from '@shwarm/protocol'
@@ -22,12 +23,13 @@ import { formToken } from '../auth/csrf'
 import { formOf, FORM_FIELD, later, postedTokenOk, who, type AuthContext } from '../auth/request'
 import { signInHref } from '../auth/return-to'
 import { siteActor } from '../core/actor'
+import { isId } from '../core/ids'
 import { DEFAULT_RUNS } from '../core/checks'
 import { DEFAULT_LOBBY, LICENSES, needBranchable, needVariantable, type CreateNodeInput } from '../core/nodes'
 import { MAX_TEXT, MAX_TITLE } from '../core/text'
 import { runInTree } from '../do/shwarm-tree'
 import { parseNodePath, readChain, type Chain, type NodeHead } from '../read/node'
-import { licenseName } from '../render/format'
+import { cut, licenseName } from '../render/format'
 import { showHidden } from '../render/hidden'
 import { Plain, Text } from '../render/text'
 import { triageNew } from '../triage/run'
@@ -74,6 +76,23 @@ const VARIANT_PLACE: typeof PLACE = { ...PLACE, done: 'same mod, but with hunger
 
 /** A variant starts from its original's title, what and tags. OPEN (#77): mockups/new.html prefills only the first two. */
 export const variantFields = (o: NodeHead): CreateForm => ({ ...FRESH, title: `${o.title}: `, what: o.what, tags: o.tags.map(t => '#' + t).join(' ') })
+
+/**
+ * "make it a branch" (go-live 4.8, mockups/shwarm.html): a plain post in the parent's thread fills the branch form, its
+ * first line as the title (cut to fit) and its whole text as the what. Any other id (a submission, a check, a hidden or
+ * deleted post, a post elsewhere) is ignored and the form starts empty.
+ * OPEN (#79): the branch doesn't record the post it came from, so the post can't show "became sub-branch" (THREAD-9) yet.
+ */
+export async function fieldsFromPost(db: D1Database, nodeId: number, id: string | undefined): Promise<CreateForm | null> {
+  if (!isId('p', id)) return null
+  const p = await db
+    .prepare("SELECT text FROM post WHERE id = ? AND node_id = ? AND kind = 'post' AND hidden = 0 AND deleted_at IS NULL")
+    .bind(id, nodeId)
+    .first<{ text: string }>()
+  if (!p) return null
+  const first = p.text.split('\n').find(l => l.trim()) ?? ''
+  return { ...FRESH, title: cut(first, MAX_TITLE), what: p.text }
+}
 
 /** The page's words that change with the mode, from mockups/new.html. */
 function wordsOf(mode: Mode) {
@@ -463,7 +482,13 @@ create.get('/new', async c => {
   if (!m) return noNode(c as C)
   const token = await formToken(c.env.CSRF_SECRET, w.session.id)
   const v: CreateForm =
-    m.mode.kind === 'variant' ? variantFields(m.mode.original) : m.mode.kind === 'shwarm' && q.builds_on ? { ...FRESH, builds_on: q.builds_on.trim().slice(0, 600) } : FRESH
+    m.mode.kind === 'variant'
+      ? variantFields(m.mode.original)
+      : m.mode.kind === 'branch'
+        ? ((await fieldsFromPost(c.env.DB, m.mode.chain.node.id, c.req.query('from'))) ?? FRESH)
+        : q.builds_on
+          ? { ...FRESH, builds_on: q.builds_on.trim().slice(0, 600) }
+          : FRESH
   return page(c, <NewPage token={token} v={v} refused={m.refused} verified={w.session.verified} mode={m.mode} />)
 })
 

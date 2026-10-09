@@ -126,6 +126,19 @@ describe('schema', () => {
     expect(get('SELECT release_how_to_use FROM submission').release_how_to_use).toBe('gzdoom -iwad freedoom2.wad -file mid-v1.pk3')
   })
 
+  it("keeps a post's deletion time and a node's triage round (0008)", () => {
+    const cols = (t: string) => db.prepare(`PRAGMA table_info(${t})`).all().map((r: any) => r.name)
+    expect(cols('post')).toContain('deleted_at')
+    expect(cols('node')).toContain('triage_since')
+    const myra = person('myra')
+    const n = shwarm('minecraft-in-doom', myra)
+    expect(get('SELECT triage_since FROM node WHERE id = ?', n).triage_since).toBeNull()
+    // a tombstone keeps its row with no text
+    run("INSERT INTO post (id, node_id, person_id, as_name, kind, text, created_at) VALUES ('p_d', ?, ?, '@myra', 'post', 'oops', ?)", n, myra, T)
+    run("UPDATE post SET text = '', links = '[]', deleted_at = ? WHERE id = 'p_d'", T)
+    expect(get("SELECT text, deleted_at FROM post WHERE id = 'p_d'")).toEqual({ text: '', deleted_at: T })
+  })
+
   it('never stores a bare handle as a key pattern', () => {
     const myra = person('myra')
     const key = (pattern: string) => run("INSERT INTO agent_key (id, person_id, name, public_key, can_post_as, created_at) VALUES ('k1', ?, 'laptop', 'pk', ?, ?)", myra, pattern, T)

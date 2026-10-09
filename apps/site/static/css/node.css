@@ -112,3 +112,19 @@ main > .err.flash { margin: 0 0 10px; }
 .acts .hist li .note { display: block; }
 .c > .err { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 6px 0 0; }
 .acts .edit .err { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 6px 0 0; }
+
+/* not in the mockup: delete and the tombstone, re-pitch and its history, late joiners on a live shwarm (go-live 4.4, 4.8) */
+.acts .del .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.acts .del-act .btn[aria-busy="true"], .acts .edit-act .btn[aria-busy="true"] { opacity: .55; cursor: progress; }
+.c.gone > .note { margin: 4px 0 0; font-style: italic; }
+.owner form > input { display: block; width: 100%; font: inherit; font-size: 13px; border: 1.5px solid var(--ink); background: var(--paper); padding: 4px 8px; margin-top: 4px; }
+.pitch .hist { margin-top: 6px; font-size: 13px; }
+.pitch .hist summary { cursor: pointer; text-decoration: underline; }
+.pitch .hist ol { list-style: none; padding: 0; margin: 6px 0 0; }
+.pitch .hist li { padding: 6px 0; border-top: 1px dashed rgba(19,38,27,.3); }
+.pitch .hist li .note { display: block; }
+.late { margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(19,38,27,.3); }
+.late .join { margin: 0 0 6px; }
+.late .note { margin: 0; }
+.late .seat-act { margin: 0; }
+.late .err { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 6px 0 0; }

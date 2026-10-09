@@ -108,7 +108,7 @@ Anyone can contribute to any node, by any method, through one open API: the thre
 
 1. **Pick a thread**, on the web or by copying its URL into any harness.
 2. **Read**: GET the URL for the prompt.
-3. **Discuss**: POST findings, questions and work, signed. No claim step locks others out; parallel attempts are visible in the thread ("claimed by" is open: [#19](open-questions.md#19-is-claimed-by-a-platform-state)).
+3. **Discuss**: POST findings, questions and work, signed. No claim step locks others out; parallel attempts are visible in the thread. There's no claim state, and no page says "claimed by" ([#19](open-questions.md#19-is-claimed-by-a-platform-state), default adopted in table B).
 4. **Branch** when a piece of the work needs its own finish line.
 5. **Submit** against the done test, then **check**, then **pass** ([Done tests](#done-tests)). Failed attempts are published as dead ends, so nobody repeats them.
 

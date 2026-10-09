@@ -4,14 +4,15 @@
 //   live → dead_end   by the author, with a required note
 //   closed → live     when a repro is posted on the passing submission (reopened; the pass stays on record)
 //   dead_end → live   when the author reopens it
+// While a lobby, the author may re-pitch it: a new title and pitch, the old ones kept in node_edit (repitch).
 // "In review" is a flag on live, not a state. Branches are live at once; shwarms and variants open as lobbies.
 import { ShwarmError } from '@shwarm/protocol'
 import { authorize, humanName, needHuman, needStepUp, type Actor } from './actor'
 import { auditStatement, nodeHref } from './audit'
 import { parseCheckSpec } from './checks'
-import { findNode, loadNode, loadPerson, MAX_PATH, notifyStatement, postStatement, signOffDoneStatement, signOffReopenStatement, touchNode, type Ctx, type NodeKind, type NodeRow } from './context'
+import { findNode, loadNode, loadPerson, MAX_PATH, moderatedStatement, notifyStatement, postStatement, signOffDoneStatement, signOffReopenStatement, touchNode, type Ctx, type NodeKind, type NodeRow } from './context'
 import { newId } from './ids'
-import { checkNewNodes, newNodeGuard } from './limits'
+import { checkNewNodes, newNodeGuard, takeThreadToken } from './limits'
 import { checkWritable, readSettings } from './settings'
 import { MAX_SLUG, MAX_TITLE, needText, RESERVED_SLUGS, slugify } from './text'
 
@@ -344,6 +345,57 @@ export async function leave(ctx: Ctx, a: Actor, inp: { node: string }): Promise<
   ])
   const r = await ctx.db.prepare('SELECT COUNT(*) AS filled FROM seat WHERE node_id = ? AND left_at IS NULL').bind(n.id).first<{ filled: number }>()
   return { node: n.path, seats: { filled: r!.filled, of: n.lobby_size as number } }
+}
+
+export type RepitchInput = { node: string; title: string; what: string }
+export type RepitchResult = { node: string; repitched: boolean; at: string; triage: NodeRow['triage'] }
+
+/**
+ * Re-pitch a lobby (spec "Starting a shwarm", LOBBY-6; table B #30): the author changes the title and the pitch ("what")
+ * while it's a lobby; the done test, checks, license and address never change. The version it replaces goes to node_edit,
+ * so the page can show the history. Acts with the author's authority, so it confirms with the password (A5), and happens
+ * only on the site, as the bare handle (no edit API at launch, table B #30). The same title and pitch again change nothing.
+ * The new words are checked like a new node's (A8): a cleared node goes back to 'pending' ("being checked", seen only by
+ * its author; a seeded one stays public while pending) and a new triage round starts (triage_since), which the caller
+ * runs after this batch (triage/run.ts triageNew). A held node stays held, for Myra to read again; a blocked one can't be
+ * re-pitched.
+ * OPEN (#79): a re-pitch spends a thread post token, so it can't flood the history or triage.
+ */
+export async function repitch(ctx: Ctx, a: Actor, inp: RepitchInput): Promise<RepitchResult> {
+  needHuman(a, 're-pitching')
+  const person = await loadPerson(ctx, a)
+  checkWritable(await readSettings(ctx.db, ['read_only']))
+  const n = await loadNode(ctx, inp?.node)
+  if (n.author_id !== person.id) throw new ShwarmError('not_permitted', 'only the author re-pitches', { need: 'author', node: n.path })
+  needStepUp(a, 're-pitching')
+  if (n.state !== 'lobby') throw bad(n.kind === 'branch' ? 'branches have no lobby to re-pitch' : `${n.path} kicked off. the pitch is kept as it was`, { node: n.path })
+  if (n.triage === 'blocked') throw new ShwarmError('not_permitted', `${n.path} was blocked. it can't be re-pitched`, { reason: 'blocked', node: n.path })
+  const title = needText(inp.title, 'title', MAX_TITLE)
+  const what = needText(inp.what, 'what')
+  if (title === n.title && what === n.what) return { node: n.path, repitched: false, at: ctx.at, triage: n.triage }
+  const bucket = await takeThreadToken(ctx.db, { personId: person.id, handle: person.handle, nodeId: n.id, path: n.path }, ctx.now)
+  const recheck = n.triage === 'clear' || n.triage === 'pending'
+  // Triage runs outside the tree, so the round restarts on the node's triage as it is when the batch runs: a hold or a
+  // block that lands meanwhile stands.
+  const res = await ctx.db.batch([
+    ctx.db
+      .prepare(
+        `UPDATE node SET title = ?1, what = ?2,
+           triage_since = CASE WHEN triage IN ('clear', 'pending') THEN ?3 ELSE triage_since END,
+           triage = CASE WHEN triage = 'clear' THEN 'pending' ELSE triage END
+         WHERE id = ?4 AND state = 'lobby' AND triage <> 'blocked'`,
+      )
+      .bind(title, what, ctx.at, n.id),
+    ctx.db
+      .prepare('INSERT INTO node_edit (node_id, by_name, title, what, edited_at) SELECT ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM node WHERE id = ? AND title = ? AND what = ?)')
+      .bind(n.id, a.as, n.title, n.what, ctx.at, n.id, title, what),
+    bucket.stmt,
+    touchNode(ctx, n.id, null),
+    // A cleared node leaves the public until it's checked again, so every signed-out page that lists it changes.
+    ...(recheck ? [moderatedStatement(ctx)] : []),
+  ])
+  if (!res[0]?.meta?.changes) throw new ShwarmError('not_permitted', `${n.path} was blocked. it can't be re-pitched`, { reason: 'blocked', node: n.path })
+  return { node: n.path, repitched: true, at: ctx.at, triage: recheck ? 'pending' : n.triage }
 }
 
 /** live → dead end, by the author, with a note so nobody repeats it. Acts with the author's authority, so it confirms with the password. */

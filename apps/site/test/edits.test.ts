@@ -1,0 +1,473 @@
+// Go-live 4.4, the rest: late joiners on a live shwarm, and re-pitching a lobby (with its history and a new triage round).
+// Go-live 4.8: editing any of your own plain posts (with "edited" and its history), deleting one (a tombstone), "make it
+// a branch" from a post, and no "claimed by" anywhere a page is drawn.
+import { readdirSync, readFileSync } from 'node:fs'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { hashPassword } from '../src/auth/password'
+import { readContributors, readChain } from '../src/read/node'
+import { readProfile } from '../src/read/profile'
+import { EXAMPLE_ROOT } from '../src/seed/example'
+import { CATEGORIES } from '../src/triage/rubric'
+import { triageNode } from '../src/triage/run'
+import { resetReadLimit } from '../src/web/read-limit'
+import { addPerson } from './d1'
+import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv } from './browser'
+import { agent, HOUR, MIN, person, refused, site, stepped, T0, World, type P } from './core-fixtures'
+import { LOBBY, stagingWorld } from './node-fixture'
+
+const MID = 'minecraft-in-doom'
+const iso = (ms: number) => new Date(ms).toISOString()
+
+/** A Workers AI stand-in that answers Clef's way (as test/triage.test.ts does), or waits for `hold` first. */
+function fakeClef() {
+  let choice: 'yes' | 'no' | 'unsure' = 'no'
+  let hold: Promise<void> | null = null
+  const calls: unknown[] = []
+  const ai = {
+    run: async (_model: string, input: unknown) => {
+      calls.push(input)
+      if (hold) await hold
+      const p = { yes: 0.1, no: 0.1, unsure: 0.1, [choice]: 0.8 }
+      const answers: Record<string, unknown> = { hard_block: { type: 'choice', choice, probabilities: p, confidence: 0.8 } }
+      for (const c of CATEGORIES) answers[c] = { type: 'noul', noul: c === 'spam' ? 0.9 : 0.05 }
+      return { model: 'clef-flash', answers, usage: { input_tokens: 900, output_tokens: 12 } }
+    },
+  }
+  return { ai: ai as unknown as Ai, calls, answer: (c: typeof choice) => void (choice = c), hold: (p: Promise<void> | null) => void (hold = p) }
+}
+
+// ---------- core: late joiners ----------
+
+describe('late joiners (4.4)', () => {
+  let w: World
+  let myra: P, bmo: P, ana: P, finn: P, kes: P
+
+  beforeEach(async () => {
+    w = new World()
+    myra = await person(w.db, 'myra')
+    bmo = await person(w.db, 'bmo_fan')
+    ana = await person(w.db, 'ana')
+    finn = await person(w.db, 'finn_irl')
+    kes = await person(w.db, 'kestrel')
+    await w.shwarm(site(myra)) // a lobby of 2
+    expect(await w.join(site(bmo), MID)).toMatchObject({ seat: 2, state: 'live', kickoff: true })
+  })
+
+  it('join a live shwarm with no seat limit: no second kickoff, seats past the lobby size', async () => {
+    expect(await w.join(site(ana), MID)).toEqual({ node: MID, seat: 3, state: 'live', seats: { filled: 3, of: 2 }, kickoff: false })
+    expect(await w.join(site(finn), MID)).toMatchObject({ seat: 4, kickoff: false })
+    expect(await w.join(site(kes), MID)).toMatchObject({ seat: 5, seats: { filled: 5, of: 2 } })
+    expect(w.events(MID, 'lobby_filled')).toHaveLength(1)
+    // the kickoff notice went to the two in the lobby, not to the late joiners
+    expect(w.all("SELECT person_id FROM inbox_item WHERE kind = 'system' ORDER BY person_id")).toEqual([{ person_id: myra.id }, { person_id: bmo.id }])
+    // a double click keeps the one seat
+    expect(await w.join(site(ana), MID)).toMatchObject({ seat: 3, kickoff: false })
+    // seats are kept after kickoff; humans only; branches have none
+    await refused(w.run({ type: 'leave', actor: site(ana), input: { node: MID } }), 'bad_request')
+    await refused(w.join(agent(finn), MID), 'bare_handle_needs_human')
+    await w.branch(site(myra), MID)
+    await refused(w.join(site(ana), `${MID}/block-placement`), 'bad_request')
+  })
+
+  it('a late joiner shows as working on it: among its contributors and on their profile', async () => {
+    await w.post(site(bmo), MID, 'renderer first.')
+    await w.join(site(ana), MID)
+    w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = ?").run(MID)
+    const chain = (await readChain(w.db, MID, null))!
+    const { rows } = await readContributors(w.db, chain.node)
+    // posters first (none counted yet: the stats job hasn't run), then the author, then seats in the order they joined
+    expect(rows.map(r => r.handle)).toEqual(expect.arrayContaining(['@myra', '@bmo_fan', '@ana']))
+    expect(rows.find(r => r.handle === '@ana')).toEqual({ person_id: ana.id, handle: '@ana', posts: 0, upvotes: 0 })
+    const profile = await readProfile(w.db, ana.id, { owner: false, now: w.now })
+    expect(profile.working.map(r => r.path)).toEqual([MID])
+  })
+
+  it("a closed or dead-end shwarm takes no late joiners", async () => {
+    await w.deadEnd(myra, MID)
+    await refused(w.join(site(ana), MID), 'shwarm_closed')
+  })
+})
+
+// ---------- core: re-pitch ----------
+
+describe('re-pitching a lobby (4.4)', () => {
+  let w: World
+  let myra: P, ana: P
+
+  const repitch = (by: Parameters<World['post']>[0], title = 'minecraft in doom, rebuilt', what = 'a real voxel world inside doom, with every asset open.', node = MID) =>
+    w.run({ type: 'repitch', actor: by, input: { node, title, what } })
+
+  beforeEach(async () => {
+    w = new World()
+    myra = await person(w.db, 'myra')
+    ana = await person(w.db, 'ana')
+    await w.shwarm(site(myra), { lobby: 3 })
+  })
+
+  it('the author changes the title and what; the old ones go to the history; the address and done test stay', async () => {
+    const before = w.node(MID)
+    w.tick(HOUR)
+    expect(await repitch(stepped(myra))).toEqual({ node: MID, repitched: true, at: iso(w.now), triage: 'pending' })
+    const after = w.node(MID)
+    expect(after).toMatchObject({ path: MID, title: 'minecraft in doom, rebuilt', what: 'a real voxel world inside doom, with every asset open.', done_when: before.done_when, checks: before.checks })
+    expect(w.all('SELECT by_name, title, what, edited_at FROM node_edit')).toEqual([{ by_name: '@myra', title: before.title, what: before.what, edited_at: iso(w.now) }])
+    // the search index follows
+    expect(w.all("SELECT rowid FROM node_fts WHERE node_fts MATCH 'rebuilt'")).toEqual([{ rowid: before.id }])
+    // the same words again change nothing and spend nothing
+    const tokens = w.get('SELECT tokens FROM rate_bucket').tokens
+    expect(await repitch(stepped(myra))).toMatchObject({ repitched: false })
+    expect(w.all('SELECT 1 FROM node_edit')).toHaveLength(1)
+    expect(w.get('SELECT tokens FROM rate_bucket').tokens).toBe(tokens)
+  })
+
+  it('only the author, as the bare handle on the site, with the password; only while a lobby', async () => {
+    await refused(repitch(site(myra)), 'not_permitted', { need: 'step_up' })
+    await refused(repitch(stepped(ana)), 'not_permitted', { need: 'author' })
+    await refused(repitch(agent(myra)), 'bare_handle_needs_human')
+    await refused(repitch(stepped(myra), ' ', 'x'), 'bad_request')
+    await refused(repitch(stepped(myra), 'x'.repeat(121), 'x'), 'bad_request')
+    expect(w.all('SELECT 1 FROM node_edit')).toEqual([])
+    await w.join(site(ana), MID)
+    await w.join(site(await person(w.db, 'finn_irl')), MID) // the third seat: kickoff
+    await refused(repitch(stepped(myra)), 'bad_request')
+    expect(w.node(MID).title).toBe('minecraft in doom')
+  })
+
+  it('a cleared lobby goes back to being checked; a held one stays held; a blocked one is refused', async () => {
+    w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = ?").run(MID)
+    const moderated = () => w.get("SELECT value FROM setting WHERE key = 'moderated_at'")?.value ?? null
+    const m0 = moderated()
+    await repitch(stepped(myra))
+    expect(w.node(MID)).toMatchObject({ triage: 'pending', triage_since: iso(w.now) })
+    expect(moderated()).not.toBe(m0) // it left the public, so every signed-out ETag moves
+    w.db.raw.prepare("UPDATE node SET triage = 'held' WHERE path = ?").run(MID)
+    w.tick(MIN)
+    expect(await repitch(stepped(myra), 'minecraft in doom, third try')).toMatchObject({ repitched: true, triage: 'held' })
+    expect(w.node(MID)).toMatchObject({ triage: 'held', triage_since: iso(w.now - MIN) })
+    w.db.raw.prepare("UPDATE node SET triage = 'blocked' WHERE path = ?").run(MID)
+    await refused(repitch(stepped(myra), 'minecraft in doom, fourth try'), 'not_permitted', { reason: 'blocked' })
+    expect(w.node(MID).title).toBe('minecraft in doom, third try')
+  })
+
+  it('the new words get a triage round of their own; an answer about the old words moves nothing', async () => {
+    const clef = fakeClef()
+    const env = { DB: w.db, AI: clef.ai }
+    const id = w.node(MID).id
+    expect(await triageNode(env, id, { now: w.now })).toMatchObject({ kind: 'decided', triage: 'clear' })
+    w.tick(HOUR)
+    await repitch(stepped(myra))
+    expect(w.node(MID).triage).toBe('pending')
+    // a new round: the model is asked again, about the new words
+    clef.answer('unsure')
+    expect(await triageNode(env, id, { now: w.now })).toMatchObject({ kind: 'decided', triage: 'held' })
+    expect(clef.calls).toHaveLength(2)
+    expect(JSON.stringify(clef.calls[1])).toContain('minecraft in doom, rebuilt')
+    // a call out when the author re-pitches again: its answer is about words no longer there
+    w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE id = ?").run(id)
+    w.tick(HOUR)
+    await repitch(stepped(myra), 'minecraft in doom, round three')
+    let release!: () => void
+    clef.hold(new Promise<void>(r => (release = r)))
+    clef.answer('no')
+    const call = triageNode(env, id, { now: w.now })
+    await vi.waitFor(() => expect(clef.calls).toHaveLength(3))
+    w.tick(MIN)
+    await repitch(stepped(myra), 'minecraft in doom, round four')
+    release()
+    expect(await call).toEqual({ kind: 'skipped', why: 'decided meanwhile' })
+    expect(w.node(MID).triage).toBe('pending')
+    clef.hold(null)
+    // the stale answer wasn't kept as this round's, so the next run asks about round four
+    expect(await triageNode(env, id, { now: w.now })).toMatchObject({ kind: 'decided', triage: 'clear' })
+    expect(JSON.stringify(clef.calls[3])).toContain('round four')
+  })
+
+  it('a re-pitched node still pending ten minutes into its round is held, not before', async () => {
+    const id = w.node(MID).id
+    w.tick(HOUR) // long past the first round's ten minutes
+    await repitch(stepped(myra))
+    const env = { DB: w.db } // no AI binding: every call is an error
+    expect(await triageNode(env, id, { now: w.now })).toMatchObject({ kind: 'error', escalated: false })
+    expect(await triageNode(env, id, { now: w.now + 10 * MIN })).toMatchObject({ kind: 'error', escalated: true })
+    expect(w.node(MID).triage).toBe('held')
+  })
+})
+
+// ---------- core: delete ----------
+
+describe('deleting a post (4.8)', () => {
+  let w: World
+  let myra: P, kes: P
+
+  const del = (by: Parameters<World['post']>[0], post: string, node = MID) => w.run({ type: 'deletePost', actor: by, input: { node, post } })
+
+  beforeEach(async () => {
+    w = new World()
+    myra = await person(w.db, 'myra')
+    kes = await person(w.db, 'kestrel')
+    await w.shwarm(site(myra))
+    await w.join(site(kes), MID)
+  })
+
+  it('the poster deletes: a tombstone stays, its text, links, versions and mentions go; again changes nothing', async () => {
+    const p = await w.post(site(kes), MID, 'ping @myra: the chunk lookup.', { links: [{ url: 'https://codeberg.org/k/x.diff', sha256: 'ab'.repeat(32) }] })
+    await w.run({ type: 'editPost', actor: site(kes), input: { node: MID, post: p.id, text: 'ping @myra: the chunk lookup, not the sight check.' } })
+    const reply = await w.post(site(myra), MID, 'thanks', { replyTo: p.id })
+    w.tick(HOUR)
+    expect(await del(site(kes), p.id)).toEqual({ id: p.id, node: MID, deleted: true, at: iso(w.now) })
+    expect(w.get('SELECT text, links, deleted_at, edited_at FROM post WHERE id = ?', p.id)).toEqual({ text: '', links: '[]', deleted_at: iso(w.now), edited_at: iso(w.now - HOUR) })
+    expect(w.all('SELECT 1 FROM post_edit WHERE post_id = ?', p.id)).toEqual([])
+    expect(w.all('SELECT 1 FROM mention WHERE post_id = ?', p.id)).toEqual([])
+    expect(w.get('SELECT reply_to FROM post WHERE id = ?', reply.id)).toEqual({ reply_to: p.id }) // replies stay where they were
+    const v = w.node(MID).last_event_id
+    expect(await del(site(kes), p.id)).toMatchObject({ deleted: false })
+    expect(w.node(MID).last_event_id).toBe(v)
+  })
+
+  it('only the poster, under the same name, and only plain posts', async () => {
+    const p = await w.post(site(kes), MID)
+    await refused(del(site(myra), p.id), 'not_permitted', { need: 'poster' })
+    const byAgent = await w.post(agent(kes), MID, 'from m-04')
+    await refused(del(site(kes), byAgent.id), 'not_permitted', { need: 'poster' })
+    await refused(del(agent(kes), byAgent.id), 'not_permitted', { need: 'delete' }) // a key needs the delete grant
+    const sub = await w.submit(site(kes), MID)
+    await refused(del(site(kes), sub.id), 'not_permitted', { kind: 'submission' })
+    await refused(del(site(kes), 'p_doesnotexist1'), 'bad_request')
+    expect(w.all('SELECT 1 FROM post WHERE deleted_at IS NOT NULL')).toEqual([])
+  })
+
+  it('a deleted post takes no edit, upvote, reply or built-on; a deleted pinned post is unpinned', async () => {
+    const p = await w.post(site(kes), MID, 'a thing to build on.')
+    await del(site(kes), p.id)
+    await refused(w.run({ type: 'editPost', actor: site(kes), input: { node: MID, post: p.id, text: 'back again' } }), 'bad_request')
+    await refused(w.run({ type: 'upvote', actor: site(myra), input: { node: MID, post: p.id } }), 'bad_request')
+    await refused(w.post(site(myra), MID, 'replying to nothing', { replyTo: p.id }), 'bad_request')
+    await refused(w.submit(site(myra), MID, 'built on it', { builtOn: [p.id] }), 'bad_request')
+    const pin = await w.post(site(myra), MID, 'where we are: started.', { pin: true })
+    await del(site(myra), pin.id)
+    expect(w.node(MID).pinned_post_id).toBeNull()
+  })
+})
+
+// ---------- on the page ----------
+
+const HTML = { accept: 'text/html' }
+
+describe('on the page', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', fakeFetch())
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(T0)
+    resetReadLimit()
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  })
+
+  async function world() {
+    const w = await stagingWorld()
+    const env = testEnv(w.db)
+    const q = <T = any>(sql: string, ...args: unknown[]) => w.db.raw.prepare(sql).get(...args) as T
+    w.db.raw.prepare('UPDATE person SET password_hash = ? WHERE id = ?').run(await hashPassword(GOOD_PASSWORD, pepper, 1000), w.myraId)
+    return { ...w, env, q }
+  }
+
+  async function signIn(env: ReturnType<typeof testEnv>, handle: string, o: { make?: boolean; verified?: boolean } = {}) {
+    if (o.make !== false) {
+      const pid = await addPerson(env.DB, handle, { hash: await hashPassword(GOOD_PASSWORD, pepper, 1000) })
+      if (o.verified !== false) env.DB.raw.prepare('UPDATE person SET email_verified_at = ?, founding = 1 WHERE id = ?').run(iso(T0), pid)
+    }
+    const b = new Browser(env)
+    expect((await b.post('/signin', { email: `${handle}@example.org`, password: GOOD_PASSWORD })).status).toBe(303)
+    return b
+  }
+
+  const page = async (b: Browser, path = `/w/${EXAMPLE_ROOT}`) => body(await b.req(path, { headers: HTML }))
+  const postIn = (html: string, id: string) => {
+    const i = html.indexOf(`id="${id}"`)
+    expect(i, id).toBeGreaterThan(-1)
+    const next = html.indexOf('<div class="c', i)
+    return html.slice(i, next === -1 ? undefined : next)
+  }
+  const boxOf = (html: string, heading: string) => {
+    const i = html.indexOf(`<h2>${heading} `)
+    expect(i, heading).toBeGreaterThan(-1)
+    return html.slice(i, html.indexOf('<div class="box', i))
+  }
+  async function act(b: Browser, fields: Record<string, string>, path = `/w/${EXAMPLE_ROOT}`) {
+    const token = formTokenIn(await page(b, path))
+    return b.req(path, { form: { form_token: token, ...fields } })
+  }
+
+  describe('late joiners (4.4)', () => {
+    it('a live shwarm offers "join" under its contributors; joining shows you there and on your profile', async () => {
+      const { env, q } = await world()
+      const b = await signIn(env, 'ana')
+      let box = boxOf(await page(b), 'contributors')
+      expect(box).toContain('<input type="hidden" name="do" value="join"/>')
+      expect(box).toContain("late joiners are welcome: no seat limit now it's live.")
+      const res = await act(b, { do: 'join' })
+      expect(res.status).toBe(303)
+      expect(res.headers.get('location')).toBe(`/w/${EXAMPLE_ROOT}`)
+      expect(q("SELECT s.number FROM seat s JOIN person p ON p.id = s.person_id WHERE p.handle = 'ana'")).toEqual({ number: 3 })
+      box = boxOf(await page(b), 'contributors')
+      expect(box).toContain('href="/@ana">@ana</a>')
+      expect(box).toContain("you're working on this.")
+      expect(box).not.toContain('value="join"')
+      // the lobby filled long ago: no second kickoff
+      expect(q("SELECT COUNT(*) AS n FROM audit_event a JOIN node n ON n.id = a.node_id WHERE n.path = ? AND a.event = 'lobby_filled'", EXAMPLE_ROOT)).toEqual({ n: 1 })
+      expect(await body(await b.req('/@ana', { headers: HTML }))).toContain('minecraft in doom')
+    })
+
+    it('signed out, "join" goes to sign-in; unverified, it waits; a branch and a lobby offer none here', async () => {
+      const { env } = await world()
+      const out = boxOf(await page(new Browser(env)), 'contributors')
+      expect(out).toContain(`<a class="btn plain" href="/signin?next=%2Fw%2F${EXAMPLE_ROOT}">join</a>`)
+      const quiet = await signIn(env, 'quiet', { verified: false })
+      expect(boxOf(await page(quiet), 'contributors')).toContain('verify your email to join.')
+      const b = await signIn(env, 'ana')
+      expect(boxOf(await page(b, `/w/${EXAMPLE_ROOT}/block-placement`), 'on this branch')).not.toContain('join')
+      expect(boxOf(await page(b, `/w/${LOBBY}`), 'contributors')).not.toContain('join')
+    })
+  })
+
+  describe('re-pitch (4.4)', () => {
+    it('the author re-pitches the lobby behind the password; the history shows the old pitch', async () => {
+      const { env, q } = await world()
+      const before = q<{ title: string; what: string }>('SELECT title, what FROM node WHERE path = ?', LOBBY)
+      const b = await signIn(env, 'myra', { make: false })
+      let html = await page(b, `/w/${LOBBY}`)
+      expect(html).toContain('<summary>re-pitch it</summary>')
+      expect(html).toContain('<input type="hidden" name="do" value="repitch"/>')
+      expect(html).toContain(`value="${before.title}"`)
+      expect(html).not.toContain('<summary>re-pitched</summary>')
+      // signing in opened the 10-minute window; once it's closed, a re-pitch without the password is refused at the
+      // form, the new words kept
+      vi.setSystemTime(T0 + 11 * MIN)
+      let res = await act(b, { do: 'repitch', title: 'a bot that beats freedoom, fast', what: 'new words.' }, `/w/${LOBBY}`)
+      expect(res.status).toBe(400)
+      html = await body(res)
+      expect(html).toMatch(/<details open="">\s*<summary>re-pitch it<\/summary>[\s\S]*enter your password to confirm\./)
+      expect(html).toContain('value="a bot that beats freedoom, fast"')
+      expect(html).toContain('>new words.</textarea>')
+      // an empty what is refused before the password
+      res = await act(b, { do: 'repitch', title: 'x', what: ' ' }, `/w/${LOBBY}`)
+      expect(await body(res)).toContain('a pitch needs a title and a what.')
+      res = await act(b, { do: 'repitch', title: 'a bot that beats freedoom, fast', what: 'new words.', password: GOOD_PASSWORD }, `/w/${LOBBY}`)
+      expect(res.status).toBe(303)
+      expect(res.headers.get('location')).toBe(`/w/${LOBBY}`)
+      expect(q('SELECT title, what, path FROM node WHERE path = ?', LOBBY)).toEqual({ title: 'a bot that beats freedoom, fast', what: 'new words.', path: LOBBY })
+      html = await page(b, `/w/${LOBBY}`)
+      expect(html).toContain('<summary>re-pitched</summary>')
+      expect(html).toMatch(new RegExp(`<span class="note">started <span title="[^"]+">[^<]+</span></span><b>${before.title}</b>`))
+      // a launch shwarm stays public while it's checked again (seeded, still pending)
+      expect(await body(await new Browser(env).req(`/w/${LOBBY}`, { headers: HTML }))).toContain('a bot that beats freedoom, fast')
+    })
+
+    it('a live shwarm has no re-pitch; nobody else gets the form, and a forged one is refused', async () => {
+      const { env } = await world()
+      const author = await signIn(env, 'myra', { make: false })
+      expect(await page(author)).not.toContain('re-pitch it')
+      const b = await signIn(env, 'ana')
+      expect(await page(b, `/w/${LOBBY}`)).not.toContain('re-pitch it')
+      const res = await act(b, { do: 'repitch', title: 'mine now', what: 'mine.' }, `/w/${LOBBY}`)
+      expect(res.status).toBe(400)
+      expect(await body(res)).toContain('only the author re-pitches.')
+    })
+  })
+
+  describe('own posts: edit, delete, make it a branch (4.8)', () => {
+    it('any own plain post can be edited; it shows "edited" with the history', async () => {
+      const { env, q } = await world()
+      const b = await signIn(env, 'ana')
+      await act(b, { do: 'post', text: 'the corner bug is in the chunk lookup.' })
+      const id = q<{ id: string }>("SELECT id FROM post WHERE text = 'the corner bug is in the chunk lookup.'").id
+      let block = postIn(await page(b), id)
+      expect(block).toContain('<summary>edit</summary>')
+      expect(block).toContain('<summary>delete</summary>')
+      vi.setSystemTime(T0 + HOUR)
+      const res = await act(b, { do: 'edit', post: id, text: 'the corner bug is in the chunk lookup, not the sight check.' })
+      expect(res.headers.get('location')).toBe(`/w/${EXAMPLE_ROOT}#${id}`)
+      block = postIn(await page(b), id)
+      expect(block).toContain('the corner bug is in the chunk lookup, not the sight check.')
+      expect(block).toContain('<summary>edited</summary>')
+      expect(block).toMatch(/<span class="note">posted <span title="[^"]+">1h ago<\/span><\/span><div class="txt"><p>the corner bug is in the chunk lookup\.<\/p><\/div>/)
+      // someone else's post offers neither
+      const other = q<{ id: string }>("SELECT p.id FROM post p JOIN node n ON n.id = p.node_id WHERE n.path = ? AND p.as_name = '@finn_irl'", EXAMPLE_ROOT).id
+      expect(postIn(await page(b), other)).not.toMatch(/<summary>(edit|delete)<\/summary>/)
+    })
+
+    it('delete leaves a tombstone; its replies stay; signed out sees the tombstone too', async () => {
+      const { env, q } = await world()
+      const b = await signIn(env, 'ana')
+      await act(b, { do: 'post', text: 'a post to take back.' })
+      const id = q<{ id: string }>("SELECT id FROM post WHERE text = 'a post to take back.'").id
+      const m = await signIn(env, 'myra', { make: false })
+      await act(m, { do: 'post', text: 'a reply that stays.', reply_to: id })
+      const res = await act(b, { do: 'delete', post: id })
+      expect(res.status).toBe(303)
+      expect(res.headers.get('location')).toBe(`/w/${EXAMPLE_ROOT}#${id}`)
+      const html = await page(new Browser(env))
+      const block = postIn(html, id)
+      expect(html).toContain(`<div class="c gone" id="${id}">`)
+      expect(block).toContain('this post was deleted.')
+      expect(block).not.toContain('a post to take back.')
+      expect(html).toContain('a reply that stays.')
+      expect(html.indexOf('a reply that stays.')).toBeGreaterThan(html.indexOf(`id="${id}"`))
+      // the prompt and the JSON say so too
+      const prompt = await (await new Browser(env).req(`/w/${EXAMPLE_ROOT}?format=text`)).text()
+      expect(prompt).toMatch(new RegExp(`id=${id} [^\\n]*deleted`))
+      expect(prompt).toContain('(deleted by its poster)')
+      const json = await (await new Browser(env).req(`/w/${EXAMPLE_ROOT}?format=json`)).json<any>()
+      expect(json.posts.find((p: any) => p.id === id)).toMatchObject({ text: '', links: [], deleted: true })
+      // a second click lands on the tombstone, and an edit of it is refused under it
+      expect((await act(b, { do: 'delete', post: id })).status).toBe(303)
+      const edit = await act(b, { do: 'edit', post: id, text: 'back' })
+      expect(edit.status).toBe(400)
+      expect(postIn(await body(edit), id)).toContain(`${id} was deleted.`)
+    })
+
+    it('"make it a branch" opens the branch form filled from the post; only plain posts, only on a live node', async () => {
+      const { env, q } = await world()
+      const b = await signIn(env, 'ana')
+      await act(b, { do: 'post', text: 'monster collision\n\nimps walk through placed blocks: the blockmap is only built at level load.' })
+      const id = q<{ id: string }>("SELECT id FROM post WHERE text LIKE 'monster collision%'").id
+      const block = postIn(await page(b), id)
+      expect(block).toContain(`<a href="/new?parent=${EXAMPLE_ROOT}&from=${id}">make it a branch</a>`) // body() decodes &amp;
+      const form = await body(await b.req(`/new?parent=${EXAMPLE_ROOT}&from=${id}`))
+      expect(form).toContain('<h1 class="title" id="heading">new branch</h1>')
+      expect(form).toContain('value="monster collision"')
+      expect(form).toContain('>monster collision\n\nimps walk through placed blocks: the blockmap is only built at level load.</textarea>')
+      // anything but a plain post here starts empty
+      const sub = q<{ post_id: string }>('SELECT s.post_id FROM submission s JOIN node n ON n.id = s.node_id LIMIT 1')
+      for (const from of [sub?.post_id ?? 'p_doesnotexist1', 'nonsense']) {
+        const empty = await body(await b.req(`/new?parent=${EXAMPLE_ROOT}&from=${from}`))
+        expect(empty).toContain('<h1 class="title" id="heading">new branch</h1>')
+        expect(empty).not.toContain('value="monster collision"')
+      }
+      // a lobby's posts have no "make it a branch": branches open at kickoff
+      await act(b, { do: 'post', text: 'a lobby post.' }, `/w/${LOBBY}`)
+      const lp = q<{ id: string }>("SELECT id FROM post WHERE text = 'a lobby post.'").id
+      expect(postIn(await page(b, `/w/${LOBBY}`), lp)).not.toContain('make it a branch')
+    })
+  })
+})
+
+// ---------- no "claimed by" (4.8, open question #19) ----------
+
+describe('no claim state (4.8)', () => {
+  it('no page template or mockup says "claimed by"', () => {
+    const files = [
+      ...['../src/web/', '../src/render/', '../src/email/'].flatMap(d => readdirSync(new URL(d, import.meta.url)).map(f => new URL(d + f, import.meta.url))),
+      ...readdirSync(new URL('../../../mockups/', import.meta.url))
+        .filter(f => f.endsWith('.html'))
+        .map(f => new URL('../../../mockups/' + f, import.meta.url)),
+    ]
+    expect(files.length).toBeGreaterThan(20)
+    const offenders = files.filter(f => /claimed by/i.test(readFileSync(f, 'utf8'))).map(f => f.pathname)
+    expect(offenders).toEqual([])
+  })
+})

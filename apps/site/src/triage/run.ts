@@ -8,7 +8,10 @@
 //   setting triage = "off" → no call; held at once, with one alert.
 // Seeded launch shwarms (seeded = 1) are public while 'pending' (read/visibility.ts), so triage never hides one:
 // a no clears it; a yes or unsure leaves it 'pending' and alerts Myra once; 5 errors alert once and stop retrying.
-// No node is called again once it has a model answer under the current rubric.
+// No node is called again once it has a model answer under the current rubric, in its current round.
+// A round starts when the node is made, and again when its author re-pitches a lobby (core/nodes.ts repitch sets
+// triage_since and puts a cleared node back to 'pending'): answers, errors and the 10 minutes count from it, and an
+// answer from an earlier round never moves the node.
 //
 // Each outcome is one D1 batch, outside the shwarm tree (triage only ever moves a node out of 'pending', guarded by
 // `AND triage = 'pending'`, so a decision Myra makes while a call is in flight wins). Alerts sit before the UPDATE,
@@ -44,19 +47,22 @@ type Row = NodeForTriage & {
   seeded: number
   triage: string
   created_at: string
-  errors: number // error rows under the current rubric
-  decided: number // a model answer under the current rubric exists
+  since: string // when this triage round began: created_at, or the last re-pitch
+  errors: number // error rows under the current rubric, this round
+  decided: number // a model answer under the current rubric exists, this round
 }
 
-const MODEL_DECISION = `SELECT 1 FROM triage_decision d WHERE d.node_id = n.id AND d.rubric = ?1 AND d.model LIKE '@%' AND d.answer IN ('yes', 'no', 'unsure')`
+/** When node `n`'s current triage round began (SQL). */
+const SINCE = (n: string) => `COALESCE(${n}.triage_since, ${n}.created_at)`
+const MODEL_DECISION = `SELECT 1 FROM triage_decision d WHERE d.node_id = n.id AND d.rubric = ?1 AND d.model LIKE '@%' AND d.answer IN ('yes', 'no', 'unsure') AND d.created_at >= ${SINCE('n')}`
 
 async function loadRow(db: D1Database, nodeId: number): Promise<Row | null> {
   return db
     .prepare(
       `SELECT n.id, n.path, n.kind, n.title, n.what, n.done_when, n.checks, n.builds_on, n.parent_id, n.seeded, n.triage, n.created_at,
-              par.title AS parent_title,
+              ${SINCE('n')} AS since, par.title AS parent_title,
               (SELECT group_concat(tag, ' ') FROM (SELECT t.tag FROM node_tag t WHERE t.node_id = n.id ORDER BY t.rowid)) AS tags,
-              (SELECT COUNT(*) FROM triage_decision d WHERE d.node_id = n.id AND d.rubric = ?1 AND d.answer = 'error') AS errors,
+              (SELECT COUNT(*) FROM triage_decision d WHERE d.node_id = n.id AND d.rubric = ?1 AND d.answer = 'error' AND d.created_at >= ${SINCE('n')}) AS errors,
               EXISTS (${MODEL_DECISION}) AS decided
        FROM node n LEFT JOIN node par ON par.id = n.parent_id WHERE n.id = ?2`,
     )
@@ -110,8 +116,12 @@ async function alertStatements(ctx: Ctx, env: TriageEnv, n: Row, f: AlertFacts, 
 
 // Moves a non-seeded node from 'pending' to 'held' (or 'clear'), with the version and moderation bumps every
 // visibility change carries (core/context.ts moderatedStatement). The guarded UPDATE comes first: runMove reads it.
+// Guarded on the round too, so an answer about words the author re-pitched meanwhile moves nothing.
 function moveStatements(ctx: Ctx, n: Row, to: 'clear' | 'held'): D1PreparedStatement[] {
-  const out = [ctx.db.prepare("UPDATE node SET triage = ? WHERE id = ? AND triage = 'pending'").bind(to, n.id), touchNode(ctx, n.id, null)]
+  const out = [
+    ctx.db.prepare(`UPDATE node SET triage = ? WHERE id = ? AND triage = 'pending' AND ${SINCE('node')} = ?`).bind(to, n.id, n.since),
+    touchNode(ctx, n.id, null),
+  ]
   if (n.parent_id !== null) out.push(touchNode(ctx, n.parent_id, null))
   out.push(moderatedStatement(ctx))
   return out
@@ -125,16 +135,22 @@ function addMove(p: Plan, ctx: Ctx, n: Row, to: 'clear' | 'held') {
   p.stmts.push(...m)
 }
 
-const decisionStatement = (ctx: Ctx, nodeId: number, model: string, answer: string, reason: string) =>
+// Written only while the node is still in the round the call was about: an answer about words the author re-pitched
+// meanwhile would otherwise count as this round's answer, and the new words would never be checked.
+const decisionStatement = (ctx: Ctx, n: Row, model: string, answer: string, reason: string) =>
   ctx.db
-    .prepare('INSERT INTO triage_decision (node_id, model, rubric, answer, reason, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-    .bind(nodeId, model, RUBRIC_VERSION, answer, reason.slice(0, 500), ctx.at)
+    .prepare(
+      `INSERT INTO triage_decision (node_id, model, rubric, answer, reason, created_at)
+       SELECT ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM node x WHERE x.id = ? AND ${SINCE('x')} = ?)`,
+    )
+    .bind(n.id, model, RUBRIC_VERSION, answer, reason.slice(0, 500), ctx.at, n.id, n.since)
 
-const STILL_PENDING = "EXISTS (SELECT 1 FROM node WHERE id = ? AND triage = 'pending')"
+/** Still pending, in the same round (binds the node id, then its round's start). */
+const STILL_PENDING = `EXISTS (SELECT 1 FROM node x WHERE x.id = ? AND x.triage = 'pending' AND ${SINCE('x')} = ?)`
 
 /** Holds a non-seeded pending node without a model answer (triage off, or it ran out of time or tries). */
 async function escalate(p: Plan, ctx: Ctx, env: TriageEnv, n: Row, why: 'off' | 'overdue', error: string | undefined, model: string) {
-  p.stmts.push(...(await alertStatements(ctx, env, n, { why: why === 'off' ? 'off' : 'error', error: error ?? 'no answer in time', model }, STILL_PENDING, [n.id])))
+  p.stmts.push(...(await alertStatements(ctx, env, n, { why: why === 'off' ? 'off' : 'error', error: error ?? 'no answer in time', model }, STILL_PENDING, [n.id, n.since])))
   addMove(p, ctx, n, 'held')
 }
 
@@ -144,7 +160,7 @@ async function runMove(db: D1Database, p: Plan): Promise<boolean> {
   return p.move === undefined || (results[p.stmts.indexOf(p.move)]?.meta?.changes ?? 0) > 0
 }
 
-const overdue = (n: Row, now: number) => now - Date.parse(n.created_at) >= HOLD_AFTER_MS
+const overdue = (n: Row, now: number) => now - Date.parse(n.since) >= HOLD_AFTER_MS
 
 /**
  * Triage one node by id: a shwarm, branch or variant. Never throws for a model problem (that's an 'error' row);
@@ -181,18 +197,20 @@ export async function triageNode(env: TriageEnv, nodeId: number, o: { now?: numb
       // every error and left to the SQL guard, not to the count read before the call: two runs racing on one seed
       // both read a stale count, but each batch adds exactly one error row, so exactly one sees four before its own.
       p.stmts.push(
-        ...(await alertStatements(ctx, env, n, { why: 'error', error, model }, `${STILL_PENDING} AND (SELECT COUNT(*) FROM triage_decision WHERE node_id = ? AND rubric = ? AND answer = 'error') = ?`, [
-          n.id,
-          n.id,
-          RUBRIC_VERSION,
-          MAX_ERRORS - 1,
-        ])),
+        ...(await alertStatements(
+          ctx,
+          env,
+          n,
+          { why: 'error', error, model },
+          `${STILL_PENDING} AND (SELECT COUNT(*) FROM triage_decision WHERE node_id = ? AND rubric = ? AND answer = 'error' AND created_at >= ?) = ?`,
+          [n.id, n.since, n.id, RUBRIC_VERSION, n.since, MAX_ERRORS - 1],
+        )),
       )
     } else if (n.errors + 1 >= MAX_ERRORS || overdue(n, ctx.now)) {
       await escalate(p, ctx, env, n, 'overdue', error, model)
       escalated = true
     }
-    p.stmts.push(decisionStatement(ctx, n.id, called ? model : NO_CALL, 'error', error))
+    p.stmts.push(decisionStatement(ctx, n, called ? model : NO_CALL, 'error', error))
     if (escalated) escalated = await runMove(db, p)
     else await db.batch(p.stmts)
     console.warn('triage', JSON.stringify({ node: n.path, error, escalated }))
@@ -204,21 +222,21 @@ export async function triageNode(env: TriageEnv, nodeId: number, o: { now?: numb
   let triage: 'clear' | 'held' | 'pending'
   if (verdict.answer === 'no') {
     triage = 'clear'
-    p.stmts.push(decisionStatement(ctx, n.id, model, 'no', verdict.category))
+    p.stmts.push(decisionStatement(ctx, n, model, 'no', verdict.category))
     addMove(p, ctx, n, 'clear')
   } else if (n.seeded) {
     // A launch shwarm stays public: the answer is recorded and Myra hears about it once.
     triage = 'pending'
-    const firstFlag = `${STILL_PENDING} AND NOT EXISTS (SELECT 1 FROM triage_decision WHERE node_id = ? AND rubric = ? AND model LIKE '@%' AND answer IN ('yes', 'unsure'))`
+    const firstFlag = `${STILL_PENDING} AND NOT EXISTS (SELECT 1 FROM triage_decision WHERE node_id = ? AND rubric = ? AND model LIKE '@%' AND answer IN ('yes', 'unsure') AND created_at >= ?)`
     p.stmts.push(
-      ...(await alertStatements(ctx, env, n, { why: 'answer', verdict, model }, firstFlag, [n.id, n.id, RUBRIC_VERSION])),
-      decisionStatement(ctx, n.id, model, verdict.answer, verdict.category),
+      ...(await alertStatements(ctx, env, n, { why: 'answer', verdict, model }, firstFlag, [n.id, n.since, n.id, RUBRIC_VERSION, n.since])),
+      decisionStatement(ctx, n, model, verdict.answer, verdict.category),
     )
   } else {
     triage = 'held'
     p.stmts.push(
-      ...(await alertStatements(ctx, env, n, { why: 'answer', verdict, model }, STILL_PENDING, [n.id])),
-      decisionStatement(ctx, n.id, model, verdict.answer, verdict.category),
+      ...(await alertStatements(ctx, env, n, { why: 'answer', verdict, model }, STILL_PENDING, [n.id, n.since])),
+      decisionStatement(ctx, n, model, verdict.answer, verdict.category),
     )
     addMove(p, ctx, n, 'held')
   }
@@ -246,8 +264,9 @@ export async function sweepTriage(env: TriageEnv, o: { now?: number; timeoutMs?:
   const { results: late } = await db
     .prepare(
       `SELECT n.id FROM node n WHERE n.triage = 'pending' AND n.seeded = 0
-         AND (?1 OR n.created_at <= ?2 OR (SELECT COUNT(*) FROM triage_decision d WHERE d.node_id = n.id AND d.rubric = ?3 AND d.answer = 'error') >= ?4)
-         AND NOT EXISTS (SELECT 1 FROM triage_decision d WHERE d.node_id = n.id AND d.rubric = ?3 AND d.model LIKE '@%' AND d.answer IN ('yes', 'no', 'unsure'))
+         AND (?1 OR ${SINCE('n')} <= ?2
+              OR (SELECT COUNT(*) FROM triage_decision d WHERE d.node_id = n.id AND d.rubric = ?3 AND d.answer = 'error' AND d.created_at >= ${SINCE('n')}) >= ?4)
+         AND NOT EXISTS (SELECT 1 FROM triage_decision d WHERE d.node_id = n.id AND d.rubric = ?3 AND d.model LIKE '@%' AND d.answer IN ('yes', 'no', 'unsure') AND d.created_at >= ${SINCE('n')})
        ORDER BY n.created_at, n.id LIMIT 100`,
     )
     .bind(off ? 1 : 0, new Date(now - HOLD_AFTER_MS).toISOString(), RUBRIC_VERSION, MAX_ERRORS)
@@ -263,9 +282,9 @@ export async function sweepTriage(env: TriageEnv, o: { now?: number; timeoutMs?:
 
   const { results: due } = await db
     .prepare(
-      `SELECT n.id FROM node n WHERE n.triage = 'pending' AND n.created_at <= ?2
+      `SELECT n.id FROM node n WHERE n.triage = 'pending' AND ${SINCE('n')} <= ?2
          AND NOT EXISTS (${MODEL_DECISION})
-         AND (n.seeded = 0 OR (SELECT COUNT(*) FROM triage_decision d WHERE d.node_id = n.id AND d.rubric = ?1 AND d.answer = 'error') < ?3)
+         AND (n.seeded = 0 OR (SELECT COUNT(*) FROM triage_decision d WHERE d.node_id = n.id AND d.rubric = ?1 AND d.answer = 'error' AND d.created_at >= ${SINCE('n')}) < ?3)
        ORDER BY n.seeded, n.created_at, n.id LIMIT ?4`,
     )
     .bind(RUBRIC_VERSION, new Date(now - SWEEP_GRACE_MS).toISOString(), MAX_ERRORS, SWEEP_LIMIT)
@@ -291,8 +310,8 @@ export async function sweepTriage(env: TriageEnv, o: { now?: number; timeoutMs?:
 }
 
 /**
- * The hook after a create (web/create.tsx; branches and variants in 4.3 call it the same way), run after the
- * response. A failure here is only logged: the node stays 'pending' and the sweep picks it up.
+ * The hook after a create (web/create.tsx; branches and variants in 4.3 call it the same way) and after a re-pitch
+ * (web/node-routes.tsx), run after the response. A failure here is only logged: the node stays 'pending' and the sweep picks it up.
  */
 export async function triageNew(env: TriageEnv, path: string): Promise<Outcome | null> {
   try {

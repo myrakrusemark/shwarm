@@ -307,6 +307,12 @@ export async function readSeats(db: D1Database, nodeId: number): Promise<{ fille
   return { filled: results[0]?.filled ?? 0, list: results.map(({ filled: _, ...s }) => s) }
 }
 
+/** The viewer's seat number on this node, or null when they hold none. */
+export async function readMySeat(db: D1Database, nodeId: number, personId: number): Promise<number | null> {
+  const r = await db.prepare('SELECT number FROM seat WHERE node_id = ? AND person_id = ? AND left_at IS NULL').bind(nodeId, personId).first<{ number: number }>()
+  return r?.number ?? null
+}
+
 // ---------- contributors ----------
 
 export type Contributor = { person_id: number; handle: string; posts: number; upvotes: number }
@@ -314,17 +320,24 @@ export const CONTRIBUTORS_SHOWN = 7
 
 /**
  * People who posted here (person_node_stats, filled by the stats job; agents rolled up into their human), most
- * counted upvotes first (table B #65), and the author always (3.4: "author included").
+ * counted upvotes first (table B #65), and the author always (3.4: "author included"). Once a shwarm is past its lobby,
+ * the people holding a seat who haven't posted yet follow, in the order they joined: a late joiner shows as working on it
+ * (go-live 4.4; they count among its people, table B #44). A lobby lists its seats in their own box instead.
  */
 export async function readContributors(db: D1Database, n: NodeHead): Promise<{ rows: Contributor[]; total: number }> {
+  const seats =
+    n.state === 'lobby'
+      ? ''
+      : `UNION ALL SELECT s.person_id, 0, 0, s.joined_at FROM seat s WHERE s.node_id = ?1 AND s.left_at IS NULL
+           AND NOT EXISTS (SELECT 1 FROM person_node_stats y WHERE y.node_id = ?1 AND y.person_id = s.person_id AND y.posts > 0)`
   const { results } = await db
     .prepare(
       `SELECT person_id, handle, posts, upvotes, total FROM (
          SELECT x.person_id, '@' || p.handle AS handle, x.posts, x.upvotes, COUNT(*) OVER () AS total,
-                ROW_NUMBER() OVER (ORDER BY x.upvotes DESC, x.posts DESC, x.person_id) AS rk
-         FROM person_node_stats x JOIN person p ON p.id = x.person_id
-         WHERE x.node_id = ? AND x.posts > 0)
-       WHERE rk <= ? OR person_id = ? ORDER BY rk`,
+                ROW_NUMBER() OVER (ORDER BY x.upvotes DESC, x.posts DESC, x.joined_at, x.person_id) AS rk
+         FROM (SELECT person_id, posts, upvotes, NULL AS joined_at FROM person_node_stats WHERE node_id = ?1 AND posts > 0 ${seats}) x
+         JOIN person p ON p.id = x.person_id)
+       WHERE rk <= ?2 OR person_id = ?3 ORDER BY rk`,
     )
     .bind(n.id, CONTRIBUTORS_SHOWN, n.author_id)
     .all<Contributor & { total: number }>()
@@ -472,6 +485,7 @@ export type PostRow = {
   reply_to: string | null
   created_at: string
   edited_at: string | null
+  deleted_at: string | null // deleted by its poster: a tombstone, with no text or links left
   ups: number
 }
 
@@ -576,7 +590,7 @@ export async function readPosts(db: D1Database, ids: string[]): Promise<PostRow[
   if (!ids.length) return []
   const { results } = await db
     .prepare(
-      `SELECT p.id, p.as_name, p.person_id, p.kind, p.text, p.links, p.reply_to, p.created_at, p.edited_at, 0 AS ups
+      `SELECT p.id, p.as_name, p.person_id, p.kind, p.text, p.links, p.reply_to, p.created_at, p.edited_at, p.deleted_at, 0 AS ups
        FROM post p WHERE p.id IN (SELECT value FROM json_each(?)) AND p.hidden = 0`,
     )
     .bind(JSON.stringify(ids))
@@ -602,6 +616,18 @@ export async function readEdits(db: D1Database, ids: string[]): Promise<Map<stri
     .all<PostEdit & { post_id: string }>()
   for (const { post_id, ...e } of results) (out.get(post_id) ?? out.set(post_id, []).get(post_id)!).push(e)
   return out
+}
+
+/** An earlier title and pitch of a lobby: what a re-pitch replaced, by whom and when (core/nodes.ts repitch). */
+export type PitchEdit = { title: string; what: string; by_name: string; edited_at: string }
+
+/** A node's earlier pitches, newest first: up to EDITS_SHOWN, plus one more, as readEdits does for posts. */
+export async function readPitchEdits(db: D1Database, nodeId: number): Promise<PitchEdit[]> {
+  const { results } = await db
+    .prepare('SELECT title, what, by_name, edited_at FROM node_edit WHERE node_id = ? ORDER BY edited_at DESC, id DESC LIMIT ?')
+    .bind(nodeId, EDITS_SHOWN + 1)
+    .all<PitchEdit>()
+  return results
 }
 
 /** Which of these posts the viewer upvoted, and whether each upvote counts (A6: not until their account is established). */
@@ -656,7 +682,7 @@ export type PromptPost = PostRow & {
   check_exit: number | null
 }
 
-const PROMPT_POST_SQL = `SELECT p.id, p.as_name, p.person_id, p.kind, p.text, p.links, p.reply_to, p.created_at, p.edited_at,
+const PROMPT_POST_SQL = `SELECT p.id, p.as_name, p.person_id, p.kind, p.text, p.links, p.reply_to, p.created_at, p.edited_at, p.deleted_at,
     (SELECT COUNT(*) FROM upvote u WHERE u.post_id = p.id AND u.counted = 1) AS ups,
     s.number, s.how_to_check, c.slot AS check_slot, c.verdict AS check_verdict, cs.number AS check_on, c.repro AS check_repro,
     c.exit_code AS check_exit

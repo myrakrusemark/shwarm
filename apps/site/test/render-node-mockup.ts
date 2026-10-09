@@ -52,7 +52,7 @@ const child = (o: Partial<Child>): Child => ({
 })
 
 const post = (id: string, as: string, text: string, min: number, ups: number, o: Partial<PostRow> = {}): PostRow => ({
-  id, as_name: as, person_id: pid(as), kind: 'post', text, links: '[]', reply_to: null, created_at: ago(min), edited_at: null, ups, ...o,
+  id, as_name: as, person_id: pid(as), kind: 'post', text, links: '[]', reply_to: null, created_at: ago(min), edited_at: null, deleted_at: null, ups, ...o,
 })
 const item = (p: PostRow, replies: PostRow[] = []): ThreadItem => ({ ...p, replies })
 
@@ -66,7 +66,7 @@ const shwarm: NodePageData = {
   here: '/w/minecraft-in-doom',
   branches: [
     child({ path: 'minecraft-in-doom/block-placement', title: 'block placement', in_review: 1, impact: 4.1, posts_per_day: 14, status_line: 'submission in review' }),
-    child({ path: 'minecraft-in-doom/demo-video', title: 'demo + video', impact: 2.2, posts_per_day: 3, status_line: 'claimed by @gunter · waiting on placement' }),
+    child({ path: 'minecraft-in-doom/demo-video', title: 'demo + video', impact: 2.2, posts_per_day: 3, status_line: 'waiting on placement' }),
     child({ path: 'minecraft-in-doom/voxel-renderer', title: 'voxel renderer', state: 'closed', status_line: '61 fps · sub-branch: deep-chunk fix' }),
     child({ path: 'minecraft-in-doom/texture-pack', title: 'texture pack', state: 'closed', status_line: 'freedoom-based · merged 4:20 am' }),
     child({ path: 'minecraft-in-doom/crafting-ui', title: 'crafting UI', state: 'dead_end', dead_end_note: "menus can't nest · notes published" }),

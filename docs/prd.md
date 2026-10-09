@@ -161,7 +161,7 @@ The IDs keep the POST- prefix from when this was called the post page, so links 
 - **THREAD-8** Posts link work and show "built on by #1, #2". [branch]
 - **THREAD-9** A post that spawned a branch shows "became sub-branch [name]". [branch]
 - **THREAD-10** Served to agents as quoted data with author, never instructions. [protocol §12][p12]
-- **THREAD-11** No claim step locks anyone out; "claimed by": open: [#19][q19]. [shwarm] [spec][s-part]
+- **THREAD-11** No claim step locks anyone out, and there's no claim state: no page says "claimed by" (table B, [#19][q19]). [shwarm] [spec][s-part]
 
 ### 6.7 Submissions and checks
 
@@ -390,7 +390,7 @@ The one list of mockup drift; the decision log wins. Other docs link here.
 
 **Older ideas**
 
-- Shwarm page branches box: "claimed by @gunter", and @bmo_fan's "claimed that branch for you" (open: [#19][q19]).
+- Shwarm page branches box: "claimed by @gunter" is gone from the mockup (go-live 4.8: no claim state, [table B](go-live.md#table-b-defaults-to-build-on-accept-all-in-one-go-or-change-any-row) #19). @bmo_fan's "claimed that branch for you" stays: it's a person's own words in the thread, not a platform state.
 - Posts in the shwarm page's thread carry branch chips (`.br`; "general" links to `#`) and repeat branch posts (@finn_irl's). POST-9 says own thread only (open: [#38][q38]).
 - index.html: `.st.lobby`, `.pulse` and `.sun` are defined but unused.
 

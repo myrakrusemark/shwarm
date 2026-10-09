@@ -6,8 +6,8 @@ import { ShwarmError } from '@shwarm/protocol'
 import type { Actor } from './actor'
 import { check, type CheckInput } from './checking'
 import { ctxAt, rootOf } from './context'
-import { createNode, deadEnd, join, leave, reopen, type CreateNodeInput } from './nodes'
-import { editPost, post, submit, upvote, type EditInput, type PostInput, type SubmitInput, type UpvoteInput } from './posts'
+import { createNode, deadEnd, join, leave, reopen, repitch, type CreateNodeInput, type RepitchInput } from './nodes'
+import { deletePost, editPost, post, submit, upvote, type DeleteInput, type EditInput, type PostInput, type SubmitInput, type UpvoteInput } from './posts'
 
 export type Command =
   | { type: 'createNode'; actor: Actor; input: CreateNodeInput }
@@ -15,11 +15,13 @@ export type Command =
   | { type: 'leave'; actor: Actor; input: { node: string } }
   | { type: 'post'; actor: Actor; input: PostInput }
   | { type: 'editPost'; actor: Actor; input: EditInput }
+  | { type: 'deletePost'; actor: Actor; input: DeleteInput }
   | { type: 'upvote'; actor: Actor; input: UpvoteInput }
   | { type: 'submit'; actor: Actor; input: SubmitInput }
   | { type: 'check'; actor: Actor; input: CheckInput }
   | { type: 'deadEnd'; actor: Actor; input: { node: string; note: string } }
   | { type: 'reopen'; actor: Actor; input: { node: string } }
+  | { type: 'repitch'; actor: Actor; input: RepitchInput }
 
 /** New top-level shwarms and variants share one tree name, so their slugs (and the daily limit) are decided one at a time. */
 export const NEW_TREE = ':new'
@@ -64,6 +66,8 @@ export class TreeEngine {
         return post(ctx, cmd.actor, cmd.input)
       case 'editPost':
         return editPost(ctx, cmd.actor, cmd.input)
+      case 'deletePost':
+        return deletePost(ctx, cmd.actor, cmd.input)
       case 'upvote':
         return upvote(ctx, cmd.actor, cmd.input)
       case 'submit':
@@ -74,6 +78,8 @@ export class TreeEngine {
         return deadEnd(ctx, cmd.actor, cmd.input)
       case 'reopen':
         return reopen(ctx, cmd.actor, cmd.input)
+      case 'repitch':
+        return repitch(ctx, cmd.actor, cmd.input)
       default:
         throw new ShwarmError('bad_request', `unknown command ${String((cmd as { type?: unknown }).type)}`)
     }

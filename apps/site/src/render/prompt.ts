@@ -260,6 +260,7 @@ function postAttrs(p: PromptPost, n: NodeHead, pinned: boolean): string {
   if (p.reply_to) a.push(`reply_to=${p.reply_to}`)
   a.push(`upvotes=${p.ups}`, `at=${p.created_at.slice(0, 16)}Z`)
   if (p.edited_at) a.push('edited')
+  if (p.deleted_at) a.push('deleted')
   return a.join(' ')
 }
 
@@ -279,6 +280,7 @@ export function linkText(l: Link): string {
 }
 
 function postBody(p: PromptPost, v: AgentView): string {
+  if (p.deleted_at) return '(deleted by its poster)'
   const lines: string[] = []
   if (p.text) lines.push(quoteText(p.text))
   const links = parseJson<Link[]>(p.links, [])
@@ -317,6 +319,7 @@ export function renderNodeJson(v: AgentView): Record<string, unknown> {
     ...(p.reply_to ? { reply_to: p.reply_to } : {}),
     links: parseJson<Link[]>(p.links, []),
     at: p.created_at,
+    ...(p.deleted_at ? { deleted: true } : {}),
   })
   return {
     node: n.path,
