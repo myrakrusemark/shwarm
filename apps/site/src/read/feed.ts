@@ -18,6 +18,7 @@ import { OPEN_NODE } from './visibility'
 // fills, so a view never counts a thread's posts or upvotes; nothing here counts agents.
 import { readSettings } from '../core/settings'
 import { WEEK_MS, hotMix, rankingFrom, type Ranking } from '../core/stats'
+import { NAME_SHOWN } from './names'
 
 export const TABS = ['hot', 'filling', 'new', 'closed'] as const
 export type FeedTab = (typeof TABS)[number]
@@ -225,7 +226,7 @@ async function details(db: D1Database, ids: number[]): Promise<Map<number, FeedC
   if (!ids.length) return out
   const { results } = await db
     .prepare(
-      `SELECT n.id, n.path, n.kind, n.title, n.what, n.done_when, n.state, n.lobby_size, n.posted_by, n.builds_on,
+      `SELECT n.id, n.path, n.kind, n.title, n.what, n.done_when, n.state, n.lobby_size, ${NAME_SHOWN('n.posted_by')} AS posted_by, n.builds_on,
               n.created_at, n.changed_at, n.closed_at,
               COALESCE(ns.upvotes, 0) AS upvotes, COALESCE(ns.posts, 0) AS posts, COALESCE(ns.impact, 0) AS impact,
               COALESCE(ns.posts_per_day, 0) AS posts_per_day, COALESCE(ns.people, 1) AS people, COALESCE(ns.hot, 0) AS hot,

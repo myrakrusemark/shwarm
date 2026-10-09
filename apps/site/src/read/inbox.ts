@@ -6,6 +6,7 @@
 // still being checked) and, for a mention or a sign-off, its post (not hidden or deleted). The list, the count and
 // "mark all read" use the same rule, so marking every item shown read takes the count to nothing.
 import { INBOX_LINK_COLS, INBOX_LINK_JOIN, inboxHref } from './inbox-links'
+import { NAME_SHOWN } from './names'
 import { SEEN_NODE } from './visibility'
 
 /** FROM and WHERE for one person's shown items; the person's id is bound as ?1. */
@@ -57,7 +58,7 @@ export async function readInbox(db: D1Database, personId: number, o: { all: bool
     .prepare(
       `SELECT i.id, ${INBOX_LINK_COLS}, i.text, i.created_at, i.read_at, i.done_at, i.node_id, n.title, n.author_id,
               (SELECT status FROM person WHERE id = n.author_id) AS author_status, (SELECT is_admin FROM person WHERE id = ?1) AS admin,
-              p.as_name, p.text AS post_text, s.status,
+              ${NAME_SHOWN('p.as_name')} AS as_name, p.text AS post_text, s.status,
               (s.status = 'passed' AND NOT (n.state = 'closed' AND s.number = (SELECT MAX(x.number) FROM submission x WHERE x.node_id = n.id AND x.status = 'passed'))) AS reopened,
               (json_extract(n.checks, '$.runs') IS NOT NULL OR json_extract(n.checks, '$.people') IS NOT NULL) AS others
        ${SHOWN}

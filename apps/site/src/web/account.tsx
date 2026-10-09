@@ -7,6 +7,8 @@
 // /@handle (web/profile.tsx); a refusal comes back here with the reason at its field and the draft kept.
 // OPEN (#84): no mockup draws the display name field, the pending email note, the change password form, "sign out
 // everywhere" or the saved lines; their words wait on Myra's yes.
+// "your data" (go-live 6.4): download your data and close your account, both behind the step-up; closing also asks for
+// the handle typed out. OPEN (#86): no mockup draws them; their words wait on Myra's yes.
 import { useContext, type FC } from 'hono/jsx'
 import { ABOUT_MAX, LINK_FIELDS, LINK_MAX, type AccountErrors, type AccountForm } from '../auth/account'
 import { DISPLAY_NAME_MAX } from '../auth/signup'
@@ -18,7 +20,7 @@ import { StepUpField } from './node-page'
 import { PageContext } from './viewer'
 
 /** A refused form: which one, the reason at each field or at its button, and the draft. */
-export type AccountFlash = { at: 'save' | 'password'; errors?: AccountErrors; error?: string; values?: AccountForm }
+export type AccountFlash = { at: 'save' | 'password' | 'export' | 'close'; errors?: AccountErrors; error?: string; values?: AccountForm }
 
 export type AccountView = {
   account: Account
@@ -74,6 +76,8 @@ export const AccountModal: FC<{ v: AccountView }> = ({ v }) => {
   const a = v.account
   const save = v.flash?.at === 'save' ? v.flash : undefined
   const pw = v.flash?.at === 'password' ? v.flash : undefined
+  const exp = v.flash?.at === 'export' ? v.flash : undefined
+  const cl = v.flash?.at === 'close' ? v.flash : undefined
   const e = save?.errors ?? {}
   const links = Object.fromEntries(linksOf(a.links).map(l => [l.label, l.url]))
   const val = (k: string, stored: string) => save?.values?.[k] ?? stored
@@ -163,6 +167,38 @@ export const AccountModal: FC<{ v: AccountView }> = ({ v }) => {
             <span class="note">ends every session, this one too.</span>
             <button class="btn plain" type="submit">sign out everywhere</button>
           </form>
+        </div>
+
+        <div class="sec">
+          <h3>your data</h3>
+          <form method="post" action={action} class="acct-dl">
+            <input type="hidden" name="form_token" value={token} />
+            <input type="hidden" name="do" value="export" />
+            <StepUpField id="pw-export" open={v.steppedUp} />
+            {exp?.error && <p class="err" role="alert">{exp.error}</p>}
+            <div class="row">
+              <span class="note">everything we hold about you, as a json file. confirms with your password.</span>
+              <button class="btn plain" type="submit">download your data</button>
+            </div>
+          </form>
+          <details class="closeacct" open={cl ? true : undefined}>
+            <summary class="btn plain">close your account</summary>
+            <form method="post" action={action} class="acct-act">
+              <input type="hidden" name="form_token" value={token} />
+              <input type="hidden" name="do" value="close" />
+              <p class="note">
+                we delete your email address, password, inbox, sign-ins and keys, and sign you out. your shwarms and posts stay up under their
+                license, shown as by a former member. a sign-off still to make goes to the operator. this can't be undone.
+              </p>
+              <Fld label={`type ${a.handle} to confirm`} name="confirm" error={cl?.errors?.confirm} maxlength={40} autocomplete="off" required />
+              <StepUpField id="pw-close" open={v.steppedUp} />
+              {cl?.error && <p class="err" role="alert">{cl.error}</p>}
+              <div class="row">
+                <span class="note">confirms with your password.</span>
+                <button class="btn" type="submit">close my account</button>
+              </div>
+            </form>
+          </details>
         </div>
 
         <div class="mfoot">

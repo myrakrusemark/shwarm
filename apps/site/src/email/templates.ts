@@ -1,7 +1,9 @@
 // Mail templates (go-live 2.6). Plain text first; the HTML part is the same words with real links.
 // No tracking: no pixels, no redirect links. Every link points at SITE_URL and opens a page with one button
 // (the token is used only by that button's POST, so mail scanners that fetch links can't use it up).
+import { isValidName } from '@shwarm/protocol'
 import { printable, printableLines } from '../core/printable'
+import { FORMER } from '../read/names'
 import type { MailStream, MailTemplate } from './outbox'
 
 // A pre block keeps its line breaks in the HTML part too (quoted text people wrote).
@@ -145,6 +147,87 @@ function signOffReady(p: Record<string, unknown>, site: string): Draft {
   }
 }
 
+/** A name from the payload ('@ana', '@ana/m-04', or "former member" for a closed account's), or 'someone' when it isn't one. */
+const nameOf = (v: unknown) => (typeof v === 'string' && (isValidName(v) || v === FORMER) ? v : 'someone')
+const titleOf = (p: Record<string, unknown>) => printable(oneLine(text(p, 'title'), 80))
+const numberOf = (v: unknown) => (Number.isSafeInteger(v) && (v as number) >= 1 ? (v as number) : null)
+
+/**
+ * A mention of the bare handle, right away (go-live 6.3): who, where, and the post quoted (up to its first 1000
+ * characters; `cut` says there's more). Sent only while the post and its node still show to them (jobs/mail.ts).
+ * OPEN (#85): these words wait on Myra's yes.
+ */
+function mention(p: Record<string, unknown>, site: string): Draft {
+  const by = nameOf(p.by)
+  const title = titleOf(p)
+  return {
+    subject: `${by} mentioned you on ${title}`,
+    blocks: [
+      hi(p),
+      `${by} mentioned you on ${title}:`,
+      quoted(`${by} wrote`, text(p, 'text')),
+      p.cut === true ? 'the post goes on. read it all and reply in its thread:' : 'reply in its thread:',
+      { href: siteLink(site, p.link) },
+    ],
+  }
+}
+
+export const DIGEST_ITEMS = 20 // OPEN (#85): the most mentions one digest quotes; "and N more" points at the inbox
+const DIGEST_CHARS = 300
+
+/**
+ * The daily digest (go-live 6.3, jobs/digest.ts): the unread mentions since the last one, newest last, each with who,
+ * where, its first 300 characters quoted and its link; past DIGEST_ITEMS, "and N more" with the inbox.
+ * OPEN (#85): these words wait on Myra's yes.
+ */
+function digest(p: Record<string, unknown>, site: string): Draft {
+  const items = Array.isArray(p.items) ? (p.items as Record<string, unknown>[]).slice(0, DIGEST_ITEMS) : []
+  if (!items.length) throw new MailRenderError('a digest with no items')
+  const more = numberOf(p.more) ?? 0
+  const total = items.length + more
+  const blocks: Block[] = [hi(p), total === 1 ? 'you were mentioned once since your last digest:' : `you were mentioned ${total} times since your last digest:`]
+  for (const i of items) {
+    const by = nameOf(i.by)
+    const t = [...String(i.text ?? '')]
+    blocks.push(`${by} on ${titleOf(i)}:`, quoted(`${by} wrote`, t.slice(0, DIGEST_CHARS).join('') + (t.length > DIGEST_CHARS ? ' …' : '')), { href: siteLink(site, i.link) })
+  }
+  if (more && typeof p.handle === 'string' && HANDLE.test(p.handle)) blocks.push(`and ${more} more in your inbox:`, { href: `${base(site)}/@${p.handle}#addressed` })
+  blocks.push('this comes once a day. you can get each mention right away instead, in your account.')
+  return { subject: total === 1 ? 'you were mentioned on shwarm' : `you were mentioned ${total} times on shwarm`, blocks }
+}
+
+/** A lobby filled and its shwarm is live (go-live 4.4): to everyone seated. OPEN (#85): these words wait on Myra's yes. */
+function kickoff(p: Record<string, unknown>, site: string): Draft {
+  const title = titleOf(p)
+  return {
+    subject: `${title} is live`,
+    blocks: [hi(p), `the lobby for ${title} filled, so it's live now. branches and submissions are open.`, { href: siteLink(site, p.link) }],
+  }
+}
+
+/**
+ * A node you're in passed, failed the author check or reopened (go-live 6.3): the same words as the inbox item core
+ * writes (core/checking.ts, core/nodes.ts). OPEN (#85): the subjects and link lines wait on Myra's yes.
+ */
+function nodeNews(p: Record<string, unknown>, site: string): Draft {
+  const title = titleOf(p)
+  const n = numberOf(p.number)
+  const link = { href: siteLink(site, p.link) }
+  if (p.event === 'passed') {
+    if (n === null) throw new MailRenderError('bad number')
+    return { subject: `${title} passed`, blocks: [hi(p), `${title} passed on #${n}.`, 'see what passed:', link] }
+  }
+  if (p.event === 'failed') {
+    if (n === null) throw new MailRenderError('bad number')
+    return { subject: `#${n} on ${title} failed the author check`, blocks: [hi(p), `#${n} on ${title} failed the author check. every check starts over.`, 'see why:', link] }
+  }
+  if (p.event === 'reopened') {
+    const why = n !== null ? `${title} reopened: a repro on #${n}.` : `${title} reopened. ${nameOf(p.by)} picked it back up.`
+    return { subject: `${title} reopened`, blocks: [hi(p), why, link] }
+  }
+  throw new MailRenderError('bad event')
+}
+
 const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string) => Draft> = {
   verify: (p, site) => ({
     subject: 'verify your email for shwarm',
@@ -215,6 +298,20 @@ const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string)
   }),
   triage_alert: p => triageAlert(p),
   sign_off_ready: (p, site) => signOffReady(p, site),
+  mention: (p, site) => mention(p, site),
+  digest: (p, site) => digest(p, site),
+  kickoff: (p, site) => kickoff(p, site),
+  node_news: (p, site) => nodeNews(p, site),
+  // To the address the account had, as it closes (go-live 6.4): no link, since there's nothing left to sign in to.
+  // OPEN (#86): these words wait on Myra's yes.
+  account_closed: p => ({
+    subject: 'your shwarm account is closed',
+    blocks: [
+      hi(p),
+      'your shwarm account was closed just now. we deleted your email address, password, inbox, sign-ins and keys. what you posted stays up under its license, shown as by a former member.',
+      "this is the last mail we send to this address. if you didn't close it, reply to this mail right away.",
+    ],
+  }),
 }
 
 const esc = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)

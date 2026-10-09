@@ -23,6 +23,8 @@ export const LIMITS = {
   forgotIp: { tripAt: 11, windowMs: HOUR, blockMs: HOUR },
   /** email changes saved by one account: 3 an hour, since each mails an address the account picks (6.2; OPEN #84) */
   emailChangePerson: { tripAt: 4, windowMs: HOUR, blockMs: HOUR },
+  /** "download your data" by one account: 5 an hour, since each reads everything it holds (6.4; OPEN #86) */
+  exportPerson: { tripAt: 6, windowMs: HOUR, blockMs: HOUR },
 } satisfies Record<string, Limit>
 
 const iso = (ms: number) => new Date(ms).toISOString()

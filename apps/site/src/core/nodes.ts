@@ -10,7 +10,7 @@ import { ShwarmError } from '@shwarm/protocol'
 import { authorize, humanName, needHuman, needStepUp, type Actor } from './actor'
 import { auditStatement, nodeHref } from './audit'
 import { parseCheckSpec } from './checks'
-import { findNode, loadNode, loadPerson, MAX_PATH, moderatedStatement, notifyStatement, postStatement, signOffDoneStatement, signOffReopenStatement, touchNode, type Ctx, type NodeKind, type NodeRow } from './context'
+import { findNode, loadNode, loadPerson, MAX_PATH, moderatedStatement, noticeMailStatement, notifyStatement, postStatement, signOffDoneStatement, signOffReopenStatement, touchNode, type Ctx, type NodeKind, type NodeRow } from './context'
 import { newId } from './ids'
 import { checkNewNodes, newNodeGuard, takeThreadToken } from './limits'
 import { checkWritable, readSettings } from './settings'
@@ -323,7 +323,12 @@ export async function join(ctx: Ctx, a: Actor, inp: { node: string }): Promise<J
   if (kickoff) {
     stmts.push(ctx.db.prepare("UPDATE node SET state = 'live', live_at = ? WHERE id = ?").bind(ctx.at, n.id))
     const e = auditStatement(ctx.db, { event: 'lobby_filled', node: n.id, by: a.as, detail: `${filled} of ${of} seats`, evidence: nodeHref(n.path) }, ctx.at)
-    stmts.push(e.stmt, notifyStatement(ctx, n.id, `${n.title}: the lobby filled. it's live now.`, 'seats'))
+    stmts.push(
+      e.stmt,
+      notifyStatement(ctx, n.id, `${n.title}: the lobby filled. it's live now.`, 'seats'),
+      // The kickoff mail (go-live 4.4) to everyone seated, the joiner too.
+      noticeMailStatement(ctx, n.id, 'seats', { template: 'kickoff', payload: { notice: 'kickoff', title: n.title, path: n.path, link: nodeHref(n.path), seats: filled } }),
+    )
     last = e.id
   }
   stmts.push(touchNode(ctx, n.id, last))
@@ -447,6 +452,7 @@ export async function reopen(ctx: Ctx, a: Actor, inp: { node: string }): Promise
     ...(n.closed_at ? [signOffReopenStatement(ctx, n.id, n.closed_at)] : []),
     e.stmt,
     notifyStatement(ctx, n.id, `${n.title} reopened. ${humanName(a)} picked it back up.`, 'involved'),
+    noticeMailStatement(ctx, n.id, 'involved', { template: 'node_news', payload: { notice: 'pass_fail', event: 'reopened', title: n.title, path: n.path, link: nodeHref(n.path), by: humanName(a) } }),
     touchNode(ctx, n.id, e.id),
   ])
   return { node: n.path, state: 'live' }

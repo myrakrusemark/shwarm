@@ -16,6 +16,7 @@ import { ResendError, sendViaResend } from '../email/resend'
 import { MailRenderError, renderMail } from '../email/templates'
 import { noticeOn, parsePrefs } from '../email/notices'
 import { NOTICE_TYPE, noticeLabel, unsubToken, unsubUrl } from '../email/unsubscribe'
+import { SEEN_NODE } from '../read/visibility'
 
 export const RETRY_MINUTES = [1, 5, 30, 120] // waits after attempts 1–4; attempt 5 failing gives up
 export const MAX_ATTEMPTS = RETRY_MINUTES.length + 1
@@ -186,6 +187,23 @@ async function sendOne(env: MailEnv, row: Row, now: number, f: typeof fetch, out
   }
 }
 
+/**
+ * A notice about a node or a post (go-live 6.3) goes only while it still shows to its reader, as their inbox decides
+ * (read/inbox.ts): the node (payload.path) open to them, and the post (payload.post) not hidden or deleted. A mail
+ * written as the act happened can wait a minute for the sweep, and a takedown or a delete may land meanwhile.
+ */
+async function goneFrom(db: D1Database, personId: number, payload: Record<string, unknown>): Promise<string | null> {
+  if (typeof payload.path === 'string') {
+    const seen = await db.prepare(`SELECT 1 AS ok FROM node n WHERE n.path = ?1 AND ${SEEN_NODE('n', '?2')}`).bind(payload.path, personId).first()
+    if (!seen) return "its node doesn't show to them"
+  }
+  if (typeof payload.post === 'string') {
+    const post = await db.prepare('SELECT 1 AS ok FROM post WHERE id = ? AND hidden = 0 AND deleted_at IS NULL').bind(payload.post).first()
+    if (!post) return 'its post is gone'
+  }
+  return null
+}
+
 /** Why this row must not go, or null if it may. */
 async function skipReason(env: MailEnv, row: Row, payload: Record<string, unknown>, now: number): Promise<string | null> {
   const db = env.DB
@@ -207,6 +225,8 @@ async function skipReason(env: MailEnv, row: Row, payload: Record<string, unknow
     const p = await db.prepare('SELECT status, notice_prefs FROM person WHERE id = ?').bind(row.person_id).first<{ status: string; notice_prefs: string }>()
     if (!p || p.status !== 'active') return 'account is not active'
     if (!noticeOn(parsePrefs(p.notice_prefs), type)) return `turned off ${type} notices`
+    const gone = await goneFrom(db, row.person_id, payload)
+    if (gone) return gone
   }
   // Checked here and counted on send. Sweeps run one a minute and finish in seconds, so overlap (which could let
   // one extra through) is rare; the page can always say "check your email" since the cap lives here.

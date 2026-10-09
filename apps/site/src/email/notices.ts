@@ -8,11 +8,14 @@
 // sent from 6.3) and sign-off items ('sign_off', sent since 5.4), on by default, a daily digest by default (the mockup's
 // first choice); passes and fails of nodes you're in ('pass_fail', sent from 6.3) are off by default, as the mockup
 // draws them. "a key is used somewhere new" is a security mail: always on, not a setting.
+// OPEN (go-live 6.3 defaults, open-questions #85): the kickoff mail ('kickoff', 4.4) sits under "new in your inbox" too.
+// How often applies to mentions only: right away, or one daily digest (jobs/digest.ts). Sign-off and kickoff mails always
+// go right away, since work waits on them; passes, fails and reopenings go right away when their box is on.
 
 export type NoticeGroup = { key: 'inbox' | 'pass_fail'; label: string; types: string[]; on: boolean }
 
 export const NOTICE_GROUPS: NoticeGroup[] = [
-  { key: 'inbox', label: 'new in your inbox', types: ['mention', 'sign_off'], on: true },
+  { key: 'inbox', label: 'new in your inbox', types: ['mention', 'sign_off', 'kickoff'], on: true },
   { key: 'pass_fail', label: "a shwarm or branch you're in passes or fails", types: ['pass_fail'], on: false },
 ]
 
@@ -43,6 +46,26 @@ export const groupOn = (prefs: Record<string, unknown>, g: NoticeGroup) => g.typ
 
 export const inboxEvery = (prefs: Record<string, unknown>): InboxEvery =>
   INBOX_EVERY.some(e => e.value === prefs.inbox_every) ? (prefs.inbox_every as InboxEvery) : INBOX_EVERY[0].value
+
+/** The prefs column of person alias `p`, as JSON SQL can read even if it's broken (as parsePrefs reads it). */
+const prefsOf = (p: string) => `(CASE WHEN json_valid(${p}.notice_prefs) THEN ${p}.notice_prefs ELSE '{}' END)`
+
+/**
+ * SQL: noticeOn for person alias `p`, so a mail written in an act's batch goes only to people who'd get it. The sweep
+ * checks again when it sends (jobs/mail.ts), in case the setting changed meanwhile. JSON true reads as 1.
+ */
+export function noticeOnSql(p: string, type: string): string {
+  if (!/^[a-z_]+$/.test(type)) throw new Error(`bad notice type ${type}`)
+  const v = `json_extract(${prefsOf(p)}, '$.${type}')`
+  return (DEFAULTS[type] ?? true) ? `coalesce(${v}, 1) = 1` : `coalesce(${v}, 0) = 1`
+}
+
+/** SQL: inboxEvery for person alias `p` is `every`. */
+export function inboxEverySql(p: string, every: InboxEvery): string {
+  const v = `json_extract(${prefsOf(p)}, '$.inbox_every')`
+  const known = INBOX_EVERY.map(e => `'${e.value}'`).join(', ')
+  return every === INBOX_EVERY[0].value ? `(${v} IS NULL OR ${v} NOT IN (${known}) OR ${v} = '${every}')` : `${v} = '${every}'`
+}
 
 /**
  * The prefs after a save of the modal. A group's types change only when its box changed from what the modal showed,

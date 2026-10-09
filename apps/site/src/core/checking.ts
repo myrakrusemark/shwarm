@@ -19,6 +19,7 @@ import {
   loadNode,
   loadPerson,
   mentionStatements,
+  noticeMailStatement,
   notifyStatement,
   postStatement,
   signOffDoneStatement,
@@ -213,7 +214,7 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
 
   const postId = newId('p')
   const checkId = newId('c')
-  const m = await mentionStatements(ctx, { postId, text, nodeId: n.id, actor: a })
+  const m = await mentionStatements(ctx, { postId, text, node: n, actor: a })
   const stmts: D1PreparedStatement[] = [postStatement(ctx, { id: postId, nodeId: n.id, actor: a, kind: 'check', text, links: evidence })]
   const authorFail = slot === 'author' && verdict === 'fail'
   if (authorFail)
@@ -269,6 +270,8 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
   )
   stmts.push(last.stmt, ...m.stmts)
 
+  // Passes, fails and reopenings are mailed to the people in the node who turned that on (go-live 6.3, notice 'pass_fail').
+  const news = { notice: 'pass_fail', title: n.title, path: n.path, number: sub.number, link: subHref }
   let subState: CheckResult['submission_state'] = sub.status as 'in_review' | 'passed'
   let nodeState = n.state as 'live' | 'closed'
   const isHuman = a.via !== 'key' && isBare(a)
@@ -284,7 +287,11 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
       { event: 'failed', node: n.id, by: null, submissionId: sub.post_id, number: sub.number, detail: `#${sub.number} failed the author check. every check starts over`, evidence: subHref },
       ctx.at,
     )
-    stmts.push(last.stmt, notifyStatement(ctx, n.id, `#${sub.number} on ${n.title} failed the author check. every check starts over.`, 'involved'))
+    stmts.push(
+      last.stmt,
+      notifyStatement(ctx, n.id, `#${sub.number} on ${n.title} failed the author check. every check starts over.`, 'involved'),
+      noticeMailStatement(ctx, n.id, 'involved', { template: 'node_news', payload: { ...news, event: 'failed' } }),
+    )
   } else if (sub.status === 'in_review' && after.passed) {
     // The pass, in one batch: the submission passes, the node closes, anything else in review is superseded, and
     // nothing is left waiting on the author. Its release fields came with it at submit. A branch passing never
@@ -305,7 +312,11 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
       { event: 'passed', node: n.id, by: null, submissionId: sub.post_id, number: sub.number, detail: `#${sub.number} (${shortHash(sub.hash)}) passed`, evidence: subHref },
       ctx.at,
     )
-    stmts.push(last.stmt, notifyStatement(ctx, n.id, `${n.title} passed on #${sub.number}.`, 'involved'))
+    stmts.push(
+      last.stmt,
+      notifyStatement(ctx, n.id, `${n.title} passed on #${sub.number}.`, 'involved'),
+      noticeMailStatement(ctx, n.id, 'involved', { template: 'node_news', payload: { ...news, event: 'passed' } }),
+    )
   } else if (sub.status === 'in_review' && slot !== 'author' && need.author && after.othersDone && !wasReady) {
     // Ready for the author (go-live 5.4): their inbox gets the sign-off notice, and they get a mail.
     stmts.push(...signOffStatements(ctx, n, { postId: sub.post_id, number: sub.number }, false))
@@ -322,7 +333,11 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
       { event: 'reopened', node: n.id, by: a.as, submissionId: sub.post_id, number: sub.number, detail: `repro on #${sub.number}`, evidence: submissionHref(n.path, sub.number, checkId) },
       ctx.at,
     )
-    stmts.push(last.stmt, notifyStatement(ctx, n.id, `${n.title} reopened: a repro on #${sub.number}.`, 'involved'))
+    stmts.push(
+      last.stmt,
+      notifyStatement(ctx, n.id, `${n.title} reopened: a repro on #${sub.number}.`, 'involved'),
+      noticeMailStatement(ctx, n.id, 'involved', { template: 'node_news', payload: { ...news, event: 'reopened', link: submissionHref(n.path, sub.number, checkId) } }),
+    )
   }
   stmts.push(touchNode(ctx, n.id, last.id))
   await ctx.db.batch(stmts)

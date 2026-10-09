@@ -9,6 +9,7 @@ import type { CheckSpec } from '../core/checks'
 import type { NodeKind, NodeState } from '../core/context'
 import { HAND_MODEL, parseBlockReason } from '../triage/decide'
 import type { Category } from '../triage/rubric'
+import { FORMER, HANDLE_SHOWN, NAME_SHOWN } from './names'
 
 // ---------- visibility (A8, A18) ----------
 
@@ -167,7 +168,7 @@ function toHead(r: HeadRow, viewerId: number | null): NodeHead {
     license: r.license,
     builds_on,
     author_id: r.author_id,
-    author: '@' + r.author_handle,
+    author: r.author_status === 'closed' ? FORMER : '@' + r.author_handle, // a closed account's handle is detached (read/names.ts)
     author_status: r.author_status,
     posted_by: r.posted_by,
     state: r.state,
@@ -215,7 +216,7 @@ export async function readChain(db: D1Database, path: string, viewerId: number |
   const { results } = await db
     .prepare(
       `SELECT n.id, n.path, n.kind, n.parent_id, n.variant_of_id, n.title, n.what, n.done_when, n.checks, n.lobby_size, n.license,
-              n.builds_on, n.author_id, p.handle AS author_handle, p.status AS author_status, n.posted_by, n.state, n.in_review, n.triage, n.hidden, n.seeded,
+              n.builds_on, n.author_id, p.handle AS author_handle, p.status AS author_status, ${NAME_SHOWN('n.posted_by')} AS posted_by, n.state, n.in_review, n.triage, n.hidden, n.seeded,
               n.paused, n.dead_end_note, n.pinned_post_id, n.last_event_id, n.created_at, n.live_at, n.closed_at, n.changed_at,
               (SELECT group_concat(tag, ' ') FROM (SELECT t.tag FROM node_tag t WHERE t.node_id = n.id ORDER BY t.rowid)) AS tags,
               s.impact AS s_impact, s.posts_per_day AS s_posts_per_day, s.people AS s_people, s.hot AS s_hot, s.upvotes AS s_upvotes,
@@ -270,8 +271,8 @@ export async function readChildren(db: D1Database, nodeId: number): Promise<{ br
   // OPEN: no cap on how many branches a sidebar lists is decided; 100 each.
   const { results } = await db
     .prepare(
-      `SELECT c.path, c.title, c.kind, c.state, c.in_review, c.lobby_size, c.dead_end_note, c.done_when, c.posted_by, c.created_at,
-              '@' || p.handle AS author, s.impact, s.posts_per_day, s.people, s.status_line,
+      `SELECT c.path, c.title, c.kind, c.state, c.in_review, c.lobby_size, c.dead_end_note, c.done_when, ${NAME_SHOWN('c.posted_by')} AS posted_by,
+              c.created_at, ${HANDLE_SHOWN('p')} AS author, s.impact, s.posts_per_day, s.people, s.status_line,
               CASE WHEN c.kind = 'branch' THEN 0 ELSE (SELECT COUNT(*) FROM seat st WHERE st.node_id = c.id AND st.left_at IS NULL) END AS seats
        FROM node c
        JOIN person p ON p.id = c.author_id
@@ -298,7 +299,7 @@ export const SEAT_LIST_MAX = 60 // OPEN: how many seats a lobby lists isn't deci
 export async function readSeats(db: D1Database, nodeId: number): Promise<{ filled: number; list: Seat[] }> {
   const { results } = await db
     .prepare(
-      `SELECT s.number, s.person_id, '@' || p.handle AS handle, s.joined_at, COUNT(*) OVER () AS filled
+      `SELECT s.number, s.person_id, ${HANDLE_SHOWN('p')} AS handle, s.joined_at, COUNT(*) OVER () AS filled
        FROM seat s JOIN person p ON p.id = s.person_id
        WHERE s.node_id = ? AND s.left_at IS NULL ORDER BY s.number LIMIT ?`,
     )
@@ -333,7 +334,7 @@ export async function readContributors(db: D1Database, n: NodeHead): Promise<{ r
   const { results } = await db
     .prepare(
       `SELECT person_id, handle, posts, upvotes, total FROM (
-         SELECT x.person_id, '@' || p.handle AS handle, x.posts, x.upvotes, COUNT(*) OVER () AS total,
+         SELECT x.person_id, ${HANDLE_SHOWN('p')} AS handle, x.posts, x.upvotes, COUNT(*) OVER () AS total,
                 ROW_NUMBER() OVER (ORDER BY x.upvotes DESC, x.posts DESC, x.joined_at, x.person_id) AS rk
          FROM (SELECT person_id, posts, upvotes, NULL AS joined_at FROM person_node_stats WHERE node_id = ?1 AND posts > 0 ${seats}) x
          JOIN person p ON p.id = x.person_id)
@@ -414,7 +415,7 @@ export async function readSubmissions(db: D1Database, nodeId: number): Promise<S
 }
 
 const SUBMISSION_COLS = `s.post_id, s.number, s.hash, s.how_to_check, s.status, s.author_swap, sup.number AS superseded_number,
-  p.as_name, p.person_id, p.created_at,
+  ${NAME_SHOWN('p.as_name')} AS as_name, p.person_id, p.created_at,
   (SELECT MIN(i.created_at) FROM inbox_item i WHERE i.kind = 'sign_off' AND i.post_id = s.post_id AND i.done_at IS NULL) AS ready_at`
 const SUBMISSION_FROM = 'submission s JOIN post p ON p.id = s.post_id LEFT JOIN submission sup ON sup.post_id = s.superseded_by'
 
@@ -435,7 +436,7 @@ export type HistoryRow = { id: string; at: string; event: string; by_name: strin
 export async function readSubmissionHistory(db: D1Database, nodeId: number, submissionId: string): Promise<HistoryRow[]> {
   // On the audit_node index (node_id, at), filtered to the submission. OPEN: a submission with more than 200 events lists the first 200.
   const { results } = await db
-    .prepare('SELECT id, at, event, by_name, detail, evidence FROM audit_event WHERE node_id = ? AND submission_id = ? ORDER BY at, rowid LIMIT 200')
+    .prepare(`SELECT id, at, event, ${NAME_SHOWN('by_name')} AS by_name, detail, evidence FROM audit_event WHERE node_id = ? AND submission_id = ? ORDER BY at, rowid LIMIT 200`)
     .bind(nodeId, submissionId)
     .all<HistoryRow>()
   return results
@@ -451,7 +452,7 @@ export async function readChecks(db: D1Database, submissionIds: string[], o: { i
   const { results } = await db
     .prepare(
       `SELECT c.id, c.post_id, c.submission_id, c.slot, c.verdict, c.evidence, c.repro, c.submission_hash, c.exit_code,
-              (c.log_inline IS NOT NULL) AS log_inline, c.log_link, c.machine, c.created_at, cp.as_name, cp.text,
+              (c.log_inline IS NOT NULL) AS log_inline, c.log_link, c.machine, c.created_at, ${NAME_SHOWN('cp.as_name')} AS as_name, cp.text,
               (cp.key_id IS NULL AND instr(cp.as_name, '/') = 0) AS human
               ${o.includeReset ? ', c.reset_at' : ''}${o.withLog ? ', c.script_hash, c.log_inline AS log_text' : ''}
        FROM check_report c JOIN post cp ON cp.id = c.post_id
@@ -590,7 +591,7 @@ export async function readPosts(db: D1Database, ids: string[]): Promise<PostRow[
   if (!ids.length) return []
   const { results } = await db
     .prepare(
-      `SELECT p.id, p.as_name, p.person_id, p.kind, p.text, p.links, p.reply_to, p.created_at, p.edited_at, p.deleted_at, 0 AS ups
+      `SELECT p.id, ${NAME_SHOWN('p.as_name')} AS as_name, p.person_id, p.kind, p.text, p.links, p.reply_to, p.created_at, p.edited_at, p.deleted_at, 0 AS ups
        FROM post p WHERE p.id IN (SELECT value FROM json_each(?)) AND p.hidden = 0`,
     )
     .bind(JSON.stringify(ids))
@@ -632,7 +633,7 @@ export type PitchEdit = { title: string; what: string; by_name: string; edited_a
 export async function readPitchEdits(db: D1Database, nodeId: number, all: boolean): Promise<PitchEdit[]> {
   const { results } = await db
     .prepare(
-      `SELECT title, what, by_name, edited_at, written_at FROM (
+      `SELECT title, what, ${NAME_SHOWN('by_name')} AS by_name, edited_at, written_at FROM (
          SELECT title, what, by_name, edited_at, was_public, id,
                 LAG(edited_at) OVER (ORDER BY edited_at, id) AS written_at
          FROM node_edit WHERE node_id = ?1)
@@ -660,7 +661,7 @@ export async function readBuiltOn(db: D1Database, ids: string[]): Promise<{ buil
   if (!ids.length) return { builtOn, builtOnBy }
   const { results } = await db
     .prepare(
-      `SELECT 'on' AS dir, b.submission_id AS key, b.post_id AS post_id, p.as_name, ps.number,
+      `SELECT 'on' AS dir, b.submission_id AS key, b.post_id AS post_id, ${NAME_SHOWN('p.as_name')} AS as_name, ps.number,
               CASE WHEN ${VISIBLE_SQL('pn')} THEN pn.path END AS path, NULL AS title, b.note, b.rowid AS ord
        FROM built_on b JOIN post p ON p.id = b.post_id JOIN node pn ON pn.id = p.node_id LEFT JOIN submission ps ON ps.post_id = b.post_id
        WHERE b.submission_id IN (SELECT value FROM json_each(?1)) AND p.hidden = 0
@@ -695,7 +696,7 @@ export type PromptPost = PostRow & {
   check_exit: number | null
 }
 
-const PROMPT_POST_SQL = `SELECT p.id, p.as_name, p.person_id, p.kind, p.text, p.links, p.reply_to, p.created_at, p.edited_at, p.deleted_at,
+const PROMPT_POST_SQL = `SELECT p.id, ${NAME_SHOWN('p.as_name')} AS as_name, p.person_id, p.kind, p.text, p.links, p.reply_to, p.created_at, p.edited_at, p.deleted_at,
     (SELECT COUNT(*) FROM upvote u WHERE u.post_id = p.id AND u.counted = 1) AS ups,
     s.number, s.how_to_check, c.slot AS check_slot, c.verdict AS check_verdict, cs.number AS check_on, c.repro AS check_repro,
     c.exit_code AS check_exit

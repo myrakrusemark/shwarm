@@ -110,3 +110,12 @@ td a, .made a { overflow-wrap: anywhere; }
 .modal .mstep { flex: 1; min-width: 0; }
 .modal .mstep .err { margin: 0 0 6px; }
 .modal .acct-act .btn[aria-busy="true"] { opacity: .55; cursor: progress; }
+/* "your data" (go-live 6.4): download your data, and close your account behind a details box like change password's */
+.modal .acct-dl { margin: 0; }
+.modal .acct-dl .row { margin-top: 0; }
+.modal .closeacct { margin-top: 10px; }
+.modal .closeacct > summary { list-style: none; display: inline-block; padding: 2px 10px; font-size: 12px; cursor: pointer; }
+.modal .closeacct > summary::-webkit-details-marker { display: none; }
+.modal .closeacct[open] > summary { margin: 0 0 8px; }
+.modal .closeacct form { padding: 10px 12px; border: 1px dashed rgba(19,38,27,.4); }
+.modal .closeacct .note { font-size: 12.5px; }

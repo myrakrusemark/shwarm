@@ -41,7 +41,7 @@ export async function post(ctx: Ctx, a: Actor, inp: PostInput): Promise<PostResu
   if (pin && replyTo) throw bad("a reply can't be pinned. pin a post of its own")
   const bucket = await takeThreadToken(ctx.db, { personId: person.id, handle: person.handle, nodeId: n.id, path: n.path }, ctx.now)
   const id = newId('p')
-  const m = await mentionStatements(ctx, { postId: id, text, nodeId: n.id, actor: a })
+  const m = await mentionStatements(ctx, { postId: id, text, node: n, actor: a })
   await ctx.db.batch([
     postStatement(ctx, { id, nodeId: n.id, actor: a, kind: 'post', text, links, replyTo }),
     ...m.stmts,
@@ -275,7 +275,7 @@ export async function submit(ctx: Ctx, a: Actor, inp: SubmitInput): Promise<Subm
   const number = n.next_submission
   const hash = await submissionHash({ text, links })
   const id = newId('p')
-  const m = await mentionStatements(ctx, { postId: id, text, nodeId: n.id, actor: a })
+  const m = await mentionStatements(ctx, { postId: id, text, node: n, actor: a })
   const e = auditStatement(
     ctx.db,
     { event: 'submission', node: n.id, by: a.as, submissionId: id, number, detail: `#${number} (${shortHash(hash)})`, evidence: submissionHref(n.path, number) },

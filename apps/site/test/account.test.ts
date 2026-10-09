@@ -173,7 +173,7 @@ describe('the account modal (6.2)', () => {
 
     // untick "new in your inbox", tick passes or fails, right away
     expect((await acct(b, 'myra', saveForm('myra', { n_inbox: undefined, n_pass_fail: '1', inbox_every: 'now' }))).status).toBe(303)
-    expect(prefs()).toEqual({ mention: false, sign_off: false, pass_fail: true, inbox_every: 'now' })
+    expect(prefs()).toEqual({ mention: false, sign_off: false, kickoff: false, pass_fail: true, inbox_every: 'now' })
     let html = modalIn(await body(await b.get('/@myra?account=1')))!
     expect(html).not.toMatch(/id="n-inbox"[^>]*checked/)
     expect(html).toMatch(/id="n-pass_fail"[^>]*checked/)
@@ -188,7 +188,7 @@ describe('the account modal (6.2)', () => {
     expect(prefs()).toEqual({ sign_off: false })
     // ticking it turns the whole group on
     expect((await acct(b, 'myra', saveForm('myra'))).status).toBe(303)
-    expect(prefs()).toEqual({ sign_off: true, mention: true, inbox_every: 'digest' })
+    expect(prefs()).toEqual({ sign_off: true, mention: true, kickoff: true, inbox_every: 'digest' })
   })
 
   it('the notices module: defaults, groups and the sweep honouring them', async () => {

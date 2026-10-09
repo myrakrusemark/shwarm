@@ -27,7 +27,7 @@ export const ACCOUNT_COPY = {
 }
 
 export type AccountForm = Record<string, string | undefined>
-export type AccountErrors = Partial<Record<'display_name' | 'about' | 'website' | 'code' | 'email' | 'new_password' | 'new_password2', string>>
+export type AccountErrors = Partial<Record<'display_name' | 'about' | 'website' | 'code' | 'email' | 'new_password' | 'new_password2' | 'confirm', string>>
 
 type Current = { id: number; handle: string; email: string; prefs: Record<string, unknown> }
 export type AccountSave = {

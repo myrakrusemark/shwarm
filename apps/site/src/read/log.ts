@@ -9,6 +9,7 @@
 import { isId } from '../core/ids'
 import { MILESTONE_EVENTS, nodeHref, seededLogRow } from '../core/audit'
 import type { Chain } from './node'
+import { NAME_SHOWN } from './names'
 import { PUBLIC_NODE } from './visibility'
 
 export type LogFilter = 'milestones' | 'all'
@@ -68,7 +69,7 @@ export async function readLog(db: D1Database, chain: Chain, o: { filter: LogFilt
   const [{ results }, counts] = await Promise.all([
     db
       .prepare(
-        `SELECT a.id, a.at, a.event, t.path AS node, t.title, a.by_name AS by, a.submission_id AS submission, a.number, a.detail, a.evidence,
+        `SELECT a.id, a.at, a.event, t.path AS node, t.title, ${NAME_SHOWN('a.by_name')} AS by, a.submission_id AS submission, a.number, a.detail, a.evidence,
                 (${MILESTONE_SQL}) AS milestone
          FROM ${LOG_FROM} ${only} ${older} ORDER BY a.at DESC, a.rowid DESC LIMIT ${limit + 1}`,
       )

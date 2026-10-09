@@ -4,6 +4,7 @@
 import type { MailEnv } from '../email/env'
 import { sweepTriage, type TriageEnv } from '../triage/run'
 import { deleteUnverified, pruneThrottle } from '../auth/cleanup'
+import { sweepDigests } from './digest'
 import { sweepOutbox } from './mail'
 import { rollupSite, rollupStats, siteStale } from './stats'
 
@@ -28,6 +29,16 @@ export async function scheduled(event: ScheduledController, env: MailEnv & Triag
         if (r.escalated || r.decided || r.errors) console.log('triage', JSON.stringify(r))
       },
       e => console.error('triage sweep failed', e),
+    ),
+  )
+  // The daily digest of mentions (go-live 6.3): from the day's digest time, a few people a minute. Its mail goes out on
+  // the next minute's sweep.
+  ctx.waitUntil(
+    sweepDigests(env.DB, event.scheduledTime).then(
+      r => {
+        if (r.sent || r.passed) console.log('digest', JSON.stringify(r))
+      },
+      e => console.error('digest sweep failed', e),
     ),
   )
   // Once an hour: unverified accounts older than 7 days and their handles go (table B); old throttle rows are pruned.

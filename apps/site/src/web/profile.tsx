@@ -4,7 +4,7 @@
 //   /@handle?as=@h/x    the same head, then only that name's posts (not its mentions)
 //   /@handle?account=1  the owner's account modal (6.2), open (web/account.tsx)
 //   POST /@handle       the owner's forms: the inbox's (an inline reply, mark read or unread, mark all read) and the
-//                       account modal's (save, change password, sign out everywhere)
+//                       account modal's (save, change password, sign out everywhere, download your data, close the account)
 // Profiles are about the human: no agent profiles, no list of names under a person, no agent counts, no passes.
 // The owner, signed in, also sees the private inbox (PROF-5: mentions of the bare handle, sign-off items with their
 // live status, system items), "waiting on you" on working on and created (PROF-9), and their own nodes still being
@@ -15,6 +15,7 @@ import { Hono, type Context } from 'hono'
 import { useContext, type Child, type FC } from 'hono/jsx'
 import { HANDLE_RE, isValidName, ShwarmError } from '@shwarm/protocol'
 import { checkAccount, checkNewPassword, saveAccount, type AccountForm } from '../auth/account'
+import { closeAccount, confirmsHandle } from '../auth/close'
 import { clientIp, formOf, postedTokenOk, sessionOf, who, type AuthContext } from '../auth/request'
 import { signInHref } from '../auth/return-to'
 import { clearCookie, endAllSessions, type Session } from '../auth/session'
@@ -22,6 +23,7 @@ import { inlineStepUp, setPassword } from '../auth/signin'
 import { bump, LIMITS } from '../auth/throttle'
 import { stepUpOpen } from '../auth/stepup'
 import { readAccount } from '../read/account'
+import { readExport } from '../read/export'
 import { siteActor } from '../core/actor'
 import { peekThreadTokensMany } from '../core/limits'
 import { MAX_TEXT } from '../core/text'
@@ -560,6 +562,8 @@ profile.post('/:at{@[A-Za-z0-9_]+}', async c => {
   }
   if (f.do === 'reply') return reply(c, s, url, f)
   if (f.do === 'account' || f.do === 'password') return accountForm(c, s, f.do, f)
+  if (f.do === 'export') return exportData(c, s, f)
+  if (f.do === 'close') return closeForm(c, s, f)
   if (f.do === 'signout_all') {
     // Every session ends, this one too (sign-in's notice says so). No password: it can only sign the person out.
     // OPEN (#84): "every other browser only" is the other choice.
@@ -608,6 +612,58 @@ async function accountForm(c: Context<{ Bindings: Env }>, s: Session, act: 'acco
   }
   await setPassword(db, c.env.PASSWORD_PEPPER, s.personId, f.new_password ?? '', { keepSession: s.id, now })
   return c.redirect(`/@${s.handle}?account=password`, 303)
+}
+
+/** The modal again, open, with the reason at the form that was refused (export or close). */
+async function refuseIn(c: Context<{ Bindings: Env }>, s: Session, flash: AccountFlash, status: 400 | 429 = 400) {
+  const person = await findPerson(c.env.DB, s.handle)
+  if (!person) return sendError(c, { status: 404 }, 'html')
+  return profileView(c, person, new URL(`/@${s.handle}`, c.req.url), true, undefined, status, flash)
+}
+
+/**
+ * "download your data" (6.4): everything held about them as one JSON file (read/export.ts), behind the password
+ * step-up (A5), at most 5 an hour. Never cached. A refusal comes back in the modal, under the button.
+ */
+async function exportData(c: Context<{ Bindings: Env }>, s: Session, f: AccountForm) {
+  const db = c.env.DB
+  const now = Date.now()
+  const up = await inlineStepUp(db, c.env.PASSWORD_PEPPER, s, f.password, clientIp(c), now)
+  if ('refuse' in up) {
+    if (up.wait) c.header('Retry-After', String(up.wait))
+    return refuseIn(c, s, { at: 'export', error: up.refuse }, up.status)
+  }
+  const wait = await bump(db, `export:person:${s.personId}`, LIMITS.exportPerson, now)
+  if (wait) {
+    c.header('Retry-After', String(wait))
+    // OPEN (#86): new words.
+    return refuseIn(c, s, { at: 'export', error: `that's a lot of downloads. wait ${waitText(wait)}, then try again.` }, 429)
+  }
+  const data = await readExport(db, s.personId, now)
+  if (!data) return sendError(c, { status: 404 }, 'html')
+  return c.body(JSON.stringify(data, null, 2) + '\n', 200, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Content-Disposition': `attachment; filename="shwarm-${s.handle}-${new Date(now).toISOString().slice(0, 10)}.json"`,
+    'Cache-Control': 'no-store',
+  })
+}
+
+/**
+ * "close my account" (6.4): the handle typed out, then the password step-up, then auth/close.ts closes it in one batch
+ * and this browser's cookie goes too. It lands on the profile, which now says the account was closed.
+ */
+async function closeForm(c: Context<{ Bindings: Env }>, s: Session, f: AccountForm) {
+  // OPEN (#86): new words.
+  if (!confirmsHandle(f.confirm, s.handle)) return refuseIn(c, s, { at: 'close', errors: { confirm: `type ${s.handle} to confirm.` } })
+  const now = Date.now()
+  const up = await inlineStepUp(c.env.DB, c.env.PASSWORD_PEPPER, s, f.password, clientIp(c), now)
+  if ('refuse' in up) {
+    if (up.wait) c.header('Retry-After', String(up.wait))
+    return refuseIn(c, s, { at: 'close', error: up.refuse }, up.status)
+  }
+  await closeAccount(c.env.DB, s.personId, now)
+  c.header('Set-Cookie', clearCookie(), { append: true })
+  return c.redirect(`/@${s.handle}`, 303)
 }
 
 async function reply(c: Context<{ Bindings: Env }>, s: Session, url: URL, f: Record<string, string>) {

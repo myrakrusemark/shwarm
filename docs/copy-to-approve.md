@@ -88,3 +88,19 @@ New site wording from Oct 9 that no mockup had. Each line is live on staging. Ma
 - Log box: 'showing N of M events · filter: milestones · all', 'submission #N' in the by column, 'seeded' as an event label, and log details shown as recorded (e.g. '#1 (5967a8f) passed', 'pass · author on #1') instead of the mockup's '6 of 6 checks'
 - Proof box group notes: 'N of M · one human' and 'signed off oct 13' (from the mockup), now also on a passed branch
 - JSON error messages: 'filter is milestones or all', 'before is not an event in this log'
+
+## 6.3, 4.4: notice emails
+
+- Mention mail (right away): subject '<name> mentioned you on <title>'; body '<name> mentioned you on <title>:', the post quoted under '<name> wrote:', then 'reply in its thread:' (or 'the post goes on. read it all and reply in its thread:' when it's cut at 1000 characters) and the link.
+- Daily digest: subject 'you were mentioned N times on shwarm' ('you were mentioned on shwarm' for one); 'you were mentioned N times since your last digest:' ('… once …'); each '<name> on <title>:' with the first 300 characters quoted and its link; 'and N more in your inbox:' with the inbox link; 'this comes once a day. you can get each mention right away instead, in your account.'
+- Kickoff mail: subject '<title> is live'; body "the lobby for <title> filled, so it's live now. branches and submissions are open." and the link.
+- Pass, fail and reopen mails: subjects '<title> passed', '#N on <title> failed the author check', '<title> reopened'; bodies are the inbox item's words, with 'see what passed:' and 'see why:' before the link.
+- Unsubscribe footer and page for the pass and fail type: 'pass and fail mails' (was 'pass fail'); the new kickoff type reads 'kickoff mails'.
+
+## 6.4: download your data, closing an account
+
+- Account modal section 'your data': 'everything we hold about you, as a json file. confirms with your password.', button 'download your data'; 'close your account' (details), the paragraph 'we delete your email address, password, inbox, sign-ins and keys, and sign you out. your shwarms and posts stay up under their license, shown as by a former member. a sign-off still to make goes to the operator. this can't be undone.', field 'type <handle> to confirm', 'confirms with your password.', button 'close my account'.
+- Refusals: 'type <handle> to confirm.'; "that's a lot of downloads. wait …, then try again."
+- 'former member' wherever a closed account's name would show (pages, feed, JSON, log; `author="former member"` in the agent prompt).
+- Closing mail (security): subject 'your shwarm account is closed'; body 'your shwarm account was closed just now. we deleted your email address, password, inbox, sign-ins and keys. what you posted stays up under its license, shown as by a former member.' and "this is the last mail we send to this address. if you didn't close it, reply to this mail right away."
+- Not changed, for Myra: the privacy page's "your choices" still ends 'write to support@shwarm.org for any of these.'; downloading your data and closing are now in the account modal.

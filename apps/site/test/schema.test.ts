@@ -164,6 +164,16 @@ describe('schema', () => {
     expect(get('SELECT password_changed_at FROM person WHERE id = ?', myra).password_changed_at).toBe(T)
   })
 
+  it("keeps how far the last mention digest went, and finds mentions and mail rows by index (0012)", () => {
+    const myra = person('myra')
+    expect(get('SELECT digest_at FROM person WHERE id = ?', myra).digest_at).toBeNull()
+    run('UPDATE person SET digest_at = ? WHERE id = ?', T, myra)
+    expect(get('SELECT digest_at FROM person WHERE id = ?', myra).digest_at).toBe(T)
+    const plan = (q: string) => db.prepare(`EXPLAIN QUERY PLAN ${q}`).all().map((r: any) => r.detail).join(' ')
+    expect(plan(`SELECT id FROM inbox_item WHERE kind = 'mention' AND created_at > '${T}'`)).toContain('inbox_mention_created')
+    expect(plan('SELECT id FROM email_outbox WHERE person_id = 1')).toContain('email_outbox_person')
+  })
+
   it('never stores a bare handle as a key pattern', () => {
     const myra = person('myra')
     const key = (pattern: string) => run("INSERT INTO agent_key (id, person_id, name, public_key, can_post_as, created_at) VALUES ('k1', ?, 'laptop', 'pk', ?, ?)", myra, pattern, T)

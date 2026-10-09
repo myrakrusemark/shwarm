@@ -1,9 +1,10 @@
 // What every command shares: the clock, loading the actor's person and the node, and the statements
 // most acts add to their batch (mentions, inbox notices, the node's review flag and ETag).
 import { ShwarmError } from '@shwarm/protocol'
-import { mailToAdminsStatement, mailToPersonStatement } from '../email/outbox'
+import { inboxEverySql, noticeOnSql } from '../email/notices'
+import { mailToAdminsStatement, mailToPeopleStatement, mailToPersonStatement, type MailTemplate } from '../email/outbox'
 import type { Actor } from './actor'
-import { submissionHref } from './audit'
+import { nodeHref, submissionHref } from './audit'
 import type { CheckSpec } from './checks'
 import { newId } from './ids'
 import { extractMentions } from './text'
@@ -95,23 +96,43 @@ export const rootOf = (path: string) => path.split('/')[0]
 
 const WEEK_MS = 7 * 86_400_000
 
+export type Audience = 'seats' | 'involved'
+
+/**
+ * Who hears about a node (table B): 'seats' = seat holders; 'involved' = seat holders, the author and everyone who
+ * posted in the last 7 days (table B #44). A SELECT of person ids as `pid`, with plain placeholders and their binds.
+ */
+function audience(ctx: Ctx, nodeId: number, who: Audience): { sql: string; args: unknown[] } {
+  const seats = 'SELECT person_id AS pid FROM seat WHERE node_id = ? AND left_at IS NULL'
+  if (who === 'seats') return { sql: seats, args: [nodeId] }
+  return {
+    sql: `${seats} UNION SELECT author_id FROM node WHERE id = ? UNION SELECT person_id FROM post WHERE node_id = ? AND created_at > ?`,
+    args: [nodeId, nodeId, nodeId, new Date(ctx.now - WEEK_MS).toISOString()],
+  }
+}
+
 /**
  * System inbox items (table B): one per person, in one statement evaluated inside the batch, so it sees the
- * seat or post committed just before it. 'seats' = seat holders; 'involved' = seat holders, the author and
- * everyone who posted in the last 7 days (table B #44).
+ * seat or post committed just before it.
  */
-export function notifyStatement(ctx: Ctx, nodeId: number, text: string, who: 'seats' | 'involved'): D1PreparedStatement {
-  const seats = 'SELECT person_id AS pid FROM seat WHERE node_id = ?1 AND left_at IS NULL'
-  const involved = `${seats} UNION SELECT author_id FROM node WHERE id = ?1 UNION SELECT person_id FROM post WHERE node_id = ?1 AND created_at > ?4`
-  const args: unknown[] = [nodeId, text, ctx.at]
-  if (who === 'involved') args.push(new Date(ctx.now - WEEK_MS).toISOString())
+export function notifyStatement(ctx: Ctx, nodeId: number, text: string, who: Audience): D1PreparedStatement {
+  const a = audience(ctx, nodeId, who)
   return ctx.db
     .prepare(
       `INSERT INTO inbox_item (person_id, kind, node_id, text, created_at)
-       SELECT x.pid, 'system', ?1, ?2, ?3 FROM (${who === 'seats' ? seats : involved}) x
+       SELECT x.pid, 'system', ?, ?, ? FROM (${a.sql}) x
        JOIN person pr ON pr.id = x.pid WHERE pr.status = 'active'`,
     )
-    .bind(...args)
+    .bind(nodeId, text, ctx.at, ...a.args)
+}
+
+/**
+ * The mail that goes with a system item (go-live 4.4, 6.3): to the same people, in the same batch, each only while the
+ * notice type is on for them (email/notices.ts; the sweep checks again when it sends). payload.notice names the type.
+ */
+export function noticeMailStatement(ctx: Ctx, nodeId: number, who: Audience, m: { template: MailTemplate; payload: Record<string, unknown> & { notice: string } }): D1PreparedStatement {
+  const a = audience(ctx, nodeId, who)
+  return mailToPeopleStatement(ctx.db, { template: m.template, stream: 'notices', payload: m.payload }, `SELECT pid FROM (${a.sql})`, a.args, noticeOnSql('person', m.payload.notice), ctx.at)
 }
 
 /** One inbox item, written only while the person is active: a suspended or closed account collects nothing (as notifyStatement). */
@@ -129,7 +150,12 @@ export function inboxStatement(ctx: Ctx, i: { personId: number; kind: 'mention' 
  * the item and the mail go to every active admin instead. OPEN (#75): if the author comes back before signing, the item
  * stays with the admins; the author sees "waiting on you" on the page, but nothing new lands in their inbox.
  */
-export function signOffStatements(ctx: Ctx, n: NodeRow, s: { postId: string; number: number }, only: boolean): D1PreparedStatement[] {
+export function signOffStatements(
+  ctx: Ctx,
+  n: Pick<NodeRow, 'id' | 'path' | 'title' | 'author_id' | 'author_handle' | 'author_status'>,
+  s: { postId: string; number: number },
+  only: boolean,
+): D1PreparedStatement[] {
   const payload = { notice: 'sign_off', handle: n.author_handle, number: s.number, title: n.title, link: submissionHref(n.path, s.number), ...(only ? { only: true } : {}) }
   if (n.author_status !== 'active')
     return [
@@ -175,13 +201,17 @@ export function signOffReopenStatement(ctx: Ctx, nodeId: number, endedAt: string
     .bind(endedAt, nodeId)
 }
 
+/** How much of a post a mention mail quotes. OPEN (#85): the link has the rest. */
+export const MENTION_MAIL_CHARS = 1000
+
 /**
  * Mentions in a post: one row per name that resolves to an active person. A mention of the bare handle
- * also lands in that person's inbox, unless they wrote it themselves as the bare handle.
+ * also lands in that person's inbox, unless they wrote it themselves as the bare handle, and is mailed to them at once
+ * when they asked for inbox mail right away (go-live 6.3); everyone else hears of it in the daily digest (jobs/digest.ts).
  */
 export async function mentionStatements(
   ctx: Ctx,
-  m: { postId: string; text: string; nodeId: number; actor: Actor },
+  m: { postId: string; text: string; node: { id: number; path: string; title: string }; actor: Actor },
 ): Promise<{ names: string[]; stmts: D1PreparedStatement[] }> {
   const names = extractMentions(m.text).slice(0, 50) // OPEN: no cap on mentions per post is decided; 50 bounds the batch
   if (!names.length) return { names: [], stmts: [] }
@@ -203,7 +233,23 @@ export async function mentionStatements(
     )
     const bare = !name.includes('/')
     const self = pid === m.actor.personId && !m.actor.as.includes('/')
-    if (bare && !self) stmts.push(inboxStatement(ctx, { personId: pid, kind: 'mention', nodeId: m.nodeId, postId: m.postId, text: '' }))
+    if (!bare || self) continue
+    stmts.push(inboxStatement(ctx, { personId: pid, kind: 'mention', nodeId: m.node.id, postId: m.postId, text: '' }))
+    // The sweep sends it only while the post and its node still show to them (jobs/mail.ts).
+    const chars = [...m.text]
+    const payload = {
+      notice: 'mention',
+      by: m.actor.as,
+      title: m.node.title,
+      path: m.node.path,
+      post: m.postId,
+      link: `${nodeHref(m.node.path)}#${m.postId}`,
+      text: chars.slice(0, MENTION_MAIL_CHARS).join(''),
+      cut: chars.length > MENTION_MAIL_CHARS,
+    }
+    stmts.push(
+      mailToPersonStatement(ctx.db, { template: 'mention', stream: 'notices', personId: pid, payload }, ctx.at, `${noticeOnSql('person', 'mention')} AND ${inboxEverySql('person', 'now')}`),
+    )
   }
   return { names: out, stmts }
 }

@@ -339,12 +339,12 @@ describe('outbox sweep, when things go wrong', () => {
 })
 
 describe('worker entry', () => {
-  it('exports fetch and scheduled; scheduled runs the mail and triage sweeps, each in its own waitUntil', async () => {
+  it('exports fetch and scheduled; scheduled runs the mail, triage and digest sweeps, each in its own waitUntil', async () => {
     expect(typeof app.fetch).toBe('function')
     const e = env({ RESEND_API_KEY: undefined })
     const waits: Promise<unknown>[] = []
     await app.scheduled({} as ScheduledController, e, { waitUntil: (p: Promise<unknown>) => waits.push(p) } as unknown as ExecutionContext)
-    expect(waits.length).toBe(2)
+    expect(waits.length).toBe(3)
     await Promise.all(waits)
   })
 })

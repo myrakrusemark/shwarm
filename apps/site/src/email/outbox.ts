@@ -16,6 +16,11 @@ export type MailTemplate =
   | 'signup_existing'
   | 'triage_alert' // to the admins: a node triage held or flagged (go-live 8.1, triage/run.ts)
   | 'sign_off_ready' // to a node's author (or, author gone, the admins): a submission waits on their sign-off (go-live 5.4, notice 'sign_off')
+  | 'mention' // to someone named as their bare handle, who asked for inbox mail right away (go-live 6.3, notice 'mention')
+  | 'digest' // the day's unread mentions in one mail, for everyone else (go-live 6.3, jobs/digest.ts, notice 'mention')
+  | 'kickoff' // to everyone seated when a lobby fills (go-live 4.4, notice 'kickoff')
+  | 'node_news' // a node you're in passed, failed the author check or reopened (go-live 6.3, notice 'pass_fail')
+  | 'account_closed' // to the address an account had, as it closes (go-live 6.4)
 
 export type Mail = {
   to: string
@@ -51,16 +56,44 @@ export function mailWhenStatement(db: D1Database, m: Mail, when: string, whenArg
 }
 
 /**
- * A mail to a person by id, addressed inside the batch: one row if they are active, none otherwise (a suspended or
- * closed account gets no notices). For acts in core, which know a person's id but not their address.
+ * A mail to a person by id, addressed and greeted (payload.handle) inside the batch: one row if they are active, none
+ * otherwise (a suspended or closed account gets no notices). For acts in core, which know a person's id but not their
+ * address. `where` is more SQL on the person row (alias `person`), such as their notice settings (email/notices.ts).
  */
-export function mailToPersonStatement(db: D1Database, m: Omit<Mail, 'to' | 'personId'> & { personId: number }, now = new Date().toISOString()): D1PreparedStatement {
+export function mailToPersonStatement(
+  db: D1Database,
+  m: Omit<Mail, 'to' | 'personId'> & { personId: number },
+  now = new Date().toISOString(),
+  where?: string,
+): D1PreparedStatement {
   return db
     .prepare(
       `INSERT INTO email_outbox (to_email, person_id, template, stream, payload, created_at, send_after)
-       SELECT lower(email), id, ?, ?, ?, ?, ? FROM person WHERE id = ? AND status = 'active'`,
+       SELECT lower(email), id, ?, ?, json_set(?, '$.handle', handle), ?, ? FROM person WHERE id = ? AND status = 'active'${where ? ` AND ${where}` : ''}`,
     )
     .bind(m.template, m.stream, JSON.stringify(m.payload ?? {}), now, m.sendAfter ?? now, m.personId)
+}
+
+/**
+ * The same mail to everyone a SQL query names (`ids`: a SELECT of person ids, with its own binds), each addressed and
+ * greeted inside the batch, active accounts only, and only those whose `where` holds (alias `person`). For notices to
+ * the people in a node (core/context.ts noticeMailStatement), so the set is read as the batch commits.
+ */
+export function mailToPeopleStatement(
+  db: D1Database,
+  m: Omit<Mail, 'to' | 'personId'>,
+  ids: string,
+  idArgs: unknown[],
+  where: string,
+  now = new Date().toISOString(),
+): D1PreparedStatement {
+  return db
+    .prepare(
+      `INSERT INTO email_outbox (to_email, person_id, template, stream, payload, created_at, send_after)
+       SELECT lower(email), id, ?, ?, json_set(?, '$.handle', handle), ?, ? FROM person
+       WHERE id IN (${ids}) AND status = 'active' AND email_verified_at IS NOT NULL AND ${where}`,
+    )
+    .bind(m.template, m.stream, JSON.stringify(m.payload ?? {}), now, m.sendAfter ?? now, ...idArgs)
 }
 
 /**

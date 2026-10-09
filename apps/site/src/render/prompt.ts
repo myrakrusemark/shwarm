@@ -13,6 +13,7 @@ import type { BuiltOnLink, Chain, CheckReport, Child, NodeHead, PromptPost, Seat
 import { isOpen, openReview, recordedStatus, review, type Review } from '../read/review'
 import { BIDI_RE, escapeOf, showHidden } from './hidden'
 import { dayOf, licenseName, perDay, plural, q1, triageNote } from './format'
+import { FORMER } from '../read/names'
 
 export type AgentView = {
   origin: string
@@ -27,6 +28,9 @@ export type AgentView = {
 }
 
 // ---------- escaping ----------
+
+/** A name as a marker attribute: names have no spaces, but a closed account's "former member" (read/names.ts) is quoted. */
+const attrName = (name: string) => (name === FORMER ? `"${FORMER}"` : name)
 
 /** Breaks every "<<<" so quoted text can never form a marker. Exported for tests. */
 export const breakMarkers = (s: string) => s.replace(/<(?=<<)/g, '<\\')
@@ -57,7 +61,7 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
     line(body.replace(/\n+$/, ''))
     line(`<<<end-${nonce}>>>`)
   }
-  const field = (f: string, author: string, body: string) => block('node', `field=${f} author=${author}`, body)
+  const field = (f: string, author: string, body: string) => block('node', `field=${f} author=${attrName(author)}`, body)
 
   line('shwarm prompt · draft v0')
   dataHeader(nonce, line)
@@ -251,8 +255,9 @@ function deadEnds(v: AgentView): string[] {
 }
 
 function postAttrs(p: PromptPost, n: NodeHead, pinned: boolean): string {
-  const a = [`id=${p.id}`, `author=${p.as_name}`]
-  if (p.person_id === n.author_id && !p.as_name.includes('/')) a.push('role=author')
+  const a = [`id=${p.id}`, `author=${attrName(p.as_name)}`]
+  // A closed author's names all read "former member", agents' too, so the role can't be told and isn't given.
+  if (p.person_id === n.author_id && !p.as_name.includes('/') && p.as_name !== FORMER) a.push('role=author')
   if (pinned) a.push('pinned')
   if (p.kind !== 'post') a.push(`kind=${p.kind}`)
   if (p.number !== null) a.push(`number=${p.number}`)
@@ -399,7 +404,7 @@ export function renderSubmissionPrompt(v: SubmissionView, nonce = makeNonce()): 
   if (s.author_swap) line("note:   the author's own work: one more people check stands in for the sign-off.")
   line()
   line('DONE WHEN')
-  block(`field=done_when author=${n.posted_by}`, quoteText(n.done_when))
+  block(`field=done_when author=${attrName(n.posted_by)}`, quoteText(n.done_when))
   line()
   line('WHAT WAS SUBMITTED')
   const body: string[] = [quoteText(s.text)]
@@ -409,7 +414,7 @@ export function renderSubmissionPrompt(v: SubmissionView, nonce = makeNonce()): 
   body.push(`how to check: ${quoteText(s.how_to_check)}`)
   if (s.release_title || s.release_version) body.push(`release: ${quoteText([s.release_title, s.release_version && `version ${s.release_version}`].filter(Boolean).join(' · '))}`)
   if (s.release_how_to_use) body.push(`how to use: ${quoteText(s.release_how_to_use)}`)
-  block(`id=${s.post_id} author=${s.as_name} kind=submission number=${s.number}`, body.join('\n'))
+  block(`id=${s.post_id} author=${attrName(s.as_name)} kind=submission number=${s.number}`, body.join('\n'))
   line()
   line(`CHECKS (${r.done} of ${r.total})`)
   checkLines(s, { ...r, rows: r.rows.filter(x => x.verdict !== 'waiting' || open) }, v.checks.filter(c => c.reset_at), line)

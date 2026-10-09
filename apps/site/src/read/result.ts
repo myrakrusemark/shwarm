@@ -3,6 +3,7 @@
 // with role tags taken only from recorded events (table B #65), and the shwarms built on it.
 import type { BuiltOnLink, Chain, CheckReport, NodeHead, SubmissionDetail } from './node'
 import { readBuiltOn, readChecks, readSubmission } from './node'
+import { HANDLE_SHOWN } from './names'
 import { OPEN_NODE, PUBLIC_NODE } from './visibility'
 
 /** The tree a result page reads: the shwarm and its branches (root_id). */
@@ -59,7 +60,7 @@ export async function readCredits(db: D1Database, chain: Chain, r: Result): Prom
     // OPEN: no cap on how many people a result page ranks; every row is read and summed here.
     db
       .prepare(
-        `SELECT '@' || p.handle AS handle, SUM(x.posts) AS posts, SUM(x.upvotes) AS upvotes
+        `SELECT ${HANDLE_SHOWN('p')} AS handle, SUM(x.posts) AS posts, SUM(x.upvotes) AS upvotes
          FROM person_node_stats x JOIN node t ON t.id = x.node_id JOIN person p ON p.id = x.person_id
          WHERE ${TREE('t')} AND (t.id = ?1 OR ${PUBLIC_NODE('t')}) AND x.posts > 0
          GROUP BY x.person_id`,
@@ -68,14 +69,14 @@ export async function readCredits(db: D1Database, chain: Chain, r: Result): Prom
       .all<{ handle: string; posts: number; upvotes: number }>(),
     db
       .prepare(
-        `SELECT DISTINCT b.title, '@' || p.handle AS handle
+        `SELECT DISTINCT b.title, ${HANDLE_SHOWN('p')} AS handle
          FROM node b JOIN submission s ON s.node_id = b.id AND s.status = 'passed' JOIN post sp ON sp.id = s.post_id AND sp.hidden = 0
          JOIN person p ON p.id = sp.person_id
          WHERE b.root_id = ?1 AND b.state = 'closed' AND ${PUBLIC_NODE('b')} ORDER BY b.closed_at`,
       )
       .bind(root)
       .all<{ title: string; handle: string }>(),
-    db.prepare('SELECT handle FROM person WHERE id = ?').bind(r.sub.person_id).first<{ handle: string }>(),
+    db.prepare(`SELECT ${HANDLE_SHOWN('person')} AS handle FROM person WHERE id = ?`).bind(r.sub.person_id).first<{ handle: string }>(),
   ])
   const human = (name: string) => name.split('/')[0]
   const roles = new Map<string, Role[]>()
@@ -83,7 +84,7 @@ export async function readCredits(db: D1Database, chain: Chain, r: Result): Prom
     const list = roles.get(handle) ?? roles.set(handle, []).get(handle)!
     if (!list.some(x => x.tag === role.tag && x.label === role.label)) list.push(role)
   }
-  if (submitter) add('@' + submitter.handle, { tag: 'submitted', label: 'submitted the passing work', key: true })
+  if (submitter) add(submitter.handle, { tag: 'submitted', label: 'submitted the passing work', key: true })
   for (const b of r.builtOn) add(human(b.as_name), { tag: 'built_on', label: 'built on', key: true })
   add(n.author, { tag: 'author', label: 'author', key: true })
   for (const c of r.checks) if (c.slot !== 'author') add(human(c.as_name), { tag: 'checked', label: 'ran a check', key: false })
@@ -91,7 +92,12 @@ export async function readCredits(db: D1Database, chain: Chain, r: Result): Prom
   // Decisive tags first, as mocked.
   for (const list of roles.values()) list.sort((a, b) => Number(b.key) - Number(a.key))
 
-  const byHandle = new Map(stats.map(s => [s.handle, { handle: s.handle, posts: s.posts, upvotes: s.upvotes }]))
+  // Closed accounts all show as "former member" (read/names.ts), so their rows add up into one.
+  const byHandle = new Map<string, { handle: string; posts: number; upvotes: number }>()
+  for (const s of stats) {
+    const had = byHandle.get(s.handle)
+    byHandle.set(s.handle, { handle: s.handle, posts: s.posts + (had?.posts ?? 0), upvotes: s.upvotes + (had?.upvotes ?? 0) })
+  }
   // Someone with a role but no counted post yet (an author who never posted, or before the stats job ran) still shows.
   for (const h of roles.keys()) if (!byHandle.has(h)) byHandle.set(h, { handle: h, posts: 0, upvotes: 0 })
   const ranked = [...byHandle.values()].sort((a, b) => b.upvotes - a.upvotes || b.posts - a.posts || (a.handle < b.handle ? -1 : 1))
