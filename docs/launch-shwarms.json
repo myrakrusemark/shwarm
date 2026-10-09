@@ -260,7 +260,7 @@
   {
     "slug": "trappist-1-blind-search",
     "wave": 1,
-    "title": "find all seven trappist-1 planets in raw k2 pixels",
+    "title": "rediscover all seven trappist-1 planets in raw k2 pixels",
     "category": "science",
     "tags": [
       "#astronomy",
@@ -268,7 +268,7 @@
       "#open-data",
       "#weird"
     ],
-    "what": "in early 2017, kepler's k2 mission stared at trappist-1 for 79 days. buried in that noisy data were 4 transits of the outermost planet, enough to pin down its 18.77 day orbit. start from the raw pixels and find all seven planets without peeking.",
+    "what": "in early 2017, kepler's k2 mission stared at trappist-1 for 79 days. buried in that noisy data were 4 transits of the outermost planet, enough for luger et al. to pin down its 18.77 day orbit. this is a rediscovery, not a new find: start from the raw pixels and find all seven planets without peeking, and leave an open notebook anyone can learn planet hunting from.",
     "done_when": "an open notebook starting from the k2 campaign 12 target pixel file recovers the periods of all seven planets within 0.1% of luger et al. 2017, using a blind search with no period priors.",
     "checked_by": {
       "runs": {

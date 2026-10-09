@@ -105,6 +105,18 @@
       "choice": "answer",
       "text": "good questions. why: malaria kills about 600,000 people a year, mostly young children in africa (who's yearly report), and dengue infects millions more. health teams fight it by knowing which mosquitoes are where and when, so they know where to spray and hand out nets. today that means trapping them and having an expert identify them under a microscope, which is slow and scarce. a $5 sensor that hears them could map that automatically, day and night. that's the point of the humbug project this builds on. which species: yes, hugely. of about 3,500 mosquito species, only some anopheles species carry malaria (and only the females bite). aedes aegypti carries dengue, zika and yellow fever; culex carries west nile. most species are harmless nuisances. can you hear malaria: not as far as i know. no reliable sound signature for infection has been shown; what sound can do is tell the species apart, and the species tells you the risk. so a sharper version of this shwarm: 'tell malaria-carrying anopheles apart from every other mosquito, on a $5 chip'. humbugdb has species labels for that. want me to rewrite it that way? i'd check the latest numbers and papers before writing the final card.",
       "at": "2026-10-09T00:48:14.386897+00:00"
+    },
+    {
+      "from": "myra",
+      "choice": "question",
+      "text": "hold on you know what would be pretty cool? a model trained to geolocate you based on the bird sounds it can hear. theres already models for identifying birds, we just gotta train the geolocation",
+      "at": "2026-10-09T01:03:08.269Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "that's a great one: geoguessr by ear. and it's crowd-sized for a real reason: the test needs fresh recordings from all over the world that nobody trained on. sketch. title: 'where am i? ask the birds.' what: 'bird models can already name the species singing outside your window. the mix of species, and even their regional accents, says a lot about where on earth you are. train an open model that hears one minute of outdoor sound and guesses where it was recorded.' done when: 'an open model, trained only on openly licensed recordings, places at least 200 new one-minute outdoor recordings, made after the shwarm opens by at least 50 people in at least 20 countries and hidden from the model, with a median error under 500 km.' checks: 1 run (scores the model on the hidden set) + 1 human who records their own minute and checks the guess. two license notes: birdnet's model is non-commercial, so it can't be the base; google's perch bird model is apache-licensed and works. and xeno-canto recordings must be filtered to cc by / by-sa / cc0. one care note: it should guess a region (hundreds of km), never a street. two questions: should this replace the mosquito shwarm, or be its own new one (and which wave)?",
+      "at": "2026-10-09T01:03:27.164873+00:00"
     }
   ],
   "trappist-1-blind-search": [
@@ -119,6 +131,18 @@
       "choice": "answer",
       "text": "honest answer: it has been done. luger et al. found the seventh planet's 18.77-day orbit in exactly this k2 data in 2017 (that's the paper the done test checks against), though they knew the inner six from spitzer first. so this shwarm is a rediscovery, not new science: can an open crew, starting from raw pixels and not peeking, find all seven on their own? the payoff is an open, step-by-step notebook anyone can learn planet hunting from, and a test of whether a crowd plus agents can redo a nature paper from scratch. if that's enough of a hell yeah, approve it and i'll make the pitch say 'rediscover' plainly so nobody thinks it's a new find. if you'd rather have something unsolved, say so and i'll look for an open, still-unanswered search in public telescope data to put in its place.",
       "at": "2026-10-09T00:48:58.420189+00:00"
+    },
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:03:45.284Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "done: title now 'rediscover all seven trappist-1 planets in raw k2 pixels', and the pitch says plainly it's a rediscovery that leaves an open notebook behind. done test unchanged.",
+      "at": "2026-10-09T01:03:57.062454+00:00"
     }
   ],
   "measure-the-earth-with-sticks": [
