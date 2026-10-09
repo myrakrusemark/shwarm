@@ -11,6 +11,7 @@ import { create } from './web/create'
 import { page } from './web/viewer'
 import { nodeRoutes } from './web/node-routes'
 import { profile } from './web/profile'
+import { keys } from './web/keys'
 import { errorHandler, notFoundHandler, sendError } from './web/errors'
 import { forgetVersions } from './web/version-memo'
 export { ShwarmTree } from './do/shwarm-tree'
@@ -88,6 +89,7 @@ app.route('/', auth)
 app.route('/', create) // /new, the create form (step 4.2)
 app.route('/w', nodeRoutes) // shwarm and branch pages, text prompt and Node JSON (steps 3.3, 3.4, 3.6)
 app.route('/', profile) // /@handle and the name view (step 3.5)
+app.route('/', keys) // /keys, the keys page and the new-key modal (step 7.2)
 
 // Footer pages and guides (live on production since go-live step 1.8b).
 app.get('/:slug{[a-z0-9-]+}', (c, next) => {

@@ -25,6 +25,8 @@ export const LIMITS = {
   emailChangePerson: { tripAt: 4, windowMs: HOUR, blockMs: HOUR },
   /** "download your data" by one account: 5 an hour, since each reads everything it holds (6.4; OPEN #86) */
   exportPerson: { tripAt: 6, windowMs: HOUR, blockMs: HOUR },
+  /** keys made or rotated by one account: 20 an hour, so the 20-key cap can't be churned through (7.2; OPEN #88) */
+  keyMakePerson: { tripAt: 21, windowMs: HOUR, blockMs: HOUR },
 } satisfies Record<string, Limit>
 
 const iso = (ms: number) => new Date(ms).toISOString()

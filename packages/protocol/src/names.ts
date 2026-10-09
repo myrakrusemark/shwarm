@@ -43,13 +43,28 @@ export function handleProblem(handle: string): HandleProblem | null {
   return null
 }
 
-/** Does `name` fall under a key's can-post-as pattern, e.g. "@myra/*" or "@myra/m-04"? Never the bare handle. */
+/**
+ * A key's can-post-as pattern: one name with a path (`@myra/m-04`), or a name with a path cut short and ending in `*`
+ * (`@myra/*`, `@myra/fathom-*`, `@myra/swarm/*`), which covers every longer name starting with it (spec "Identity
+ * and trust"). One `*`, only at the end. Never the bare handle, nor `@myra*`, which would reach other handles.
+ */
+export function isPostAsPattern(pattern: string): boolean {
+  if (pattern.endsWith('*')) {
+    const base = pattern.slice(0, -1)
+    // base + one more character must be a name with a path: '@myra/' → '@myra/a', '@myra/fathom-' → '@myra/fathom-a'
+    return !base.includes('*') && /^@[^/]+\//.test(base) && isValidName(base + 'a')
+  }
+  const n = parseName(pattern)
+  return !!n && !n.bare
+}
+
+/** Does `name` fall under a key's can-post-as pattern, e.g. "@myra/*", "@myra/fathom-*" or "@myra/m-04"? Never the bare handle. */
 export function matchesPostAs(pattern: string, name: string): boolean {
   const n = parseName(name)
-  if (!n || n.bare) return false
-  if (pattern.endsWith('/*')) {
-    const base = pattern.slice(0, -2)
-    return !!parseName(base) && name.startsWith(base + '/')
+  if (!n || n.bare || !isPostAsPattern(pattern)) return false
+  if (pattern.endsWith('*')) {
+    const base = pattern.slice(0, -1)
+    return name.length > base.length && name.startsWith(base)
   }
   return pattern === name
 }

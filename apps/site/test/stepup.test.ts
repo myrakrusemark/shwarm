@@ -11,11 +11,11 @@ import { stagingWorld } from './node-fixture'
 
 const MIN = 60_000
 
-// The site plus two gated acts, the way later phases will use requireStepUp.
+// The site plus two gated acts, the way later phases will use requireStepUp (at /gated: /keys is the real keys page since 7.2).
 const site = new Hono<{ Bindings: { DB: D1Database } }>()
 site.route('/', app)
-site.get('/keys', async c => (await requireStepUp(c)) ?? c.text('your keys'))
-site.post('/keys/new', async c => (await requireStepUp(c)) ?? c.text('key made'))
+site.get('/gated', async c => (await requireStepUp(c)) ?? c.text('your keys'))
+site.post('/gated/new', async c => (await requireStepUp(c)) ?? c.text('key made'))
 site.post('/reply', async c => (await requireVerified(c)) ?? c.text('posted'))
 
 beforeEach(() => {
@@ -42,57 +42,57 @@ describe('step-up', () => {
   it('allows a gated act inside the 10-minute window and refuses it outside', async () => {
     const { b } = await signedIn()
     // sign-in just took the password, so the window is open
-    expect(await (await b.get('/keys')).text()).toBe('your keys')
+    expect(await (await b.get('/gated')).text()).toBe('your keys')
     vi.setSystemTime(T0 + 9 * MIN)
-    expect(await (await b.post('/keys/new')).text()).toBe('key made')
+    expect(await (await b.post('/gated/new')).text()).toBe('key made')
 
     vi.setSystemTime(T0 + 11 * MIN)
-    let res = await b.get('/keys')
+    let res = await b.get('/gated')
     expect(res.status).toBe(303)
-    expect(res.headers.get('location')).toBe('/step-up?next=%2Fkeys')
-    res = await b.req('/keys/new', { method: 'POST', headers: { referer: 'https://shwarm.org/keys?tab=agents' } })
-    expect(res.headers.get('location')).toBe('/step-up?next=%2Fkeys%3Ftab%3Dagents')
+    expect(res.headers.get('location')).toBe('/step-up?next=%2Fgated')
+    res = await b.req('/gated/new', { method: 'POST', headers: { referer: 'https://shwarm.org/gated?tab=agents' } })
+    expect(res.headers.get('location')).toBe('/step-up?next=%2Fgated%3Ftab%3Dagents')
 
     // the step-up page, then the password
-    const page = await body(await b.get('/step-up?next=%2Fkeys'))
+    const page = await body(await b.get('/step-up?next=%2Fgated'))
     expect(page).toContain("confirm it's you")
     expect(page).toContain('signed in as @myra')
-    res = await b.post('/step-up', { password: 'not it at all', next: '/keys' })
+    res = await b.post('/step-up', { password: 'not it at all', next: '/gated' })
     expect(res.status).toBe(400)
     expect(await body(res)).toContain("that password doesn't match")
-    expect((await b.get('/keys')).status).toBe(303)
-    res = await b.post('/step-up', { password: GOOD_PASSWORD, next: '/keys' })
+    expect((await b.get('/gated')).status).toBe(303)
+    res = await b.post('/step-up', { password: GOOD_PASSWORD, next: '/gated' })
     expect(res.status).toBe(303)
-    expect(res.headers.get('location')).toBe('/keys')
-    expect(await (await b.get('/keys')).text()).toBe('your keys')
+    expect(res.headers.get('location')).toBe('/gated')
+    expect(await (await b.get('/gated')).text()).toBe('your keys')
 
     vi.setSystemTime(T0 + 22 * MIN)
-    expect((await b.get('/keys')).status).toBe(303)
+    expect((await b.get('/gated')).status).toBe(303)
   })
 
   it('sends a signed-out visitor to sign in, keeping a same-site next', async () => {
     const b = new Browser(testEnv(), '203.0.113.9', site)
-    let res = await b.get('/keys')
-    expect(res.headers.get('location')).toBe('/signin?next=%2Fkeys')
-    res = await b.get('/step-up?next=/keys')
-    expect(res.headers.get('location')).toBe('/signin?next=%2Fstep-up%3Fnext%3D%252Fkeys')
+    let res = await b.get('/gated')
+    expect(res.headers.get('location')).toBe('/signin?next=%2Fgated')
+    res = await b.get('/step-up?next=/gated')
+    expect(res.headers.get('location')).toBe('/signin?next=%2Fstep-up%3Fnext%3D%252Fgated')
     // a POST from a page on another site never becomes the next
-    res = await b.req('/keys/new', { method: 'POST', headers: { referer: 'https://evil.example/x' } })
+    res = await b.req('/gated/new', { method: 'POST', headers: { referer: 'https://evil.example/x' } })
     expect(res.headers.get('location')).toBe('/signin?next=%2F')
   })
 
   it('refuses gated and everyday acts to an unverified account, even with the window open', async () => {
     const { env, b } = await signedIn({ verified: false })
-    let res = await b.get('/keys')
+    let res = await b.get('/gated')
     expect(res.status).toBe(303)
     expect(res.headers.get('location')).toBe('/check-email')
-    res = await b.post('/keys/new')
+    res = await b.post('/gated/new')
     expect(res.headers.get('location')).toBe('/check-email')
     res = await b.req('/reply', { method: 'POST' })
     expect(res.headers.get('location')).toBe('/check-email')
     // verified, the same session goes through
     env.DB.raw.prepare('UPDATE person SET email_verified_at = ?').run(new Date(T0).toISOString())
-    expect(await (await b.get('/keys')).text()).toBe('your keys')
+    expect(await (await b.get('/gated')).text()).toBe('your keys')
     expect(await (await b.req('/reply', { method: 'POST' })).text()).toBe('posted')
     // signed out, an everyday act asks for sign-in
     res = await new Browser(env, '203.0.113.9', site).req('/reply', { method: 'POST', headers: { referer: 'https://shwarm.org/w/minecraft-in-doom' } })
@@ -102,13 +102,13 @@ describe('step-up', () => {
   it('is throttled like sign-in', async () => {
     const { b } = await signedIn()
     vi.setSystemTime(T0 + 11 * MIN)
-    for (let i = 1; i <= 9; i++) expect((await b.post('/step-up', { password: `wrong ${i}`, next: '/keys' })).status).toBe(400)
-    const res = await b.post('/step-up', { password: 'wrong 10', next: '/keys' })
+    for (let i = 1; i <= 9; i++) expect((await b.post('/step-up', { password: `wrong ${i}`, next: '/gated' })).status).toBe(400)
+    const res = await b.post('/step-up', { password: 'wrong 10', next: '/gated' })
     expect(res.status).toBe(429)
     // even the right password waits now
-    expect((await b.post('/step-up', { password: GOOD_PASSWORD, next: '/keys' })).status).toBe(429)
+    expect((await b.post('/step-up', { password: GOOD_PASSWORD, next: '/gated' })).status).toBe(429)
     vi.setSystemTime(T0 + 27 * MIN)
-    expect((await b.post('/step-up', { password: GOOD_PASSWORD, next: '/keys' })).status).toBe(303)
+    expect((await b.post('/step-up', { password: GOOD_PASSWORD, next: '/gated' })).status).toBe(303)
   })
 })
 

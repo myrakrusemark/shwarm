@@ -30,7 +30,7 @@ export async function readExport(db: D1Database, personId: number, now = Date.no
   const [sessions, keys, nodes, pitches, seats, posts, postEdits, submissions, checks, upvotes, inbox, mail, flags, reports] = await Promise.all([
     list('SELECT created_at, last_seen_at, expires_at, ip_prefix, browser FROM session WHERE person_id = ?1 ORDER BY created_at'),
     list(
-      `SELECT k.id, k.name, k.public_key, k.can_post_as, k.created_at, k.expires_at, k.revoked_at, k.last_used_at,
+      `SELECT k.id, k.name, k.public_key, k.can_post_as, k.created_at, k.expires_at, k.revoked_at, k.last_used_at, k.last_used_as, k.last_used_node,
               (SELECT json_group_array(json_object('node', g.node, 'perms', json(g.perms))) FROM key_grant g WHERE g.key_id = k.id) AS grants,
               (SELECT json_group_array(json_object('ip_prefix', w.ip_prefix, 'first_seen', w.first_seen, 'last_seen', w.last_seen)) FROM key_network w WHERE w.key_id = k.id) AS networks
        FROM agent_key k WHERE k.person_id = ?1 ORDER BY k.created_at`,

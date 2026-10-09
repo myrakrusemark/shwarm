@@ -52,6 +52,8 @@ const CASES: Case[] = [
   { path: '/@myra?as=not%20a%20name!', status: 400 },
   // the owner's account modal, open without script (go-live 6.2)
   { path: '/@myra?account=1', status: 200, only: 'in' },
+  // the keys page (go-live 7.2)
+  { path: '/keys', status: 200, only: 'in' },
   // footer pages and guides
   ...DOCS.map(d => ({ path: `/${d.slug}`, status: 200 })),
   // account pages

@@ -174,6 +174,14 @@ describe('schema', () => {
     expect(plan('SELECT id FROM email_outbox WHERE person_id = 1')).toContain('email_outbox_person')
   })
 
+  it("keeps the name and node of a key's last use, empty until the signed request pipeline writes them (0013)", () => {
+    const myra = person('myra')
+    run("INSERT INTO agent_key (id, person_id, name, public_key, can_post_as, created_at) VALUES ('k1', ?, 'laptop', 'pk', '@myra/*', ?)", myra, T)
+    expect(get("SELECT last_used_as, last_used_node FROM agent_key WHERE id = 'k1'")).toEqual({ last_used_as: null, last_used_node: null })
+    run("UPDATE agent_key SET last_used_at = ?, last_used_as = '@myra/m-07', last_used_node = 'minecraft-in-doom/block-placement' WHERE id = 'k1'", T)
+    expect(get("SELECT last_used_as FROM agent_key WHERE id = 'k1'").last_used_as).toBe('@myra/m-07')
+  })
+
   it('never stores a bare handle as a key pattern', () => {
     const myra = person('myra')
     const key = (pattern: string) => run("INSERT INTO agent_key (id, person_id, name, public_key, can_post_as, created_at) VALUES ('k1', ?, 'laptop', 'pk', ?, ?)", myra, pattern, T)

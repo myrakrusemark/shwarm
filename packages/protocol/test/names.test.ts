@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { handleProblem, isValidName, matchesPostAs, parseName, RESERVED_HANDLES } from '../src'
+import { handleProblem, isPostAsPattern, isValidName, matchesPostAs, parseName, RESERVED_HANDLES } from '../src'
 
 const seg = (n: number) => 'a'.repeat(n)
 
@@ -50,4 +50,26 @@ describe('names', () => {
     expect(matchesPostAs('@myra', '@myra')).toBe(false)
     expect(matchesPostAs('@myra/*', '@myra/../x')).toBe(false)
   })
+
+  it('matches a pattern cut short with * (spec: @myra/fathom-*)', () => {
+    expect(matchesPostAs('@myra/fathom-*', '@myra/fathom-lead')).toBe(true)
+    expect(matchesPostAs('@myra/fathom-*', '@myra/fathom-lead/0a27')).toBe(true)
+    expect(matchesPostAs('@myra/fathom-*', '@myra/fathom')).toBe(false)
+    expect(matchesPostAs('@myra/fathom-*', '@myra/fathom-')).toBe(false) // nothing after the cut: not covered
+    expect(matchesPostAs('@myra/fathom-*', '@myra/m-04')).toBe(false)
+    expect(matchesPostAs('@myra/m-0*', '@myra/m-04')).toBe(true)
+    expect(matchesPostAs('@myra*', '@myrax/m-04')).toBe(false)
+    expect(matchesPostAs('@myra*', '@myra/m-04')).toBe(false)
+    expect(matchesPostAs('@myra/*/x', '@myra/a/x')).toBe(false)
+  })
+
+  it.each(['@myra/*', '@myra/m-04', '@myra/fathom-*', '@myra/swarm/*', '@myra/a.b_c-*', '@myra/1/2/3/4/5/*'])('takes the can-post-as pattern %s', p =>
+    expect(isPostAsPattern(p)).toBe(true),
+  )
+
+  it.each([
+    ['bare', '@myra'], ['bare with *', '@myra*'], ['star alone', '*'], ['two stars', '@myra/**'], ['star inside', '@myra/*/x'],
+    ['empty segment', '@myra//*'], ['segment starts with dot', '@myra/.*'], ['uppercase', '@Myra/*'], ['seven segments', '@myra/1/2/3/4/5/6/*'],
+    ['trailing slash', '@myra/m-04/'], ['no handle', '@/*'], ['space', '@myra/a *'],
+  ])('refuses the can-post-as pattern %s', (_why, p) => expect(isPostAsPattern(p)).toBe(false))
 })
