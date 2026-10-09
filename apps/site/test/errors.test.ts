@@ -1,7 +1,7 @@
 // Go-live 3.8: the error pages (403, 404, 410, 429, 500) in all three forms, and exact times behind relative ones.
 // The browser suite (test/e2e) covers layout, axe and the modal; this covers statuses, bodies and headers.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { EXAMPLE_ROOT } from '../src/seed/example'
+import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
 import { errorFormat } from '../src/web/format'
 import { waitText } from '../src/web/errors'
 import { READ_BURST, resetReadLimit, takeRead } from '../src/web/read-limit'
@@ -111,7 +111,12 @@ describe('404', () => {
     const closed = await addPerson(env.DB, 'gone_one', { status: 'closed' })
     const held = await addPerson(env.DB, 'held_one', { status: 'suspended' })
     env.DB.raw.prepare('UPDATE person SET email_verified_at = ? WHERE id IN (?, ?)').run(new Date(T0).toISOString(), closed, held)
-    expect((await b.req('/@nobody_here', { headers: HTML })).status).toBe(404)
+    // the HTML forms are never cached either
+    for (const [path, status] of [['/@nobody_here', 404], ['/@gone_one', 410], ['/@held_one', 403]] as const) {
+      const res = await b.req(path, { headers: HTML })
+      expect(res.status, path).toBe(status)
+      expect(res.headers.get('cache-control'), path).toBe('no-store')
+    }
     expect(await (await b.req('/@nobody_here', { headers: JSON_ })).json()).toEqual({ error: 'not_found', message: 'nobody goes by that handle here.' })
     const gone = await b.req('/@gone_one', { headers: TEXT })
     expect(gone.status).toBe(410)
@@ -161,6 +166,31 @@ describe('410 tombstone', () => {
     const text = await (await b.req(`/w/${EXAMPLE_ROOT}`, { headers: ANY })).text()
     expect(text).toBe('410 gone: this shwarm was taken down by the operator.\n')
     expect((await b.req(`/w/${EXAMPLE_ROOT}/never-was`, { headers: ANY })).status).toBe(404)
+  })
+
+  it('a branch under a hidden shwarm gets the tombstone only if the public would have seen it', async () => {
+    const { env, b } = await world()
+    env.DB.raw.prepare('UPDATE node SET hidden = 1 WHERE path = ?').run(EXAMPLE_ROOT)
+    const branch = await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: ANY })
+    expect(branch.status).toBe(410)
+    expect(await branch.text()).toBe('410 gone: this branch is under a shwarm or branch the operator took down.\n')
+    // held, blocked or still pending: only its author sees it anywhere else, so here it is a 404 like a slug that never was
+    for (const triage of ['held', 'blocked', 'pending']) {
+      env.DB.raw.prepare('UPDATE node SET triage = ? WHERE path = ?').run(triage, EXAMPLE_BRANCH)
+      const res = await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: JSON_ })
+      expect(res.status, triage).toBe(404)
+      expect(((await res.json()) as { error: string }).error).toBe('no_such_node')
+    }
+  })
+
+  it('a hidden node that triage never cleared is a 404, not a tombstone', async () => {
+    const { env, b } = await world()
+    env.DB.raw.prepare("UPDATE node SET hidden = 1, triage = 'blocked' WHERE path = ?").run(EXAMPLE_ROOT)
+    expect((await b.req(`/w/${EXAMPLE_ROOT}`, { headers: ANY })).status).toBe(404)
+    expect((await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: ANY })).status).toBe(404)
+    // a seeded launch shwarm still pending counts as cleared (read/visibility.ts)
+    env.DB.raw.prepare("UPDATE node SET triage = 'pending' WHERE path = ?").run(EXAMPLE_ROOT)
+    expect((await b.req(`/w/${EXAMPLE_ROOT}`, { headers: ANY })).status).toBe(410)
   })
 })
 
@@ -219,6 +249,35 @@ describe('500', () => {
     const html = await body(res)
     expect(html).toContain('something went wrong on our side.')
     expect(html).toContain('sign in')
+  })
+})
+
+describe('pages outside the error page', () => {
+  it('a failing health check is a plain JSON 500 that still carries the security headers', async () => {
+    const { db } = await world()
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const b = new Browser({ ...testEnv(db), DB: brokenDb })
+    const res = await b.req('/healthz', { headers: HTML })
+    expect(res.status).toBe(500)
+    expect(res.headers.get('content-type')).toMatch(/^application\/json/)
+    expect(await res.json()).toEqual({ ok: false, env: 'test' })
+    expect(res.headers.get('cache-control')).toBe('no-store')
+    expect(res.headers.get('x-frame-options')).toBe('DENY')
+    expect(res.headers.get('x-content-type-options')).toBe('nosniff')
+    expect(res.headers.get('content-security-policy')).toContain("default-src 'self'")
+    expect(log).toHaveBeenCalled()
+    const ok = await new Browser(testEnv(db)).req('/healthz')
+    expect(ok.status).toBe(200)
+    expect(ok.headers.get('x-frame-options')).toBe('DENY')
+  })
+
+  it('the unsubscribe page has the main landmark the skip link points at', async () => {
+    const { b } = await world()
+    const res = await b.req('/unsubscribe?t=not-a-token', { headers: HTML })
+    expect([400, 503]).toContain(res.status)
+    const html = await body(res)
+    expect(html).toContain('href="#main"')
+    expect(html).toContain('<main id="main"')
   })
 })
 

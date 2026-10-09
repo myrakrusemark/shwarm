@@ -7,7 +7,7 @@
 .auth .hint a, .auth .lbl a { font-weight: 400; }
 .auth input[type=text], .auth input[type=email], .auth input[type=password] {
   font: inherit; width: 100%; border: 1.5px solid var(--ink); background: var(--paper); padding: 6px 8px; color: var(--ink); }
-.auth input:focus { outline: 3px solid var(--sun); outline-offset: 0; }
+.auth input:focus { outline: 3px solid var(--ink); outline-offset: 0; } /* ink, as in common.css: sun on paper is 1.4:1 */
 .auth .chk { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; font-weight: 400; }
 .auth .chk input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--moss); flex: 0 0 auto; }
 .auth .err { color: var(--clay); font-weight: 700; font-size: 12.5px; margin: 4px 0 0; }

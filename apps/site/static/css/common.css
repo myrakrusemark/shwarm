@@ -21,10 +21,14 @@ a.out .ext { text-decoration: none; }
 .hid { background: var(--clay); color: var(--paper); padding: 0 2px; font-size: .85em; white-space: nowrap; }
 
 /* ---------- focus (go-live 3.8) ----------
-   every control shows where focus is. :where() keeps these at zero specificity, so a page's own focus style wins;
-   the two buttons below reset everything with `all: unset`, so they get theirs back by name. */
-:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
-.dn > h2 button:focus-visible, .auth button.link:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+   every control shows where focus is, at 3:1 or more against what's behind the ring. the ring is ink: 13.7:1 on
+   paper, 12.2:1 on paper-2, 9.8:1 on sun (a sun ring is 1.4:1 on paper and can't be seen on sun). on the dark
+   surfaces (the strip, moss box headers, the ink url bar and code blocks) it's sun: 9.8:1 on ink, 3.9:1 on moss.
+   :where() keeps these at zero specificity, so a page's own focus style wins; the two buttons below reset
+   everything with `all: unset`, so they get theirs back by name. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+:where(.strip, .box h2:not(.sunny), .url, pre) :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--sun); }
+.dn > h2 button:focus-visible, .auth button.link:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
 /* skip link: off screen until it has focus */
 .skip { position: absolute; left: 8px; top: -60px; z-index: 50; padding: 6px 10px; background: var(--sun); color: var(--ink); border: var(--rule-heavy); font-weight: 700; }
 .skip:focus { top: 8px; }
@@ -41,6 +45,14 @@ body .acts, body .note, body .auth .hint, body .box h2 span, body .branches .sub
 /* error lines: clay on paper is 3.8:1; a fifth of ink brings it to 5:1 with the same hue */
 body .auth .err, body .lookup .err { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); }
 
+/* ---------- long words (go-live 3.8) ----------
+   a title with no break points (block_placement_raycast_for_the_doom_engine_port), a long URL in a takedown reason,
+   a 32-character handle: each wraps where it is instead of widening the page. grid and flex children start at
+   min-width: 0 so a long word can't stretch their track. */
+.grid > *, .branches .nm > a, .strip > span, .strip .me, .compose .row > * { min-width: 0; }
+nav.crumbs, .branches .nm a, .compose .to, .compose .row .note, h1.title, .err-page p, .strip .me .h { overflow-wrap: anywhere; }
+.strip .me { flex-wrap: wrap; row-gap: 2px; }
+
 /* ---------- narrow screens (go-live 3.8) ----------
    nothing scrolls sideways at 390 px. the mockups' rules for 640 and 860 px live in site.css and the page css. */
 @media (max-width: 480px) {
@@ -52,5 +64,4 @@ body .auth .err, body .lookup .err { color: color-mix(in srgb, var(--clay) 80%, 
   .head { grid-template-columns: 56px minmax(0, 1fr); }
   .head > :nth-child(3) { grid-column: 2; }
   .head > * { min-width: 0; }
-  h1.title { overflow-wrap: anywhere; }
 }

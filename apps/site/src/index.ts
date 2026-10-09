@@ -16,12 +16,6 @@ type Env = { DB: D1Database; TREE: DurableObjectNamespace; ENV: string; SITE_MOD
 
 const app = new Hono<{ Bindings: Env }>()
 
-// Health check: proves the Worker runs and can read D1.
-app.get('/healthz', async c => {
-  const row = await c.env.DB.prepare("SELECT value FROM meta WHERE key = 'schema'").first<{ value: string }>()
-  return c.json({ ok: true, env: c.env.ENV, schema: row?.value ?? null })
-})
-
 // Security headers on every response.
 app.use('*', async (c, next) => {
   await next()
@@ -31,6 +25,19 @@ app.use('*', async (c, next) => {
   c.header('X-Frame-Options', 'DENY')
   c.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
   c.header('Content-Security-Policy', "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com")
+})
+
+// Health check: proves the Worker runs and can read D1. After the security headers, so they cover it too. A failure
+// is a plain JSON 500 for the uptime check, not the site's error page.
+app.get('/healthz', async c => {
+  c.header('Cache-Control', 'no-store')
+  try {
+    const row = await c.env.DB.prepare("SELECT value FROM meta WHERE key = 'schema'").first<{ value: string }>()
+    return c.json({ ok: true, env: c.env.ENV, schema: row?.value ?? null })
+  } catch (err) {
+    console.error(JSON.stringify({ at: 'healthz', error: String((err as Error)?.stack ?? err) }))
+    return c.json({ ok: false, env: c.env.ENV }, 500)
+  }
 })
 
 // Staging is private: a shared password (wrangler secret STAGING_PASSWORD). Health stays open for uptime checks,

@@ -5,7 +5,10 @@
 //   - axe-core finds no serious or critical violations at 390 and 1280 px;
 //   - every relative time ("3h ago") carries the exact time in a title.
 // The donate modal is checked on a spread of pages: role=dialog with a name, focus moves in, Tab and Shift+Tab stay
-// inside, Esc, × and the scrim close it, and focus goes back to the link that opened it.
+// inside (also after a click on the dialog's text), Esc, × and the scrim close it, and focus goes back to the link
+// that opened it. Every focus ring is checked for 3:1 against what's behind it, not only that it exists.
+// The world has long words that must wrap: a branch title with no break points, a long URL in a post and in the
+// takedown reason, and a signed-in handle at the 32-character limit.
 //
 // Run from apps/site: npm run test:e2e (CHROME_PATH=/path/to/chrome to pick a browser).
 import { existsSync, readFileSync } from 'node:fs'
@@ -16,7 +19,7 @@ import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../../src/seed/example'
 import { PAGES as DOCS } from '../../src/web/doc'
 import { takeRead, resetReadLimit } from '../../src/web/read-limit'
 import { LOBBY } from '../node-fixture'
-import { HIDDEN, startServer, type E2eServer } from './server'
+import { HIDDEN, LONG_BRANCH, LONG_HANDLE, LONG_TITLE, startServer, type E2eServer } from './server'
 
 // In-page code below runs in the browser; these names exist there, not in the Workers types this repo compiles with.
 declare const document: any
@@ -56,6 +59,7 @@ const CASES: Case[] = [
   { path: `/w/${EXAMPLE_ROOT}?sort=new&show=submissions`, status: 200 },
   { path: `/w/${EXAMPLE_BRANCH}`, status: 200 },
   { path: `/w/${LOBBY}`, status: 200 },
+  { path: `/w/${LONG_BRANCH}`, status: 200 },
   // profiles
   { path: '/@myra', status: 200 },
   { path: '/@myra?as=@myra/m-04', status: 200 },
@@ -86,6 +90,8 @@ const CASES: Case[] = [
     before: () => { for (let i = 0; i < 500; i++) takeRead(BUSY_IP) },
   },
   { path: '/@myra?broken', status: 500, headers: { 'x-e2e-db': 'broken' } },
+  // mail's unsubscribe page: rendered without the session (it's reached from a mail link), so signed out only
+  { path: '/unsubscribe?t=not-a-token', status: 400, only: 'out' },
 ]
 
 /** The donate modal is checked here (one of each page kind). */
@@ -126,6 +132,46 @@ async function axeViolations(page: Page, include?: string) {
   return (result as { id: string; impact: string; help: string; nodes: string[] }[])
     .filter(v => v.impact === 'serious' || v.impact === 'critical')
     .flatMap(v => v.nodes.map(n => `${v.id} (${v.impact}): ${n}`))
+}
+
+/**
+ * The focused element's ring: whether it has one, and its contrast against what's behind it. The ring sits outside
+ * the element (outline-offset >= 0), so "behind" is the nearest ancestor background, blended down through any
+ * translucent ones; an inset ring (negative offset) sits on the element's own background.
+ */
+const focusRing = (page: Page) =>
+  page.evaluate(() => {
+    const el = document.activeElement
+    if (!el || el === document.body) return null
+    const s = getComputedStyle(el)
+    const what = `${el.tagName.toLowerCase()} ${(el.textContent || el.getAttribute('aria-label') || el.name || '').trim().slice(0, 30)}`
+    if (s.outlineStyle === 'none' || !(parseFloat(s.outlineWidth) > 0)) {
+      return { what, ring: !!(s.boxShadow && s.boxShadow !== 'none'), contrast: null as number | null }
+    }
+    const rgba = (c: string) => { const m = c.match(/[\d.]+/g)!.map(Number); return [m[0], m[1], m[2], m[3] ?? 1] }
+    const layers: number[][] = []
+    for (let n = parseFloat(s.outlineOffset) < 0 ? el : el.parentElement; n; n = n.parentElement) {
+      const c = rgba(getComputedStyle(n).backgroundColor)
+      if (c[3] > 0) layers.push(c)
+      if (c[3] >= 1) break
+    }
+    let bg = [255, 255, 255]
+    for (const c of layers.reverse()) bg = bg.map((v, i) => v * (1 - c[3]) + c[i] * c[3])
+    const lum = (c: number[]) => {
+      const [r, g, b] = c.slice(0, 3).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4 })
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b
+    }
+    const a = lum(rgba(s.outlineColor)), b = lum(bg)
+    return { what, ring: true, contrast: Math.round(((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)) * 100) / 100 }
+  })
+
+/** A ring that's missing or under 3:1, as a line for the failure message; null when it's fine. */
+async function badRing(page: Page): Promise<string | null> {
+  const r = await focusRing(page)
+  if (!r) return null
+  if (!r.ring) return `${r.what}: no ring`
+  if (r.contrast !== null && r.contrast < 3) return `${r.what}: ring ${r.contrast}:1`
+  return null
 }
 
 /** Relative times outside participant text: how many, and those with no exact time in a title above them. */
@@ -230,21 +276,32 @@ runIt('every page in a real browser (3.8)', () => {
             const inside = () => page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]'))
             expect(await inside(), 'focus moves into the dialog').toBe(true)
 
-            // the focus ring shows on whatever has focus
-            const ring = await page.evaluate(() => {
-              const s = getComputedStyle(document.activeElement)
-              return s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0
-            })
-            expect(ring, 'focus ring on the first control').toBe(true)
+            // the focus ring shows on whatever has focus, at 3:1 against what's behind it (the × sits on the sun header)
+            const rings: string[] = []
+            const ring = async () => { const bad = await badRing(page); if (bad) rings.push(bad) }
+            await ring()
 
             for (let i = 0; i < 25; i++) {
               await page.keyboard.press('Tab')
               expect(await inside(), `Tab ${i + 1} stays inside`).toBe(true)
+              await ring()
             }
             for (let i = 0; i < 25; i++) {
               await page.keyboard.press('Shift+Tab')
               expect(await inside(), `Shift+Tab ${i + 1} stays inside`).toBe(true)
+              await ring()
             }
+            expect(rings, 'focus rings in the dialog').toEqual([])
+
+            // a click on the dialog's text sends focus to body; the next Tab or Shift+Tab still lands inside
+            for (const key of ['Shift+Tab', 'Tab']) {
+              await page.locator('#dn-title span').click()
+              await page.keyboard.press(key)
+              expect(await inside(), `${key} after a click on the title stays inside`).toBe(true)
+            }
+            await page.locator('.dn .sec p').first().click()
+            await page.keyboard.press('Shift+Tab')
+            expect(await inside(), 'Shift+Tab after a click on the text stays inside').toBe(true)
             const o = await overflow(page)
             expect(o.scrollWidth, `open modal scrolls sideways at ${width}px`).toBeLessThanOrEqual(o.innerWidth)
             expect(await axeViolations(page, '[role="dialog"]'), 'axe on the open dialog').toEqual([])
@@ -266,25 +323,80 @@ runIt('every page in a real browser (3.8)', () => {
     }
   })
 
-  describe('focus', () => {
-    for (const path of ['/', `/w/${EXAMPLE_ROOT}`, '/@myra', '/signin', '/how-it-works']) {
-      it(`every control reached by Tab on ${path} shows a focus ring`, async () => {
-        const { page } = await open('in', { path, status: 200 })
-        const missing: string[] = []
-        for (let i = 0; i < 40; i++) {
-          await page.keyboard.press('Tab')
-          const r = await page.evaluate(() => {
-            const el = document.activeElement
-            if (!el || el === document.body) return null
-            const s = getComputedStyle(el)
-            const ring = (s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0) || (s.boxShadow && s.boxShadow !== 'none')
-            return { ring, what: `${el.tagName.toLowerCase()} ${(el.textContent || el.getAttribute('aria-label') || el.name || '').trim().slice(0, 30)}` }
-          })
-          if (r && !r.ring) missing.push(r.what)
+  describe('long words', () => {
+    it('the long branch title shows, on its own page and on the parent', async () => {
+      for (const path of [`/w/${EXAMPLE_ROOT}`, `/w/${LONG_BRANCH}`]) {
+        const { page } = await open('out', { path, status: 200 })
+        expect(await page.content(), path).toContain(LONG_TITLE)
+      }
+    })
+
+    it(`a handle at the 32-character limit doesn't widen any page`, async () => {
+      const ctx = await browser.newContext({ bypassCSP: true, reducedMotion: 'reduce' })
+      await ctx.route(url => !url.toString().startsWith(server.origin), r => r.abort())
+      await ctx.setExtraHTTPHeaders({ cookie: `${server.longCookie.name}=${server.longCookie.value}` })
+      const page = await ctx.newPage()
+      try {
+        for (const [path, status] of [['/', 200], [`/w/${EXAMPLE_ROOT}`, 200], [`/w/${LONG_BRANCH}`, 200], [`/@${LONG_HANDLE}`, 200], ['/@myra', 200], ['/signin', 200], ['/no-such-page', 404], [`/w/${HIDDEN}`, 410]] as const) {
+          const res = await page.goto(server.origin + path, { waitUntil: 'load' })
+          expect(res?.status(), path).toBe(status)
+          expect(await page.locator('.strip .me .h').textContent(), path).toBe('@' + LONG_HANDLE)
+          for (const width of [390, 640]) {
+            await page.setViewportSize({ width, height: 900 })
+            const o = await overflow(page)
+            expect(o.scrollWidth, `${path} at ${width}px: ${o.wide.join(', ')}`).toBeLessThanOrEqual(o.innerWidth)
+          }
         }
-        expect(missing).toEqual([])
-      })
+      } finally {
+        await ctx.close()
+      }
+    })
+  })
+
+  describe('focus', () => {
+    const FOCUS_PAGES = ['/', `/w/${EXAMPLE_ROOT}`, `/w/${EXAMPLE_BRANCH}`, '/@myra', '/signin', '/how-it-works', '/no-such-page']
+    for (const who of ['out', 'in'] as Who[]) {
+      for (const path of FOCUS_PAGES) {
+        it(`every control reached by Tab on ${path}, signed ${who}, shows a ring at 3:1`, async () => {
+          const { page } = await open(who, { path, status: path === '/no-such-page' ? 404 : 200 })
+          const bad: string[] = []
+          let reached = 0
+          // the whole page, until focus comes back round to the first stop
+          let first: unknown = null
+          for (let i = 0; i < 200; i++) {
+            await page.keyboard.press('Tab')
+            const id = await page.evaluate(() => {
+              const el = document.activeElement
+              if (!el || el === document.body) return null
+              el.dataset.e2eStop ??= String(Math.random())
+              return el.dataset.e2eStop
+            })
+            if (id === null) continue
+            if (id === first) break
+            first ??= id
+            reached++
+            const b = await badRing(page)
+            if (b) bad.push(b)
+          }
+          expect(reached, 'controls reached').toBeGreaterThan(3)
+          expect(bad).toEqual([])
+        })
+      }
     }
+
+    it('the compose box links, on sun, show a ring at 3:1', async () => {
+      for (const who of ['out', 'in'] as Who[]) {
+        const { page } = await open(who, { path: `/w/${EXAMPLE_ROOT}`, status: 200 })
+        const links = page.locator('.compose a')
+        expect(await links.count()).toBeGreaterThan(0)
+        for (let i = 0; i < (await links.count()); i++) {
+          await links.nth(i).focus()
+          await page.keyboard.press('Shift+Tab')
+          await page.keyboard.press('Tab') // keyboard focus, so :focus-visible applies
+          expect(await badRing(page), `signed ${who}, link ${i + 1}`).toBeNull()
+        }
+      }
+    })
 
     it('the skip link is the first stop and lands on the main content', async () => {
       const { page } = await open('out', { path: `/w/${EXAMPLE_ROOT}`, status: 200 })

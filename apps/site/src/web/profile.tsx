@@ -280,9 +280,12 @@ export const readingOpen = (env: { ENV: string; SITE_MODE: string }) => env.ENV 
 
 export const profile = new Hono<{ Bindings: Env }>()
 
-/** A profile that can't show: the page for browsers, one line of text or JSON for agents that ask (go-live 3.8). */
-const cannot = (c: Context<{ Bindings: Env }>, status: ErrorStatus, node: Child, text: string) =>
-  formatFor(c) === 'html' ? page(c, node, status) : sendError(c, { status, text })
+/** A profile that can't show: the page for browsers, one line of text or JSON for agents that ask (go-live 3.8). Never cached, like sendError. */
+function cannot(c: Context<{ Bindings: Env }>, status: ErrorStatus, node: Child, text: string) {
+  if (formatFor(c) !== 'html') return sendError(c, { status, text })
+  c.header('Cache-Control', 'no-store')
+  return page(c, node, status)
+}
 const NOBODY = 'nobody goes by that handle here.'
 
 profile.get('/:at{@[A-Za-z0-9_]+}', async c => {

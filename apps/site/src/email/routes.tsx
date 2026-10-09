@@ -14,18 +14,21 @@ export const mailRoutes = new Hono<{ Bindings: MailEnv }>()
 
 const Page: FC<{ h: string; text: string; token?: string }> = ({ h, text, token }) => (
   <Layout title="unsubscribe · shwarm">
-    <div class="dochead">
-      <h1>{h}</h1>
-      <p>{text}</p>
-    </div>
-    <div style="margin: 18px 0 48px">
-      {token && (
-        <form method="post" action={`/unsubscribe?t=${token}`}>
-          <input type="hidden" name="List-Unsubscribe" value="One-Click" />
-          <button class="btn" type="submit">unsubscribe</button>
-        </form>
-      )}
-    </div>
+    {/* the skip link in Layout lands here */}
+    <main id="main" tabindex={-1}>
+      <div class="dochead">
+        <h1>{h}</h1>
+        <p>{text}</p>
+      </div>
+      <div style="margin: 18px 0 48px">
+        {token && (
+          <form method="post" action={`/unsubscribe?t=${token}`}>
+            <input type="hidden" name="List-Unsubscribe" value="One-Click" />
+            <button class="btn" type="submit">unsubscribe</button>
+          </form>
+        )}
+      </div>
+    </main>
   </Layout>
 )
 
