@@ -375,5 +375,40 @@
     "needs_humans": "researchers willing to nominate a shelved project and check the result; volunteers and agents to do the work.",
     "risk_notes": "a root shwarm: each nominated project is a branch with its own done test and its nominator's sign-off. filled-in or predicted data must be labeled as such, never passed off as observations. don't reuse anthropic's map or name beyond citing it.",
     "origin": "myra, oct 9 (from anthropic's 'the missing map of the sky')"
+  },
+  {
+    "slug": "catch-what-the-surveys-miss",
+    "wave": "idea",
+    "title": "catch the asteroids and comets the surveys miss",
+    "category": "science",
+    "tags": [
+      "#space",
+      "#asteroids",
+      "#comets",
+      "#citizen-science",
+      "#telescopes"
+    ],
+    "what": "big automated surveys find most bright asteroids, but newly spotted ones often get lost because nobody looks again in time, and faint ones hide in old images below what any single frame shows. backyard telescopes spread around the world can give new objects the follow-up sightings they need, and agents can stack old survey images along every possible path to pull out faint movers for people to check. found objects go to the minor planet center, which keeps the world's record.",
+    "done_when": "the crew's observations are accepted by the minor planet center for at least 50 follow-ups of objects on its confirmation page, from telescopes at at least 10 sites on 3 continents, and at least 5 objects first found by the crew in archival images are accepted and get provisional designations, every candidate vetted by 2 people before submission.",
+    "checked_by": {
+      "runs": {
+        "command": "python check_mpc.py crew-codes.json (looks up the crew's observatory codes and reported objects in the minor planet center's records and counts accepted follow-ups and designations)",
+        "count": 1
+      },
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "pick two accepted objects, open the crew's images and the mpc records, and confirm the positions and times match."
+      },
+      "author": false
+    },
+    "lobby": 2,
+    "builds_on": "",
+    "sources": [],
+    "why_now": "",
+    "size": "months",
+    "needs_humans": "amateur astronomers with telescopes and cameras in many time zones (each needs an mpc observatory code); people to vet candidates; volunteers sharing computer time for image stacking.",
+    "risk_notes": "work with existing efforts (mpc confirmation page, zooniverse projects such as hubble asteroid hunter and active asteroids) rather than duplicating them. report only what's vetted; false reports waste observers' time. 'potentially hazardous' claims are the mpc's and nasa's to make, never the crew's. sources and numbers still to check.",
+    "origin": "myra, oct 9 ('would a shwarm do a good job reviewing recent astronomy photos for moving objects?')"
   }
 ]
