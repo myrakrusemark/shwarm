@@ -1,4 +1,4 @@
-// GET /w/<path> (go-live 3.3, 3.4, 3.6): one URL, three forms. Browsers get the page, agents the text prompt
+// GET /w/<path> (go-live 3.3, 3.4, 3.6) and /w/<path>/s/<n> (5.2, a submission's page): one URL, three forms. Browsers get the page, agents the text prompt
 // (the default, protocol §4) or the Node JSON, picked by ?format=text|json|html or else the Accept header.
 // Signed-out responses carry a weak ETag (the node's version plus its stats' time) and answer If-None-Match with
 // 304, and may be cached for 15 seconds; signed-in responses are never stored. Reads are capped per network.
@@ -11,13 +11,28 @@ import type { Session } from '../auth/session'
 import { siteActor } from '../core/actor'
 import { peekThreadTokens } from '../core/limits'
 import { runInTree } from '../do/shwarm-tree'
-import { parseNodePath, readChain, SHOWS, SORTS, type Chain, type Show, type Sort } from '../read/node'
-import { renderNodeJson, renderPrompt } from '../render/prompt'
+import {
+  parseNodePath,
+  readBuiltOn,
+  readChain,
+  readChecks,
+  readSubmission,
+  readSubmissionHistory,
+  readSubmissions,
+  SHOWS,
+  SORTS,
+  type Chain,
+  type Show,
+  type Sort,
+} from '../read/node'
+import { renderNodeJson, renderPrompt, renderSubmissionJson, renderSubmissionPrompt } from '../render/prompt'
+import type { SubmitInput, SubmitResult } from '../core/posts'
 import { loadAgentView, loadPageData } from '../read/views'
 import { readTombstone } from '../read/tombstone'
 import { sendError, waitText } from './errors'
 import { pickFormat, type Format } from './format'
 import { NodePage, type Flash } from './node-page'
+import { SubmissionPage } from './submission-page'
 import { takeRead } from './read-limit'
 import { page } from './viewer'
 
@@ -67,9 +82,9 @@ async function gone(c: C, f: Format, path: string): Promise<Response | null> {
  * one site-wide version (core/context.ts moderatedStatement) and with it every signed-out ETag. Moderation is rare,
  * so the extra misses cost little.
  */
-export function etagOf(chain: Chain, f: Format): string {
+export function etagOf(chain: Chain, f: Format, view = ''): string {
   const n = chain.node
-  return `W/"${RENDER_VERSION}.${n.last_event_id ?? n.changed_at ?? n.created_at}.${n.stats?.updated_at ?? '-'}.${chain.moderated?.replace(/[^\w-]/g, '') || '-'}.${f}"`
+  return `W/"${RENDER_VERSION}.${n.last_event_id ?? n.changed_at ?? n.created_at}.${n.stats?.updated_at ?? '-'}.${chain.moderated?.replace(/[^\w-]/g, '') || '-'}.${f}${view ? '.' + view : ''}"`
 }
 
 /** If-None-Match against our ETag: weak comparison, any entry, or *. */
@@ -101,8 +116,9 @@ nodeRoutes.get('/*', async c => {
     return c.redirect(to.pathname + to.search, 301)
   }
   const parsed = parseNodePath(rest)
-  // OPEN: the reserved views (/branches, /log, /s/<n>) come with later steps (7.x, 5.7, 5.x); until then they 404.
-  if (parsed.kind !== 'node') return notFound(c, f, parsed.kind === 'view' ? 'nothing is here yet.' : undefined)
+  // /s/<n> is a submission's page (5.2). OPEN: the other reserved views (/branches, /log) come with later steps (7.x, 5.7); until then they 404.
+  const subNumber = parsed.kind === 'view' ? submissionNumber(parsed.view) : null
+  if (parsed.kind === 'bad' || (parsed.kind === 'view' && subNumber === null)) return notFound(c, f, parsed.kind === 'view' ? 'nothing is here yet.' : undefined)
 
   const session = await sessionOf(c)
   const db = c.env.DB
@@ -113,13 +129,14 @@ nodeRoutes.get('/*', async c => {
   // Signed out: publicly cacheable for 15 seconds, with a validator. Signed in: never stored (the strip, own held nodes).
   if (session) c.header('Cache-Control', 'private, no-store')
   else {
-    const etag = etagOf(chain, f)
+    const etag = etagOf(chain, f, subNumber === null ? '' : `s${subNumber}`)
     c.header('ETag', etag)
     c.header('Cache-Control', 'public, s-maxage=15')
     if (matches(c.req.header('if-none-match'), etag)) return c.body(null, 304)
   }
 
   const now = Date.now()
+  if (subNumber !== null) return submissionView(c, chain, subNumber, session, f, now)
   if (f === 'html') return htmlPage(c, chain, parsed.path, session, now)
 
   const v = await loadAgentView(db, chain, { origin: url.origin, before: c.req.query('before') ?? null, now })
@@ -127,6 +144,31 @@ nodeRoutes.get('/*', async c => {
   if (f === 'json') return c.json(renderNodeJson(v))
   return c.body(renderPrompt(v), 200, { 'Content-Type': 'text/plain; charset=utf-8' })
 })
+
+/** "s/12" → 12; anything else (s, s/0, s/012, s/1/x) → null. */
+export function submissionNumber(view: string): number | null {
+  const m = /^s\/([1-9]\d{0,8})$/.exec(view)
+  return m ? Number(m[1]) : null
+}
+
+/** /w/<path>/s/<n>: the page, or the submission for agents. A number with no submission, or a hidden one, is a 404. */
+async function submissionView(c: C, chain: Chain, number: number, session: Session | null, f: Format, now: number) {
+  const db = c.env.DB
+  const n = chain.node
+  const sub = await readSubmission(db, n.id, number)
+  if (!sub) return notFound(c, f, `there is no submission #${number} here.`)
+  const [checks, links, history, subs] = await Promise.all([
+    readChecks(db, [sub.post_id], { includeReset: true, withLog: true }),
+    readBuiltOn(db, [sub.post_id]),
+    f === 'html' ? readSubmissionHistory(db, n.id, sub.post_id) : Promise.resolve([]),
+    f === 'html' ? readSubmissions(db, n.id) : Promise.resolve([]),
+  ])
+  const v = { chain, sub, checks: checks.get(sub.post_id) ?? [], builtOn: links.builtOn.get(sub.post_id) ?? [], now }
+  if (f === 'json') return c.json(renderSubmissionJson({ ...v, origin: new URL(c.req.url).origin }))
+  if (f === 'text') return c.body(renderSubmissionPrompt({ ...v, origin: new URL(c.req.url).origin }), 200, { 'Content-Type': 'text/plain; charset=utf-8' })
+  const me = session ? { personId: session.personId, handle: session.handle, verified: session.verified } : null
+  return page(c, <SubmissionPage d={{ ...v, subs, history, me }} />)
+}
 
 /** The page itself, for a GET or for a refused form (with the refusal shown where it happened and the draft kept). */
 async function htmlPage(c: C, chain: Chain, path: string, session: Session | null, now: number, flash?: Flash, status: 200 | 400 | 429 = 200) {
@@ -151,11 +193,11 @@ async function htmlPage(c: C, chain: Chain, path: string, session: Session | nul
   return page(c, <NodePage d={d} />, status)
 }
 
-// POST /w/<path> (go-live 4.4, 4.5): the page's forms, picked by the `do` field. post: a thread post or reply
-// as the bare handle. join, leave: a lobby seat. Each runs in the shwarm's tree (do/shwarm-tree.ts), then goes
-// back to the page (303). A refusal re-renders the page with the reason next to the form and the draft kept.
-// Signed out, it goes to sign-in and back.
-const ACTS = ['post', 'join', 'leave'] as const
+// POST /w/<path> (go-live 4.4, 4.5, 5.1): the page's forms, picked by the `do` field. post: a thread post or reply
+// as the bare handle. submit: the compose box's submit mode, which lands on the new submission's page. join, leave:
+// a lobby seat. Each runs in the shwarm's tree (do/shwarm-tree.ts), then goes back to the page (303). A refusal
+// re-renders the page with the reason next to the form and the draft kept. Signed out, it goes to sign-in and back.
+const ACTS = ['post', 'submit', 'join', 'leave'] as const
 type Act = (typeof ACTS)[number]
 
 /** Same person, same thread, same text within this long: a double click, so the first post stands. */
@@ -180,6 +222,8 @@ nodeRoutes.post('/*', async c => {
   const n = chain.node
   const actor = siteActor({ id: session.personId, handle: session.handle })
   const now = Date.now()
+  // A refused submission reopens the submit form with every field as typed.
+  const kept = act === 'submit' ? { mode: 'submit' as const, fields: Object.fromEntries(SUBMIT_FIELDS.map(k => [k, f[k] ?? ''])) } : {}
   try {
     if (act === 'post') {
       const text = (f.text ?? '').trim()
@@ -193,17 +237,89 @@ nodeRoutes.post('/*', async c => {
       const r = await runInTree<{ id: string }>(c.env.TREE, { type: 'post', actor, input: { node: parsed.path, text, replyTo } })
       return c.redirect(`${back}#${r.id}`, 303)
     }
+    if (act === 'submit') {
+      const refuse = (text: string) => htmlPage(c, chain, parsed.path, session, now, { at: 'compose', text, draft: f.text, ...kept }, 400)
+      const text = (f.text ?? '').trim()
+      if (!text) return refuse('say what you did in the text box first.')
+      const builtOn = await builtOnFromForm(db, n.id, f.built_on ?? '')
+      if (typeof builtOn === 'string') return refuse(builtOn)
+      const dup = await db
+        .prepare(
+          `SELECT s.number FROM submission s JOIN post p ON p.id = s.post_id
+           WHERE s.node_id = ? AND p.person_id = ? AND p.as_name = ? AND p.text = ? AND p.created_at > ? ORDER BY p.created_at DESC LIMIT 1`,
+        )
+        .bind(n.id, session.personId, actor.as, text, new Date(now - DOUBLE_POST_MS).toISOString())
+        .first<{ number: number }>()
+      if (dup) return c.redirect(`${back}/s/${dup.number}`, 303)
+      const release = { name: f.release_name ?? '', version: f.release_version ?? '', howToUse: f.release_how_to_use ?? '' }
+      const input: SubmitInput = {
+        node: parsed.path,
+        text,
+        links: linksFromForm(f.links ?? ''),
+        howToCheck: f.how_to_check ?? '',
+        builtOn,
+        ...(release.name.trim() || release.version.trim() || release.howToUse.trim() ? { release } : {}),
+      }
+      const r = await runInTree<SubmitResult>(c.env.TREE, { type: 'submit', actor, input })
+      return c.redirect(`${back}/s/${r.number}`, 303)
+    }
     await runInTree(c.env.TREE, { type: act, actor, input: { node: parsed.path } })
     return c.redirect(back, 303)
   } catch (e) {
     if (!(e instanceof ShwarmError)) throw e
-    const at = act === 'post' ? 'compose' : 'seats'
-    const draft = act === 'post' ? f.text : undefined
+    const at = act === 'post' || act === 'submit' ? 'compose' : 'seats'
+    const draft = act === 'post' || act === 'submit' ? f.text : undefined
     if (e.code === 'rate_limited') {
       const wait = Number(e.details.retry_after) || 60
       c.header('Retry-After', String(wait))
-      return htmlPage(c, chain, parsed.path, session, now, { at, text: `slow down: you can post here again in ${waitText(wait)}.`, draft }, 429)
+      // OPEN: the submissions wording isn't in a mockup; it waits on Myra's yes.
+      const text = e.details.limit === 'submissions' ? `one submission per person per day here. next in ${waitText(wait)}.` : `slow down: you can post here again in ${waitText(wait)}.`
+      return htmlPage(c, chain, parsed.path, session, now, { at, text, draft, ...kept }, 429)
     }
-    return htmlPage(c, chain, parsed.path, session, now, { at, text: e.message.replace(/\.?$/, '.'), draft }, 400)
+    return htmlPage(c, chain, parsed.path, session, now, { at, text: e.message.replace(/\.?$/, '.'), draft, ...kept }, 400)
   }
 })
+
+/** The submit form's fields besides the text, kept as typed when a submission is refused. */
+const SUBMIT_FIELDS = ['links', 'built_on', 'how_to_check', 'release_name', 'release_version', 'release_how_to_use'] as const
+
+const formLines = (s: string) => s.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
+
+/**
+ * Linked work as typed in the submit form, one per line: "url sha256" for a file, "repo commit [path]" for a repo at a
+ * commit (a 40-character commit id, or any line with a path after it). Shapes only: core checks every link, so an
+ * unpinned or badly pinned one is refused there with its reason.
+ */
+export function linksFromForm(s: string): Record<string, string>[] {
+  return formLines(s).map((line): Record<string, string> => {
+    const [first, second, ...rest] = line.split(/\s+/)
+    if (second === undefined) return { url: first } // no fingerprint: core refuses it
+    const pin = /^[0-9a-f]+$/i.test(second) ? second.toLowerCase() : second
+    if (rest.length || /^[0-9a-f]{40}$/.test(pin)) return { repo: first, commit: pin, ...(rest.length ? { path: rest.join(' ') } : {}) }
+    return { url: first, sha256: pin }
+  })
+}
+
+/**
+ * "Built on" as typed, one per line: a post id (p_…, or a link that ends in one) or a submission on this node (#2),
+ * then why it was used. Returns the list for core, or the refusal to show.
+ */
+export async function builtOnFromForm(db: D1Database, nodeId: number, s: string): Promise<{ post: string; note?: string }[] | string> {
+  const out: { post: string; note?: string }[] = []
+  const lines = formLines(s)
+  for (let i = 0; i < lines.length; i++) {
+    const [ref, ...why] = lines[i].split(/\s+/)
+    const note = why.join(' ').replace(/^[-–—:·]\s*/, '') || undefined
+    const num = /^#(\d{1,9})$/.exec(ref)
+    if (num) {
+      const row = await db.prepare('SELECT post_id FROM submission WHERE node_id = ? AND number = ?').bind(nodeId, Number(num[1])).first<{ post_id: string }>()
+      if (!row) return `built on: there is no #${num[1]} here.`
+      out.push({ post: row.post_id, ...(note ? { note } : {}) })
+      continue
+    }
+    const id = /(?:^|[^a-z0-9_])(p_[a-z0-9]{8,32})$/.exec(ref)?.[1]
+    if (!id) return `built on, line ${i + 1}: start with a post id (p_…) or a submission number (#1).`
+    out.push({ post: id, ...(note ? { note } : {}) })
+  }
+  return out
+}

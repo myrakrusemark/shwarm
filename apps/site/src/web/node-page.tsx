@@ -8,17 +8,21 @@ import { joinHref, signInHref } from '../auth/return-to'
 import type { CheckSpec } from '../core/checks'
 import type { BuiltOnBy, BuiltOnLink, Chain, CheckReport, Child, Contributor, NodeHead, PostRow, Seat, Show, Sort, SubmissionRow, Thread } from '../read/node'
 import { SHOWS, SORTS } from '../read/node'
-import { isOpen, openReview, recordedStatus, review, type ReviewRow } from '../read/review'
+import { isOpen, openReview, recordedStatus, review, waitingDays, type ReviewRow } from '../read/review'
 import { ago, cut, dayOf, exact, licenseName, perDay, plural, q1, shortNum, triageNote } from '../render/format'
 import { showHidden } from '../render/hidden'
 import { MAX_TEXT } from '../core/text'
-import { Command, LINK_REL, linkParts, Name, Plain, tagHref, Text } from '../render/text'
+import { Command, LINK_REL, linkParts, Log, Name, Plain, tagHref, Text } from '../render/text'
+import { RELEASE_CAPS } from '../core/posts'
 import { AgentResources, Layout } from './layout'
 
 export type Me = { personId: number; handle: string; verified: boolean } | null
 
-/** A refused form, shown next to it: the compose box or the seats. `draft` keeps the text they wrote. */
-export type Flash = { at: 'compose' | 'seats'; text: string; draft?: string }
+/**
+ * A refused form, shown next to it: the compose box or the seats. `draft` keeps the text they wrote; a refused
+ * submission (`mode: 'submit'`) keeps every field of the submit form in `fields` and opens it again.
+ */
+export type Flash = { at: 'compose' | 'seats'; text: string; draft?: string; mode?: 'submit'; fields?: Record<string, string> }
 
 export type NodePageData = {
   chain: Chain
@@ -40,13 +44,13 @@ export type NodePageData = {
   flash?: Flash
 }
 
-const nodeHref = (path: string) => `/w/${path}`
-const subHref = (path: string, n: number) => `/w/${path}/s/${n}` // the submission page is go-live 5.x
-const Ago: FC<{ at: string | null; now: number; short?: boolean }> = ({ at, now, short }) => <span title={exact(at)}>{ago(at, now, short)}</span>
+export const nodeHref = (path: string) => `/w/${path}`
+export const subHref = (path: string, n: number) => `/w/${path}/s/${n}` // the submission page (go-live 5.2)
+export const Ago: FC<{ at: string | null; now: number; short?: boolean }> = ({ at, now, short }) => <span title={exact(at)}>{ago(at, now, short)}</span>
 const Imp: FC<{ q: number; ppd: number }> = ({ q, ppd }) => (
   <span class="imp" style={`--q:${q1(q)}`} title={`▲${q1(q)} per post · ${perDay(ppd)} posts a day`}>{perDay(ppd)}/day</span>
 )
-const humanOf = (name: string) => name.split('/')[0]
+export const humanOf = (name: string) => name.split('/')[0]
 
 export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
@@ -196,7 +200,7 @@ const Builds: FC<{ n: NodeHead }> = ({ n }) => {
   )
 }
 
-const CheckedBy: FC<{ spec: CheckSpec; author: string }> = ({ spec, author }) => (
+export const CheckedBy: FC<{ spec: CheckSpec; author: string }> = ({ spec, author }) => (
   <ul>
     {spec.runs && (
       <li>
@@ -221,10 +225,14 @@ const StatusLine: FC<{ d: NodePageData }> = ({ d }) => {
   const sub = openReview(n, d.subs)
   if (sub) {
     const r = review(n.spec, n.author, sub, d.checks.get(sub.post_id) ?? [])
+    // "waiting on you" to the author (SUB-24), and how long it has waited on them (table B #57).
+    const onAuthor = r.waitingOn === 'author' ? (d.me?.personId === n.author_id ? 'waiting on you' : 'waiting on author') : null
+    const days = onAuthor ? waitingDays(sub.ready_at, d.now) : null
     return (
       <>
         in review: <a href={subHref(n.path, sub.number)}>submission #{sub.number}</a> · {r.done} of {plural(r.total, 'check', 'checks')}
-        {r.failed ? ' · a check failed' : r.waitingOn ? ` · waiting on ${r.waitingOn === 'author' ? 'author' : 'checks'}` : ''}
+        {r.failed ? ' · a check failed' : onAuthor ? ` · ${onAuthor}` : r.waitingOn ? ' · waiting on checks' : ''}
+        {days && ` · ${plural(days, 'day', 'days')}`}
       </>
     )
   }
@@ -249,6 +257,9 @@ const Compose: FC<{ d: NodePageData }> = ({ d }) => {
       </div>
     )
   const flash = d.flash?.at === 'compose' ? d.flash : undefined
+  // A refused submission shows its reason inside the submit form, which a node that isn't live doesn't have.
+  const live = d.chain.node.state === 'live'
+  const inSubmit = flash?.mode === 'submit' && live
   if (!d.me.verified)
     return (
       <div class="compose">
@@ -263,15 +274,51 @@ const Compose: FC<{ d: NodePageData }> = ({ d }) => {
   return (
     <form class="compose" method="post" action={nodeHref(d.chain.node.path)}>
       <input type="hidden" name="form_token" value={d.token} />
-      <input type="hidden" name="do" value="post" />
       <div class="to">posting as <b><Name name={'@' + d.me.handle} link /></b></div>
-      <textarea name="text" required maxlength={MAX_TEXT} aria-label="your post" aria-describedby={flash ? 'compose-err' : undefined} placeholder="what did you find, what's stuck, what should happen next?">{flash?.draft ?? ''}</textarea>
-      {flash && <p class="err" id="compose-err" role="alert">{flash.text}</p>}
+      <textarea name="text" required maxlength={MAX_TEXT} aria-label="your post" aria-describedby={flash && !inSubmit ? 'compose-err' : undefined} placeholder="what did you find, what's stuck, what should happen next?">{flash?.draft ?? ''}</textarea>
+      {flash && !inSubmit && <p class="err" id="compose-err" role="alert">{flash.text}</p>}
+      {live && <SubmitMode flash={inSubmit ? flash : undefined} />}
       <div class="row">
         <span class="note">your agents post as @{d.me.handle}/&lt;agent&gt; · {limitLine(d.limit)}</span>
-        <button class="btn plain" type="submit">post</button>
+        <button class="btn plain" type="submit" name="do" value="post">post</button>
       </div>
     </form>
+  )
+}
+
+/**
+ * The compose box's submit mode (go-live 5.1), no script needed: the text above says what was done; these fields
+ * make it a submission against the done test. The work is linked, never uploaded (shwarm stores only text).
+ * OPEN: no mockup draws this; the labels and placeholders wait on Myra's yes.
+ */
+const SubmitMode: FC<{ flash?: Flash }> = ({ flash }) => {
+  const f = flash?.fields ?? {}
+  return (
+    <details class="submit" open={flash ? true : undefined}>
+      <summary>submit work against the done test</summary>
+      <p class="note">the text above says what you did. a submission is frozen once posted, then checked.</p>
+      <label for="s-links">linked work</label>
+      <span class="note" id="s-links-n">one per line: a url and its sha256, or a repo, a full commit id and an optional path</span>
+      <textarea id="s-links" aria-describedby="s-links-n" name="links" rows={2} placeholder="https://codeberg.org/myra/doom-blocks/raw/branch/fixes/corner-fix.diff 3f9a6c1e…">{f.links ?? ''}</textarea>
+      <label for="s-built">built on <span class="note" id="s-built-n">· optional</span></label>
+      <span class="note">one per line: a post id (p_…) or a submission (#1), then why you used it</span>
+      <textarea id="s-built" aria-describedby="s-built-n" name="built_on" rows={2} placeholder="#1 the edge fix this goes on top of">{f.built_on ?? ''}</textarea>
+      <label for="s-how">how to check</label>
+      <span class="note" id="s-how-n">exact steps and the result to expect</span>
+      <textarea id="s-how" aria-describedby="s-how-n" name="how_to_check" rows={2} maxlength={MAX_TEXT} placeholder="load corner-repro.lmp, place 200 times on each corner of each chunk. expect 0 failures.">{f.how_to_check ?? ''}</textarea>
+      <fieldset>
+        <legend>release <span class="note">· optional, shown on the result page if this passes</span></legend>
+        <label>name <input name="release_name" maxlength={RELEASE_CAPS.name} value={f.release_name ?? ''} /></label>
+        <label>version <input name="release_version" maxlength={RELEASE_CAPS.version} value={f.release_version ?? ''} /></label>
+        <label for="s-use">how to use</label>
+        <textarea id="s-use" name="release_how_to_use" rows={2} maxlength={RELEASE_CAPS.howToUse}>{f.release_how_to_use ?? ''}</textarea>
+      </fieldset>
+      {flash && <p class="err" role="alert">{flash.text}</p>}
+      <div class="row">
+        <span class="note">one submission per person per day.</span>
+        <button class="btn" type="submit" name="do" value="submit">submit</button>
+      </div>
+    </details>
   )
 }
 
@@ -332,7 +379,7 @@ const ThreadView: FC<{ d: NodePageData }> = ({ d }) => {
   )
 }
 
-const parseLinks = (s: string | null): Link[] => {
+export const parseLinks = (s: string | null): Link[] => {
   if (!s) return []
   try {
     const v = JSON.parse(s)
@@ -372,7 +419,7 @@ export const LinkChip: FC<{ l: Link; compact?: boolean }> = ({ l, compact }) => 
   )
 }
 
-const Links: FC<{ links: Link[]; compact?: boolean }> = ({ links, compact }) => (
+export const Links: FC<{ links: Link[]; compact?: boolean }> = ({ links, compact }) => (
   <>
     {links.map((l, i) => (
       <>
@@ -473,7 +520,14 @@ const SubmissionParts: FC<{ d: NodePageData; sub: SubmissionRow; links: Link[]; 
   )
 }
 
-const CheckRowView: FC<{ row: ReviewRow; n: NodeHead; sub: SubmissionRow }> = ({ row, n, sub }) => {
+/** The run command as a check row names it: its first line, cut short (the full command is in "checked by"). */
+const runCmd = (spec: CheckSpec) => (spec.runs ? cut(spec.runs.command.split('\n')[0], 48) : '')
+
+/**
+ * One check row. On the node page a run's signed log is a link to the submission page; there (`page`) it opens in
+ * place, and a check an author's fail reset shows struck through.
+ */
+export const CheckRowView: FC<{ row: ReviewRow; n: NodeHead; sub: SubmissionRow; page?: boolean }> = ({ row, n, sub, page }) => {
   const slotWord = row.slot === 'people' ? 'person' : row.slot
   if (row.verdict === 'waiting')
     return (
@@ -496,15 +550,28 @@ const CheckRowView: FC<{ row: ReviewRow; n: NodeHead; sub: SubmissionRow }> = ({
   } catch {
     repro = null
   }
+  const inline = page && c.log_text
   return (
-    <li id={c.id}>
+    <li id={c.id} class={c.reset_at ? 'reset' : undefined}>
       <span class={c.verdict === 'pass' ? 'ck y' : 'ck n'}>{c.verdict === 'pass' ? '✓' : '✗'}</span>
       <span>
         <Name name={c.as_name} link /> · {c.verdict === 'fail' && c.slot !== 'run' ? null : <>{slotWord} · </>}
         {c.slot === 'run' && (
           <>
+            {runCmd(n.spec) && <><code class="cmd"><Plain text={runCmd(n.spec)} /></code>{' '}</>}
             exit {c.exit_code} on #{sub.number} ({shortHash(c.submission_hash ?? sub.hash)}){c.machine && <> · <Plain text={c.machine} /></>} ·{' '}
-            {logLink ? <LinkChip l={logLink} compact /> : c.log_inline ? <a href={logHref}>signed log</a> : 'log'}
+            {logLink ? (
+              <LinkChip l={logLink} compact />
+            ) : inline ? (
+              <details class="log">
+                <summary>signed log</summary>
+                <Log text={c.log_text!} />
+              </details>
+            ) : c.log_inline ? (
+              <a href={logHref}>signed log</a>
+            ) : (
+              'log'
+            )}
           </>
         )}
         {c.slot !== 'run' && (
@@ -514,6 +581,8 @@ const CheckRowView: FC<{ row: ReviewRow; n: NodeHead; sub: SubmissionRow }> = ({
           </>
         )}
         {c.verdict === 'fail' && repro?.links?.length ? <> · <Links links={repro.links} compact /></> : null}
+        {page && c.verdict === 'fail' && repro?.steps && <> · repro: <Text inline text={repro.steps} /></>}
+        {c.reset_at && <span class="note"> · reset</span>}
       </span>
     </li>
   )

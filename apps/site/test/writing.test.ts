@@ -2,7 +2,7 @@
 // mentions to the inbox, double clicks), and joining and leaving a lobby (kickoff when the last seat fills).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { hashPassword } from '../src/auth/password'
-import { EXAMPLE_ROOT } from '../src/seed/example'
+import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
 import { resetReadLimit } from '../src/web/read-limit'
 import { addPerson, T0 } from './d1'
 import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv } from './browser'
@@ -110,6 +110,124 @@ describe('posting (4.5)', () => {
     expect(html).toContain('verify your email to post')
     expect(html).not.toContain('name="text"')
     expect((q("SELECT COUNT(*) AS n FROM post WHERE text = 'x'") as { n: number }).n).toBe(0)
+  })
+})
+
+describe('submitting from the compose box (5.1)', () => {
+  const BRANCH = EXAMPLE_BRANCH
+  const FILE = `https://codeberg.org/ana/doom-blocks/raw/branch/main/corner-fix-2.diff ${'4e'.repeat(32)}`
+  const form = (o: Record<string, string> = {}) => ({
+    do: 'submit',
+    text: 'rounds toward negative infinity now. corners place every time.',
+    links: FILE,
+    how_to_check: 'load corner-repro.lmp, place 200 times on each corner. expect 0 failures.',
+    ...o,
+  })
+  const subCount = (q: (sql: string, ...a: unknown[]) => unknown) =>
+    (q('SELECT COUNT(*) AS n FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ?', BRANCH) as { n: number }).n
+
+  it('a verified member sees the submit mode on a live node, not on a lobby', async () => {
+    const { env } = await world()
+    const { b } = await member(env, 'ana')
+    const html = await body(await b.req(`/w/${BRANCH}`, { headers: HTML }))
+    expect(html).toContain('<summary>submit work against the done test</summary>')
+    expect(html).toContain('<button class="btn" type="submit" name="do" value="submit">submit</button>')
+    expect(html).toContain('<button class="btn plain" type="submit" name="do" value="post">post</button>')
+    expect(html).not.toMatch(/<details class="submit" open/)
+    expect(await body(await b.req(`/w/${LOBBY}`, { headers: HTML }))).not.toContain('submit work against the done test')
+  })
+
+  it('submits with links, built on, how to check and release fields, and lands on the new submission', async () => {
+    const { env, q } = await world()
+    const { b } = await member(env, 'ana')
+    const res = await act(b, BRANCH, form({
+      links: `${FILE}\nhttps://codeberg.org/ana/doom-blocks ${'b'.repeat(40)} src/p_map.c`,
+      built_on: '#2 the corner fix this goes on top of\n#1',
+      release_name: 'doom blocks',
+      release_version: '0.3.1',
+      release_how_to_use: 'gzdoom -file doom-blocks.pk3',
+    }))
+    expect(res.status).toBe(303)
+    expect(res.headers.get('location')).toBe(`/w/${BRANCH}/s/3`)
+    const row = q("SELECT s.release_title, s.release_version, s.release_how_to_use, p.links FROM submission s JOIN post p ON p.id = s.post_id WHERE s.number = 3") as any
+    expect(row).toMatchObject({ release_title: 'doom blocks', release_version: '0.3.1', release_how_to_use: 'gzdoom -file doom-blocks.pk3' })
+    expect(JSON.parse(row.links)).toEqual([
+      { url: 'https://codeberg.org/ana/doom-blocks/raw/branch/main/corner-fix-2.diff', sha256: '4e'.repeat(32) },
+      { repo: 'https://codeberg.org/ana/doom-blocks', commit: 'b'.repeat(40), path: 'src/p_map.c' },
+    ])
+    const page = await body(await b.req(`/w/${BRANCH}/s/3`, { headers: HTML }))
+    expect(page).toContain('<h1>submission #3</h1>')
+    expect(page).toContain('<a href="/w/minecraft-in-doom/block-placement/s/2">@myra/m-07</a> #2 (the corner fix this goes on top of), <a href="/w/minecraft-in-doom/block-placement/s/1">@myra/m-04</a> #1</dd>')
+    expect(page).toContain('<dt>release</dt><dd>doom blocks · version 0.3.1</dd>')
+    expect(page).toContain('gzdoom -file doom-blocks.pk3')
+    // the newer submission replaces #2 in review
+    expect((q("SELECT s.status FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ? AND s.number = 2", BRANCH) as { status: string }).status).toBe('superseded')
+  })
+
+  it('a second submission the same day is refused with the wait, and the draft is kept', async () => {
+    const { env, q } = await world()
+    const { b } = await member(env, 'ana')
+    expect((await act(b, BRANCH, form())).status).toBe(303)
+    const res = await act(b, BRANCH, form({ text: 'a second try, same day', release_name: 'kept name' }))
+    expect(res.status).toBe(429)
+    expect(Number(res.headers.get('retry-after'))).toBeGreaterThan(80_000)
+    const html = await body(res)
+    expect(html).toContain('one submission per person per day here. next in about 24 hours.')
+    expect(html).toContain('>a second try, same day</textarea>')
+    expect(html).toContain(`>${FILE}</textarea>`)
+    expect(html).toContain('value="kept name"')
+    expect(html).toMatch(/<details class="submit" open/)
+    expect(subCount(q)).toBe(3)
+  })
+
+  it('a double click submits once', async () => {
+    const { env, q } = await world()
+    const { b } = await member(env, 'ana')
+    const token = formTokenIn(await (await b.req(`/w/${BRANCH}`, { headers: HTML })).text())
+    const [r1, r2] = [await b.req(`/w/${BRANCH}`, { form: { form_token: token, ...form() } }), await b.req(`/w/${BRANCH}`, { form: { form_token: token, ...form() } })]
+    expect(r2.headers.get('location')).toBe(r1.headers.get('location'))
+    expect(subCount(q)).toBe(3)
+  })
+
+  it('refuses a bad sha256, an unpinned link, no link, no how to check and a bad built on, inline with the draft kept', async () => {
+    const { env, q } = await world()
+    const { b } = await member(env, 'ana')
+    const cases: [Record<string, string>, string][] = [
+      [{ links: 'https://x.org/fix.diff 3f9a' }, 'links[0].sha256 must be 64 lowercase hex characters.'],
+      [{ links: 'https://x.org/fix.diff' }, 'links[0] needs a sha256 (a file) or a commit (a repo).'],
+      [{ links: '' }, 'a submission links the work'],
+      [{ how_to_check: '  ' }, 'how_to_check is required.'],
+      [{ built_on: 'finn said so' }, 'built on, line 1: start with a post id (p_…) or a submission number (#1).'],
+      [{ built_on: '#9' }, 'built on: there is no #9 here.'],
+      [{ text: '' }, 'say what you did in the text box first.'],
+    ]
+    for (const [o, msg] of cases) {
+      const res = await act(b, BRANCH, form({ how_to_check: 'kept steps', ...o }))
+      expect(res.status, msg).toBe(400)
+      const html = await body(res)
+      expect(html, msg).toMatch(new RegExp(`<p class="err" role="alert">${msg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`))
+      expect(html).toMatch(/<details class="submit" open/)
+      if (!('how_to_check' in o)) expect(html).toContain('>kept steps</textarea>')
+    }
+    expect(subCount(q)).toBe(2)
+  })
+
+  it('signed out goes to sign-in; an expired form is refused; a lobby and a closed node take no submissions', async () => {
+    const { env, db, q } = await world()
+    const out = await new Browser(env).req(`/w/${BRANCH}`, { form: form() })
+    expect(out.status).toBe(303)
+    expect(out.headers.get('location')).toBe(`/signin?next=${encodeURIComponent('/w/' + BRANCH)}`)
+    const { b } = await member(env, 'ana')
+    expect((await b.req(`/w/${BRANCH}`, { form: { form_token: 'expired', ...form() } })).status).toBe(403)
+    const lobby = await act(b, LOBBY, form())
+    expect(lobby.status).toBe(400)
+    expect(await body(lobby)).toContain('is still a lobby. submissions open at kickoff.')
+    db.raw.prepare("UPDATE node SET state = 'closed' WHERE path = ?").run(BRANCH)
+    const token = formTokenIn(await (await b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML })).text())
+    const closed = await b.req(`/w/${BRANCH}`, { form: { form_token: token, ...form() } })
+    expect(closed.status).toBe(400)
+    expect(await body(closed)).toContain('is closed. it takes no submissions.')
+    expect(subCount(q)).toBe(2)
   })
 })
 

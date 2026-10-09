@@ -39,6 +39,9 @@ a.out .ext { text-decoration: none; }
    sky links on the sun compose box (4.1:1). the pill goes moss (5.5:1), the links ink (9.8:1).
    `body` lifts these over the page css (feed.css repeats the pill). */
 body .st.live { background: var(--moss); border-color: var(--moss); }
+/* the submission pills (.stp) the same way: "approved" goes moss; "failed", paper on clay (3.8:1), takes a fifth of ink */
+body .stp.ok { background: var(--moss); border-color: var(--moss); }
+body .stp.no { background: color-mix(in srgb, var(--clay) 80%, var(--ink)); border-color: color-mix(in srgb, var(--clay) 80%, var(--ink)); }
 body .compose a { color: var(--ink); }
 /* faded lines that hold links: at .75–.85 opacity a sky link drops under 4.5:1; at .92 it stays over */
 body .acts, body .note, body .auth .hint, body .box h2 span, body .branches .sub { opacity: .92; }

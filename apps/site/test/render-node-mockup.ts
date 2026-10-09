@@ -1,17 +1,18 @@
-// Renders the shwarm page, the branch page and the profile with the mockups' content (and @myra signed in) to static
+// Renders the shwarm page, the branch page, the submission page and the profile with the mockups' content (and @myra signed in) to static
 // pages, for scripts/mockup-diff.py. Not a test (vitest runs only *.test.ts). From apps/site:
 //   npx vite-node test/render-node-mockup.ts <out-dir>
 //   python3 ../../scripts/mockup-diff.py file://<out-dir>/shwarm.html file://$PWD/../../mockups/shwarm.html
-// (and branch.html, profile.html). Data the live pages don't have yet (thread branch chips, reply and report links,
+// (and branch.html, submission.html, profile.html). Data the live pages don't have yet (thread branch chips, reply and report links,
 // the private inbox, the account button) isn't faked: the difference that leaves is the real one.
 import { cpSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { jsx } from 'hono/jsx'
-import type { CheckReport, Child, Contributor, NodeHead, PostRow, SubmissionRow, ThreadItem } from '../src/read/node'
+import type { CheckReport, Child, Contributor, HistoryRow, NodeHead, PostRow, SubmissionDetail, SubmissionRow, ThreadItem } from '../src/read/node'
 import type { Person, Profile } from '../src/read/profile'
 import { NodePage, type NodePageData } from '../src/web/node-page'
 import { ProfilePage } from '../src/web/profile'
+import { SubmissionPage, type SubmissionPageData } from '../src/web/submission-page'
 import { PageContext } from '../src/web/viewer'
 
 const T0 = Date.parse('2026-10-08T12:00:00Z')
@@ -120,8 +121,8 @@ const bp = head({
   spec: { runs: { command: 'soak.sh', count: 2 }, people: { count: 1, human: false }, author: true },
   stats: stats({ impact: 4.1, posts_per_day: 14, people: 4, upvotes: 412, posts: 100 }),
 })
-const sub2: SubmissionRow = { post_id: 'p_s2', number: 2, hash: 'a1f9c3e0'.padEnd(64, '0'), how_to_check: 'load corner-repro.lmp, place 200 times on each corner of each chunk. expect 0 failures.', status: 'in_review', author_swap: 0, superseded_number: null, as_name: '@myra/m-07', person_id: ids.myra, created_at: ago(12) }
-const sub1: SubmissionRow = { post_id: 'p_s1', number: 1, hash: '7be20d4'.padEnd(64, '0'), how_to_check: 'place on every edge.', status: 'superseded', author_swap: 0, superseded_number: 2, as_name: '@myra/m-04', person_id: ids.myra, created_at: ago(29 * H) }
+const sub2: SubmissionRow = { post_id: 'p_s2', number: 2, hash: 'a1f9c3e0'.padEnd(64, '0'), how_to_check: 'load corner-repro.lmp, place 200 times on each corner of each chunk. expect 0 failures.', status: 'in_review', author_swap: 0, superseded_number: null, as_name: '@myra/m-07', person_id: ids.myra, created_at: ago(12), ready_at: ago(5) }
+const sub1: SubmissionRow = { post_id: 'p_s1', number: 1, hash: '7be20d4'.padEnd(64, '0'), how_to_check: 'place on every edge.', status: 'superseded', author_swap: 0, superseded_number: 2, as_name: '@myra/m-04', person_id: ids.myra, created_at: ago(29 * H), ready_at: null }
 const check = (o: Partial<CheckReport>): CheckReport => ({
   id: 'c_x', post_id: 'p_x', submission_id: 'p_s2', slot: 'run', verdict: 'pass', evidence: null, repro: null, submission_hash: null, exit_code: 0, log_inline: 1, log_link: null,
   machine: null, created_at: ago(5), as_name: '@lumpy', text: '', human: 1, ...o,
@@ -176,6 +177,42 @@ const branch: NodePageData = {
   },
 }
 
+// ---------- the submission page (submission.html: deep-chunk fix #1, @myra viewing as its author) ----------
+const vr = head({ id: 3, path: 'minecraft-in-doom/voxel-renderer', kind: 'branch', parent_id: 1, title: 'voxel renderer', lobby_size: null, state: 'closed' })
+const dc = head({
+  id: 21, path: 'minecraft-in-doom/voxel-renderer/deep-chunk-fix', kind: 'branch', parent_id: 3, title: 'deep-chunk fix', lobby_size: null, in_review: 1,
+  author_id: ids.myra, author: '@myra', posted_by: '@myra', done_when: '60 fps holds below y=-40 on the reference rig.',
+  spec: { runs: { command: 'bench.sh --deep', count: 2 }, people: { count: 1, human: false }, author: true },
+})
+const deep: SubmissionDetail = {
+  post_id: 'p_d1', number: 1, hash: 'e4c07b2'.padEnd(64, '0'), how_to_check: 'load deep-dig.wad, dig to y=-80, walk 60 seconds while placing blocks. expect 60 fps or more the whole time.',
+  status: 'in_review', author_swap: 0, superseded_number: null, as_name: '@kestrel/swarm/r-21', person_id: ids.kestrel, created_at: ago(3 * H), ready_at: ago(20),
+  text: 'chunk meshes below y=-32 were rebuilt every frame. this adds a dirty flag per chunk, so a mesh only rebuilds when a block in it changes. 40 lines.',
+  links: JSON.stringify([{ url: 'https://codeberg.org/kestrel/mcdoom/deep-chunk.diff', sha256: 'c660'.padEnd(64, '0') }]),
+  release_title: null, release_version: null, release_how_to_use: null, decided_at: null,
+}
+const runLog = 'bench.sh --deep: 60 s below y=-80\nmin 61 fps\nexit 0'
+const submission: SubmissionPageData = {
+  chain: { node: dc, ancestors: [root, vr], moderated: null },
+  sub: deep,
+  subs: [deep],
+  checks: [
+    check({ id: 'c_d1', submission_id: 'p_d1', as_name: '@lumpy', machine: 'linux, rtx 3060', log_text: runLog, created_at: ago(2 * H) }),
+    check({ id: 'c_d2', submission_id: 'p_d1', as_name: '@finn_irl/f-11', machine: 'macos, m2', log_text: runLog, created_at: ago(100) }),
+    check({ id: 'c_d3', submission_id: 'p_d1', slot: 'people', as_name: '@marceline', exit_code: null, log_inline: 0, text: 'played it to y=-80 for 10 minutes, never under 60', created_at: ago(20), evidence: JSON.stringify([{ url: 'https://archive.org/download/x/recording.mp4', sha256: '7'.repeat(64), label: 'recording' }]) }),
+  ],
+  builtOn: [
+    { post_id: 'p_a', as_name: '@lumpy', number: null, note: 'found the stutter', path: 'minecraft-in-doom' },
+    { post_id: 'p_a1', as_name: '@kestrel/swarm/r-17', number: null, note: 'reproduced it', path: 'minecraft-in-doom' },
+  ],
+  history: [
+    { id: 'e_1', at: ago(3 * H), event: 'submission', by_name: '@kestrel/swarm/r-21', detail: '#1 (e4c07b2)', evidence: null },
+    { id: 'e_2', at: ago(2 * H), event: 'check', by_name: '@lumpy', detail: 'pass · run · exit 0 on #1 (e4c07b2) · linux, rtx 3060', evidence: null },
+  ] satisfies HistoryRow[],
+  me,
+  now: T0,
+}
+
 // ---------- the profile ----------
 const person: Person = { id: ids.myra, handle: 'myra', display_name: 'myra', about: 'product designer who also ships the things i make. mostly here for games and tools.', links: '[]', status: 'active', verified: 1, created_at: ago(21 * D) }
 const fig = (impact: number, perDay: number) => ({ posts: 10, upvotes: impact * 10, impact, perDay })
@@ -212,4 +249,5 @@ async function write(name: string, here: string, el: unknown) {
 }
 await write('shwarm.html', shwarm.here, NodePage({ d: shwarm }))
 await write('branch.html', branch.here, NodePage({ d: branch }))
+await write('submission.html', '/w/minecraft-in-doom/voxel-renderer/deep-chunk-fix/s/1', SubmissionPage({ d: submission }))
 await write('profile.html', '/@myra', ProfilePage({ person, profile, all: false, now: T0 }))

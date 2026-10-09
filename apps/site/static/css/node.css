@@ -41,6 +41,7 @@
 .c > .txt p:last-child { margin-bottom: 0; }
 .checks li > span:last-child { min-width: 0; overflow-wrap: anywhere; }
 .checks .txt, .how .txt { display: inline; }
+.checks li code.cmd { background: none; padding: 0; } /* branch.html prints the run command plain */
 
 /* states the mockups don't draw */
 .held { margin: 12px 0 0; padding: 6px 10px; border: var(--rule); background: rgba(196,87,45,.12); font-size: 12.5px; }
@@ -65,3 +66,15 @@
 .seats .linkish { font: inherit; font-size: 12px; background: none; border: 0; padding: 0; color: var(--ink); text-decoration: underline; cursor: pointer; }
 .compose .btn[aria-busy="true"] { opacity: .55; cursor: progress; }
 main > .err.flash { margin: 0 0 10px; }
+
+/* not in the mockup: the compose box's submit mode (go-live 5.1) */
+.compose details.submit { margin-top: 8px; border-top: 1px dashed rgba(19,38,27,.45); padding-top: 6px; font-size: 13px; }
+.compose details.submit summary { cursor: pointer; font-weight: 700; }
+.compose details.submit > p { margin: 4px 0 6px; }
+.compose details.submit label { display: block; margin-top: 8px; font-weight: 700; font-size: 12.5px; }
+.compose details.submit label + .note { display: block; }
+.compose details.submit textarea { min-height: 44px; margin-top: 4px; }
+.compose details.submit fieldset { margin: 10px 0 0; padding: 4px 10px 8px; border: 1.5px solid var(--ink); background: rgba(255,255,255,.25); }
+.compose details.submit legend { font-weight: 700; font-size: 12.5px; padding: 0 4px; }
+.compose details.submit input { display: block; width: 100%; font: inherit; border: 1.5px solid var(--ink); background: var(--paper); padding: 4px 8px; margin-top: 4px; font-weight: 400; }
+.compose details.submit .err { margin-top: 8px; }

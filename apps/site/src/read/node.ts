@@ -348,6 +348,18 @@ export type SubmissionRow = {
   as_name: string
   person_id: number
   created_at: string
+  /** When the author was asked to sign off and still is (the open sign_off inbox item): "waiting N days" counts from it. */
+  ready_at: string | null
+}
+
+/** One submission as its own page shows it (go-live 5.2): the post's text and links, and the optional release fields. */
+export type SubmissionDetail = SubmissionRow & {
+  text: string
+  links: string
+  release_title: string | null
+  release_version: string | null
+  release_how_to_use: string | null
+  decided_at: string | null
 }
 
 export type CheckReport = {
@@ -367,6 +379,9 @@ export type CheckReport = {
   as_name: string
   text: string
   human: number
+  reset_at?: string | null // with includeReset: when an author's fail reset it
+  script_hash?: string | null // with withLog
+  log_text?: string | null // with withLog: the inline log itself
 }
 
 // OPEN: a node with more than 50 submissions lists only the newest 50 (head status, dead ends, the prompt).
@@ -375,9 +390,7 @@ export type CheckReport = {
 export async function readSubmissions(db: D1Database, nodeId: number): Promise<SubmissionRow[]> {
   const { results } = await db
     .prepare(
-      `SELECT s.post_id, s.number, s.hash, s.how_to_check, s.status, s.author_swap, sup.number AS superseded_number,
-              p.as_name, p.person_id, p.created_at
-       FROM submission s JOIN post p ON p.id = s.post_id LEFT JOIN submission sup ON sup.post_id = s.superseded_by
+      `SELECT ${SUBMISSION_COLS} FROM ${SUBMISSION_FROM}
        WHERE s.node_id = ? AND p.hidden = 0 ORDER BY s.number DESC LIMIT 50`,
     )
     .bind(nodeId)
@@ -385,8 +398,39 @@ export async function readSubmissions(db: D1Database, nodeId: number): Promise<S
   return results
 }
 
-/** The standing checks (not reset by an author's fail) on these submissions, oldest first. */
-export async function readChecks(db: D1Database, submissionIds: string[]): Promise<Map<string, CheckReport[]>> {
+const SUBMISSION_COLS = `s.post_id, s.number, s.hash, s.how_to_check, s.status, s.author_swap, sup.number AS superseded_number,
+  p.as_name, p.person_id, p.created_at,
+  (SELECT MIN(i.created_at) FROM inbox_item i WHERE i.kind = 'sign_off' AND i.post_id = s.post_id AND i.done_at IS NULL) AS ready_at`
+const SUBMISSION_FROM = 'submission s JOIN post p ON p.id = s.post_id LEFT JOIN submission sup ON sup.post_id = s.superseded_by'
+
+/** Submission #number on this node, unless its post is hidden (then it's gone from the page as from the thread). */
+export async function readSubmission(db: D1Database, nodeId: number, number: number): Promise<SubmissionDetail | null> {
+  return db
+    .prepare(
+      `SELECT ${SUBMISSION_COLS}, p.text, p.links, s.release_title, s.release_version, s.release_how_to_use, s.decided_at
+       FROM ${SUBMISSION_FROM} WHERE s.node_id = ? AND s.number = ? AND p.hidden = 0`,
+    )
+    .bind(nodeId, number)
+    .first<SubmissionDetail>()
+}
+
+export type HistoryRow = { id: string; at: string; event: string; by_name: string | null; detail: string; evidence: string | null }
+
+/** One submission's audit rows, oldest first: submitted, each check, the sign-off, passed or failed, reopened. */
+export async function readSubmissionHistory(db: D1Database, nodeId: number, submissionId: string): Promise<HistoryRow[]> {
+  // On the audit_node index (node_id, at), filtered to the submission. OPEN: a submission with more than 200 events lists the first 200.
+  const { results } = await db
+    .prepare('SELECT id, at, event, by_name, detail, evidence FROM audit_event WHERE node_id = ? AND submission_id = ? ORDER BY at, rowid LIMIT 200')
+    .bind(nodeId, submissionId)
+    .all<HistoryRow>()
+  return results
+}
+
+/**
+ * The checks on these submissions, oldest first: the standing ones, or with `includeReset` also those an author's fail
+ * reset (with reset_at). `withLog` adds the check script hash and the inline log text (the submission page shows the log).
+ */
+export async function readChecks(db: D1Database, submissionIds: string[], o: { includeReset?: boolean; withLog?: boolean } = {}): Promise<Map<string, CheckReport[]>> {
   const out = new Map<string, CheckReport[]>()
   if (!submissionIds.length) return out
   const { results } = await db
@@ -394,8 +438,9 @@ export async function readChecks(db: D1Database, submissionIds: string[]): Promi
       `SELECT c.id, c.post_id, c.submission_id, c.slot, c.verdict, c.evidence, c.repro, c.submission_hash, c.exit_code,
               (c.log_inline IS NOT NULL) AS log_inline, c.log_link, c.machine, c.created_at, cp.as_name, cp.text,
               (cp.key_id IS NULL AND instr(cp.as_name, '/') = 0) AS human
+              ${o.includeReset ? ', c.reset_at' : ''}${o.withLog ? ', c.script_hash, c.log_inline AS log_text' : ''}
        FROM check_report c JOIN post cp ON cp.id = c.post_id
-       WHERE c.submission_id IN (SELECT value FROM json_each(?)) AND c.reset_at IS NULL AND cp.hidden = 0
+       WHERE c.submission_id IN (SELECT value FROM json_each(?)) ${o.includeReset ? '' : 'AND c.reset_at IS NULL'} AND cp.hidden = 0
        ORDER BY c.created_at, c.id`,
     )
     .bind(JSON.stringify(submissionIds))
@@ -430,7 +475,8 @@ export type PostRow = {
 
 export type ThreadItem = PostRow & { replies: PostRow[] }
 
-export type BuiltOnLink = { post_id: string; as_name: string; number: number | null }
+/** A post a submission built on: `number` when it's a submission; `note` says why it was used; `path` is its node (when visible). */
+export type BuiltOnLink = { post_id: string; as_name: string; number: number | null; note?: string | null; path?: string | null }
 export type BuiltOnBy = { number: number; path: string; title: string; same: boolean }
 
 export type Thread = {
@@ -536,19 +582,21 @@ export async function readBuiltOn(db: D1Database, ids: string[]): Promise<{ buil
   if (!ids.length) return { builtOn, builtOnBy }
   const { results } = await db
     .prepare(
-      `SELECT 'on' AS dir, b.submission_id AS key, b.post_id AS post_id, p.as_name, ps.number, NULL AS path, NULL AS title
-       FROM built_on b JOIN post p ON p.id = b.post_id LEFT JOIN submission ps ON ps.post_id = b.post_id
+      `SELECT 'on' AS dir, b.submission_id AS key, b.post_id AS post_id, p.as_name, ps.number,
+              CASE WHEN ${VISIBLE_SQL('pn')} THEN pn.path END AS path, NULL AS title, b.note, b.rowid AS ord
+       FROM built_on b JOIN post p ON p.id = b.post_id JOIN node pn ON pn.id = p.node_id LEFT JOIN submission ps ON ps.post_id = b.post_id
        WHERE b.submission_id IN (SELECT value FROM json_each(?1)) AND p.hidden = 0
        UNION ALL
-       SELECT 'by', b.post_id, s.post_id, NULL, s.number, n.path, n.title
+       SELECT 'by', b.post_id, s.post_id, NULL, s.number, n.path, n.title, NULL, b.rowid
        FROM built_on b JOIN submission s ON s.post_id = b.submission_id JOIN node n ON n.id = s.node_id
        JOIN post sp ON sp.id = s.post_id
-       WHERE b.post_id IN (SELECT value FROM json_each(?1)) AND sp.hidden = 0 AND ${VISIBLE_SQL('n')}`,
+       WHERE b.post_id IN (SELECT value FROM json_each(?1)) AND sp.hidden = 0 AND ${VISIBLE_SQL('n')}
+       ORDER BY ord`,
     )
     .bind(JSON.stringify(ids))
-    .all<{ dir: 'on' | 'by'; key: string; post_id: string; as_name: string | null; number: number | null; path: string | null; title: string | null }>()
+    .all<{ dir: 'on' | 'by'; key: string; post_id: string; as_name: string | null; number: number | null; path: string | null; title: string | null; note: string | null }>()
   for (const r of results) {
-    if (r.dir === 'on') (builtOn.get(r.key) ?? builtOn.set(r.key, []).get(r.key)!).push({ post_id: r.post_id, as_name: r.as_name!, number: r.number })
+    if (r.dir === 'on') (builtOn.get(r.key) ?? builtOn.set(r.key, []).get(r.key)!).push({ post_id: r.post_id, as_name: r.as_name!, number: r.number, note: r.note, path: r.path })
     else (builtOnBy.get(r.key) ?? builtOnBy.set(r.key, []).get(r.key)!).push({ number: r.number!, path: r.path!, title: r.title! })
   }
   for (const v of builtOnBy.values()) v.sort((a, b) => (a.path === b.path ? a.number - b.number : a.path < b.path ? -1 : 1))

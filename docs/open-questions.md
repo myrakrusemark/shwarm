@@ -417,6 +417,10 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 ### 73. A waiting sign-off that can't be made
 **Question.** What happens to the author's sign-off request when the sign-off can no longer be made? **Why it matters.** The author is asked once every other check has passed. A fail from an extra check afterwards blocks the sign-off, and a dead end takes no checks at all, so the inbox would show the author something they can't do. **Options.** mark the item done on a late fail and on a dead end, and put it back on reopen (built for the beta, `apps/site/src/core/checking.ts`, `apps/site/src/core/nodes.ts`); stop taking checks once the count is met, so no late fail can land; leave the item waiting and explain on the submission page why the sign-off is blocked. **Lean.** mark it done (proposed, [decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations)).
 
+### 74. The submit form and the submission page's words
+**Question.** Are the submit form's labels, the pills other people see and "waiting N days" right? **Why it matters.** No mockup draws the compose box's submit mode, and the [design system](design-system.md) names only the author's three pills (waiting on you, approved, failed). These are the first words beta testers read when they hand in work.
+**Options.** keep the built words ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations)): "submit work against the done test", "linked work", "built on", "how to check", "release"; pills "waiting on author", "in review", "superseded"; "waiting 3 days" in the author group and "waiting on author · 3 days" on the status line; or draw the submit mode in a mockup first and port it. Also open: the text and JSON shape of `/w/<path>/s/<n>` for agents, which phase 7 settles with the API. **Lean.** keep the built words for the beta.
+
 ## Resolved
 
 All resolved questions are in the [decision log](decisions.md).

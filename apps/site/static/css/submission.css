@@ -1,0 +1,49 @@
+/* the submission page, /w/<path>/s/<n> (go-live 5.2). rules copied from mockups/submission.html; tokens come from
+   site.css, the shared node rules (crumbs, check marks, the agent resources card) from node.css. the last block is
+   for things the mockup doesn't draw (reset checks, the signed log, the history box). */
+
+/* from submission.html */
+main .box + .box { margin-top: 18px; }
+.stp { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px; border: 1.5px solid var(--ink); white-space: nowrap; }
+.stp.wait { background: var(--sun); }
+.stp.ok { background: var(--leaf); color: var(--paper); border-color: var(--leaf); }
+.stp.no { background: var(--clay); color: var(--paper); border-color: var(--clay); }
+.sub-head { background: linear-gradient(90deg, rgba(244,197,49,.30), transparent 70%), var(--paper); padding: 14px; display: grid; grid-template-columns: 1fr auto; gap: 14px; }
+.sub-head h1 { margin: 0 0 4px; font: 900 28px/1.1 "Arial Black", Arial, sans-serif; letter-spacing: -1px; }
+.quote { margin: 10px 0 0; padding: 8px 12px; border-left: 4px solid var(--sun); background: rgba(255,255,255,.35); font-size: 13.5px; max-width: 70ch; }
+.quote b { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: .7; }
+.kv { display: grid; grid-template-columns: 120px 1fr; gap: 6px 12px; font-size: 13px; margin: 0; }
+.kv dt { opacity: .7; }
+.kv dd { margin: 0; }
+.grp { padding: 8px 12px; border-bottom: 1px solid var(--ink); }
+.grp:last-child { border-bottom: 0; }
+.grp h4 { margin: 0 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; display: flex; justify-content: space-between; }
+.grp ul { list-style: none; margin: 0; padding: 0; font-size: 12.5px; }
+.grp li { padding: 2px 0; display: flex; gap: 8px; }
+.reset .ck { opacity: .4; }
+.hist { list-style: none; margin: 0; padding: 0; font-size: 12.5px; }
+.hist li { padding: 6px 12px; border-bottom: 1px dashed rgba(19,38,27,.3); display: flex; justify-content: space-between; gap: 8px; }
+.hist li:last-child { border-bottom: 0; }
+@media (max-width: 860px) { .sub-head { grid-template-columns: 1fr; } }
+
+/* the sidebar's node box, as the mockup sets it inline */
+.side-node .lbl { margin: 0 0 6px; font-size: 13px; }
+.side-node ul { margin: 0; padding-left: 16px; font-size: 12.5px; }
+.side-node .back { margin: 8px 0 0; }
+.in.rule { border-top: 1px solid var(--ink); }
+
+/* rendered text inside the mockup's layout */
+.kv .txt, .grp .txt { display: inline; }
+.kv dd .txt p { margin: 0 0 6px; }
+.box > .in > .txt { margin-bottom: 8px; }
+.grp li > span:last-child, .kv dd, .sub-head > *, .hist li > span { min-width: 0; overflow-wrap: anywhere; }
+.grp li code.cmd { background: none; padding: 0; } /* the mockup prints the command plain */
+
+/* not in the mockup: superseded, the A9 swap note, reset checks, the signed log in place */
+.sub-head .sup { margin: 8px 0 0; }
+.swap { margin: 8px 0 0; }
+.grp li.reset > span:last-child { text-decoration: line-through; opacity: .75; }
+.grp details.log { display: inline; }
+.grp details.log[open] { display: block; margin-top: 4px; }
+.grp details.log summary { display: inline; cursor: pointer; color: var(--sky); text-decoration: underline; text-underline-offset: 2px; }
+.grp details.log pre.log { margin: 4px 0 0; }

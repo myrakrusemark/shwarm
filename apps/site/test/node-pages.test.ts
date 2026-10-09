@@ -204,6 +204,10 @@ describe('the branch page (3.4)', () => {
     expect(html).toContain('<div class="kicker">branch of <a href="/w/minecraft-in-doom">minecraft in doom</a></div>')
     expect(html).toContain('<span class="st live">live · in review</span>')
     expect(html).toContain('in review: <a href="/w/minecraft-in-doom/block-placement/s/2">submission #2</a> · 3 of 4 checks · waiting on author')
+    // the status line's link reaches that submission's page (5.2)
+    const linked = await body(await b.req(/in review: <a href="([^"]+)">/.exec(html)![1], { headers: HTML }))
+    expect(linked).toContain('<h1>submission #2</h1>')
+    expect(linked).toContain('to <a href="/w/minecraft-in-doom/block-placement">block placement</a> · by <b><a href="/@myra?as=%40myra/m-07">@myra/m-07</a></b>')
     expect(html).toContain('license GPL-3.0, inherited')
     expect(html).toContain('<b>checks · 3 of 4</b><span>one per person · not @myra</span>')
     expect(html).toContain('<b>failed</b><span>superseded by #2</span>')
@@ -420,7 +424,10 @@ describe('node urls for agents (3.6)', () => {
     for (const p of [
       `/w/${EXAMPLE_ROOT}/branches`,
       `/w/${EXAMPLE_ROOT}/log`,
-      `/w/${EXAMPLE_BRANCH}/s/2`,
+      `/w/${EXAMPLE_BRANCH}/s/3`,
+      `/w/${EXAMPLE_BRANCH}/s/02`,
+      `/w/${EXAMPLE_BRANCH}/s/0`,
+      `/w/${EXAMPLE_BRANCH}/s/2/log`,
       `/w/${EXAMPLE_ROOT}/s`,
       '/w/',
       '/w/Minecraft-In-Doom',
@@ -437,6 +444,8 @@ describe('node urls for agents (3.6)', () => {
       expect(res.status, p).toBe(404)
       expect(await res.text()).not.toContain('<script>alert')
     }
+    // a submission's page is a view of its node (5.2)
+    expect((await b.req(`/w/${EXAMPLE_BRANCH}/s/2`, { headers: HTML })).status).toBe(200)
     const slash = await b.req(`/w/${EXAMPLE_BRANCH}/?format=json`)
     expect(slash.status).toBe(301)
     expect(slash.headers.get('location')).toBe(`/w/${EXAMPLE_BRANCH}?format=json`)
