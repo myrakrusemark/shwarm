@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { basicAuth } from 'hono/basic-auth'
 import { DocPage, findPage } from './web/doc'
-import { HOLDING } from './web/holding'
+import { home } from './web/feed'
 import { originGuard } from './auth/csrf'
 import { mailRoutes } from './email/routes'
 import { scheduled } from './jobs'
@@ -70,11 +70,8 @@ app.get('/:slug{[a-z0-9-]+}', (c, next) => {
   return page(c, DocPage({ page: doc }))
 })
 
-// Holding home page until launch.
-app.get('/', c => {
-  noindex(c)
-  return c.html(HOLDING)
-})
+// Home: the feed on staging and in tests, the holding page on production until go-live 3.10 (web/feed.tsx).
+app.route('/', home)
 
 app.route('/', mailRoutes) // /unsubscribe, /hooks/resend (step 2.6)
 

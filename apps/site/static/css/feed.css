@@ -1,0 +1,60 @@
+/* the feed (go-live 3.2). rules copied from mockups/index.html's <style>; keep them in step with the mockup.
+   site.css (generated from how-it-works) loads first, so where its rules for other pages share a class name
+   (.heat, .pitch, .meta, .tag at 860px) the feed's values are set again here. */
+body { line-height: 1.45; }
+.wrap { max-width: 920px; }
+@media (min-width: 641px) and (max-width: 860px) { .tag { display: block; } }
+
+.sort { display: flex; margin: 18px 0 0; border: var(--rule); border-bottom: 0; background: var(--paper); }
+.sort a { padding: 6px 14px; color: var(--ink); text-decoration: none; border-right: 1px solid var(--ink); }
+.sort a.on { background: var(--ink); color: var(--paper); }
+.sort form.q { flex: 1; display: flex; margin: 0; min-width: 0; }
+.sort input { flex: 1; font: inherit; border: 0; background: transparent; padding: 6px 12px; min-width: 0; }
+
+.feed { list-style: none; margin: 0; padding: 0; border: var(--rule); background: var(--paper); }
+.feed li {
+  display: grid; grid-template-columns: 64px 1fr auto; gap: 14px; align-items: start;
+  padding: 12px 14px; border-bottom: 1px solid var(--ink);
+}
+.feed li:last-child { border-bottom: 0; }
+.hotb { font-size: 10.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 1px 5px; background: var(--sun); border: 1.5px solid var(--ink); margin-left: 8px; vertical-align: 2px; cursor: help; }
+.feed li.lobby { background: linear-gradient(90deg, rgba(92,154,62,.24), rgba(92,154,62,.07) 70%); }
+.feed li.lobby .heat { color: var(--moss); }
+.feed .heat { text-align: center; font-weight: 700; font-size: 18px; line-height: 1; padding-top: 2px; }
+.feed .title { font-weight: 700; font-size: 15px; overflow-wrap: anywhere; }
+.feed div.done { margin: 3px 0 0; font-size: 13px; overflow-wrap: anywhere; }
+.feed div.done.sm { font-size: 12px; opacity: .8; }
+.feed .pitch { margin: 3px 0 0; font-size: 14px; display: block; padding: 0; border: 0; overflow-wrap: anywhere; }
+.feed .say { margin: 3px 0 5px; font-size: 13px; opacity: .85; overflow-wrap: anywhere; }
+.feed .say::before { content: "▸ "; color: var(--leaf); }
+.feed .meta { font-size: 12px; opacity: .8; }
+.tags { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.t { font-size: 11px; padding: 0 5px; border: 1px solid var(--ink); background: var(--paper-2); color: var(--ink); text-decoration: none; }
+.st { font-size: 11px; font-weight: 700; padding: 1px 6px; border: 2px solid var(--ink); white-space: nowrap; display: inline-block; }
+.st.live { background: var(--leaf); color: var(--paper); border-color: var(--leaf); }
+.st.lobby { background: var(--sun); }
+.join { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 8px; border: 2px solid var(--ink); background: var(--sun); color: var(--ink); text-decoration: none; box-shadow: 3px 3px 0 var(--ink); white-space: nowrap; }
+.join:hover { transform: translate(1px,1px); box-shadow: 2px 2px 0 var(--ink); }
+.st.done { background: var(--ink); color: var(--paper); margin-top: 3px; } /* the mockup's .done margin reaches this badge too */
+.st.dead { text-decoration: line-through; opacity: .7; }
+.right { text-align: right; }
+
+.more { display: block; text-align: center; padding: 10px; border: var(--rule); border-top: 0; background: var(--paper-2); color: var(--ink); font-weight: 700; text-decoration: none; }
+
+@media (max-width: 640px) {
+  .tag { display: none; }
+  .feed li { grid-template-columns: 44px 1fr; }
+  .right { grid-column: 2; text-align: left; }
+}
+.heat small { display: block; font-size: 10px; font-weight: 400; opacity: .7; margin-top: 4px; }
+.heat .fill { display: block; width: 44px; height: 6px; margin: 7px auto 0; box-shadow: inset 0 0 0 1px rgba(19,38,27,.35);
+  background: repeating-linear-gradient(45deg, var(--leaf) 0 5px, var(--moss) 5px 10px) 0 0 / calc(var(--f) * 44px) 100% no-repeat, var(--paper-2); }
+.heat .qbar { display: block; width: 44px; height: 6px; margin: 7px auto 0; box-shadow: inset 0 0 0 1px rgba(19,38,27,.25);
+  background: linear-gradient(var(--leaf), var(--leaf)) 0 0 / min(calc(var(--q) * 8.8px), 44px) 100% no-repeat, var(--paper-2); }
+.meta .up { color: var(--ink); text-decoration: none; border-bottom: 1.5px solid var(--ink); }
+.meta .up:hover { background: var(--sun); }
+
+/* not in the mockup: the search box's focus ring and the empty state */
+.sort input:focus-visible { outline: 2px solid var(--sun); outline-offset: -2px; }
+.feed.empty { padding: 18px 14px; font-size: 13px; }
+.feed.empty p { margin: 0; }

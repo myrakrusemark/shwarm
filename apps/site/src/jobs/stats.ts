@@ -27,6 +27,7 @@ import {
   postsPerDay,
   rankingFrom,
   statusLine,
+  surge,
   type Ranking,
   type StatusInput,
 } from '../core/stats'
@@ -75,6 +76,7 @@ export type NodeStats = {
   posts_per_day: number
   people: number
   hot: 0 | 1
+  surge: number | null // the hot badge's ratio, kept only while hot
   score: number
   status_line: string
   upvotes: number
@@ -310,6 +312,7 @@ export async function computeNodes(db: D1Database, ids: number[], now: number, r
       posts_per_day: perDay,
       people: peopleBy.get(n.id)?.n ?? 1,
       hot,
+      surge: hot ? round(surge(up24, up7), 2) : null,
       score: round(score, 4),
       status_line: statusLine({
         state: n.state,
@@ -364,14 +367,14 @@ function nodeStatsWrites(db: D1Database, rows: NodeStats[], now: number): D1Prep
     stmts.push(
       db
         .prepare(
-          `INSERT INTO node_stats (node_id, impact, posts_per_day, people, hot, score, status_line, upvotes, posts, stale_at, updated_at)
+          `INSERT INTO node_stats (node_id, impact, posts_per_day, people, hot, surge, score, status_line, upvotes, posts, stale_at, updated_at)
            SELECT json_extract(j.value, '$.id'), json_extract(j.value, '$.impact'), json_extract(j.value, '$.posts_per_day'),
-                  json_extract(j.value, '$.people'), json_extract(j.value, '$.hot'), json_extract(j.value, '$.score'),
+                  json_extract(j.value, '$.people'), json_extract(j.value, '$.hot'), json_extract(j.value, '$.surge'), json_extract(j.value, '$.score'),
                   json_extract(j.value, '$.status_line'), json_extract(j.value, '$.upvotes'), json_extract(j.value, '$.posts'),
                   json_extract(j.value, '$.stale_at'), ?2
            FROM json_each(?1) j WHERE 1
            ON CONFLICT (node_id) DO UPDATE SET impact = excluded.impact, posts_per_day = excluded.posts_per_day, people = excluded.people,
-             hot = excluded.hot, score = excluded.score, status_line = excluded.status_line, upvotes = excluded.upvotes,
+             hot = excluded.hot, surge = excluded.surge, score = excluded.score, status_line = excluded.status_line, upvotes = excluded.upvotes,
              posts = excluded.posts, stale_at = excluded.stale_at, updated_at = excluded.updated_at`,
         )
         .bind(JSON.stringify(rows.slice(i, i + 200)), iso(now)),
