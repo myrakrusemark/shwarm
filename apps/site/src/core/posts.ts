@@ -197,6 +197,11 @@ export async function deletePost(ctx: Ctx, a: Actor, inp: DeleteInput): Promise<
     ctx.db.prepare("UPDATE post SET text = '', links = '[]', deleted_at = ? WHERE id = ?").bind(ctx.at, p.id),
     ctx.db.prepare('DELETE FROM post_edit WHERE post_id = ?').bind(p.id),
     ctx.db.prepare('DELETE FROM mention WHERE post_id = ?').bind(p.id),
+    // The feed's status line is a copy of the pinned post's first line (jobs/stats.ts): blank it now, before the unpin,
+    // so the deleted text leaves the feed at once; the next stats run fills in the fallback line.
+    ctx.db
+      .prepare("UPDATE node_stats SET status_line = '' WHERE node_id = ?1 AND EXISTS (SELECT 1 FROM node WHERE id = ?1 AND pinned_post_id = ?2)")
+      .bind(n.id, p.id),
     ctx.db.prepare('UPDATE node SET pinned_post_id = NULL WHERE id = ? AND pinned_post_id = ?').bind(n.id, p.id),
     touchNode(ctx, n.id, null), // the tombstone shows signed out, and a pinned one moves the status line
   ])

@@ -98,7 +98,9 @@ export const nodeSql = (path: string) => {
   if (!PATH.test(path)) throw new DecideError(`not a node path: ${path}`)
   return renderStatement(
     `SELECT n.path, n.kind, n.title, n.triage, n.seeded, n.hidden, n.what, n.done_when, n.checks, n.builds_on, par.title AS parent_title,
-            (SELECT group_concat(tag, ' ') FROM (SELECT t.tag FROM node_tag t WHERE t.node_id = n.id ORDER BY t.rowid)) AS tags
+            (SELECT group_concat(tag, ' ') FROM (SELECT t.tag FROM node_tag t WHERE t.node_id = n.id ORDER BY t.rowid)) AS tags,
+            (SELECT json_group_array(json_object('title', e.title, 'what', e.what, 'was_public', e.was_public))
+             FROM (SELECT * FROM node_edit e WHERE e.node_id = n.id ORDER BY e.edited_at DESC, e.id DESC) e) AS earlier
      FROM node n LEFT JOIN node par ON par.id = n.parent_id WHERE n.path = ?`,
     [path],
   )
@@ -106,13 +108,14 @@ export const nodeSql = (path: string) => {
 
 export { printable }
 
-type NodeShown = { path: string; kind: string; title: string; triage: string; seeded: number; hidden: number; what?: string; done_when?: string; checks?: string; builds_on?: string | null; parent_title?: string | null; tags?: string | null }
+type NodeShown = { path: string; kind: string; title: string; triage: string; seeded: number; hidden: number; what?: string; done_when?: string; checks?: string; builds_on?: string | null; parent_title?: string | null; tags?: string | null; earlier?: string | null }
 
 /**
  * The node as the script prints it before clear or block: every field the model was given (triage/model.ts
  * stateOf), since a hold can come from the check command, the checkers' instructions, the tags or builds-on, and
- * the page is a 404 to Myra. Each author-written line is quoted with '| ' and run through printableLines, so none
- * of it can pass for the script's own output or reach the terminal as an escape sequence.
+ * the page is a 404 to Myra; then any earlier pitches a re-pitch replaced, and who sees each. Each author-written line
+ * is quoted with '| ' and run through printableLines, so none of it can pass for the script's own output or reach the
+ * terminal as an escape sequence.
  */
 export function describeNode(n: NodeShown): string {
   const quote = (label: string, v: unknown) => `  ${label}:\n` + printableLines(v).split('\n').map(l => `    | ${l}`).join('\n')
@@ -134,6 +137,17 @@ export function describeNode(n: NodeShown): string {
   if (spec.author) out.push('  and by its author.')
   if (n.tags) out.push(quote('tags', n.tags))
   if (n.builds_on) out.push(quote('builds on', n.builds_on))
+  // Earlier pitches from re-pitches: the model saw only the current words. A version public when it was replaced stays
+  // in the page's history for everyone; the others only its author sees (read/node.ts readPitchEdits).
+  let earlier: { title?: unknown; what?: unknown; was_public?: unknown }[] = []
+  try {
+    earlier = JSON.parse(n.earlier ?? '[]')
+  } catch {
+    // shown as none
+  }
+  earlier.forEach((e, i) => {
+    out.push(`  earlier pitch ${i + 1}, newest first (${e.was_public === 1 ? 'shown to everyone' : 'shown to its author only'}):`, quote('title', e.title), quote('what', e.what))
+  })
   return out.join('\n')
 }
 

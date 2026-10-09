@@ -618,14 +618,27 @@ export async function readEdits(db: D1Database, ids: string[]): Promise<Map<stri
   return out
 }
 
-/** An earlier title and pitch of a lobby: what a re-pitch replaced, by whom and when (core/nodes.ts repitch). */
-export type PitchEdit = { title: string; what: string; by_name: string; edited_at: string }
+/**
+ * An earlier title and pitch of a lobby: what a re-pitch replaced, by whom and when, and when it was written (the
+ * re-pitch before it, or null when it's the one the node started with) (core/nodes.ts repitch).
+ */
+export type PitchEdit = { title: string; what: string; by_name: string; edited_at: string; written_at: string | null }
 
-/** A node's earlier pitches, newest first: up to EDITS_SHOWN, plus one more, as readEdits does for posts. */
-export async function readPitchEdits(db: D1Database, nodeId: number): Promise<PitchEdit[]> {
+/**
+ * A node's earlier pitches, newest first: up to EDITS_SHOWN, plus one more to say older ones aren't shown. Everyone
+ * sees only the versions everyone could read when they were replaced; words still being checked or held then, which
+ * triage never cleared, show to the author alone (`all`). OPEN (#79): who sees which versions.
+ */
+export async function readPitchEdits(db: D1Database, nodeId: number, all: boolean): Promise<PitchEdit[]> {
   const { results } = await db
-    .prepare('SELECT title, what, by_name, edited_at FROM node_edit WHERE node_id = ? ORDER BY edited_at DESC, id DESC LIMIT ?')
-    .bind(nodeId, EDITS_SHOWN + 1)
+    .prepare(
+      `SELECT title, what, by_name, edited_at, written_at FROM (
+         SELECT title, what, by_name, edited_at, was_public, id,
+                LAG(edited_at) OVER (ORDER BY edited_at, id) AS written_at
+         FROM node_edit WHERE node_id = ?1)
+       WHERE was_public = 1 OR ?2 = 1 ORDER BY edited_at DESC, id DESC LIMIT ?3`,
+    )
+    .bind(nodeId, all ? 1 : 0, EDITS_SHOWN + 1)
     .all<PitchEdit>()
   return results
 }

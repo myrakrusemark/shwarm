@@ -14,6 +14,7 @@ import { findNode, loadNode, loadPerson, MAX_PATH, moderatedStatement, notifySta
 import { newId } from './ids'
 import { checkNewNodes, newNodeGuard, takeThreadToken } from './limits'
 import { checkWritable, readSettings } from './settings'
+import { OPEN_NODE } from '../read/visibility'
 import { MAX_SLUG, MAX_TITLE, needText, RESERVED_SLUGS, slugify } from './text'
 
 // A2 (decided Oct 8): a default and a short open list. OPEN: the identifiers are proposed in protocol §8.
@@ -353,8 +354,9 @@ export type RepitchResult = { node: string; repitched: boolean; at: string; tria
 /**
  * Re-pitch a lobby (spec "Starting a shwarm", LOBBY-6; table B #30): the author changes the title and the pitch ("what")
  * while it's a lobby; the done test, checks, license and address never change. The version it replaces goes to node_edit,
- * so the page can show the history. Acts with the author's authority, so it confirms with the password (A5), and happens
- * only on the site, as the bare handle (no edit API at launch, table B #30). The same title and pitch again change nothing.
+ * so the page can show the history: to everyone only if everyone could read it then, otherwise to the author alone
+ * (OPEN #79). Acts with the author's authority, so it confirms with the password (A5), and happens only on the site, as
+ * the bare handle (no edit API at launch, table B #30). The same title and pitch again change nothing.
  * The new words are checked like a new node's (A8): a cleared node goes back to 'pending' ("being checked", seen only by
  * its author; a seeded one stays public while pending) and a new triage round starts (triage_since), which the caller
  * runs after this batch (triage/run.ts triageNew). A held node stays held, for Myra to read again; a blocked one can't be
@@ -378,6 +380,15 @@ export async function repitch(ctx: Ctx, a: Actor, inp: RepitchInput): Promise<Re
   // Triage runs outside the tree, so the round restarts on the node's triage as it is when the batch runs: a hold or a
   // block that lands meanwhile stands.
   const res = await ctx.db.batch([
+    // The version it replaces, read as the batch runs, noting whether everyone could read it then: words still being
+    // checked or held were never cleared, so they show in the history to the author alone (read/node.ts readPitchEdits).
+    // Same guard as the update below, so the two land or skip together.
+    ctx.db
+      .prepare(
+        `INSERT INTO node_edit (node_id, by_name, title, what, edited_at, was_public)
+         SELECT id, ?1, title, what, ?2, ${OPEN_NODE('node')} FROM node WHERE id = ?3 AND state = 'lobby' AND triage <> 'blocked'`,
+      )
+      .bind(a.as, ctx.at, n.id),
     ctx.db
       .prepare(
         `UPDATE node SET title = ?1, what = ?2,
@@ -386,15 +397,12 @@ export async function repitch(ctx: Ctx, a: Actor, inp: RepitchInput): Promise<Re
          WHERE id = ?4 AND state = 'lobby' AND triage <> 'blocked'`,
       )
       .bind(title, what, ctx.at, n.id),
-    ctx.db
-      .prepare('INSERT INTO node_edit (node_id, by_name, title, what, edited_at) SELECT ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM node WHERE id = ? AND title = ? AND what = ?)')
-      .bind(n.id, a.as, n.title, n.what, ctx.at, n.id, title, what),
     bucket.stmt,
     touchNode(ctx, n.id, null),
     // A cleared node leaves the public until it's checked again, so every signed-out page that lists it changes.
     ...(recheck ? [moderatedStatement(ctx)] : []),
   ])
-  if (!res[0]?.meta?.changes) throw new ShwarmError('not_permitted', `${n.path} was blocked. it can't be re-pitched`, { reason: 'blocked', node: n.path })
+  if (!res[1]?.meta?.changes) throw new ShwarmError('not_permitted', `${n.path} was blocked. it can't be re-pitched`, { reason: 'blocked', node: n.path })
   return { node: n.path, repitched: true, at: ctx.at, triage: recheck ? 'pending' : n.triage }
 }
 

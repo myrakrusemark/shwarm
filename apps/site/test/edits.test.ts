@@ -4,9 +4,11 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { hashPassword } from '../src/auth/password'
-import { readContributors, readChain } from '../src/read/node'
+import { rollupStats } from '../src/jobs/stats'
+import { readContributors, readChain, readPitchEdits } from '../src/read/node'
 import { readProfile } from '../src/read/profile'
 import { EXAMPLE_ROOT } from '../src/seed/example'
+import { describeNode, nodeSql } from '../src/triage/decide'
 import { CATEGORIES } from '../src/triage/rubric'
 import { triageNode } from '../src/triage/run'
 import { resetReadLimit } from '../src/web/read-limit'
@@ -182,6 +184,35 @@ describe('re-pitching a lobby (4.4)', () => {
     expect(JSON.stringify(clef.calls[3])).toContain('round four')
   })
 
+  it("words triage never cleared stay out of the public history: replaced while pending or held, they show to the author alone", async () => {
+    const id = w.node(MID).id
+    const titles = (all: boolean) => readPitchEdits(w.db, id, all).then(es => es.map(e => [e.title, e.written_at]))
+    // still pending (not seeded, so nobody else sees it): re-pitched before triage answered, then the new words clear
+    w.tick(MIN)
+    await repitch(stepped(myra), 'nice title', 'nice what')
+    const t1 = iso(w.now)
+    w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE id = ?").run(id)
+    expect(await readChain(w.db, MID, null)).not.toBeNull()
+    expect(await titles(false)).toEqual([])
+    expect(await titles(true)).toEqual([['minecraft in doom', null]])
+    // cleared, then re-pitched: that version was public, so it stays in everyone's history
+    w.tick(MIN)
+    await repitch(stepped(myra), 'nicer title', 'nicer what')
+    const t2 = iso(w.now)
+    // held after a complaint, re-pitched while held, then Myra clears the new words: the held words stay the author's
+    w.db.raw.prepare("UPDATE node SET triage = 'held' WHERE id = ?").run(id)
+    w.tick(MIN)
+    await repitch(stepped(myra), 'nicest title', 'nicest what')
+    w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE id = ?").run(id)
+    expect(await titles(false)).toEqual([['nice title', t1]]) // written when the first re-pitch replaced the start
+    expect(await titles(true)).toEqual([['nicer title', t2], ['nice title', t1], ['minecraft in doom', null]])
+    // the hand-decide script shows Myra every earlier version and who sees it
+    const shown = describeNode(w.all(nodeSql(MID).replace(/;$/, ''))[0] as any)
+    expect(shown).toContain('  earlier pitch 1, newest first (shown to its author only):\n  title:\n    | nicer title\n  what:\n    | nicer what')
+    expect(shown).toContain('  earlier pitch 2, newest first (shown to everyone):\n  title:\n    | nice title')
+    expect(shown).toContain('  earlier pitch 3, newest first (shown to its author only):\n  title:\n    | minecraft in doom')
+  })
+
   it('a re-pitched node still pending ten minutes into its round is held, not before', async () => {
     const id = w.node(MID).id
     w.tick(HOUR) // long past the first round's ten minutes
@@ -246,6 +277,25 @@ describe('deleting a post (4.8)', () => {
     const pin = await w.post(site(myra), MID, 'where we are: started.', { pin: true })
     await del(site(myra), pin.id)
     expect(w.node(MID).pinned_post_id).toBeNull()
+  })
+
+  it("a deleted pinned post's first line leaves the feed's status line at once, not at the next stats run", async () => {
+    const id = w.node(MID).id
+    const pin = await w.post(site(myra), MID, 'where we are: something to take back.', { pin: true })
+    await rollupStats(w.db, w.now)
+    const line = () => w.get('SELECT status_line FROM node_stats WHERE node_id = ?', id).status_line
+    expect(line()).toBe('where we are: something to take back.')
+    // deleting another post leaves it alone
+    const other = await w.post(site(kes), MID, 'just a post.')
+    await del(site(kes), other.id)
+    expect(line()).toBe('where we are: something to take back.')
+    await del(site(myra), pin.id)
+    expect(line()).toBe('')
+    // the next run fills in the fallback
+    w.tick(MIN)
+    await rollupStats(w.db, w.now)
+    expect(line()).not.toContain('take back')
+    expect(line()).not.toBe('')
   })
 })
 
@@ -365,6 +415,25 @@ describe('on the page', () => {
       expect(html).toMatch(new RegExp(`<span class="note">started <span title="[^"]+">[^<]+</span></span><b>${before.title}</b>`))
       // a launch shwarm stays public while it's checked again (seeded, still pending)
       expect(await body(await new Browser(env).req(`/w/${LOBBY}`, { headers: HTML }))).toContain('a bot that beats freedoom, fast')
+    })
+
+    it('words re-pitched before triage cleared them never reach the signed-out page; the author still sees them', async () => {
+      const { env, q } = await world()
+      // a lobby by a user (not seeded), still being checked
+      env.DB.raw.prepare("UPDATE node SET seeded = 0, triage = 'pending' WHERE path = ?").run(LOBBY)
+      const before = q<{ title: string; what: string }>('SELECT title, what FROM node WHERE path = ?', LOBBY)
+      const b = await signIn(env, 'myra', { make: false })
+      const res = await act(b, { do: 'repitch', title: 'speedrunning freedoom, together', what: 'new words.' }, `/w/${LOBBY}`)
+      expect(res.status).toBe(303)
+      env.DB.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = ?").run(LOBBY) // the new words clear
+      const out = await body(await new Browser(env).req(`/w/${LOBBY}`, { headers: HTML }))
+      expect(out).toContain('speedrunning freedoom, together')
+      expect(out).not.toContain('<summary>re-pitched</summary>')
+      expect(out).not.toContain(before.title)
+      expect(out).not.toContain(before.what.split('\n')[0])
+      const mine = await page(b, `/w/${LOBBY}`)
+      expect(mine).toContain('<summary>re-pitched</summary>')
+      expect(mine).toContain(`<b>${before.title}</b>`)
     })
 
     it('a live shwarm has no re-pitch; nobody else gets the form, and a forged one is refused', async () => {

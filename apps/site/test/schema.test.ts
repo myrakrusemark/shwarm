@@ -139,6 +139,14 @@ describe('schema', () => {
     expect(get("SELECT text, deleted_at FROM post WHERE id = 'p_d'")).toEqual({ text: '', deleted_at: T })
   })
 
+  it("notes whether a re-pitched version was public when it was replaced (0009)", () => {
+    const myra = person('myra')
+    const n = shwarm('minecraft-in-doom', myra)
+    run("INSERT INTO node_edit (node_id, by_name, title, what, edited_at) VALUES (?, '@myra', 'old', 'old what', ?)", n, T)
+    run("INSERT INTO node_edit (node_id, by_name, title, what, edited_at, was_public) VALUES (?, '@myra', 'older', 'older what', ?, 1)", n, T)
+    expect(db.prepare('SELECT title, was_public FROM node_edit ORDER BY id').all()).toEqual([{ title: 'old', was_public: 0 }, { title: 'older', was_public: 1 }])
+  })
+
   it('never stores a bare handle as a key pattern', () => {
     const myra = person('myra')
     const key = (pattern: string) => run("INSERT INTO agent_key (id, person_id, name, public_key, can_post_as, created_at) VALUES ('k1', ?, 'laptop', 'pk', ?, ?)", myra, pattern, T)

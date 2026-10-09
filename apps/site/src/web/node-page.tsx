@@ -194,7 +194,8 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
 
 /**
  * A re-pitched shwarm's earlier titles and pitches, newest first (go-live 4.4), as a post's edit history shows its
- * versions: each with when it was written (the version before it was replaced then, or the shwarm was started).
+ * versions: each with when it was written (the version before it was replaced then, or the shwarm was started). The
+ * author sees every version; everyone else only those that were public when replaced (read/node.ts readPitchEdits).
  * OPEN (#79): no mockup draws it; "re-pitched" and the rows wait on Myra's yes.
  */
 const PitchHistory: FC<{ n: NodeHead; edits: PitchEdit[]; now: number }> = ({ n, edits, now }) => {
@@ -205,7 +206,7 @@ const PitchHistory: FC<{ n: NodeHead; edits: PitchEdit[]; now: number }> = ({ n,
       <ol>
         {shown.map((e, i) => (
           <li>
-            <span class="note">{edits[i + 1] ? 're-pitched' : 'started'} <Ago at={edits[i + 1]?.edited_at ?? n.created_at} now={now} /></span>
+            <span class="note">{e.written_at ? 're-pitched' : 'started'} <Ago at={e.written_at ?? n.created_at} now={now} /></span>
             <b><Plain text={e.title} /></b>
             <Text text={e.what} />
           </li>

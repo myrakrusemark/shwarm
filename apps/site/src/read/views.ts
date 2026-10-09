@@ -31,7 +31,7 @@ export async function loadPageData(
     readContributors(db, n),
     readSubmissions(db, n.id),
     readThread(db, n, o),
-    n.kind === 'branch' ? Promise.resolve([]) : readPitchEdits(db, n.id), // only a lobby is re-pitched
+    n.kind === 'branch' ? Promise.resolve([]) : readPitchEdits(db, n.id, o.me?.personId === n.author_id), // only a lobby is re-pitched
   ])
   // Checks for the submissions on this page of the thread, and for the one in review (the head's status line).
   const shown = new Set<string>()
