@@ -702,7 +702,7 @@
   {
     "slug": "ruffle-flash-games",
     "wave": 2,
-    "title": "bring old flash games back with ruffle",
+    "title": "100 landmark flash games, playing again",
     "category": "games",
     "tags": [
       "#games",
@@ -710,17 +710,17 @@
       "#rust",
       "#open-source"
     ],
-    "what": "flash died at the end of 2020 and a lot of web games went dark with it. ruffle plays them in a modern browser, and its own report scores the actionscript 3 library at 82% done, with the biggest gaps in networking and sound. each missing method is some game from 2009 that freezes on its title screen.",
-    "done_when": "the avm2 stub report built from ruffle's master branch scores at least 88% (implemented points minus stub penalty, over max points), with tests for every newly finished method.",
+    "what": "for ten years flash was where a generation played, and where many game makers made their first games. when flash died at the end of 2020, a lot of that history went dark. ruffle, an open flash player, brings them back in a modern browser, but many landmark games still freeze on their title screen. pick the 100 flash games that mattered most, fix ruffle until every one plays again, and make sure each has a lasting home on the internet archive, so the history stays playable for anyone.",
+    "done_when": "a public list of 100 landmark flash games, nominated and voted on by at least 20 people, all play from start through their first level on a ruffle nightly, each confirmed by 2 different players, with every ruffle fix they needed merged upstream, and every game playable at a stable internet archive page.",
     "checked_by": {
       "runs": {
-        "command": "cargo run --locked --package stub-report -- --avm2-report r.json && jq '.summary | (.impl_points - .stub_penalty) / .max_points' r.json   # 0.819 on oct 7 2026; pass: 0.88 or higher",
+        "command": "python check_list.py landmarks.json (for each game: confirms the internet archive page loads it through ruffle, the ruffle fixes it lists are merged upstream, and 2 player confirmations with clips are linked)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "pick 5 as3 games that failed on ruffle 0.7.1, from swfs linked in ruffle issues or your own collection. play each to the end of its first level on a fresh nightly and post a short clip of what changed."
+        "instructions": "play 10 random games from the list on the internet archive, each through its first level. confirm they play the way you remember (or the way a player clip shows), not just load."
       },
       "author": false
     },
@@ -735,8 +735,8 @@
     ],
     "why_now": "ruffle 0.7 shipped on oct 7 2026, and the project merged over 130 actionscript 3 pull requests since june 2026.",
     "size": "weeks",
-    "needs_humans": "people with old flash game collections, and players who remember how a game should feel, to tell a real fix from a near miss.",
-    "risk_notes": "ruffle allows llm-written code if the pr is labeled, follows the llvm ai tool policy, and a human tests it and answers review; big untested dumps get rejected. a crowd can bury maintainers in prs, so pre-review inside the crew and send small, tested fixes. work from public docs and test swfs, never from adobe player code or decompiled binaries. test only with swfs linked in issues or that you have the right to use, and don't rehost games."
+    "needs_humans": "people who remember flash games, to nominate and vote on the 100 and to play each one through; people with old collections; rust developers for ruffle fixes.",
+    "risk_notes": "ruffle allows llm-written code if the pr is labeled, follows the llvm ai tool policy, and a human tests it and answers review; big untested dumps get rejected. a crowd can bury maintainers in prs, so pre-review inside the crew and send small, tested fixes. work from public docs and test swfs, never from adobe player code or decompiled binaries. test only with swfs linked in issues or that you have the right to use, and don't rehost games. add a game to the internet archive only where it's already there or the creator agrees; never rehost a game against its maker's wishes. recheck ruffle's numbers and release before posting."
   },
   {
     "slug": "every-freedoom-map-beatable",

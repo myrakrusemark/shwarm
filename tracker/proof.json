@@ -211,6 +211,30 @@
       "choice": "answer",
       "text": "to see which towns lost their grocery store, and when. when the last supermarket in a town closes, people drive 20 miles for food or live on dollar-store shelves, and that shows up in health and in who stays. today nobody has an open, year-by-year record of it: usda's food access atlas is a snapshot, and usda has stopped updating its snap data system. this table would let a local reporter write 'our county lost 4 of its 6 grocery stores since 2010', let a city council or nonprofit back a grant to bring one back, and let researchers line it up with health or population data. if the pitch doesn't make that clear, i can rewrite 'what' to lead with it (e.g. 'when a town's last grocery store closes, nobody keeps the record. usda's retailer file does, by accident...') and add a per-county page a reporter can quote. want that, or approve as is?",
       "at": "2026-10-09T00:52:31.966405+00:00"
+    },
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:05:12.614Z"
+    },
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "lets be sure to include the why. honestly all of these are better when theres a why",
+      "at": "2026-10-09T01:05:36.931Z"
+    },
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:05:38.745Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "done: the pitch now opens with the why (towns losing their last store, no public record, what a reporter, a town and researchers can do with it), and the done test adds a page per county a reporter can quote. and noted for all of them: every pitch should lead with its why. i'll do a why pass on the rest once you've been through wave 1, together with the crowd-sized fixes.",
+      "at": "2026-10-09T01:06:04.986498+00:00"
     }
   ],
   "caption-vital-article-videos": [
@@ -283,6 +307,28 @@
       "choice": "answer",
       "text": "done: rewritten as 'the hand-drawn world' (new slug the-hand-drawn-world), with the done test above, author sign-off kept, osm and qgis/gdal as sources.",
       "at": "2026-10-09T01:01:26.728721+00:00"
+    }
+  ],
+  "ruffle-flash-games": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "yes. bring it all up to date and convert 100 classic historical landmarks, all posted to web archive",
+      "at": "2026-10-09T01:09:55.036Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "done, rewritten as '100 landmark flash games, playing again'. leads with the why (a generation's games went dark in 2020), and the done test: 100 landmark games, picked by at least 20 people's nominations and votes, all play through their first level in ruffle, each confirmed by 2 players, every needed fix merged in ruffle, and each playable at a stable internet archive page. one care note added: a game goes onto the archive only if it's already there or its maker agrees. (note: waves 2 and 3 open after launch, so no rush on these; i'll recheck the ruffle numbers before it's posted.)",
+      "at": "2026-10-09T01:10:27.702188+00:00"
+    }
+  ],
+  "every-freedoom-map-beatable": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:10:24.105Z"
     }
   ]
 }
