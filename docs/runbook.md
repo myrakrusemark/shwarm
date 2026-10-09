@@ -44,7 +44,7 @@ npx wrangler d1 migrations apply DB --env staging --remote
 
 Seeded nodes can't be deleted row by row: audit rows are append-only and point at them.
 
-**Production** takes one approved shwarm at a time (3.10, 11.1) and refuses everything else: `--target production --allow-production --slugs <slug>[,<slug>]`. No example, no `--replace`, and wrangler asks before it applies. It applies only from a terminal: with no terminal (an agent's shell, CI) wrangler's confirm answers yes by itself, so the script refuses. `--dry-run` works anywhere.
+**Production** takes one approved shwarm at a time (3.10, 12.1) and refuses everything else: `--target production --allow-production --slugs <slug>[,<slug>]`. No example, no `--replace`, and wrangler asks before it applies. It applies only from a terminal: with no terminal (an agent's shell, CI) wrangler's confirm answers yes by itself, so the script refuses. `--dry-run` works anywhere.
 
 ## Rehearsal log
 

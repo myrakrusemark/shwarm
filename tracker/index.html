@@ -154,7 +154,7 @@
     </main>
     <aside>
       <div class="box dec"><h2>decisions to lock <span id="decN"></span></h2><div class="in" style="font-size:12px;padding:6px 10px;border-bottom:1px dashed rgba(19,38,27,.3)">open one, answer yes / change / question, save. claude reads <code>tracker/replies.json</code> and records it.</div><div id="dec"></div></div>
-      <div class="box park"><h2>parking lot <span id="parkN"></span></h2><ul id="park"></ul></div>
+      <div class="box park"><h2>further enhancements <span id="parkN"></span></h2><ul id="park"></ul></div>
     </aside>
   </div>
 </div>
@@ -230,8 +230,8 @@ function parse(src) {
     })
     plan.phases.push({ n: m[1], name: m[2], size: m[3] || '', steps })
   }
-  // parking lot
-  const park = section(src, '8\\. Parking lot')
+  // further enhancements
+  const park = section(src, '8\\. Further enhancements')
   plan.parking = park.split('\n').filter(l => l.startsWith('- ')).map(l => l.slice(2))
   return plan
 }

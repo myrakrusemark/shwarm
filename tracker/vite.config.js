@@ -9,7 +9,7 @@ const PLAN = path.resolve(here, '../docs/go-live.md')
 const REPLIES = path.resolve(here, 'replies.json') // Myra's answers to the decisions; Claude reads this
 const LAUNCH = path.resolve(here, '../docs/launch-shwarms.json')
 const IDEAS = path.resolve(here, '../docs/shwarm-ideas.json') // new shwarm ideas, reviewed on the same page
-const PROOF = path.resolve(here, 'proof.json') // Myra's proofreading verdicts on the launch shwarms (step 11.1)
+const PROOF = path.resolve(here, 'proof.json') // Myra's proofreading verdicts on the launch shwarms (step 12.1)
 const STATUSES = ['todo', 'doing', 'done', 'blocked', 'parked']
 
 function planApi() {
