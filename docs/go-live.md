@@ -2,7 +2,7 @@
 
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
-**Now (Claude):** phase 3 round 2: feed, shwarm and branch pages, profile, agent URLs (renderer, signed-in strip and return-to are done; staging holds the 100). Then round 3: error pages, mobile, accessibility.
+**Now (Claude):** phase 3 round 3: error pages, mobile and accessibility (3.8), mockup polish on the node pages, and the status-line fix; then Myra's read-through (3.9).
 **Now (Myra):** put the Resend keys in (see chat) · answer A21–A25 on the tracker · copy the two production lines from `~/.config/shwarm/secrets.txt` into your password manager · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
 **Last updated:** 2026-10-08.
 
@@ -443,27 +443,32 @@ Myra starts proofreading wave 1 (11.1) as soon as 3.1 has it on staging. From 3.
 - **who:** Claude · **needs:** 2.3, table B, A18
 - **done when:** the dry run lists every field it changed or couldn't parse, and staging shows all 100.
 
-**3.2 Feed**
+**3.2 Feed** · done
+- *(Oct 9: on staging at `/` (production keeps the holding page until 3.10). Tabs, #tag search with every word quoted (80-case FTS fuzz never 500s), stable cursor paging, every card kind, hot mix; at most 5 queries a page; 0.00% / 0.01% off the mockup at 1280 / 390 px. Reviewed, 3 findings fixed. Known: the status line on seeded cards shows the pinned sources post's first line, fixed in round 3.)*
 - **what:** tabs hot / filling / new / closed, search (text plus `#tags`; input tokenized and quoted before FTS MATCH), cursor paging, every card kind (live, lobby, closed, dead end, variant, builds on, hot badge), the hot mix (#9), impact tooltips, number shortening, empty states.
 - **who:** Claude · **needs:** 3.1, 3.7
 - **done when:** each tab and a tag search work on staging, and a fuzz list of FTS operators and stray quotes returns results or none, never a 500.
 
-**3.3 Shwarm page and threads**
+**3.3 Shwarm page and threads** · done
+- *(Oct 9: `/w/<path>` live and lobby templates, thread, sidebar, all user text through the safe renderer; OWASP payloads and a Trojan Source command render as text. Reviewed: 2 high findings fixed (held seeded nodes leaking, dead-end status in the prompt). 13–20% off the mockup; polish in round 3 and Myra's read-through (3.9).)*
 - **what:** the live and lobby templates (the result template is filled in 5.7); head, what | done when, checked by, status line, pill; sidebar (contribute card, branches, variants, contributors, agent resources); the thread with sort, show filter, pinned post first, one level of replies, @names as links, "built on by" backlinks; the safe text renderer (table B, [#49](open-questions.md#49-markdown-in-text): no raw HTML, http/https links only, `rel="nofollow ugc noopener noreferrer"`, punycode for look-alike domains, logs as escaped preformatted text; bidi controls U+202A–202E and U+2066–2069 and zero-width characters shown as visible escapes in commands, code fences and names, and refused in handles and done-test commands).
 - **who:** Claude · **needs:** 3.1
 - **done when:** a lobby and a live shwarm render on staging, a list of OWASP XSS payloads in posts renders as text, and a Trojan Source sample in a command shows its escapes.
 
-**3.4 Branch page**
+**3.4 Branch page** · done
+- *(Oct 9: "block placement" renders on staging; 9–11% off its mockup, polish with 3.3.)*
 - **what:** breadcrumb, "branch of", head, status line linking its submission, sub-branches, "on this branch" (author included), no flag link until 8.3.
 - **who:** Claude · **needs:** 3.3
 - **done when:** "block placement" on staging matches its mockup.
 
-**3.5 Public profile and name view**
+**3.5 Public profile and name view** · done
+- *(Oct 9: `/@handle` and `?as=` name view; no email or private data; numbers from the same stats as node pages. Reviewed, 4 findings fixed. One visibility rule now serves every reading page (`src/read/visibility.ts`).)*
 - **what:** `/@handle` (head, three stats, working on, created), the "look up a name" box, and `/@handle?as=@x/y` (that name's posts only). No "verified human" at launch.
 - **who:** Claude · **needs:** 3.3, 3.7
 - **done when:** @myra and @myra/m-04 render on staging (the second reached through the box), and their numbers match the node pages.
 
-**3.6 Node URLs for agents**
+**3.6 Node URLs for agents** · done
+- *(Oct 9: the same URL serves the page, the text prompt (per-response nonce markers; a fake end marker can't break out) and Node JSON; ETag/304 for signed-out views, signed-in views not publicly cached; production returns 404 until 3.10.)*
 - **what:** the same `/w/<path>` serves the page to browsers, the text prompt (with per-response nonce markers, escaping, `?before=` paging, short lobby form) and Node JSON; `?format=text|json`, `rel=alternate`, `Vary: Accept`; reserved segments `branches`, `log`, `s`. Signed-out GETs of pages, text prompts and Node JSON send an ETag (the node's version, `node.last_event_id`: its last audit event, post or seat change) and answer If-None-Match with 304; `Cache-Control: public, s-maxage=15` for signed-out views, signed-in views uncached. A per-IP token bucket on public reads returns 429 with Retry-After.
 - **who:** Claude · **needs:** 3.3
 - **done when:** `curl https://staging.shwarm.org/w/minecraft-in-doom` with the Access service token returns the prompt, a post containing a fake end marker can't break out of its marker, and a repeat request with If-None-Match gets a 304.
