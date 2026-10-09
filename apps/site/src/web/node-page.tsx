@@ -9,6 +9,7 @@ import { joinHref, signInHref } from '../auth/return-to'
 import type { CheckSpec } from '../core/checks'
 import type { BuiltOnBy, BuiltOnLink, Chain, CheckReport, Child, Contributor, NodeHead, PitchEdit, PostEdit, PostRow, Seat, Show, Sort, SubmissionRow, Thread } from '../read/node'
 import { EDITS_SHOWN, SHOWS, SORTS } from '../read/node'
+import { FORMER } from '../read/names'
 import { groupBySlot, isOpen, openReview, recordedStatus, review, waitingDays, type ReviewRow } from '../read/review'
 import { ago, cut, dayOf, exact, licenseName, monthDay, perDay, plural, q1, shortNum, triageNote } from '../render/format'
 import { showHidden } from '../render/hidden'
@@ -515,7 +516,8 @@ const PostView: FC<{ p: PostRow; d: NodePageData; sub?: SubmissionRow; reply?: b
   const isSub = p.kind === 'submission' && sub
   const cls = ['c', pinned && 'pin', reply && 'r', isSub && 'subm', p.deleted_at && 'gone'].filter(Boolean).join(' ')
   const by = d.thread.builtOnBy.get(p.id) ?? []
-  const byAuthor = p.person_id === n.author_id && !p.as_name.includes('/')
+  // As the prompt (render/prompt.ts): a closed account's names all show as "former member", which can't tell its agent from it.
+  const byAuthor = p.person_id === n.author_id && !p.as_name.includes('/') && p.as_name !== FORMER
   const flash = d.flash?.at === 'post' && d.flash.post === p.id ? d.flash : undefined
   if (p.deleted_at)
     return (

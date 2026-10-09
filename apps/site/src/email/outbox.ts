@@ -99,14 +99,22 @@ export function mailToPeopleStatement(
 /**
  * The same mail to every active admin (the operator), each addressed and greeted by their own handle (payload.handle).
  * For acts in core that fall to the operator, such as an author-gone sign-off (table B).
+ * `each`: one mail per admin for every row of a SELECT (alias x, plain placeholders and its own binds), with `set`
+ * (more json_set path, value pairs over x) filled in from the row; none when it has no rows. So the batch decides.
  */
-export function mailToAdminsStatement(db: D1Database, m: Omit<Mail, 'to' | 'personId'>, now = new Date().toISOString()): D1PreparedStatement {
+export function mailToAdminsStatement(
+  db: D1Database,
+  m: Omit<Mail, 'to' | 'personId'>,
+  now = new Date().toISOString(),
+  each?: { rows: string; args: unknown[]; set: string },
+): D1PreparedStatement {
+  const from = each ? `(${each.rows}) x JOIN person ON person.is_admin = 1 AND person.status = 'active'` : "person WHERE is_admin = 1 AND status = 'active'"
   return db
     .prepare(
       `INSERT INTO email_outbox (to_email, person_id, template, stream, payload, created_at, send_after)
-       SELECT lower(email), id, ?, ?, json_set(?, '$.handle', handle), ?, ? FROM person WHERE is_admin = 1 AND status = 'active'`,
+       SELECT lower(person.email), person.id, ?, ?, json_set(?, '$.handle', person.handle${each ? `, ${each.set}` : ''}), ?, ? FROM ${from}`,
     )
-    .bind(m.template, m.stream, JSON.stringify(m.payload ?? {}), now, m.sendAfter ?? now)
+    .bind(m.template, m.stream, JSON.stringify(m.payload ?? {}), now, m.sendAfter ?? now, ...(each?.args ?? []))
 }
 
 export async function enqueueMail(db: D1Database, m: Mail, now?: string): Promise<void> {

@@ -4,7 +4,9 @@
 // goes to the operator (the author-gone rule).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { closeAccount } from '../src/auth/close'
+import { ctxAt, findNode, signOffStatements } from '../src/core/context'
 import { hashPassword } from '../src/auth/password'
+import { sweepOutbox } from '../src/jobs/mail'
 import { EXPORT_FORMAT } from '../src/read/export'
 import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
 import { resetReadLimit } from '../src/web/read-limit'
@@ -67,6 +69,7 @@ describe('closing an account (6.4)', () => {
     // a shwarm of kestrel's own, for the feed's "started by"
     const own = await w.run<{ path: string }>({ type: 'createNode', actor: site(w.p('kestrel')), input: { kind: 'shwarm', title: 'doom speedruns', what: 'a speedrun category for the mod.', doneWhen: 'a leaderboard with ten verified runs.', check: { author: true }, tags: ['games'], lobby: 2 } })
     w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = ?").run(own.path)
+    await w.run({ type: 'post', actor: agent(w.p('kestrel'), 'bot'), input: { node: own.path, text: 'agent here' } })
 
     const pages = ['/w/minecraft-in-doom', '/w/minecraft-in-doom?thread=1', '/w/minecraft-in-doom/s/1', `/w/${EXAMPLE_BRANCH}`, `/w/${EXAMPLE_BRANCH}/s/1`, `/w/${EXAMPLE_BRANCH}/s/2`, '/?tab=new', `/w/${own.path}`]
     const machine = [`/w/${EXAMPLE_ROOT}?format=text`, `/w/${EXAMPLE_ROOT}?format=json`, `/w/${EXAMPLE_ROOT}/log?filter=all`, `/w/${EXAMPLE_BRANCH}?format=text`, `/w/${EXAMPLE_BRANCH}?format=json`, `/w/${EXAMPLE_BRANCH}/log?filter=all`]
@@ -108,6 +111,11 @@ describe('closing an account (6.4)', () => {
     const result = await read('/w/minecraft-in-doom')
     expect(result).toContain('<div class="src">from <a href="/w/minecraft-in-doom/s/1">submission #1</a>, by former member</div>')
     expect(await read('/?tab=new')).toContain('started by former member')
+    // the author's tag stays off their agent's posts: "former member" no longer tells the two apart
+    const ownPage = await read(`/w/${own.path}?thread=1`)
+    expect(ownPage).toContain('agent here')
+    expect(ownPage).toContain('<b>former member</b> · <span')
+    expect(ownPage).not.toContain('<b>former member</b> · author')
     expect(await read(`/w/${EXAMPLE_ROOT}?format=text`)).toContain('author="former member" kind=submission')
     expect(await read(`/w/${EXAMPLE_ROOT}/log?filter=all`)).toContain('"by":"former member"')
     // the work itself stays: the submission, its hash and links, the thread posts
@@ -124,6 +132,14 @@ describe('closing an account (6.4)', () => {
     expect(get("SELECT COUNT(*) AS n FROM key_network WHERE key_id = 'kestrel-key'").n).toBe(0)
     const mail = w.db.raw.prepare('SELECT to_email, template, stream FROM email_outbox WHERE person_id = ?').all(kid).map((r: any) => ({ ...r }))
     expect(mail).toEqual([{ to_email: 'kestrel@example.org', template: 'account_closed', stream: 'security' }])
+    // once the sweep has sent it, that row lets go of the address and the account too
+    const sent: string[] = []
+    const resend = (async (_u: string, init: RequestInit) => (sent.push(JSON.parse(String(init.body)).to[0]), new Response('{"id":"re_1"}', { status: 200 }))) as unknown as typeof fetch
+    await sweepOutbox({ DB: w.db, ENV: 'production', SITE_URL: 'https://shwarm.org', RESEND_API_KEY: 're_key', MAIL_SECRET: 'mail-secret' } as any, { now: Date.now(), fetch: resend })
+    expect(sent).toContain('kestrel@example.org')
+    expect(get('SELECT COUNT(*) AS n FROM email_outbox WHERE person_id = ?', kid).n).toBe(0)
+    expect(get("SELECT COUNT(*) AS n FROM email_outbox WHERE to_email = 'kestrel@example.org'").n).toBe(0)
+    expect(get("SELECT to_email, person_id, provider_id FROM email_outbox WHERE template = 'account_closed' AND json_extract(payload, '$.handle') = 'kestrel'")).toEqual({ to_email: '', person_id: null, provider_id: 're_1' })
     // posts, submissions and checks stay under the account
     expect(get('SELECT COUNT(*) AS n FROM post WHERE person_id = ?', kid).n).toBeGreaterThan(0)
     // its keys fail: an agent acting under the closed account is refused before anything is written
@@ -175,6 +191,42 @@ describe('closing an account (6.4)', () => {
     const r = await w.signOff(stepped(ops), path, sub.id, 'pass')
     expect(r).toMatchObject({ submission_state: 'passed', node_state: 'closed' })
     expect(w.events(path, 'signed_off')[0].detail).toContain('author gone, signed off by the operator')
+  })
+
+  it('a sign-off that turns ready as the author closes reaches the operator, whichever batch lands first', async () => {
+    const w = new World()
+    const myra = await person(w.db, 'myra')
+    const ops = await person(w.db, 'ops')
+    const ana = await person(w.db, 'ana')
+    w.db.raw.prepare('UPDATE person SET is_admin = 1 WHERE id = ?').run(ops.id)
+    const { path } = await w.shwarm(site(myra), { lobby: 1 })
+    const sub = await w.submit(site(ana), path)
+    const signOffs = () => w.all("SELECT person_id, post_id FROM inbox_item WHERE kind = 'sign_off'")
+    const mailed = () => w.all("SELECT person_id, payload FROM email_outbox WHERE template = 'sign_off_ready'").map(r => ({ person_id: r.person_id, ...JSON.parse(r.payload) }))
+    const item = w.get("SELECT * FROM inbox_item WHERE kind = 'sign_off'")
+    const notYet = () => w.db.raw.exec("DELETE FROM inbox_item WHERE kind = 'sign_off'; DELETE FROM email_outbox WHERE template = 'sign_off_ready'")
+
+    // The check's batch first: it commits the author's item after closeAccount has looked, before its batch runs.
+    notYet()
+    const batch = w.db.batch.bind(w.db)
+    const spy = vi.spyOn(w.db, 'batch').mockImplementationOnce(async stmts => {
+      w.db.raw.prepare('INSERT INTO inbox_item (person_id, kind, node_id, post_id, text, created_at) VALUES (?, ?, ?, ?, ?, ?)').run(item.person_id, item.kind, item.node_id, item.post_id, item.text, item.created_at)
+      return batch(stmts)
+    })
+    await closeAccount(w.db, myra.id, w.now)
+    spy.mockRestore()
+    expect(signOffs()).toEqual([{ person_id: ops.id, post_id: sub.id }])
+    expect(mailed()).toEqual([expect.objectContaining({ person_id: ops.id, author: 'myra', author_gone: true, number: 1, link: `/w/${path}/s/1` })])
+
+    // The close first: the check loaded the node while the author was active, and its batch lands after.
+    notYet()
+    w.db.raw.prepare("UPDATE person SET status = 'active' WHERE id = ?").run(myra.id)
+    const stale = await findNode(ctxAt(w.db, w.now), path)
+    w.db.raw.prepare("UPDATE person SET status = 'closed' WHERE id = ?").run(myra.id)
+    expect(stale?.author_status).toBe('active')
+    await w.db.batch(signOffStatements(ctxAt(w.db, w.now), stale!, { postId: sub.id, number: 1 }, true))
+    expect(signOffs()).toEqual([{ person_id: ops.id, post_id: sub.id }])
+    expect(mailed()).toEqual([expect.objectContaining({ person_id: ops.id, author: 'myra', author_gone: true, only: true, title: 'minecraft in doom' })])
   })
 
   it('an admin closing their own account hands nothing to themselves', async () => {

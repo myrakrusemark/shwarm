@@ -25,6 +25,12 @@ export const PUBLIC_NODE = (n: string) => chainOk(n, OPEN_NODE)
  */
 export const SEEN_NODE = (n: string, me: string) => chainOk(n, x => `(${OPEN_NODE(x)} OR (${x}.hidden = 0 AND ${x}.author_id = ${me}))`)
 
+/**
+ * SQL: node alias `n` and every node above it may still come to show: none hidden or blocked, only waiting on triage
+ * ('pending', or 'held' for Myra). For mail about a node that doesn't show yet (jobs/mail.ts), which waits for it.
+ */
+export const UNBLOCKED_NODE = (n: string) => chainOk(n, x => `(${x}.hidden = 0 AND ${x}.triage <> 'blocked')`)
+
 function chainOk(n: string, ok: (alias: string) => string): string {
   const up = `vis_${n}`
   return `(${ok(n)}

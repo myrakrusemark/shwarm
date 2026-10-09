@@ -147,26 +147,53 @@ export function inboxStatement(ctx: Ctx, i: { personId: number; kind: 'mention' 
  * only to an active author (mailToPersonStatement); the notices stream honours their 'sign_off' opt-out when it sends.
  * `only`: the author is the submission's only check, so it is ready at once.
  * Author gone (table B): while the author's account is suspended or closed, the operator signs off in their place, so
- * the item and the mail go to every active admin instead. OPEN (#75): if the author comes back before signing, the item
- * stays with the admins; the author sees "waiting on you" on the page, but nothing new lands in their inbox.
+ * the item and the mail go to every active admin instead. Which side gets them is read as the batch commits, not from
+ * the node the act loaded, so an account closing at the same moment (auth/close.ts) can't leave the sign-off with no one.
+ * OPEN (#75): if the author comes back before signing, the item stays with the admins; the author sees "waiting on you"
+ * on the page, but nothing new lands in their inbox.
  */
 export function signOffStatements(
   ctx: Ctx,
-  n: Pick<NodeRow, 'id' | 'path' | 'title' | 'author_id' | 'author_handle' | 'author_status'>,
+  n: Pick<NodeRow, 'id' | 'path' | 'title' | 'author_id' | 'author_handle'>,
   s: { postId: string; number: number },
   only: boolean,
 ): D1PreparedStatement[] {
-  const payload = { notice: 'sign_off', handle: n.author_handle, number: s.number, title: n.title, link: submissionHref(n.path, s.number), ...(only ? { only: true } : {}) }
-  if (n.author_status !== 'active')
-    return [
-      ctx.db
-        .prepare("INSERT INTO inbox_item (person_id, kind, node_id, post_id, text, created_at) SELECT id, 'sign_off', ?, ?, ?, ? FROM person WHERE is_admin = 1 AND status = 'active'")
-        .bind(n.id, s.postId, `#${s.number} on ${n.title} is ready for sign-off. its author is gone, so the operator signs off.`, ctx.at),
-      mailToAdminsStatement(ctx.db, { template: 'sign_off_ready', stream: 'notices', payload: { ...payload, author: n.author_handle, author_gone: true } }, ctx.at),
-    ]
+  const link = submissionHref(n.path, s.number)
+  const payload = { notice: 'sign_off', handle: n.author_handle, number: s.number, title: n.title, link, ...(only ? { only: true } : {}) }
   return [
     inboxStatement(ctx, { personId: n.author_id, kind: 'sign_off', nodeId: n.id, postId: s.postId, text: `#${s.number} on ${n.title} is ready for your sign-off.` }),
     mailToPersonStatement(ctx.db, { template: 'sign_off_ready', stream: 'notices', personId: n.author_id, payload }, ctx.at),
+    ...operatorSignOffStatements(
+      ctx,
+      {
+        // CAST: a bound number may arrive as a real, and the text would read '#1.0'.
+        sql: "SELECT ? AS node_id, ? AS post_id, CAST(? AS INTEGER) AS number, ? AS title, ? AS link, handle AS author FROM person WHERE id = ? AND status <> 'active'",
+        args: [n.id, s.postId, s.number, n.title, link, n.author_id],
+      },
+      only,
+    ),
+  ]
+}
+
+/**
+ * The author-gone side of a sign-off (table B): for each row of `subs` (a SELECT with plain placeholders and its own
+ * binds, giving node_id, post_id, number, title, link and author, the gone author's handle), an item and a mail to
+ * every active admin. No rows, nothing written.
+ */
+export function operatorSignOffStatements(ctx: Ctx, subs: { sql: string; args: unknown[] }, only: boolean): D1PreparedStatement[] {
+  return [
+    ctx.db
+      .prepare(
+        `INSERT INTO inbox_item (person_id, kind, node_id, post_id, text, created_at)
+         SELECT a.id, 'sign_off', x.node_id, x.post_id, '#' || x.number || ' on ' || x.title || ' is ready for sign-off. its author is gone, so the operator signs off.', ?
+         FROM (${subs.sql}) x JOIN person a ON a.is_admin = 1 AND a.status = 'active'`,
+      )
+      .bind(ctx.at, ...subs.args),
+    mailToAdminsStatement(ctx.db, { template: 'sign_off_ready', stream: 'notices', payload: { notice: 'sign_off', ...(only ? { only: true } : {}), author_gone: true } }, ctx.at, {
+      rows: subs.sql,
+      args: subs.args,
+      set: "'$.number', x.number, '$.title', x.title, '$.link', x.link, '$.author', x.author",
+    }),
   ]
 }
 

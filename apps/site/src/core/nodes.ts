@@ -7,7 +7,7 @@
 // While a lobby, the author may re-pitch it: a new title and pitch, the old ones kept in node_edit (repitch).
 // "In review" is a flag on live, not a state. Branches are live at once; shwarms and variants open as lobbies.
 import { ShwarmError } from '@shwarm/protocol'
-import { authorize, humanName, needHuman, needStepUp, type Actor } from './actor'
+import { authorize, needHuman, needStepUp, type Actor } from './actor'
 import { auditStatement, nodeHref } from './audit'
 import { parseCheckSpec } from './checks'
 import { findNode, loadNode, loadPerson, MAX_PATH, moderatedStatement, noticeMailStatement, notifyStatement, postStatement, signOffDoneStatement, signOffReopenStatement, touchNode, type Ctx, type NodeKind, type NodeRow } from './context'
@@ -451,8 +451,10 @@ export async function reopen(ctx: Ctx, a: Actor, inp: { node: string }): Promise
     ctx.db.prepare("UPDATE node SET state = 'live', dead_end_note = NULL, closed_at = NULL WHERE id = ?").bind(n.id),
     ...(n.closed_at ? [signOffReopenStatement(ctx, n.id, n.closed_at)] : []),
     e.stmt,
-    notifyStatement(ctx, n.id, `${n.title} reopened. ${humanName(a)} picked it back up.`, 'involved'),
-    noticeMailStatement(ctx, n.id, 'involved', { template: 'node_news', payload: { notice: 'pass_fail', event: 'reopened', title: n.title, path: n.path, link: nodeHref(n.path), by: humanName(a) } }),
+    // No handle in the stored words: an item stays as written, and the author may close their account later (read/names.ts).
+    // OPEN (#86): "its author picked it back up." waits on Myra's yes.
+    notifyStatement(ctx, n.id, `${n.title} reopened. its author picked it back up.`, 'involved'),
+    noticeMailStatement(ctx, n.id, 'involved', { template: 'node_news', payload: { notice: 'pass_fail', event: 'reopened', title: n.title, path: n.path, link: nodeHref(n.path) } }),
     touchNode(ctx, n.id, e.id),
   ])
   return { node: n.path, state: 'live' }

@@ -6,13 +6,14 @@
 //     mail rows that hold the address go, and its keys are revoked (with the networks they were used from).
 //   * a seat in someone else's lobby is given up, so the lobby doesn't kick off on it. Seats after kickoff stay.
 //   * a sign-off waiting on them as an author goes to the operator (the author-gone rule, core/context.ts
-//     signOffStatements): every active admin gets the item and the mail, as for a sign-off asked for after they left.
-//   * one last mail goes to the address, so a closing they didn't make doesn't pass unseen.
+//     operatorSignOffStatements): every active admin gets the item and the mail, as for a sign-off asked for after they left.
+//   * one last mail goes to the address, so a closing they didn't make doesn't pass unseen. Its row lets go of the
+//     address once it's sent (jobs/mail.ts).
 // The work stays: shwarms, branches, posts, submissions, checks, upvotes and the audit log, with the handle detached:
 // every page shows its names as "former member" (read/names.ts). Their shwarms follow the author-gone rule.
 // OPEN (#86): what goes and what stays is a builder's default; so is keeping the beta allow-list row (Myra's record of
 // who she invited) and the address's suppression row (it keeps a complaint from being mailed again).
-import { ctxAt, moderatedStatement, signOffStatements, touchNode } from '../core/context'
+import { ctxAt, moderatedStatement, operatorSignOffStatements, touchNode } from '../core/context'
 import { emailNorm } from '../email/norm'
 import { mailStatement } from '../email/outbox'
 
@@ -23,23 +24,13 @@ export async function closeAccount(db: D1Database, personId: number, nowMs = Dat
   const ctx = ctxAt(db, nowMs)
   const p = await db.prepare("SELECT id, handle, email FROM person WHERE id = ? AND status = 'active'").bind(personId).first<{ id: number; handle: string; email: string }>()
   if (!p) return null
-  const [{ results: waiting }, { results: lobbies }] = await Promise.all([
-    db
-      .prepare(
-        `SELECT i.post_id, s.number, n.id, n.path, n.title FROM inbox_item i
-         JOIN submission s ON s.post_id = i.post_id JOIN node n ON n.id = s.node_id
-         WHERE i.person_id = ?1 AND i.kind = 'sign_off' AND i.done_at IS NULL AND n.author_id = ?1 AND s.status = 'in_review'`,
-      )
-      .bind(p.id)
-      .all<{ post_id: string; number: number; id: number; path: string; title: string }>(),
-    db
-      .prepare(
-        `SELECT s.node_id FROM seat s JOIN node n ON n.id = s.node_id
-         WHERE s.person_id = ?1 AND s.left_at IS NULL AND n.state = 'lobby' AND n.author_id <> ?1`,
-      )
-      .bind(p.id)
-      .all<{ node_id: number }>(),
-  ])
+  const { results: lobbies } = await db
+    .prepare(
+      `SELECT s.node_id FROM seat s JOIN node n ON n.id = s.node_id
+       WHERE s.person_id = ?1 AND s.left_at IS NULL AND n.state = 'lobby' AND n.author_id <> ?1`,
+    )
+    .bind(p.id)
+    .all<{ node_id: number }>()
   const norm = emailNorm(p.email)
   const stmts: D1PreparedStatement[] = [
     // Two closings at once (a double submit from two tabs): the second one's insert hits the first one's row, and its
@@ -54,8 +45,18 @@ export async function closeAccount(db: D1Database, personId: number, nowMs = Dat
          WHERE id = ?2 AND status = 'active'`,
       )
       .bind(ctx.at, p.id),
-    ...waiting.flatMap(w =>
-      signOffStatements(ctx, { id: w.id, path: w.path, title: w.title, author_id: p.id, author_handle: p.handle, author_status: 'closed' }, { postId: w.post_id, number: w.number }, false),
+    // Read in the batch, not before it: a check in the node's tree can make a submission ready for them in between, and
+    // its item has to be here to be handed over (one landing after the batch goes to the admins by itself). The link is
+    // submissionHref, in SQL.
+    ...operatorSignOffStatements(
+      ctx,
+      {
+        sql: `SELECT n.id AS node_id, i.post_id, s.number, n.title, '/w/' || n.path || '/s/' || s.number AS link, ? AS author
+              FROM inbox_item i JOIN submission s ON s.post_id = i.post_id JOIN node n ON n.id = s.node_id
+              WHERE i.person_id = ? AND i.kind = 'sign_off' AND i.done_at IS NULL AND n.author_id = ? AND s.status = 'in_review'`,
+        args: [p.handle, p.id, p.id],
+      },
+      false,
     ),
     db.prepare('DELETE FROM session WHERE person_id = ?').bind(p.id),
     db.prepare('DELETE FROM email_token WHERE person_id = ?').bind(p.id),

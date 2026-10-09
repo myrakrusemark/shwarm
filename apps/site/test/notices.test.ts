@@ -5,7 +5,8 @@
 // goes only while what it's about still shows to its reader.
 import { describe, expect, it } from 'vitest'
 import { digestDue, DIGEST_HOUR_UTC, sweepDigests } from '../src/jobs/digest'
-import { sweepOutbox } from '../src/jobs/mail'
+import { closeAccount } from '../src/auth/close'
+import { sweepOutbox, TRIAGE_RECHECK_MS, TRIAGE_WAIT_MS } from '../src/jobs/mail'
 import { DIGEST_ITEMS, MailRenderError, renderMail } from '../src/email/templates'
 import { readUnsubToken } from '../src/email/unsubscribe'
 import { agent, DAY, HOUR, MIN, person, site, stepped, World, type P } from './core-fixtures'
@@ -87,11 +88,11 @@ describe('the templates (6.3, 4.4)', () => {
     expect(news({ event: 'failed', number: 2 }).subject).toBe('#2 on minecraft in doom failed the author check')
     expect(news({ event: 'failed', number: 2 }).text).toContain('#2 on minecraft in doom failed the author check. every check starts over.')
     expect(news({ event: 'reopened', number: 2 }).text).toContain('minecraft in doom reopened: a repro on #2.')
-    expect(news({ event: 'reopened', by: '@myra' }).text).toContain('minecraft in doom reopened. @myra picked it back up.')
+    expect(news({ event: 'reopened' }).text).toContain('minecraft in doom reopened. its author picked it back up.')
     expect(news({ event: 'passed', number: 2 }).text).toContain('you get this because pass and fail mails are on.')
     expect(() => news({ event: 'exploded' })).toThrow(MailRenderError)
     expect(() => news({ event: 'passed' })).toThrow(MailRenderError)
-    for (const m of [k, news({ event: 'passed', number: 2 }), news({ event: 'reopened', by: '@myra' })]) {
+    for (const m of [k, news({ event: 'passed', number: 2 }), news({ event: 'reopened' })]) {
       expect(lower(m.text)).toBe(lower(m.text).toLowerCase())
       expect(m.text + m.html).not.toMatch(/[—–]/)
     }
@@ -158,10 +159,59 @@ describe('mentions (6.3)', () => {
     w.tick(MIN)
     expect(await sweep(w)).toMatchObject({ sent: 0, skipped: 1 })
     await w.post(site(ana), path, '@bob three')
-    w.db.raw.prepare("UPDATE node SET triage = 'held' WHERE path = ?").run(path)
+    w.db.raw.prepare("UPDATE node SET triage = 'blocked' WHERE path = ?").run(path)
     w.tick(MIN)
     expect(await sweep(w)).toMatchObject({ sent: 0, skipped: 1 })
     expect(outbox(w, 'mention').slice(1).map(m => m.last_error)).toEqual(['skipped: its post is gone', "skipped: its node doesn't show to them"])
+  })
+
+  it('names a mentioner whose account closed before it went as a former member', async () => {
+    const { w, ana, bob, myra, path } = await live()
+    prefs(w, bob, { inbox_every: 'now' })
+    await w.post(agent(ana), path, '@bob from the agent')
+    await w.post(site(ana), path, '@bob from ana')
+    await closeAccount(w.db, ana.id, w.now)
+    // and an author-gone sign-off mail, written while the author was only suspended, goes out after they closed
+    const ops = await person(w.db, 'ops')
+    w.db.raw.prepare('UPDATE person SET is_admin = 1 WHERE id = ?').run(ops.id)
+    w.db.raw.prepare("UPDATE person SET status = 'suspended' WHERE id = ?").run(myra.id)
+    await w.submit(site(bob), path)
+    w.db.raw.prepare("UPDATE person SET status = 'active' WHERE id = ?").run(myra.id)
+    await closeAccount(w.db, myra.id, w.now)
+    w.tick(MIN)
+    const notices = (await sweep(w)).mails.filter(m => m.subject !== 'your shwarm account is closed')
+    expect(notices.map(m => m.subject)).toEqual(['former member mentioned you on minecraft in doom', 'former member mentioned you on minecraft in doom', '#1 on minecraft in doom is ready for sign-off'])
+    const text = notices.map(m => m.text).join('\n')
+    expect(text).toContain("but its author's account is suspended or closed.")
+    expect(text).not.toMatch(/@ana|@myra/)
+  })
+
+  it('waits while its node is still being checked, and goes once triage clears it', async () => {
+    const w = new World()
+    const ana = await person(w.db, 'ana')
+    const bob = await person(w.db, 'bob')
+    prefs(w, bob, { inbox_every: 'now' })
+    const { path } = await w.shwarm(site(ana), { lobby: 1 }) // 'pending': only ana sees it
+    await w.post(site(ana), path, '@bob look at this')
+    w.tick(MIN)
+    expect(await sweep(w)).toMatchObject({ sent: 0, skipped: 0, retrying: 1 })
+    const [row] = w.all("SELECT attempts, sent_at, send_after, last_error FROM email_outbox WHERE template = 'mention'")
+    expect(row).toMatchObject({ attempts: 0, sent_at: null, last_error: 'waiting: its node is still being checked', send_after: new Date(w.now + TRIAGE_RECHECK_MS).toISOString() })
+    w.db.raw.prepare("UPDATE node SET triage = 'held' WHERE path = ?").run(path) // held for Myra: still not gone
+    w.tick(TRIAGE_RECHECK_MS)
+    expect(await sweep(w)).toMatchObject({ sent: 0, skipped: 0, retrying: 1 })
+    clear(w, path)
+    w.tick(TRIAGE_RECHECK_MS)
+    const r = await sweep(w)
+    expect(r).toMatchObject({ sent: 1, skipped: 0 })
+    expect(r.mails[0]).toMatchObject({ to: ['bob@example.org'], subject: '@ana mentioned you on minecraft in doom' })
+
+    // one that waits past TRIAGE_WAIT_MS is skipped
+    w.db.raw.prepare("UPDATE node SET triage = 'held' WHERE path = ?").run(path)
+    await w.post(site(ana), path, '@bob again')
+    w.tick(TRIAGE_WAIT_MS)
+    expect(await sweep(w)).toMatchObject({ sent: 0, skipped: 1 })
+    expect(outbox(w, 'mention')[1].last_error).toBe("skipped: its node doesn't show to them")
   })
 })
 
@@ -277,7 +327,9 @@ describe('kickoff (4.4) and passes, fails and reopenings (6.3)', () => {
     // the author's dead end and reopen
     await w.deadEnd(myra, path)
     await w.reopen(myra, path)
-    expect(outbox(w, 'node_news').slice(6).map(r => [r.payload.event, r.payload.by])).toEqual([['reopened', '@myra'], ['reopened', '@myra']])
+    expect(outbox(w, 'node_news').slice(6).map(r => [r.payload.event, r.payload.by])).toEqual([['reopened', undefined], ['reopened', undefined]])
+    // no handle in the stored words, which outlive a closed account
+    expect(w.get("SELECT text FROM inbox_item WHERE kind = 'system' AND person_id = ? ORDER BY id DESC", bob.id).text).toBe('minecraft in doom reopened. its author picked it back up.')
     const r = await sweep(w)
     expect(r.mails.filter(m => m.to[0] === 'bob@example.org').map(m => m.subject)).toEqual([
       '#2 on minecraft in doom failed the author check', 'minecraft in doom passed', 'minecraft in doom reopened', 'minecraft in doom reopened',

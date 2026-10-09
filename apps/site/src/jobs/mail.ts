@@ -16,12 +16,17 @@ import { ResendError, sendViaResend } from '../email/resend'
 import { MailRenderError, renderMail } from '../email/templates'
 import { noticeOn, parsePrefs } from '../email/notices'
 import { NOTICE_TYPE, noticeLabel, unsubToken, unsubUrl } from '../email/unsubscribe'
-import { SEEN_NODE } from '../read/visibility'
+import { FORMER } from '../read/names'
+import { SEEN_NODE, UNBLOCKED_NODE } from '../read/visibility'
 
 export const RETRY_MINUTES = [1, 5, 30, 120] // waits after attempts 1–4; attempt 5 failing gives up
 export const MAX_ATTEMPTS = RETRY_MINUTES.length + 1
 export const CLAIM_LEASE_MS = 5 * 60_000 // a row claimed by a sweep that dies goes again after this
 export const BATCH = 20 // rows per sweep; each send is one subrequest
+// A notice about a node still waiting on triage waits too, looked at again this often, for this long after it was written.
+// OPEN (#85): how long a notice waits for its node.
+export const TRIAGE_RECHECK_MS = 10 * 60_000
+export const TRIAGE_WAIT_MS = 3 * 86_400_000
 
 // Account mail caps (table B): at most 3 an hour and 10 a day to one address, across these templates. The link to a
 // new address in an email change counts too (go-live 6.2, OPEN #84), so the account modal can't be used to fill a
@@ -55,6 +60,11 @@ export type SweepResult = { sent: number; skipped: number; retrying: number; fai
 
 const iso = (ms: number) => new Date(ms).toISOString()
 
+// Set with sent_at. The closing mail (auth/close.ts) is the one row written to an address the site has just deleted:
+// once it's finished, sent or not, the address and the account go from it too.
+const FORGET_CLOSED = `to_email = CASE WHEN template = 'account_closed' THEN '' ELSE to_email END,
+  person_id = CASE WHEN template = 'account_closed' THEN NULL ELSE person_id END`
+
 function parseObject(s: string | null | undefined): Record<string, unknown> {
   try {
     const v = JSON.parse(s ?? '{}')
@@ -73,7 +83,7 @@ export async function sweepOutbox(env: MailEnv, opts: { now?: number; fetch?: ty
   }
   // A row claimed for its last attempt by a sweep that died can't be claimed again, so close it here.
   await env.DB.prepare(
-    `UPDATE email_outbox SET sent_at = ?1, last_error = 'failed: the last attempt never finished'
+    `UPDATE email_outbox SET sent_at = ?1, last_error = 'failed: the last attempt never finished', ${FORGET_CLOSED}
      WHERE sent_at IS NULL AND send_after <= ?1 AND attempts >= ?2`,
   )
     .bind(iso(now), MAX_ATTEMPTS)
@@ -102,7 +112,7 @@ export async function sweepOutbox(env: MailEnv, opts: { now?: number; fetch?: ty
 }
 
 async function finish(db: D1Database, id: number, now: number, lastError: string) {
-  await db.prepare('UPDATE email_outbox SET sent_at = ?, last_error = ? WHERE id = ?').bind(iso(now), lastError.slice(0, 500), id).run()
+  await db.prepare(`UPDATE email_outbox SET sent_at = ?, last_error = ?, ${FORGET_CLOSED} WHERE id = ?`).bind(iso(now), lastError.slice(0, 500), id).run()
 }
 
 /** Puts a row back until `until` without using up its attempt (a rate or quota limit isn't the row's fault). */
@@ -129,6 +139,10 @@ async function sendOne(env: MailEnv, row: Row, now: number, f: typeof fetch, out
   try {
     const payload = parseObject(row.payload)
     const why = await skipReason(env, row, payload, now)
+    if (typeof why === 'object' && why) {
+      await hold(db, row, now + TRIAGE_RECHECK_MS, `waiting: ${why.wait}`, out)
+      return null
+    }
     if (why) {
       await finish(db, row.id, now, `skipped: ${why}`)
       out.skipped++
@@ -147,12 +161,13 @@ async function sendOne(env: MailEnv, row: Row, now: number, f: typeof fetch, out
       unsubscribe = { url, label: noticeLabel(type) }
       headers = { 'List-Unsubscribe': `<${url}>, <mailto:${REPLY_TO}?subject=unsubscribe>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' }
     }
-    const mail = renderMail(row.template, payload, { siteUrl: env.SITE_URL, stream: row.stream as MailStream, unsubscribe })
+    const shown = row.stream === 'notices' ? await namesNow(db, payload) : payload
+    const mail = renderMail(row.template, shown, { siteUrl: env.SITE_URL, stream: row.stream as MailStream, unsubscribe })
     // Row ids start again at 1 when a database is made again, so the key carries created_at too.
     const key = `outbox-${env.ENV || 'dev'}-${row.id}-${row.created_at.replace(/\D/g, '')}`
     const providerId = await sendViaResend(env.RESEND_API_KEY!, { to: row.to_email, ...mail, headers }, key, f)
     const done = [
-      db.prepare('UPDATE email_outbox SET sent_at = ?, provider_id = ?, last_error = NULL WHERE id = ?').bind(iso(now), providerId, row.id),
+      db.prepare(`UPDATE email_outbox SET sent_at = ?, provider_id = ?, last_error = NULL, ${FORGET_CLOSED} WHERE id = ?`).bind(iso(now), providerId, row.id),
       db
         .prepare('INSERT INTO site_stats_daily (day, emails_sent) VALUES (?, 1) ON CONFLICT (day) DO UPDATE SET emails_sent = emails_sent + 1')
         .bind(iso(now).slice(0, 10)),
@@ -188,14 +203,53 @@ async function sendOne(env: MailEnv, row: Row, now: number, f: typeof fetch, out
 }
 
 /**
+ * The names in a notice as the pages show them when it goes (read/names.ts): one under a handle whose account closed
+ * after the row was written reads "former member". payload.by and the digest's items[].by are stored names ('@ana',
+ * '@ana/m-04'); payload.author is the bare handle of an author-gone sign-off, which the template words as "its author"
+ * once it isn't a handle. A closing between two attempts changes the body, so Resend refuses the retry and the row fails.
+ */
+async function namesNow(db: D1Database, payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const handleOf = (name: unknown) => (typeof name === 'string' && name.startsWith('@') ? name.slice(1).split('/')[0] : null)
+  const items = Array.isArray(payload.items) ? (payload.items as unknown[]).map(parseItem) : null
+  const handles = [...new Set([handleOf(payload.by), typeof payload.author === 'string' ? payload.author : null, ...(items ?? []).map(i => handleOf(i.by))])].filter(
+    (h): h is string => !!h,
+  )
+  if (!handles.length) return payload
+  const { results } = await db
+    .prepare(`SELECT handle FROM person WHERE status = 'closed' AND handle IN (${handles.map(() => '?').join(', ')})`)
+    .bind(...handles)
+    .all<{ handle: string }>()
+  if (!results.length) return payload
+  const closed = new Set(results.map(r => r.handle))
+  const shown = (name: unknown) => (closed.has(handleOf(name) ?? '') ? FORMER : name)
+  return {
+    ...payload,
+    ...('by' in payload ? { by: shown(payload.by) } : {}),
+    ...(typeof payload.author === 'string' && closed.has(payload.author) ? { author: FORMER } : {}),
+    ...(items ? { items: items.map(i => ({ ...i, by: shown(i.by) })) } : {}),
+  }
+}
+
+const parseItem = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {})
+
+/** Not yet: put the row back for a while, without using up an attempt. */
+type Wait = { wait: string }
+
+/**
  * A notice about a node or a post (go-live 6.3) goes only while it still shows to its reader, as their inbox decides
  * (read/inbox.ts): the node (payload.path) open to them, and the post (payload.post) not hidden or deleted. A mail
  * written as the act happened can wait a minute for the sweep, and a takedown or a delete may land meanwhile.
+ * A node still waiting on triage (a mention in a new shwarm, say) isn't gone: its inbox item shows once triage clears
+ * it, so the mail waits for that too, up to TRIAGE_WAIT_MS after it was written.
  */
-async function goneFrom(db: D1Database, personId: number, payload: Record<string, unknown>): Promise<string | null> {
+async function goneFrom(db: D1Database, personId: number, createdAt: string, payload: Record<string, unknown>, now: number): Promise<string | Wait | null> {
   if (typeof payload.path === 'string') {
-    const seen = await db.prepare(`SELECT 1 AS ok FROM node n WHERE n.path = ?1 AND ${SEEN_NODE('n', '?2')}`).bind(payload.path, personId).first()
-    if (!seen) return "its node doesn't show to them"
+    const seen = await db
+      .prepare(`SELECT ${SEEN_NODE('n', '?2')} AS seen, ${UNBLOCKED_NODE('n')} AS unblocked FROM node n WHERE n.path = ?1`)
+      .bind(payload.path, personId)
+      .first<{ seen: number; unblocked: number }>()
+    if (seen && !seen.seen && seen.unblocked && now - Date.parse(createdAt) < TRIAGE_WAIT_MS) return { wait: 'its node is still being checked' }
+    if (!seen?.seen) return "its node doesn't show to them"
   }
   if (typeof payload.post === 'string') {
     const post = await db.prepare('SELECT 1 AS ok FROM post WHERE id = ? AND hidden = 0 AND deleted_at IS NULL').bind(payload.post).first()
@@ -204,8 +258,8 @@ async function goneFrom(db: D1Database, personId: number, payload: Record<string
   return null
 }
 
-/** Why this row must not go, or null if it may. */
-async function skipReason(env: MailEnv, row: Row, payload: Record<string, unknown>, now: number): Promise<string | null> {
+/** Why this row must not go, or that it must wait, or null if it may go now. */
+async function skipReason(env: MailEnv, row: Row, payload: Record<string, unknown>, now: number): Promise<string | Wait | null> {
   const db = env.DB
   const [plain, norm] = emailKeys(row.to_email)
   // Staging and local dev only mail invited addresses.
@@ -225,7 +279,7 @@ async function skipReason(env: MailEnv, row: Row, payload: Record<string, unknow
     const p = await db.prepare('SELECT status, notice_prefs FROM person WHERE id = ?').bind(row.person_id).first<{ status: string; notice_prefs: string }>()
     if (!p || p.status !== 'active') return 'account is not active'
     if (!noticeOn(parsePrefs(p.notice_prefs), type)) return `turned off ${type} notices`
-    const gone = await goneFrom(db, row.person_id, payload)
+    const gone = await goneFrom(db, row.person_id, row.created_at, payload, now)
     if (gone) return gone
   }
   // Checked here and counted on send. Sweeps run one a minute and finish in seconds, so overlap (which could let

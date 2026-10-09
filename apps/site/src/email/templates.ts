@@ -222,7 +222,7 @@ function nodeNews(p: Record<string, unknown>, site: string): Draft {
     return { subject: `#${n} on ${title} failed the author check`, blocks: [hi(p), `#${n} on ${title} failed the author check. every check starts over.`, 'see why:', link] }
   }
   if (p.event === 'reopened') {
-    const why = n !== null ? `${title} reopened: a repro on #${n}.` : `${title} reopened. ${nameOf(p.by)} picked it back up.`
+    const why = n !== null ? `${title} reopened: a repro on #${n}.` : `${title} reopened. its author picked it back up.`
     return { subject: `${title} reopened`, blocks: [hi(p), why, link] }
   }
   throw new MailRenderError('bad event')
