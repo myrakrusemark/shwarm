@@ -2,12 +2,14 @@
 """Claude's side of the decision threads on the go-live tracker.
 
   python3 tracker/claude-reply.py A4 "text"   append Claude's answer to decision A4 (or B)
+  python3 tracker/claude-reply.py p:<slug> "text"   answer on a launch shwarm's proofreading card (proof.html)
   python3 tracker/claude-reply.py --watch     print one line per new reply from Myra (for a Monitor)
 """
 import json, sys, time, os, datetime
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPLIES = os.path.join(HERE, 'replies.json')
 SEEN = os.path.join(HERE, '.replies-seen.json')
+PROOF = os.path.join(HERE, 'proof.json')
 
 def load(p, d):
     try:
@@ -23,7 +25,8 @@ if len(sys.argv) > 1 and sys.argv[1] == '--watch':
     seen = set(load(SEEN, []))
     while True:
         new = []
-        for k, msgs in load(REPLIES, {}).items():
+        threads = list(load(REPLIES, {}).items()) + [('p:' + k, v) for k, v in load(PROOF, {}).items()]
+        for k, msgs in threads:
             for m in msgs:
                 key = f"{k}|{m.get('at')}"
                 if m.get('from', 'myra') != 'claude' and key not in seen:
@@ -36,8 +39,10 @@ if len(sys.argv) > 1 and sys.argv[1] == '--watch':
 else:
     if len(sys.argv) != 3: sys.exit(__doc__)
     k, text = sys.argv[1], sys.argv[2]
-    allr = load(REPLIES, {})
+    target = PROOF if k.startswith('p:') else REPLIES
+    if k.startswith('p:'): k = k[2:]
+    allr = load(target, {})
     allr.setdefault(k, []).append({'from': 'claude', 'choice': 'answer', 'text': text,
                                    'at': datetime.datetime.now(datetime.timezone.utc).isoformat()})
-    save(REPLIES, allr)
+    save(target, allr)
     print('ok')

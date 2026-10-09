@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/png" href="/mark.png">
+<title>proofread · shwarm</title>
+<style>
+  :root {
+    --paper: #f3eedb;
+    --paper-2: #e9e2c6;
+    --ink: #13261b;
+    --moss: #2f6b3a;
+    --leaf: #5c9a3e;
+    --sun: #f4c531;
+    --clay: #c4572d;
+    --sky: #1d4ed8;
+    --rule: 1.5px solid var(--ink);
+    --rule-heavy: 3px solid var(--ink);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--paper); color: var(--ink); }
+  body {
+    font: 14px/1.55 ui-monospace, "JetBrains Mono", "IBM Plex Mono", Menlo, Consolas, monospace;
+    background-image: radial-gradient(circle at 1px 1px, rgba(19,38,27,.10) 1px, transparent 0);
+    background-size: 14px 14px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 22px 16px 80px; }
+  a { color: var(--sky); overflow-wrap: anywhere; }
+
+  header { border: var(--rule-heavy); background: var(--paper); display: flex; align-items: center; gap: 14px; padding: 12px 16px; }
+  header .mark { width: 40px; height: 40px; background: var(--ink); -webkit-mask: url(/mark.png) center/contain no-repeat; mask: url(/mark.png) center/contain no-repeat; flex: 0 0 auto; }
+  header h1 { font: 900 28px/1 "Arial Black", Arial, sans-serif; margin: 0; letter-spacing: -1px; }
+  header h1 span { color: var(--moss); }
+  header .sub { font-size: 12.5px; opacity: .8; }
+  header nav { margin-left: auto; font-size: 12.5px; }
+  .strip { background: var(--ink); color: #fff; padding: 8px 16px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; }
+  .strip b { color: var(--sun); }
+  .bar { flex: 1 1 220px; height: 12px; border: 1.5px solid var(--paper); position: relative; min-width: 140px; display: flex; }
+  .bar > i { height: 100%; }
+  .bar .ok { background: var(--leaf); }
+  .bar .ch { background: var(--clay); }
+  .bar .q { background: var(--sun); }
+
+  .how { border: var(--rule); background: var(--paper); padding: 10px 14px; margin: 16px 0; font-size: 13px; }
+  .how p { margin: 0 0 6px; }
+  .how p:last-child { margin: 0; }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; font-size: 12.5px; align-items: center; position: sticky; top: 0; background: var(--paper); padding: 8px 0; z-index: 2; border-bottom: 1px dashed rgba(19,38,27,.3); }
+  .filters button { font: inherit; border: var(--rule); background: var(--paper); padding: 2px 9px; cursor: pointer; }
+  .filters button.on { background: var(--ink); color: #fff; }
+  .filters input { font: inherit; border: var(--rule); background: #fffdf3; padding: 2px 8px; flex: 1 1 180px; min-width: 0; }
+  .filters .sep { width: 10px; }
+
+  .card { border: var(--rule); background: var(--paper); margin-bottom: 22px; box-shadow: 4px 4px 0 var(--ink); }
+  .card.approve { box-shadow: 4px 4px 0 var(--leaf); }
+  .card > .head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; padding: 8px 12px; background: var(--paper-2); border-bottom: var(--rule); }
+  .card .num { font-weight: 700; opacity: .6; }
+  .card h2 { margin: 0; font: 900 19px/1.2 "Arial Black", Arial, sans-serif; letter-spacing: -.5px; flex: 1 1 auto; }
+  .card .meta { font-size: 12px; opacity: .8; }
+  .pill { font-size: 11.5px; border: 1.5px solid var(--ink); padding: 0 6px; white-space: nowrap; }
+  .pill.approve { background: var(--leaf); color: #fff; border-color: var(--leaf); }
+  .pill.change { background: var(--clay); color: #fff; border-color: var(--clay); }
+  .pill.question { background: var(--sun); }
+  .pill.answered { background: var(--sky); color: #fff; border-color: var(--sky); }
+  .card .body { padding: 10px 14px 4px; }
+  .sec { margin: 0 0 12px; }
+  .sec h3 { margin: 0 0 3px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 1px; opacity: .7; }
+  .sec p { margin: 0; }
+  .done { border-left: 4px solid var(--moss); padding: 4px 10px; background: rgba(47,107,58,.08); }
+  .tags { font-size: 12px; color: var(--moss); }
+  mark { background: rgba(244,197,49,.55); color: inherit; padding: 0 1px; }
+  .checks { display: grid; grid-template-columns: 70px 1fr; gap: 3px 10px; font-size: 13px; }
+  .checks .k { font-weight: 700; }
+  .checks code { background: var(--paper-2); padding: 0 3px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .claims { margin: 0; padding-left: 18px; font-size: 13px; }
+  .claims li { margin: 2px 0; }
+  .sources { margin: 0; padding-left: 18px; font-size: 13px; }
+  .risk { font-size: 12.5px; opacity: .85; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
+
+  .thread { border-top: var(--rule); padding: 8px 14px 12px; background: rgba(233,226,198,.5); }
+  .said { font-size: 13px; margin: 4px 0; padding: 4px 8px; border-left: 3px solid var(--ink); background: var(--paper); }
+  .said.claude { border-left-color: var(--sky); }
+  .said .by { font-weight: 700; margin-right: 6px; }
+  .said .when { opacity: .6; font-size: 11.5px; }
+  .reply { display: flex; gap: 6px; flex-wrap: wrap; align-items: flex-start; margin-top: 6px; }
+  .reply textarea { font: inherit; flex: 1 1 100%; min-height: 38px; border: var(--rule); background: #fffdf3; padding: 4px 8px; resize: vertical; }
+  .reply button { font: inherit; font-weight: 700; border: var(--rule); padding: 3px 12px; cursor: pointer; background: var(--paper); }
+  .reply button.approve { background: var(--leaf); color: #fff; }
+  .reply button.change { background: var(--clay); color: #fff; }
+  .reply button.question { background: var(--sun); }
+  .reply .hint { font-size: 11.5px; opacity: .7; align-self: center; }
+  .empty { padding: 30px; text-align: center; opacity: .7; }
+
+  @media (max-width: 700px) { .cols { grid-template-columns: 1fr; } .checks { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="mark"></div>
+    <div>
+      <h1>sh<span>w</span>arm proofread</h1>
+      <div class="sub">the 100 launch shwarms · step 11.1 · your verdicts reach claude as you save them</div>
+    </div>
+    <nav><a href="/">← go-live tracker</a></nav>
+  </header>
+  <div class="strip" id="strip"></div>
+
+  <div class="how">
+    <p><b>how this works.</b> read each shwarm as a stranger would. the done test locks the moment it's posted, so this is the last chance to fix it.</p>
+    <p><mark>highlighted</mark> numbers are claims to check against the sources. <b>approve</b> needs no note. <b>change</b> says what to fix. <b>question</b> asks claude. claude makes the fixes in launch-shwarms.json and answers here.</p>
+  </div>
+
+  <div class="filters" id="filters"></div>
+  <div id="list"></div>
+</div>
+
+<script type="module">
+const $ = id => document.getElementById(id)
+// apostrophes stay as-is: text and double-quoted attributes don't need them escaped, and an entity's digits would get highlighted
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+const linkify = s => esc(s).replace(/https?:\/\/[^\s)<]+[^\s)<.,;:]/g, u => `<a href="${u}" target="_blank" rel="noopener">${u.replace(/^https?:\/\//, '')} ↗</a>`)
+// numbers, percentages, years, money and units: the claims to check (links are left alone)
+const marked = s => linkify(s).replace(/(<a [^>]*>.*?<\/a>)|(\$?\d(?:[\d,.]*\d)?(?:\s?(?:%|percent|k\b|million|billion|fps|kb|mb|gb|ms|hours?|days?|weeks?|years?|km|miles?|people|°c))?)/gi, (m, a, n) => a ? a : `<mark>${n}</mark>`)
+const claims = s => (s || '').split(/(?<=[.!?])\s+/).filter(x => /\d/.test(x))
+
+const state = { wave: '1', status: 'all', q: '' }
+let shwarms = [], proof = {}
+
+const last = slug => (proof[slug] || []).at(-1)
+const verdict = slug => [...(proof[slug] || [])].reverse().find(m => m.from !== 'claude')?.choice || null
+function statusOf(slug) {
+  const l = last(slug)
+  if (!l) return 'waiting'
+  if (l.from === 'claude') return verdict(slug) === 'approve' ? 'approve' : 'answered'
+  return l.choice
+}
+
+async function load() {
+  const [a, b] = await Promise.all([fetch('/launch.json', { cache: 'no-store' }), fetch('/api/proof', { cache: 'no-store' })])
+  shwarms = await a.json()
+  proof = await b.json()
+  render()
+}
+
+function render() {
+  const inWave = shwarms.filter(s => state.wave === 'all' || String(s.wave) === state.wave)
+  const count = k => inWave.filter(s => statusOf(s.slug) === k).length
+  const ok = count('approve'), ch = count('change'), q = count('question') + count('answered'), n = inWave.length
+  $('strip').innerHTML = `<span>${state.wave === 'all' ? 'all waves' : 'wave ' + state.wave}: <b>${ok}</b> approved · <b>${ch}</b> to change · <b>${q}</b> questions · <b>${n - ok - ch - q}</b> waiting</span>
+    <span class="bar"><i class="ok" style="width:${100 * ok / n}%"></i><i class="ch" style="width:${100 * ch / n}%"></i><i class="q" style="width:${100 * q / n}%"></i></span>`
+
+  const btn = (key, val, label) => `<button data-k="${key}" data-v="${val}" class="${state[key] === val ? 'on' : ''}">${label}</button>`
+  const qEl = $('q'), hadFocus = document.activeElement === qEl, caret = qEl?.selectionStart
+  $('filters').innerHTML = btn('wave', '1', 'wave 1 (20)') + btn('wave', '2', 'wave 2') + btn('wave', '3', 'wave 3') + btn('wave', 'all', 'all') + '<span class="sep"></span>' +
+    btn('status', 'all', 'any') + btn('status', 'waiting', 'waiting') + btn('status', 'change', 'to change') + btn('status', 'approve', 'approved') +
+    `<input id="q" placeholder="search title, tags, text" value="${esc(state.q)}">`
+  if (hadFocus) { $('q').focus(); $('q').setSelectionRange(caret, caret) }
+
+  const q2 = state.q.toLowerCase()
+  const shown = inWave.filter(s => state.status === 'all' || statusOf(s.slug) === state.status || (state.status === 'change' && ['question', 'answered'].includes(statusOf(s.slug))))
+    .filter(s => !q2 || JSON.stringify(s).toLowerCase().includes(q2))
+
+  $('list').innerHTML = shown.length ? shown.map(card).join('') : '<div class="empty">nothing here.</div>'
+}
+
+function card(s) {
+  const i = shwarms.indexOf(s) + 1
+  const st = statusOf(s.slug)
+  const c = s.checked_by || {}
+  const runs = c.runs ? `<span class="k">runs</span><span>${c.runs.count ?? 2} · <code>${esc(c.runs.command)}</code></span>` : ''
+  const people = c.people ? `<span class="k">people</span><span>${c.people.count}${c.people.human ? ', at least one human' : ''} · ${esc(c.people.instructions || '')}</span>` : ''
+  const author = `<span class="k">author</span><span>${c.author ? 'signs off last' : 'no'}</span>`
+  const allClaims = [...claims(s.what), ...claims(s.why_now), ...claims(s.done_when)]
+  const thread = (proof[s.slug] || []).map(m => `<div class="said ${m.from === 'claude' ? 'claude' : ''}"><span class="by">${m.from === 'claude' ? 'claude' : 'myra · ' + m.choice}</span>${esc(m.text || '')} <span class="when">· ${new Date(m.at).toLocaleString()}</span></div>`).join('')
+  return `<article class="card ${st}" id="${esc(s.slug)}">
+    <div class="head"><span class="num">#${i}</span><h2>${esc(s.title)}</h2>
+      <span class="meta">wave ${s.wave} · ${esc(s.category)} · ${esc(s.size || '')} · lobby ${s.lobby}</span>
+      <span class="pill ${st}">${st === 'answered' ? 'claude answered' : st}</span></div>
+    <div class="body">
+      <div class="sec tags">${(s.tags || []).map(esc).join(' ')}</div>
+      <div class="sec"><h3>what</h3><p>${marked(s.what)}</p></div>
+      <div class="sec"><h3>why now</h3><p>${marked(s.why_now)}</p></div>
+      <div class="sec done"><h3>done when</h3><p>${marked(s.done_when)}</p></div>
+      <div class="sec"><h3>checked by</h3><div class="checks">${runs}${people}${author}</div></div>
+      <div class="cols">
+        <div class="sec"><h3>claims to check (${allClaims.length})</h3>${allClaims.length ? `<ul class="claims">${allClaims.map(x => `<li>${marked(x)}</li>`).join('')}</ul>` : '<p>none with numbers.</p>'}</div>
+        <div class="sec"><h3>sources</h3><ul class="sources">${(s.sources || []).map(u => `<li>${linkify(u)}</li>`).join('') || '<li>none</li>'}</ul></div>
+      </div>
+      ${s.builds_on ? `<div class="sec"><h3>builds on</h3><p>${linkify(s.builds_on)}</p></div>` : ''}
+      ${s.needs_humans ? `<div class="sec"><h3>needs humans</h3><p>${esc(s.needs_humans)}</p></div>` : ''}
+      <div class="sec risk"><h3>risk notes</h3><p>${esc(s.risk_notes || 'none')}</p></div>
+    </div>
+    <div class="thread">${thread}
+      <div class="reply" data-slug="${esc(s.slug)}">
+        <textarea placeholder="what to change, or a question (optional for approve)"></textarea>
+        <button class="approve" data-c="approve">approve</button>
+        <button class="change" data-c="change">change</button>
+        <button class="question" data-c="question">question</button>
+        <span class="hint">slug: ${esc(s.slug)}</span>
+      </div>
+    </div>
+  </article>`
+}
+
+document.addEventListener('click', async e => {
+  const f = e.target.closest('.filters button')
+  if (f) { state[f.dataset.k] = f.dataset.v; render(); window.scrollTo({ top: 0 }); return }
+  const b = e.target.closest('.reply button')
+  if (!b) return
+  const box = b.closest('.reply'), text = box.querySelector('textarea').value.trim()
+  if (b.dataset.c !== 'approve' && !text) { box.querySelector('textarea').focus(); box.querySelector('textarea').placeholder = 'say what to change or ask first'; return }
+  b.disabled = true
+  const r = await fetch('/api/proof', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: box.dataset.slug, choice: b.dataset.c, text }) })
+  if (!r.ok) { b.disabled = false; alert('not saved: ' + await r.text()); return }
+  await load()
+})
+document.addEventListener('input', e => { if (e.target.id === 'q') { state.q = e.target.value; render() } })
+
+load()
+if (import.meta.hot) import.meta.hot.on('plan-changed', () => {
+  // keep anything typed in an open reply box
+  const drafts = [...document.querySelectorAll('.reply')].map(r => [r.dataset.slug, r.querySelector('textarea').value])
+  load().then(() => drafts.forEach(([slug, v]) => { const t = document.querySelector(`.reply[data-slug="${CSS.escape(slug)}"] textarea`); if (t && v) t.value = v }))
+})
+</script>
+</body>
+</html>

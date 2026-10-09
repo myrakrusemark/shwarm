@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url'
 const here = path.dirname(fileURLToPath(import.meta.url))
 const PLAN = path.resolve(here, '../docs/go-live.md')
 const REPLIES = path.resolve(here, 'replies.json') // Myra's answers to the decisions; Claude reads this
+const LAUNCH = path.resolve(here, '../docs/launch-shwarms.json')
+const PROOF = path.resolve(here, 'proof.json') // Myra's proofreading verdicts on the launch shwarms (step 11.1)
 const STATUSES = ['todo', 'doing', 'done', 'blocked', 'parked']
 
 function planApi() {
@@ -15,7 +17,37 @@ function planApi() {
     configureServer(server) {
       server.watcher.add(PLAN)
       server.watcher.on('change', f => {
-        if ([PLAN, REPLIES].includes(path.resolve(f))) server.ws.send({ type: 'custom', event: 'plan-changed' })
+        if ([PLAN, REPLIES, LAUNCH, PROOF].includes(path.resolve(f))) server.ws.send({ type: 'custom', event: 'plan-changed' })
+      })
+      // Proofreading page (proof.html): the launch shwarms, and Myra's verdict on each.
+      server.watcher.add([LAUNCH, PROOF])
+      server.middlewares.use('/launch.json', (req, res) => {
+        res.setHeader('Content-Type', 'application/json')
+        res.setHeader('Cache-Control', 'no-store')
+        res.end(fs.readFileSync(LAUNCH, 'utf8'))
+      })
+      // GET /api/proof → {slug: [{from, choice, text, at}]}; POST {slug, choice, text} appends Myra's verdict.
+      server.middlewares.use('/api/proof', (req, res) => {
+        const read = () => { try { return JSON.parse(fs.readFileSync(PROOF, 'utf8')) } catch { return {} } }
+        res.setHeader('Cache-Control', 'no-store')
+        if (req.method === 'GET') { res.setHeader('Content-Type', 'application/json'); return res.end(JSON.stringify(read())) }
+        if (req.method !== 'POST') { res.statusCode = 405; return res.end() }
+        let body = ''
+        req.on('data', c => (body += c))
+        req.on('end', () => {
+          try {
+            const { slug, choice, text } = JSON.parse(body)
+            const slugs = JSON.parse(fs.readFileSync(LAUNCH, 'utf8')).map(x => x.slug)
+            if (!slugs.includes(slug) || !['approve', 'change', 'question'].includes(choice) || String(text || '').length > 4000) throw new Error('bad input')
+            const all = read()
+            ;(all[slug] ||= []).push({ from: 'myra', choice, text: String(text || '').trim(), at: new Date().toISOString() })
+            fs.writeFileSync(PROOF, JSON.stringify(all, null, 2) + '\n')
+            res.end('ok')
+          } catch (e) {
+            res.statusCode = 400
+            res.end(String(e.message))
+          }
+        })
       })
       server.middlewares.use('/plan.md', (req, res) => {
         res.setHeader('Content-Type', 'text/markdown; charset=utf-8')
