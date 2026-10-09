@@ -10,16 +10,19 @@
     "migrate:staging": "wrangler d1 migrations apply DB --env staging --remote",
     "migrate:production": "wrangler d1 migrations apply DB --env production --remote",
     "test": "vitest run",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "migrate:check": "wrangler d1 migrations apply DB --env staging --local"
   },
   "dependencies": {
-    "hono": "^4",
-    "@shwarm/protocol": "*"
+    "@shwarm/protocol": "*",
+    "hono": "^4"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4",
+    "axe-core": "^4.14.0",
+    "playwright-core": "^1.64.0",
     "typescript": "^5",
-    "wrangler": "^4",
-    "vitest": "^3"
+    "vitest": "^3",
+    "wrangler": "^4"
   }
 }

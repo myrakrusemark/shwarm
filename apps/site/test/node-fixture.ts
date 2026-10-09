@@ -9,7 +9,8 @@ import { addPerson, T0, testDb } from './d1'
 const LIST: any[] = JSON.parse(readFileSync(new URL('../../../docs/launch-shwarms.json', import.meta.url), 'utf8'))
 export const LOBBY = 'bot-beats-freedoom'
 
-export async function stagingWorld(o: { clearBranch?: boolean } = {}) {
+/** `extra`: more launch shwarms (by slug) to seed alongside the two. */
+export async function stagingWorld(o: { clearBranch?: boolean; extra?: string[] } = {}) {
   const db = testDb()
   await addPerson(db, 'early_one')
   const myraId = await addPerson(db, 'myra')
@@ -21,7 +22,7 @@ export async function stagingWorld(o: { clearBranch?: boolean } = {}) {
     handles: [],
     settings: all('SELECT key, value FROM setting'),
   }
-  const plan = await planSeed(testDb(), LIST, state, { target: 'staging', now: T0 - 60_000, example: true, only: ['minecraft-in-doom', LOBBY] })
+  const plan = await planSeed(testDb(), LIST, state, { target: 'staging', now: T0 - 60_000, example: true, only: ['minecraft-in-doom', LOBBY, ...(o.extra ?? [])] })
   if (plan.report.failures) throw new Error('seed plan failed')
   db.raw.exec(plan.sql)
   // The example's branch is made by a demo account, so it waits for triage like any new node; staging clears it by hand.

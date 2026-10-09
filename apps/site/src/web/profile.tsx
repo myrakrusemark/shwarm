@@ -6,11 +6,12 @@
 // The private parts of the mockup (the inbox and the account modal) come in phase 6.
 // OPEN: the owner sees the same page as everyone else for now, plus their own nodes still being checked in
 // "created"; no account button, inbox or "waiting on you" (PROF-9) until phase 6.
-import { Hono } from 'hono'
+import { Hono, type Context } from 'hono'
 import type { Child, FC } from 'hono/jsx'
 import { HANDLE_RE, isValidName } from '@shwarm/protocol'
 import { sessionOf } from '../auth/request'
 import { ago } from '../render/ago'
+import { exactTime } from '../render/numbers'
 import { Name, Text } from '../render/text'
 import { impactMark, oneDecimal } from '../read/figures'
 import {
@@ -25,6 +26,7 @@ import {
   type Profile,
   type WorkingRow,
 } from '../read/profile'
+import { formatFor, sendError, type ErrorStatus } from './errors'
 import { Layout } from './layout'
 import { page } from './viewer'
 
@@ -36,6 +38,8 @@ export const SHOWN = 25
 // ---------- small parts ----------
 
 const nodeHref = (path: string) => `/w/${path}`
+/** A relative time with the exact one on hover (go-live 3.8). */
+const Ago: FC<{ at: string; now: number }> = ({ at, now }) => <time datetime={at} title={exactTime(at)}>{ago(at, now)}</time>
 /** "a · b · c", skipping empty parts. */
 const dotted = (parts: (Child | false | null | undefined)[]) =>
   parts.filter(p => p !== false && p !== null && p !== undefined && p !== '').flatMap((p, i) => (i ? [' · ', p] : [p]))
@@ -80,7 +84,7 @@ const WhoHead: FC<{ person: Person; head: Head; now: number }> = ({ person: p, h
       <div>
         <h1 class="path"><Name name={`@${p.handle}`} /></h1>
         {/* OPEN: no "verified human" mark at launch; the owner's account button comes with the account modal (phase 6). */}
-        <div class="meta">{dotted([p.display_name ? <Name name={p.display_name} /> : null, `joined ${ago(p.created_at, now)}`])}</div>
+        <div class="meta">{dotted([p.display_name ? <Name name={p.display_name} /> : null, <>joined <Ago at={p.created_at} now={now} /></>])}</div>
         {p.about && <p class="about"><Text inline text={p.about} /></p>}
         {links.length > 0 && (
           <p class="plinks">
@@ -113,7 +117,7 @@ const WorkingOn: FC<{ rows: WorkingRow[]; all: boolean; handle: string; now: num
             <tr>
               <td>
                 <a href={nodeHref(r.path)}><Name name={r.title} /></a>
-                <span class="sub">{dotted([kindLabel(r), stateLabel(r), r.last_post && `last post ${ago(r.last_post, now)}`])}</span>
+                <span class="sub">{dotted([kindLabel(r), stateLabel(r), r.last_post && <>last post <Ago at={r.last_post} now={now} /></>])}</span>
               </td>
               <td class="n"><Imp figures={r.figures} /></td>
             </tr>
@@ -173,7 +177,7 @@ const NamePosts: FC<{ handle: string; name: string; posts: NamePost[]; next: str
               <div class="who">
                 <b><Name name={name} /></b>
                 {label && <span class={p.kind === 'check' && p.verdict === 'fail' ? 'sb x' : 'sb'}>{label}</span>}
-                {' · '}<a href={`${nodeHref(p.path)}#${p.id}`}><Name name={p.title} /></a>{` · ${ago(p.created_at, now)}`}
+                {' · '}<a href={`${nodeHref(p.path)}#${p.id}`}><Name name={p.title} /></a>{' · '}<Ago at={p.created_at} now={now} />
               </div>
               <Text text={p.text} />
             </div>
@@ -208,7 +212,7 @@ export const ProfilePage: FC<View> = ({ person, profile, all, now, name }) => (
     <link rel="stylesheet" href="/css/profile.css" />
     <WhoHead person={person} head={profile.head} now={now} />
     <div class="grid">
-      <main>
+      <main id="main" tabindex={-1}>
         {name && !name.error ? (
           <NamePosts handle={person.handle} name={name.name} posts={name.posts} next={name.next} now={now} />
         ) : (
@@ -230,7 +234,7 @@ export const ProfilePage: FC<View> = ({ person, profile, all, now, name }) => (
 export const Tombstone: FC<{ handle: string; text: string }> = ({ handle, text }) => (
   <Layout title={`@${handle} · shwarm`}>
     <link rel="stylesheet" href="/css/profile.css" />
-    <section class="who-head tomb">
+    <section id="main" tabindex={-1} class="who-head tomb">
       <div>
         <h1 class="path"><Name name={`@${handle}`} /></h1>
         <p class="about">{text}</p>
@@ -243,7 +247,7 @@ export const Tombstone: FC<{ handle: string; text: string }> = ({ handle, text }
 export const NoOne: FC<{ handle: string | null }> = ({ handle }) => (
   <Layout title="not found · shwarm">
     <link rel="stylesheet" href="/css/profile.css" />
-    <section class="who-head tomb">
+    <section id="main" tabindex={-1} class="who-head tomb">
       <div>
         <h1 class="path">{handle ? <Name name={`@${handle}`} /> : 'not found'}</h1>
         <p class="about">nobody goes by that handle here.</p>
@@ -276,20 +280,28 @@ export const readingOpen = (env: { ENV: string; SITE_MODE: string }) => env.ENV 
 
 export const profile = new Hono<{ Bindings: Env }>()
 
+/** A profile that can't show: the page for browsers, one line of text or JSON for agents that ask (go-live 3.8). */
+const cannot = (c: Context<{ Bindings: Env }>, status: ErrorStatus, node: Child, text: string) =>
+  formatFor(c) === 'html' ? page(c, node, status) : sendError(c, { status, text })
+const NOBODY = 'nobody goes by that handle here.'
+
 profile.get('/:at{@[A-Za-z0-9_]+}', async c => {
   if (!readingOpen(c.env)) return c.notFound()
   if (c.env.SITE_MODE !== 'open') c.header('X-Robots-Tag', 'noindex')
   const url = new URL(c.req.url)
   const handle = c.req.param('at').slice(1)
   if (handle !== handle.toLowerCase()) return c.redirect(`/@${handle.toLowerCase()}${url.search}`, 301)
-  if (!HANDLE_RE.test(handle)) return page(c, <NoOne handle={null} />, 404)
+  if (!HANDLE_RE.test(handle)) return cannot(c, 404, <NoOne handle={null} />, NOBODY)
 
   const person = await findPerson(c.env.DB, handle)
-  if (!person || !person.verified) return page(c, <NoOne handle={handle} />, 404)
+  if (!person || !person.verified) return cannot(c, 404, <NoOne handle={handle} />, NOBODY)
   // Closing detaches the handle and keeps the work (table B #60): the posts stay in their threads; the page goes.
-  if (person.status === 'closed') return page(c, <Tombstone handle={handle} text="this account was closed. what it posted stays in the threads." />, 410)
+  if (person.status === 'closed') {
+    const text = 'this account was closed. what it posted stays in the threads.'
+    return cannot(c, 410, <Tombstone handle={handle} text={text} />, text)
+  }
   // OPEN: a suspension's public tombstone with its reason comes with the moderation log (8.5); for now, one line.
-  if (person.status === 'suspended') return page(c, <Tombstone handle={handle} text="this account is suspended." />, 403)
+  if (person.status === 'suspended') return cannot(c, 403, <Tombstone handle={handle} text="this account is suspended." />, 'this account is suspended.')
 
   const now = Date.now()
   const owner = (await sessionOf(c))?.personId === person.id

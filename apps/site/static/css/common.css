@@ -19,3 +19,38 @@ pre.log { max-height: 420px; overflow: auto; }
 a.out { overflow-wrap: anywhere; }
 a.out .ext { text-decoration: none; }
 .hid { background: var(--clay); color: var(--paper); padding: 0 2px; font-size: .85em; white-space: nowrap; }
+
+/* ---------- focus (go-live 3.8) ----------
+   every control shows where focus is. :where() keeps these at zero specificity, so a page's own focus style wins;
+   the two buttons below reset everything with `all: unset`, so they get theirs back by name. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+.dn > h2 button:focus-visible, .auth button.link:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+/* skip link: off screen until it has focus */
+.skip { position: absolute; left: 8px; top: -60px; z-index: 50; padding: 6px 10px; background: var(--sun); color: var(--ink); border: var(--rule-heavy); font-weight: 700; }
+.skip:focus { top: 8px; }
+#main:focus { outline: none; }
+
+/* ---------- contrast (go-live 3.8) ----------
+   two of the mockups' pairings fall short of 4.5:1 for small text: paper on leaf in the live pill (2.9:1) and
+   sky links on the sun compose box (4.1:1). the pill goes moss (5.5:1), the links ink (9.8:1).
+   `body` lifts these over the page css (feed.css repeats the pill). */
+body .st.live { background: var(--moss); border-color: var(--moss); }
+body .compose a { color: var(--ink); }
+/* faded lines that hold links: at .75–.85 opacity a sky link drops under 4.5:1; at .92 it stays over */
+body .acts, body .note, body .auth .hint, body .box h2 span, body .branches .sub { opacity: .92; }
+/* error lines: clay on paper is 3.8:1; a fifth of ink brings it to 5:1 with the same hue */
+body .auth .err, body .lookup .err { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); }
+
+/* ---------- narrow screens (go-live 3.8) ----------
+   nothing scrolls sideways at 390 px. the mockups' rules for 640 and 860 px live in site.css and the page css. */
+@media (max-width: 480px) {
+  header { gap: 10px; padding: 10px; flex-wrap: wrap; }
+  .logo { font-size: 32px; letter-spacing: -1.5px; }
+  header .btn { padding: 6px 9px; }
+}
+@media (max-width: 640px) {
+  .head { grid-template-columns: 56px minmax(0, 1fr); }
+  .head > :nth-child(3) { grid-column: 2; }
+  .head > * { min-width: 0; }
+  h1.title { overflow-wrap: anywhere; }
+}

@@ -9,6 +9,7 @@ import { auth } from './auth/routes'
 import { page } from './web/viewer'
 import { nodeRoutes } from './web/node-routes'
 import { profile } from './web/profile'
+import { errorHandler, notFoundHandler } from './web/errors'
 export { ShwarmTree } from './do/shwarm-tree'
 
 type Env = { DB: D1Database; TREE: DurableObjectNamespace; ENV: string; SITE_MODE: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string }
@@ -79,6 +80,10 @@ app.get('/:slug{[a-z0-9-]+}', (c, next) => {
 app.route('/', home)
 
 app.route('/', mailRoutes) // /unsubscribe, /hooks/resend (step 2.6)
+
+// Error pages (step 3.8): anything unmatched is a 404 page, anything thrown a 500 page with nothing from the error.
+app.notFound(notFoundHandler)
+app.onError(errorHandler)
 
 // The runtime calls fetch for requests and scheduled for cron (the outbox sweep, step 2.6).
 export default Object.assign(app, { scheduled })

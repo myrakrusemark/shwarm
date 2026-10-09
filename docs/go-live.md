@@ -479,7 +479,8 @@ Myra starts proofreading wave 1 (11.1) as soon as 3.1 has it on staging. From 3.
 - **who:** Claude · **needs:** 2.3
 - **done when:** tests with fixed fixtures give the expected impact, hot and rank.
 
-**3.8 Error pages, mobile, accessibility**
+**3.8 Error pages, mobile, accessibility** · done
+- *(Oct 9: one error page for 403, 404, 410, 429 (with the wait) and 500 through `page()`, from `app.notFound` and `app.onError` (logged, no internals); text and JSON forms on /w/* and for `Accept: text/plain|application/json`. A node the operator hid answers a 410 tombstone with the public reason. Exact times in titles on every relative time; focus rings, a skip link. The browser suite (`npm run test:e2e` in apps/site; playwright-core with the system or CI Chrome, axe-core, a Node server over the test database) runs 108 checks in about a minute, signed in and out, and is a CI job. Fixing it changed the header under 480px and five low-contrast pairings (design-system.md, layout); Myra to confirm in 3.9. Not yet on staging.)*
 - **what:** 404, 403, 410 tombstone, 429 with the wait, 500; layouts at 640 and 860 px with no sideways scroll; focus handling and exact times in title attributes; axe-core in the Playwright suite on every page, signed in and out.
 - **who:** Claude · **needs:** 3.2–3.5
 - **done when:** at 390 px every page has `scrollWidth <= innerWidth`, axe reports zero serious or critical violations, and every modal has role=dialog, a focus trap and closes on Esc.

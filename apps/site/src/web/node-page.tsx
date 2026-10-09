@@ -53,7 +53,7 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
       )}
       <Head d={d} />
       <div class="grid">
-        <main>
+        <main id="main" tabindex={-1}>
           <Compose d={d} />
           <ThreadView d={d} />
         </main>
@@ -610,11 +610,3 @@ const Contributors: FC<{ d: NodePageData }> = ({ d }) => {
     </div>
   )
 }
-
-export const NodeNotFound: FC<{ what?: string }> = ({ what }) => (
-  <Layout title="not found · shwarm">
-    <link rel="stylesheet" href="/css/node.css" />
-    <a class="back" href="/">← back to hot</a>
-    <div class="box"><h2>not found</h2><div class="in"><p>{what ?? 'there is no shwarm or branch at this address.'}</p></div></div>
-  </Layout>
-)

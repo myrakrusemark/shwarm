@@ -11,7 +11,7 @@ export type Errors = Partial<Record<string, string>>
 const Shell: FC<{ title: string; heading: string; children?: Child; below?: Child }> = ({ title, heading, children, below }) => (
   <Layout title={`${title} · shwarm`}>
     <link rel="stylesheet" href="/css/auth.css" />
-    <main class="auth">
+    <main id="main" tabindex={-1} class="auth">
       <div class="box">
         <h2>{heading}</h2>
         {children}
