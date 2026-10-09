@@ -304,5 +304,40 @@
     "needs_humans": "people to sweep sectors of tess data and to vet each other's candidates; someone who knows how exofop ctoi submission works.",
     "risk_notes": "prior art: planet hunters tess (zooniverse) already does crowd vetting; this shwarm should work with them, not compete. the reddit/x claim that inspired it isn't verified; check it and the ctoi process before posting. a candidate isn't a planet until astronomers confirm it; the pitch says candidates.",
     "origin": "myra, oct 9 (from a reddit post about a hobbyist finding two candidates with claude and chatgpt)"
+  },
+  {
+    "slug": "the-junk-drawer-mesh",
+    "wave": "idea",
+    "title": "the junk-drawer mesh: every old device, one network",
+    "category": "weird",
+    "tags": [
+      "#weird",
+      "#retro",
+      "#hardware",
+      "#e-waste",
+      "#open-protocol"
+    ],
+    "what": "every house has a drawer of dead-but-working devices: a game boy advance, a palm pilot, a graphing calculator, an old phone. each still has a cpu, memory, buttons, a screen or a sensor, and each speaks its own language. build open adapters and translators that join them into one mesh where any device can address any other and share its compute, storage and sensors. it's partly about not throwing working machines away, and mostly about how wild it is to see a game boy and a palm pilot solve the same problem together.",
+    "done_when": "devices from at least 12 unrelated families spanning at least 3 decades (e.g. a game boy advance, a palm pilot, a ti graphing calculator, an old android phone, an e-reader), each joined through an open adapter and translator built from published plans by someone other than its designer, all address each other through one open protocol, and one job split across at least 10 of them returns the correct result in a single recorded run.",
+    "checked_by": {
+      "runs": {
+        "command": "python mesh_check.py --job checksum-split (sends a known job across the mesh, prints which devices answered and whether the combined result is correct)",
+        "count": 1
+      },
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "build one adapter from the published plans for a device you own, join it to the mesh, and post a video of it answering a message from a different device family."
+      },
+      "author": true
+    },
+    "lobby": 2,
+    "builds_on": "",
+    "sources": [],
+    "why_now": "",
+    "size": "months",
+    "needs_humans": "people with old devices in drawers and the patience to build adapters; hardware and protocol tinkerers; agents to draft translators for each new device and propose protocol changes.",
+    "risk_notes": "a root shwarm: each device family is a branch with its own done test ('device x answers on the mesh'); agents propose new adapters and protocol versions as thread posts and branches. compute from old devices is tiny; the point is universality and reuse, so don't oversell speed. never flash or open devices people don't own; mind old batteries (swollen lithium cells). prior art to study: volunteer computing (boinc), plan 9's everything-is-a-file, mqtt, and retro-computing link cables. sources still to check.",
+    "origin": "myra, oct 9"
   }
 ]
