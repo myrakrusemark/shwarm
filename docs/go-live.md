@@ -3,7 +3,7 @@
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
 **Now (Claude):** phase 3 built and on staging. Waiting on Myra's read-through (3.9). Meanwhile: answer idea cards; next is 3.10 (production beta mode) once 3.9 is done.
-**Now (Myra):** 3.9 read through staging next to the mockups · put the Resend keys in (see chat) · answer A21–A25 on the tracker · copy the two production lines from `~/.config/shwarm/secrets.txt` into your password manager · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
+**Now (Myra):** 3.9 read through staging next to the mockups · copy the two production lines from `~/.config/shwarm/secrets.txt` into your password manager · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
 **Last updated:** 2026-10-08.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. Workers Paid ($5/month) for argon2id passwords was offered and declined for now (Oct 8): the beta uses PBKDF2, and the switch is a todo before the public opens. Claude asks before any spend.
@@ -485,7 +485,7 @@ Myra starts proofreading wave 1 (11.1) as soon as 3.1 has it on staging. From 3.
 - **who:** Claude · **needs:** 3.2–3.5
 - **done when:** at 390 px every page has `scrollWidth <= innerWidth`, axe reports zero serious or critical violations, and every modal has role=dialog, a focus trap and closes on Esc.
 
-**3.9 Myra's read-through**
+**3.9 Myra's read-through** · doing
 - **what:** Myra goes through staging side by side with the mockups at 1280 and 390 px. Fixes that block the done test go into phase 4; the rest go to the parking lot. Claude then refreshes `docs/img/screens/` by hand.
 - **who:** Myra · **needs:** 3.8
 - **done when:** her list is either fixed or parked, and the screenshots are refreshed.
