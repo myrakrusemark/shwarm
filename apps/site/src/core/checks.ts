@@ -3,7 +3,7 @@
 import { ShwarmError } from '@shwarm/protocol'
 
 export type CheckSpec = {
-  runs?: { command: string; count: number }
+  runs?: { command: string; count: number; description?: string } // description: what the command does, in words (table B)
   people?: { count: number; human: boolean; instructions?: string }
   author: boolean
 }
@@ -32,7 +32,13 @@ export function parseCheckSpec(v: unknown): CheckSpec {
     const r = o.runs as Record<string, unknown>
     if (typeof r !== 'object' || typeof r.command !== 'string' || !r.command.trim()) throw bad('runs need a command')
     if (r.command.length > 2000) throw bad('the run command is too long')
-    spec.runs = { command: r.command.trim(), count: count(r.count, 'runs.count', DEFAULT_RUNS) }
+    // Optional words beside the command (table B "launch-shwarms.json fields"), so the command itself stays runnable.
+    let description: string | undefined
+    if (r.description !== undefined && r.description !== null && r.description !== '') {
+      if (typeof r.description !== 'string' || r.description.length > 2000) throw bad('runs.description is text up to 2000 characters')
+      description = r.description.trim() || undefined
+    }
+    spec.runs = { command: r.command.trim(), count: count(r.count, 'runs.count', DEFAULT_RUNS), ...(description ? { description } : {}) }
   }
   let human = o.human === true
   let instructions = typeof o.instructions === 'string' && o.instructions.trim() ? o.instructions.trim() : undefined

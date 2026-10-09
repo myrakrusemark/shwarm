@@ -1,0 +1,371 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`mapping the launch list > snapshots of a few mapped entries > bot-beats-freedoom 1`] = `
+{
+  "input": {
+    "buildsOn": {
+      "license": "MIT",
+      "name": "ViZDoom",
+      "url": "https://github.com/Farama-Foundation/ViZDoom",
+    },
+    "check": {
+      "author": false,
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "watch at least two replays at full speed. flag any wall clipping, god mode or other cheat, and confirm the bot used no map data beyond the allowed buffers by reading its input code.",
+      },
+      "runs": {
+        "command": "python replay.py demos/",
+        "count": 1,
+        "description": "replays each MAP01-MAP08 demo in vizdoom 1.3 and prints whether the exit was reached and the time",
+      },
+    },
+    "doneWhen": "an open bot finishes freedoom phase 2 maps 1 to 8 from a pistol start on skill 3, using only vizdoom's screen, depth, label and automap buffers, with eight recorded demos that replay to the exit on other people's machines.",
+    "kind": "shwarm",
+    "lobby": 2,
+    "slug": "bot-beats-freedoom",
+    "tags": [
+      "games",
+      "ai",
+      "doom",
+      "benchmarks",
+    ],
+    "title": "a bot that beats freedoom",
+    "what": "in the 2025 videogamebench test, the best ai models barely got out of the first room of doom ii. vizdoom lets a bot see the screen plus a few helper views like a depth map. build an open bot that finds the keys in real freedoom levels and reaches the exit alive.
+
+why now: vizdoom 1.3.1 shipped in september 2026, and full single-player doom levels with keys and switches are still a hard target for bots.",
+  },
+  "notes": [
+    {
+      "field": "what",
+      "kind": "changed",
+      "text": "why_now appended as a last paragraph, "why now: vizdoom 1.3.1 shipped in september 2026…"",
+    },
+    {
+      "field": "check.runs",
+      "kind": "changed",
+      "text": "command split: "python replay.py demos/", and the words in brackets went to runs.description: "replays each MAP01-MAP08 demo in vizdoom 1.3 and prints whether the exit was reached and the time"",
+    },
+    {
+      "field": "builds_on",
+      "kind": "normalized",
+      "text": "license "mit" → MIT",
+    },
+    {
+      "field": "license",
+      "kind": "changed",
+      "text": "MIT, taken from ViZDoom (builds on takes the upstream license)",
+    },
+    {
+      "field": "builds_on",
+      "kind": "dropped",
+      "text": "words not in {name, url, license}: "which bundles freedoom2.wad"",
+    },
+    {
+      "field": "pinned post",
+      "kind": "changed",
+      "text": "3 sources, plus the builds-on text as written",
+    },
+  ],
+  "pinned": "where this pitch comes from:
+https://github.com/Farama-Foundation/ViZDoom
+https://arxiv.org/abs/2505.18134
+https://decrypt.co/315493/ai-bad-playing-doom
+
+builds on: ViZDoom (mit) https://github.com/Farama-Foundation/ViZDoom, which bundles freedoom2.wad",
+}
+`;
+
+exports[`mapping the launch list > snapshots of a few mapped entries > map-sherlock-holmes 1`] = `
+{
+  "input": {
+    "check": {
+      "author": false,
+      "people": {
+        "count": 1,
+        "human": false,
+        "instructions": "check 100 random rows against the story text and a map. then read 2 random stories and list any real place the file missed. pass at 97 of 100 correct and no more than 2 misses.",
+      },
+    },
+    "doneWhen": "an open geojson file lists every named real-world place in all 60 stories with coordinates and the quote that names it, and 2 checkers find at least 97 of 100 random rows correct.",
+    "kind": "shwarm",
+    "lobby": 2,
+    "slug": "map-sherlock-holmes",
+    "tags": [
+      "weird",
+      "maps",
+      "books",
+      "public-domain",
+    ],
+    "title": "map every place sherlock holmes went",
+    "what": "you can still stand on baker street or at the reichenbach falls. the 60 sherlock holmes stories are packed with real places, and we pin every one on an open map, each with the line from the story that names it.
+
+why now: the last holmes stories entered the us public domain on january 1, 2023, so all 60 are free to work from.",
+  },
+  "notes": [
+    {
+      "field": "what",
+      "kind": "changed",
+      "text": "why_now appended as a last paragraph, "why now: the last holmes stories entered the us …"",
+    },
+    {
+      "field": "builds_on",
+      "kind": "dropped",
+      "text": "public domain passes no license on; builds_on stays empty and the shwarm takes the default license",
+    },
+    {
+      "field": "pinned post",
+      "kind": "changed",
+      "text": "2 sources, plus the builds-on text as written",
+    },
+  ],
+  "pinned": "where this pitch comes from:
+https://en.wikipedia.org/wiki/Canon_of_Sherlock_Holmes
+https://en.wikisource.org/wiki/Author:Arthur_Conan_Doyle
+
+builds on: public-domain holmes texts on wikisource https://en.wikisource.org/wiki/Author:Arthur_Conan_Doyle and openstreetmap",
+}
+`;
+
+exports[`mapping the launch list > snapshots of a few mapped entries > minecraft-in-doom 1`] = `
+{
+  "input": {
+    "buildsOn": {
+      "license": "GPL-3.0",
+      "name": "uzdoom",
+      "url": "https://github.com/UZDoom/UZDoom",
+    },
+    "check": {
+      "author": true,
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "play 10 minutes on the test map, digging a tunnel and walling yourself in while an imp wave attacks. post your fps and any block you could walk through or that placed on the wrong face. at least one tester must be human.",
+      },
+      "runs": {
+        "command": "./bench.sh && ./license-scan.sh mcdoom.pk3",
+        "count": 1,
+        "description": "plays the bundled benchmark demo in uzdoom with freedoom2.wad and prints min and average fps",
+      },
+    },
+    "doneWhen": "a downloadable uzdoom mod where you can dig and place blocks while imps attack, at 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), using only freedoom and other open assets.",
+    "kind": "shwarm",
+    "lobby": 2,
+    "slug": "minecraft-in-doom",
+    "tags": [
+      "weird",
+      "games",
+      "gzdoom",
+      "uzdoom",
+    ],
+    "title": "minecraft in doom",
+    "what": "freedoom already gives us monsters to fight and a free license. we add a world made of blocks that you can dig through and build with, running in uzdoom, the active fork of gzdoom. the hard part is holding 60 fps once thousands of blocks are on screen.
+
+why now: uzdoom 5.0.3 shipped in september 2026 while gzdoom itself has had no release since may 2025. the closest mod, voxel violence, stalled at v0.3 in 2022; it needs doom ii and adds blocks only on top of normal maps.",
+  },
+  "notes": [
+    {
+      "field": "what",
+      "kind": "changed",
+      "text": "why_now appended as a last paragraph, "why now: uzdoom 5.0.3 shipped in september 2026 …"",
+    },
+    {
+      "field": "check.runs",
+      "kind": "changed",
+      "text": "command split: "./bench.sh && ./license-scan.sh mcdoom.pk3", and the words in brackets went to runs.description: "plays the bundled benchmark demo in uzdoom with freedoom2.wad and prints min and average fps"",
+    },
+    {
+      "field": "builds_on",
+      "kind": "normalized",
+      "text": "license "gpl" → GPL-3.0",
+    },
+    {
+      "field": "builds_on",
+      "kind": "warning",
+      "text": ""gpl" names no version; assumed version 3.0",
+    },
+    {
+      "field": "license",
+      "kind": "changed",
+      "text": "GPL-3.0, taken from uzdoom (builds on takes the upstream license)",
+    },
+    {
+      "field": "builds_on",
+      "kind": "dropped",
+      "text": "1 more upstream only in the pinned post: https://github.com/freedoom/freedoom",
+    },
+    {
+      "field": "pinned post",
+      "kind": "changed",
+      "text": "4 sources, plus the builds-on text as written",
+    },
+  ],
+  "pinned": "where this pitch comes from:
+https://github.com/UZDoom/UZDoom
+https://www.gamingonlinux.com/2025/12/uzdoom-the-successor-to-gzdoom-has-a-first-proper-release-out-now
+https://www.moddb.com/mods/voxel-violence
+https://www.pcgamer.com/voxel-violence-mod-adds-minecraft-blocks-and-building-to-doom/
+
+builds on: uzdoom (gpl, active gzdoom fork) https://github.com/UZDoom/UZDoom + freedoom (bsd) https://github.com/freedoom/freedoom",
+}
+`;
+
+exports[`mapping the launch list > snapshots of a few mapped entries > minecraft-in-doom-survival 1`] = `
+{
+  "input": {
+    "buildsOn": {
+      "license": "GPL-3.0",
+      "name": "uzdoom",
+      "url": "https://github.com/UZDoom/UZDoom",
+    },
+    "check": {
+      "author": false,
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "survive three in-game nights from a fresh world. confirm no monster spawns on a lit block, that going without food hurts you, and post your lowest fps. at least one tester must be human.",
+      },
+      "runs": {
+        "command": "./bench.sh --night && ./license-scan.sh mcdoom-survival.pk3",
+        "count": 1,
+        "description": "the base benchmark demo replayed at night with spawning on",
+      },
+    },
+    "doneWhen": "the minecraft in doom mod plus a hunger meter and a 20-minute day and night cycle, where monsters spawn only on dark blocks, still at 60 fps on the reference rig.",
+    "kind": "variant",
+    "lobby": 2,
+    "slug": "minecraft-in-doom-survival",
+    "tags": [
+      "weird",
+      "games",
+      "uzdoom",
+      "variant",
+    ],
+    "title": "minecraft in doom: survival",
+    "variantOf": "minecraft-in-doom",
+    "what": "you get hungry, and when night falls monsters spawn wherever it's dark, so a lit shelter is the line between dawn and a respawn. this variant of minecraft in doom keeps the same goal and gives you a reason to build.
+
+why now: a variant that can start as soon as the parent's block engine holds up; we found no survival block mod for any doom port.",
+  },
+  "notes": [
+    {
+      "field": "what",
+      "kind": "changed",
+      "text": "why_now appended as a last paragraph, "why now: a variant that can start as soon as the…"",
+    },
+    {
+      "field": "check.runs",
+      "kind": "changed",
+      "text": "command split: "./bench.sh --night && ./license-scan.sh mcdoom-survival.pk3", and the words in brackets went to runs.description: "the base benchmark demo replayed at night with spawning on"",
+    },
+    {
+      "field": "builds_on",
+      "kind": "normalized",
+      "text": "license "gpl" → GPL-3.0",
+    },
+    {
+      "field": "builds_on",
+      "kind": "warning",
+      "text": ""gpl" names no version; assumed version 3.0",
+    },
+    {
+      "field": "license",
+      "kind": "changed",
+      "text": "GPL-3.0, taken from uzdoom (builds on takes the upstream license)",
+    },
+    {
+      "field": "builds_on",
+      "kind": "dropped",
+      "text": "1 more upstream only in the pinned post: https://github.com/freedoom/freedoom",
+    },
+    {
+      "field": "pinned post",
+      "kind": "changed",
+      "text": "3 sources, plus the builds-on text as written",
+    },
+    {
+      "field": "kind",
+      "kind": "changed",
+      "text": "imported as a variant of minecraft-in-doom (from its #variant tag and its title)",
+    },
+  ],
+  "pinned": "where this pitch comes from:
+https://github.com/UZDoom/UZDoom
+https://github.com/freedoom/freedoom
+https://www.moddb.com/mods/voxel-violence
+
+builds on: uzdoom (gpl, active gzdoom fork) https://github.com/UZDoom/UZDoom + freedoom (bsd) https://github.com/freedoom/freedoom",
+}
+`;
+
+exports[`mapping the launch list > snapshots of a few mapped entries > mosquito-hearing-chip 1`] = `
+{
+  "input": {
+    "buildsOn": {
+      "license": "MIT+CC-BY-4.0",
+      "name": "humbugdb",
+      "url": "https://zenodo.org/record/4904800",
+    },
+    "check": {
+      "author": false,
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "flash the model to a real board with a cheap microphone, play 10 test clips through a speaker, and confirm it flags the mosquito clips.",
+      },
+      "runs": {
+        "command": "python eval_med.py --model model.tflite --sets A B",
+        "count": 1,
+      },
+    },
+    "doneWhen": "a model under 256 kb that runs on an esp32-s3 or rp2040 scores roc-auc of at least 0.93 on humbugdb test a and at least 0.80 on test b, without training on either test set, using the shared eval script.",
+    "kind": "shwarm",
+    "lobby": 2,
+    "slug": "mosquito-hearing-chip",
+    "tags": [
+      "health",
+      "tinyml",
+      "audio",
+      "benchmark",
+    ],
+    "title": "a $5 chip that hears mosquitoes",
+    "what": "a mosquito's wings hum at a pitch you can pick out of a phone recording. humbugdb has 20 hours of labeled mosquito sound from 36 species, and the best model in its paper scored 0.77 roc-auc on the hard test set. beat that with a model small enough for a cheap microcontroller.
+
+why now: tiny ml toolchains now fit audio models in a few hundred kb, and the dataset's hard test set is still a weak spot.",
+  },
+  "notes": [
+    {
+      "field": "what",
+      "kind": "changed",
+      "text": "why_now appended as a last paragraph, "why now: tiny ml toolchains now fit audio models…"",
+    },
+    {
+      "field": "builds_on",
+      "kind": "normalized",
+      "text": "license "cc by 4.0 + mit" → MIT+CC-BY-4.0",
+    },
+    {
+      "field": "license",
+      "kind": "changed",
+      "text": "MIT+CC-BY-4.0, taken from humbugdb (builds on takes the upstream license)",
+    },
+    {
+      "field": "builds_on",
+      "kind": "dropped",
+      "text": "words not in {name, url, license}: "data code"",
+    },
+    {
+      "field": "pinned post",
+      "kind": "changed",
+      "text": "3 sources, plus the builds-on text as written",
+    },
+  ],
+  "pinned": "where this pitch comes from:
+https://arxiv.org/abs/2110.07607
+https://zenodo.org/record/4904800
+https://github.com/HumBug-Mosquito/HumBugDB
+
+builds on: humbugdb (cc by 4.0 data, mit code) https://zenodo.org/record/4904800",
+}
+`;

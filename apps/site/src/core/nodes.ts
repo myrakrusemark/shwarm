@@ -13,7 +13,7 @@ import { findNode, loadNode, loadPerson, MAX_PATH, notifyStatement, postStatemen
 import { newId } from './ids'
 import { checkNewNodes, newNodeGuard } from './limits'
 import { checkWritable, readSettings } from './settings'
-import { MAX_TITLE, needText, RESERVED_SLUGS, slugify } from './text'
+import { MAX_SLUG, MAX_TITLE, needText, RESERVED_SLUGS, slugify } from './text'
 
 // A2 (decided Oct 8): a default and a short open list. OPEN: the identifiers are proposed in protocol §8.
 export const DEFAULT_LICENSE = 'MIT+CC-BY-4.0'
@@ -23,6 +23,7 @@ export const DEFAULT_LOBBY = 10 // decided
 const MAX_LOBBY = 10_000 // OPEN: no upper bound is decided (#22 covers changing it later)
 const MAX_TAGS = 8 // OPEN: no tag count or tag pattern is decided
 const TAG_RE = /^[a-z0-9][a-z0-9-]{0,31}$/
+const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
 const bad = (m: string, d: Record<string, unknown> = {}) => new ShwarmError('bad_request', m, d)
 
@@ -38,6 +39,7 @@ export type CreateNodeInput = {
   lobby?: number
   license?: string
   buildsOn?: string | { name: string; url?: string; license: string } | null
+  slug?: string // the launch import only (A18): keeps the slug the launch list chose instead of one from the title
 }
 
 export type CreateNodeResult = {
@@ -111,7 +113,8 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
   else if (kind === 'variant') authorize(a, 'branch', String(inp.variantOf))
   else authorize(a, 'new_shwarms', '*')
   const person = await loadPerson(ctx, a)
-  checkWritable(await readSettings(ctx.db, ['read_only', 'pause_new_nodes']), true)
+  // The launch import skips pause_new_nodes: in beta, new nodes stay paused while approved shwarms go in (go-live 3.10).
+  checkWritable(await readSettings(ctx.db, ['read_only', 'pause_new_nodes']), a.via !== 'seed')
 
   const title = needText(inp.title, 'title', MAX_TITLE)
   const what = needText(inp.what, 'what')
@@ -159,9 +162,20 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
   }
 
   const left = a.via === 'seed' ? Infinity : await checkNewNodes(ctx.db, { personId: person.id, handle: person.handle }, ctx.now)
-  const base = slugify(title)
-  if (!base) throw bad('the title needs at least one letter or digit')
-  const path = await freePath(ctx, parent ? parent.path + '/' : '', base)
+  let path: string
+  if (inp.slug !== undefined && inp.slug !== null) {
+    // OPEN: only the seed sets a slug (the launch list's own); everyone else's comes from the title (protocol §3).
+    if (a.via !== 'seed') throw bad('the slug comes from the title')
+    const s = inp.slug
+    if (typeof s !== 'string' || !SLUG_RE.test(s) || s.length > MAX_SLUG || RESERVED_SLUGS.has(s))
+      throw bad(`"${String(s)}" is not a slug: lowercase letters, digits and single dashes`)
+    path = (parent ? parent.path + '/' : '') + s
+    if (await ctx.db.prepare('SELECT 1 FROM node WHERE path = ?').bind(path).first()) throw bad(`${path} is taken`)
+  } else {
+    const base = slugify(title)
+    if (!base) throw bad('the title needs at least one letter or digit')
+    path = await freePath(ctx, parent ? parent.path + '/' : '', base)
+  }
   if (path.length > MAX_PATH) throw bad(`that path would be over ${MAX_PATH} characters. use a shorter title, or branch higher up`)
 
   // The author takes seat 1 when they start it themselves; an agent's shwarm opens with no seat (decisions, "agents may start").

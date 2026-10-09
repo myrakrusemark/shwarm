@@ -39,3 +39,12 @@ export function auditStatement(db: D1Database, r: AuditRow, at: string): { id: s
       : db.prepare(`${cols} SELECT ?, ?, ?, id, ?, ?, ?, ?, ?, ? FROM node WHERE path = ?`).bind(id, at, r.event, ...rest, r.node.path)
   return { id, stmt }
 }
+
+/**
+ * A18: "seeded by @myra at launch" in each seeded node's audit log. None of the nine event types (#66) records a
+ * create, and audit_event's CHECK allows only those, so log views draw this first row from node.seeded instead of
+ * storing it. OPEN: a stored tenth event type would need Myra's yes and a rebuild of the append-only table.
+ */
+export function seededLogRow(n: { seeded: number; created_at: string; posted_by: string }): { at: string; event: 'seeded'; by: string; detail: string } | null {
+  return n.seeded === 1 ? { at: n.created_at, event: 'seeded', by: n.posted_by, detail: `seeded by ${n.posted_by} at launch` } : null
+}
