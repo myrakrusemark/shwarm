@@ -4,10 +4,26 @@
     "wave": "idea",
     "title": "where am i? ask the birds",
     "category": "science",
-    "tags": ["#birds", "#ai", "#sound", "#maps"],
+    "tags": [
+      "#birds",
+      "#ai",
+      "#sound",
+      "#maps"
+    ],
     "what": "the birds singing outside your window give away where you are: which species live there, and even their regional accents. bird models can already name the species. train an open model that hears one minute of outdoor sound and guesses where on earth it was recorded, and test it on fresh recordings nobody trained on.",
     "done_when": "an open model, trained only on openly licensed recordings, places at least 200 new one-minute outdoor recordings, made after the shwarm opens by at least 50 people in at least 20 countries and hidden from the model, with a median error under 500 km.",
-    "checked_by": {"runs": {"command": "python score.py model/ hidden-set/ (prints the median distance error over the hidden recordings)", "count": 1}, "people": {"count": 1, "human": true, "instructions": "record your own minute outside, run the model on it, and post how far off it was."}, "author": false},
+    "checked_by": {
+      "runs": {
+        "command": "python score.py model/ hidden-set/ (prints the median distance error over the hidden recordings)",
+        "count": 1
+      },
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "record your own minute outside, run the model on it, and post how far off it was."
+      },
+      "author": false
+    },
     "lobby": 2,
     "builds_on": "google's perch bird model (apache-2.0); xeno-canto recordings filtered to cc by, by-sa or cc0",
     "sources": [],
@@ -22,10 +38,26 @@
     "wave": "idea",
     "title": "a $20 star compass",
     "category": "science",
-    "tags": ["#stars", "#hardware", "#navigation", "#open-lab"],
+    "tags": [
+      "#stars",
+      "#hardware",
+      "#navigation",
+      "#open-lab"
+    ],
     "what": "satellites find their way with star trackers: a camera spots a few bright stars, matches their pattern and knows exactly which way it points. they cost thousands. a blurry, very low-res sensor can still do it, because it only needs the brightest handful of stars. build one for $20 that tells you north and your latitude from the night sky, with no gps.",
     "done_when": "an open design under $20 in parts, with a sensor of at most 64x64 pixels, gives heading within 2 degrees and latitude within 1 degree on clear nights, tested by at least 30 builders in at least 10 countries against their phone's gps, every result logged.",
-    "checked_by": {"runs": {"command": "python check_results.py logs/ (checks each logged night's heading and latitude against the gps reading)", "count": 1}, "people": {"count": 1, "human": true, "instructions": "build one, take it out on a clear night, and post your heading and latitude next to your phone's."}, "author": false},
+    "checked_by": {
+      "runs": {
+        "command": "python check_results.py logs/ (checks each logged night's heading and latitude against the gps reading)",
+        "count": 1
+      },
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "build one, take it out on a clear night, and post your heading and latitude next to your phone's."
+      },
+      "author": false
+    },
     "lobby": 2,
     "builds_on": "",
     "sources": [],
@@ -40,10 +72,26 @@
     "wave": "idea",
     "title": "a pla trumpet you can't tell from brass",
     "category": "weird",
-    "tags": ["#music", "#3d-printing", "#acoustics", "#generative"],
+    "tags": [
+      "#music",
+      "#3d-printing",
+      "#acoustics",
+      "#generative"
+    ],
     "what": "a good brass trumpet costs a lot, and plastic ones don't sound like one. let a computer evolve the inside shape of the tube and bell in an acoustics simulation until it resonates like a professional trumpet, then print it in pla. if it works, anyone with a printer can make an instrument that plays like the real thing.",
     "done_when": "an open, simulation-evolved trumpet design, printed in pla by at least 20 people on their own printers, has its first 8 resonances within 10 cents of a professional brass trumpet's on every print, and in a blind test of recordings by the same players at least 50 listeners pick the plastic one no better than chance (under 60% right).",
-    "checked_by": {"runs": {"command": "python resonances.py sweep.wav reference.json (measures the first 8 resonances from a recorded frequency sweep and compares them)", "count": 1}, "people": {"count": 1, "human": true, "instructions": "play a printed one and a brass one, and post how they compare to play: tuning, response, feel."}, "author": false},
+    "checked_by": {
+      "runs": {
+        "command": "python resonances.py sweep.wav reference.json (measures the first 8 resonances from a recorded frequency sweep and compares them)",
+        "count": 1
+      },
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "play a printed one and a brass one, and post how they compare to play: tuning, response, feel."
+      },
+      "author": false
+    },
     "lobby": 2,
     "builds_on": "",
     "sources": [],
@@ -58,10 +106,26 @@
     "wave": "idea",
     "title": "a seismograph in 100 homes",
     "category": "science",
-    "tags": ["#earthquakes", "#hardware", "#open-lab", "#maps"],
+    "tags": [
+      "#earthquakes",
+      "#hardware",
+      "#open-lab",
+      "#maps"
+    ],
     "what": "official seismometers are expensive and thin on the ground in much of the world. an open home seismometer under $100, built by people in their own houses and streaming to one open map, would add eyes where there are none, and let anyone hear the planet move as it happens.",
     "done_when": "at least 100 home-built stations in at least 10 countries stream to a public server, and the network detects at least 20 magnitude 4+ earthquakes that usgs also logs, each within 60 seconds of usgs's origin time, from the open data alone.",
-    "checked_by": {"runs": {"command": "python match_usgs.py detections.csv (matches the network's detections against the usgs catalog)", "count": 1}, "people": {"count": 1, "human": true, "instructions": "open the live map, pick three detected quakes and confirm them on usgs's site."}, "author": true},
+    "checked_by": {
+      "runs": {
+        "command": "python match_usgs.py detections.csv (matches the network's detections against the usgs catalog)",
+        "count": 1
+      },
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "open the live map, pick three detected quakes and confirm them on usgs's site."
+      },
+      "author": true
+    },
     "lobby": 2,
     "builds_on": "",
     "sources": [],
@@ -76,10 +140,26 @@
     "wave": "idea",
     "title": "the printer choir",
     "category": "weird",
-    "tags": ["#music", "#3d-printing", "#weird", "#speech"],
+    "tags": [
+      "#music",
+      "#3d-printing",
+      "#weird",
+      "#speech"
+    ],
     "what": "a stepper motor hums whatever pitch you spin it at, and every 3d printer has four. split a voice into its strongest frequencies, give each printer in the world one part, and line the recordings up: dozens of printers in strangers' homes, together, saying words out loud. it's a ridiculous, delightful thing nobody can do alone.",
     "done_when": "at least 50 printers in at least 10 countries, each filmed unedited in its owner's home playing its own part to a shared click track, add up to one recording of a public-domain song (e.g. 'daisy bell') that the open whisper model transcribes with under 30% word error, every part's video and g-code linked.",
-    "checked_by": {"runs": {"command": "python wer.py choir.wav lyrics.txt (whisper large-v3 word error rate)", "count": 1}, "people": {"count": 1, "human": true, "instructions": "listen without the lyrics first and write down what you hear."}, "author": false},
+    "checked_by": {
+      "runs": {
+        "command": "python wer.py choir.wav lyrics.txt (whisper large-v3 word error rate)",
+        "count": 1
+      },
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "listen without the lyrics first and write down what you hear."
+      },
+      "author": false
+    },
     "lobby": 2,
     "builds_on": "",
     "sources": [],
@@ -94,10 +174,26 @@
     "wave": "idea",
     "title": "the open home lab: 20 real instruments under $50",
     "category": "science",
-    "tags": ["#open-lab", "#hardware", "#3d-printing", "#science"],
+    "tags": [
+      "#open-lab",
+      "#hardware",
+      "#3d-printing",
+      "#science"
+    ],
     "what": "real science needs instruments, and lab gear is priced for labs. a spectrometer, an oscilloscope, a microscope or a ph meter can be built from printed parts, cheap electronics or computer-generated shapes, if enough people build and check them. make 20 instruments anyone can build for under $50, each proven against the professional one.",
     "done_when": "20 open instrument designs, each under $50 in parts, each built by at least 5 people in different places, and each matching a professional instrument within its stated tolerance on the same samples.",
-    "checked_by": {"runs": {"command": "python check_lab.py instruments/ (checks each instrument's builds, costs and comparison data against its stated tolerance)", "count": 1}, "people": {"count": 1, "human": true, "instructions": "build one instrument, compare it with a professional one, and post the numbers."}, "author": true},
+    "checked_by": {
+      "runs": {
+        "command": "python check_lab.py instruments/ (checks each instrument's builds, costs and comparison data against its stated tolerance)",
+        "count": 1
+      },
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "build one instrument, compare it with a professional one, and post the numbers."
+      },
+      "author": true
+    },
     "lobby": 2,
     "builds_on": "",
     "sources": [],
@@ -112,10 +208,26 @@
     "wave": "idea",
     "title": "the rust userland: ubuntu's everyday tools, all in rust",
     "category": "open source",
-    "tags": ["#rust", "#linux", "#open-source", "#security"],
+    "tags": [
+      "#rust",
+      "#linux",
+      "#open-source",
+      "#security"
+    ],
     "what": "the small tools every linux computer runs on were written in c decades ago, and a lot of security bugs come from that kind of code. rust rules out whole classes of them. ubuntu already ships rust versions of some. finish the job for the everyday tools, so a stock ubuntu runs them all in rust and behaves exactly the same.",
     "done_when": "a bootable ubuntu image where coreutils, findutils, diffutils, sudo and the other everyday shell utilities are all rust, passing each original project's test suite at 99% or better.",
-    "checked_by": {"runs": {"command": "./run-upstream-tests.sh (runs each original project's test suite against the rust tools and prints pass rates)", "count": 1}, "people": {"count": 1, "human": true, "instructions": "use the image as your daily system for a week and post anything that broke."}, "author": false},
+    "checked_by": {
+      "runs": {
+        "command": "./run-upstream-tests.sh (runs each original project's test suite against the rust tools and prints pass rates)",
+        "count": 1
+      },
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "use the image as your daily system for a week and post anything that broke."
+      },
+      "author": false
+    },
     "lobby": 2,
     "builds_on": "",
     "sources": [],
@@ -130,10 +242,26 @@
     "wave": "idea",
     "title": "the dawn chorus of the world",
     "category": "science",
-    "tags": ["#birds", "#sound", "#citizen-science", "#maps"],
+    "tags": [
+      "#birds",
+      "#sound",
+      "#citizen-science",
+      "#maps"
+    ],
     "what": "every morning a wave of birdsong rolls around the planet with the sunrise. nobody has recorded it all on one day. people in 50 countries record the same ten minutes of sunrise, and an open model names every species, checked by human birders: a snapshot of which birds are still singing, and where.",
     "done_when": "recordings from at least 50 countries, all made at sunrise on the same day, each with every species identified by an open model and checked by a human birder, published as an open dataset and map.",
-    "checked_by": {"runs": {"command": "python check_chorus.py recordings/ (checks the count, dates, sunrise times and that every recording has reviewed labels)", "count": 1}, "people": {"count": 1, "human": true, "instructions": "listen to five random recordings and check their species labels."}, "author": false},
+    "checked_by": {
+      "runs": {
+        "command": "python check_chorus.py recordings/ (checks the count, dates, sunrise times and that every recording has reviewed labels)",
+        "count": 1
+      },
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "listen to five random recordings and check their species labels."
+      },
+      "author": false
+    },
     "lobby": 2,
     "builds_on": "",
     "sources": [],
@@ -142,5 +270,39 @@
     "needs_humans": "people in many countries who will get up at sunrise on the same day, and birders to check labels.",
     "risk_notes": "sources still to check.",
     "origin": "claude, oct 9 (earthquake replacement option)"
+  },
+  {
+    "slug": "hunt-new-planets-in-tess-data",
+    "wave": "idea",
+    "title": "hunt new planets in tess data",
+    "category": "science",
+    "tags": [
+      "#space",
+      "#exoplanets",
+      "#tess",
+      "#citizen-science"
+    ],
+    "what": "nasa's tess telescope watches hundreds of thousands of stars, and its data is public. a star that dims a little on a regular beat may have a planet crossing in front of it, and plenty of those dips are still unchecked. one hobbyist with ai helpers reportedly found two candidates this way. a crowd can sweep far more stars, vet every dip twice, and send the real ones to the astronomers who confirm planets.",
+    "done_when": "at least 10 new planet candidates found by the crew in public tess light curves are accepted as community tess objects of interest (ctois) on nasa's exofop archive, each vetted beforehand by 2 people outside the finder's account with the open vetting notebook.",
+    "checked_by": {
+      "runs": {
+        "command": "python check_ctois.py crew.json (looks up each candidate on exofop and confirms it's listed as a ctoi credited to the crew, with its vetting notebook linked)",
+        "count": 1
+      },
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "open three random candidates' vetting notebooks and their exofop pages, and confirm the dips, periods and vetting steps match."
+      },
+      "author": false
+    },
+    "lobby": 2,
+    "builds_on": "",
+    "sources": [],
+    "why_now": "",
+    "size": "months",
+    "needs_humans": "people to sweep sectors of tess data and to vet each other's candidates; someone who knows how exofop ctoi submission works.",
+    "risk_notes": "prior art: planet hunters tess (zooniverse) already does crowd vetting; this shwarm should work with them, not compete. the reddit/x claim that inspired it isn't verified; check it and the ctoi process before posting. a candidate isn't a planet until astronomers confirm it; the pitch says candidates.",
+    "origin": "myra, oct 9 (from a reddit post about a hobbyist finding two candidates with claude and chatgpt)"
   }
 ]
