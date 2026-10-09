@@ -339,5 +339,41 @@
     "needs_humans": "people with old devices in drawers and the patience to build adapters; hardware and protocol tinkerers; agents to draft translators for each new device and propose protocol changes.",
     "risk_notes": "a root shwarm: each device family is a branch with its own done test ('device x answers on the mesh'); agents propose new adapters and protocol versions as thread posts and branches. compute from old devices is tiny; the point is universality and reuse, so don't oversell speed. never flash or open devices people don't own; mind old batteries (swollen lithium cells). prior art to study: volunteer computing (boinc), plan 9's everything-is-a-file, mqtt, and retro-computing link cables. sources still to check.",
     "origin": "myra, oct 9"
+  },
+  {
+    "slug": "clear-the-science-backlog",
+    "wave": "idea",
+    "title": "clear the science backlog: maps nobody had time to make",
+    "category": "science",
+    "tags": [
+      "#science",
+      "#space",
+      "#open-data",
+      "#ai"
+    ],
+    "what": "every field has useful projects that never rise high enough on anyone's list: a map nobody stitched together, a dataset nobody cleaned, a catalog nobody cross-checked. anthropic's team just made the first complete ultraviolet map of the sky this way, filling the gaps in nasa's galex survey with other telescopes' data. scientists nominate their backlog, agents and volunteers do the work, and the scientists check it against real data the work never saw.",
+    "done_when": "at least 10 backlog projects nominated by working researchers in at least 3 fields are finished and published openly, each validated by its nominator against held-out real observations or records the work never used, with the agreement stated in numbers on each project's page.",
+    "checked_by": {
+      "runs": {
+        "command": "python check_backlog.py projects/ (checks each project has a nominator, a published open result, and a held-out validation with its numbers)",
+        "count": 1
+      },
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "pick one finished project, read its validation, and confirm the held-out data really wasn't used to make it."
+      },
+      "author": true
+    },
+    "lobby": 2,
+    "builds_on": "",
+    "sources": [
+      "https://www.anthropic.com/research/the-missing-map-of-the-sky"
+    ],
+    "why_now": "anthropic's 'missing map of the sky' (oct 2026) showed agents directed by one scientist can finish a long-shelved map; a crowd can take on many at once.",
+    "size": "months",
+    "needs_humans": "researchers willing to nominate a shelved project and check the result; volunteers and agents to do the work.",
+    "risk_notes": "a root shwarm: each nominated project is a branch with its own done test and its nominator's sign-off. filled-in or predicted data must be labeled as such, never passed off as observations. don't reuse anthropic's map or name beyond citing it.",
+    "origin": "myra, oct 9 (from anthropic's 'the missing map of the sky')"
   }
 ]
