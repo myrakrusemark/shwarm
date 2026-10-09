@@ -582,9 +582,11 @@ describe("Myra's decisions (scripts/triage.mjs)", () => {
     expect(await w.status(path)).toBe(404)
     const b = await w.signedIn()
     const own = await body(await b.req(`/w/${path}`, { headers: HTML }))
-    expect(own).toContain("triage blocked this: spam, influence operations or election manipulation. it's a link farm. to appeal, write to support@shwarm.org.")
+    // The page says only that it's blocked and links the rules; the category and reason stay with Myra.
+    expect(own).toContain('blocked. see <a href="/rules">the rules</a>.')
+    expect(own).not.toContain('link farm')
     const prompt = await body(await b.req(`/w/${path}`, { headers: { accept: '*/*' } }))
-    expect(prompt).toContain("note:   triage blocked this: spam, influence operations or election manipulation. it's a link farm. to appeal, write to support@shwarm.org.")
+    expect(prompt).toContain('note:   blocked. see the rules: /rules')
     // Off Myra's list.
     expect(w.all(queueSql().replace(/;$/, ''))).toEqual([])
   })

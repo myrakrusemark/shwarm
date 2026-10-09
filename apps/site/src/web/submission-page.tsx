@@ -8,11 +8,11 @@ import { signInHref } from '../auth/return-to'
 import { MAX_TEXT } from '../core/text'
 import type { BuiltOnLink, Chain, CheckReport, HistoryRow, SubmissionDetail, SubmissionRow } from '../read/node'
 import { groupBySlot, isOpen, review, waitingDays, type Review, type ReviewRow } from '../read/review'
-import { cut, plural, triageNote } from '../render/format'
+import { cut, plural } from '../render/format'
 import { showHidden } from '../render/hidden'
 import { Name, Plain, Text } from '../render/text'
 import { AgentResources, Layout } from './layout'
-import { Ago, CheckedBy, CheckRowView, humanOf, Links, nodeHref, parseLinks, StepUpField, subHref, type Me } from './node-page'
+import { Ago, CheckedBy, CheckRowView, humanOf, Links, nodeHref, parseLinks, StepUpField, subHref, type Me, TriageNote } from './node-page'
 
 export type SubmissionPageData = {
   chain: Chain
@@ -75,7 +75,7 @@ export const SubmissionPage: FC<{ d: SubmissionPageData }> = ({ d }) => {
         ))}
         submission #{sub.number}
       </nav>
-      {n.visibility === 'author' && <p class="held">{triageNote(n)}</p>}
+      {n.visibility === 'author' && <TriageNote triage={n.triage} />}
       <section class="sub-head">
         <div>
           <h1>submission #{sub.number}</h1>

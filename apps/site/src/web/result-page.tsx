@@ -8,12 +8,12 @@ import type { Link } from '@shwarm/protocol'
 import type { Chain } from '../read/node'
 import type { LogPage, LogRow } from '../read/log'
 import type { BuiltOnThis, Credits, Result } from '../read/result'
-import { cut, licenseName, monthDay, plural, q1, triageNote } from '../render/format'
+import { cut, licenseName, monthDay, plural, q1 } from '../render/format'
 import { showHidden } from '../render/hidden'
 import { LINK_REL, linkParts, Name, Plain, Text } from '../render/text'
 import { feedHref } from './feed'
 import { AgentResources, Layout } from './layout'
-import { buildOnHref, linkView, nodeHref, parseLinks, Pill, Proof, subHref, type Me } from './node-page'
+import { buildOnHref, linkView, nodeHref, parseLinks, Pill, Proof, subHref, type Me, TriageNote } from './node-page'
 
 export type ResultPageData = {
   chain: Chain
@@ -40,7 +40,7 @@ export const ResultPage: FC<{ d: ResultPageData }> = ({ d }) => {
       <link rel="stylesheet" href="/css/node.css" />
       <link rel="stylesheet" href="/css/result.css" />
       <a class="back" href={feedHref('closed')}>← back to closed</a>
-      {n.visibility === 'author' && <p class="held">{triageNote(n)}</p>}
+      {n.visibility === 'author' && <TriageNote triage={n.triage} />}
       <DoneHead d={d} />
       <div class="grid">
         <main id="main" tabindex={-1}>

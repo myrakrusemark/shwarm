@@ -1,6 +1,5 @@
 // Small formatters for the node pages and prompt: shortened numbers, relative times, license names.
 // Platform text only; participant text goes through render/text.tsx.
-import { CATEGORY_LABEL, type Category } from '../triage/rubric'
 
 /** 2100 → "2.1k", 12 → "12", 1_250_000 → "1.3m". */
 export function shortNum(n: number): string {
@@ -82,12 +81,10 @@ export function cut(s: string, max: number): string {
 
 /**
  * The note an author sees on their own node while others can't (go-live 8.1): being checked (pending or held), or
- * blocked with the category, Myra's reason and how to appeal. Her reason is admin text, shown as she wrote it.
+ * blocked. A block says only that, and points to the rules (Myra, Oct 9: no category, reason or appeal on the page;
+ * the category and reason stay in triage_decision for the admin). Pages link "the rules"; the text prompt names the path.
  */
-export function triageNote(n: { triage: string; blocked: { category: Category; reason: string } | null }): string {
+export function triageNote(n: { triage: string }): string {
   if (n.triage !== 'blocked') return "being checked. only you can see this for now; it's usually done in a minute."
-  const appeal = 'to appeal, write to support@shwarm.org.'
-  if (!n.blocked) return `triage blocked this. ${appeal}`
-  const reason = n.blocked.reason.trim()
-  return `triage blocked this: ${CATEGORY_LABEL[n.blocked.category]}. ${reason ? reason.replace(/[.!?]?$/, m => m || '.') + ' ' : ''}${appeal}`
+  return 'blocked. see the rules: /rules'
 }

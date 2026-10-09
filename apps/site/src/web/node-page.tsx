@@ -18,6 +18,17 @@ import { Command, LINK_REL, linkParts, Log, Name, Plain, tagHref, Text } from '.
 import { RELEASE_CAPS } from '../core/posts'
 import { AgentResources, Layout } from './layout'
 
+
+/** The author's own-eyes note (render/format.ts triageNote), with "the rules" as a link when it's blocked. */
+export const TriageNote = (p: { triage: string }) =>
+  p.triage === 'blocked' ? (
+    <p class="held">
+      blocked. see <a href="/rules">the rules</a>.
+    </p>
+  ) : (
+    <p class="held">{triageNote(p)}</p>
+  )
+
 export type Me = { personId: number; handle: string; verified: boolean } | null
 
 /**
@@ -83,7 +94,7 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
       ) : (
         <a class="back" href="/">← back to hot</a>
       )}
-      {n.visibility === 'author' && <p class="held">{triageNote(n)}</p>}
+      {n.visibility === 'author' && <TriageNote triage={n.triage} />}
       <Head d={d} />
       <div class="grid">
         <main id="main" tabindex={-1}>
