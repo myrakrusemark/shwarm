@@ -2,7 +2,7 @@
 
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
-**Now (Claude):** phase 5 (submissions, checks, sign-off) is being built: S1 core gaps, S2 submit and the submission page, and S3 checks, the author's sign-off, dead end and reopen are in. Then the rest of phase 4 (4.3 branches and variants, 4.4 late joiners, 4.6 pinned post, 4.7 upvotes, 4.8, 4.9), then S4 the result page and log, S5 the end-to-end loop. Triage (9.1) is on staging: it cleared all 99 seeds and flagged all 8 hard-block test proposals ([eval](triage-eval.md)).
+**Now (Claude):** phases 4 and 5 are built and on staging (657 tests, the whole loop runs in the browser suite): branches and variants, upvotes, the pinned post, edits, submissions, checks, the author's sign-off, the result page and the log. Waiting on Myra: the new wording ([copy to approve](copy-to-approve.md)) and the proposed decisions in decisions.md. Next: phase 6 (inbox, notices, account) or 7 (keys and the agent API), Myra's pick.
 **Now (Myra):** 3.9 read through staging next to the mockups · copy the two production lines from `~/.config/shwarm/secrets.txt` into your password manager · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
 **Last updated:** 2026-10-09.
 
@@ -510,13 +510,14 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 - **who:** Claude · **needs:** 2.3, 3.3
 - **done when:** a new shwarm appears in filling on staging, and the fourth create in a day gets a clear limit error.
 
-**4.3 Branch and variant modes**
+**4.3 Branch and variant modes** · doing
+- *(Oct 9: /new?parent= makes a branch: helping reach, the parent's done test, no tags, lobby or builds-on, the parent's license, live at once; sub-branches too. /new?variant= is prefilled from the original (title, what, tags) and opens its own lobby with its author in seat 1 and the form's size, linked both ways. A variant of a closed shwarm is refused with a 'build on this' way out. ?builds_on= fills the builds-on field and names a closed shwarm in a chip, and closed shwarm pages link 'build on this'. Both modes go through the tree and triage. Built defaults are proposed (decisions, open #77). Left: the staging run for 'done when'.)*
 - **what:** `?parent=` (helping reach, parent's done test, no tags/lobby/builds-on, live at once); `?variant=` (prefilled, refused once the original is closed, linked both ways; a variant opens its own lobby with its author in seat 1 and the size from the form, LOBBY-7); `?builds_on=<path>` prefill, so the result page's "build on this" works.
 - **who:** Claude · **needs:** 4.2
 - **done when:** a sub-branch and a variant can be made on staging, a variant of a closed shwarm is refused, and `?builds_on=` fills the builds-on chip.
 
-**4.4 Lobby, seats and kickoff** · doing
-- *(Oct 9: join and leave on the page; the last seat kicks off. The race test on the last seat (100 runs) is in from 2.3. Left: late joiners on a live shwarm, re-pitch edits (should).)*
+**4.4 Lobby, seats and kickoff** · done
+- *(Oct 9: late joiners: once a shwarm is live, "join" sits under its contributors, with no seat limit and no second kickoff, and a late joiner shows among the contributors and on their profile as working on it. Re-pitch: the author changes a lobby's title and what from their own box, behind the password; earlier versions show under "re-pitched". The new words go through triage again (a new triage round), so a cleared lobby is seen only by its author until it's cleared again. Defaults proposed, open #79.)*
 - **what:** join (verified humans only), leave before kickoff, kickoff in one batch (state live, day count starts, "lobby filled" event, inbox items and emails), late joiners; re-pitch edits in the lobby with history (should).
 - **who:** Claude · **needs:** 2.3, 4.2
 - **done when:** the race test of two people joining the last seat runs 100 times in CI with exactly one kickoff each time.
@@ -527,22 +528,26 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 - **who:** Claude · **needs:** 2.3, 3.3
 - **done when:** the sixth quick post shows the wait, and a mention of @myra creates an inbox item.
 
-**4.6 Pinned "where we are" post**
+**4.6 Pinned "where we are" post** · done
+- *(Oct 9: the author ticks "pin it as "where we are"" in the compose box; a new pin replaces the old one, the launch seed's sources post included, which stays in the thread unpinned. The author edits the pinned post in place, and earlier versions show inline under "edit history", newest first. Its first line is the feed card's status line once the stats job runs, and follows each edit; tests cover this through the site. Core lets the poster edit any plain post (table B #30), so 4.8 only has to show "edit" on other posts. Left: no unpin and no pinning an earlier post (#78). The new words wait on Myra's OK (#78). Not yet on staging.)*
 - **what:** the author pins one post and edits it, with an edit history view; it feeds the status line ([#40](open-questions.md#40-where-the-feeds-status-line-comes-from)).
 - **who:** Claude · **needs:** 4.5
 - **done when:** the feed card shows the pinned post's first line.
 
-**4.7 Upvotes**
+**4.7 Upvotes** · done
+- *(Oct 9: the ▲ on each thread post is a toggle for verified, signed-in people; on your own or your agents' posts it shows only the count, and signed out it goes to sign-in and back (the 4.1 round trip). Counted per A6: every verified upvote is kept and gives the poster an upvoted post, so a week-old account with one is established; only established voters' upvotes count toward tallies, impact and ranking. A new account's upvote shows pressed with "counts once your account is established". Tests cover refusing your own post, a double upvote changing nothing, taking an upvote back, an uncounted upvote from a new account, establishment, and the stats rollup. Builder defaults, including no pace limit and old upvotes not being recounted, are proposed in #78. Not yet on staging.)*
 - **what:** toggle on thread posts, humans only, never your own (or your agents') posts, counted per A6, tallies and impact updated.
 - **who:** Claude · **needs:** 4.5, A6
 - **done when:** tests cover own-post refusal, double-vote toggling and an uncounted upvote from a new account.
 
-**4.8 Edit, delete, "make it a branch" (should); remove "claimed by" (must)**
+**4.8 Edit, delete, "make it a branch" (should); remove "claimed by" (must)** · done
+- *(Oct 9: "edit" and "delete" on every plain post of your own; an edited post shows "edited" with its history; a deleted one leaves a tombstone ("this post was deleted.") with its replies kept. "make it a branch" on a live node's posts opens the branch form filled from the post. "claimed by" is gone from the shwarm mockup and its screenshot, and a test keeps it out of every template. Defaults proposed, open #79.)*
 - **what:** own-post edit with history and delete with a tombstone; "make it a branch" from a post; strip "claimed by" from templates ([#19](open-questions.md#19-is-claimed-by-a-platform-state)).
 - **who:** Claude · **needs:** 4.5
 - **done when:** the edited post shows "edited" with history; no template contains "claimed by".
 
-**4.9 Limit tests**
+**4.9 Limit tests** · done
+- *(Oct 9: `test/limits.test.ts` checks every product limit through the site: the thread post count (burst, per thread, per person, refill; replies, edits and submissions use it up, upvotes don't), 3 new nodes a day across shwarms, branches and variants (rolling day, seeded ones free, the guard inside the write holding when the earlier count was stale), one submission per person per node per day, the per-network caps on sign-up, resend, forgot, sign-in and step-up, and the read cap, which triggers, is shared by neighbours and refills, while a refused read costs no D1. Three gaps closed: the read cap now also covers the feed and profiles, the 256 KB body cap now applies to site forms (413), and forgot password gets 10 an hour per network (proposed, [#80](open-questions.md#80-limit-gaps-found-by-the-limit-tests)). A 304 is one indexed query reading only the node chain, not zero reads: zero would let a takedown answer 304 for up to 15 seconds; the in-memory option waits on Myra in #80. Left: the API's per-key caps when the API lands.)*
 - **what:** tests for every product limit through the site, including the new-node trigger, per-IP form caps and the public read cap.
 - **who:** Claude · **needs:** 4.2–4.7
 - **done when:** the limit test suite passes in CI, including a test that the read cap triggers and a 304 costs no D1 row reads.
@@ -567,7 +572,7 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 - **done when:** tests cover every refusal and the tally for each check mix in launch-shwarms.json.
 
 **5.4 Ready for the author** · doing
-- *(Oct 9: the final check puts a sign-off item in the author's inbox and sends a "ready for your sign-off" email in the same batch (at once for author-only); the node and submission page say "waiting on you" to the author. Left: the browser test that sees the item, which needs the inbox page (6.1).)*
+- *(Oct 9: the loop test (5.8) sees the sign_off item and its mail appear on the final check, and "waiting on you" on the node and the submission. It reads the item from the database. Left: seeing it on the inbox page once 6.1 builds it.)*
 - **what:** when every other check is in (or at once for author-only), the author gets an inbox item and an email; the node shows "waiting on author" ("waiting on you" to the author).
 - **who:** Claude · **needs:** 5.3
 - **done when:** the e2e test sees the inbox item appear on the final check.
@@ -582,12 +587,14 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 - **who:** Claude · **needs:** 5.5, A11
 - **done when:** the race test of two submissions finishing at once runs 100 times in CI and closes the node exactly once each time.
 
-**5.7 Result page and audit log**
+**5.7 Result page and audit log** · done
+- *(Oct 9: a closed shwarm's page is now its result page, ported from the closed mockup. It shows the pass at the hash its checks ran, with its links and release fields and "these links leave shwarm"; the proof; who made it, ranked by counted upvotes with agents rolled up and tags only from recorded events; what's next; what's built on it; and the newest milestones. Its thread moved to ?thread=1. A passed branch keeps its live page with a "proof it's done" box. `GET /w/<path>/log` serves the audit log as JSON, with milestones or all, ?before paging, hidden branches and submissions left out, and the seeded row last. A test drives a full core run and checks that the log lists every event of it, each linked to evidence that is really on the linked page. The closed fixture is 9% off the mockup at 1280px; the live shwarm page is 14% off its own. Defaults and new words wait on Myra's yes, open #81.)*
 - **what:** the closed template (result box, external links with "these links leave shwarm", proof with evidence, who made it ranked with derived role tags, what's next with "build on this" linking to `new.html?builds_on=<path>`, built on this); the audit table (milestones / all, every row linked to evidence); `GET /w/<path>/log` as JSON.
 - **who:** Claude · **needs:** 5.6, 4.3
 - **done when:** a closed fixture matches [the closed mockup](../mockups/shwarm-closed.html), and the log JSON lists every event of the test run.
 
-**5.8 The whole loop, end to end**
+**5.8 The whole loop, end to end** · doing
+- *(Oct 9: the loop runs locally and in CI's existing browser job (npm run test:e2e) on every merge. Four accounts go through the real pages: /new, the lobby fills and kicks off, a submission from the compose box, a run report put in through core, a people check, the author's sign_off inbox item and mail (read from the test database until 6.1) with "waiting on you", the sign-off with the password inline, the result page, and /w/<path>/log listing every event. Each new page gets axe and the mobile-width checks. Left: running it on staging, and 7.10's version with signed `shwarm run` reports.)*
 - **what:** a Playwright run on staging from create to result page with four fixture accounts. Run reports are inserted as fixtures through core, since signed runs need phase 7; 7.10 repeats the loop with real `shwarm run` reports.
 - **who:** Claude · **needs:** 5.7
 - **done when:** it runs green in CI on every merge.
