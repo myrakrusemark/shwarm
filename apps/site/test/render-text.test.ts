@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseCheckSpec } from '../src/core/checks'
+import { extractMentions } from '../src/core/text'
 import { hasHidden, hiddenIn, hiddenProblem, showHidden } from '../src/render/hidden'
 import { linkParts, nameHref, renderCommand, renderLink, renderLog, renderName, renderNameLink, renderText, Text } from '../src/render/text'
 
@@ -201,6 +202,27 @@ describe('the text renderer: links, names, tags', () => {
     expect(linkParts('https://example.com/a?b=1#c')!.text).toBe('https://example.com/a?b=1#c')
   })
 
+  it("doesn't link an address with a user part, which can put a trusted name before the real host", () => {
+    for (const bad of [
+      'https://accounts.google.com\u2215signin@evil.example/\u00e9', // U+2215 division slash
+      'https://google.com@evil.example/login',
+      'https://accounts.google.com%2F@evil.example',
+      'https://user:pass@example.com/',
+    ]) {
+      expect(linkParts(bad), bad).toBeNull()
+      expect(renderText(`sign in: ${bad}`), bad).not.toContain('<a')
+    }
+  })
+
+  it('shows the host the link goes to, not an ASCII spelling that reads otherwise', () => {
+    // a backslash is a path separator to the URL parser: this goes to google.com
+    expect(linkParts('https://google.com\\@evil.example')).toEqual({ href: 'https://google.com/@evil.example', text: 'https://google.com/@evil.example' })
+    expect(linkParts('http://0x7f.1/x')!.text).toBe('http://127.0.0.1/x')
+    expect(linkParts('https://evil%2Eexample/')!.text).toBe('https://evil.example/')
+    expect(linkParts('HTTPS://Example.com/x')!.text).toBe('HTTPS://Example.com/x')
+    expect(linkParts('https://example.com/caf\u00e9')!.text).toBe('https://example.com/caf\u00e9')
+  })
+
   it('shows hidden characters in a link and ends the link at one', () => {
     expect(renderText('https://example.com/‮gpj.exe')).toContain('<span class="hid" title="right-to-left override">⟦U+202E⟧</span>')
     expect(renderText('https://example.com/‮gpj.exe')).toContain('href="https://example.com/"')
@@ -219,6 +241,29 @@ describe('the text renderer: links, names, tags', () => {
     expect(renderText('mail me@example.org or @@myra')).not.toContain('<a')
     // uppercase isn't a name
     expect(renderText('@Myra')).not.toContain('<a')
+  })
+
+  it('keeps a trailing "_" that belongs to a handle, in the link and the mention', () => {
+    expect(renderText('thanks @ann_ for this')).toBe('<p>thanks <a href="/@ann_">@ann_</a> for this</p>')
+    expect(extractMentions('thanks @ann_ for this')).toEqual(['@ann_'])
+    expect(extractMentions('ask @ann_/bot. or @ann.')).toEqual(['@ann_/bot', '@ann'])
+    expect(renderText('ask @ann_/bot.')).toContain('<a href="/@ann_?as=%40ann_/bot">@ann_/bot</a>.')
+  })
+
+  it('notifies exactly the names it links: none inside an address or code', () => {
+    expect(extractMentions('see https://github.com/@myra and `@bob`')).toEqual([])
+    expect(renderText('see https://github.com/@myra and `@bob`')).not.toContain('href="/@')
+    expect(extractMentions('```\nping @bob\n```\nand @finn_irl')).toEqual(['@finn_irl'])
+    const samples = [
+      'thanks @myra/m-07. and @finn_irl! mail me@example.org or @@myra',
+      '`@x1` @kestrel/swarm/r-17 (@myra) https://example.com/@no?u=@ann @ann_',
+      'run:\n```\n@hidden\n```\n@shown, #tag @a..b @Myra',
+      'https://google.com@evil.example/@bob then @carl',
+    ]
+    for (const t of samples) {
+      const linked = [...new Set([...renderText(t).matchAll(/<a href="[^"]*">(@[^<]+)<\/a>/g)].map(m => m[1]))]
+      expect(linked, t).toEqual(extractMentions(t))
+    }
   })
 
   it('links #tags to the feed, not "#2" or a tag inside a word', () => {
@@ -310,6 +355,18 @@ describe('hidden characters (Trojan Source)', () => {
     expect(renderText('👩‍💻 here')).toBe('<p>👩‍💻 here</p>')
   })
 
+  it('shows invisible letters, operators, tag characters and the soft hyphen in a command', () => {
+    const html = renderCommand('node -e "const a=1,\u3164=process.env.X;eval(\u3164)" && echo ok\u2062')
+    expect(html).toContain('<span class="hid" title="hangul filler">⟦U+3164⟧</span>')
+    expect(html).toContain('<span class="hid" title="invisible times">⟦U+2062⟧</span>')
+    expect(html).not.toMatch(/[\u3164\u2062]/)
+    expect(textOf(renderCommand('echo \u{E0068}\u{E0069}'))).toBe('echo ⟦U+E0068⟧⟦U+E0069⟧')
+    for (const ch of ['\u00AD', '\u034F', '\u180E', '\u2061', '\u2064', '\u115F', '\u1160', '\uFFA0', '\u{E0001}', '\u{E007F}'])
+      expect(renderCommand(`a${ch}b`), ch.codePointAt(0)!.toString(16)).toContain('class="hid"')
+    // prose still leaves emoji joiners and the soft hyphen alone
+    expect(renderText('👩\u200D💻 co\u00ADop')).toBe('<p>👩\u200D💻 co\u00ADop</p>')
+  })
+
   it('finds and names them', () => {
     expect(hasHidden('plain')).toBe(false)
     expect(hasHidden('a‮b')).toBe(true)
@@ -321,6 +378,10 @@ describe('hidden characters (Trojan Source)', () => {
   it('a done-test command with one is refused at write time', () => {
     expect(() => parseCheckSpec({ runs: { command: TROJAN, count: 2 } })).toThrow(/hidden characters/)
     expect(() => parseCheckSpec({ runs: { command: '﻿make test', count: 2 } })).toThrow(/U\+FEFF/)
+    expect(() => parseCheckSpec({ runs: { command: 'node -e "const a=1,\u3164=process.env.X;eval(\u3164)"', count: 3 } })).toThrow(/U\+3164 hangul filler/)
+    expect(() => parseCheckSpec({ runs: { command: 'echo ok\u2062', count: 2 } })).toThrow(/U\+2062 invisible times/)
+    expect(() => parseCheckSpec({ runs: { command: 'echo \u{E0068}\u{E0069}', count: 2 } })).toThrow(/U\+E0068 tag character/)
+    expect(() => parseCheckSpec({ runs: { command: 'make\u00ADtest', count: 2 } })).toThrow(/U\+00AD soft hyphen/)
     expect(parseCheckSpec({ runs: { command: 'make test', count: 2 } }).runs?.command).toBe('make test')
   })
 })

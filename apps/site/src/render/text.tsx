@@ -5,6 +5,7 @@
 import { raw } from 'hono/html'
 import type { FC } from 'hono/jsx'
 import { isValidName } from '@shwarm/protocol'
+import { inlineRuns, proseTokens, textBlocks, textLines } from '../core/text'
 import { BIDI_RE, escapeOf, HIDDEN_RE, hiddenName } from './hidden'
 
 /** rel on every outside link: no ranking credit, user content, no window.opener, no referrer. */
@@ -17,9 +18,9 @@ export const esc = (s: string) => s.replace(/[&<>"']/g, ch => ESC[ch])
 const hiddenSpan = (ch: string) => `<span class="hid" title="${hiddenName(ch)}">${escapeOf(ch)}</span>`
 
 /** Escaped text with every hidden character shown as a visible escape (commands, code, logs, names). */
-const strict = (s: string) => esc(s).replace(new RegExp(HIDDEN_RE.source, 'g'), hiddenSpan)
+const strict = (s: string) => esc(s).replace(HIDDEN_RE, hiddenSpan)
 /** Escaped prose: only the bidi controls are shown (see hidden.ts). */
-const prose = (s: string) => esc(s).replace(new RegExp(BIDI_RE.source, 'g'), hiddenSpan)
+const prose = (s: string) => esc(s).replace(BIDI_RE, hiddenSpan)
 
 // ---------- names, links, tags ----------
 
@@ -40,7 +41,7 @@ export function renderNameLink(name: string, cls?: string): string {
   return `<a${cls ? ` class="${esc(cls)}"` : ''} href="${esc(href)}">${esc(name)}</a>`
 }
 
-/** The link target and the text to show, or null if this isn't an http(s) address. */
+/** The link target and the text to show, or null if this isn't an http(s) address that can be linked. */
 export function linkParts(candidate: string): { href: string; text: string } | null {
   let u: URL
   try {
@@ -49,17 +50,26 @@ export function linkParts(candidate: string): { href: string; text: string } | n
     return null
   }
   if ((u.protocol !== 'http:' && u.protocol !== 'https:') || !u.hostname) return null
-  // The URL parser turns a non-ASCII host into punycode (xn--…). An address typed in plain ASCII is shown as
-  // typed; any other is shown from the parsed form, so a look-alike domain shows its punycode.
+  // A user name or password before an "@" ("https://google.com@evil.example/") puts a trusted-looking name
+  // in front of the real host. Such an address stays plain text.
+  // OPEN: not linked at all; showing it linked without the user part is the other choice.
+  if (u.username || u.password) return null
+  // The shown text is built from the parsed host, so it always names where the link goes. The URL parser
+  // turns a non-ASCII host into punycode (xn--…), so a look-alike domain shows its punycode.
   // OPEN: every non-ASCII domain shows as punycode, not only mixed-script ones; simplest and strictest.
-  if (/^[\x21-\x7e]+$/.test(candidate)) return { href: u.href, text: candidate }
-  let shown = u.href
+  const origin = `${u.protocol}//${u.host}`
+  // An ASCII address whose host reads as parsed is shown as typed.
+  const rest = candidate.slice(origin.length)
+  if (/^[\x21-\x7e]+$/.test(candidate) && candidate.slice(0, origin.length).toLowerCase() === origin && /^(?:[/?#]|$)/.test(rest))
+    return { href: u.href, text: candidate }
+  const tail = u.pathname + u.search + u.hash
+  let shown = tail
   try {
-    shown = decodeURI(u.href) // readable paths; hidden characters are escaped when shown
+    shown = decodeURI(tail) // readable paths; hidden characters are escaped when shown
   } catch {
     // malformed escapes: show it encoded
   }
-  return { href: u.href, text: shown }
+  return { href: u.href, text: origin + shown }
 }
 
 // OPEN: outside links open in the same tab (no target), with " ↗" as in the mockups.
@@ -73,66 +83,24 @@ export const tagHref = (tag: string) => `/?tag=${encodeURIComponent(tag)}`
 
 // ---------- inline text ----------
 
-const SCHEME = '[Hh][Tt][Tt][Pp][Ss]?://'
-const URL_BODY = "[^\\s<>\"'`\\u061C\\u200B-\\u200F\\u202A-\\u202E\\u2060\\u2066-\\u2069\\uFEFF]+"
-// The same mention rule as core extractMentions, so what links is what notifies.
-const MENTION = '(?<![A-Za-z0-9_@])@([a-z0-9_]{2,32}(?:/[a-z0-9][a-z0-9._-]{0,63}){0,6})'
-// Tags as core takes them (lowercase letters, digits, dashes). One letter at least, so "#2" stays text.
-const TAG = '(?<![A-Za-z0-9_&#/])#([a-z0-9][a-z0-9-]{0,31})(?![A-Za-z0-9_])'
-const TOKEN = new RegExp(`(${SCHEME}${URL_BODY})|${MENTION}|${TAG}`, 'g')
-
-/** Trailing punctuation isn't part of a link; a ")" is, when the link opened one. */
-function trimUrl(s: string): string {
-  for (;;) {
-    const last = s.at(-1)
-    if (!last) return s
-    if ('.,;:!?*_~\'"'.includes(last)) s = s.slice(0, -1)
-    else if (last === ')' && count(s, '(') < count(s, ')')) s = s.slice(0, -1)
-    else if (last === ']' && count(s, '[') < count(s, ']')) s = s.slice(0, -1)
-    else if (last === '}' && count(s, '{') < count(s, '}')) s = s.slice(0, -1)
-    else return s
-  }
-}
-const count = (s: string, ch: string) => s.split(ch).length - 1
-
-/** Prose without code spans: links, @names and #tags. */
+/** Prose without code spans: links, @names and #tags (core/text.ts finds them, so what links is what notifies). */
 function linkify(s: string): string {
   let out = ''
   let at = 0
-  for (const m of s.matchAll(TOKEN)) {
-    const start = m.index!
-    let token = m[0]
-    let html: string | null = null
-    if (m[1]) {
-      token = trimUrl(m[1])
-      html = renderLink(token)
-    } else if (m[2]) {
-      token = '@' + m[2].replace(/[._-]+$/, '')
-      html = isValidName(token) ? renderNameLink(token) : null
-    } else if (m[3]) {
-      const tag = m[3].replace(/-+$/, '')
-      token = '#' + tag
-      html = /[a-z]/.test(tag) ? `<a class="t" href="${esc(tagHref(tag))}">${esc(token)}</a>` : null
-    }
+  for (const t of proseTokens(s)) {
+    let html: string | null
+    if (t.kind === 'url') html = renderLink(t.text)
+    else if (t.kind === 'mention') html = renderNameLink(t.text)
+    else html = `<a class="t" href="${esc(tagHref(t.text.slice(1)))}">${esc(t.text)}</a>`
     if (!html) continue
-    out += prose(s.slice(at, start)) + html
-    at = start + token.length
+    out += prose(s.slice(at, t.start)) + html
+    at = t.start + t.text.length
   }
   return out + prose(s.slice(at))
 }
 
 /** One line or paragraph: `code` spans first, then links in the rest. */
-function inline(s: string): string {
-  let out = ''
-  let at = 0
-  for (const m of s.matchAll(/`([^`\n]+)`/g)) {
-    out += linkify(s.slice(at, m.index!)) + `<code>${strict(m[1])}</code>`
-    at = m.index! + m[0].length
-  }
-  return out + linkify(s.slice(at))
-}
-
-const lines = (s: string) => s.replace(/\r\n?/g, '\n').split('\n')
+const inline = (s: string) => inlineRuns(s).map(r => (r.code ? `<code>${strict(r.text)}</code>` : linkify(r.text))).join('')
 
 // ---------- the public functions ----------
 
@@ -141,27 +109,10 @@ const lines = (s: string) => s.replace(/\r\n?/g, '\n').split('\n')
  * With `inline`, one run of text with <br> at line breaks and no paragraphs or fences (done tests, titles).
  */
 export function renderText(text: string, opts: { inline?: boolean } = {}): string {
-  if (opts.inline) return lines(text).map(inline).join('<br>')
-  const out: string[] = []
-  let para: string[] = []
-  const flush = () => {
-    if (para.length) out.push(`<p>${para.map(inline).join('<br>')}</p>`)
-    para = []
-  }
-  const ls = lines(text)
-  for (let i = 0; i < ls.length; i++) {
-    const line = ls[i]
-    if (/^ {0,3}```/.test(line)) {
-      flush()
-      const code: string[] = []
-      for (i++; i < ls.length && !/^ {0,3}```\s*$/.test(ls[i]); i++) code.push(ls[i])
-      // the info string after ``` (a language name) is dropped; an unclosed fence runs to the end
-      out.push(`<pre class="code"><code>${strict(code.join('\n'))}</code></pre>`)
-    } else if (!line.trim()) flush()
-    else para.push(line)
-  }
-  flush()
-  return out.join('\n')
+  if (opts.inline) return textLines(text).map(inline).join('<br>')
+  return textBlocks(text)
+    .map(b => ('code' in b ? `<pre class="code"><code>${strict(b.code)}</code></pre>` : `<p>${b.lines.map(inline).join('<br>')}</p>`))
+    .join('\n')
 }
 
 /** A done-test command: monospace, every hidden character shown. */
