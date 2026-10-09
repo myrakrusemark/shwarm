@@ -141,7 +141,8 @@ describe('GET /w/<path>/log (5.7)', () => {
     expect(rows.map(r => r.id)).toEqual(full.map(e => e.id))
     // a cursor that isn't an event of this log, or isn't an event at all
     const other = w.get("SELECT id FROM audit_event a WHERE a.node_id NOT IN (SELECT id FROM node WHERE path LIKE 'minecraft-in-doom%') LIMIT 1")
-    for (const bad of ['nope', 'e_zzzzzzzzzz', ...(other ? [other.id] : [])]) {
+    // a newline or a character a header can't carry is a 400 too, not a 500 from the ETag
+    for (const bad of ['nope', 'e_zzzzzzzzzz', '', '%0Ax', '%0D%00', '%E2%98%83', ...(other ? [other.id] : [])]) {
       const res = await w.b.req(`${LOG}?before=${bad}`)
       expect(res.status, bad).toBe(400)
       expect(JSON.parse(await body(res))).toMatchObject({ error: 'bad_request', message: 'before is not an event in this log' })

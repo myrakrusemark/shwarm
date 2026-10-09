@@ -187,6 +187,8 @@ nodeRoutes.get('/*', async c => {
   return c.body(renderPrompt(v), 200, { 'Content-Type': 'text/plain; charset=utf-8' })
 })
 
+const BAD_BEFORE = 'before is not an event in this log'
+
 /**
  * GET /w/<path>/log (go-live 5.7; protocol §4): one page of the audit log as NodeLog JSON, newest first, with ?filter=
  * milestones|all and ?before=<event id>. Visibility, tombstones, the read cap, the ETag and 304 work as on the node.
@@ -197,6 +199,8 @@ async function logView(c: C, path: string) {
   if (!(LOG_FILTERS as string[]).includes(filterQ)) return errorOut(c, 'json', 400, 'bad_request', 'filter is milestones or all')
   const filter = filterQ as LogFilter
   const before = c.req.query('before') ?? null
+  // Checked before it goes into the memo key and the ETag: a header can't carry a newline or a non-Latin-1 character.
+  if (before !== null && !isId('e', before)) return errorOut(c, 'json', 400, 'bad_request', BAD_BEFORE)
   const view = `log.${filter}.${before ?? ''}`
   const memoKey = `${path}|json|${view}`
   const ifNoneMatch = c.req.header('if-none-match')
@@ -219,7 +223,7 @@ async function logView(c: C, path: string) {
     if (matches(ifNoneMatch, etag)) return c.body(null, 304)
   }
   const page = await readLog(db, chain, { filter, before })
-  if (!page) return errorOut(c, 'json', 400, 'bad_request', 'before is not an event in this log')
+  if (!page) return errorOut(c, 'json', 400, 'bad_request', BAD_BEFORE)
   return c.json(renderLogJson(path, filter, page, new URL(c.req.url).origin))
 }
 
