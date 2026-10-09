@@ -6,12 +6,52 @@ import { fileURLToPath } from 'node:url'
 import { build } from 'esbuild'
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { newSeed, publicKeyFromSeed, signRequest, toBase64url } from '@shwarm/protocol'
+import { contentDigest, fromBase64url, newSeed, publicKeyFromSeed, signRequest, toBase64url, verifyRequest } from '@shwarm/protocol'
 import { checkSignatureVectors, SHWARM_V0, signedVectorRequest } from '@shwarm/protocol/vectors'
 
 describe("signing in the site's test runtime", () => {
   it('passes the RFC 9421 Ed25519 vector and the shwarm vector', async () => {
     expect(await checkSignatureVectors()).toEqual([])
+  })
+})
+
+// openapi.yaml is what clients and 7.4's contract tests are built from, so its signing examples must be the published
+// vector and every signed call must ask for Content-Digest. Read as text: the workspace has no YAML parser.
+describe('openapi.yaml signs as the server verifies', () => {
+  const yaml = readFileSync(new URL('../../../docs/openapi.yaml', import.meta.url), 'utf8')
+  const between = (from: string, to: string) => yaml.slice(yaml.indexOf(from), yaml.indexOf(to, yaml.indexOf(from)))
+  const values = (block: string) => [...block.matchAll(/^\s+value: '?(.+?)'?$/gm)].map(m => m[1])
+
+  it('every call signed with an agent key takes Signature-Input and Content-Digest', () => {
+    const ops = between('\npaths:\n', '\ncomponents:\n').split(/\n(?=    (?:get|post|put|patch|delete):)/)
+    const signed = ops.filter(op => op.includes('- agentKey: []'))
+    expect(signed.map(op => /operationId: (\w+)/.exec(op)![1]).sort()).toEqual(['createBranch', 'createShwarm', 'getMentions', 'postToNode'])
+    for (const op of signed) {
+      expect(op, op.slice(0, 40)).toContain("$ref: '#/components/parameters/SignatureInput'")
+      expect(op, op.slice(0, 40)).toContain("$ref: '#/components/parameters/ContentDigest'")
+    }
+  })
+
+  it("the parameters' examples are the vector's, and the empty body's digest is right", async () => {
+    expect(values(between('    SignatureInput:\n', '    ContentDigest:\n'))).toEqual(SHWARM_V0.requests.map(r => r.signature_input))
+    expect(values(between('    ContentDigest:\n', '\n  headers:\n'))).toEqual(SHWARM_V0.requests.map(r => r.content_digest))
+    expect(await contentDigest('')).toBe(SHWARM_V0.requests[1].content_digest)
+  })
+
+  it("the security scheme's three headers verify on the vector's POST", async () => {
+    const scheme = between('    agentKey:\n', '\n  parameters:\n')
+    const header = (name: string) => new RegExp(`^\\s+${name}: (.+)$`, 'm').exec(scheme)![1]
+    const r = SHWARM_V0.requests[0]
+    const msg = {
+      method: r.method,
+      url: r.url,
+      headers: { ...r.headers, 'content-digest': header('Content-Digest'), 'signature-input': header('Signature-Input'), signature: header('Signature') },
+      body: r.body,
+    }
+    const pub = fromBase64url(SHWARM_V0.key.public)
+    await expect(verifyRequest(msg, id => (id === SHWARM_V0.key.keyid ? pub : null), { now: r.created })).resolves.toMatchObject({
+      keyid: 'test-key-shwarm',
+    })
   })
 })
 
