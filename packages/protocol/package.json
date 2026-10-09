@@ -2,9 +2,11 @@
   "name": "@shwarm/protocol",
   "private": true,
   "type": "module",
-  "description": "shared by the site and @shwarm/cli: error codes, names, canonical JSON, submission hash, secret format",
+  "description": "shared by the site and @shwarm/cli: error codes, names, canonical JSON, submission hash, secret format, signed requests (RFC 9421)",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./vectors": "./src/vectors.ts",
+    "./vectors/*.json": "./vectors/*.json"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

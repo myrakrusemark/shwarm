@@ -6,10 +6,20 @@ export function toHex(b: Uint8Array): string {
   return Array.from(b, x => x.toString(16).padStart(2, '0')).join('')
 }
 
-export function toBase64url(b: Uint8Array): string {
+/** Standard base64 with padding, as RFC 8941 byte sequences use. */
+export function toBase64(b: Uint8Array): string {
   let s = ''
   for (const x of b) s += String.fromCharCode(x)
-  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  return btoa(s)
+}
+
+export function fromBase64(s: string): Uint8Array {
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(s) || s.length % 4 !== 0) throw new TypeError('not base64')
+  return Uint8Array.from(atob(s), c => c.charCodeAt(0))
+}
+
+export function toBase64url(b: Uint8Array): string {
+  return toBase64(b).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
 
 export function fromBase64url(s: string): Uint8Array {

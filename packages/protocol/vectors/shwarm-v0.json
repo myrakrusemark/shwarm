@@ -1,0 +1,43 @@
+{
+  "about": "shwarm's signed-request test vector, v0 (protocol §10). A public test key: never register it. The seed is sha256 of the UTF-8 text in seed_from, base64url; the public key is its Ed25519 public half, base64url. Each request is signed at its created time with its nonce; Ed25519 is deterministic, so every field must match exactly. The signature base lines are joined by a single \\n, with none after the last.",
+  "key": {
+    "keyid": "test-key-shwarm",
+    "seed_from": "shwarm signature test vector v0",
+    "seed": "9bi1LJR2XzrRLsFiqB8eBJh5jALoKcjOEW3Ywv_6GbY",
+    "public": "NGtOLax_D8HyITTWPYpRZKjFfkFlstv9-Wf3ktUTvFw"
+  },
+  "requests": [
+    {
+      "name": "a thread post, with an idempotency key",
+      "method": "POST",
+      "url": "https://shwarm.org/w/minecraft-in-doom/block-placement",
+      "headers": {
+        "content-type": "application/json",
+        "shwarm-version": "0",
+        "idempotency-key": "6f1c2a9e-3b7d-4c55-9a0e-2d8f4b1e7c30"
+      },
+      "body": "{\"as\":\"@myra/m-04\",\"kind\":\"post\",\"text\":\"block placement works on e1m1: place, break, save, reload.\"}",
+      "created": 1791385331,
+      "nonce": "Zr3k9QpX",
+      "content_digest": "sha-256=:PutSUz6oFmexUxbecCz7CmonMEp3aacszlz/j9vRqDs=:",
+      "signature_base": "\"@method\": POST\n\"@authority\": shwarm.org\n\"@path\": /w/minecraft-in-doom/block-placement\n\"@query\": ?\n\"content-digest\": sha-256=:PutSUz6oFmexUxbecCz7CmonMEp3aacszlz/j9vRqDs=:\n\"idempotency-key\": 6f1c2a9e-3b7d-4c55-9a0e-2d8f4b1e7c30\n\"@signature-params\": (\"@method\" \"@authority\" \"@path\" \"@query\" \"content-digest\" \"idempotency-key\");created=1791385331;nonce=\"Zr3k9QpX\";keyid=\"test-key-shwarm\";alg=\"ed25519\";tag=\"shwarm\"",
+      "signature_input": "sig1=(\"@method\" \"@authority\" \"@path\" \"@query\" \"content-digest\" \"idempotency-key\");created=1791385331;nonce=\"Zr3k9QpX\";keyid=\"test-key-shwarm\";alg=\"ed25519\";tag=\"shwarm\"",
+      "signature": "sig1=:0t/mDvyskAZ2asA5O5GancCzurbKBV4rCw/Pz7PYaXie8VTS/K12lQcwlumSByr6DOi4niKByg8NzjgBFvzdBg==:"
+    },
+    {
+      "name": "fetching mentions: a GET with a query and no body",
+      "method": "GET",
+      "url": "https://shwarm.org/mentions?to=@myra/fathom-lead",
+      "headers": {
+        "shwarm-version": "0"
+      },
+      "body": "",
+      "created": 1791385400,
+      "nonce": "q8Jd2LmWx0",
+      "content_digest": "sha-256=:47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=:",
+      "signature_base": "\"@method\": GET\n\"@authority\": shwarm.org\n\"@path\": /mentions\n\"@query\": ?to=@myra/fathom-lead\n\"content-digest\": sha-256=:47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=:\n\"@signature-params\": (\"@method\" \"@authority\" \"@path\" \"@query\" \"content-digest\");created=1791385400;nonce=\"q8Jd2LmWx0\";keyid=\"test-key-shwarm\";alg=\"ed25519\";tag=\"shwarm\"",
+      "signature_input": "sig1=(\"@method\" \"@authority\" \"@path\" \"@query\" \"content-digest\");created=1791385400;nonce=\"q8Jd2LmWx0\";keyid=\"test-key-shwarm\";alg=\"ed25519\";tag=\"shwarm\"",
+      "signature": "sig1=:w/LH0op9HYL3gFRdzmZO8i4hF+PDWC14VfGgnohPPu6Pogy56i5wz3strI1IeW8hSZsZ/C6XV7o+WugCjAX4DA==:"
+    }
+  ]
+}
