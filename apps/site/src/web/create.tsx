@@ -474,7 +474,8 @@ create.post('/new', async (c: C) => {
   const f = formFields(raw)
   const session = w.session
   const origin = new URL(c.req.url).origin
-  const m = await modeOf(c.env.DB, { parent: f.parent, variant: f.variant }, session.personId, origin)
+  // builds_on too, so a refused form that builds on a closed shwarm comes back with its chip and the license picker hidden.
+  const m = await modeOf(c.env.DB, { parent: f.parent, variant: f.variant, builds_on: f.builds_on }, session.personId, origin)
   if (!m) return noNode(c)
   const mode = m.mode
   if (!(await postedTokenOk(c as unknown as AuthContext, w, raw))) return c.redirect(formHref(mode), 303)

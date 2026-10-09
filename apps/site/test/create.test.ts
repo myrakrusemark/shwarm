@@ -268,6 +268,13 @@ describe('branch and variant modes (4.3)', () => {
     expect(page).toMatch(/<select id="license" name="license"[^>]* hidden/)
     // A full link works the same.
     expect(await body(await b.get(`/new?builds_on=${encodeURIComponent('https://shwarm.org/w/minecraft-in-doom')}`))).toContain('id="picked"')
+    // A refused send comes back the same way: the chip shown, the picker hidden.
+    const refused = await create(b, { ...HELLO, title: 'minecraft in doom 2', tags: '', builds_on: 'minecraft-in-doom', license: 'MIT' })
+    expect(refused.status).toBe(400)
+    const again = await body(refused)
+    expect(again).toContain('id="picked"')
+    expect(again).toContain('takes the upstream license: whatever minecraft in doom is published under.')
+    expect(again).toMatch(/<select id="license" name="license"[^>]* hidden/)
     const res = await create(b, { ...HELLO, title: 'minecraft in doom 2', builds_on: 'minecraft-in-doom', license: 'MIT' })
     expect(res.status).toBe(303)
     const n = q("SELECT license, builds_on FROM node WHERE path = 'minecraft-in-doom-2'") as any
