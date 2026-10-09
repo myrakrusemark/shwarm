@@ -10,3 +10,4 @@ Myra answered "no" on these cards (Oct 9). They stay in launch-shwarms.json unti
 - bayeux-in-ascii (wave 2)
 - plant-that-drives-to-the-sun (wave 2)
 - why-kettles-die (wave 2)
+- amazing-grace-100-voices (wave 3)

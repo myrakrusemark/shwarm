@@ -406,5 +406,253 @@
       "text": "",
       "at": "2026-10-09T01:17:58.653Z"
     }
+  ],
+  "audit-erdos-lean-statements": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:42:10.115Z"
+    }
+  ],
+  "pick-and-morley-in-mathlib": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:42:15.284Z"
+    }
+  ],
+  "map-madagascars-power-grid": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:42:50.163Z"
+    }
+  ],
+  "predict-heat-pump-efficiency": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:43:09.543Z"
+    }
+  ],
+  "print-the-parts-that-break": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:43:32.924Z"
+    }
+  ],
+  "why-kettles-die": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "no",
+      "at": "2026-10-09T01:44:07.228Z"
+    }
+  ],
+  "city-budgets-one-table": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:44:22.693Z"
+    }
+  ],
+  "us-lead-pipes-mapped": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:44:25.582Z"
+    }
+  ],
+  "grocery-by-bus": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:44:42.430Z"
+    }
+  ],
+  "nyc-restrooms-checked": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:44:52.137Z"
+    }
+  ],
+  "schools-by-busy-roads": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:45:04.311Z"
+    }
+  ],
+  "alt-text-for-vital-articles": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:45:50.857Z"
+    }
+  ],
+  "sicilian-on-common-voice": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:46:04.477Z"
+    }
+  ],
+  "gutenberg-books-on-wikidata": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:46:10.613Z"
+    }
+  ],
+  "nigerian-braille-in-liblouis": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:46:30.910Z"
+    }
+  ],
+  "citation-needed-top-1000": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:46:37.957Z"
+    }
+  ],
+  "wax-cylinder-lyrics": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:46:50.065Z"
+    }
+  ],
+  "wesnoth-in-a-browser-tab": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:47:11.008Z"
+    }
+  ],
+  "arch-wiki-out-of-date": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:47:16.356Z"
+    }
+  ],
+  "arch-core-reproducible": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:47:43.032Z"
+    }
+  ],
+  "python-docs-bengali": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:47:55.363Z"
+    }
+  ],
+  "ffmpeg-untested-filters": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:47:59.367Z"
+    }
+  ],
+  "game-boy-cartridge": [
+    {
+      "from": "myra",
+      "choice": "question",
+      "text": "i honestly dont think this is something that hasnt been done? loading a rom to a cartridge isnt that hard?",
+      "at": "2026-10-09T01:49:00.958Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "you're right that flashing a rom onto a cartridge is easy, and making a game boy game has been done a thousand times. the hard part was meant to be the game, not the cartridge, but as written (a 30-minute game) one person can do it alone. the crowd check suggests: a 3-hour adventure with 20 areas, each area's art and music by a different contributor, played to the credits by 5 people on original hardware. honestly, even that is a fun-sized project more than a meaningful one. i'd drop it unless the crowd version excites you. say 'no' to drop, or 'yes' for the crowd version.",
+      "at": "2026-10-09T01:49:12.442078+00:00"
+    }
+  ],
+  "minecraft-in-doom-survival": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:49:28.354Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "approved, noted. one dependency: minecraft in doom itself is being rethought (your freedoom-episode-1-in-blocks idea, waiting on its card). once that's settled i'll rewrite this survival variant to match, so the two stay one family.",
+      "at": "2026-10-09T01:49:36.691109+00:00"
+    }
+  ],
+  "dots-and-boxes-5x5": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:49:58.747Z"
+    }
+  ],
+  "a-clock-set-by-the-stars": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "could we create a model that can identify a dark starry sky using a simple array of very sensitive pxels? a blurry array should be enough to determine the sky its looking at?",
+      "at": "2026-10-09T01:51:40.337Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "yes, and it's a better shwarm than the clock. satellites already do this with 'star trackers': a small camera finds a few bright stars and matches their pattern against a catalog to know exactly which way it's pointing. they cost thousands. a blurry, very low-res array can still work, because it only needs the brightest handful of stars and their angles, not detail; the hard parts are noise, clouds, light pollution and a tiny lens. once it knows the sky it's looking at plus the time, it knows which way is north and roughly your latitude, with no gps. sketch: 'a $20 star compass'. done when: an open design under $20 in parts, with a sensor of at most 64x64 pixels, gives heading within 2 degrees and latitude within 1 degree on clear nights, tested by at least 30 builders in at least 10 countries against their phone's gps, every result logged. the crowd is the point: skies, latitudes and light pollution nobody can test alone. want me to rewrite the card that way?",
+      "at": "2026-10-09T01:51:55.945397+00:00"
+    }
+  ],
+  "printed-pipe-organ": [
+    {
+      "from": "myra",
+      "choice": "question",
+      "text": "hmm, how about a 3d printed...horn or trumpet or something, that is generationally generated to be as close to matching as possible to a professional counterpart, but printed in PLA",
+      "at": "2026-10-09T01:52:44.313Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "love it. plastic trumpets already exist (you can buy them), but they don't sound like a good brass one. the open question is whether design can close the gap: let a computer evolve the inside shape of the tube and bell (what players call the bore) in an acoustics simulation until its resonances match a professional trumpet's, then print it in pla. the crowd part is real: dozens of different printers (does it still work when someone else prints it?), players to test how it plays, and blind listeners. sketch: 'a pla trumpet you can't tell from brass'. done when: an open, simulation-evolved trumpet design, printed in pla by at least 20 people on their own printers, has its first 8 resonances within 10 cents of a professional brass trumpet's on every print, and in a blind test of recordings by the same players, at least 50 listeners pick the plastic one no better than chance (under 60% right). checks: a run that measures resonances from a recording of a frequency sweep, plus a human player's verdict. want me to rewrite the card that way?",
+      "at": "2026-10-09T01:52:58.924030+00:00"
+    }
+  ],
+  "amazing-grace-100-voices": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "no",
+      "at": "2026-10-09T01:53:23.176Z"
+    }
   ]
 }
