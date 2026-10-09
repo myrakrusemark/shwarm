@@ -8,6 +8,7 @@ import { scheduled } from './jobs'
 import { auth } from './auth/routes'
 import { page } from './web/viewer'
 import { nodeRoutes } from './web/node-routes'
+import { profile } from './web/profile'
 export { ShwarmTree } from './do/shwarm-tree'
 
 type Env = { DB: D1Database; TREE: DurableObjectNamespace; ENV: string; SITE_MODE: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string }
@@ -64,6 +65,7 @@ app.get('/.well-known/security.txt', c =>
 app.route('/', auth)
 
 app.route('/w', nodeRoutes) // shwarm and branch pages, text prompt and Node JSON (steps 3.3, 3.4, 3.6)
+app.route('/', profile) // /@handle and the name view (step 3.5)
 
 // Footer pages and guides (live on production since go-live step 1.8b).
 app.get('/:slug{[a-z0-9-]+}', (c, next) => {
