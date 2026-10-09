@@ -872,3 +872,4 @@ Ideas wait here until after launch, unless they block the launch done test. Add 
 - (2026-10-07, plan review) Invite codes; the allow-list covers launch.
 - (2026-10-07, plan review) A script that diffs every page against its mockup and refreshes the screenshots by itself.
 - (2026-10-07, plan review) Branch protection on main, once a second maintainer joins.
+- The manifesto as a dated article alongside the other footer articles, each article with a date (Myra, Oct 9: "let's worry about that later"). Until then it stays on the holding page.
