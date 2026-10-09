@@ -2,7 +2,7 @@
 
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
-**Now (Claude):** phase 2 merged and on staging (2.3, 2.5, 2.8 done; 2.6 and 2.7 waiting on Myra). Next: 2.9 @myra on prod once the Resend keys are in, then phase 3 (reading pages).
+**Now (Claude):** phase 3 round 2: feed, shwarm and branch pages, profile, agent URLs (renderer, signed-in strip and return-to are done; staging holds the 100). Then round 3: error pages, mobile, accessibility.
 **Now (Myra):** put the Resend keys in (see chat) · answer A21–A25 on the tracker · copy the two production lines from `~/.config/shwarm/secrets.txt` into your password manager · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
 **Last updated:** 2026-10-08.
 
@@ -437,7 +437,8 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 
 Myra starts proofreading wave 1 (11.1) as soon as 3.1 has it on staging. From 3.10 on, prod runs in beta mode, every phase deploys to prod as well as staging, and each wave-1 shwarm goes to prod as soon as Myra approves it.
 
-**3.1 Seed import tool**
+**3.1 Seed import tool** · done
+- *(Oct 9: `scripts/seed-launch.ts` (run with `npx vite-node`), workflow-built and reviewed (7 findings fixed). Maps the JSON through core as @myra via 'seed' into one guarded .sql file; dry run lists every changed, normalized or dropped field; idempotent by slug; production needs `--allow-production --slugs`; staging `--replace` restores a Time Travel bookmark (runbook). Staging holds all 100 plus the running example. Open: how 'seeded by @myra' shows in the log (no tenth event type yet); which non-A2 upstream licenses count as open; the pinned sources post vs the feed status line.)*
 - **what:** `scripts/seed-launch.ts` maps launch-shwarms.json to create calls (command split from its description, builds-on text parsed into name, url and license, why_now into what, sources as the pinned first post), idempotent by slug, with a dry-run report. Runs through core as @myra with seat 1, lobby 2 and `via=seed` (A18). Load all 100 plus the running example on staging.
 - **who:** Claude · **needs:** 2.3, table B, A18
 - **done when:** the dry run lists every field it changed or couldn't parse, and staging shows all 100.
@@ -467,7 +468,8 @@ Myra starts proofreading wave 1 (11.1) as soon as 3.1 has it on staging. From 3.
 - **who:** Claude · **needs:** 3.3
 - **done when:** `curl https://staging.shwarm.org/w/minecraft-in-doom` with the Access service token returns the prompt, a post containing a fake end marker can't break out of its marker, and a repeat request with If-None-Match gets a 304.
 
-**3.7 Stats and ranking jobs**
+**3.7 Stats and ranking jobs** · done
+- *(Oct 9: `src/jobs/stats.ts` every 5 minutes, incremental, migration 0005; impact, hot, scores, status lines and hidden header counters; reviewed (3 findings fixed, incl. chunking to stay inside the free CPU limit). Its defaults (bump decay, 7-day windows, lobby score ignoring seat 1) wait for Myra's read-through in 3.9.)*
 - **what:** 5-minute rollup of node and person stats, impact, posts/day, people, hot, scores and status lines; header counters (hidden, previewed only by admins with `?stats`).
 - **who:** Claude · **needs:** 2.3
 - **done when:** tests with fixed fixtures give the expected impact, hot and rank.
