@@ -20,14 +20,17 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-async function shwarm(env: TestEnv, path: string, title: string, o: { hidden?: boolean; triage?: string } = {}) {
+async function shwarm(env: TestEnv, path: string, title: string, o: { hidden?: boolean; triage?: string; seeded?: boolean } = {}) {
   const author = await addPerson(env.DB, `a_${path.replace(/[^a-z0-9]/g, '_').slice(0, 20)}`)
+  // A branch when the path has a slash: its parent is the node one level up, its root the first segment.
+  const up = path.includes('/') ? (env.DB.raw.prepare('SELECT id, root_id FROM node WHERE path = ?').get(path.replace(/\/[^/]+$/, '')) as { id: number; root_id: number | null }) : null
   env.DB.raw
     .prepare(
-      `INSERT INTO node (path, slug, kind, title, what, done_when, checks, lobby_size, license, author_id, posted_by, state, hidden, triage, created_at)
-       VALUES (?, ?, 'shwarm', ?, 'w', 'd', '{"author":true}', 10, 'MIT', ?, '@a', 'lobby', ?, ?, ?)`,
+      `INSERT INTO node (path, slug, kind, parent_id, root_id, title, what, done_when, checks, lobby_size, license, author_id, posted_by, state, hidden, triage, seeded, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'w', 'd', '{"author":true}', 10, 'MIT', ?, '@a', 'lobby', ?, ?, ?, ?)`,
     )
-    .run(path, path, title, author, o.hidden ? 1 : 0, o.triage ?? 'pending', new Date(T0).toISOString())
+    .run(path, path.split('/').pop(), up ? 'branch' : 'shwarm', up?.id ?? null, up ? (up.root_id ?? up.id) : null, title, author, o.hidden ? 1 : 0, o.triage ?? 'clear', o.seeded ? 1 : 0, new Date(T0).toISOString())
+  return author
 }
 
 /** The value of a hidden input on a page. */
@@ -84,11 +87,20 @@ describe('return-to links', () => {
     await shwarm(env, 'minecraft-in-doom', 'minecraft in doom')
     await shwarm(env, 'secret-thing', 'secret thing', { hidden: true })
     await shwarm(env, 'held-thing', 'held thing', { triage: 'held' })
+    const checking = await shwarm(env, 'being-checked', 'being checked', { triage: 'pending' })
+    await shwarm(env, 'launch-seed', 'launch seed', { triage: 'pending', seeded: true })
+    await shwarm(env, 'held-thing/a-branch', 'a branch of a held thing')
     expect(await backLabel(env.DB, '/w/minecraft-in-doom')).toBe('minecraft in doom')
     expect(await backLabel(env.DB, '/w/minecraft-in-doom/?sort=new#p_1')).toBe('minecraft in doom')
     expect(await backLabel(env.DB, '/w/minecraft-in-doom/s/2')).toBe('minecraft in doom')
     expect(await backLabel(env.DB, '/w/secret-thing')).toBe('where you were')
     expect(await backLabel(env.DB, '/w/held-thing')).toBe('where you were')
+    // Still being checked: only its author learns the title, as on the reading pages; a seed is public.
+    expect(await backLabel(env.DB, '/w/being-checked')).toBe('where you were')
+    expect(await backLabel(env.DB, '/w/being-checked', checking)).toBe('being checked')
+    expect(await backLabel(env.DB, '/w/launch-seed')).toBe('launch seed')
+    // A clear branch under a held shwarm stays hidden with it.
+    expect(await backLabel(env.DB, '/w/held-thing/a-branch')).toBe('where you were')
     expect(await backLabel(env.DB, '/w/nope')).toBe('where you were')
     expect(await backLabel(env.DB, '/w/%E0%A4%A')).toBe('where you were')
     expect(await backLabel(env.DB, '/rules')).toBe('where you were')

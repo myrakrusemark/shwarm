@@ -14,6 +14,7 @@ export type MailTemplate =
   | 'email_change_new'
   | 'email_change_old'
   | 'signup_existing'
+  | 'triage_alert' // to the admins: a node triage held or flagged (go-live 8.1, triage/run.ts)
 
 export type Mail = {
   to: string
@@ -32,6 +33,20 @@ export function mailStatement(db: D1Database, m: Mail, now = new Date().toISOStr
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(m.to.toLowerCase(), m.personId ?? null, m.template, m.stream, JSON.stringify(m.payload ?? {}), now, m.sendAfter ?? now)
+}
+
+/**
+ * The same INSERT, made only when `when` (a SQL condition with its own binds) holds as the batch reaches it. For
+ * mail that must go once per event even when two runs race: the condition reads state an earlier statement in
+ * the same batch is about to change (triage/run.ts puts its alert before the UPDATE that holds the node).
+ */
+export function mailWhenStatement(db: D1Database, m: Mail, when: string, whenArgs: unknown[], now = new Date().toISOString()): D1PreparedStatement {
+  return db
+    .prepare(
+      `INSERT INTO email_outbox (to_email, person_id, template, stream, payload, created_at, send_after)
+       SELECT ?, ?, ?, ?, ?, ?, ? WHERE ${when}`,
+    )
+    .bind(m.to.toLowerCase(), m.personId ?? null, m.template, m.stream, JSON.stringify(m.payload ?? {}), now, m.sendAfter ?? now, ...whenArgs)
 }
 
 export async function enqueueMail(db: D1Database, m: Mail, now?: string): Promise<void> {

@@ -176,7 +176,7 @@ describe('the shwarm page (3.3)', () => {
     expect((await b.req('/w/a-quiet-goal', { headers: HTML })).status).toBe(404)
     const own = await reader.b.req('/w/a-quiet-goal', { headers: HTML })
     expect(own.status).toBe(200)
-    expect(await body(own)).toContain("only you can see this for now: triage hasn't cleared it yet.")
+    expect(await body(own)).toContain("being checked. only you can see this for now; it's usually done in a minute.")
     const other = await member(env, 'other')
     expect((await other.b.req('/w/a-quiet-goal', { headers: HTML })).status).toBe(404)
     env.DB.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = 'a-quiet-goal'").run()

@@ -12,7 +12,7 @@ import type { CheckSpec } from '../core/checks'
 import type { BuiltOnLink, Chain, CheckReport, Child, NodeHead, PromptPost, Seat, SubmissionRow } from '../read/node'
 import { openReview, recordedStatus, review } from '../read/review'
 import { BIDI_RE, escapeOf, showHidden } from './hidden'
-import { dayOf, licenseName, perDay, plural, q1 } from './format'
+import { dayOf, licenseName, perDay, plural, q1, triageNote } from './format'
 
 export type AgentView = {
   origin: string
@@ -76,7 +76,7 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
   if (n.tags.length) line(`tags:   ${n.tags.map(t => '#' + t).join(' ')}`)
   const knownLicense = LICENSES.includes(n.license)
   if (knownLicense) line(`license: ${licenseName(n.license)}${n.kind === 'branch' ? ', inherited' : ''}`)
-  if (n.visibility === 'author') line('note:   only you can see this for now: triage hasn\'t cleared it yet.')
+  if (n.visibility === 'author') line(`note:   ${flat(triageNote(n))}`)
   line()
 
   if (n.builds_on || !knownLicense) {

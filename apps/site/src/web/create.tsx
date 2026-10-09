@@ -1,8 +1,8 @@
 // The create form, /new (go-live 4.2), ported from mockups/new.html in shwarm mode: title, what, done when, how
 // it's checked (at least one check), tags, lobby (min 2, default 10), builds on, license. It publishes a lobby with
 // the author in seat 1 through the shwarm tree (core/nodes.ts createNode), counted toward 3 new nodes a day, and
-// goes to the new page. New nodes wait for triage (8.1); until then the hook is the 'pending' state createNode
-// writes, and production keeps creation paused (setting pause_new_nodes).
+// goes to the new page. New nodes start 'pending' and triage (8.1, triage/run.ts) runs right after the redirect;
+// production keeps creation paused (setting pause_new_nodes) until the seeds are checked.
 //
 // Builds on: paste a passed shwarm's link or path, or any link. GitHub repo links get their name and SPDX license
 // from the GitHub API; any other link is stored as its URL and a name, with the license typed in. A builds-on
@@ -12,7 +12,7 @@ import { Hono, type Context } from 'hono'
 import type { FC } from 'hono/jsx'
 import { ShwarmError } from '@shwarm/protocol'
 import { formToken } from '../auth/csrf'
-import { formOf, FORM_FIELD, postedTokenOk, who, type AuthContext } from '../auth/request'
+import { formOf, FORM_FIELD, later, postedTokenOk, who, type AuthContext } from '../auth/request'
 import { signInHref } from '../auth/return-to'
 import { siteActor } from '../core/actor'
 import { DEFAULT_RUNS } from '../core/checks'
@@ -20,11 +20,12 @@ import { DEFAULT_LOBBY, LICENSES, type CreateNodeInput } from '../core/nodes'
 import { MAX_TEXT, MAX_TITLE } from '../core/text'
 import { runInTree } from '../do/shwarm-tree'
 import { licenseName } from '../render/format'
+import { triageNew } from '../triage/run'
 import { waitText } from './errors'
 import { AgentResources, Layout } from './layout'
 import { page } from './viewer'
 
-type Env = { Bindings: { DB: D1Database; TREE: DurableObjectNamespace; CSRF_SECRET: string; ENV: string; SITE_MODE: string } }
+type Env = { Bindings: { DB: D1Database; TREE: DurableObjectNamespace; AI: Ai; TRIAGE_MODEL?: string; CSRF_SECRET: string; ENV: string; SITE_MODE: string } }
 type C = Context<Env>
 
 export const MIN_LOBBY = 2 // go-live 4.2: a lobby is at least 2 people
@@ -151,7 +152,7 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; verif
                 </div>
               </div>
               <div class="go">
-                <span class="note" id="go-note">your shwarm goes live right away. its lobby opens with you in seat 1.</span>
+                <span class="note" id="go-note">a quick automatic check runs first. until it's done, usually within a minute, only you can see it. you start in seat 1 of its lobby.</span>
                 <button class="btn" type="submit" id="go">start shwarm + open lobby</button>
               </div>
             </form>
@@ -166,7 +167,7 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; verif
                 <li><b>open.</b> everything made is published under an open license.</li>
                 <li><b>harmless.</b> nothing here hurts people.</li>
               </ol>
-              <p class="note">a triage agent reads every new shwarm and branch. it may suggest a sharper done test, but it only blocks for harm.</p>
+              <p class="note">an automatic check reads every new shwarm and branch before anyone else sees it. it only looks for harm, never at whether an idea is good.</p>
             </div>
           </div>
           <AgentResources />
@@ -287,6 +288,8 @@ create.post('/new', async (c: C) => {
       buildsOn,
     }
     const r = await runInTree<{ path: string }>(c.env.TREE, { type: 'createNode', actor: siteActor({ id: session.personId, handle: session.handle }), input })
+    // After the response (waitUntil), so the redirect doesn't wait on the model. The author sees "being checked" until then.
+    await later(c, () => triageNew(c.env, r.path))
     return c.redirect(`/w/${r.path}`, 303)
   } catch (e) {
     if (!(e instanceof ShwarmError)) throw e

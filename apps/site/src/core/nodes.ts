@@ -231,7 +231,9 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
         ...guardArgs,
       ),
   ]
-  // OPEN: triage (A8) holds new nodes; until phase 8 builds it, node.triage stays at its 'pending' default.
+  // node.triage starts at its 'pending' default ("being checked", A8). Triage runs after this batch, outside the tree:
+  // each caller hands the new path to triage/run.ts triageNew (web/create.tsx does), and the minute sweep catches
+  // any it misses.
   for (const t of tags) stmts.push(ctx.db.prepare('INSERT INTO node_tag (node_id, tag) SELECT id, ? FROM node WHERE path = ?').bind(t, path))
   if (seated)
     stmts.push(ctx.db.prepare("INSERT INTO seat (node_id, person_id, number, joined_at) SELECT id, ?, 1, ? FROM node WHERE path = ?").bind(person.id, ctx.at, path))

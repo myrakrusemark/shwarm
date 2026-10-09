@@ -9,7 +9,7 @@ import type { CheckSpec } from '../core/checks'
 import type { BuiltOnBy, BuiltOnLink, Chain, CheckReport, Child, Contributor, NodeHead, PostRow, Seat, Show, Sort, SubmissionRow, Thread } from '../read/node'
 import { SHOWS, SORTS } from '../read/node'
 import { isOpen, openReview, recordedStatus, review, type ReviewRow } from '../read/review'
-import { ago, cut, dayOf, exact, licenseName, perDay, plural, q1, shortNum } from '../render/format'
+import { ago, cut, dayOf, exact, licenseName, perDay, plural, q1, shortNum, triageNote } from '../render/format'
 import { showHidden } from '../render/hidden'
 import { MAX_TEXT } from '../core/text'
 import { Command, LINK_REL, linkParts, Name, Plain, tagHref, Text } from '../render/text'
@@ -55,9 +55,7 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
     <Layout title={`${showHidden(n.title)} · shwarm`} description={cut(showHidden(n.what), 200)}>
       <link rel="stylesheet" href="/css/node.css" />
       {isBranch ? <Crumbs chain={d.chain} /> : <a class="back" href="/">← back to hot</a>}
-      {n.visibility === 'author' && (
-        <p class="held">{n.triage === 'blocked' ? 'triage blocked this. only you can see it.' : "only you can see this for now: triage hasn't cleared it yet."}</p>
-      )}
+      {n.visibility === 'author' && <p class="held">{triageNote(n)}</p>}
       <Head d={d} />
       <div class="grid">
         <main id="main" tabindex={-1}>

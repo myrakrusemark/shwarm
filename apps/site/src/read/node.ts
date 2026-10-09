@@ -7,6 +7,8 @@ import { isId } from '../core/ids'
 import { MAX_PATH } from '../core/context'
 import type { CheckSpec } from '../core/checks'
 import type { NodeKind, NodeState } from '../core/context'
+import { HAND_MODEL, parseBlockReason } from '../triage/decide'
+import type { Category } from '../triage/rubric'
 
 // ---------- visibility (A8, A18) ----------
 
@@ -111,9 +113,12 @@ export type NodeHead = {
   stats: NodeStatsRow | null
   variant_of: { path: string; title: string } | null
   visibility: Visibility
+  /** A blocked node's category and Myra's reason (her latest triage decision), for its author's banner. */
+  blocked: { category: Category; reason: string } | null
 }
 
-type HeadRow = Omit<NodeHead, 'spec' | 'builds_on' | 'tags' | 'stats' | 'variant_of' | 'visibility' | 'author'> & {
+type HeadRow = Omit<NodeHead, 'spec' | 'builds_on' | 'tags' | 'stats' | 'variant_of' | 'visibility' | 'author' | 'blocked'> & {
+  block_reason: string | null
   checks: string
   builds_on: string | null
   author_handle: string
@@ -192,6 +197,7 @@ function toHead(r: HeadRow, viewerId: number | null): NodeHead {
           },
     variant_of: r.v_path && r.v_public ? { path: r.v_path, title: r.v_title ?? '' } : null,
     visibility: visibility(r, viewerId),
+    blocked: r.triage === 'blocked' ? parseBlockReason(r.block_reason) : null,
   }
 }
 
@@ -213,7 +219,8 @@ export async function readChain(db: D1Database, path: string, viewerId: number |
               s.impact AS s_impact, s.posts_per_day AS s_posts_per_day, s.people AS s_people, s.hot AS s_hot, s.upvotes AS s_upvotes,
               s.posts AS s_posts, s.status_line AS s_status_line, s.updated_at AS s_updated_at,
               v.path AS v_path, v.title AS v_title, ${VISIBLE_SQL('v')} AS v_public, bo.title AS bo_title,
-              (SELECT value FROM setting WHERE key = 'moderated_at') AS moderated
+              (SELECT value FROM setting WHERE key = 'moderated_at') AS moderated,
+              CASE WHEN n.triage = 'blocked' THEN (SELECT d.reason FROM triage_decision d WHERE d.node_id = n.id AND d.model = '${HAND_MODEL}' ORDER BY d.id DESC LIMIT 1) END AS block_reason
        FROM node n
        JOIN person p ON p.id = n.author_id
        LEFT JOIN node_stats s ON s.node_id = n.id

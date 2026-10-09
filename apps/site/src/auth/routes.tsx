@@ -121,7 +121,7 @@ auth.post('/verify', async c => {
 auth.get('/verified', async c => {
   const w = await who(c)
   const next = await openNext(c.env.CSRF_SECRET, c.req.query('n'), 'verified')
-  const back = next && next !== '/' ? { href: next, label: await backLabel(c.env.DB, next) } : undefined
+  const back = next && next !== '/' ? { href: next, label: await backLabel(c.env.DB, next, w.session?.personId ?? null) } : undefined
   return render(c, <VerifiedPage signedIn={!!w.session} back={back} />)
 })
 

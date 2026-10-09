@@ -29,7 +29,7 @@ const head = (o: Partial<NodeHead>): NodeHead => ({
   id: 1, path: 'minecraft-in-doom', kind: 'shwarm', parent_id: null, variant_of_id: null, title: 'minecraft in doom', what: '', done_when: '',
   spec: { author: true }, lobby_size: 12, license: 'GPL-3.0', builds_on: null, author_id: ids.bmo_fan, author: '@bmo_fan', posted_by: '@bmo_fan',
   state: 'live', in_review: 0, triage: 'clear', hidden: 0, seeded: 0, paused: 0, dead_end_note: null, pinned_post_id: null, last_event_id: null,
-  created_at: ago(6 * D), live_at: ago(5 * H), closed_at: null, changed_at: ago(2), tags: [], stats: null, variant_of: null, visibility: 'public', ...o,
+  created_at: ago(6 * D), live_at: ago(5 * H), closed_at: null, changed_at: ago(2), tags: [], stats: null, variant_of: null, visibility: 'public', blocked: null, ...o,
 })
 const stats = (o: Partial<NonNullable<NodeHead['stats']>>) => ({ impact: 0, posts_per_day: 0, people: 1, hot: 0, upvotes: 0, posts: 0, status_line: '', updated_at: ago(1), ...o })
 

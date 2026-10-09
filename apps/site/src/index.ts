@@ -13,7 +13,7 @@ import { profile } from './web/profile'
 import { errorHandler, notFoundHandler } from './web/errors'
 export { ShwarmTree } from './do/shwarm-tree'
 
-type Env = { DB: D1Database; TREE: DurableObjectNamespace; ENV: string; SITE_MODE: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string }
+type Env = { DB: D1Database; TREE: DurableObjectNamespace; AI: Ai; TRIAGE_MODEL?: string; ENV: string; SITE_MODE: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string }
 
 const app = new Hono<{ Bindings: Env }>()
 
@@ -94,5 +94,5 @@ app.route('/', mailRoutes) // /unsubscribe, /hooks/resend (step 2.6)
 app.notFound(notFoundHandler)
 app.onError(errorHandler)
 
-// The runtime calls fetch for requests and scheduled for cron (the outbox sweep, step 2.6).
+// The runtime calls fetch for requests and scheduled for cron (the outbox and triage sweeps, steps 2.6 and 8.1).
 export default Object.assign(app, { scheduled })
