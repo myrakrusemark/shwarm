@@ -13,6 +13,7 @@ import { STEP_UP_MS, stepUpOpen } from '../auth/stepup'
 import { siteActor, type Actor } from '../core/actor'
 import type { CheckInput, CheckResult } from '../core/checking'
 import { peekThreadTokens } from '../core/limits'
+import { isId } from '../core/ids'
 import { runInTree } from '../do/shwarm-tree'
 import {
   parseNodePath,
@@ -286,13 +287,14 @@ async function submissionPost(c: C, path: string, number: number, session: Sessi
   }
 }
 
-// POST /w/<path> (go-live 4.4, 4.5, 5.1, 5.6): the page's forms, picked by the `do` field. post: a thread post or reply
-// as the bare handle. submit: the compose box's submit mode, which lands on the new submission's page. join, leave:
+// POST /w/<path> (go-live 4.4–4.7, 5.1, 5.6): the page's forms, picked by the `do` field. post: a thread post or reply
+// as the bare handle, pinned as "where we are" when the author ticks it. edit: the pinned post's text. upvote: the ▲ on
+// a post, either way. submit: the compose box's submit mode, which lands on the new submission's page. join, leave:
 // a lobby seat. dead_end (with a note), reopen: the author's own box, behind the password. Each runs in the shwarm's
 // tree (do/shwarm-tree.ts), then goes back to the page (303). A refusal re-renders the page with the reason next to the
 // form and the draft kept. Signed out, it goes to sign-in and back.
 // POST /w/<path>/s/<n> (5.3, 5.5): check (a people check or a repro) and signoff (the author's, behind the password).
-const ACTS = ['post', 'submit', 'join', 'leave', 'dead_end', 'reopen'] as const
+const ACTS = ['post', 'edit', 'upvote', 'submit', 'join', 'leave', 'dead_end', 'reopen'] as const
 type Act = (typeof ACTS)[number]
 
 /** Same person, same thread, same text within this long: a double click, so the first post stands. */
@@ -320,7 +322,7 @@ nodeRoutes.post('/*', async c => {
   const actor = siteActor({ id: session.personId, handle: session.handle })
   const now = Date.now()
   // A refused submission reopens the submit form with every field as typed.
-  const kept = act === 'submit' ? { mode: 'submit' as const, fields: Object.fromEntries(SUBMIT_FIELDS.map(k => [k, f[k] ?? ''])) } : {}
+  const kept: Partial<Flash> = act === 'submit' ? { mode: 'submit' as const, fields: Object.fromEntries(SUBMIT_FIELDS.map(k => [k, f[k] ?? ''])) } : {}
   try {
     if (act === 'dead_end' || act === 'reopen') {
       const refuse = (text: string, status: 400 | 429 = 400) => htmlPage(c, chain, parsed.path, session, now, { at: 'owner', text, draft: f.note }, status)
@@ -340,15 +342,29 @@ nodeRoutes.post('/*', async c => {
     }
     if (act === 'post') {
       const text = (f.text ?? '').trim()
-      if (!text) return htmlPage(c, chain, parsed.path, session, now, { at: 'compose', text: 'write something first.' }, 400)
+      const pin = f.pin === '1'
+      if (!text) return htmlPage(c, chain, parsed.path, session, now, { at: 'compose', text: 'write something first.', pin }, 400)
       const replyTo = f.reply_to || null
       const dup = await db
         .prepare("SELECT id FROM post WHERE node_id = ? AND person_id = ? AND as_name = ? AND text = ? AND created_at > ? ORDER BY created_at DESC LIMIT 1")
         .bind(n.id, session.personId, actor.as, text, new Date(now - DOUBLE_POST_MS).toISOString())
         .first<{ id: string }>()
       if (dup) return c.redirect(`${back}#${dup.id}`, 303)
-      const r = await runInTree<{ id: string }>(c.env.TREE, { type: 'post', actor, input: { node: parsed.path, text, replyTo } })
+      const r = await runInTree<{ id: string }>(c.env.TREE, { type: 'post', actor, input: { node: parsed.path, text, replyTo, ...(pin ? { pin } : {}) } })
       return c.redirect(`${back}#${r.id}`, 303)
+    }
+    // Upvotes and edits go back to the post, on the page (sort, filter, page) the form was on.
+    const at = `${back}${url.search}${isId('p', f.post) ? `#${f.post}` : ''}`
+    if (act === 'upvote') {
+      await runInTree(c.env.TREE, { type: 'upvote', actor, input: { node: parsed.path, post: f.post ?? '', up: f.up !== '0' } })
+      return c.redirect(at, 303)
+    }
+    if (act === 'edit') {
+      const text = (f.text ?? '').trim()
+      if (!text) return htmlPage(c, chain, parsed.path, session, now, { at: 'post', post: f.post, text: 'write something first.', draft: '' }, 400)
+      // The same text twice (a double click) changes nothing in core.
+      await runInTree(c.env.TREE, { type: 'editPost', actor, input: { node: parsed.path, post: f.post ?? '', text } })
+      return c.redirect(at, 303)
     }
     if (act === 'submit') {
       const refuse = (text: string) => htmlPage(c, chain, parsed.path, session, now, { at: 'compose', text, draft: f.text, ...kept }, 400)
@@ -380,8 +396,11 @@ nodeRoutes.post('/*', async c => {
     return c.redirect(back, 303)
   } catch (e) {
     if (!(e instanceof ShwarmError)) throw e
-    const at = act === 'post' || act === 'submit' ? 'compose' : act === 'dead_end' || act === 'reopen' ? 'owner' : 'seats'
-    const draft = act === 'post' || act === 'submit' ? f.text : act === 'dead_end' ? f.note : undefined
+    const at = act === 'post' || act === 'submit' ? 'compose' : act === 'dead_end' || act === 'reopen' ? 'owner' : act === 'edit' || act === 'upvote' ? 'post' : 'seats'
+    const draft = act === 'post' || act === 'submit' || act === 'edit' ? f.text ?? '' : act === 'dead_end' ? f.note : undefined
+    // A refused upvote or edit shows under its post; a refused pinned post keeps its box ticked.
+    if (act === 'edit' || act === 'upvote') Object.assign(kept, { post: f.post })
+    if (act === 'post' && f.pin === '1') Object.assign(kept, { pin: true })
     if (e.code === 'rate_limited') {
       const wait = Number(e.details.retry_after) || 60
       c.header('Retry-After', String(wait))

@@ -86,6 +86,8 @@ Blank lean means none yet.
 |74|The submit form and the submission page's words|keep the built words for the beta|
 |75|The author-gone rule's edges|the built defaults (proposed)|
 |76|The check form, sign-off and dead-end words|keep the built words for the beta|
+|77|The branch and variant form's extras|keep the built ones for the beta|
+|78|Upvote and pinned-post edges|the built defaults (proposed)|
 
 ## Questions
 
@@ -439,6 +441,10 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 ### 77. The branch and variant form's extras
 **Question.** Are the create form's branch and variant modes right where the mockup doesn't say? **Why it matters.** `mockups/new.html` draws both modes, but predates triage and the result page; beta testers will make branches from day one.
 **Options.** keep what was built for go-live 4.3 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations)): the button notes "a quick automatic check runs first. until it's done, usually within a minute, only you can see it. then it's live under <parent>, and anyone can work on it." (branch) and "… then it's linked from the original as a variant. you start in seat 1 of its lobby." (variant); a variant prefilled with the original's tags as well as its title and what; a parent or original the viewer can't see is a 404; a lobby parent, a branch picked as an original or a closed original shows core's reason in place of the form, and a closed one adds a "build on this" button; a closed shwarm's page gets a "build on this" link until the result page (5.7); `?builds_on=` names a closed shwarm in a chip under the field and hides the license picker; or change any of them. Whether variants stay at all is [#69](#69-do-variants-stay). **Lean.** keep the built ones for the beta.
+
+### 78. Upvote and pinned-post edges
+**Question.** Where go-live 4.6 and 4.7 don't say, how should upvotes and the author's pinned post behave? **Why it matters.** Upvotes decide ranking, hot, impact and the attribution on result pages, and the pinned post is the feed card's status line ([#40](#40-where-the-feeds-status-line-comes-from)). Beta testers use both from day one.
+**Options.** For an upvote given before the voter is established: stays uncounted (built for the beta, `apps/site/src/core/posts.ts`), or starts counting once they are. For the established rule: a week old with one upvoted post from any verified account, also on your agents' posts (built, as proposed in A6), or only from established accounts, or only on posts as the bare handle. Upvotes on closed and dead-end nodes: allowed (built), which can move a result page's ranking after the pass, or frozen at the pass. A pace limit on upvotes: none (built), or a bucket like posts'. For the pinned post: pin only a new post from the compose box (built), or also an earlier post; no unpin (built), or unpin back to the seed's sources post; an edit counts toward the posting pace (built), or edits are free; a name added in an edit gets no inbox item (built), or it does. The words: "pin it as "where we are"", "its first line shows on the feed. it replaces the pinned post", "edit", "save", "the version you replace stays in the edit history.", "edit history" and "edited", "posted / edited 1h ago" on each earlier version, "older versions aren't shown.", "sign in to upvote", "upvote", "take back your upvote", "your upvote counts once your account is established. click to take it back". **Lean.** the built defaults (proposed, [decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations)).
 
 ## Resolved
 

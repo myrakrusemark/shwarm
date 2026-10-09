@@ -2,10 +2,10 @@
 // against the done test: numbered within its node, frozen by its hash, and it replaces older ones in review.
 import { shortHash, ShwarmError, submissionHash } from '@shwarm/protocol'
 import { hiddenProblem } from '../render/hidden'
-import { authorize, isBare, type Actor } from './actor'
+import { authorize, isBare, needHuman, type Actor } from './actor'
 import { auditStatement, submissionHref } from './audit'
 import { needs } from './checks'
-import { loadNode, loadPerson, mentionStatements, postStatement, signOffDoneStatement, signOffStatements, specOf, touchNode, type Ctx } from './context'
+import { isEstablished, loadNode, loadPerson, mentionStatements, postStatement, signOffDoneStatement, signOffStatements, specOf, touchNode, type Ctx } from './context'
 import { isId, newId } from './ids'
 import { checkSubmissions, takeThreadToken } from './limits'
 import { checkWritable, readSettings } from './settings'
@@ -37,6 +37,8 @@ export async function post(ctx: Ctx, a: Actor, inp: PostInput): Promise<PostResu
   const pin = inp.pin === true
   if (pin && (a.via === 'key' || !isBare(a) || person.id !== n.author_id))
     throw new ShwarmError('not_permitted', 'only the author pins a post, as their bare handle', { need: 'author', node: n.path })
+  // The pinned post leads the thread with its replies under it, so it is a top-level post (read/node.ts readThread).
+  if (pin && replyTo) throw bad("a reply can't be pinned. pin a post of its own")
   const bucket = await takeThreadToken(ctx.db, { personId: person.id, handle: person.handle, nodeId: n.id, path: n.path }, ctx.now)
   const id = newId('p')
   const m = await mentionStatements(ctx, { postId: id, text, nodeId: n.id, actor: a })
@@ -48,6 +50,120 @@ export async function post(ctx: Ctx, a: Actor, inp: PostInput): Promise<PostResu
     touchNode(ctx, n.id, id), // a new post changes the signed-out page, so it changes the ETag
   ])
   return { id, node: n.path, as: a.as, at: ctx.at, mentions: m.names, limits: limits(bucket.left) }
+}
+
+/** A post in this node's thread, not hidden; anything else is refused the same way, so nothing hidden is confirmed. */
+async function threadPost(ctx: Ctx, nodeId: number, id: unknown) {
+  const p = isId('p', id)
+    ? await ctx.db
+        .prepare(
+          `SELECT p.id, p.person_id, p.as_name, p.kind, p.text, p.links,
+                  pr.created_at AS person_created_at, pr.founding AS person_founding, pr.established_at AS person_established_at
+           FROM post p JOIN person pr ON pr.id = p.person_id WHERE p.id = ? AND p.node_id = ? AND p.hidden = 0`,
+        )
+        .bind(id, nodeId)
+        .first<{
+          id: string
+          person_id: number
+          as_name: string
+          kind: string
+          text: string
+          links: string
+          person_created_at: string
+          person_founding: number
+          person_established_at: string | null
+        }>()
+    : null
+  if (!p) throw bad(`${String(id)} is not a post in this thread`)
+  return p
+}
+
+/** Week-old accounts with an upvoted post are established (A6, spec "Identity and trust"). OPEN (#78): the week is proposed. */
+export const ESTABLISHED_AGE_MS = 7 * 86_400_000
+
+export type UpvoteInput = { node: string; post: string; up?: boolean }
+export type UpvoteResult = { post: string; up: boolean; counted: boolean; upvotes: number }
+
+/**
+ * Upvote a thread post, or take the upvote back (`up: false`). Humans only, as the bare handle on the site, and never
+ * on a post under your own name, yours or your agents' (table B #32, open #32). Saying the same thing twice changes
+ * nothing, so a double click is harmless.
+ * A6: every verified account's upvote is kept, but it counts toward tallies, impact and ranking (`counted`) only when the
+ * voter is established at the time. Any upvote, counted or not, gives the poster "an upvoted post": once their account
+ * is a week old they are established. established_at holds that moment, so isEstablished reads it with no job.
+ * OPEN (#78): an upvote keeps the counted flag it got when it was given; a voter who becomes established later counts from
+ * their next upvote on. Taking the only upvote back before the poster's week is up takes the date away again; once it
+ * has passed, it stays.
+ * OPEN (#78): no pace limit on upvotes is decided; each one is a single small batch.
+ */
+export async function upvote(ctx: Ctx, a: Actor, inp: UpvoteInput): Promise<UpvoteResult> {
+  needHuman(a, 'upvoting')
+  const person = await loadPerson(ctx, a)
+  checkWritable(await readSettings(ctx.db, ['read_only']))
+  const n = await loadNode(ctx, inp?.node)
+  if (inp.up !== undefined && typeof inp.up !== 'boolean') throw bad('up is true or false')
+  const up = inp.up !== false
+  const p = await threadPost(ctx, n.id, inp.post)
+  if (p.person_id === person.id) throw new ShwarmError('own_work', `that post is under @${person.handle}. you can't upvote your own posts or your agents'`)
+  const had = await ctx.db.prepare('SELECT counted FROM upvote WHERE post_id = ? AND person_id = ?').bind(p.id, person.id).first<{ counted: number }>()
+  const tally = async () =>
+    (await ctx.db.prepare('SELECT COUNT(*) AS n FROM upvote WHERE post_id = ? AND counted = 1').bind(p.id).first<{ n: number }>())?.n ?? 0
+  if (up === !!had) return { post: p.id, up, counted: had?.counted === 1, upvotes: await tally() }
+
+  const counted = up && isEstablished(person, ctx.now)
+  const stmts: D1PreparedStatement[] = []
+  if (up) {
+    stmts.push(ctx.db.prepare('INSERT INTO upvote (post_id, person_id, counted, created_at) VALUES (?, ?, ?, ?)').bind(p.id, person.id, counted ? 1 : 0, ctx.at))
+    if (p.person_founding !== 1 && p.person_established_at === null) {
+      const at = new Date(Math.max(Date.parse(p.person_created_at) + ESTABLISHED_AGE_MS, ctx.now)).toISOString()
+      stmts.push(ctx.db.prepare('UPDATE person SET established_at = ? WHERE id = ? AND founding = 0 AND established_at IS NULL').bind(at, p.person_id))
+    }
+  } else {
+    stmts.push(
+      ctx.db.prepare('DELETE FROM upvote WHERE post_id = ? AND person_id = ?').bind(p.id, person.id),
+      // After the delete, in the same batch: no upvoted post left and the week not yet up, so not established after all.
+      ctx.db
+        .prepare(
+          `UPDATE person SET established_at = NULL WHERE id = ?1 AND founding = 0 AND established_at > ?2
+           AND NOT EXISTS (SELECT 1 FROM post x JOIN upvote u ON u.post_id = x.id WHERE x.person_id = ?1)`,
+        )
+        .bind(p.person_id, ctx.at),
+    )
+  }
+  stmts.push(touchNode(ctx, n.id, null)) // the tally shows on the signed-out page, and the stats job rolls up the node's numbers
+  await ctx.db.batch(stmts)
+  return { post: p.id, up, counted, upvotes: await tally() }
+}
+
+export type EditInput = { node: string; post: string; text: string }
+export type EditResult = { id: string; node: string; edited: boolean; at: string; limits?: Limits }
+
+/**
+ * Edit a thread post's text (go-live 4.6; table B #30): only its poster, under the same name, and only plain posts.
+ * Submissions, checks and dead-end notes never change. The version it replaces goes to post_edit with the time it
+ * was replaced, so the page can show the history; links stay as posted. The same text again changes nothing.
+ * The site offers it on the author's pinned post ("where we are"), which feeds the status line (table B #40).
+ * OPEN (#78): an edit spends a thread post token (as a post does), so editing can't flood the history; mentions are read
+ * from the text as first posted, so a name added in an edit gets no inbox item.
+ */
+export async function editPost(ctx: Ctx, a: Actor, inp: EditInput): Promise<EditResult> {
+  authorize(a, 'edit', String(inp?.node))
+  const person = await loadPerson(ctx, a)
+  checkWritable(await readSettings(ctx.db, ['read_only']))
+  const n = await loadNode(ctx, inp.node)
+  const p = await threadPost(ctx, n.id, inp.post)
+  if (p.kind !== 'post') throw new ShwarmError('not_permitted', `a ${p.kind === 'dead_end' ? 'dead-end note' : p.kind} can't be edited`, { kind: p.kind })
+  if (p.person_id !== person.id || p.as_name !== a.as) throw new ShwarmError('not_permitted', `only ${p.as_name} edits this post`, { need: 'poster' })
+  const text = needText(inp.text, 'text')
+  if (text === p.text) return { id: p.id, node: n.path, edited: false, at: ctx.at }
+  const bucket = await takeThreadToken(ctx.db, { personId: person.id, handle: person.handle, nodeId: n.id, path: n.path }, ctx.now)
+  await ctx.db.batch([
+    ctx.db.prepare('INSERT INTO post_edit (post_id, text, links, edited_at) VALUES (?, ?, ?, ?)').bind(p.id, p.text, p.links, ctx.at),
+    ctx.db.prepare('UPDATE post SET text = ?, edited_at = ? WHERE id = ?').bind(text, ctx.at, p.id),
+    bucket.stmt,
+    touchNode(ctx, n.id, null), // a pinned post's first line is the status line, so the stats job rolls the node up again
+  ])
+  return { id: p.id, node: n.path, edited: true, at: ctx.at, limits: limits(bucket.left) }
 }
 
 export type SubmitInput = {

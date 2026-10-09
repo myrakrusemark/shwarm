@@ -6,8 +6,8 @@ import { shortHash } from '@shwarm/protocol'
 import type { Link } from '@shwarm/protocol'
 import { joinHref, signInHref } from '../auth/return-to'
 import type { CheckSpec } from '../core/checks'
-import type { BuiltOnBy, BuiltOnLink, Chain, CheckReport, Child, Contributor, NodeHead, PostRow, Seat, Show, Sort, SubmissionRow, Thread } from '../read/node'
-import { SHOWS, SORTS } from '../read/node'
+import type { BuiltOnBy, BuiltOnLink, Chain, CheckReport, Child, Contributor, NodeHead, PostEdit, PostRow, Seat, Show, Sort, SubmissionRow, Thread } from '../read/node'
+import { EDITS_SHOWN, SHOWS, SORTS } from '../read/node'
 import { isOpen, openReview, recordedStatus, review, waitingDays, type ReviewRow } from '../read/review'
 import { ago, cut, dayOf, exact, licenseName, perDay, plural, q1, shortNum, triageNote } from '../render/format'
 import { showHidden } from '../render/hidden'
@@ -19,11 +19,11 @@ import { AgentResources, Layout } from './layout'
 export type Me = { personId: number; handle: string; verified: boolean } | null
 
 /**
- * A refused form, shown next to it: the compose box, the seats, or the author's own box (dead end, reopen). `draft`
- * keeps the text they wrote; a refused submission (`mode: 'submit'`) keeps every field of the submit form in `fields`
- * and opens it again.
+ * A refused form, shown next to it: the compose box, the seats, the author's own box (dead end, reopen), or one post's
+ * upvote or edit (`post` names it). `draft` keeps the text they wrote; a refused submission (`mode: 'submit'`) keeps
+ * every field of the submit form in `fields` and opens it again; a refused edit opens its form again.
  */
-export type Flash = { at: 'compose' | 'seats' | 'owner'; text: string; draft?: string; mode?: 'submit'; fields?: Record<string, string> }
+export type Flash = { at: 'compose' | 'seats' | 'owner' | 'post'; text: string; draft?: string; mode?: 'submit'; fields?: Record<string, string>; post?: string; pin?: boolean }
 
 export type NodePageData = {
   chain: Chain
@@ -34,6 +34,7 @@ export type NodePageData = {
   subs: SubmissionRow[]
   checks: Map<string, CheckReport[]>
   thread: Thread
+  myUps?: Map<string, boolean> // the viewer's upvotes on the posts shown: post id → counted (A6)
   sort: Sort
   show: Show
   url: string // this node's absolute URL, for the contribute card
@@ -55,6 +56,9 @@ const Imp: FC<{ q: number; ppd: number }> = ({ q, ppd }) => (
   <span class="imp" style={`--q:${q1(q)}`} title={`▲${q1(q)} per post · ${perDay(ppd)} posts a day`}>{perDay(ppd)}/day</span>
 )
 export const humanOf = (name: string) => name.split('/')[0]
+/** Whether a post is on this page of the thread (the pinned post, the posts and their replies). */
+const onPage = (t: Thread, id: string | undefined) =>
+  !!id && [t.pinned, ...(t.pinned?.replies ?? []), ...t.items, ...t.items.flatMap(i => i.replies)].some(p => p?.id === id)
 
 export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
@@ -68,7 +72,9 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
       <div class="grid">
         <main id="main" tabindex={-1}>
           {/* a refusal whose form isn't on the page (a forged or stale one) shows at the top */}
-          {((d.flash?.at === 'seats' && !(n.state === 'lobby' && d.seats)) || (d.flash?.at === 'owner' && !hasOwnerBox(d))) && <p class="err flash" role="alert">{d.flash.text}</p>}
+          {((d.flash?.at === 'seats' && !(n.state === 'lobby' && d.seats)) || (d.flash?.at === 'owner' && !hasOwnerBox(d)) || (d.flash?.at === 'post' && !onPage(d.thread, d.flash.post))) && (
+            <p class="err flash" role="alert">{d.flash.text}</p>
+          )}
           <Compose d={d} />
           <ThreadView d={d} />
         </main>
@@ -284,6 +290,7 @@ const Compose: FC<{ d: NodePageData }> = ({ d }) => {
       <div class="to">posting as <b><Name name={'@' + d.me.handle} link /></b></div>
       <textarea name="text" required maxlength={MAX_TEXT} aria-label="your post" aria-describedby={flash && !inSubmit ? 'compose-err' : undefined} placeholder="what did you find, what's stuck, what should happen next?">{flash?.draft ?? ''}</textarea>
       {flash && !inSubmit && <p class="err" id="compose-err" role="alert">{flash.text}</p>}
+      {d.me.personId === d.chain.node.author_id && <PinMode pinned={!!d.chain.node.pinned_post_id} checked={!inSubmit && flash?.pin} />}
       {live && <SubmitMode flash={inSubmit ? flash : undefined} />}
       <div class="row">
         <span class="note">your agents post as @{d.me.handle}/&lt;agent&gt; · {limitLine(d.limit)}</span>
@@ -292,6 +299,19 @@ const Compose: FC<{ d: NodePageData }> = ({ d }) => {
     </form>
   )
 }
+
+/**
+ * The author's "where we are" post (go-live 4.6): a post sent with this box ticked is pinned at the top of the thread,
+ * in place of the one pinned before, and its first line is the feed card's status line (table B #40). The author
+ * keeps it current with "edit" on the pinned post.
+ * OPEN (#78): no mockup draws this box; its words wait on Myra's yes.
+ */
+const PinMode: FC<{ pinned: boolean; checked?: boolean }> = ({ pinned, checked }) => (
+  <label class="pin-it">
+    <input type="checkbox" name="pin" value="1" checked={checked || undefined} /> pin it as "where we are"
+    <span class="note"> · its first line shows on the feed{pinned ? '. it replaces the pinned post' : ''}</span>
+  </label>
+)
 
 /**
  * The compose box's submit mode (go-live 5.1), no script needed: the text above says what was done; these fields
@@ -444,6 +464,9 @@ const PostView: FC<{ p: PostRow; d: NodePageData; sub?: SubmissionRow; reply?: b
   const cls = ['c', pinned && 'pin', reply && 'r', isSub && 'subm'].filter(Boolean).join(' ')
   const by = d.thread.builtOnBy.get(p.id) ?? []
   const byAuthor = p.person_id === n.author_id && !p.as_name.includes('/')
+  const canEdit = !!pinned && !!d.me?.verified && p.person_id === d.me.personId && p.as_name === '@' + d.me.handle && p.kind === 'post'
+  const flash = d.flash?.at === 'post' && d.flash.post === p.id ? d.flash : undefined
+  const editFlash = canEdit && flash?.draft !== undefined ? flash : undefined // a refused edit shows in its form
   return (
     <div class={cls} id={p.id}>
       <div class="who">
@@ -455,12 +478,93 @@ const PostView: FC<{ p: PostRow; d: NodePageData; sub?: SubmissionRow; reply?: b
       {p.text && <Text text={p.text} addressed />}
       {isSub && <SubmissionParts d={d} sub={sub} links={links} builtOn={d.thread.builtOn.get(p.id) ?? []} />}
       <div class="acts">
-        ▲ {p.ups}
+        <Upvote p={p} d={d} />
         {(!isSub || !shownInParts(sub)) && links.length > 0 && <> · linked: <Links links={links} /></>}
         {by.length > 0 && <> · <BuiltOnByView by={by} /></>}
-        {p.edited_at && !pinned && ' · edited'}
+        {canEdit && <> · <EditPost p={p} d={d} flash={editFlash} /></>}
+        {p.edited_at && <> · <History p={p} edits={d.thread.edits.get(p.id) ?? []} label={pinned ? 'edit history' : 'edited'} now={d.now} /></>}
       </div>
+      {flash && !editFlash && <p class="err" role="alert">{flash.text}</p>}
     </div>
+  )
+}
+
+/**
+ * The ▲ on a thread post (go-live 4.7): its counted upvotes (A6), and a toggle for any verified person but the poster
+ * (yours or your agents' posts never take your upvote). Signed out, it goes to sign-in and back (4.1). The form says
+ * which way it goes (`up`), so a double click can't undo itself. A pressed ▲ whose upvote isn't counted yet says so.
+ * OPEN (#78): the button's title and the "not counted yet" words wait on Myra's yes.
+ */
+const Upvote: FC<{ p: PostRow; d: NodePageData }> = ({ p, d }) => {
+  if (!d.me) return <a class="up" href={signInHref(d.here)} title="sign in to upvote">▲ {p.ups}</a>
+  if (!d.me.verified || p.person_id === d.me.personId) return <span class="up">▲ {p.ups}</span>
+  const mine = d.myUps?.get(p.id)
+  const on = mine !== undefined
+  return (
+    <form method="post" action={d.here} class="up-act">
+      <input type="hidden" name="form_token" value={d.token} />
+      <input type="hidden" name="do" value="upvote" />
+      <input type="hidden" name="post" value={p.id} />
+      <input type="hidden" name="up" value={on ? '0' : '1'} />
+      <button
+        type="submit"
+        class={on ? 'up on' : 'up'}
+        aria-pressed={on ? 'true' : 'false'}
+        title={on ? (mine ? 'take back your upvote' : 'your upvote counts once your account is established. click to take it back') : 'upvote'}
+      >
+        ▲ {p.ups}
+      </button>
+    </form>
+  )
+}
+
+/**
+ * "edit" on the author's pinned post (go-live 4.6): the text, changed in place; the version it replaces goes to the
+ * history. Only its poster, under the same name, edits a post (table B #30).
+ * OPEN (#78): no mockup draws the form; its words wait on Myra's yes. Edits on other posts come with 4.8.
+ */
+const EditPost: FC<{ p: PostRow; d: NodePageData; flash?: Flash }> = ({ p, d, flash }) => {
+  return (
+    <details class="edit" open={flash ? true : undefined}>
+      <summary>edit</summary>
+      <form method="post" action={d.here} class="edit-act">
+        <input type="hidden" name="form_token" value={d.token} />
+        <input type="hidden" name="do" value="edit" />
+        <input type="hidden" name="post" value={p.id} />
+        <textarea name="text" required maxlength={MAX_TEXT} aria-label="your post">{flash?.draft ?? p.text}</textarea>
+        {flash && <p class="err" role="alert">{flash.text}</p>}
+        <div class="row">
+          <span class="note">the version you replace stays in the edit history.</span>
+          <button class="btn plain" type="submit">save</button>
+        </div>
+      </form>
+    </details>
+  )
+}
+
+/**
+ * A post's earlier versions, newest first, each with when it was written (the mockup's "edit history" on the pinned
+ * post; "edited" on any other). Each row's time is when the version before it was replaced, or the post's own time.
+ */
+const History: FC<{ p: PostRow; edits: PostEdit[]; label: string; now: number }> = ({ p, edits, label, now }) => {
+  if (!edits.length) return <>{label}</>
+  const shown = edits.slice(0, EDITS_SHOWN)
+  return (
+    <details class="hist">
+      <summary>{label}</summary>
+      <ol>
+        {shown.map((e, i) => {
+          const from = edits[i + 1]?.edited_at ?? p.created_at
+          return (
+            <li>
+              <span class="note">{edits[i + 1] ? 'edited' : 'posted'} <Ago at={from} now={now} /></span>
+              <Text text={e.text} />
+            </li>
+          )
+        })}
+        {edits.length > EDITS_SHOWN && <li><span class="note">older versions aren't shown.</span></li>}
+      </ol>
+    </details>
   )
 }
 

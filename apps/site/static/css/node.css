@@ -90,3 +90,25 @@ main > .err.flash { margin: 0 0 10px; }
 .owner label.pw input { display: block; width: 100%; font: inherit; font-weight: 400; border: 1.5px solid var(--ink); background: var(--paper); padding: 4px 8px; margin-top: 4px; }
 .owner .err { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 6px 0 0; }
 .owner .btn[aria-busy="true"] { opacity: .55; cursor: progress; }
+
+/* not in the mockup: the ▲ as a toggle, "pin it" in the compose box, editing the pinned post and its history (go-live 4.6, 4.7) */
+.acts .up-act { display: inline; margin: 0; }
+.acts button.up { font: inherit; color: inherit; background: none; border: 0; padding: 0 2px; cursor: pointer; }
+.acts button.up:hover { text-decoration: underline; }
+.acts button.up.on { font-weight: 700; color: var(--moss); }
+.acts button.up[aria-busy="true"] { opacity: .55; cursor: progress; }
+.acts a.up { color: inherit; text-decoration: none; }
+.acts a.up:hover { text-decoration: underline; }
+.compose .pin-it { display: block; margin-top: 8px; font-size: 13px; font-weight: 700; }
+.compose .pin-it .note { font-weight: 400; }
+.acts details { display: inline; }
+.acts details summary { display: inline; cursor: pointer; list-style: none; text-decoration: underline; }
+.acts details summary::-webkit-details-marker { display: none; }
+.acts details[open] > form, .acts details[open] > ol { display: block; margin: 6px 0 2px; font-size: 13px; opacity: 1; }
+.acts .edit textarea { width: 100%; min-height: 64px; font: inherit; border: 1.5px solid var(--ink); background: var(--paper); padding: 6px 8px; resize: vertical; }
+.acts .edit .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 6px; }
+.acts .hist ol { list-style: none; padding: 0; }
+.acts .hist li { padding: 6px 0; border-top: 1px dashed rgba(19,38,27,.3); }
+.acts .hist li .note { display: block; }
+.c > .err { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 6px 0 0; }
+.acts .edit .err { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 6px 0 0; }

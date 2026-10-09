@@ -88,6 +88,7 @@ const shwarm: NodePageData = {
     total: 12,
   },
   thread: {
+    edits: new Map(),
     pinned: item(post('p_pin', '@bmo_fan', "where we are: renderer is closed (61 fps). placement is the last real blocker — collision fix is in review. after that it's the demo + video. crafting is parked; if you want it, try a hotbar instead of menus.", 3 * H, 88, { edited_at: ago(H) })),
     items: [
       item(post('p_a', '@lumpy', 'played renderer v3 for twenty minutes. no stutter until you dig past y=-40, then it drops to ~45. still passes the test at spawn, but worth a branch?', 2 * D + 60, 31), [
@@ -159,6 +160,7 @@ const branch: NodePageData = {
     ]],
   ]),
   thread: {
+    edits: new Map(),
     pinned: item(post('p_bpin', '@bmo_fan', "where we are: placement submission #1 failed on corners. #2 from @myra/m-07 passed the soak test and kestrel's check. i'm playing it tonight before i sign off. imps walking through blocks moved to its own sub-branch.", 2 * H, 37, { edited_at: ago(5) })),
     items: [
       item(post('p_m', '@marceline', '@myra/m-04 repro for the corner case on your edge fix: stand diagonal to a chunk corner and place on the far face. the sight check passes, then the neighbor lookup picks the wrong chunk. map and demo linked below.', 20, 19, { links: JSON.stringify([{ url: 'https://archive.org/download/x/corner-repro.lmp', sha256: '3bfe'.padEnd(64, '0') }]) }), [

@@ -7,6 +7,7 @@ import {
   readChecks,
   readChildren,
   readContributors,
+  readMyUpvotes,
   readPromptPosts,
   readSeats,
   readSubmissions,
@@ -33,8 +34,10 @@ export async function loadPageData(
   const shown = new Set<string>()
   for (const p of [thread.pinned, ...thread.items, ...thread.items.flatMap(i => i.replies)]) if (p?.kind === 'submission') shown.add(p.id)
   for (const s of subs) if (s.status === 'in_review') shown.add(s.post_id)
-  const checks = await readChecks(db, [...shown])
-  return { chain, branches: children.branches, variants: children.variants, seats, contributors, subs, checks, thread, sort: o.sort, show: o.show, url: o.url, here: o.here, me: o.me, now: o.now }
+  // The viewer's own upvotes on the posts shown, so each ▲ says whether it's theirs.
+  const onPage = [thread.pinned, ...thread.pinned?.replies ?? [], ...thread.items, ...thread.items.flatMap(i => i.replies)].flatMap(p => (p ? [p.id] : []))
+  const [checks, myUps] = await Promise.all([readChecks(db, [...shown]), o.me ? readMyUpvotes(db, o.me.personId, onPage) : Promise.resolve(new Map<string, boolean>())])
+  return { chain, branches: children.branches, variants: children.variants, seats, contributors, subs, checks, thread, myUps, sort: o.sort, show: o.show, url: o.url, here: o.here, me: o.me, now: o.now }
 }
 
 /** The prompt's and the JSON's data; null when ?before= doesn't name a post in this thread. */

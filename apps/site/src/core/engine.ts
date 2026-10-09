@@ -7,13 +7,15 @@ import type { Actor } from './actor'
 import { check, type CheckInput } from './checking'
 import { ctxAt, rootOf } from './context'
 import { createNode, deadEnd, join, leave, reopen, type CreateNodeInput } from './nodes'
-import { post, submit, type PostInput, type SubmitInput } from './posts'
+import { editPost, post, submit, upvote, type EditInput, type PostInput, type SubmitInput, type UpvoteInput } from './posts'
 
 export type Command =
   | { type: 'createNode'; actor: Actor; input: CreateNodeInput }
   | { type: 'join'; actor: Actor; input: { node: string } }
   | { type: 'leave'; actor: Actor; input: { node: string } }
   | { type: 'post'; actor: Actor; input: PostInput }
+  | { type: 'editPost'; actor: Actor; input: EditInput }
+  | { type: 'upvote'; actor: Actor; input: UpvoteInput }
   | { type: 'submit'; actor: Actor; input: SubmitInput }
   | { type: 'check'; actor: Actor; input: CheckInput }
   | { type: 'deadEnd'; actor: Actor; input: { node: string; note: string } }
@@ -60,6 +62,10 @@ export class TreeEngine {
         return leave(ctx, cmd.actor, cmd.input)
       case 'post':
         return post(ctx, cmd.actor, cmd.input)
+      case 'editPost':
+        return editPost(ctx, cmd.actor, cmd.input)
+      case 'upvote':
+        return upvote(ctx, cmd.actor, cmd.input)
       case 'submit':
         return submit(ctx, cmd.actor, cmd.input)
       case 'check':

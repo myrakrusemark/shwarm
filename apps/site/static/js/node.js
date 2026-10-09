@@ -11,8 +11,8 @@
   })
 })()
 
-// The page's forms (post, join, leave, dead end, reopen): one submit per click. The button stays off until the page comes back.
-document.querySelectorAll('form.compose, form.seat-act, form.owner-act').forEach(form => {
+// The page's forms (post, join, leave, dead end, reopen, upvote, edit): one submit per click. The button stays off until the page comes back.
+document.querySelectorAll('form.compose, form.seat-act, form.owner-act, form.up-act, form.edit-act').forEach(form => {
   form.addEventListener('submit', e => {
     if (form.dataset.sent) { e.preventDefault(); return }
     form.dataset.sent = '1'

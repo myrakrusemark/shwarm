@@ -488,7 +488,13 @@ export type Thread = {
   more: boolean
   builtOn: Map<string, BuiltOnLink[]> // submission post id → the posts it built on
   builtOnBy: Map<string, BuiltOnBy[]> // post id → submissions that built on it
+  edits: Map<string, PostEdit[]> // post id → its earlier versions, newest first (only for edited posts on this page)
 }
+
+/** An earlier version of a post: its text, and when an edit replaced it (core/posts.ts editPost). */
+export type PostEdit = { text: string; edited_at: string }
+/** How many earlier versions of a post the page lists. OPEN (#78): no cap is decided; every version is kept. */
+export const EDITS_SHOWN = 20
 
 type Skel = { id: string; reply_to: string | null; created_at: string; kind: PostRow['kind']; bare: number; ups: number }
 
@@ -552,12 +558,13 @@ export async function readThread(db: D1Database, n: NodeHead, o: { sort: Sort; s
     const r = full.get(s.id)
     return r ? { ...r, replies: replies.map(x => full.get(x.id)).filter((x): x is PostRow => !!x) } : null
   }
-  const links = await readBuiltOn(db, ids)
+  const [links, edits] = await Promise.all([readBuiltOn(db, ids), readEdits(db, rows.filter(r => r.edited_at !== null).map(r => r.id))])
   return {
     pinned: showPinned ? item(pinnedGroup!.root, pinnedGroup!.replies) : null,
     items: slice.map(g => item(g.root, g.replies)).filter((x): x is ThreadItem => !!x),
     page,
     more: list.length > page * THREADS_PER_PAGE,
+    edits,
     ...links,
     builtOnBy: new Map([...links.builtOnBy].map(([k, v]) => [k, v.map(b => ({ ...b, same: b.path === n.path }))])),
   }
@@ -575,6 +582,36 @@ export async function readPosts(db: D1Database, ids: string[]): Promise<PostRow[
     .bind(JSON.stringify(ids))
     .all<PostRow>()
   return results
+}
+
+/**
+ * The earlier versions of these posts, newest first: up to EDITS_SHOWN each, plus one more, whose replacement time is
+ * when the oldest shown one was written (so every listed version has its time without reading the rest).
+ */
+export async function readEdits(db: D1Database, ids: string[]): Promise<Map<string, PostEdit[]>> {
+  const out = new Map<string, PostEdit[]>()
+  if (!ids.length) return out
+  const { results } = await db
+    .prepare(
+      `SELECT post_id, text, edited_at FROM (
+         SELECT post_id, text, edited_at, ROW_NUMBER() OVER (PARTITION BY post_id ORDER BY edited_at DESC, id DESC) AS rk
+         FROM post_edit WHERE post_id IN (SELECT value FROM json_each(?1)))
+       WHERE rk <= ?2 ORDER BY post_id, rk`,
+    )
+    .bind(JSON.stringify(ids), EDITS_SHOWN + 1)
+    .all<PostEdit & { post_id: string }>()
+  for (const { post_id, ...e } of results) (out.get(post_id) ?? out.set(post_id, []).get(post_id)!).push(e)
+  return out
+}
+
+/** Which of these posts the viewer upvoted, and whether each upvote counts (A6: not until their account is established). */
+export async function readMyUpvotes(db: D1Database, personId: number, ids: string[]): Promise<Map<string, boolean>> {
+  if (!ids.length) return new Map()
+  const { results } = await db
+    .prepare('SELECT post_id, counted FROM upvote WHERE person_id = ? AND post_id IN (SELECT value FROM json_each(?))')
+    .bind(personId, JSON.stringify(ids))
+    .all<{ post_id: string; counted: number }>()
+  return new Map(results.map(r => [r.post_id, r.counted === 1]))
 }
 
 /** Both directions of "built on" for these posts: what each submission built on, and which submissions built on each post. */
