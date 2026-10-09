@@ -140,6 +140,8 @@ describe('home', () => {
     const h = await res.text()
     expect(h).toContain('<nav class="sort" aria-label="feed">')
     expect(h).toContain('<link rel="stylesheet" href="/css/feed.css"/>')
+    // the logo links home on every page but the feed (design system "Header")
+    expect(h).toContain('<h1 class="logo"><i class="mark" aria-hidden="true"></i><span class="wm">')
   })
 })
 

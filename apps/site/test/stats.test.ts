@@ -16,6 +16,7 @@ import {
   rankingFrom,
   scoreNow,
   statusLine,
+  isSeedSourcesPost,
   surge,
   type StatusInput,
 } from '../src/core/stats'
@@ -90,6 +91,19 @@ describe('formulas', () => {
     expect(st({ state: 'closed', submissions: [{ number: 2, status: 'failed' }, { number: 3, status: 'passed' }] })).toBe('passed on submission #3.')
     expect(st({ state: 'dead_end', deadEndNote: "menus can't nest.\nnotes published" })).toBe("menus can't nest.")
     expect(firstLine('x'.repeat(200))).toHaveLength(140)
+  })
+
+  it("status line: the launch seed's pinned sources post never counts (table B #40, A18)", () => {
+    const sources = 'where this pitch comes from:\nhttps://example.org/a\n\nbuilds on: gzdoom'
+    expect(st({ state: 'lobby', seatsLeft: 1, pinned: sources })).toBe('1 seat from kickoff.')
+    expect(st({ state: 'lobby', seatsLeft: 1, pinned: '  Where this pitch comes from:  \nx' })).toBe('1 seat from kickoff.')
+    // posted by the seed, whatever its first line (a builds-on line only)
+    expect(st({ state: 'lobby', seatsLeft: 1, pinned: 'builds on: gzdoom', pinnedBySeed: true })).toBe('1 seat from kickoff.')
+    expect(st({ pinned: sources })).toBe('no submission yet.')
+    // the author's own pin still leads
+    expect(st({ state: 'lobby', seatsLeft: 1, pinned: 'kickoff friday.\nwhere this pitch comes from: below' })).toBe('kickoff friday.')
+    expect(isSeedSourcesPost('where this pitch comes from:\nx')).toBe(true)
+    expect(isSeedSourcesPost('where we are: 61 fps')).toBe(false)
   })
 
   it('hot mix: each list by its own rank, about 3 live to 1 lobby', () => {

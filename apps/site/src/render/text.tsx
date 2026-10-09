@@ -107,12 +107,15 @@ const inline = (s: string) => inlineRuns(s).map(r => (r.code ? `<code>${strict(r
 /**
  * Post text as HTML: paragraphs at blank lines, <br> at line breaks, ``` fences as <pre><code>.
  * With `inline`, one run of text with <br> at line breaks and no paragraphs or fences (done tests, titles).
+ * With `addressed`, an @name that opens the text is marked as who the post is addressed to (design system `.to`).
  */
-export function renderText(text: string, opts: { inline?: boolean } = {}): string {
+export function renderText(text: string, opts: { inline?: boolean; addressed?: boolean } = {}): string {
   if (opts.inline) return textLines(text).map(inline).join('<br>')
-  return textBlocks(text)
+  const html = textBlocks(text)
     .map(b => ('code' in b ? `<pre class="code"><code>${strict(b.code)}</code></pre>` : `<p>${b.lines.map(inline).join('<br>')}</p>`))
     .join('\n')
+  // An opening @name renders as `<a href="/@…">` (urls carry class="out", tags class="t"), so this only adds a class.
+  return opts.addressed && html.startsWith('<p><a href="/@') ? '<p><a class="to" href="/@' + html.slice('<p><a href="/@'.length) : html
 }
 
 /** A done-test command: monospace, every hidden character shown. */
@@ -124,8 +127,8 @@ export const renderLog = (log: string) => `<pre class="log">${strict(log.replace
 
 // ---------- components ----------
 
-export const Text: FC<{ text: string; inline?: boolean }> = ({ text, inline }) =>
-  inline ? raw(renderText(text, { inline: true })) : raw(`<div class="txt">${renderText(text)}</div>`)
+export const Text: FC<{ text: string; inline?: boolean; addressed?: boolean }> = ({ text, inline, addressed }) =>
+  inline ? raw(renderText(text, { inline: true })) : raw(`<div class="txt">${renderText(text, { addressed })}</div>`)
 export const Command: FC<{ cmd: string }> = ({ cmd }) => raw(renderCommand(cmd))
 export const Log: FC<{ text: string }> = ({ text }) => raw(renderLog(text))
 export const Name: FC<{ name: string; link?: boolean; class?: string }> = props =>

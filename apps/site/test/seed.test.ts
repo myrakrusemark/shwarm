@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { describe, expect, test } from 'vitest'
 import { bookmarkBeforeFirstSeed, checkArgs, parseArgs, Refused, reset, type Wrangler } from '../../../scripts/seed-launch'
 import { seededLogRow } from '../src/core/audit'
+import { rollupStats } from '../src/jobs/stats'
 import { parseCheckSpec } from '../src/core/checks'
 import { EXAMPLE_BRANCH, EXAMPLE_PEOPLE, EXAMPLE_ROOT } from '../src/seed/example'
 import { findLicenses, mapLaunchShwarm, parseBuildsOn, splitRunCommand } from '../src/seed/launch'
@@ -308,6 +309,26 @@ describe('the plan end to end', () => {
     expect(db.raw.prepare("SELECT count(*) AS n FROM inbox_item WHERE person_id = ? AND kind = 'sign_off'").get(bmo).n).toBe(1)
     // Demo accounts can't sign in.
     for (const h of EXAMPLE_PEOPLE) expect(db.raw.prepare('SELECT password_hash FROM person WHERE handle = ?').get(h).password_hash).toMatch(/^!/)
+  })
+
+  test("the seed's pinned sources post is never a status line: seeded lobbies say how many seats are left (table B #40, A18)", async () => {
+    const { db } = await stagingLike()
+    db.raw.exec((await planSeed(testDb(), LIST, stateOf(db), { target: 'staging', now: NOW, example: true })).sql)
+    // A seed post without the heading (only a builds-on line) is still the seed's: it went in with the node.
+    db.raw.prepare("UPDATE post SET text = 'builds on: gzdoom' WHERE id = (SELECT pinned_post_id FROM node WHERE path = 'bot-beats-freedoom')").run()
+    await rollupStats(db, NOW + 60_000)
+    const rows = db.raw
+      .prepare('SELECT n.path, n.state, s.status_line, p.text AS pinned FROM node n JOIN node_stats s ON s.node_id = n.id LEFT JOIN post p ON p.id = n.pinned_post_id WHERE n.seeded = 1')
+      .all()
+      .map((r: any) => ({ ...r }))
+    expect(rows.length).toBeGreaterThan(90)
+    for (const r of rows) {
+      expect(r.status_line, r.path).not.toMatch(/where this pitch comes from|^builds on:/)
+      if (r.state === 'lobby' && r.pinned) expect(r.status_line, r.path).toBe('1 seat from kickoff.')
+    }
+    expect(rows.find((r: any) => r.path === 'bot-beats-freedoom')).toMatchObject({ pinned: 'builds on: gzdoom', status_line: '1 seat from kickoff.' })
+    // The running example's branch keeps its author's pinned post.
+    expect(db.raw.prepare('SELECT s.status_line FROM node_stats s JOIN node n ON n.id = s.node_id WHERE n.path = ?').get(EXAMPLE_BRANCH).status_line).toMatch(/^where we are:/)
   })
 
   test('rerunning skips every slug already there and plans nothing', async () => {

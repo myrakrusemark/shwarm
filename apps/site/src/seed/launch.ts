@@ -2,6 +2,7 @@
 // (go-live 3.1, A18, A20, table B "launch-shwarms.json fields"). Pure: no database. Every change it makes is
 // returned as a note, so the dry run can list what it changed, normalized, dropped or couldn't parse.
 import { LICENSES, type CreateNodeInput } from '../core/nodes'
+import { SOURCES_HEADING } from '../core/stats'
 import { MAX_SLUG, MAX_TITLE } from '../core/text'
 
 export type LaunchShwarm = {
@@ -385,10 +386,13 @@ function isHttpUrl(s: unknown): s is string {
 
 // ---------- the whole entry ----------
 
-/** The pinned first post. Its first line is the feed's status line until the author pins another (table B #40). */
+/**
+ * The pinned first post. It is never the status line (table B #40, A18: core/stats isSeedSourcesPost); a seeded
+ * lobby shows its recorded state until the author pins a post of their own.
+ */
 export function pinnedPostText(sources: string[], buildsOnText: string | null): string | null {
   const parts: string[] = []
-  if (sources.length) parts.push(['where this pitch comes from:', ...sources].join('\n'))
+  if (sources.length) parts.push([SOURCES_HEADING, ...sources].join('\n'))
   if (buildsOnText) parts.push(`builds on: ${buildsOnText}`)
   return parts.length ? parts.join('\n\n') : null
 }

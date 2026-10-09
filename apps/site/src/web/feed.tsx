@@ -53,7 +53,7 @@ const TAGLINE = 'people + their agents, working on things in the open.'
 export const FeedPage: FC<{ feed: Feed; now: number }> = ({ feed, now }) => {
   const q = queryText(feed.query)
   return (
-    <Layout title="shwarm" description={TAGLINE}>
+    <Layout title="shwarm" description={TAGLINE} home>
       <link rel="stylesheet" href="/css/feed.css" />
       <nav class="sort" aria-label="feed">
         {TABS.map(t => (

@@ -35,7 +35,7 @@ export type NodePageData = {
 
 const nodeHref = (path: string) => `/w/${path}`
 const subHref = (path: string, n: number) => `/w/${path}/s/${n}` // the submission page is go-live 5.x
-const Ago: FC<{ at: string | null; now: number }> = ({ at, now }) => <span title={exact(at)}>{ago(at, now)}</span>
+const Ago: FC<{ at: string | null; now: number; short?: boolean }> = ({ at, now, short }) => <span title={exact(at)}>{ago(at, now, short)}</span>
 const Imp: FC<{ q: number; ppd: number }> = ({ q, ppd }) => (
   <span class="imp" style={`--q:${q1(q)}`} title={`▲${q1(q)} per post · ${perDay(ppd)} posts a day`}>{perDay(ppd)}/day</span>
 )
@@ -92,7 +92,8 @@ const Crumbs: FC<{ chain: Chain }> = ({ chain }) => (
 )
 
 export const Pill: FC<{ n: { kind: string; state: string; in_review: number; live_at?: string | null; lobby_size?: number | null }; now: number; seats?: number; short?: boolean }> = ({ n, now, seats, short }) => {
-  if (n.state === 'lobby') return <span class="st lobby">{short ? `${seats ?? 0}/${n.lobby_size}` : 'lobby'}</span>
+  // A sidebar row's lobby pill is plain, its seats only (shwarm.html variants); the head's is sun.
+  if (n.state === 'lobby') return short ? <span class="st">{seats ?? 0}/{n.lobby_size}</span> : <span class="st lobby">lobby</span>
   if (n.state === 'closed') return <span class="st done">closed</span>
   if (n.state === 'dead_end') return <span class="st dead">dead end</span>
   if (short) return <span class="st live">live</span>
@@ -200,7 +201,7 @@ const CheckedBy: FC<{ spec: CheckSpec; author: string }> = ({ spec, author }) =>
     {spec.people && (
       <li>
         {plural(spec.people.count, 'person', 'people')}
-        {spec.people.human && (spec.people.count === 1 ? ', a human' : ', at least one of them human')}
+        {spec.people.human && (spec.people.count === 1 ? ', a human' : ', one of them human')}
         {spec.people.instructions && <> · <Text inline text={spec.people.instructions} /></>}
       </li>
     )}
@@ -315,8 +316,11 @@ const parseLinks = (s: string | null): Link[] => {
   }
 }
 
-/** A linked file or repo, as a link with its label, host and fingerprint ("corner-fix.diff ↗ (codeberg.org, sha256 3f9a…)"). */
-export const LinkChip: FC<{ l: Link }> = ({ l }) => {
+/**
+ * A linked file or repo, as a link with its label, host and fingerprint ("corner-fix.diff ↗ (codeberg.org, sha256 3f9a…)").
+ * `compact` (check rows, as branch.html draws them) shows the label only, with the host and fingerprint as its tooltip.
+ */
+export const LinkChip: FC<{ l: Link; compact?: boolean }> = ({ l, compact }) => {
   const url = 'sha256' in l ? l.url : l.repo
   const p = linkParts(url)
   let label = l.label ?? ''
@@ -329,6 +333,10 @@ export const LinkChip: FC<{ l: Link }> = ({ l }) => {
     label ||= url
   }
   const print = 'sha256' in l ? `sha256 ${l.sha256.slice(0, 4)}…` : `commit ${l.commit.slice(0, 7)}`
+  if (compact) {
+    const title = `${host ? host + ' · ' : ''}${print}`
+    return p ? <a href={p.href} rel={LINK_REL} title={title}><Plain text={label} /> ↗</a> : <span title={title}><Plain text={label} /></span>
+  }
   return (
     <>
       {p ? <a href={p.href} rel={LINK_REL}><Plain text={label} /> ↗</a> : <Plain text={label} />}{' '}
@@ -337,12 +345,12 @@ export const LinkChip: FC<{ l: Link }> = ({ l }) => {
   )
 }
 
-const Links: FC<{ links: Link[] }> = ({ links }) => (
+const Links: FC<{ links: Link[]; compact?: boolean }> = ({ links, compact }) => (
   <>
     {links.map((l, i) => (
       <>
         {i > 0 && ', '}
-        <LinkChip l={l} />
+        <LinkChip l={l} compact={compact} />
       </>
     ))}
   </>
@@ -361,13 +369,13 @@ const PostView: FC<{ p: PostRow; d: NodePageData; sub?: SubmissionRow; reply?: b
         <b><Name name={p.as_name} link /></b>
         {byAuthor && ' · author'}
         {isSub && <span class={sub.status === 'in_review' || sub.status === 'passed' ? 'sb' : 'sb x'}>submission #{sub.number}</span>}
-        {pinned ? <> · pinned · updated <Ago at={p.edited_at ?? p.created_at} now={d.now} /></> : <> · <Ago at={p.created_at} now={d.now} /></>}
+        {pinned ? <> · pinned · updated <Ago at={p.edited_at ?? p.created_at} now={d.now} short /></> : <> · <Ago at={p.created_at} now={d.now} short /></>}
       </div>
-      {p.text && <Text text={p.text} />}
+      {p.text && <Text text={p.text} addressed />}
       {isSub && <SubmissionParts d={d} sub={sub} links={links} builtOn={d.thread.builtOn.get(p.id) ?? []} />}
       <div class="acts">
         ▲ {p.ups}
-        {!isSub && links.length > 0 && <> · linked: <Links links={links} /></>}
+        {(!isSub || !shownInParts(sub)) && links.length > 0 && <> · linked: <Links links={links} /></>}
         {by.length > 0 && <> · <BuiltOnByView by={by} /></>}
         {p.edited_at && !pinned && ' · edited'}
       </div>
@@ -387,6 +395,12 @@ const BuiltOnByView: FC<{ by: BuiltOnBy[] }> = ({ by }) => (
   </b>
 )
 
+/**
+ * A submission's links and how to check it show above its checks while it's in review or once it passed; a failed
+ * or superseded one (branch.html, #1) keeps its links in the actions line and drops how to check.
+ */
+const shownInParts = (sub: SubmissionRow) => sub.status === 'in_review' || sub.status === 'passed'
+
 const SubmissionParts: FC<{ d: NodePageData; sub: SubmissionRow; links: Link[]; builtOn: BuiltOnLink[] }> = ({ d, sub, links, builtOn }) => {
   const n = d.chain.node
   const checks = d.checks.get(sub.post_id) ?? []
@@ -399,11 +413,12 @@ const SubmissionParts: FC<{ d: NodePageData; sub: SubmissionRow; links: Link[]; 
   const mine = d.me && d.me.personId === sub.person_id
   return (
     <>
+      {(shownInParts(sub) || builtOn.length > 0) && (
       <div class="how">
-        <b>linked</b> <Links links={links} />
+        {shownInParts(sub) && <><b>linked</b> <Links links={links} /></>}
         {builtOn.length > 0 && (
           <>
-            {' '}· <b>built on</b>{' '}
+            {shownInParts(sub) && ' · '}<b>built on</b>{' '}
             {builtOn.map((b, i) => (
               <>
                 {i > 0 && ', '}
@@ -414,7 +429,8 @@ const SubmissionParts: FC<{ d: NodePageData; sub: SubmissionRow; links: Link[]; 
           </>
         )}
       </div>
-      <div class="how"><b>how to check</b> <Text inline text={sub.how_to_check} /></div>
+      )}
+      {shownInParts(sub) && <div class="how"><b>how to check</b> <Text inline text={sub.how_to_check} /></div>}
       {sub.author_swap === 1 && <div class="how note">the author's own work: one more people check stands in for the author's sign-off.</div>}
       <div class="checks">
         <div class="h"><b>{header}</b><span>{right}</span></div>
@@ -461,16 +477,16 @@ const CheckRowView: FC<{ row: ReviewRow; n: NodeHead; sub: SubmissionRow }> = ({
         {c.slot === 'run' && (
           <>
             exit {c.exit_code} on #{sub.number} ({shortHash(c.submission_hash ?? sub.hash)}){c.machine && <> · <Plain text={c.machine} /></>} ·{' '}
-            {logLink ? <LinkChip l={logLink} /> : c.log_inline ? <a href={logHref}>signed log</a> : 'log'}
+            {logLink ? <LinkChip l={logLink} compact /> : c.log_inline ? <a href={logHref}>signed log</a> : 'log'}
           </>
         )}
         {c.slot !== 'run' && (
           <>
             {c.text ? <Text inline text={c.text} /> : c.slot === 'author' ? (c.verdict === 'pass' ? 'signed off' : 'failed it') : c.verdict}
-            {evidence.length > 0 && <> · <Links links={evidence} /></>}
+            {evidence.length > 0 && <> · <Links links={evidence} compact /></>}
           </>
         )}
-        {c.verdict === 'fail' && repro?.links?.length ? <> · <Links links={repro.links} /></> : null}
+        {c.verdict === 'fail' && repro?.links?.length ? <> · <Links links={repro.links} compact /></> : null}
       </span>
     </li>
   )
@@ -564,7 +580,9 @@ const Variants: FC<{ d: NodePageData }> = ({ d }) => {
             <li>
               <div class="nm"><a href={nodeHref(v.path)}><Plain text={v.title} /></a><Pill n={v} now={d.now} seats={v.seats} short /></div>
               <div class="sub">
-                done when <Text inline text={cut(v.done_when, 120)} /> · <Name name={v.author} link />
+                {/* as on the feed cards and in shwarm.html: a lobby says who started it, a live one how many people */}
+                done when <Text inline text={cut(v.done_when, 120)} />
+                {v.state !== 'live' && <> · <Name name={v.author} link /></>}
                 {v.state === 'live' && v.people ? <> · {plural(v.people, 'person', 'people')}</> : null}
                 {v.state === 'live' && v.posts_per_day ? <> · <Imp q={v.impact ?? 0} ppd={v.posts_per_day} /></> : null}
               </div>
