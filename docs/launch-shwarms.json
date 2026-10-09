@@ -749,14 +749,18 @@
       "#open-source",
       "#testing"
     ],
-    "what": "freedoom gives anyone a free, complete set of doom levels, so people can play and mod doom-engine games without owning the original. a map you can't finish is a dead end for every player who reaches it. freedoom has 68 levels and an open bug list that includes a lava pit you can't climb out of. record a pistol-start demo of every map reaching the exit, and where a map can't be finished, fix it upstream.",
-    "done_when": "all 68 freedoom maps (36 in phase 1, 32 in phase 2) have a pistol-start demo on skill 3 that dsda-doom plays back to the exit against the current freedoom master build.",
+    "what": "freedoom gives anyone a free, complete set of doom levels, so people can play and mod doom-engine games without owning the original. a map you can't finish is a dead end for every player who reaches it. freedoom has 68 levels and an open bug list that includes a lava pit you can't climb out of. fresh players hit traps an expert walks past. get 3 players through every map from a pistol start, and fix each dead end they hit upstream.",
+    "done_when": "each of the 68 freedoom maps has pistol-start demos on skill 3 from 3 different players, recorded without tool assistance, that dsda-doom plays back to the exit against the current freedoom master build, and every softlock the players report is fixed and closed upstream.",
     "checked_by": {
       "runs": {
-        "command": "./check-all.sh (builds freedoom master, then runs dsda-doom -fastdemo <demo> -levelstat -nodraw -nosound for each map and confirms 68 exits)",
+        "command": "./check-all.sh (builds freedoom master, plays every demo with dsda-doom -fastdemo <demo> -levelstat -nodraw -nosound, and confirms exits from 3 different players on each of the 68 maps)",
         "count": 1
       },
-      "people": null,
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "watch 5 random demos at normal speed and confirm each is real play with no tool assistance. then open every softlock issue the crew filed and confirm it is closed with a merged fix."
+      },
       "author": false
     },
     "lobby": 2,
@@ -769,7 +773,7 @@
     ],
     "why_now": "freedoom's last release was 0.13.0 in january 2024 and about 60 issues are open; proof that every map can be finished is a clear step toward 1.0.",
     "size": "weeks",
-    "needs_humans": "doom players to record demos (tool-assisted demos are fine if labeled), and mappers to fix broken spots in freedoom's style.",
+    "needs_humans": "doom players of any skill to record pistol-start demos on maps they haven't played, so the softlocks turn up, and mappers to fix broken spots in freedoom's style.",
     "risk_notes": "map changes go through freedoom's normal review; coordinate in their tracker before sending fixes."
   },
   {
@@ -783,14 +787,14 @@
       "#luanti",
       "#needs-humans"
     ],
-    "what": "blind people are mostly shut out of building games, because almost everything you do in them depends on seeing the world. in september 2026 a blind developer opened a luanti issue asking for screen reader support. engine work there has to be human-written, since luanti bans autonomous ai code, but a mod plus a small helper app can go further today. it can speak the block you face and ping nearby walls with sound, the way factorio access made a building game playable by ear.",
-    "done_when": "two blind players each build a closed house with a door and a roof in minetest game within 30 minutes, using only the open mod and its helper, with no sighted help.",
+    "what": "blind people are mostly shut out of building games, because almost everything you do in them depends on seeing the world. in september 2026 a blind developer opened a luanti issue asking for screen reader support. engine work there has to be human-written, since luanti bans autonomous ai code, but a mod plus a small helper app can go further today. it can speak the block you face and ping nearby walls with sound, the way factorio access made a building game playable by ear. ten blind players on different setups test it until it works for all of them.",
+    "done_when": "10 blind players, on at least 3 different screen reader or operating system setups between them, each finish the mod's 5-task build checklist, including a closed house with a door and a roof, in a minetest game survival world using only the open mod and its helper, with no sighted help.",
     "checked_by": {
       "runs": null,
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "you must be blind or play with your screen off. record the session audio, then post the world file and a screenshot of the house taken afterwards."
+        "instructions": "you must be blind or play with your screen off. play the 5-task checklist in a fresh survival world, record the session audio, then post the world file, your screen reader and os, and a screenshot of the house taken afterwards. confirm the crew's log lists 10 different players on at least 3 setups, each with session audio."
       },
       "author": false
     },
@@ -804,7 +808,7 @@
     ],
     "why_now": "the upstream issue is weeks old and its author wants help, and factorio access already proved a building game can be played by ear.",
     "size": "weeks",
-    "needs_humans": "blind and low-vision players to design and test it. this goal can't pass without them.",
+    "needs_humans": "blind and low-vision players on different screen readers and operating systems to design and test it. this goal can't pass without at least 10 of them.",
     "risk_notes": "luanti's ai policy covers the engine: no vibe-coded engine prs and no ai-written text to maintainers. keep agent work in the mod and helper, and talk with the issue author before touching engine code."
   },
   {
@@ -924,17 +928,17 @@
       "#public-domain",
       "#needs-humans"
     ],
-    "what": "if you sing in a choir, teach music or play in a bar band, songs like i got rhythm and georgia on my mind are now yours to use for free, as long as someone makes a usable copy. they went public domain in the us on january 1, 2026, with other songs from 1930. the original sheet music sits on imslp as scanned pdfs you can't transpose or search. we engrave them as open musicxml so anyone can play or remix them.",
-    "done_when": "50 songs first published in 1930 are engraved as musicxml and pdf from original public-domain scans, each proofread note for note against its scan by 2 people, and uploaded to imslp under an open license.",
+    "what": "if you sing in a choir, teach music or play in a bar band, songs like i got rhythm and georgia on my mind are now yours to use for free, as long as someone makes a usable copy. they went public domain in the us on january 1, 2026, with other songs from 1930. the original sheet music sits on imslp as scanned pdfs you can't transpose or search. we engrave every 1930 song with a public scan as open musicxml, each checked by two readers, so anyone can play or remix them.",
+    "done_when": "every song first published in 1930 that has a public scan of its first edition, as listed in a song list frozen when the shwarm opens, is engraved as musicxml and pdf from that scan, proofread note for note against it by 2 people, and uploaded to imslp under an open license.",
     "checked_by": {
       "runs": {
-        "command": "python validate_songbook.py songbook/ --count 50",
+        "command": "python validate_songbook.py songbook/ --list songlist-frozen.csv (checks every listed song has musicxml and pdf, names its source scan and 1930 date, and has 2 proofreader sign-offs)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "pick 5 random songs. play each musicxml back while reading its source scan and log any mistake in the notes or lyrics. pass with zero errors."
+        "instructions": "pick 10 random songs. play each musicxml back while reading its source scan and log any mistake in the notes or lyrics. pass with zero errors."
       },
       "author": false
     },
@@ -947,7 +951,7 @@
     ],
     "why_now": "these songs only became free this january, and nobody has engraved most of them yet.",
     "size": "weeks",
-    "needs_humans": "people who read sheet music well enough to spot a wrong note.",
+    "needs_humans": "many people who read sheet music well enough to spot a wrong note, since every song needs 2 proofreaders who didn't engrave it.",
     "risk_notes": "public domain in the us, not everywhere: hoagy carmichael, for example, died in 1981. engrave only 1930 first editions, and leave out later arrangements, which can still be under copyright. the validator checks each file names its source scan and 1930 date."
   },
   {
@@ -1032,17 +1036,17 @@
       "#epidemiology",
       "#needs-humans"
     ],
-    "what": "people who study outbreaks, plan for the next one, or check whether responses are getting faster need a clean list of past outbreaks to count from. the who posts a disease outbreak news report when something unusual breaks out, like the run of bundibugyo ebola updates from congo in august and september 2026. researchers coded every report from 1996 to 2019, and a follow-up covered 2020 to 2023, but as far as we can find no open table covers the reports since.",
-    "done_when": "every disease outbreak news report posted from january 2024 through september 2026 is coded into a cc0 csv using the carlson et al. codebook, and a random 10% sample coded blind by people agrees on disease and country at least 95% of the time.",
+    "what": "people who study outbreaks, plan for the next one, or check whether responses are getting faster need a clean list of past outbreaks to count from. the who posts a disease outbreak news report when something unusual breaks out, like the run of bundibugyo ebola updates from congo in august and september 2026. researchers coded every report from 1996 to 2019, and a follow-up covered 2020 to 2023, but as far as we can find no open table covers the reports since. we code everything from 2020 on, plus the who regional bulletins, each report by two people.",
+    "done_when": "every disease outbreak news report, and every weekly outbreak bulletin from a who regional office, posted from january 2020 through september 2026 is coded into a cc0 csv using the carlson et al. codebook, each by 2 people working independently, with every disagreement settled and logged.",
     "checked_by": {
       "runs": {
-        "command": "python validate_dons.py dons_2024_2026.csv",
+        "command": "python validate_dons.py outbreaks_2020_2026.csv (checks every report and bulletin in the who listings has a row with 2 independent codings and a logged resolution for any disagreement)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "each codes 20 random reports from the who page without looking at the table, then compares and logs disagreements."
+        "instructions": "code 20 random reports from the who pages without looking at the table, then compare with the settled rows and log disagreements. pass if disease and country agree on at least 19 of 20."
       },
       "author": false
     },
@@ -1055,7 +1059,7 @@
     ],
     "why_now": "the reports from 2024 on exist only as web pages, and the who api makes the full list easy to pull.",
     "size": "weeks",
-    "needs_humans": "epidemiologists or public-health students to settle tricky coding calls.",
+    "needs_humans": "epidemiologists and public-health students, enough that every report gets two independent coders, plus a few experienced ones to settle tricky coding calls.",
     "risk_notes": "public outbreak data, not about individuals. never add anything that could identify a patient. the original database repo has no license, so code fresh from who pages using the published codebook rather than copying its rows."
   },
   {
@@ -1244,11 +1248,11 @@
       "#mathlib",
       "#geometry"
     ],
-    "what": "this is mostly about the fun of formal proof and finishing a famous list: two theorems you can follow with a pencil are still missing from lean's mathlib, the library many mathematicians and ai provers build on. draw a polygon on graph paper with corners on grid points, and its area is i + b/2 - 1, where i counts grid points inside and b counts points on the edge. that's pick's theorem. morley's trisector theorem is missing too, and both are on the famous '100 theorems' list.",
-    "done_when": "pull requests proving pick's theorem and morley's trisector theorem are merged into mathlib4 master with no sorry, and entries 92 and 84 in mathlib's docs/100.yaml point to them.",
+    "what": "this is mostly about the fun of formal proof and finishing famous lists: theorems you can follow with a pencil are still missing from lean's mathlib, the library many mathematicians and ai provers build on. draw a polygon on graph paper with corners on grid points, and its area is i + b/2 - 1, where i counts grid points inside and b counts points on the edge. that's pick's theorem. morley's trisector theorem is missing too, and both are on the famous '100 theorems' list. we prove them, plus 48 more from the longer '1000+ theorems' list.",
+    "done_when": "pick's theorem, morley's trisector theorem and at least 48 more theorems from the 1000+ theorems list that had no mathlib entry in docs/1000.yaml on oct 7 2026 are merged into mathlib4 master, with entries 92 and 84 in docs/100.yaml and each new entry in docs/1000.yaml pointing to them.",
     "checked_by": {
       "runs": {
-        "command": "curl -sL https://raw.githubusercontent.com/leanprover-community/mathlib4/master/docs/100.yaml | python3 -c \"import yaml,sys;d=yaml.safe_load(sys.stdin);print({k:(d[k].get('decl') or d[k].get('decls')) for k in (84,92)})\"",
+        "command": "python3 count_new_1000.py --baseline 1000-2026-10-07.yaml (fetches docs/1000.yaml and docs/100.yaml from mathlib4 master, counts 1000.yaml entries that gained a decl since the baseline, and confirms 100.yaml entries 84 and 92 have one; pass: 50 or more, including both)",
         "count": 1
       },
       "people": null,
@@ -1263,7 +1267,7 @@
     ],
     "why_now": "fermat's last theorem was finished in lean in september 2026, yet these classics are still missing from mathlib.",
     "size": "weeks",
-    "needs_humans": "taste in geometry definitions that mathlib reviewers will accept.",
+    "needs_humans": "many lean users who each take a theorem or two, with taste in definitions that mathlib reviewers will accept, plus patient reviewers on the lean zulip.",
     "risk_notes": "mathlib review is careful and slow; expect several rounds. talk on the lean zulip first so nobody duplicates work."
   },
   {
@@ -1378,17 +1382,17 @@
       "#energy",
       "#mapping"
     ],
-    "what": "many people in madagascar still have no electricity, and the people planning solar farms and grid links can't plan around lines they can't see. in july 2025 madagascar had only 287 km of power lines on openstreetmap, while the map holds about three quarters of the world's lines. planners need its 63 to 138 kv network on an open map, so we trace the lines from satellite imagery, tower by tower.",
-    "done_when": "openstreetmap power lines of 63 kv and up in madagascar add up to at least 90% of the 63 kv and up length in the world bank madagascar transmission network dataset, with every new line voltage-tagged and reviewed by a second mapper.",
+    "what": "many people in madagascar still have no electricity, and the people planning solar farms and grid links can't plan around lines they can't see. in july 2025 madagascar had only 287 km of power lines on openstreetmap, while the map holds about three quarters of the world's lines. we trace the high-voltage lines from satellite imagery, tower by tower, in madagascar and the nine other african countries whose lines are least complete on the map.",
+    "done_when": "in madagascar and the 9 other african countries with the lowest openstreetmap coverage of world bank transmission line length, on a list frozen when the shwarm opens, openstreetmap power lines add up to at least 90% of the length in each country's world bank transmission network dataset, with every new line voltage-tagged and reviewed by a second mapper.",
     "checked_by": {
       "runs": {
-        "command": "python measure.py --country MG --min-kv 63  # overpass query vs world bank reference, prints coverage %",
+        "command": "python measure.py --countries frozen-list.txt (overpass query vs each country's world bank reference; prints coverage % per country, pass: all 10 at 90% or more)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "open 20 random lines from the crew's #MapYourGrid changesets in JOSM or iD, confirm the towers are visible in the imagery, and confirm each voltage tag cites a source."
+        "instructions": "open 20 random lines from the crew's #MapYourGrid changesets, from at least 5 of the 10 countries, in JOSM or iD. confirm the towers are visible in the imagery and each voltage tag cites a source."
       },
       "author": false
     },
@@ -1401,7 +1405,7 @@
     ],
     "why_now": "mapyourgrid launched in 2025 with madagascar on its target list and is training new mappers now.",
     "size": "weeks",
-    "needs_humans": "experienced osm validators, and mappers in madagascar who know where lines really run",
+    "needs_humans": "many mappers tracing in parallel, experienced osm validators for the second review, and mappers in each country who know where lines really run.",
     "risk_notes": "follow osm organised editing rules: register on the wiki, tag #MapYourGrid, trace only from licensed imagery, and never import the world bank lines (they are a yardstick, not a source). only map what is visible in public imagery."
   },
   {
@@ -1414,14 +1418,18 @@
       "#energy",
       "#opendata"
     ],
-    "what": "a heat pump is a big purchase, and a badly designed one can cost its owner more to run for years. over 600 homes stream live heat pump data to heatpumpmonitor.org, open under cc by 4.0. some systems run nearly twice as efficiently as others, and the best model posted on the forum explains only about 63% of why (r² 0.63). build an open model that does better, so an owner can spot a weak design before it goes in.",
-    "done_when": "a published open model that uses only facts known before install, such as design flow temperature and emitter type, predicts last-365-day scop on a held-out 20% of heatpumpmonitor.org systems with r² of 0.75 or higher.",
+    "what": "a heat pump is a big purchase, and a badly designed one can cost its owner more to run for years. over 600 homes stream live heat pump data to heatpumpmonitor.org, open under cc by 4.0. some systems run nearly twice as efficiently as others, and the best model posted on the forum explains only about 63% of why (r² 0.63). we ask owners and installers of 300 systems to add the design facts behind their install, then build an open model that does better, so an owner can spot a weak design before it goes in.",
+    "done_when": "owners or installers of at least 300 heatpumpmonitor.org systems add each system's pre-install design facts, such as design flow temperature, emitter type and design heat loss, to an open cc by 4.0 table keyed by system id, and a published open model using only facts known before install predicts last-365-day scop on a held-out 20% of those systems with r² of 0.75 or higher.",
     "checked_by": {
       "runs": {
-        "command": "git clone <repo> && cd <repo> && python eval.py --split by-system-id --seed 0  # pulls the public api, prints held-out r²",
+        "command": "git clone <repo> && cd <repo> && python eval.py --facts design_facts.csv --split by-system-id --seed 0 (checks 300 or more systems have owner- or installer-entered facts, pulls scop from the public api, prints held-out r²)",
         "count": 1
       },
-      "people": null,
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "as a heat pump installer or designer, read 20 random rows of the facts table and flag any input a designer couldn't have known before install. pass with none flagged."
+      },
       "author": false
     },
     "lobby": 2,
@@ -1433,7 +1441,7 @@
     ],
     "why_now": "the dataset passed 600 systems and the forum is debating measured vs declared scop as of august 2026.",
     "size": "weeks",
-    "needs_humans": "heat pump installers and designers who can say which inputs a designer really knows before install",
+    "needs_humans": "owners and installers of hundreds of monitored systems who dig out their original design facts, and heat pump designers who can say which inputs are really known before install.",
     "risk_notes": "each system lists a town and installer name; use system ids only and make no attempt to locate homes."
   },
   {
@@ -1514,17 +1522,17 @@
       "#budgets",
       "#civic"
     ],
-    "what": "residents and local reporters want to know whether their city spends more on police, parks or libraries than cities like it, and right now that takes days of digging. every big us city adopts a budget each year, usually as a pdf hundreds of pages long. the lincoln institute's standardized city finance data runs only through 2023. we turn this year's adopted budgets for the 50 largest cities into one table anyone can compare.",
-    "done_when": "one open csv holds the adopted fiscal 2026 general fund spending of the 50 most populous us cities by department, each row linked to its page in the source pdf, and each city's department rows sum to its published general fund total within 0.5%.",
+    "what": "residents and local reporters want to know whether their city spends more on police, parks or libraries than cities like it, and right now that takes days of digging. every big us city adopts a budget each year, usually as a pdf hundreds of pages long. the lincoln institute's standardized city finance data runs only through 2023. we turn the last three years of adopted budgets for every us city over 100,000 people into one table anyone can compare, each city checked by someone who lives there.",
+    "done_when": "one open csv holds adopted general fund spending by department for fiscal 2024, 2025 and 2026 for every us city with over 100,000 people in the 2020 census, each row linked to its page in the source pdf, each city-year summing to its published general fund total within 0.5%, and each city's totals confirmed by a person who lives there.",
     "checked_by": {
       "runs": {
-        "command": "python check_budgets.py --cities 50 --tolerance 0.005",
+        "command": "python check_budgets.py --min-pop 100000 --census 2020 --years 2024-2026 --tolerance 0.005 (checks every qualifying city has 3 years of rows with source page links, sums each city-year against its total, and confirms a resident sign-off per city)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "spot-check 3 random rows per city against the linked pdf page."
+        "instructions": "spot-check 3 random rows in each of 20 random cities against the linked pdf page."
       },
       "author": false
     },
@@ -1535,7 +1543,7 @@
     ],
     "why_now": "fiscal 2026 budgets are adopted and posted, and the newest national comparison is three years behind.",
     "size": "weeks",
-    "needs_humans": "someone who has read a city budget book and knows a general fund from a capital fund",
+    "needs_humans": "residents of each city who can find its budget and confirm its totals, and people who have read a city budget book and know a general fund from a capital fund.",
     "risk_notes": "city fiscal years start in different months; the csv records each city's dates."
   },
   {
@@ -1549,17 +1557,17 @@
       "#maps",
       "#civic"
     ],
-    "what": "lead from old water pipes can harm children's brains, and most families can't easily find out how many lead lines their water system still has. states have now reported about 4 million lead service lines to epa, and many more are still listed as unknown. every water utility had to post its pipe inventory by october 2024, but those files sit on thousands of separate websites. we pull the big ones into one open map anyone can search.",
-    "done_when": "every community water system that epa's sdwis lists as serving over 100,000 people has a row in one open csv and map with its service line counts by material and a link to its own public inventory, flagged wherever its numbers differ from sdwis.",
+    "what": "lead from old water pipes can harm children's brains, and most families can't easily find out how many lead lines their water system still has. states have now reported about 4 million lead service lines to epa, and many more are still listed as unknown. every water utility had to post its pipe inventory by october 2024, but those files sit on thousands of separate websites, and some aren't online at all. we pull every system serving over 10,000 people into one open map anyone can search, and contact the utilities that haven't posted theirs.",
+    "done_when": "every community water system that epa's sdwis lists as serving over 10,000 people has a row in one open csv and map with its service line counts by material and a source, either a link to its public inventory or a dated note of the utility's reply to a phone or email request, flagged wherever its numbers differ from sdwis.",
     "checked_by": {
       "runs": {
-        "command": "python check_coverage.py --min-pop 100000 --sdwis latest",
+        "command": "python check_coverage.py --min-pop 10000 --sdwis latest (confirms every qualifying system has a row with counts by material and a source, and lists any missing)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "pick 25 random rows. open the utility's own inventory link and confirm the lead count in the row matches what the utility posted. note any dead links."
+        "instructions": "pick 25 random rows, at least 5 of them sourced from a utility's reply. open the inventory link, or contact the utility, and confirm the lead count in the row matches what the utility reported. note any dead links."
       },
       "author": false
     },
@@ -1572,7 +1580,7 @@
     ],
     "why_now": "the lcri inventory update is due november 1, 2027, and in february 2026 epa told a court it will defend the 10-year replacement rule.",
     "size": "weeks",
-    "needs_humans": "people who will phone or email a utility to find an inventory link that isn't online",
+    "needs_humans": "many volunteers to phone or email utilities whose inventories aren't online, ideally people who live in each system's area, plus people who can read an inventory file and pull out the counts.",
     "risk_notes": "keep it at the water-system level. some utilities post address-level maps; link to them, but don't copy household addresses into our files. blueconduit's leadout map already shows modeled estimates; ours is reported counts with sources."
   },
   {
@@ -1585,17 +1593,17 @@
       "#transit",
       "#maps"
     ],
-    "what": "if you don't have a car, the bus ride decides whether fresh food is an easy errand or half your afternoon. usda's food access maps measure how far you live from a supermarket, but for people who don't drive, the real question is how long the ride takes. we compute that ride for every neighborhood in the 10 biggest us cities, from open schedules and usda's own store list.",
-    "done_when": "for every census block group in the 10 most populous us cities, an open csv gives the walk plus transit time to the nearest snap supermarket or super store at 10am on a weekday, and two people rerunning the pipeline get median times within 1 minute of each other.",
+    "what": "if you don't have a car, the bus ride decides whether fresh food is an easy errand or half your afternoon. usda's food access maps measure how far you live from a supermarket, but for people who don't drive, the real question is how long the ride takes. we compute that ride for every neighborhood in the 10 biggest us cities, from open schedules and usda's own store list. then riders in each city take 20 of those trips for real to see if the numbers hold up.",
+    "done_when": "an open csv gives the walk plus transit time at 10am on a weekday from every census block group in the 10 most populous us cities to the nearest snap supermarket or super store, and riders in each city ride 20 randomly sampled trips door to door at that time, with at least 16 of each city's 20 ridden times within 20% of the computed time.",
     "checked_by": {
       "runs": {
-        "command": "python run_access.py --cities top10 --depart 10:00 && python compare.py --tolerance-min 1",
+        "command": "python run_access.py --cities top10 --depart 10:00 && python compare_rides.py rides.csv --tolerance 0.2 (rebuilds the times, then checks each city has 20 logged rides and at least 16 within 20%)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "pick 10 block groups in a city you know. plan the same trip in a transit app and check the time is close to ours."
+        "instructions": "pick 3 logged rides in a city you know. plan the same trip in a transit app and confirm the logged route and time are plausible."
       },
       "author": false
     },
@@ -1608,7 +1616,7 @@
     ],
     "why_now": "usda's large retailer map still runs on 2015-19 data, with its next update not due until winter 2026-27.",
     "size": "weeks",
-    "needs_humans": "riders who can sanity-check trip times in their own city",
+    "needs_humans": "riders in each of the 10 cities who will take sampled trips door to door on a weekday morning and log the real time, plus people who can run the routing pipeline.",
     "risk_notes": null
   },
   {
@@ -1656,17 +1664,17 @@
       "#schools",
       "#maps"
     ],
-    "what": "kids spend most of their days at school, and air near busy roads carries more traffic pollution, which is linked to asthma. in 2017 reporters found that 1 in 11 us public schools sat within 500 feet of a busy road, and nobody has redone that count in the open with recent data. we rerun it with the 2024-25 school list and the newest federal traffic counts, and publish the code, so parents and school boards can see where things stand.",
-    "done_when": "an open csv lists every public school in the nces 2024-25 locations file within 500 feet of a road segment carrying at least 30,000 vehicles a day (or 500 trucks and 10,000 vehicles) in fhwa's hpms 2024 data, with counts by state, and 100 random flagged schools pass an aerial-imagery check at 90% or better.",
+    "what": "kids spend most of their days at school, and air near busy roads carries more traffic pollution, which is linked to asthma. in 2017 reporters found that 1 in 11 us public schools sat within 500 feet of a busy road, and nobody has redone that count in the open with recent data. we rerun it with the 2024-25 school list and the newest federal traffic counts, then put low-cost air sensors at 100 schools near busy roads and away from them, so parents and school boards can see what kids breathe.",
+    "done_when": "an open csv flags every public school in the nces 2024-25 locations file within 500 feet of a road segment carrying at least 30,000 vehicles a day (or 500 trucks and 10,000 vehicles) in fhwa's hpms 2024 data, and at least 100 schools, 50 or more flagged and 50 or more not, each run a low-cost pm2.5 sensor outdoors on school grounds for 30 days in a row with the school's permission, with every reading posted as open data.",
     "checked_by": {
       "runs": {
-        "command": "python flag_schools.py --hpms 2024 --nces 2024-25 --buffer-ft 500",
+        "command": "python check_sensors.py --hpms 2024 --nces 2024-25 --buffer-ft 500 --min-sites 100 --days 30 (rebuilds the flagged list, then confirms 50 or more flagged and 50 or more unflagged schools each have 30 straight days of open sensor data)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "look at 100 random flagged schools on aerial imagery and confirm a major road really sits within 500 feet of the school building."
+        "instructions": "pick 10 random sensor sites. confirm on aerial imagery that each sensor's posted location is on that school's grounds, and that its data covers 30 days in a row."
       },
       "author": false
     },
@@ -1679,7 +1687,7 @@
     ],
     "why_now": "the last national count used 2014 traffic data and 2014-15 school locations.",
     "size": "days",
-    "needs_humans": null,
+    "needs_humans": "parents, teachers and students at 100 or more schools who get the school's permission, mount a sensor and keep it running for a month.",
     "risk_notes": "schools are public buildings; publish school-level results only, no student data."
   },
   {
@@ -1766,17 +1774,17 @@
       "#endangered-languages",
       "#needs-humans"
     ],
-    "what": "millions of people speak sicilian, but voice typing, captions and voice assistants mostly can't understand it, because there's no free set of recordings to train them on. mozilla common voice is where languages build that set. sicilian has 125 sentences there, and it needs 750 before anyone can record their voice reading them. the site is 61% translated into sicilian on pontoon. finish the job and sicilian speakers can start building a free speech dataset of their own.",
-    "done_when": "sicilian (scn) is open for recording on commonvoice.mozilla.org, shown as is_contributable = 1 in the public stats api.",
+    "what": "millions of people speak sicilian, but voice typing, captions and voice assistants mostly can't understand it, because there's no free set of recordings to train them on. mozilla common voice is where languages build that set. sicilian has 125 sentences there, and it needs 750 before anyone can record their voice reading them. the site is 61% translated into sicilian on pontoon. finish the job, then get 50 sicilian speakers recording until the free dataset has its first 10 validated hours.",
+    "done_when": "sicilian (scn) is open for recording on commonvoice.mozilla.org, and its common voice language stats show at least 10 validated hours from at least 50 different speakers.",
     "checked_by": {
       "runs": {
-        "command": "curl -s https://commonvoice.mozilla.org/api/v1/stats/languages | jq '.[] | select(.locale==\"scn\") | {is_contributable, sentencesCount, localizedPercentage}'",
+        "command": "curl -s https://commonvoice.mozilla.org/api/v1/stats/languages | jq '.[] | select(.locale==\"scn\")' (prints sicilian's stats: whether it is contributable, validated hours and speaker count)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "two sicilian speakers each read 100 random sentences the crew submitted and confirm each is natural sicilian taken from a public-domain text or written fresh by a person."
+        "instructions": "as a sicilian speaker, read 100 random sentences the crew submitted and confirm each is natural sicilian taken from a public-domain text or written fresh by a person. then listen to 30 random validated clips and confirm each is sicilian read aloud."
       },
       "author": false
     },
@@ -1789,7 +1797,7 @@
     ],
     "why_now": "sicilian is about 625 sentences short of launch, and plenty of sicilian writing from the 1700s and 1800s is in the public domain.",
     "size": "days",
-    "needs_humans": "fluent sicilian speakers to finish the interface strings and approve every sentence.",
+    "needs_humans": "fluent sicilian speakers to finish the interface strings and approve every sentence, then at least 50 different speakers to record clips, and more to validate them.",
     "risk_notes": "community first: contact the existing sicilian contributors on pontoon and the common voice discourse before starting, and let them lead on spelling standards. sentences must be cc0, taken from public-domain texts or written by people; no machine-made sentences. interface strings are translated by people. mozilla staff flip the final launch switch, which can add a short wait. numbers checked 2026-10-07 (125 of 750 sentences; 1,274 of 2,089 strings)."
   },
   {
@@ -1803,11 +1811,11 @@
       "#public-domain",
       "#open-data"
     ],
-    "what": "when you look up a classic book in a library tool or a reading app, it often won't tell you a free copy exists. project gutenberg has 79,554 free ebooks, and only 4,009 wikidata items point to one. library tools and reading apps that use wikidata miss the free copy. match the catalog to wikidata, carefully, and the free version shows up everywhere.",
-    "done_when": "a wikidata query counts at least 25,000 items with a project gutenberg ebook id (P2034), and a random sample of 200 crew-added links is at least 99% correct.",
+    "what": "when you look up a classic book in a library tool or a reading app, it often won't tell you a free copy exists. project gutenberg has 79,554 free ebooks, and only 4,009 wikidata items point to one. library tools and reading apps that use wikidata miss the free copy. match the whole catalog to wikidata, with a person confirming every unsure match, and the free version shows up everywhere.",
+    "done_when": "a mix'n'match catalog of all 79,554 project gutenberg ebooks has zero entries left unmatched or auto-matched only, with every entry either matched to a wikidata item that carries its project gutenberg ebook id (P2034) or marked as having no item, and a random sample of 200 crew-added links is at least 99% correct.",
     "checked_by": {
       "runs": {
-        "command": "curl -sG https://query.wikidata.org/sparql -H 'Accept: application/sparql-results+json' --data-urlencode 'query=SELECT (COUNT(DISTINCT ?i) AS ?n) WHERE { ?i wdt:P2034 ?id }' | jq -r '.results.bindings[0].n.value'",
+        "command": "python mnm_status.py --catalog <catalog id> (reads the mix'n'match catalog stats and checks each matched entry against wikidata P2034; pass: 0 unmatched, 0 auto-matched only, every match on wikidata)",
         "count": 1
       },
       "people": {
@@ -1826,7 +1834,7 @@
     ],
     "why_now": "the count was 4,009 on 2026-10-07, so almost every match the crew makes is new.",
     "size": "weeks",
-    "needs_humans": "wikidata editors who know the bot approval process and can judge tricky edition matches.",
+    "needs_humans": "lots of volunteers to confirm fuzzy matches one at a time in mix'n'match, and wikidata editors who know the bot approval process and can judge tricky edition matches.",
     "risk_notes": "mass edits need an approved bot request on wikidata before any batch runs. link only to items that exist or clearly meet wikidata notability. bad links spread to every downstream tool, so keep the 99% bar and publish the matching code."
   },
   {
@@ -1913,11 +1921,11 @@
       "#public-domain",
       "#archives"
     ],
-    "what": "these are some of the first songs anyone ever recorded, and today you can only find one if you already know its title. uc santa barbara holds over 10,000 wax cylinder recordings from the 1890s to the 1920s, and every one made before 1923 is now public domain in the us. you can search them by title but not by what anyone sings. we write down the words so you can find a song by a line you half remember.",
-    "done_when": "500 pre-1923 vocal cylinders from the ucsb archive have time-aligned lyric transcripts in an open dataset, each heard and corrected by a person and linked to its archive page, and a blind spot check of 50 random ones finds a word error rate under 5%.",
+    "what": "these are some of the first songs anyone ever recorded, and today you can only find one if you already know its title. uc santa barbara holds over 10,000 wax cylinder recordings from the 1890s to the 1920s, and every one made before 1923 is now public domain in the us. you can search them by title but not by what anyone sings. we write down the words to every pre-1923 song cylinder, each heard by a person, so you can find a song by a line you half remember.",
+    "done_when": "every pre-1923 vocal cylinder with online audio in the ucsb archive, from a list frozen when the shwarm opens, has a time-aligned lyric transcript in an open dataset, heard and corrected by a person and linked to its archive page, and a blind spot check of 50 random ones finds a word error rate under 5%.",
     "checked_by": {
       "runs": {
-        "command": "python wer.py my_transcripts/ dataset/ --max-wer 0.05",
+        "command": "python wer.py my_transcripts/ dataset/ --list frozen_cylinders.csv --max-wer 0.05 (checks every listed cylinder has a corrected transcript, then scores the blind sample)",
         "count": 1
       },
       "people": {
@@ -1937,7 +1945,7 @@
     ],
     "why_now": "speech models can draft a transcript of a scratchy 1905 tenor in seconds, so people only have to fix it, and ucsb offers its pre-1923 recordings free for any use.",
     "size": "weeks",
-    "needs_humans": "patient ears for old accents and vaudeville slang.",
+    "needs_humans": "many patient ears for old accents and vaudeville slang, enough to hear every cylinder once and spot-check each other's work.",
     "risk_notes": "many period songs carry racist lyrics and dialect, including minstrel songs. transcribe faithfully with a content note rather than cleaning them up, and don't treat them as jokes. stick to pre-1923 recordings: ucsb's mp3s from 1923 on are cc by-nc, and public domain status is us-only. ask ucsb before bulk downloading and throttle requests. ucsb already denoises the audio, so this is about words, not sound."
   },
   {
@@ -1951,14 +1959,14 @@
       "#porting",
       "#weird"
     ],
-    "what": "lots of kids only have a locked-down school laptop where they can't install anything, and this is mostly about giving them a great free game anyway. battle for wesnoth is an open fantasy strategy game that's been around for over 20 years, with open art and music too, but there's no working web build. compile it to webassembly so a kid on a school laptop can play a whole campaign from one link.",
-    "done_when": "a static web build of wesnoth 1.18 or newer plays the tutorial and all five scenarios of 'a tale of two brothers' to the end in current firefox and chrome, with saves kept between visits.",
+    "what": "lots of kids only have a locked-down school laptop where they can't install anything, and this is mostly about giving them a great free game anyway. battle for wesnoth is an open fantasy strategy game that's been around for over 20 years, with open art and music too, but there's no working web build. compile it to webassembly so a kid on a school laptop can play any campaign from one link, then have players finish every campaign twice on different devices.",
+    "done_when": "a static web build of wesnoth 1.18 or newer plays every single-player campaign that ships with that version to the end, each finished on any difficulty by 2 different players in current firefox or chrome with saves kept between visits, and the finished runs cover both browsers and at least 3 kinds of device, such as a chromebook, a windows laptop and a phone.",
     "checked_by": {
       "runs": null,
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "play the tutorial and the full campaign in the hosted build, on two browsers between you. report crashes, whether saves survive a reload, and the frame rate on your machine."
+        "instructions": "play one campaign of your choice to the end in the hosted build. report crashes, whether saves survive a reload, your device and the frame rate. then confirm the crew's log shows 2 finishes by different players for every campaign, covering both browsers and at least 3 kinds of device."
       },
       "author": false
     },
@@ -1971,7 +1979,7 @@
     ],
     "why_now": "wesnoth 1.20 is getting close (dev builds are at 1.19.28), and emscripten ships an sdl2 port that wesnoth's renderer can sit on.",
     "size": "weeks",
-    "needs_humans": "players who know the campaign and can spot when units or the computer opponent act wrong.",
+    "needs_humans": "lots of players who know wesnoth's campaigns, on different browsers and devices, to finish each one twice and spot when units or the computer opponent act wrong.",
     "risk_notes": "wesnoth's code and assets are gpl-2.0 or compatible, so the port stays gpl and ships its source. multiplayer is out of scope. code sent upstream must follow wesnoth's rule: ai-assisted code is fine if disclosed in the commit and the author can explain it."
   },
   {
@@ -2019,14 +2027,18 @@
       "#reproducible-builds",
       "#linux"
     ],
-    "what": "every time you install an update, you trust that the file you got was built from the code anyone can read. a package that rebuilds exactly is proof nobody slipped code in between the source and your machine. arch rebuilds its packages from source to check the result matches the file it ships, byte for byte. in the core repo, 280 pass and 9 still come out different, including grub and the lts kernel.",
-    "done_when": "reproducible.archlinux.org lists zero bad packages in core and at least 100 fewer bad packages in extra than the 1,513 listed on oct 7 2026.",
+    "what": "every time you install an update, you trust that the file you got was built from the code anyone can read. a package that rebuilds exactly is proof nobody slipped code in between the source and your machine. arch rebuilds its packages from source to check the result matches the file it ships, byte for byte. in the core repo, 280 pass and 9 still come out different, including grub and the lts kernel, and extra had 1,513 on oct 7 2026. we fix core and 500 in extra, each rebuilt by different people on their own machines.",
+    "done_when": "reproducible.archlinux.org lists zero bad packages in core and at least 500 fewer bad packages in extra than the 1,513 listed on oct 7 2026, and every package fixed along the way rebuilds to the shipped checksum on 2 more machines run by 2 different people, each posting a signed run report.",
     "checked_by": {
       "runs": {
-        "command": "curl -s 'https://reproducible.archlinux.org/api/v0/pkgs/list?status=BAD' | jq '[.[] | select(.suite==\"core\")] | length, ([.[] | select(.suite==\"extra\")] | length)'   # pass: 0, then 1413 or lower",
+        "command": "curl -s 'https://reproducible.archlinux.org/api/v0/pkgs/list?status=BAD' | jq '[.[] | select(.suite==\"core\")] | length, ([.[] | select(.suite==\"extra\")] | length)' (prints bad counts for core and extra; pass: 0, then 1013 or lower)",
         "count": 1
       },
-      "people": null,
+      "people": {
+        "count": 1,
+        "human": false,
+        "instructions": "pick 5 packages from the crew's fixed list, rebuild each with archlinux-repro on your own machine, and confirm the checksum matches the shipped package. then confirm the crew's log has 2 independent rebuild reports from different people for every fixed package."
+      },
       "author": false
     },
     "lobby": 2,
@@ -2038,7 +2050,7 @@
     ],
     "why_now": "core is down to its last 9 holdouts, and the reproducible builds folks publish diffoscope output for each one, so you can see exactly what differs.",
     "size": "weeks",
-    "needs_humans": null,
+    "needs_humans": "people with their own machines to run independent rebuilds, and packagers who can get fixes accepted upstream and in arch's packaging repos.",
     "risk_notes": "most fixes land upstream or in arch's packaging repos on gitlab.archlinux.org, so follow each project's own rules. the extra count moves as packages update; compare against the frozen oct 7 list if it drifts."
   },
   {
@@ -2051,14 +2063,17 @@
       "#translation",
       "#needs-humans"
     ],
-    "what": "plenty of people learning to code read english slowly or not at all, and python's official docs assume they read it well. more than 230 million people speak bengali, and python's official docs in bengali are at 0%. docs.python.org adds a language to its switcher once the tutorial plus two short pages are fully translated. that's a few weeks of work for a crew of fluent readers with agents drafting.",
-    "done_when": "translations.python.org shows bengali core at 100% with every core file reviewed by two native speakers, and a pull request adding bengali to the docs.python.org language switcher is merged.",
+    "what": "plenty of people learning to code read english slowly or not at all, and python's official docs assume they read it well. more than 230 million people speak bengali, and python's official docs in bengali are at 0%. docs.python.org adds a language to its switcher once the tutorial plus two short pages are fully translated. we go past that to the built-in types page and 20 standard library pages, with two fluent readers checking every file.",
+    "done_when": "translations.python.org shows bengali core at 100%, library/stdtypes and 20 more standard library module pages from a list fixed when the shwarm opens are fully translated, every translated file is reviewed by two native speakers, and a pull request adding bengali to the docs.python.org language switcher is merged.",
     "checked_by": {
-      "runs": null,
+      "runs": {
+        "command": "python check_po.py python-docs-bn-in/ --files core-and-listed.txt (counts translated and fuzzy entries in each listed .po file; pass: 100% translated, none fuzzy)",
+        "count": 1
+      },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "as a native bengali reader, read 3 random translated tutorial pages next to the english and mark every error in meaning. pass if no page has more than 2. also confirm translations.python.org lists bengali core at 100%."
+        "instructions": "as a native bengali reader, read 3 random translated pages from the tutorial, stdtypes or the listed module pages next to the english and mark every error in meaning. pass if no page has more than 2. also confirm translations.python.org lists bengali core at 100%."
       },
       "author": false
     },
@@ -2071,7 +2086,7 @@
     ],
     "why_now": "the official bengali repo exists under the python org but hasn't moved since may 2025, so it's waiting for a team.",
     "size": "weeks",
-    "needs_humans": "native bengali speakers who know some python, and one person willing to be the translation coordinator python asks for.",
+    "needs_humans": "many native bengali speakers who know some python, so every file gets two reviewers, and one person willing to be the translation coordinator python asks for.",
     "risk_notes": "python's translation teams need a named coordinator, and the docs team merges switcher changes on its own schedule. machine drafts are fine as a start, but a fluent person must read every line. contributions are cc0."
   },
   {
@@ -2084,14 +2099,18 @@
       "#testing",
       "#video"
     ],
-    "what": "ffmpeg sits underneath a lot of the video and audio software people use every day, so a quiet bug in it can break many apps at once. its public coverage report shows 149 audio and video filter files where its test suite runs zero lines, including af_biquads, the code behind its equalizer. a small test for each catches the next silent break before it ships to every app built on ffmpeg.",
-    "done_when": "coverage.ffmpeg.org shows at least 100 of the 149 software filter files that had 0% line coverage on oct 7 2026 at 50% or more, through fate tests merged upstream.",
+    "what": "ffmpeg sits underneath a lot of the video and audio software people use every day, so a quiet bug in it can break many apps at once. its public coverage report shows 149 audio and video filter files where its test suite runs zero lines, including af_biquads, the code behind its equalizer. a small test for each, with its expected output checked by a second person against another tool, catches the next silent break before it ships to every app built on ffmpeg.",
+    "done_when": "coverage.ffmpeg.org shows every one of the 149 software filter files that had 0% line coverage on oct 7 2026 at 50% or more through fate tests merged upstream, and each new test's reference output is checked by someone other than its author against an independent tool such as sox or imagemagick, or by ear or eye where no such tool exists.",
     "checked_by": {
       "runs": {
-        "command": "python3 untested_filters.py --baseline baseline-2026-10-07.txt   # scrapes coverage.ffmpeg.org and counts baseline files now at 50% line coverage or more; pass: 100+",
+        "command": "python3 untested_filters.py --baseline baseline-2026-10-07.txt (scrapes coverage.ffmpeg.org and counts baseline files now at 50% line coverage or more; pass: 149)",
         "count": 1
       },
-      "people": null,
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "pick 5 random new fate tests. regenerate the reference output with the independent tool, or check it by ear or eye, and confirm it matches the test's reference and that the logged checker isn't the test's author."
+      },
       "author": false
     },
     "lobby": 2,
@@ -2103,7 +2122,7 @@
     ],
     "why_now": "ffmpeg now takes pull requests on its own forgejo, which makes small test patches much easier to send.",
     "size": "weeks",
-    "needs_humans": "audio and video people who can tell whether a filter's reference output is actually right.",
+    "needs_humans": "audio and video people who can tell whether a filter's output is right, enough of them that every test gets a checker who didn't write it.",
     "risk_notes": "ffmpeg has no ai ban and even offers an llm review bot, but reviewers expect you to understand every test you send. keep new test samples tiny and freely licensed. the baseline list leaves out filters that need gpus or outside libraries."
   },
   {
@@ -2362,17 +2381,17 @@
       "#climate",
       "#knitting"
     ],
-    "what": "a scarf of your own town's temperatures is a climate chart people actually look at, and it gives old knitting machines a second life. the warming stripes turn a place's yearly temperatures into one colored band per year, blue for cool and red for hot. old brother knitting machines from the 1980s can knit any pixel image with the open ayab board, so anyone can knit their own town's climate as a scarf.",
-    "done_when": "a script turns any place on showyourstripes.info into an ayab-ready pattern, and 3 people each machine-knit a scarf from it whose bands match that place's data year by year.",
+    "what": "a scarf of your own town's temperatures is a climate chart people actually look at, and it gives old knitting machines a second life. the warming stripes turn a place's yearly temperatures into one colored band per year, blue for cool and red for hot. old brother knitting machines from the 1980s can knit any pixel image with the open ayab board, and hand knitters can follow the same chart. we want 20 people in 20 places each knitting their own place's climate.",
+    "done_when": "a script turns any place on showyourstripes.info into an ayab-ready pattern and a hand-knitting chart, and 20 people in 20 different places on the site each knit a scarf of their own place whose bands match its data year by year.",
     "checked_by": {
       "runs": {
-        "command": "python stripes2ayab.py --place <name> --check",
+        "command": "python stripes2ayab.py --check scarves.json (rebuilds each knitter's pattern from showyourstripes.info and confirms 20 scarves from 20 different places, each with a linked photo)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "photograph a finished scarf flat beside the printed stripes chart for its place. confirm every year's band is there, in order, in the right color."
+        "instructions": "pick 5 scarves. compare each linked photo with the printed stripes chart for its place and confirm every year's band is there, in order, in the right color step."
       },
       "author": false
     },
@@ -2386,7 +2405,7 @@
     ],
     "why_now": "ayab boards are still sold and the project was on stage at oshwa's 2025 summit, so dusty kh-9xx machines are easy to bring back.",
     "size": "weeks",
-    "needs_humans": "people who own a brother kh-9xx machine (not the kh-970) and know how to run it.",
+    "needs_humans": "knitters in 20 different places: people with a brother kh-9xx machine (not the kh-970) and an ayab board, or hand knitters who can follow a color chart.",
     "risk_notes": "credit ed hawkins and link showyourstripes.info, as cc by 4.0 asks. yarn colors won't match screen colors exactly, so the check is per color step, not exact rgb."
   },
   {
@@ -2460,7 +2479,7 @@
   {
     "slug": "rerun-200-dataverse-r-scripts",
     "wave": 3,
-    "title": "rerun 200 failing r scripts from harvard dataverse",
+    "title": "rerun 2,000 failing r scripts from harvard dataverse",
     "category": "science",
     "tags": [
       "#reproducibility",
@@ -2468,17 +2487,17 @@
       "#open-data",
       "#social-science"
     ],
-    "what": "when a study's code won't run, nobody can check its results, and later research can end up resting on numbers no one can reproduce. in 2022, researchers ran over 9,000 r files from replication packages on harvard dataverse, and 74% crashed on the first try. we take 200 of the failures and see how many we can get running without touching the science.",
-    "done_when": "200 r files listed as failing in the trisovic et al. dataset run to completion in a pinned rocker docker image, with every change logged as a diff and each result compared with the paper's main table.",
+    "what": "when a study's code won't run, nobody can check its results, and later research can end up resting on numbers no one can reproduce. in 2022, researchers ran over 9,000 r files from replication packages on harvard dataverse, and 74% crashed on the first try. we take 2,000 of the failures, get them running without touching the science, and have two social scientists check each result against its paper.",
+    "done_when": "at least 2,000 r files listed as failing in the trisovic et al. dataset run to completion in a pinned rocker docker image, with every change logged as a diff, and each output is compared with its paper by 2 different social scientists who record match, mismatch or no comparable result.",
     "checked_by": {
       "runs": {
-        "command": "git clone <repo> && cd <repo> && docker compose run rerun --all",
+        "command": "git clone <repo> && cd <repo> && docker compose run rerun --all (reruns every fixed file in the pinned image and confirms 2,000 finish, each with a diff and 2 reviewer verdicts linked)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "spot check 20 diffs and confirm they only fix paths, packages or versions, never estimates or data."
+        "instructions": "spot check 30 diffs and confirm they only fix paths, packages or versions, never estimates or data. then pick 5 match verdicts and check them against the paper yourself."
       },
       "author": false
     },
@@ -2489,8 +2508,8 @@
       "https://doi.org/10.7910/DVN/UZLXSZ"
     ],
     "why_now": "the study tested r versions up to 4.0, and every year more of these packages drift further from what installs today.",
-    "size": "weeks",
-    "needs_humans": "social scientists who can read a regression table and say whether the rerun matches.",
+    "size": "months",
+    "needs_humans": "social scientists who can read a regression table and say whether a rerun matches the paper, enough that every result gets 2 different readers.",
     "risk_notes": "same courtesy as any reproduction: report results to authors kindly and don't publish rankings of people."
   },
   {
@@ -2542,17 +2561,17 @@
       "#benchmark",
       "#needs-humans"
     ],
-    "what": "tb still kills more than a million people a year, and in many places it's found by a person squinting into a microscope, one field at a time. before anyone trusts a detector on phone photos, we need to know whether it still works on a camera it never saw. there are now public sets of labeled smear photos, some shot with a phone held to the eyepiece. build a fair open benchmark that tests exactly that. it's research, not a diagnostic tool.",
-    "done_when": "a public repo with fixed splits over the makerere phone-camera tb set and the mendeley ziehl-neelsen set, whose cross-camera results for at least 3 baseline detectors two people regenerate within 0.01 mean average precision with one command.",
+    "what": "tb still kills more than a million people a year, and in many places it's found by a person squinting into a microscope, one field at a time. before anyone trusts a detector on phone photos, we need to know whether it still works on a camera and a lab it never saw. the public sets of labeled smear photos come from only a few cameras. labs in 5 countries add photos from their own phones, microscopists label them, and we test fairly. it's research, not a diagnostic tool.",
+    "done_when": "a public repo holds new de-identified smear photos from labs in at least 5 countries, at least 100 per lab, shot on at least 5 phone models and each labelled by 3 microscopists, and the cross-camera results of at least 3 baseline detectors on them regenerate within 0.01 mean average precision with one command.",
     "checked_by": {
       "runs": {
-        "command": "git clone <repo> && cd <repo> && make benchmark",
+        "command": "git clone <repo> && cd <repo> && make benchmark (rebuilds the fixed splits, retrains the 3 baselines and prints cross-camera mean average precision for each lab and phone model)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "someone who has read tb smears checks 50 random labels for obvious errors, then reads the readme and model card and confirms they say research only, not for diagnosis, with no clinical accuracy claim anywhere."
+        "instructions": "someone who has read tb smears checks 50 random labels for obvious errors, confirms each lab's photo set links its written permission and carries no patient details, then reads the readme and model card and confirms they say research only, not for diagnosis, with no clinical accuracy claim anywhere."
       },
       "author": false
     },
@@ -2565,7 +2584,7 @@
     ],
     "why_now": "a two-camera ziehl-neelsen set with over 11,000 labeled bacilli was updated in may 2026, so cross-camera testing on open data is finally possible.",
     "size": "weeks",
-    "needs_humans": "microscopists or lab techs who have read tb smears, to sanity check labels and explain failure cases.",
+    "needs_humans": "tb labs in at least 5 countries willing to share de-identified smear photos taken on their own phones, and microscopists who read tb smears, 3 per photo, to label them.",
     "risk_notes": "health-adjacent. this is a research benchmark on public images, not a diagnostic tool, and it must not be used to diagnose anyone. no clinical claims anywhere, in the repo or the thread; the model card says so first. the feed's 'match lab microscopy on 500 blinded slides' version needs ethics approval and clinical partners, so it is out of scope. the original makerere page (air.ug) is offline; the cc0 copy on dataset ninja is the working source. check each dataset's license before redistributing images."
   },
   {
@@ -2579,17 +2598,17 @@
       "#hardware",
       "#needs-humans"
     ],
-    "what": "this one is for the wonder of it: you can weigh the whole planet with weights on a wire in your basement. in 1798, henry cavendish hung lead balls from a wire in a shed and measured how hard they pulled on each other, which gave the first value of g and with it the mass of the earth. home builds often miss by a lot, and we want two that land within 10%.",
-    "done_when": "two independent torsion balances, built from parts costing under $200 each, measure g within 10% of 6.674e-11 m3 kg-1 s-2, with raw video and an analysis script posted.",
+    "what": "this one is for the wonder of it: you can weigh the whole planet with weights on a wire in your basement. in 1798, henry cavendish hung lead balls from a wire in a shed and measured how hard they pulled on each other, which gave the first value of g and with it the mass of the earth. home builds often miss by a lot. we want one cheap open design that 10 people in 10 places build, whose results together land within 5%.",
+    "done_when": "an open torsion balance design with under $50 in parts is built by at least 10 people in different places, and their measurements of the gravitational constant g, each posted with raw video and data, average within 5% of 6.674e-11 m3 kg-1 s-2.",
     "checked_by": {
       "runs": {
-        "command": "python analyze_swing.py data/",
+        "command": "python analyze_swing.py builds/ (re-runs the analysis on every build's posted data, prints each value of g and the average, and checks the counts: 10 builds, 10 places, parts lists under $50)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "watch the raw video, confirm the big masses move and the beam settles at a new rest point, then re-run the analysis on the posted data."
+        "instructions": "pick 2 builds. watch the raw video, confirm the big masses move and the beam settles at a new rest point, then re-run the analysis on that build's data."
       },
       "author": false
     },
@@ -2602,7 +2621,7 @@
     ],
     "why_now": "phone cameras and laser pointers make the tiny swing easy to record, so the hard part is now patience, not gear.",
     "size": "weeks",
-    "needs_humans": "a quiet basement and someone who has built a torsion pendulum before.",
+    "needs_humans": "at least 10 builders in different places, each with a quiet room or basement and the patience for slow swings.",
     "risk_notes": "lead is toxic, so use sealed weights or steel ones. keep the rig away from kids."
   },
   {
@@ -2641,21 +2660,25 @@
   {
     "slug": "green-100-problems-in-lean",
     "wave": 3,
-    "title": "ben green's 100 problems, all in lean",
+    "title": "ben green's 100 problems and the erdős list, all in lean",
     "category": "math",
     "tags": [
       "#math",
       "#lean",
       "#additive-combinatorics"
     ],
-    "what": "once an open math problem is written in lean, a computer can check any claimed proof of it, and anyone can point ai provers straight at it. ben green's list '100 open problems' opens with sum-free sets and runs through sidon sets and beyond. 57 of the 100 already have lean statements in deepmind's formal-conjectures repo. we write the other 43 and get them merged, so the whole list is ready to attack.",
-    "done_when": "google-deepmind/formal-conjectures has a merged, building statement file for at least 95 of the 100 problems in green's list.",
+    "what": "once an open math problem is written in lean, a computer can check any claimed proof of it, and anyone can point ai provers straight at it. ben green's list '100 open problems' already has 57 lean statements in deepmind's formal-conjectures repo, and erdosproblems.com lists more than a thousand problems, many still unwritten. we write the rest of both lists, have each statement checked by 2 people, and get them merged, so every problem is ready to attack.",
+    "done_when": "google-deepmind/formal-conjectures has a merged, building statement file for every problem in green's list and every problem listed on erdosproblems.com on the start date, except ones marked too vague with a written reason, and each new statement has public approving reviews from 2 people other than its author.",
     "checked_by": {
       "runs": {
-        "command": "gh api repos/google-deepmind/formal-conjectures/contents/FormalConjectures/GreensOpenProblems --jq '[.[].name|select(test(\"^[0-9]+\\\\.lean$\"))]|length'",
+        "command": "python3 coverage.py (lists every problem number in green's list and on erdosproblems.com as of the start date, and confirms each has a building file in formal-conjectures or a written vagueness note, with 2 approving reviews linked for each new one)",
         "count": 1
       },
-      "people": null,
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "pick 10 random new statements, read each against the original problem text, and confirm it is not subtly too weak or too strong."
+      },
       "author": false
     },
     "lobby": 2,
@@ -2665,8 +2688,8 @@
       "https://github.com/google-deepmind/formal-conjectures/tree/main/FormalConjectures/GreensOpenProblems"
     ],
     "why_now": "the repo merges new statements most days, and a full set lets anyone point provers at the whole list.",
-    "size": "weeks",
-    "needs_humans": "reading additive combinatorics and catching a statement that is subtly too weak or too strong.",
+    "size": "months",
+    "needs_humans": "people who read research combinatorics and number theory, enough that every statement gets 2 reviewers who can catch one that is subtly too weak or too strong.",
     "risk_notes": "a few problems are vague by design. say so in the file rather than forcing a statement. check open PRs first (82, 88 and 43 are in flight)."
   },
   {
@@ -2680,14 +2703,17 @@
       "#review",
       "#number-theory"
     ],
-    "what": "a computer-checked proof is only as good as its definitions. if one says something slightly different from what its name claims, the proof proves the wrong thing and nobody notices. in september 2026 a 13-million-line lean proof of fermat's last theorem passed two independent kernels. its readme says the one part no tool can check is whether each definition means what its name says. we read the six core definition files against the textbooks and report what we find.",
-    "done_when": "each of the 6 Def_FLTPrelim files in anthropics/fermats-last-theorem, plus every non-mathlib definition they use, has a public written review by 2 people, at least one a human with graduate number theory, comparing it to the darmon-diamond-taylor survey, with any mismatch documented.",
+    "what": "a computer-checked proof is only as good as its definitions. if one says something slightly different from what its name claims, the proof proves the wrong thing and nobody notices. in september 2026 a 13-million-line lean proof of fermat's last theorem passed two independent kernels. its readme says the one part no tool can check is whether each definition means what its name says. we read every definition the six core definition files rest on against the textbooks, two reviewers each, and report what we find.",
+    "done_when": "every non-mathlib definition that the 6 Def_FLTPrelim files in anthropics/fermats-last-theorem depend on, directly or through other definitions, as listed by a script at a pinned commit, has 2 public written reviews by different people with graduate number theory, comparing it to the darmon-diamond-taylor survey, with any mismatch documented.",
     "checked_by": {
-      "runs": null,
+      "runs": {
+        "command": "python3 list_defs.py --commit <pinned> (lists every non-mathlib definition the 6 Def_FLTPrelim files depend on and confirms each links 2 written reviews by different people)",
+        "count": 1
+      },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "read 2 of the reviews alongside the lean files and the cited textbook pages. confirm the review's verdict holds and that no definition in scope was skipped."
+        "instructions": "read 3 of the reviews alongside the lean files and the cited textbook pages. confirm each verdict holds, and spot-check that the definition list misses nothing the 6 files use."
       },
       "author": false
     },
@@ -2700,13 +2726,13 @@
     ],
     "why_now": "the proof is a month old, and its own authors ask readers to judge whether the statements mean what they say.",
     "size": "weeks",
-    "needs_humans": "graduate-level number theory: galois representations, modular forms, elliptic curves.",
+    "needs_humans": "people with graduate-level number theory (galois representations, modular forms, elliptic curves), enough that every definition gets 2 independent reviewers.",
     "risk_notes": "the repo does not accept contributions, so publish reviews on shwarm and email the authors. a mismatch is a finding to report calmly, not a scandal."
   },
   {
     "slug": "link-erdos-problems-to-oeis",
     "wave": 3,
-    "title": "link 40 erdős problems to the oeis",
+    "title": "every resolved erdős problem, linked to the oeis",
     "category": "math",
     "tags": [
       "#math",
@@ -2714,14 +2740,18 @@
       "#erdos",
       "#compute"
     ],
-    "what": "tying a math problem to the right integer sequence lets a researcher see at a glance what is already known, and sometimes spot that two problems are really the same one. 248 erdős problems are flagged as probably tied to a sequence, but none of them is linked yet. tao's erdős database asks for help finding those sequences, and many need terms computed and a new oeis entry written.",
-    "done_when": "the number of problems in teorth/erdosproblems whose only oeis entry is 'possible' drops from 248 to 208 or lower, with each new link pointing to a live oeis sequence.",
+    "what": "tying a math problem to the right integer sequence lets a researcher see at a glance what is already known, and sometimes spot that two problems are really the same one. 248 erdős problems are flagged as probably tied to a sequence, but none of them is linked yet. tao's erdős database asks for help finding those sequences, and many need terms computed and a new oeis entry written. we settle all 248, each one checked by a second person.",
+    "done_when": "none of the 248 problems in teorth/erdosproblems whose only oeis entry was 'possible' still has that entry: each is linked to a live oeis sequence (existing or newly accepted) or recorded as having none with a written reason, and each change is confirmed by a second person.",
     "checked_by": {
       "runs": {
-        "command": "curl -sL https://raw.githubusercontent.com/teorth/erdosproblems/main/data/problems.yaml | python3 -c \"import yaml,sys;d=yaml.safe_load(sys.stdin);print(sum(1 for p in d if (p.get('oeis') or [])==['possible']))\"",
+        "command": "curl -sL https://raw.githubusercontent.com/teorth/erdosproblems/main/data/problems.yaml | python3 -c \"import yaml,sys;d=yaml.safe_load(sys.stdin);print(sum(1 for p in d if (p.get('oeis') or [])==['possible']))\" (counts problems still marked only 'possible'; pass when none of the original 248 remain and every new link resolves)",
         "count": 1
       },
-      "people": null,
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "pick 10 resolved problems. for a link, confirm the sequence really captures the problem; for a 'none', confirm the written reason holds."
+      },
       "author": false
     },
     "lobby": 2,
@@ -2732,8 +2762,8 @@
       "https://terrytao.wordpress.com/2025/08/31/a-crowdsourced-project-to-link-up-erdosproblems-com-to-the-oeis/"
     ],
     "why_now": "the call is still open, and 90 new oeis sequences have come out of it since september 2025.",
-    "size": "weeks",
-    "needs_humans": "judging whether a sequence really captures the problem, and writing oeis entries editors will accept.",
+    "size": "months",
+    "needs_humans": "people who can judge whether a sequence really captures a problem and write oeis entries editors will accept, plus second readers to confirm each of the 248.",
     "risk_notes": "oeis editors review every new entry by hand, so don't flood the queue. check that terms are right before submitting."
   },
   {
@@ -2812,14 +2842,17 @@
       "#openhardware",
       "#astronomy"
     ],
-    "what": "a cheap, trusted meter would let any school or town find out how dark its night sky really is, and see if light pollution is creeping in. night sky brightness is measured with the sky quality meter, a box that costs $155 to $290. hobbyists have built meters around a cheap tsl2591 light sensor, but few have been checked side by side with the real one. we make an open meter that tracks it.",
-    "done_when": "an open meter with under $25 of parts reads within 0.2 mag/arcsec² of a unihedron sqm-l in at least 30 paired zenith readings, taken by 3 people at sites from 18 to 21.5 mag/arcsec².",
+    "what": "a cheap, trusted meter would let any school or town find out how dark its night sky really is, and see if light pollution is creeping in. night sky brightness is measured with the sky quality meter, a box that costs $155 to $290. hobbyists have built meters around a cheap tsl2591 light sensor, but few have been checked side by side with the real one. we make an open meter that tracks it, checked by 20 builders at 20 sites who then leave it logging for a month.",
+    "done_when": "an open meter with under $25 of parts, built by 20 people at 20 sites spanning 18 to 21.5 mag/arcsec², reads within 0.2 mag/arcsec² of a unihedron sqm-l in at least 90% of 200 or more paired zenith readings, and each builder then posts 30 nights of logged readings from a fixed spot.",
     "checked_by": {
-      "runs": null,
+      "runs": {
+        "command": "python pairs.py readings/ (checks 20 builders at 20 sites, at least 200 paired readings spanning 18 to 21.5 mag/arcsec², the share within 0.2, and 30 nights of logs per builder)",
+        "count": 1
+      },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "take 10 paired zenith readings with the open meter and an sqm-l on a clear moonless night, then post the raw numbers with time and site."
+        "instructions": "pick 3 builders. check their paired readings' times and sites against moon phase and cloud records, and confirm each nightly log comes from the stated spot and dates."
       },
       "author": false
     },
@@ -2832,7 +2865,7 @@
     ],
     "why_now": "long northern winter nights are the best season for clear dark readings.",
     "size": "weeks",
-    "needs_humans": "people who own an sqm-l, and anyone who can reach a truly dark site",
+    "needs_humans": "20 builders at sites from city to truly dark sky, each with an sqm-l of their own or one borrowed from a club, school or observatory.",
     "risk_notes": null
   },
   {
@@ -2845,17 +2878,17 @@
       "#cooking",
       "#openhardware"
     ],
-    "what": "many families around the world still cook over wood or charcoal, which means smoky kitchens and hours spent gathering fuel, and a cooker that runs on sunlight cuts both. the cookit is a folding cardboard panel cooker handed out by solar cookers international. in the standard asae s580.1 test it reaches 58 watts of cooking power with a pyrex bowl. we design an open cooker from cardboard and foil that beats it, and prove it with the same test in sunny places.",
-    "done_when": "an open design with under $15 of parts scores a standardized cooking power of at least 70 w under asae s580.1 in tests by 3 independent builders, each posting the logged water temperature and sunlight data.",
+    "what": "many families around the world still cook over wood or charcoal, which means smoky kitchens and hours spent gathering fuel, and a cooker that runs on sunlight cuts both. the cookit is a folding cardboard panel cooker handed out by solar cookers international. in the standard asae s580.1 test it reaches 58 watts of cooking power with a pyrex bowl. we design an open cooker from cardboard and foil that beats it, and prove it with the same test, run by 10 builders on 3 continents across two seasons.",
+    "done_when": "an open design with under $15 of parts scores a standardized cooking power of at least 70 w under asae s580.1 in tests by 10 independent builders on at least 3 continents, run across at least 2 seasons, each posting the logged water temperature and sunlight data.",
     "checked_by": {
       "runs": {
-        "command": "python s580.py logs/*.csv  # computes ps(50) for each builder's log",
+        "command": "python s580.py logs/*.csv (computes ps(50) for each builder's log and checks 10 builders, 3 continents, 2 seasons and the 70 w bar)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "build the cooker from the posted plans, run the s580.1 test (7 l of water per m² of aperture, 10-minute readings, at least 30 points) and post your logs and photos."
+        "instructions": "pick 3 builders' logs. confirm they follow s580.1 (7 l of water per m² of aperture, 10-minute readings, at least 30 points) and that the linked photos show the posted design, not a modified one."
       },
       "author": false
     },
@@ -2868,7 +2901,7 @@
     ],
     "why_now": "sunny season is starting across the southern hemisphere, and sci is running its test program in 2026.",
     "size": "weeks",
-    "needs_humans": "builders in sunny places with a probe thermometer and a solar meter or pyranometer",
+    "needs_humans": "10 builders on at least 3 continents, in sunny places, each with a probe thermometer and a solar meter or pyranometer.",
     "risk_notes": "reflectors cause glare and hot pots burn: wear sunglasses and mitts, and never leave a reflector where it can start a fire."
   },
   {
@@ -2980,17 +3013,17 @@
       "#citizenscience",
       "#vision"
     ],
-    "what": "nitrate from farm runoff can foul streams and drinking water, and volunteers do a lot of the checking on small streams. they use cheap nitrate test strips, matching the pink to a color chart by eye. if a phone could read those strips better, their data would be easier to trust and use. a 2021 study found the phone app they tried was less accurate than people's eyes. we build an open phone method that finally beats them.",
-    "done_when": "on a blinded set of 300 strip photos from at least 10 phones, dipped in potassium nitrate standards of known strength, the open method's median error is lower than that of 5 people reading the same strips by eye with the chart.",
+    "what": "nitrate from farm runoff can foul streams and drinking water, and volunteers do a lot of the checking on small streams. they use cheap nitrate test strips, matching the pink to a color chart by eye. if a phone could read those strips better, their data would be easier to trust and use. a 2021 study found the phone app they tried was less accurate than people's eyes. we build an open phone method and test it on real streams, with 25 volunteers' own phones and lab readings to compare.",
+    "done_when": "on a blinded set of at least 500 field strip photos taken by 25 stream volunteers on their own phones, 20 each, every one paired with a lab nitrate reading of the same water sample, the open method's median error against the lab is lower than that of the volunteers' own by-eye chart readings recorded at the stream.",
     "checked_by": {
       "runs": {
-        "command": "python score.py --photos blind/ --truth truth.csv --human human_reads.csv",
+        "command": "python score.py --photos blind/ --truth lab.csv --human field_reads.csv (scores the method and the by-eye reads against the lab values and checks 25 volunteers with 20 photos each)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "read the blinded strips by eye against the chart and submit your values before the truth file is opened."
+        "instructions": "pick 20 photos. confirm each links to a lab report for the same site and date, and that the by-eye reading was logged before the lab result came back."
       },
       "author": false
     },
@@ -3002,30 +3035,30 @@
     ],
     "why_now": "phone cameras and open vision models have moved a lot since the 2021 test, and no open method has been rechecked.",
     "size": "weeks",
-    "needs_humans": "people to mix standards and photograph dipped strips on many different phones, plus readers for the human baseline.",
+    "needs_humans": "25 stream monitoring volunteers who test with nitrate strips, use their own phones, and can get a lab reading on the same sample, for example through their monitoring program.",
     "risk_notes": "potassium nitrate is a common fertilizer; use gram amounts in water, label every jar, and keep it away from food containers."
   },
   {
     "slug": "every-15-minute-bus",
     "wave": 3,
-    "title": "every 15-minute bus, mapped",
+    "title": "every 15-minute bus, mapped and ridden",
     "category": "open data",
     "tags": [
       "#transit",
       "#maps",
       "#gtfs"
     ],
-    "what": "if you don't drive, the thing you need to know is where a bus comes often enough that you can just walk out and wait. a bus every 15 minutes is that point, where people stop checking the schedule. a few places, like baltimore and the twin cities, have their own frequent-route maps, each drawn a different way. we compute frequency from open schedule data for every us metro over 1 million people and put them all on one map.",
-    "done_when": "for every us metro area over 1 million people, an open geojson marks each stop and route segment with weekday 7am to 7pm service every 15 minutes or better, computed from current gtfs feeds, and in at least 5 metros that publish their own frequent maps our routes agree with theirs at 90% or better.",
+    "what": "if you don't drive, the thing you need to know is where a bus comes often enough that you can just walk out and wait. a bus every 15 minutes is that point, where people stop checking the schedule. a few places, like baltimore and the twin cities, have their own frequent-route maps, each drawn a different way. we compute frequency from open schedule data for every us metro over 1 million people, put them on one map, and have riders in 15 metros log when buses really come.",
+    "done_when": "for every us metro area over 1 million people, an open geojson marks each stop and route segment with weekday 7am to 7pm service every 15 minutes or better from current gtfs feeds, and riders in at least 15 of those metros log real arrivals at 10 marked stops each, at least an hour per stop on each of 5 weekdays, with observed gaps published beside the scheduled ones.",
     "checked_by": {
       "runs": {
-        "command": "python frequency.py --metros 1m-plus --window 07:00-19:00 --headway 15 && python compare_official.py --min 0.90",
+        "command": "python frequency.py --metros 1m-plus --window 07:00-19:00 --headway 15 && python check_logs.py logs/ (rebuilds the map from current feeds and confirms 15 metros with 10 logged stops each, 5 weekdays, an hour per stop per day)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "pick a metro you ride in and mark any route the map gets wrong."
+        "instructions": "pick a metro you ride in, check 5 logged stops against what you see there, and mark any route the map gets wrong."
       },
       "author": false
     },
@@ -3037,8 +3070,8 @@
       "https://gisdata.mn.gov/dataset/us-mn-state-metc-trans-hi-frequency-transit-servc"
     ],
     "why_now": "fall service changes just landed in many cities, so current feeds reflect this year's networks.",
-    "size": "weeks",
-    "needs_humans": "riders who know which lines really run on time",
+    "size": "months",
+    "needs_humans": "riders in at least 15 big us metros who will stand at stops and log real arrivals, several per metro to cover 10 stops over a week.",
     "risk_notes": "we didn't verify how many us cities publish official frequent network maps, so the pitch names only the two in the sources and the check needs at least 5 to compare against."
   },
   {
@@ -3051,17 +3084,17 @@
       "#heat",
       "#maps"
     ],
-    "what": "street trees shade and cool neighborhoods, and one shared file lets researchers and planners see where trees are and aren't, city by city. opentrees.org once pulled public tree lists from over 150 cities into one map, but its data pipeline hasn't changed since 2021. us cities kept counting their trees anyway, so we rebuild the us side with fresh downloads and one shared species list.",
-    "done_when": "one open geoparquet holds street trees from at least 40 us city or county open inventories, each tree with a normalized scientific name and a source license field, and each source's tree count matches the original within 1%.",
+    "what": "street trees shade and cool neighborhoods, and one shared file lets researchers and planners see where trees are and aren't, city by city. opentrees.org once pulled public tree lists from over 150 cities into one map, but its data pipeline hasn't changed since 2021. us cities kept counting their trees anyway, so we rebuild the us side with fresh downloads and one shared species list, and volunteers in 20 cities walk out to random trees to see if the lists match the street.",
+    "done_when": "one open geoparquet holds street trees from at least 40 us city or county open inventories, each tree with a normalized scientific name and a source license field and each source's count within 1% of the original, and volunteers in at least 20 of those cities each visit 50 randomly drawn trees and record whether each is there and its species.",
     "checked_by": {
       "runs": {
-        "command": "python check_trees.py --min-sources 40 --count-tolerance 0.01",
+        "command": "python check_trees.py --min-sources 40 --count-tolerance 0.01 --field-checks 20x50 (checks the file and confirms 20 cities with 50 field-checked trees each, drawn by the posted random seed)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "pick 5 cities. open each source portal, check the license really allows reuse, and spot-check 20 species names."
+        "instructions": "pick 5 cities. open each source portal, check the license really allows reuse, and spot-check 20 species names and 10 field records against the volunteer's notes."
       },
       "author": false
     },
@@ -3074,7 +3107,7 @@
     ],
     "why_now": "the last opentrees data push was august 2021, and city tree inventories have kept growing since.",
     "size": "weeks",
-    "needs_humans": "an arborist or botanist who can untangle messy species names",
+    "needs_humans": "volunteers in at least 20 us cities who can name street trees to species, or learn with a field guide, plus an arborist or botanist to untangle messy species names.",
     "risk_notes": "licenses vary by city. drop any source that doesn't allow reuse."
   },
   {
@@ -3123,17 +3156,17 @@
       "#civic",
       "#transparency"
     ],
-    "what": "when a city publishes basics like its budget and parcel maps, residents and reporters can check how public money and land are used. from 2014 to 2018 volunteers scored whether us cities published that data. the sunlight foundation, which ran the census with open knowledge, shut down in 2020, and the census site no longer loads. we bring it back for the 100 largest cities with a fresh checklist.",
-    "done_when": "for each of the 100 most populous us cities, an open table records whether 12 named datasets are published, with url, format, license and last update date, and people spot-checking 120 random cells find at least 95% correct.",
+    "what": "when a city publishes basics like its budget and parcel maps, residents and reporters can check how public money and land are used. from 2014 to 2018 volunteers scored whether us cities published that data. the sunlight foundation, which ran the census with open knowledge, shut down in 2020, and the census site no longer loads. we bring it back and take it worldwide: the 300 largest cities, each checked by someone who lives there and reads the local language.",
+    "done_when": "for the main city government of each of the 300 largest cities by population in the un's world urbanization prospects, an open table records whether 12 named datasets are published, with url, format, license and last update date, each row is checked by a resident who reads the local language, and a spot check of 300 random cells finds at least 95% correct.",
     "checked_by": {
       "runs": {
-        "command": "python validate_census.py --cities 100 --datasets 12",
+        "command": "python validate_census.py --cities 300 --datasets 12 (checks every row is filled, every url resolves, and each row names its resident checker)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "check 40 random cells each. open the url, confirm the format and license, then check the update date."
+        "instructions": "check 40 random cells. open the url, confirm the format and license, then check the update date."
       },
       "author": false
     },
@@ -3145,13 +3178,13 @@
     ],
     "why_now": "the old census went dark years ago, and many city portals have moved or quietly stopped updating since.",
     "size": "weeks",
-    "needs_humans": null,
+    "needs_humans": "residents of each of the 300 cities who read the local language and can find their city's data portal and budget pages.",
     "risk_notes": null
   },
   {
     "slug": "east-austin-vacant-parcels",
     "wave": 3,
-    "title": "vacant city parcels: east austin",
+    "title": "vacant city parcels: east austin, checked in person",
     "category": "open data",
     "tags": [
       "#housing",
@@ -3159,17 +3192,17 @@
       "#austin",
       "#maps"
     ],
-    "what": "east austin neighbors and housing groups can't easily see which empty lots belong to the public. the city of austin codes about 16,800 parcels as undeveloped, and roughly 1,500 of them sit in and around east austin. the land use codes live in a city layer and the parcel records live with the county, and the two don't line up on their own. we join them into one open map of empty land, so anyone can see which lots are public.",
-    "done_when": "every parcel in zip codes 78702, 78721, 78722 and 78723 that the city land use inventory codes as undeveloped (900 or 910) is in one open geojson with its zoning and acreage, and with the owner named only when it is a public body.",
+    "what": "east austin neighbors and housing groups can't easily see which empty lots belong to the public. the city of austin codes about 16,800 parcels as undeveloped, and roughly 1,500 of them sit in and around east austin. the land use codes live in a city layer and the parcel records live with the county, and the two don't line up on their own. we join them into one open map, and neighbors look at every lot to see if it's really empty.",
+    "done_when": "every parcel in zip codes 78702, 78721, 78722 and 78723 that the city land use inventory codes as undeveloped (900 or 910) is in one open geojson with its zoning, its acreage, the owner named only when it is a public body, and a dated note from a volunteer who saw it from the street saying whether it is really empty.",
     "checked_by": {
       "runs": {
-        "command": "python verify_parcels.py --zips 78702,78721,78722,78723",
+        "command": "python verify_parcels.py --zips 78702,78721,78722,78723 (rebuilds the parcel list from the city layer and confirms each parcel has zoning, acreage and a dated visit note)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "pull 30 random parcels. check zoning and acreage against the city property profile and the tcad record. look at recent aerial imagery to confirm each lot is still empty."
+        "instructions": "pull 30 random parcels. check zoning and acreage against the city property profile and the tcad record, and compare each visit note with recent aerial imagery."
       },
       "author": false
     },
@@ -3181,14 +3214,14 @@
       "https://catalog.data.gov/dataset/land-use-inventory-map"
     ],
     "why_now": "austin refreshes its land use inventory each october of even years, so a 2026 pass is due right now.",
-    "size": "days",
-    "needs_humans": "someone who knows austin zoning codes and can read a city property profile",
+    "size": "weeks",
+    "needs_humans": "neighbors and volunteers who will walk the four zip codes and look at each lot from the street, plus someone who knows austin zoning codes and can read a city property profile.",
     "risk_notes": "never list private owners by name. owner names appear only for public bodies such as the city, the county or a school district. the county's parcel lines are approximate by its own disclaimer, so the map says so."
   },
   {
     "slug": "2000-yoruba-words-on-wikidata",
     "wave": 3,
-    "title": "2,000 yoruba words on wikidata",
+    "title": "10,000 yoruba words on wikidata",
     "category": "knowledge",
     "tags": [
       "#wikidata",
@@ -3196,17 +3229,17 @@
       "#language",
       "#needs-humans"
     ],
-    "what": "yoruba is spoken by tens of millions of people, yet the open word data that spell checkers and other language tools read from barely covers it. wikidata holds 57 yoruba words, while igbo has 4,522. a wikidata lexeme stores a word with its tone marks and its meanings. abstract wikipedia reads from them too. we give yoruba its 2,000 most common words.",
-    "done_when": "a wikidata query counts at least 2,000 yoruba lexemes with a tone-marked lemma and at least one sense, and 2 yoruba speakers find 95 of 100 random new ones correct.",
+    "what": "yoruba is spoken by tens of millions of people, yet the open word data that spell checkers and other language tools read from barely covers it. wikidata holds 57 yoruba words, while igbo has 4,522. a wikidata lexeme stores a word with its tone marks and its meanings. abstract wikipedia reads from them too. we give yoruba its 10,000 most common words, each checked by 2 speakers, with recordings so anyone can hear the tones.",
+    "done_when": "a wikidata query counts at least 10,000 yoruba lexemes with a tone-marked lemma and at least one sense, each new one signed off by 2 yoruba speakers on a public worklist, and at least 2,000 of them link a pronunciation recorded on lingua libre, from at least 20 different speakers in all.",
     "checked_by": {
       "runs": {
-        "command": "curl -sG https://query.wikidata.org/sparql -H 'Accept: application/sparql-results+json' --data-urlencode 'query=SELECT (COUNT(DISTINCT ?l) AS ?n) WHERE { ?l dct:language wd:Q34311 ; ontolex:sense ?s }' | jq -r '.results.bindings[0].n.value'",
+        "command": "curl -sG https://query.wikidata.org/sparql -H 'Accept: application/sparql-results+json' --data-urlencode 'query=SELECT (COUNT(DISTINCT ?l) AS ?n) WHERE { ?l dct:language wd:Q34311 ; ontolex:sense ?s }' | jq -r '.results.bindings[0].n.value' (counts yoruba lexemes with at least one sense; pass at 10,000)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "two yoruba speakers check 100 random crew-made lexemes for tone-marked spelling and correct meaning. pass at 95 of 100."
+        "instructions": "a yoruba speaker checks 100 random crew-made lexemes for tone-marked spelling and correct meaning, and confirms 2 different speakers signed off on each in the worklist. pass at 95 of 100."
       },
       "author": false
     },
@@ -3217,8 +3250,8 @@
       "https://meta.wikimedia.org/wiki/Abstract_Wikipedia"
     ],
     "why_now": "abstract wikipedia's language functions need word data to work, and yoruba has almost none.",
-    "size": "weeks",
-    "needs_humans": "fluent yoruba speakers who are sure of their tone marks.",
+    "size": "months",
+    "needs_humans": "fluent yoruba speakers who are sure of their tone marks, enough that every word gets 2 checkers, and at least 20 speakers to record pronunciations on lingua libre.",
     "risk_notes": "wikidata is cc0, so never copy entries from copyrighted dictionaries; build the word list from yoruba wikipedia text and speakers' own knowledge. coordinate with yoruba wikimedians. counts measured 2026-10-07."
   },
   {
@@ -3232,17 +3265,17 @@
       "#philippines",
       "#needs-humans"
     ],
-    "what": "speech tools like dictation and captions are built from recordings of people talking, and tagalog speakers can't yet add theirs to common voice, the big open collection. common voice has 901 tagalog sentences and needs 2,000 before people can record, and only 623 of its 2,089 interface strings are translated. close both gaps and tagalog speakers anywhere can start building an open speech dataset nobody can lock up.",
-    "done_when": "tagalog (tl) is open for recording on commonvoice.mozilla.org, shown as is_contributable = 1 in the public stats api.",
+    "what": "speech tools like dictation and captions are built from recordings of people talking, and tagalog speakers can't yet add theirs to common voice, the big open collection. common voice has 901 tagalog sentences and needs 2,000 before people can record, and only 623 of its 2,089 interface strings are translated. close both gaps, then get 50 or more speakers recording until there are 10 validated hours, the start of an open tagalog speech dataset nobody can lock up.",
+    "done_when": "tagalog (tl) is open for recording on commonvoice.mozilla.org, shown as is_contributable = 1 in the public stats api, and has at least 10 validated hours from at least 50 different speakers, as reported in common voice's language stats or dataset release notes.",
     "checked_by": {
       "runs": {
-        "command": "curl -s https://commonvoice.mozilla.org/api/v1/stats/languages | jq '.[] | select(.locale==\"tl\") | {is_contributable, sentencesCount, localizedPercentage}'",
+        "command": "curl -s https://commonvoice.mozilla.org/api/v1/stats/languages | jq '.[] | select(.locale==\"tl\") | {is_contributable, sentencesCount, localizedPercentage}' (confirms tl is open; validated hours and speaker count are read from common voice's language stats or the latest dataset release notes)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "two tagalog speakers each read 100 random sentences the crew submitted and confirm each is natural tagalog taken from a public-domain source or written fresh by a person."
+        "instructions": "a tagalog speaker reads 100 random sentences the crew submitted and confirms each is natural tagalog from a public-domain source or written fresh by a person, then listens to 20 random validated clips and confirms each is tagalog read aloud."
       },
       "author": false
     },
@@ -3255,13 +3288,13 @@
     ],
     "why_now": "tagalog is already almost halfway to its sentence target, so a crew of speakers can finish in a few weeks.",
     "size": "weeks",
-    "needs_humans": "fluent tagalog speakers to translate interface strings and approve sentences.",
+    "needs_humans": "fluent tagalog speakers to translate interface strings and approve sentences, then at least 50 different speakers to record and others to validate clips.",
     "risk_notes": "work with the existing tagalog pontoon contributors and the common voice team. sentences must be cc0: public-domain sources (watch copyright dates on filipino texts) or written by people. no machine-generated sentences or machine-translated strings without full human rewrite. numbers checked 2026-10-07."
   },
   {
     "slug": "igbo-vital-articles",
     "wave": 3,
-    "title": "the 100 vital articles igbo wikipedia is missing",
+    "title": "400 vital articles igbo wikipedia is missing",
     "category": "knowledge",
     "tags": [
       "#wikipedia",
@@ -3269,17 +3302,17 @@
       "#language",
       "#needs-humans"
     ],
-    "what": "igbo speakers looking up the most basic topics often find no article in their own language. igbo wikipedia has almost 49,000 articles and 121 active editors, yet only 223 of english wikipedia's 1,000 vital articles have an igbo version. we pick the 100 most-read gaps and write them in igbo, with sources.",
-    "done_when": "100 new igbo wikipedia articles exist for level-3 vital topics that had none on the start date, each at least 300 words with 3 or more references, written by fluent igbo speakers.",
+    "what": "igbo speakers looking up the most basic topics often find no article in their own language. igbo wikipedia has almost 49,000 articles and 121 active editors, yet only 223 of english wikipedia's 1,000 vital articles have an igbo version. we pick the 400 most-read gaps and write them in igbo, with sources, shared among 20 or more writers.",
+    "done_when": "400 new igbo wikipedia articles exist for level-3 vital topics that had none on the start date, each at least 300 words with 3 or more references, written by at least 20 different fluent igbo speakers.",
     "checked_by": {
       "runs": {
-        "command": "python3 count_langlinks.py --list 'Wikipedia:Vital articles/Level 3' --lang ig --min-words 300",
+        "command": "python3 count_langlinks.py --list 'Wikipedia:Vital articles/Level 3' --lang ig --min-words 300 --since <start> (counts new igbo articles on the list that meet the length and reference bar, and counts their distinct main authors)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "fluent igbo readers review 10 random new articles for natural igbo and correct facts. pass at 9 of 10."
+        "instructions": "fluent igbo readers review 20 random new articles for natural igbo and correct facts. pass at 18 of 20."
       },
       "author": false
     },
@@ -3291,8 +3324,8 @@
       "https://en.wikipedia.org/wiki/Wikipedia:Vital_articles/Level_3"
     ],
     "why_now": "the gap is easy to measure today: 777 of the 1,000 most basic topics have no igbo article.",
-    "size": "weeks",
-    "needs_humans": "fluent igbo writers; igbo wikipedia editors who know local style and sourcing norms.",
+    "size": "months",
+    "needs_humans": "at least 20 fluent igbo writers, plus igbo wikipedia editors who know local style and sourcing norms.",
     "risk_notes": "community-led: start with the igbo wikimedians user group and follow igbo wikipedia's own rules on machine translation and ai. people write the igbo text. agents find sources and check references. counts measured 2026-10-07."
   },
   {
@@ -3342,11 +3375,11 @@
       "#accessibility",
       "#needs-humans"
     ],
-    "what": "blind people use screen readers to hear government forms and reports, and a pdf without accessibility tags can come out in a jumbled order. in april 2026 an open tool called opendataloader-pdf started adding those tags to untagged pdfs. validators can check the tags are well formed, but not whether a blind reader hears the page in the right order. we build an open test set from real government pdfs and find out.",
-    "done_when": "an open benchmark of 200 untagged public-domain us government pdfs is published, each auto-tagged with opendataloader-pdf and validated with verapdf, with reading-order scores from 3 screen reader users on 50 of them and at least 10 upstream issues filed with sample files.",
+    "what": "blind people use screen readers to hear government forms and reports, and a pdf without accessibility tags can come out in a jumbled order. in april 2026 an open tool called opendataloader-pdf started adding those tags to untagged pdfs. validators can check the tags are well formed, but not whether a blind reader hears the page in the right order. we build an open test set from real government pdfs, and 15 screen reader users listen to all of it to find out.",
+    "done_when": "an open benchmark of 200 untagged public-domain us government pdfs is published, each auto-tagged with opendataloader-pdf, validated with verapdf and scored for reading order by 3 screen reader users drawn from at least 15 people across nvda, jaws and voiceover, with at least 10 upstream issues filed with sample files.",
     "checked_by": {
       "runs": {
-        "command": "python3 bench.py --rerun   # re-tags all 200 pdfs with the pinned opendataloader-pdf version, re-runs verapdf, and diffs against the published results",
+        "command": "python3 bench.py --rerun (re-tags all 200 pdfs with the pinned opendataloader-pdf version, re-runs verapdf, diffs against the published results, and confirms 3 scores per pdf from at least 15 users across nvda, jaws and voiceover)",
         "count": 1
       },
       "people": {
@@ -3365,7 +3398,7 @@
     ],
     "why_now": "the european accessibility act has applied since june 2025, and this is the first open tool that writes tagged pdfs end to end, so nobody has tested it with real listeners at scale.",
     "size": "weeks",
-    "needs_humans": "blind and low-vision people who use a screen reader every day.",
+    "needs_humans": "at least 15 blind and low-vision people who use a screen reader every day, covering nvda, jaws and voiceover.",
     "risk_notes": "use only public-domain or openly licensed pdfs, and skip any with private people's names or addresses. the pdf/ua export step is a paid add-on, so the benchmark covers tagged pdf output only."
   },
   {
@@ -3450,17 +3483,17 @@
       "#porting",
       "#gimp"
     ],
-    "what": "people who leaned on gimp's old plug-ins for years find many of them missing in gimp 3. debian's gimp-plugin-registry bundles favorites like film grain and the orton glow. gimp 3 changed its plug-in api, and 18 of them are switched off in the package. the maintainer ported seven others in early october, so the rest are next.",
-    "done_when": "each of the 18 plug-ins switched off in debian's gimp-plugin-registry 9.20240811 either runs in gimp 3 with a passing autopkgtest and ships enabled in a new debian upload, or is dropped by the maintainer with a written reason, such as being built into gimp 3.",
+    "what": "people who leaned on gimp's old plug-ins for years find many of them missing in gimp 3. debian's gimp-plugin-registry bundles favorites like film grain and the orton glow, and the old gimp 2 plug-in registry is archived. gimp 3 changed its plug-in api, and 18 of debian's are switched off in the package. the maintainer ported seven others in early october. we pick the 100 people miss most and bring them across, each tested by someone who used it.",
+    "done_when": "100 plug-ins and scripts from the archived gimp 2 plug-in registry and debian's gimp-plugin-registry, picked by a public vote of at least 30 gimp users, each either runs in gimp 3 from a public port and is confirmed by someone who used it in gimp 2 to work as before, or is marked built into gimp 3 with the replacement named.",
     "checked_by": {
       "runs": {
-        "command": "apt-get source gimp-plugin-registry && grep DISABLE_PLUGINS gimp-plugin-registry-*/debian/rules   # pass: only plug-ins the maintainer dropped in writing remain",
+        "command": "python check_ports.py ports.json (for each of the 100: confirms the port loads in gimp 3's console mode, its source is public, and a tester's before-and-after comparison is linked)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "run every ported plug-in in gimp 3 on the crew's sample photos and compare with gimp 2.10 output side by side. flag any that look different or crash."
+        "instructions": "run 10 random ported plug-ins in gimp 3 on the crew's sample photos and compare with gimp 2.10 output side by side. flag any that look different or crash."
       },
       "author": false
     },
@@ -3473,7 +3506,7 @@
     ],
     "why_now": "new uploads with gimp 3 ports landed on oct 6 2026, and gimp now has an official porting guide.",
     "size": "weeks",
-    "needs_humans": "photographers and longtime gimp users who remember how these plug-ins looked and felt.",
+    "needs_humans": "photographers and longtime gimp users who used these plug-ins in gimp 2, to vote on the 100 and test each port, plus people who can port python and script-fu plug-ins.",
     "risk_notes": "the debian maintainer is porting these right now, so coordinate with him on salsa first and don't duplicate his work. the plug-ins are gpl with their own authors; send ports upstream wherever an author is still around."
   },
   {
@@ -3487,14 +3520,14 @@
       "#linux",
       "#needs-humans"
     ],
-    "what": "lots of windows users who switch to linux miss sharex, the free screenshot tool, and have to make do without it. its 'add linux support' issue has been open since 2022. the sharex team's cross-platform rewrite, xerahs, already builds for linux and is written with agents on purpose. we help it hold up on the desktops people use.",
-    "done_when": "a tagged xerahs release where 4 people on 4 different linux desktops (gnome wayland, kde wayland, hyprland, x11) each finish the crew's 10-step capture checklist with no crash and no missing step.",
+    "what": "lots of windows users who switch to linux miss sharex, the free screenshot tool, and have to make do without it. its 'add linux support' issue has been open since 2022. the sharex team's cross-platform rewrite, xerahs, already builds for linux and is written with agents on purpose. we help it hold up on the desktops people use, tested by 20 people on their own machines and monitors.",
+    "done_when": "a tagged xerahs release where 20 people across at least 8 linux desktop and distro combinations, including gnome wayland, kde wayland, hyprland and x11, with at least 3 multi-monitor and 3 hidpi setups among them, each finish the crew's 10-step capture checklist with no crash and no missing step.",
     "checked_by": {
       "runs": null,
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "install the tagged release on your desktop, run the published 10-step checklist (region shot, screen recording, gif, annotation, upload and the rest), and link a screen recording with your distro and desktop version."
+        "instructions": "install the tagged release on your desktop, run the published 10-step checklist (region shot, screen recording, gif, annotation, upload and the rest), and link a screen recording with your distro, desktop version and monitor setup."
       },
       "author": false
     },
@@ -3506,7 +3539,7 @@
     ],
     "why_now": "linux bug reports for xerahs, like wayland recording stalls, are arriving this month, so the gaps are easy to find.",
     "size": "weeks",
-    "needs_humans": "people who run each desktop daily and can test on real multi-monitor setups.",
+    "needs_humans": "20 people who run linux daily across at least 8 desktop and distro setups, some with multi-monitor and hidpi screens.",
     "risk_notes": "xerahs welcomes agent-written code, but flathub bans ai-written manifests and agent-opened submissions, so any flathub packaging must be written and sent by a person. capture code must only record what the user asks for."
   }
 ]
