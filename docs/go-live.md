@@ -2,7 +2,7 @@
 
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
-**Now (Claude):** phase 3 built and on staging. Waiting on Myra's read-through (3.9). Meanwhile: answer idea cards; next is 3.10 (production beta mode) once 3.9 is done.
+**Now (Claude):** writing works on staging (4.1, 4.2, 4.5 done; 4.4 mostly): create, join, post. Hello-world test with two accounts passed. Next: what the beta needs before testers come in.
 **Now (Myra):** 3.9 read through staging next to the mockups · copy the two production lines from `~/.config/shwarm/secrets.txt` into your password manager · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
 **Last updated:** 2026-10-08.
 
@@ -497,12 +497,14 @@ Myra starts proofreading wave 1 (11.1) as soon as 3.1 has it on staging. From 3.
 
 ### Phase 4: writing (6 days)
 
-**4.1 Signed-in strip and gated actions**
+**4.1 Signed-in strip and gated actions** · done
+- *(Oct 9: the strip was already in from phase 3. Tests cover the sign-in round trip from join, post and start a shwarm; the `next=//evil` cases were covered in 3.x. Upvote and make-a-key get theirs with 4.7 and 7.2.)*
 - **what:** handle, "for you N", keys, sign out; clicking join, upvote, post, start a shwarm or make a key while signed out goes to sign-in and back. `next` accepts only relative paths starting with a single `/`.
 - **who:** Claude · **needs:** 2.7
 - **done when:** e2e tests cover the round trip for each action, and `next=//evil.com` and `next=https://evil.com` land on the home page.
 
-**4.2 Create form: shwarm mode and builds-on**
+**4.2 Create form: shwarm mode and builds-on** · done
+- *(Oct 9: `/new` in shwarm mode, refusals come back with the form filled in, the fourth create in a day gets the limit error. Builds on takes a passed shwarm's link, a GitHub repo (name and SPDX license from the API) or any link with the license typed in. Left for later: the live search and the chip with "change" (needs JavaScript).)*
 - **what:** fields, validation, at least one check, tags, lobby (min 2, default 10), publishes as a lobby with the author in seat 1, counts toward 3 a day; the triage hook (a stub until 8.1, and prod creation stays paused until then). Builds-on: paste a link or search passed shwarms; GitHub links get name and SPDX license from the GitHub API; any other link is stored as URL + name, with the license typed in; shown as a chip with "change"; no license picker.
 - **who:** Claude · **needs:** 2.3, 3.3
 - **done when:** a new shwarm appears in filling on staging, and the fourth create in a day gets a clear limit error.
@@ -512,12 +514,14 @@ Myra starts proofreading wave 1 (11.1) as soon as 3.1 has it on staging. From 3.
 - **who:** Claude · **needs:** 4.2
 - **done when:** a sub-branch and a variant can be made on staging, a variant of a closed shwarm is refused, and `?builds_on=` fills the builds-on chip.
 
-**4.4 Lobby, seats and kickoff**
+**4.4 Lobby, seats and kickoff** · doing
+- *(Oct 9: join and leave on the page; the last seat kicks off. The race test on the last seat (100 runs) is in from 2.3. Left: late joiners on a live shwarm, re-pitch edits (should).)*
 - **what:** join (verified humans only), leave before kickoff, kickoff in one batch (state live, day count starts, "lobby filled" event, inbox items and emails), late joiners; re-pitch edits in the lobby with history (should).
 - **who:** Claude · **needs:** 2.3, 4.2
 - **done when:** the race test of two people joining the last seat runs 100 times in CI with exactly one kickoff each time.
 
-**4.5 Compose box and posting**
+**4.5 Compose box and posting** · done
+- *(Oct 9: posting as the bare handle, the live limit line, the inline 429 with the wait and the draft kept, replies, mentions to the inbox, double-click protection. Hello-world run on staging: two test accounts (@hello_a, @hello_b) signed up through /join, @hello_a started "hello world" with a lobby of 2, @hello_b joined and it went live, both posted, and the mention reached @hello_a's inbox. The new shwarm had to be cleared for triage by hand first: until 8.1, a tester's new shwarm is visible only to its author.)*
 - **what:** "posting as @myra", the live limit line ("5 quick replies left, then 1 every 5 min"), replies, mentions to the inbox, the inline 429 with the wait, double-click protection.
 - **who:** Claude · **needs:** 2.3, 3.3
 - **done when:** the sixth quick post shows the wait, and a mention of @myra creates an inbox item.
