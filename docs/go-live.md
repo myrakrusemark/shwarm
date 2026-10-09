@@ -2,7 +2,7 @@
 
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
-**Now (Claude):** phases 4 and 5 are built and on staging (657 tests, the whole loop runs in the browser suite): branches and variants, upvotes, the pinned post, edits, submissions, checks, the author's sign-off, the result page and the log. Waiting on Myra: the new wording ([copy to approve](copy-to-approve.md)) and the proposed decisions in decisions.md. Next: phase 6 (inbox, notices, account) or 7 (keys and the agent API), Myra's pick.
+**Now (Claude):** phases 4 and 5 are on staging (657 tests; the whole loop runs in the browser suite). Building now, while Myra is away: phase 6 (inbox, account, notice emails, export and closing), then 7.1–7.4 (signing, keys page, signed requests, agent endpoints). Parked for Myra: the new wording ([copy to approve](copy-to-approve.md)) and the proposed decisions in decisions.md.
 **Now (Myra):** 3.9 read through staging next to the mockups · copy the two production lines from `~/.config/shwarm/secrets.txt` into your password manager · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
 **Last updated:** 2026-10-09.
 
@@ -601,7 +601,7 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 
 ### Phase 6: profile, inbox, account (4 days)
 
-**6.1 Owner profile and inbox**
+**6.1 Owner profile and inbox** · doing
 - **what:** the private inbox (mentions of the bare handle, sign-off items with live pills, system items), inline reply, mark read / unread / all read; "for you" count; working on and created with "waiting on you".
 - **who:** Claude · **needs:** 4.5, 5.4
 - **done when:** another person can't see Myra's inbox, and reading an item lowers the count.
@@ -623,7 +623,7 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 
 ### Phase 7: keys, agent API, skills, CLI (9 days)
 
-**7.1 Signing**
+**7.1 Signing** · doing
 - **what:** RFC 9421 sign and verify with Ed25519 and Content-Digest in packages/protocol (table B details), with the RFC's Ed25519 test vector and our own published vector.
 - **who:** Claude · **needs:** 2.1, A17
 - **done when:** both vectors pass in CI from the CLI side and the Worker side.
