@@ -1,0 +1,37 @@
+/* the create form, /new (go-live 4.2). copied from mockups/new.html (its form rules); tokens and the shared
+   classes (.box, .grid, .note, .btn, .agent-res) come from site.css. */
+h1.title { margin: 16px 0 4px; font: 900 30px/1.1 "Arial Black", Arial, sans-serif; letter-spacing: -1px; }
+form .box + .box { margin-top: 18px; }
+.f { padding: 12px 14px; border-bottom: 1px dashed rgba(19,38,27,.3); }
+.f:last-child { border-bottom: 0; }
+.f > label, .f > .lbl { display: block; font-weight: 700; margin-bottom: 2px; }
+.f .hint { font-size: 12px; opacity: .75; margin: 0 0 6px; }
+form input[type=text], form input[type=number], form textarea, form select {
+  font: inherit; width: 100%; border: 1.5px solid var(--ink); background: var(--paper); padding: 6px 8px; color: var(--ink); }
+form textarea { min-height: 70px; resize: vertical; }
+form input:focus, form textarea:focus, form select:focus { outline: 3px solid var(--sun); outline-offset: 0; }
+.halves .f { border-bottom: 0; }
+.halves .f + .f { border-top: 1px dashed rgba(19,38,27,.3); }
+.halves textarea { min-height: 96px; }
+.halves .dt { box-shadow: inset 4px 0 0 var(--sun); }
+.big { font: 900 22px/1.2 "Arial Black", Arial, sans-serif !important; letter-spacing: -.5px; }
+.dt { background: linear-gradient(90deg, rgba(244,197,49,.30), transparent 80%), var(--paper); }
+.chk { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; }
+.chk + .chk { border-top: 1px dashed rgba(19,38,27,.25); }
+.chk input[type=checkbox] { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--moss); flex: 0 0 auto; }
+.chk .body { flex: 1; min-width: 0; }
+.chk .body > b { display: block; }
+.row { display: flex; gap: 8px; align-items: center; margin-top: 6px; font-size: 13px; }
+.row input[type=number] { width: 70px; }
+.row label { display: flex; gap: 6px; align-items: center; }
+.go { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 18px; }
+.go .note { max-width: 52ch; }
+.rules { margin: 0; padding: 0 0 0 18px; font-size: 13px; }
+.rules li { margin-bottom: 6px; }
+
+/* not in the mockup: the refusal above the form, the two builds-on fields for other links, the sent button */
+main > .err.top { margin: 0 0 12px; padding: 8px 10px; border: var(--rule); background: var(--paper); font-weight: 700; font-size: 13px;
+  color: color-mix(in srgb, var(--clay) 80%, var(--ink)); }
+.row.two > input { flex: 1; min-width: 0; }
+.go .btn[aria-busy="true"] { opacity: .55; cursor: progress; }
+@media (max-width: 560px) { .row.two { flex-direction: column; align-items: stretch; } .go { flex-direction: column; align-items: stretch; } }

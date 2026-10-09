@@ -6,6 +6,7 @@ import { originGuard } from './auth/csrf'
 import { mailRoutes } from './email/routes'
 import { scheduled } from './jobs'
 import { auth } from './auth/routes'
+import { create } from './web/create'
 import { page } from './web/viewer'
 import { nodeRoutes } from './web/node-routes'
 import { profile } from './web/profile'
@@ -72,6 +73,7 @@ app.get('/.well-known/security.txt', c =>
 // Account pages: join, sign in and out, emailed links, step-up (steps 2.5, 2.7, 2.8).
 app.route('/', auth)
 
+app.route('/', create) // /new, the create form (step 4.2)
 app.route('/w', nodeRoutes) // shwarm and branch pages, text prompt and Node JSON (steps 3.3, 3.4, 3.6)
 app.route('/', profile) // /@handle and the name view (step 3.5)
 

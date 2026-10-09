@@ -25,11 +25,12 @@ const COPY: Record<ErrorStatus, { code: string; heading: string; text: string }>
   500: { code: 'server_error', heading: 'something broke', text: 'something went wrong on our side. try again in a minute.' },
 }
 
-/** "12 seconds", "1 second", "about 3 minutes". */
+/** "12 seconds", "1 second", "about 3 minutes", "about 5 hours". */
 export function waitText(seconds: number): string {
   const s = Math.max(1, Math.ceil(seconds))
   if (s < 90) return `${s} second${s === 1 ? '' : 's'}`
-  return `about ${Math.ceil(s / 60)} minutes`
+  if (s < 5400) return `about ${Math.ceil(s / 60)} minutes`
+  return `about ${Math.ceil(s / 3600)} hours`
 }
 
 export type ErrorInfo = {

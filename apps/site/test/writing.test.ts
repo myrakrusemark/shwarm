@@ -148,3 +148,28 @@ describe('seats (4.4)', () => {
     expect(await body(res)).toMatch(/class="err[^"]*" role="alert">[^<]*closed/)
   })
 })
+
+describe('signed-out actions go to sign-in and back (4.1)', () => {
+  it('join, post and start a shwarm each come back to where they started', async () => {
+    const { env } = await world()
+    const pid = await addPerson(env.DB, 'ana', { hash: await hashPassword(GOOD_PASSWORD, pepper, 1000) })
+    env.DB.raw.prepare('UPDATE person SET email_verified_at = ? WHERE id = ?').run(new Date(T0).toISOString(), pid)
+    const out = new Browser(env)
+    const lobby = await body(await out.req(`/w/${LOBBY}`, { headers: HTML }))
+    const post = await body(await out.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML }))
+    const start = await out.get('/new')
+    const legs: [string, string][] = [
+      ['join', `/w/${LOBBY}`],
+      ['post', `/w/${EXAMPLE_ROOT}`],
+      ['start a shwarm', '/new'],
+    ]
+    expect(lobby).toContain(`href="/signin?next=${encodeURIComponent(`/w/${LOBBY}`)}">join this lobby`)
+    expect(post).toContain(`href="/signin?next=${encodeURIComponent(`/w/${EXAMPLE_ROOT}`)}">sign in</a>`)
+    expect(start.headers.get('location')).toBe('/signin?next=%2Fnew')
+    for (const [what, next] of legs) {
+      const b = new Browser(env)
+      const res = await b.post('/signin', { email: 'ana@example.org', password: GOOD_PASSWORD, next })
+      expect(res.headers.get('location'), what).toBe(next)
+    }
+  })
+})

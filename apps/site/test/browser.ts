@@ -103,6 +103,14 @@ export function fakeFetch(pwned: string[] = []) {
       }
       return new Response(lines.join('\r\n'))
     }
+    if (url.startsWith('https://api.github.com/repos/')) {
+      const repo = url.slice('https://api.github.com/repos/'.length)
+      const known: Record<string, unknown> = {
+        'ZDoom/gzdoom': { full_name: 'ZDoom/gzdoom', html_url: 'https://github.com/ZDoom/gzdoom', license: { spdx_id: 'GPL-3.0' } },
+        'someone/no-license': { full_name: 'someone/no-license', html_url: 'https://github.com/someone/no-license', license: null },
+      }
+      return known[repo] ? Response.json(known[repo]) : new Response('{}', { status: 404 })
+    }
     throw new Error(`unexpected fetch: ${url}`)
   }
   return Object.assign(fn, { calls })
