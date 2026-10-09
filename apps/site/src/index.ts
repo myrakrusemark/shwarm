@@ -7,6 +7,7 @@ import { mailRoutes } from './email/routes'
 import { scheduled } from './jobs'
 import { auth } from './auth/routes'
 import { page } from './web/viewer'
+import { profile } from './web/profile'
 export { ShwarmTree } from './do/shwarm-tree'
 
 type Env = { DB: D1Database; TREE: DurableObjectNamespace; ENV: string; SITE_MODE: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string }
@@ -61,6 +62,8 @@ app.get('/.well-known/security.txt', c =>
 
 // Account pages: join, sign in and out, emailed links, step-up (steps 2.5, 2.7, 2.8).
 app.route('/', auth)
+
+app.route('/', profile) // /@handle and the name view (step 3.5)
 
 // Footer pages and guides (live on production since go-live step 1.8b).
 app.get('/:slug{[a-z0-9-]+}', (c, next) => {

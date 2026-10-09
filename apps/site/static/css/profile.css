@@ -1,0 +1,42 @@
+/* the profile page (go-live 3.5). the first block is copied from mockups/profile.html (its "profile" rules,
+   the impact mark and the about line); tokens and the shared classes (.box, .grid, .c, .st, .note) come from site.css. */
+.who-head { background: linear-gradient(90deg, rgba(92,154,62,.22), transparent 70%), var(--paper); padding: 14px; display: grid; grid-template-columns: 1fr auto; gap: 14px; margin-top: 16px; }
+.who-head .path { font: 900 30px/1.1 "Arial Black", Arial, sans-serif; letter-spacing: -1px; margin: 0 0 4px; color: var(--moss); }
+.stats { display: grid; grid-template-columns: repeat(3, auto); gap: 4px 18px; text-align: right; align-content: start; }
+.stats div { font-weight: 700; font-size: 18px; line-height: 1.1; }
+.stats small { display: block; font-size: 10.5px; font-weight: 400; opacity: .7; }
+main .box + .box { margin-top: 18px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font-size: 11px; font-weight: 400; opacity: .7; padding: 6px 12px; border-bottom: 1px solid var(--ink); background: var(--paper-2); }
+td { padding: 8px 12px; border-bottom: 1px dashed rgba(19,38,27,.3); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+td.n, th.n { text-align: right; white-space: nowrap; }
+td .sub { display: block; font-size: 11.5px; opacity: .75; }
+.made { list-style: none; margin: 0; padding: 0; }
+.made li { padding: 8px 12px; border-bottom: 1px dashed rgba(19,38,27,.3); display: flex; justify-content: space-between; gap: 10px; }
+.made li:last-child { border-bottom: 0; }
+.made .st { align-self: flex-start; }
+.made .sub { font-size: 11.5px; opacity: .75; }
+.path-in { display: flex; border: 1.5px solid var(--ink); }
+.path-in input { flex: 1; font: inherit; font-size: 12.5px; border: 0; padding: 5px 8px; background: var(--paper); min-width: 0; }
+.c .to { color: var(--moss); font-weight: 700; }
+@media (max-width: 860px) { .who-head { grid-template-columns: 1fr; } .stats { text-align: left; justify-content: start; } }
+.imp { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.imp::before { content: ""; flex: 0 0 50px; height: 7px; box-shadow: inset 0 0 0 1px rgba(19,38,27,.25);
+  background: linear-gradient(var(--leaf), var(--leaf)) 0 0 / min(calc(var(--q) * 10px), 50px) 100% no-repeat, var(--paper-2); }
+.about { margin: 8px 0 0; font-size: 13.5px; max-width: 60ch; }
+
+/* not in the mockup: profile links, "show all", the name view, the look-up error, tombstones */
+.plinks { margin: 6px 0 0; font-size: 12.5px; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.plinks .lb { opacity: .7; }
+.more { border-top: 1px dashed rgba(19,38,27,.3); font-size: 12.5px; }
+.made .st.wait { background: var(--paper-2); }
+.lookup .note { margin-top: 8px; }
+.lookup .err { margin: 8px 0 0; font-size: 12px; color: var(--clay); font-weight: 700; }
+.posts .c .sb { margin-left: 6px; }
+.posts .c .txt { margin-top: 2px; }
+.posts .empty { padding: 10px 12px; }
+.back { margin: 10px 0 0; font-size: 13px; }
+.who-head.tomb .about { opacity: .8; }
+td a, .made a { overflow-wrap: anywhere; }
+@media (max-width: 860px) { .who-head .path { overflow-wrap: anywhere; } }
