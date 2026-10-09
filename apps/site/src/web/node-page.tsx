@@ -8,7 +8,7 @@ import { joinHref, signInHref } from '../auth/return-to'
 import type { CheckSpec } from '../core/checks'
 import type { BuiltOnBy, BuiltOnLink, Chain, CheckReport, Child, Contributor, NodeHead, PostRow, Seat, Show, Sort, SubmissionRow, Thread } from '../read/node'
 import { SHOWS, SORTS } from '../read/node'
-import { inReview, recordedStatus, review, type ReviewRow } from '../read/review'
+import { isOpen, openReview, recordedStatus, review, type ReviewRow } from '../read/review'
 import { ago, cut, dayOf, exact, licenseName, perDay, plural, q1, shortNum } from '../render/format'
 import { showHidden } from '../render/hidden'
 import { Command, LINK_REL, linkParts, Name, Plain, tagHref, Text } from '../render/text'
@@ -211,7 +211,7 @@ const CheckedBy: FC<{ spec: CheckSpec; author: string }> = ({ spec, author }) =>
 const StatusLine: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
   if (n.state === 'dead_end') return <>dead end{n.dead_end_note && <>: <Text inline text={n.dead_end_note} /></>}</>
-  const sub = n.state === 'live' ? inReview(d.subs) : null
+  const sub = openReview(n, d.subs)
   if (sub) {
     const r = review(n.spec, n.author, sub, d.checks.get(sub.post_id) ?? [])
     return (
@@ -391,9 +391,11 @@ const SubmissionParts: FC<{ d: NodePageData; sub: SubmissionRow; links: Link[]; 
   const n = d.chain.node
   const checks = d.checks.get(sub.post_id) ?? []
   const r = review(n.spec, n.author, sub, checks)
+  // On a dead end a submission still in review takes no checks: its standing checks show, but no open slots and no link to check it.
+  const open = isOpen(n, sub)
   const header = sub.status === 'in_review' ? `checks · ${r.done} of ${r.total}` : sub.status === 'superseded' ? (r.failed ? 'failed' : 'superseded') : sub.status
   const right =
-    sub.status === 'in_review' ? `one per person · not ${humanOf(sub.as_name)}` : sub.status === 'superseded' ? `superseded by #${sub.superseded_number ?? '?'}` : sub.status === 'passed' ? `${r.done} of ${r.total} checks` : ''
+    open ? `one per person · not ${humanOf(sub.as_name)}` : sub.status === 'in_review' ? '' : sub.status === 'superseded' ? `superseded by #${sub.superseded_number ?? '?'}` : sub.status === 'passed' ? `${r.done} of ${r.total} checks` : ''
   const mine = d.me && d.me.personId === sub.person_id
   return (
     <>
@@ -416,8 +418,8 @@ const SubmissionParts: FC<{ d: NodePageData; sub: SubmissionRow; links: Link[]; 
       {sub.author_swap === 1 && <div class="how note">the author's own work: one more people check stands in for the author's sign-off.</div>}
       <div class="checks">
         <div class="h"><b>{header}</b><span>{right}</span></div>
-        <ul>{r.rows.filter(row => row.verdict !== 'waiting' || sub.status === 'in_review').map(row => <CheckRowView row={row} n={n} sub={sub} />)}</ul>
-        {sub.status === 'in_review' && (
+        <ul>{r.rows.filter(row => row.verdict !== 'waiting' || open).map(row => <CheckRowView row={row} n={n} sub={sub} />)}</ul>
+        {open && (
           <div class="go">
             <a href={subHref(n.path, sub.number)}>open submission #{sub.number} →</a>
             {mine && <span class="note">you can't check it: it's {sub.as_name.includes('/') ? 'from your agent' : 'yours'}</span>}

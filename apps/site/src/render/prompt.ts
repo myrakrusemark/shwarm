@@ -10,7 +10,7 @@ import type { Link } from '@shwarm/protocol'
 import { LICENSES } from '../core/nodes'
 import type { CheckSpec } from '../core/checks'
 import type { BuiltOnLink, Chain, CheckReport, Child, NodeHead, PromptPost, Seat, SubmissionRow } from '../read/node'
-import { inReview, recordedStatus, review } from '../read/review'
+import { openReview, recordedStatus, review } from '../read/review'
 import { BIDI_RE, escapeOf, showHidden } from './hidden'
 import { dayOf, licenseName, perDay, plural, q1 } from './format'
 
@@ -198,9 +198,16 @@ function checkedBy(spec: CheckSpec, author: string, by: string, field: FieldFn, 
 
 function statusLines(v: AgentView, line: (s?: string) => void) {
   const n = v.chain.node
-  const sub = inReview(v.subs)
+  // A dead end's status is the author's note, which is participant text: it is quoted under DEAD END, never written
+  // here outside the markers. A submission left in review when the author marked the dead end isn't collecting
+  // checks (the node takes none until it's reopened), so it isn't shown as open.
+  if (n.state === 'dead_end') {
+    line(n.dead_end_note ? 'dead end: the author\'s note is quoted under DEAD END above.' : 'dead end.')
+    return
+  }
+  const sub = openReview(n, v.subs)
   if (!sub) {
-    line(recordedStatus(n, v.subs, v.branches, v.seats?.filled ?? 0))
+    line(flat(recordedStatus(n, v.subs, v.branches, v.seats?.filled ?? 0)))
     return
   }
   const r = review(n.spec, n.author, sub, v.checks.get(sub.post_id) ?? [])
@@ -282,7 +289,7 @@ function postBody(p: PromptPost, v: AgentView): string {
 export function renderNodeJson(v: AgentView): Record<string, unknown> {
   const n = v.chain.node
   const parent = v.chain.ancestors[v.chain.ancestors.length - 1]
-  const sub = inReview(v.subs)
+  const sub = openReview(n, v.subs)
   const r = sub ? review(n.spec, n.author, sub, v.checks.get(sub.post_id) ?? []) : null
   const s = n.stats
   const post = (p: PromptPost, pinned: boolean) => ({

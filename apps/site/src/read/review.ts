@@ -29,8 +29,17 @@ export function review(spec: CheckSpec, author: string, sub: SubmissionRow, chec
   return { rows, done, total, waitingOn, failed }
 }
 
-/** The submission collecting checks now, if any. */
+/** The submission whose status is in_review, if any (it may sit on a dead end, where it collects nothing). */
 export const inReview = (subs: SubmissionRow[]) => subs.find(s => s.status === 'in_review') ?? null
+
+/**
+ * The submission collecting checks now: in review on a live node. A dead end keeps its submission's in_review
+ * status (reopening picks the review back up), but takes no checks meanwhile, so it has no open review.
+ */
+export const openReview = (n: { state: NodeHead['state'] }, subs: SubmissionRow[]) => (n.state === 'live' ? inReview(subs) : null)
+
+/** Whether this submission is the one collecting checks (see openReview). */
+export const isOpen = (n: { state: NodeHead['state'] }, sub: SubmissionRow) => n.state === 'live' && sub.status === 'in_review'
 
 /** The status line from recorded state (table B #40, without the pinned post: the page shows that post itself). */
 export function recordedStatus(n: NodeHead, subs: SubmissionRow[], branches: Child[], seatsFilled: number): string {

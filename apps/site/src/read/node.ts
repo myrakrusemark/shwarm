@@ -10,18 +10,31 @@ import type { NodeKind, NodeState } from '../core/context'
 // ---------- visibility (A8, A18) ----------
 
 /**
- * Who may read a node: never a hidden one; everyone when triage cleared it or it was seeded (the seeded ones are
- * cleared by Myra's proofreading); otherwise (pending, held or blocked) only its author.
+ * Who may read a node: never a hidden one; everyone when triage cleared it; otherwise (pending, held or blocked)
+ * only its author. A seeded node still at 'pending' counts as cleared (the seeded ones are cleared in a batch by
+ * Myra's proofreading, A18), but held or blocked always wins, seeded or not (A8): a launch shwarm held after a
+ * complaint goes dark like any other.
  * OPEN: a node still waiting for triage ('pending') is treated like a held one, visible to its author only (A8
  * "being checked"), so on staging the running example's branch (made by a demo account, not seeded) shows only
  * once it's cleared.
  */
-export const PUBLIC_SQL = (n: string) => `(${n}.hidden = 0 AND (${n}.triage = 'clear' OR ${n}.seeded = 1))`
+export const PUBLIC_SQL = (n: string) => `(${n}.hidden = 0 AND (${n}.triage = 'clear' OR (${n}.seeded = 1 AND ${n}.triage = 'pending')))`
+
+/**
+ * PUBLIC_SQL for the node and every node above it: a branch of a hidden or held shwarm is hidden too. Its ancestors'
+ * paths are the prefixes of its own, so this walks them on the path index, one lookup per level. Use it wherever a
+ * node is reached sideways (built on, builds on, variant of), not through readChain, which checks the whole chain.
+ */
+export const VISIBLE_SQL = (n: string) => `NOT EXISTS (
+  WITH RECURSIVE pre(p, rest) AS (
+    SELECT substr(${n}.path, 1, instr(${n}.path || '/', '/') - 1), substr(${n}.path, instr(${n}.path || '/', '/') + 1)
+    UNION ALL SELECT p || '/' || substr(rest, 1, instr(rest || '/', '/') - 1), substr(rest, instr(rest || '/', '/') + 1) FROM pre WHERE rest <> '')
+  SELECT 1 FROM pre JOIN node up ON up.path = pre.p WHERE NOT ${PUBLIC_SQL('up')})`
 
 export type Visibility = 'public' | 'author' | 'none'
 export function visibility(n: { hidden: number; triage: string; seeded: number; author_id: number }, viewerId: number | null): Visibility {
   if (n.hidden) return 'none'
-  if (n.triage === 'clear' || n.seeded === 1) return 'public'
+  if (n.triage === 'clear' || (n.seeded === 1 && n.triage === 'pending')) return 'public'
   return viewerId !== null && viewerId === n.author_id ? 'author' : 'none'
 }
 
@@ -116,6 +129,7 @@ type HeadRow = Omit<NodeHead, 'spec' | 'builds_on' | 'tags' | 'stats' | 'variant
   v_title: string | null
   v_public: number | null
   bo_title: string | null
+  moderated: string | null
 }
 
 const parseJson = <T>(s: string | null, fallback: T): T => {
@@ -180,7 +194,8 @@ function toHead(r: HeadRow, viewerId: number | null): NodeHead {
   }
 }
 
-export type Chain = { node: NodeHead; ancestors: NodeHead[] }
+/** `moderated` is the version of the last moderation act anywhere (core/context.ts moderatedStatement), for the ETag. */
+export type Chain = { node: NodeHead; ancestors: NodeHead[]; moderated: string | null }
 
 /**
  * The node at `path` and every node above it, in one query on the path index. Null when any of them is missing
@@ -196,12 +211,13 @@ export async function readChain(db: D1Database, path: string, viewerId: number |
               (SELECT group_concat(t.tag, ' ') FROM node_tag t WHERE t.node_id = n.id) AS tags,
               s.impact AS s_impact, s.posts_per_day AS s_posts_per_day, s.people AS s_people, s.hot AS s_hot, s.upvotes AS s_upvotes,
               s.posts AS s_posts, s.status_line AS s_status_line, s.updated_at AS s_updated_at,
-              v.path AS v_path, v.title AS v_title, ${PUBLIC_SQL('v')} AS v_public, bo.title AS bo_title
+              v.path AS v_path, v.title AS v_title, ${VISIBLE_SQL('v')} AS v_public, bo.title AS bo_title,
+              (SELECT value FROM setting WHERE key = 'moderated_at') AS moderated
        FROM node n
        JOIN person p ON p.id = n.author_id
        LEFT JOIN node_stats s ON s.node_id = n.id
        LEFT JOIN node v ON v.id = n.variant_of_id
-       LEFT JOIN node bo ON bo.path = json_extract(n.builds_on, '$.node') AND ${PUBLIC_SQL('bo')}
+       LEFT JOIN node bo ON bo.path = json_extract(n.builds_on, '$.node') AND ${VISIBLE_SQL('bo')}
        WHERE n.path IN (SELECT value FROM json_each(?))`,
     )
     .bind(JSON.stringify(want))
@@ -210,7 +226,7 @@ export async function readChain(db: D1Database, path: string, viewerId: number |
   const byPath = new Map(results.map(r => [r.path, toHead(r, viewerId)]))
   const chain = want.map(p => byPath.get(p)!)
   if (chain.some(n => n.visibility === 'none')) return null
-  return { node: chain[chain.length - 1], ancestors: chain.slice(0, -1) }
+  return { node: chain[chain.length - 1], ancestors: chain.slice(0, -1), moderated: String(parseJson<unknown>(results[0].moderated, '') || '') || null }
 }
 
 // ---------- branches and variants ----------
@@ -236,7 +252,10 @@ export type Child = {
 
 const STATE_RANK: Record<NodeState, number> = { live: 0, lobby: 0, closed: 1, dead_end: 2 }
 
-/** Branches (parent_id) and variants (variant_of_id) of a node, as the sidebar lists them. */
+/**
+ * Branches (parent_id) and variants (variant_of_id) of a node, as the sidebar lists them. PUBLIC_SQL on the child
+ * alone is enough: a branch's ancestors are the chain readChain already checked, and a variant is top-level.
+ */
 export async function readChildren(db: D1Database, nodeId: number): Promise<{ branches: Child[]; variants: Child[] }> {
   // OPEN: no cap on how many branches a sidebar lists is decided; 100 each.
   const { results } = await db
@@ -343,13 +362,15 @@ export type CheckReport = {
 }
 
 // OPEN: a node with more than 50 submissions lists only the newest 50 (head status, dead ends, the prompt).
+// A hidden (moderated) submission is left out everywhere, as its post is gone from the thread. OPEN: whether the
+// page should say "a submission was removed" instead isn't decided; for now it simply isn't there.
 export async function readSubmissions(db: D1Database, nodeId: number): Promise<SubmissionRow[]> {
   const { results } = await db
     .prepare(
       `SELECT s.post_id, s.number, s.hash, s.how_to_check, s.status, s.author_swap, sup.number AS superseded_number,
               p.as_name, p.person_id, p.created_at
        FROM submission s JOIN post p ON p.id = s.post_id LEFT JOIN submission sup ON sup.post_id = s.superseded_by
-       WHERE s.node_id = ? ORDER BY s.number DESC LIMIT 50`,
+       WHERE s.node_id = ? AND p.hidden = 0 ORDER BY s.number DESC LIMIT 50`,
     )
     .bind(nodeId)
     .all<SubmissionRow>()
@@ -514,7 +535,7 @@ export async function readBuiltOn(db: D1Database, ids: string[]): Promise<{ buil
        SELECT 'by', b.post_id, s.post_id, NULL, s.number, n.path, n.title
        FROM built_on b JOIN submission s ON s.post_id = b.submission_id JOIN node n ON n.id = s.node_id
        JOIN post sp ON sp.id = s.post_id
-       WHERE b.post_id IN (SELECT value FROM json_each(?1)) AND sp.hidden = 0 AND ${PUBLIC_SQL('n')}`,
+       WHERE b.post_id IN (SELECT value FROM json_each(?1)) AND sp.hidden = 0 AND ${VISIBLE_SQL('n')}`,
     )
     .bind(JSON.stringify(ids))
     .all<{ dir: 'on' | 'by'; key: string; post_id: string; as_name: string | null; number: number | null; path: string | null; title: string | null }>()

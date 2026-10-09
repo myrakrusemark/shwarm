@@ -73,10 +73,16 @@ function errorOut(c: C, f: Format, status: 400 | 429, code: string, message: str
   return c.text(`${status} ${code}: ${message}\n`, status)
 }
 
-/** A weak validator over what a signed-out view shows: the node's last write, its stats' last rollup, the form. */
+/**
+ * A weak validator over what a signed-out view shows: the node's last write, its stats' last rollup, the last
+ * moderation act anywhere, the form. A takedown (a hidden post or branch, a held node, a node that something here
+ * builds on or is built on by) can change this page without writing to this node, so every moderation act moves
+ * one site-wide version (core/context.ts moderatedStatement) and with it every signed-out ETag. Moderation is rare,
+ * so the extra misses cost little.
+ */
 export function etagOf(chain: Chain, f: Format): string {
   const n = chain.node
-  return `W/"${RENDER_VERSION}.${n.last_event_id ?? n.changed_at ?? n.created_at}.${n.stats?.updated_at ?? '-'}.${f}"`
+  return `W/"${RENDER_VERSION}.${n.last_event_id ?? n.changed_at ?? n.created_at}.${n.stats?.updated_at ?? '-'}.${chain.moderated?.replace(/[^\w-]/g, '') || '-'}.${f}"`
 }
 
 /** If-None-Match against our ETag: weak comparison, any entry, or *. */
