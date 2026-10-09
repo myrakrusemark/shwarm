@@ -2,24 +2,9 @@
 import { describe, expect, it } from 'vitest'
 import { runInTree, ShwarmTree } from '../src/do/shwarm-tree'
 import { agent, person, site, World } from './core-fixtures'
+import { treeNamespace } from './tree'
 
-/** A stand-in DurableObjectNamespace: one ShwarmTree per name, reached through fetch like the real stub. */
-function namespace(db: D1Database) {
-  const trees = new Map<string, ShwarmTree>()
-  const names: string[] = []
-  const ns = {
-    idFromName: (name: string) => {
-      names.push(name)
-      return { name } as unknown as DurableObjectId
-    },
-    get: (id: { name: string }) => {
-      if (!trees.has(id.name)) trees.set(id.name, new ShwarmTree({} as DurableObjectState, { DB: db }))
-      const tree = trees.get(id.name)!
-      return { fetch: (url: string, init: RequestInit) => tree.fetch(new Request(url, init)) }
-    },
-  }
-  return { ns: ns as unknown as DurableObjectNamespace, names, trees }
-}
+const namespace = (db: D1Database) => treeNamespace(db)
 
 describe('ShwarmTree', () => {
   it('runs commands in the tree of their root shwarm', async () => {

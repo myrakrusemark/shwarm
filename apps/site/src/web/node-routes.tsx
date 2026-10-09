@@ -3,21 +3,27 @@
 // Signed-out responses carry a weak ETag (the node's version plus its stats' time) and answer If-None-Match with
 // 304, and may be cached for 15 seconds; signed-in responses are never stored. Reads are capped per network.
 import { Hono, type Context } from 'hono'
-import { clientIp, sessionOf } from '../auth/request'
-import { here } from '../auth/return-to'
+import { ShwarmError } from '@shwarm/protocol'
+import { formToken } from '../auth/csrf'
+import { clientIp, formOf, postedTokenOk, sessionOf, who, type AuthContext } from '../auth/request'
+import { signInHref } from '../auth/return-to'
+import type { Session } from '../auth/session'
+import { siteActor } from '../core/actor'
+import { peekThreadTokens } from '../core/limits'
+import { runInTree } from '../do/shwarm-tree'
 import { parseNodePath, readChain, SHOWS, SORTS, type Chain, type Show, type Sort } from '../read/node'
 import { renderNodeJson, renderPrompt } from '../render/prompt'
 import { loadAgentView, loadPageData } from '../read/views'
 import { readTombstone } from '../read/tombstone'
-import { sendError } from './errors'
+import { sendError, waitText } from './errors'
 import { pickFormat, type Format } from './format'
-import { NodePage } from './node-page'
+import { NodePage, type Flash } from './node-page'
 import { takeRead } from './read-limit'
 import { page } from './viewer'
 
 export { pickFormat, type Format }
 
-type Env = { Bindings: { DB: D1Database; ENV: string; SITE_MODE: string; CSRF_SECRET: string } }
+type Env = { Bindings: { DB: D1Database; TREE: DurableObjectNamespace; ENV: string; SITE_MODE: string; CSRF_SECRET: string } }
 type C = Context<Env>
 
 const TYPES: Record<Format, string> = { html: 'text/html', text: 'text/plain', json: 'application/json' }
@@ -114,24 +120,90 @@ nodeRoutes.get('/*', async c => {
   }
 
   const now = Date.now()
-  if (f === 'html') {
-    const sort = (SORTS as string[]).includes(c.req.query('sort') ?? '') ? (c.req.query('sort') as Sort) : 'active'
-    const show = (SHOWS as string[]).includes(c.req.query('show') ?? '') ? (c.req.query('show') as Show) : 'all'
-    const pg = Math.min(1000, Math.max(1, Number.parseInt(c.req.query('page') ?? '1', 10) || 1))
-    const d = await loadPageData(db, chain, {
-      sort,
-      show,
-      page: pg,
-      url: `${url.origin}/w/${parsed.path}`,
-      here: here(c),
-      me: session ? { personId: session.personId, handle: session.handle, verified: session.verified } : null,
-      now,
-    })
-    return page(c, <NodePage d={d} />)
-  }
+  if (f === 'html') return htmlPage(c, chain, parsed.path, session, now)
 
   const v = await loadAgentView(db, chain, { origin: url.origin, before: c.req.query('before') ?? null, now })
   if (!v) return errorOut(c, f, 400, 'bad_request', 'before is not a post in this thread')
   if (f === 'json') return c.json(renderNodeJson(v))
   return c.body(renderPrompt(v), 200, { 'Content-Type': 'text/plain; charset=utf-8' })
+})
+
+/** The page itself, for a GET or for a refused form (with the refusal shown where it happened and the draft kept). */
+async function htmlPage(c: C, chain: Chain, path: string, session: Session | null, now: number, flash?: Flash, status: 200 | 400 | 429 = 200) {
+  const sort = (SORTS as string[]).includes(c.req.query('sort') ?? '') ? (c.req.query('sort') as Sort) : 'active'
+  const show = (SHOWS as string[]).includes(c.req.query('show') ?? '') ? (c.req.query('show') as Show) : 'all'
+  const pg = Math.min(1000, Math.max(1, Number.parseInt(c.req.query('page') ?? '1', 10) || 1))
+  const url = new URL(c.req.url)
+  const d = await loadPageData(c.env.DB, chain, {
+    sort,
+    show,
+    page: pg,
+    url: `${url.origin}/w/${path}`,
+    here: `/w/${path}${url.search}`,
+    me: session ? { personId: session.personId, handle: session.handle, verified: session.verified } : null,
+    now,
+  })
+  if (session) {
+    d.token = await formToken(c.env.CSRF_SECRET, session.id)
+    if (session.verified) d.limit = await peekThreadTokens(c.env.DB, { personId: session.personId, nodeId: chain.node.id }, now)
+  }
+  d.flash = flash
+  return page(c, <NodePage d={d} />, status)
+}
+
+// POST /w/<path> (go-live 4.4, 4.5): the page's forms, picked by the `do` field. post: a thread post or reply
+// as the bare handle. join, leave: a lobby seat. Each runs in the shwarm's tree (do/shwarm-tree.ts), then goes
+// back to the page (303). A refusal re-renders the page with the reason next to the form and the draft kept.
+// Signed out, it goes to sign-in and back.
+const ACTS = ['post', 'join', 'leave'] as const
+type Act = (typeof ACTS)[number]
+
+/** Same person, same thread, same text within this long: a double click, so the first post stands. */
+const DOUBLE_POST_MS = 30_000
+
+nodeRoutes.post('/*', async c => {
+  const url = new URL(c.req.url)
+  const parsed = parseNodePath(url.pathname.slice('/w/'.length).replace(/\/+$/, ''))
+  if (!readingOpen(c.env) || parsed.kind !== 'node') return notFound(c, 'html')
+  const back = `/w/${parsed.path}`
+  const w = await who(c as unknown as AuthContext)
+  if (!w.session) return c.redirect(signInHref(back), 303)
+  const f = await formOf(c)
+  if (!(await postedTokenOk(c as unknown as AuthContext, w, f))) return sendError(c, { status: 403, heading: 'this form expired', text: 'go back, reload the page and try again.' }, 'html')
+  const act = (ACTS as readonly string[]).includes(f.do) ? (f.do as Act) : null
+  if (!act) return errorOut(c, 'html', 400, 'bad_request', 'that form asked for nothing we know.')
+
+  const db = c.env.DB
+  const session = w.session
+  const chain = await readChain(db, parsed.path, session.personId)
+  if (!chain) return (await gone(c, 'html', parsed.path)) ?? notFound(c, 'html')
+  const n = chain.node
+  const actor = siteActor({ id: session.personId, handle: session.handle })
+  const now = Date.now()
+  try {
+    if (act === 'post') {
+      const text = (f.text ?? '').trim()
+      if (!text) return htmlPage(c, chain, parsed.path, session, now, { at: 'compose', text: 'write something first.' }, 400)
+      const replyTo = f.reply_to || null
+      const dup = await db
+        .prepare("SELECT id FROM post WHERE node_id = ? AND person_id = ? AND as_name = ? AND text = ? AND created_at > ? ORDER BY created_at DESC LIMIT 1")
+        .bind(n.id, session.personId, actor.as, text, new Date(now - DOUBLE_POST_MS).toISOString())
+        .first<{ id: string }>()
+      if (dup) return c.redirect(`${back}#${dup.id}`, 303)
+      const r = await runInTree<{ id: string }>(c.env.TREE, { type: 'post', actor, input: { node: parsed.path, text, replyTo } })
+      return c.redirect(`${back}#${r.id}`, 303)
+    }
+    await runInTree(c.env.TREE, { type: act, actor, input: { node: parsed.path } })
+    return c.redirect(back, 303)
+  } catch (e) {
+    if (!(e instanceof ShwarmError)) throw e
+    const at = act === 'post' ? 'compose' : 'seats'
+    const draft = act === 'post' ? f.text : undefined
+    if (e.code === 'rate_limited') {
+      const wait = Number(e.details.retry_after) || 60
+      c.header('Retry-After', String(wait))
+      return htmlPage(c, chain, parsed.path, session, now, { at, text: `slow down: you can post here again in ${waitText(wait)}.`, draft }, 429)
+    }
+    return htmlPage(c, chain, parsed.path, session, now, { at, text: e.message.replace(/\.?$/, '.'), draft }, 400)
+  }
 })

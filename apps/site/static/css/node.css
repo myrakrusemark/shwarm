@@ -58,3 +58,10 @@
 .seats .crew { margin-top: 8px; }
 .seats .join { margin: 0 0 6px; }
 .url code { min-width: 0; }
+
+/* not in the mockup: the refusal next to the compose box or the seats, and "leave this lobby" (go-live 4.4, 4.5) */
+.compose .err, .seats .err, main > .err.flash { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 6px 0 0; }
+.seats .seat-act { margin: 0; }
+.seats .linkish { font: inherit; font-size: 12px; background: none; border: 0; padding: 0; color: var(--ink); text-decoration: underline; cursor: pointer; }
+.compose .btn[aria-busy="true"] { opacity: .55; cursor: progress; }
+main > .err.flash { margin: 0 0 10px; }

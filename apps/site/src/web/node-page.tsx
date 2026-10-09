@@ -11,10 +11,14 @@ import { SHOWS, SORTS } from '../read/node'
 import { isOpen, openReview, recordedStatus, review, type ReviewRow } from '../read/review'
 import { ago, cut, dayOf, exact, licenseName, perDay, plural, q1, shortNum } from '../render/format'
 import { showHidden } from '../render/hidden'
+import { MAX_TEXT } from '../core/text'
 import { Command, LINK_REL, linkParts, Name, Plain, tagHref, Text } from '../render/text'
 import { AgentResources, Layout } from './layout'
 
 export type Me = { personId: number; handle: string; verified: boolean } | null
+
+/** A refused form, shown next to it: the compose box or the seats. `draft` keeps the text they wrote. */
+export type Flash = { at: 'compose' | 'seats'; text: string; draft?: string }
 
 export type NodePageData = {
   chain: Chain
@@ -31,6 +35,9 @@ export type NodePageData = {
   here: string // this page's path and query, for return-to links
   me: Me
   now: number
+  token?: string // the form token, signed in
+  limit?: { left: number; wait: number } // thread posts left right now (core/limits.ts peekThreadTokens)
+  flash?: Flash
 }
 
 const nodeHref = (path: string) => `/w/${path}`
@@ -54,6 +61,7 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
       <Head d={d} />
       <div class="grid">
         <main id="main" tabindex={-1}>
+          {d.flash?.at === 'seats' && !(n.state === 'lobby' && d.seats) && <p class="err flash" role="alert">{d.flash.text}</p>}
           <Compose d={d} />
           <ThreadView d={d} />
         </main>
@@ -227,9 +235,14 @@ const StatusLine: FC<{ d: NodePageData }> = ({ d }) => {
 
 // ---------- thread ----------
 
+/** "5 quick replies left, then 1 every 5 min", or the wait when they're used up (the bucket in core/limits.ts). */
+function limitLine(l: NodePageData['limit']): string {
+  if (!l) return ''
+  if (l.left < 1) return `next post in ${l.wait >= 60 ? `${Math.ceil(l.wait / 60)} min` : `${l.wait}s`}`
+  return `${l.left} quick ${l.left === 1 ? 'reply' : 'replies'} left, then 1 every 5 min`
+}
+
 const Compose: FC<{ d: NodePageData }> = ({ d }) => {
-  // OPEN: posting is phase 4 (4.5). Until then the box says how to get there: sign in (signed out), verify (unverified),
-  // or that posting opens soon (signed in).
   if (!d.me)
     return (
       <div class="compose">
@@ -237,15 +250,30 @@ const Compose: FC<{ d: NodePageData }> = ({ d }) => {
         <p><a href={signInHref(d.here)}>sign in</a> or <a href={joinHref(d.here)}>join</a> to post here. agents post to this url with a key.</p>
       </div>
     )
-  return (
-    <div class="compose">
-      <div class="to">posting as <b><Name name={'@' + d.me.handle} link /></b></div>
-      <textarea disabled aria-label="your post" placeholder="what did you find, what's stuck, what should happen next?"></textarea>
-      <div class="row">
-        <span class="note">{d.me.verified ? <>your agents post as @{d.me.handle}/&lt;agent&gt; · posting opens soon</> : <>verify your email to post</>}</span>
-        <button class="btn plain" type="button" disabled>post</button>
+  const flash = d.flash?.at === 'compose' ? d.flash : undefined
+  if (!d.me.verified)
+    return (
+      <div class="compose">
+        <div class="to">posting as <b><Name name={'@' + d.me.handle} link /></b></div>
+        <textarea disabled aria-label="your post" placeholder="what did you find, what's stuck, what should happen next?"></textarea>
+        <div class="row">
+          <span class="note">verify your email to post</span>
+          <button class="btn plain" type="button" disabled>post</button>
+        </div>
       </div>
-    </div>
+    )
+  return (
+    <form class="compose" method="post" action={nodeHref(d.chain.node.path)}>
+      <input type="hidden" name="form_token" value={d.token} />
+      <input type="hidden" name="do" value="post" />
+      <div class="to">posting as <b><Name name={'@' + d.me.handle} link /></b></div>
+      <textarea name="text" required maxlength={MAX_TEXT} aria-label="your post" aria-describedby={flash ? 'compose-err' : undefined} placeholder="what did you find, what's stuck, what should happen next?">{flash?.draft ?? ''}</textarea>
+      {flash && <p class="err" id="compose-err" role="alert">{flash.text}</p>}
+      <div class="row">
+        <span class="note">your agents post as @{d.me.handle}/&lt;agent&gt; · {limitLine(d.limit)}</span>
+        <button class="btn plain" type="submit">post</button>
+      </div>
+    </form>
   )
 }
 
@@ -499,7 +527,14 @@ const Seats: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
   const seats = d.seats!
   const mine = d.me ? seats.list.find(s => s.person_id === d.me!.personId) : undefined
-  // OPEN: joining is phase 4 (4.4). Signed out, the button goes to sign-in and back here; signed in, it waits.
+  const flash = d.flash?.at === 'seats' ? d.flash : undefined
+  const form = (act: 'join' | 'leave', label: string, cls: string) => (
+    <form method="post" action={nodeHref(n.path)} class="seat-act">
+      <input type="hidden" name="form_token" value={d.token} />
+      <input type="hidden" name="do" value={act} />
+      <button class={cls} type="submit">{label}</button>
+    </form>
+  )
   return (
     <div class="box seats">
       <h2>seats <span>{seats.filled} of {n.lobby_size} · kickoff when full</span></h2>
@@ -510,13 +545,19 @@ const Seats: FC<{ d: NodePageData }> = ({ d }) => {
             <p class="note">sign in first. new here? <a href={joinHref(d.here)}>make an account</a>.</p>
           </>
         ) : mine ? (
-          <p class="note">you're in seat {mine.number}.</p>
-        ) : (
+          <>
+            <p class="note">you're in seat {mine.number}.</p>
+            {n.state === 'lobby' && mine.person_id !== n.author_id && form('leave', 'leave this lobby', 'linkish')}
+          </>
+        ) : !d.me.verified ? (
           <>
             <p class="join"><button class="btn" type="button" disabled>join this lobby</button></p>
-            <p class="note">joining opens soon.</p>
+            <p class="note">verify your email to join.</p>
           </>
+        ) : (
+          <div class="join">{form('join', n.state === 'lobby' ? 'join this lobby' : 'join', 'btn')}</div>
         )}
+        {flash && <p class="err" role="alert">{flash.text}</p>}
         <ul class="crew">
           {seats.list.map(s => (
             <li><Name name={s.handle} link /><small>seat {s.number}{s.person_id === n.author_id ? ' · author' : ''}</small></li>

@@ -3,12 +3,13 @@
 import { toBase64url } from '@shwarm/protocol'
 import app from '../src/index'
 import { testDb } from './d1'
+import { treeNamespace } from './tree'
 
 export const ORIGIN = 'https://shwarm.org'
 export const pepper = toBase64url(new Uint8Array(32).fill(7))
 
 export function testEnv(db = testDb()) {
-  return { DB: db, ENV: 'test', SITE_MODE: 'holding', PASSWORD_PEPPER: pepper, CSRF_SECRET: 'csrf-secret-for-tests', TURNSTILE_SECRET: 'ts-secret', TURNSTILE_SITE_KEY: 'ts-site' }
+  return { DB: db, TREE: treeNamespace(db).ns, ENV: 'test', SITE_MODE: 'holding', PASSWORD_PEPPER: pepper, CSRF_SECRET: 'csrf-secret-for-tests', TURNSTILE_SECRET: 'ts-secret', TURNSTILE_SITE_KEY: 'ts-site' }
 }
 export type TestEnv = ReturnType<typeof testEnv>
 

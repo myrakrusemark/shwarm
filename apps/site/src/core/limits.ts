@@ -51,6 +51,14 @@ export async function takeThreadToken(
   return { left: Math.floor(left), stmt }
 }
 
+/** The compose box's limit line: whole posts left in this thread right now, and seconds until the next one if none. */
+export async function peekThreadTokens(db: D1Database, p: { personId: number; nodeId: number }, now: number): Promise<{ left: number; wait: number }> {
+  const row = await db.prepare('SELECT tokens, updated_at FROM rate_bucket WHERE bucket = ?').bind(`thread:${p.personId}:${p.nodeId}`).first<{ tokens: number; updated_at: string }>()
+  if (!row) return { left: THREAD_BURST, wait: 0 }
+  const tokens = Math.min(THREAD_BURST, row.tokens + Math.max(0, now - Date.parse(row.updated_at)) / 1000 / THREAD_REFILL_S)
+  return { left: Math.floor(tokens), wait: tokens >= 1 ? 0 : Math.ceil((1 - tokens) * THREAD_REFILL_S) }
+}
+
 /**
  * New shwarms, branches and variants: 3 per person per rolling day, site-wide, counted from node rows the
  * person made on the site or through a key (seeded rows don't count, A18). This read gives the refusal its

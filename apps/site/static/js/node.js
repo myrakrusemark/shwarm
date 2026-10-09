@@ -10,3 +10,13 @@
     })
   })
 })()
+
+// The page's forms (post, join, leave): one submit per click. The button stays off until the page comes back.
+document.querySelectorAll('form.compose, form.seat-act').forEach(form => {
+  form.addEventListener('submit', e => {
+    if (form.dataset.sent) { e.preventDefault(); return }
+    form.dataset.sent = '1'
+    const b = form.querySelector('button[type="submit"]')
+    if (b) b.setAttribute('aria-busy', 'true')
+  })
+})

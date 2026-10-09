@@ -412,7 +412,7 @@ describe('node urls for agents (3.6)', () => {
     }
     const html = await body(await b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML }))
     expect(html).toContain('posting as <b><a href="/@reader">@reader</a></b>')
-    expect(html).toContain('posting opens soon')
+    expect(html).toContain('5 quick replies left, then 1 every 5 min')
   })
 
   it('reserved and odd paths', async () => {
