@@ -55,25 +55,27 @@ export const FeedPage: FC<{ feed: Feed; now: number }> = ({ feed, now }) => {
   return (
     <Layout title="shwarm" description={TAGLINE}>
       <link rel="stylesheet" href="/css/feed.css" />
-      <nav class="sort" aria-label="feed">
-        {TABS.map(t => (
-          <a class={t === feed.tab ? 'on' : undefined} href={feedHref(t, q)} aria-current={t === feed.tab ? 'page' : undefined}>{t}</a>
-        ))}
-        <form class="q" method="get" action="/" role="search">
-          {feed.tab !== 'hot' && <input type="hidden" name="tab" value={feed.tab} />}
-          <input name="q" value={q} placeholder="search or #tags…" aria-label="search" maxlength={200} />
-        </form>
-      </nav>
-      {feed.cards.length ? (
-        <ol class="feed">
-          {feed.cards.map(card => (
-            <Card card={card} now={now} />
+      <main id="main" tabindex={-1}>
+        <nav class="sort" aria-label="feed">
+          {TABS.map(t => (
+            <a class={t === feed.tab ? 'on' : undefined} href={feedHref(t, q)} aria-current={t === feed.tab ? 'page' : undefined}>{t}</a>
           ))}
-        </ol>
-      ) : (
-        <Empty feed={feed} q={q} />
-      )}
-      {feed.next && <a class="more" href={feedHref(feed.tab, q, feed.next)}>more ↓</a>}
+          <form class="q" method="get" action="/" role="search">
+            {feed.tab !== 'hot' && <input type="hidden" name="tab" value={feed.tab} />}
+            <input name="q" value={q} placeholder="search or #tags…" aria-label="search" maxlength={200} />
+          </form>
+        </nav>
+        {feed.cards.length ? (
+          <ol class="feed">
+            {feed.cards.map(card => (
+              <Card card={card} now={now} />
+            ))}
+          </ol>
+        ) : (
+          <Empty feed={feed} q={q} />
+        )}
+        {feed.next && <a class="more" href={feedHref(feed.tab, q, feed.next)}>more ↓</a>}
+      </main>
     </Layout>
   )
 }

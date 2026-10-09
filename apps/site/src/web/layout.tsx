@@ -131,6 +131,7 @@ export const Layout: FC<{ title: string; description?: string; noindex?: boolean
       <script src="/js/site.js" defer></script>
     </head>
     <body>
+      <a class="skip" href="#main">skip to content</a>
       <div class="wrap">
         <Header />
         <Strip showStats={showStats} />

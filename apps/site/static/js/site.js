@@ -15,9 +15,11 @@
     if (sc.hidden) return
     if (e.key === 'Escape') return close()
     if (e.key === 'Tab') {
-      const f = focusables(), first = f[0], last = f[f.length - 1]
-      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
-      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+      const f = focusables(), first = f[0], last = f[f.length - 1], at = document.activeElement
+      // focus outside the dialog (a click on its text sends focus to body): bring it back in
+      if (!sc.contains(at)) { e.preventDefault(); (e.shiftKey ? last : first)?.focus() }
+      else if (e.shiftKey && at === first) { e.preventDefault(); last.focus() }
+      else if (!e.shiftKey && at === last) { e.preventDefault(); first.focus() }
     }
   })
   sc.querySelectorAll('.freq button').forEach(b => b.addEventListener('click', () => {

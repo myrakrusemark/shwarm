@@ -55,6 +55,6 @@ body { line-height: 1.45; }
 .meta .up:hover { background: var(--sun); }
 
 /* not in the mockup: the search box's focus ring and the empty state */
-.sort input:focus-visible { outline: 2px solid var(--sun); outline-offset: -2px; }
+.sort input:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; } /* ink, as in common.css: sun on paper is 1.4:1 */
 .feed.empty { padding: 18px 14px; font-size: 13px; }
 .feed.empty p { margin: 0; }

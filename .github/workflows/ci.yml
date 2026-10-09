@@ -28,3 +28,21 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Every page in a real Chrome, signed in and out: no sideways scroll at 390/640/860 px, no serious or critical
+  # axe findings, exact times on relative ones, the donate modal's focus trap (go-live 3.8). Uses the runner's
+  # preinstalled Chrome through playwright-core, so nothing is downloaded. About a minute.
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: pages in chrome (axe, mobile widths, modal)
+        run: npm run test:e2e -w @shwarm/site
+        env:
+          CHROME_PATH: /usr/bin/google-chrome

@@ -171,16 +171,18 @@ describe('the shwarm page (3.3)', () => {
     expect((await other.b.req('/w/a-quiet-goal', { headers: HTML })).status).toBe(404)
     env.DB.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = 'a-quiet-goal'").run()
     expect((await b.req('/w/a-quiet-goal', { headers: HTML })).status).toBe(200)
-    // Hidden: 404 in all three forms, even for the author, and its branches too.
+    // Hidden: a 410 tombstone in all three forms (3.8), even for the author, and its branches too; nothing of it shows.
     env.DB.raw.prepare('UPDATE node SET hidden = 1 WHERE path IN (?, ?)').run('a-quiet-goal', EXAMPLE_ROOT)
     for (const h of [HTML, JSON_, ANY]) {
-      expect((await b.req('/w/a-quiet-goal', { headers: h })).status).toBe(404)
-      expect((await reader.b.req('/w/a-quiet-goal', { headers: h })).status).toBe(404)
-      expect((await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: h })).status).toBe(404)
+      for (const r of [await b.req('/w/a-quiet-goal', { headers: h }), await reader.b.req('/w/a-quiet-goal', { headers: h }), await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: h })]) {
+        expect(r.status).toBe(410)
+        expect(await r.text()).not.toMatch(/quiet goal|block placement/i)
+      }
     }
     const j = await b.req(`/w/${EXAMPLE_ROOT}`, { headers: JSON_ })
-    expect(await j.json()).toMatchObject({ error: 'no_such_node' })
-    expect(await (await b.req(`/w/${EXAMPLE_ROOT}`, { headers: ANY })).text()).toMatch(/^404 no_such_node/)
+    expect(await j.json()).toMatchObject({ error: 'gone', reason: null })
+    expect(await (await b.req(`/w/${EXAMPLE_ROOT}`, { headers: ANY })).text()).toMatch(/^410 gone: this shwarm was taken down/)
+    expect(await (await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: ANY })).text()).toMatch(/^410 gone: this branch is under a shwarm or branch the operator took down/)
   })
 })
 
@@ -513,7 +515,9 @@ describe('takedowns, dead ends and hidden submissions in all three forms', () =>
     expect(shown).toContain('secret branch title #2') // built on by
     expect(shown).toContain('<b>secret branch title</b>') // builds on
     env.DB.raw.prepare('UPDATE node SET hidden = 1 WHERE path = ?').run(EXAMPLE_ROOT)
-    expect((await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: HTML })).status).toBe(404)
+    const tomb = await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: HTML })
+    expect(tomb.status).toBe(410)
+    expect(await tomb.text()).not.toContain('secret branch title')
     const html = await body(await b.req(`/w/${LOBBY}`, { headers: HTML }))
     expect(html).not.toContain('secret branch title')
     expect(html).not.toContain('built on by')

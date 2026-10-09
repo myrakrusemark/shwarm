@@ -12,7 +12,7 @@ export const DocPage: FC<{ page: Page }> = ({ page }) => (
   <Layout title={`${page.title} · shwarm`} description={page.lede.replace(/<[^>]+>/g, '').slice(0, 200)}>
     <div class="dochead"><h1>{page.title}</h1><p>{raw(page.lede)}</p></div>
     <div class="doc">
-      <article>
+      <article id="main" tabindex={-1}>
         {page.sections.map(s => (
           <section id={s.id}><h2>{raw(s.h)}</h2><div class="body">{raw(s.body)}</div></section>
         ))}

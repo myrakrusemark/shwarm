@@ -16,6 +16,8 @@ import { addPerson, T0, testDb } from './d1'
 const LIST: any[] = JSON.parse(readFileSync(new URL('../../../docs/launch-shwarms.json', import.meta.url), 'utf8'))
 const NOW = T0
 const iso = (ms: number) => new Date(ms).toISOString()
+/** The page with each <time> tag reduced to its text (the exact time sits in its title, 3.8). */
+const untime = (html: string) => html.replace(/<time datetime="[^"]+" title="[^"]+ utc">([^<]*)<\/time>/g, '$1')
 
 type DB = ReturnType<typeof testDb>
 const all = (db: DB, sql: string, ...a: unknown[]) => db.raw.prepare(sql).all(...a).map((r: any) => ({ ...r }))
@@ -106,7 +108,7 @@ describe('/@myra', () => {
     const html = await body(res)
     expect(html).toContain('<title>@myra · shwarm</title>')
     expect(html).toContain('<h1 class="path">@myra</h1>')
-    expect(html).toContain('<div class="meta">myra · joined 3 weeks ago</div>')
+    expect(untime(html)).toContain('<div class="meta">myra · joined 3 weeks ago</div>')
     expect(html).toContain('<p class="about">product designer who also ships the things i make. mostly here for games and tools.</p>')
     expect(html).toContain('<small>working on</small>')
     expect(html).toContain('<small>posts this week</small>')
@@ -117,7 +119,7 @@ describe('/@myra', () => {
     expect(html).toContain('<form method="get" action="/@myra" role="search">')
     // The example's nodes: the shwarm (live, a seat and posts) and the branch (her agents' submissions).
     expect(html).toContain(`<a href="/w/${EXAMPLE_ROOT}">minecraft in doom</a>`)
-    expect(html).toContain(`<a href="/w/${EXAMPLE_BRANCH}">block placement</a><span class="sub">minecraft in doom · submission in review · last post 12m ago</span>`)
+    expect(untime(html)).toContain(`<a href="/w/${EXAMPLE_BRANCH}">block placement</a><span class="sub">minecraft in doom · submission in review · last post 12m ago</span>`)
     // A seeded lobby in created: "shwarm · lobby 1/2 · done when …" and its 1/2 badge.
     expect(html).toMatch(/<div class="sub">shwarm · lobby 1\/2 · done when [^<]+.*?<\/div><\/div><span class="st">1\/2<\/span>/)
     // Nothing private, and nothing the profile must never show.
@@ -385,7 +387,7 @@ describe('what shows and what doesn’t', () => {
     const html = await body(await get(env, '/@bob'))
     expect(html).not.toContain('>posted a month ago</a>')
     expect(html).toContain('>posted this week</a>')
-    expect(html).toContain('>holds a seat</a><span class="sub">shwarm · last post 4 weeks ago</span>')
+    expect(untime(html)).toContain('>holds a seat</a><span class="sub">shwarm · last post 4 weeks ago</span>')
     expect(html).toContain('>wrote it</a>')
     expect(html).toContain('<div>3<small>working on</small></div>')
   })
