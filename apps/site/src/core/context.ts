@@ -164,6 +164,22 @@ export function touchNode(ctx: Ctx, nodeId: number | { path: string }, version: 
     .bind(version ?? newId('v'), ctx.at, key)
 }
 
+/**
+ * Last in every moderation batch (hiding or unhiding a post or a node, a triage change), next to touchNode on the
+ * node acted on (and its parent, whose sidebar lists it, so the stats job rolls it up again). A takedown can change
+ * pages other than the node's own: the parent's sidebar, a thread whose post was built on by a hidden submission,
+ * a node that builds on a held one. So this moves one site-wide version that every signed-out ETag carries
+ * (web/node-routes.ts etagOf, read through readChain). A direct UPDATE that skips this leaves cached pages stale.
+ */
+export function moderatedStatement(ctx: Ctx): D1PreparedStatement {
+  return ctx.db
+    .prepare(
+      `INSERT INTO setting (key, value, updated_at) VALUES ('moderated_at', ?1, ?2)
+       ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+    )
+    .bind(JSON.stringify(newId('v')), ctx.at)
+}
+
 export function postStatement(
   ctx: Ctx,
   p: { id: string; nodeId: number; actor: Actor; kind: 'post' | 'submission' | 'check' | 'repro' | 'dead_end'; text: string; links?: unknown[]; replyTo?: string | null },

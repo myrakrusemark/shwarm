@@ -247,7 +247,8 @@ export async function computeNodes(db: D1Database, ids: number[], now: number, r
     r.bumps_from_branches ? 1 : 0,
   )
   const subs = await all<{ node_id: number; number: number; status: StatusInput['submissions'][number]['status'] }>(
-    `SELECT node_id, number, status FROM submission WHERE node_id ${IN}`,
+    // A hidden (moderated) submission doesn't drive the status line, as on the node page (read/node.ts readSubmissions).
+    `SELECT s.node_id, s.number, s.status FROM submission s JOIN post p ON p.id = s.post_id WHERE p.hidden = 0 AND s.node_id ${IN}`,
   )
   const branches = await all<{ parent_id: number; live: number; closed: number }>(
     `SELECT parent_id, SUM(state = 'live') AS live, SUM(state = 'closed') AS closed FROM node WHERE parent_id ${IN} AND hidden = 0 GROUP BY parent_id`,

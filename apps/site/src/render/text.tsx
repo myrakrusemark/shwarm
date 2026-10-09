@@ -130,3 +130,5 @@ export const Command: FC<{ cmd: string }> = ({ cmd }) => raw(renderCommand(cmd))
 export const Log: FC<{ text: string }> = ({ text }) => raw(renderLog(text))
 export const Name: FC<{ name: string; link?: boolean; class?: string }> = props =>
   raw(props.link ? renderNameLink(props.name, props.class) : renderName(props.name))
+/** Plain text with nothing linked and every hidden character shown (titles inside links, link labels, hosts). */
+export const Plain: FC<{ text: string }> = ({ text }) => raw(strict(text))
