@@ -19,6 +19,7 @@ import { clientIp, formOf, postedTokenOk, sessionOf, who, type AuthContext } fro
 import { signInHref } from '../auth/return-to'
 import { clearCookie, endAllSessions, type Session } from '../auth/session'
 import { inlineStepUp, setPassword } from '../auth/signin'
+import { bump, LIMITS } from '../auth/throttle'
 import { stepUpOpen } from '../auth/stepup'
 import { readAccount } from '../read/account'
 import { siteActor } from '../core/actor'
@@ -595,6 +596,13 @@ async function accountForm(c: Context<{ Bindings: Env }>, s: Session, act: 'acco
     return refuse({ error: up.refuse }, up.status)
   }
   if (checked) {
+    // Each email change mails an address the account picks, so it has a pace of its own (counted once the password is in).
+    const wait = checked.save.email ? await bump(db, `emailchange:person:${s.personId}`, LIMITS.emailChangePerson, now) : 0
+    if (wait) {
+      c.header('Retry-After', String(wait))
+      // OPEN (#84): new words.
+      return refuse({ errors: { email: `that's a lot of email changes. wait ${waitText(wait)}, then try again.` } }, 429)
+    }
     await saveAccount(db, me, checked.save, now)
     return c.redirect(`/@${s.handle}?account=saved`, 303)
   }

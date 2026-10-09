@@ -37,6 +37,8 @@ export type AccountSave = {
   prefs: Record<string, unknown>
   /** The address to move to, when it differs from the account's. */
   email: Email | null
+  /** The account's own address was typed back: any pending change is withdrawn. */
+  cancelEmailChange: boolean
 }
 
 /** A typed link as stored: "example.com" gets https://; only an http(s) address the pages would link is kept. */
@@ -64,21 +66,24 @@ export async function checkAccount(db: D1Database, f: AccountForm, cur: Current)
   }
   let email: Email | null = null
   const typed = (f.email ?? '').trim().toLowerCase()
-  if (f.email !== undefined && typed !== cur.email.toLowerCase()) {
+  const same = f.email !== undefined && typed === cur.email.toLowerCase()
+  if (f.email !== undefined && !same) {
     email = parseEmail(typed)
     if (!email) errors.email = COPY.email
     else if (await isDisposable(db, email.domain)) errors.email = COPY.disposable
   }
   if (Object.keys(errors).length) return { errors }
   const ticked = Object.fromEntries(NOTICE_GROUPS.map(g => [g.key, f[`n_${g.key}`] === '1']))
-  return { save: { displayName, about, links, prefs: nextPrefs(cur.prefs, ticked, f.inbox_every), email } }
+  return { save: { displayName, about, links, prefs: nextPrefs(cur.prefs, ticked, f.inbox_every), email, cancelEmailChange: same } }
 }
 
 /**
  * Stores a checked save as one batch. With an email change: any earlier change link stops working, a new one goes to
  * the new address, and the old address is warned. An address that already has another account gets no link, but
- * everything else happens the same, so the modal never shows whether an address has an account.
- * OPEN (#84): the beta allow-list isn't checked on a change, and founding stays as it was.
+ * everything else happens the same, so the modal never shows whether an address has an account. With the account's
+ * own address in the field, any pending change is withdrawn: its link stops working and the pending note goes.
+ * OPEN (#84): the beta allow-list isn't checked on a change, and founding stays as it was. The field shows the
+ * current address, so any save that leaves it alone also withdraws a pending change (builder's default).
  */
 export async function saveAccount(db: D1Database, cur: Current, s: AccountSave, nowMs = Date.now()): Promise<void> {
   const now = new Date(nowMs).toISOString()
@@ -87,6 +92,9 @@ export async function saveAccount(db: D1Database, cur: Current, s: AccountSave, 
       .prepare('UPDATE person SET display_name = ?, about = ?, links = ?, notice_prefs = ? WHERE id = ?')
       .bind(s.displayName, s.about, JSON.stringify(s.links), JSON.stringify(s.prefs), cur.id),
   ]
+  if (s.cancelEmailChange) {
+    stmts.push(db.prepare("UPDATE email_token SET used_at = ? WHERE person_id = ? AND purpose = 'email_change' AND used_at IS NULL").bind(now, cur.id))
+  }
   if (s.email) {
     const taken = await db.prepare('SELECT 1 AS hit FROM person WHERE email_norm = ? AND id != ?').bind(s.email.norm, cur.id).first()
     const { token, stmt } = await newToken(db, cur.id, 'email_change', nowMs, s.email.email)

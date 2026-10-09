@@ -87,9 +87,16 @@ export async function endSession(db: D1Database, token: string | undefined) {
   if (token) await db.prepare('DELETE FROM session WHERE id = ?').bind(await sessionId(token)).run()
 }
 
-/** A password reset or change ends every session (table B). */
+/**
+ * "sign out everywhere" (6.2): every session ends, and a pending email change link dies with them, so someone who
+ * signed in as the person can't finish moving the account once they're signed out.
+ * OPEN (#84): cancelling the pending change here is a builder's default.
+ */
 export async function endAllSessions(db: D1Database, personId: number) {
-  await db.prepare('DELETE FROM session WHERE person_id = ?').bind(personId).run()
+  await db.batch([
+    db.prepare('DELETE FROM session WHERE person_id = ?').bind(personId),
+    db.prepare("UPDATE email_token SET used_at = ? WHERE person_id = ? AND purpose = 'email_change' AND used_at IS NULL").bind(iso(Date.now()), personId),
+  ])
 }
 
 export function sessionCookie(token: string): string {

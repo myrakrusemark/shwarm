@@ -160,8 +160,9 @@ export async function applyReset(db: D1Database, pepper: string, personId: numbe
 
 /**
  * A new password, from a reset link or the account modal's "change password" (go-live 6.2): every session of the
- * account ends except `keepSession` (the browser that changed it; none after a reset), every reset link dies, and the
- * "password changed" mail goes to the account's address.
+ * account ends except `keepSession` (the browser that changed it; none after a reset), every reset link and any
+ * pending email change link dies, and the "password changed" mail goes to the account's address. Killing the change
+ * link is what makes the old address's warning ("if this wasn't you, reset your password") stop a takeover.
  */
 export async function setPassword(db: D1Database, pepper: string, personId: number, password: string, opts: { keepSession?: string; now?: number } = {}) {
   const now = new Date(opts.now ?? Date.now()).toISOString()
@@ -172,7 +173,7 @@ export async function setPassword(db: D1Database, pepper: string, personId: numb
     db.prepare('UPDATE person SET password_hash = ?, password_changed_at = ? WHERE id = ?').bind(hash, now, p.id),
     // endAllSessions, inside the batch, sparing only the browser that made the change
     db.prepare('DELETE FROM session WHERE person_id = ? AND id != ?').bind(p.id, opts.keepSession ?? ''),
-    db.prepare("UPDATE email_token SET used_at = ? WHERE person_id = ? AND purpose = 'reset' AND used_at IS NULL").bind(now, p.id),
+    db.prepare("UPDATE email_token SET used_at = ? WHERE person_id = ? AND purpose IN ('reset', 'email_change') AND used_at IS NULL").bind(now, p.id),
     mailStatement(db, { to: p.email, template: 'password_changed', stream: 'security', personId: p.id, payload: { handle: p.handle } }, now),
   ])
   await clearThrottle(db, await addrScope(p.email_norm))

@@ -335,6 +335,84 @@ describe('email change (6.2)', () => {
   })
 })
 
+describe('a pending email change can be stopped (6.2 review)', () => {
+  /** Saves a change to evil@attacker.example from a signed-in browser; returns the link the new address got. */
+  async function hijack(env: TestEnv) {
+    const b = await signIn(env, 'myra@example.org', GOOD_PASSWORD, '198.51.100.66')
+    expect((await acct(b, 'myra', saveForm('myra', { email: 'evil@attacker.example' }))).status).toBe(303)
+    const link = linkIn(env.DB, 'email_change_new')
+    return { b, link, t: new URL(link, 'https://shwarm.org').searchParams.get('t')! }
+  }
+  const stillMyra = (env: TestEnv, id: number) => expect(get(env, 'SELECT email FROM person WHERE id = ?', id).email).toBe('myra@example.org')
+
+  it("a password reset, as the old address's warning says, kills the change link", async () => {
+    const env = testEnv()
+    const id = await member(env, 'myra')
+    const { t, link } = await hijack(env)
+    await new Browser(env, '192.0.2.70').post('/forgot', { email: 'myra@example.org' })
+    const r = new URL(linkIn(env.DB, 'reset'), 'https://shwarm.org').searchParams.get('t')!
+    expect((await new Browser(env, '192.0.2.71').post('/reset', { t: r, password: NEW_PASSWORD, password2: NEW_PASSWORD })).status).toBe(303)
+    const res = await new Browser(env, '192.0.2.72').post('/email-change', { t })
+    expect(res.status).toBe(410)
+    expect((await new Browser(env).get(link)).status).toBe(410)
+    stillMyra(env, id)
+  })
+
+  it('a password change from the modal kills the change link, and the pending note goes', async () => {
+    const env = testEnv()
+    const id = await member(env, 'myra')
+    const { t } = await hijack(env)
+    const here = await signIn(env, 'myra@example.org')
+    expect((await acct(here, 'myra', { do: 'password', new_password: NEW_PASSWORD, new_password2: NEW_PASSWORD })).status).toBe(303)
+    expect((await new Browser(env, '192.0.2.72').post('/email-change', { t })).status).toBe(410)
+    expect(modalIn(await body(await here.get('/@myra?account=1')))).not.toContain('a link went to')
+    stillMyra(env, id)
+  })
+
+  it('sign out everywhere kills the change link', async () => {
+    const env = testEnv()
+    const id = await member(env, 'myra')
+    const { t } = await hijack(env)
+    const here = await signIn(env, 'myra@example.org')
+    expect((await acct(here, 'myra', { do: 'signout_all' })).status).toBe(303)
+    expect((await new Browser(env, '192.0.2.72').post('/email-change', { t })).status).toBe(410)
+    stillMyra(env, id)
+  })
+
+  it('typing the current address back withdraws the change: the link dies and the note goes, and no mail is sent', async () => {
+    const env = testEnv()
+    const id = await member(env, 'myra')
+    const { b, t } = await hijack(env)
+    const before = mails(env.DB).length
+    expect((await acct(b, 'myra', saveForm('myra', { email: 'Myra@Example.org' }))).status).toBe(303)
+    expect(mails(env.DB)).toHaveLength(before)
+    expect(get(env, "SELECT COUNT(*) AS n FROM email_token WHERE person_id = ? AND purpose = 'email_change' AND used_at IS NULL", id).n).toBe(0)
+    expect(modalIn(await body(await b.get('/@myra?account=1')))).not.toContain('a link went to')
+    expect((await new Browser(env, '192.0.2.72').post('/email-change', { t })).status).toBe(410)
+    stillMyra(env, id)
+  })
+
+  it('email changes are paced per account: 3 an hour, then refused at the field with the draft kept and no mail', async () => {
+    const env = testEnv()
+    await member(env, 'myra')
+    const b = await signIn(env, 'myra@example.org')
+    for (const n of [1, 2, 3]) expect((await acct(b, 'myra', saveForm('myra', { email: `stranger${n}@elsewhere.example` }))).status).toBe(303)
+    const res = await acct(b, 'myra', saveForm('myra', { email: 'stranger4@elsewhere.example', about: 'kept draft' }))
+    expect(res.status).toBe(429)
+    expect(res.headers.get('retry-after')).toBe('3600')
+    const html = modalIn(await body(res))!
+    expect(html).toContain("that's a lot of email changes. wait about 60 minutes, then try again.")
+    expect(html).toContain('kept draft')
+    expect(mails(env.DB).filter(m => m.template === 'email_change_new').map(m => m.to_email)).toEqual(['stranger1@elsewhere.example', 'stranger2@elsewhere.example', 'stranger3@elsewhere.example'])
+    // a save that leaves the address alone isn't counted or refused
+    expect((await acct(b, 'myra', saveForm('myra', { about: 'just the about' }))).status).toBe(303)
+    // after the hour, changes go again
+    vi.setSystemTime(T0 + 61 * MIN)
+    const late = await signIn(env, 'myra@example.org') // a fresh sign-in, so the step-up window is open
+    expect((await acct(late, 'myra', saveForm('myra', { email: 'stranger5@elsewhere.example' }))).status).toBe(303)
+  })
+})
+
 describe('change password (6.2)', () => {
   it('ends every other session, keeps this one, sends the "password changed" mail', async () => {
     const env = testEnv()

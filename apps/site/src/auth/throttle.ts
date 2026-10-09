@@ -21,6 +21,8 @@ export const LIMITS = {
   resendIp: { tripAt: 11, windowMs: HOUR, blockMs: HOUR },
   /** "forgot password" from one network: 10 an hour, like "send it again" (4.9; OPEN: not in table B, #80) */
   forgotIp: { tripAt: 11, windowMs: HOUR, blockMs: HOUR },
+  /** email changes saved by one account: 3 an hour, since each mails an address the account picks (6.2; OPEN #84) */
+  emailChangePerson: { tripAt: 4, windowMs: HOUR, blockMs: HOUR },
 } satisfies Record<string, Limit>
 
 const iso = (ms: number) => new Date(ms).toISOString()
