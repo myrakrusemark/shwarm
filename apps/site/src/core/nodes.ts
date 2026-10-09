@@ -346,7 +346,8 @@ export async function deadEnd(ctx: Ctx, a: Actor, inp: { node: string; note: str
   const e = auditStatement(ctx.db, { event: 'dead_end', node: n.id, by: a.as, detail: note.slice(0, 280) }, ctx.at)
   await ctx.db.batch([
     postStatement(ctx, { id: postId, nodeId: n.id, actor: a, kind: 'dead_end', text: note }),
-    ctx.db.prepare("UPDATE node SET state = 'dead_end', dead_end_note = ? WHERE id = ?").bind(note, n.id),
+    // closed_at is when it ended (the closed tab's order and time); later posts move changed_at, never this.
+    ctx.db.prepare("UPDATE node SET state = 'dead_end', dead_end_note = ?, closed_at = ? WHERE id = ?").bind(note, ctx.at, n.id),
     e.stmt,
     touchNode(ctx, n.id, e.id),
   ])
@@ -364,7 +365,7 @@ export async function reopen(ctx: Ctx, a: Actor, inp: { node: string }): Promise
   if (n.state !== 'dead_end') throw bad(`${n.path} is ${n.state}, not a dead end`)
   const e = auditStatement(ctx.db, { event: 'reopened', node: n.id, by: a.as, detail: 'reopened by the author' }, ctx.at)
   await ctx.db.batch([
-    ctx.db.prepare("UPDATE node SET state = 'live', dead_end_note = NULL WHERE id = ?").bind(n.id),
+    ctx.db.prepare("UPDATE node SET state = 'live', dead_end_note = NULL, closed_at = NULL WHERE id = ?").bind(n.id),
     e.stmt,
     notifyStatement(ctx, n.id, `${n.title} reopened. ${humanName(a)} picked it back up.`, 'involved'),
     touchNode(ctx, n.id, e.id),

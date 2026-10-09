@@ -162,7 +162,8 @@ async function tabFixture() {
   // closed and dead end
   id.c1 = r.node({ title: 'closed early', state: 'closed', closed: T0 - 5 * HOUR, score: 999 })
   id.c2 = r.node({ title: 'closed late', state: 'closed', closed: T0 - HOUR })
-  id.d1 = r.node({ title: 'dead end', state: 'dead_end', changed: T0 - 3 * HOUR })
+  // ended 3 hours ago; a post since then moved changed_at, which must not move it on the closed tab
+  id.d1 = r.node({ title: 'dead end', state: 'dead_end', closed: T0 - 3 * HOUR, changed: T0 - MIN })
   return { r, id }
 }
 
@@ -196,12 +197,24 @@ describe('tabs', () => {
 
   it('empty states say why, per tab', async () => {
     const db = testDb()
-    expect(await html(db, '/')).toContain('no shwarms yet. <a href="/new">start the first one</a>')
+    expect(await html(db, '/')).toContain('nothing is live or filling right now. <a href="/?tab=closed">see what closed</a> or <a href="/new">start a shwarm</a>')
+    expect(await html(db, '/?tab=new')).toContain('no shwarms yet. <a href="/new">start the first one</a>')
     expect(await html(db, '/?tab=filling')).toContain('no lobbies are filling right now.')
     expect(await html(db, '/?tab=closed')).toContain('nothing has closed yet.')
     expect(await html(db, '/?q=zebra')).toContain('no shwarms match that search. <a href="/">clear the search</a>')
     const h = await html(db, '/?q=zebra')
     expect(h).not.toContain('class="more"')
+  })
+
+  it("hot with only closed shwarms doesn't say there are none", async () => {
+    const r = await new Rows().init()
+    r.node({ title: 'passed one', state: 'closed', closed: T0 - HOUR })
+    r.node({ title: 'given up', state: 'dead_end', closed: T0 - 2 * HOUR })
+    const h = await html(r.db, '/')
+    expect(titles(h)).toEqual([])
+    expect(h).toContain('nothing is live or filling right now.')
+    expect(h).not.toContain('no shwarms yet')
+    expect(titles(await html(r.db, '/?tab=closed'))).toEqual(['passed one', 'given up'])
   })
 })
 
@@ -388,7 +401,12 @@ describe('cursor paging', () => {
     r.db.prepare = ((sql: string) => (seen.push(sql), prepare(sql))) as typeof r.db.prepare
     const h = await html(r.db, '/')
     expect(titles(h)).toHaveLength(20)
-    expect(seen.length).toBeLessThanOrEqual(5) // settings, live, lobbies, cards, hot numbers
+    expect(seen.length).toBeLessThanOrEqual(4) // settings, live, lobbies, cards
+    // The hot badge's ratio comes stored from the stats job: a view never reads a thread's posts or upvotes,
+    // and only a lobby card counts its seats.
+    for (const sql of seen) expect(sql).not.toMatch(/\b(FROM|JOIN) (post|upvote)\b/)
+    const cards = seen.find(sql => sql.includes('FROM seat'))!
+    expect(cards).toMatch(/CASE WHEN n\.state = 'lobby' THEN \(SELECT COUNT\(\*\) FROM seat/)
   })
 })
 
@@ -518,6 +536,49 @@ describe('cards', () => {
     expect(c).not.toContain('qbar')
     expect(c).toContain('<div class="say">fails at the 4-cycle case. counterexample published. try B.</div>')
     expect(c).toContain('</span> · @myra + 5 · <time')
+  })
+
+  it('the hot ratio is stored by the stats job, only while hot', async () => {
+    const w = await example()
+    const rows = w.all('SELECT n.path, s.hot, s.surge FROM node_stats s JOIN node n ON n.id = s.node_id WHERE n.kind <> \'branch\' ORDER BY n.path')
+    expect(rows).toEqual([
+      { path: 'graph-lemma-approach-a', hot: 0, surge: null },
+      { path: 'minecraft-in-doom', hot: 1, surge: 7 },
+      { path: 'minecraft-in-doom-survival', hot: 0, surge: null },
+    ])
+  })
+
+  it('a dead end keeps its place and time on the closed tab when people post in it later', async () => {
+    const w = new World()
+    const myra = await person(w.db, 'myra')
+    const bob = await person(w.db, 'bob')
+    w.now = T0 - 20 * DAY
+    await w.shwarm(site(myra), { title: 'alpha', lobby: 2 })
+    await w.shwarm(site(myra), { title: 'beta', lobby: 2 })
+    w.db.raw.prepare("UPDATE node SET triage = 'clear'").run()
+    await w.join(site(bob), 'alpha')
+    await w.join(site(bob), 'beta')
+    w.now = T0 - 18 * DAY
+    await w.run({ type: 'deadEnd', actor: site(myra), input: { node: 'alpha', note: 'nope.' } })
+    const alphaEnded = iso(w.now)
+    w.now = T0 - 17 * DAY
+    await w.run({ type: 'deadEnd', actor: site(myra), input: { node: 'beta', note: 'nope too.' } })
+    const before = await loadFeed(w.db, { tab: 'closed' }, T0)
+    expect(before.cards.map(c => [c.title, c.at])).toEqual([['beta', iso(T0 - 17 * DAY)], ['alpha', alphaEnded]])
+
+    w.now = T0 - DAY
+    await w.post(site(bob), 'alpha', 'still poking at this.')
+    const after = await loadFeed(w.db, { tab: 'closed' }, T0)
+    expect(after.cards.map(c => [c.title, c.at])).toEqual(before.cards.map(c => [c.title, c.at]))
+    expect(w.node('alpha').closed_at).toBe(alphaEnded)
+
+    // reopening clears it; ending again stamps the new time
+    w.now = T0 - HOUR
+    await w.run({ type: 'reopen', actor: site(myra), input: { node: 'alpha' } })
+    expect(w.node('alpha')).toMatchObject({ state: 'live', closed_at: null })
+    w.now = T0 - MIN
+    await w.run({ type: 'deadEnd', actor: site(myra), input: { node: 'alpha', note: 'really nope.' } })
+    expect((await loadFeed(w.db, { tab: 'closed' }, T0)).cards.map(c => [c.title, c.at])).toEqual([['alpha', iso(T0 - MIN)], ['beta', iso(T0 - 17 * DAY)]])
   })
 
   it('closed, builds on a shwarm, number shortening and user text kept as text', async () => {

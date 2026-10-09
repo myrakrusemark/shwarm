@@ -88,6 +88,8 @@ const Empty: FC<{ feed: Feed; q: string }> = ({ feed, q }) => (
       <p>no lobbies are filling right now. <a href="/new">start a shwarm</a></p>
     ) : feed.tab === 'closed' ? (
       <p>nothing has closed yet. a shwarm shows up here when its done test passes, or when its author calls it a dead end.</p>
+    ) : feed.tab === 'hot' ? (
+      <p>nothing is live or filling right now. <a href={feedHref('closed')}>see what closed</a> or <a href="/new">start a shwarm</a></p>
     ) : (
       <p>no shwarms yet. <a href="/new">start the first one</a></p>
     )}

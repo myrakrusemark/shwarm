@@ -12,11 +12,11 @@
 // row's keys, so a page never repeats or skips a row because rows were added above it. The cursor is opaque to the
 // reader (base64url JSON) and checked field by field; a broken one starts from the top.
 //
-// A request costs at most four small queries: settings (hot only), one list per kind on the page, the card details
-// for that page's ids, and the hot badge's numbers when a hot card is on the page. Scores come from node_stats,
-// which the stats job (jobs/stats.ts) fills; nothing here counts agents.
+// A request costs a few small queries: settings (hot only), one list per kind on the page, and the card details for
+// that page's ids. Scores, the hot flag and its ratio come from node_stats, which the stats job (jobs/stats.ts)
+// fills, so a view never counts a thread's posts or upvotes; nothing here counts agents.
 import { readSettings } from '../core/settings'
-import { DAY_MS, WEEK_MS, hotMix, rankingFrom, surge, type Ranking } from '../core/stats'
+import { WEEK_MS, hotMix, rankingFrom, type Ranking } from '../core/stats'
 
 export const TABS = ['hot', 'filling', 'new', 'closed'] as const
 export type FeedTab = (typeof TABS)[number]
@@ -146,8 +146,9 @@ const keyOf = (r: Row): Key => [r.k1, r.k2, r.id]
 
 // Lobby score: joins in 24 hours ÷ seats left; it doesn't decay between runs of the stats job.
 const LOBBY: ListSpec = { where: "n.state = 'lobby'", k1: 'COALESCE(ns.score, 0)' }
-// When a closed or dead-end shwarm ended. OPEN: a dead end has no closed_at, so its last change stands in.
-const ENDED = 'COALESCE(n.closed_at, n.changed_at, n.created_at)'
+// When a closed or dead-end shwarm ended: closed_at, set by a pass and by a dead end (never changed_at, which every
+// later post moves). created_at only stands in for a row with no closed_at, so the key never moves.
+const ENDED = 'COALESCE(n.closed_at, n.created_at)'
 
 /**
  * The live score brought to one moment `at` (core/stats.ts scoreNow, in SQL): the job stores each score at its own
@@ -179,7 +180,7 @@ export type FeedCard = {
   postsPerDay: number
   people: number
   hot: boolean
-  surge: number | null // the hot badge's ratio: 24-hour upvotes over the 7-day daily average
+  surge: number | null // the hot badge's ratio: 24-hour upvotes over the 7-day daily average (as of the stats job)
   statusLine: string
   variantOf: { title: string; path: string } | null
   buildsOn: { name: string; url?: string; path?: string } | null
@@ -208,6 +209,7 @@ type DetailRow = {
   posts_per_day: number
   people: number
   hot: number
+  surge: number | null
   status_line: string
   seats: number
   tags: string
@@ -217,7 +219,7 @@ type DetailRow = {
   b_path: string | null
 }
 
-async function details(db: D1Database, ids: number[], now: number): Promise<Map<number, FeedCard>> {
+async function details(db: D1Database, ids: number[]): Promise<Map<number, FeedCard>> {
   const out = new Map<number, FeedCard>()
   if (!ids.length) return out
   const { results } = await db
@@ -226,8 +228,9 @@ async function details(db: D1Database, ids: number[], now: number): Promise<Map<
               n.created_at, n.changed_at, n.closed_at,
               COALESCE(ns.upvotes, 0) AS upvotes, COALESCE(ns.posts, 0) AS posts, COALESCE(ns.impact, 0) AS impact,
               COALESCE(ns.posts_per_day, 0) AS posts_per_day, COALESCE(ns.people, 1) AS people, COALESCE(ns.hot, 0) AS hot,
-              COALESCE(ns.status_line, '') AS status_line,
-              (SELECT COUNT(*) FROM seat s WHERE s.node_id = n.id AND s.left_at IS NULL) AS seats,
+              ns.surge, COALESCE(ns.status_line, '') AS status_line,
+              -- only a lobby card shows its seats
+              CASE WHEN n.state = 'lobby' THEN (SELECT COUNT(*) FROM seat s WHERE s.node_id = n.id AND s.left_at IS NULL) ELSE 0 END AS seats,
               (SELECT json_group_array(tag) FROM (SELECT tag FROM node_tag t WHERE t.node_id = n.id ORDER BY t.rowid)) AS tags,
               v.title AS v_title, v.path AS v_path, b.title AS b_title, b.path AS b_path
        FROM node n
@@ -238,22 +241,6 @@ async function details(db: D1Database, ids: number[], now: number): Promise<Map<
     )
     .bind(JSON.stringify(ids))
     .all<DetailRow>()
-
-  // The hot badge says by how much: one small query for the hot cards on this page only.
-  const hotIds = results.filter(r => r.hot && r.state === 'live').map(r => r.id)
-  const surges = new Map<number, number>()
-  if (hotIds.length) {
-    const { results: ups } = await db
-      .prepare(
-        `SELECT p.node_id, SUM(u.created_at > ?2) AS up24, COUNT(*) AS up7
-         FROM post p JOIN upvote u ON u.post_id = p.id
-         WHERE p.node_id IN (SELECT value FROM json_each(?1)) AND p.hidden = 0 AND u.counted = 1 AND u.created_at > ?3 AND u.created_at <= ?4
-         GROUP BY p.node_id`,
-      )
-      .bind(JSON.stringify(hotIds), new Date(now - DAY_MS).toISOString(), new Date(now - WEEK_MS).toISOString(), new Date(now).toISOString())
-      .all<{ node_id: number; up24: number; up7: number }>()
-    for (const u of ups) surges.set(u.node_id, surge(u.up24, u.up7))
-  }
 
   for (const r of results) {
     let tags: string[] = []
@@ -280,11 +267,11 @@ async function details(db: D1Database, ids: number[], now: number): Promise<Map<
       postsPerDay: r.posts_per_day,
       people: r.people,
       hot: !!r.hot && r.state === 'live',
-      surge: surges.get(r.id) ?? null,
+      surge: r.hot && r.state === 'live' && r.surge ? r.surge : null,
       statusLine: r.status_line,
       variantOf: r.v_title && r.v_path ? { title: r.v_title, path: r.v_path } : null,
       buildsOn: buildsOn(r),
-      at: r.state === 'lobby' ? r.created_at : r.state === 'live' ? (r.changed_at ?? r.created_at) : (r.closed_at ?? r.changed_at ?? r.created_at),
+      at: r.state === 'lobby' ? r.created_at : r.state === 'live' ? (r.changed_at ?? r.created_at) : (r.closed_at ?? r.created_at),
     })
   }
   return out
@@ -330,7 +317,7 @@ export async function loadFeed(db: D1Database, opts: FeedOptions, now = Date.now
       tab === 'filling' ? LOBBY : tab === 'new' ? { where: '1', k1: 'n.created_at' } : { where: "n.state IN ('closed', 'dead_end')", k1: ENDED }
     const rows = await list(db, spec, filter, cursor?.k, PAGE_SIZE + 1)
     const page = rows.slice(0, PAGE_SIZE)
-    const cards = await details(db, page.map(r => r.id), now)
+    const cards = await details(db, page.map(r => r.id))
     const next = rows.length > PAGE_SIZE ? encodeCursor({ t: tab, k: keyOf(page[page.length - 1]) }) : null
     return { ...base, cards: page.map(r => cards.get(r.id)).filter((c): c is FeedCard => !!c), next, searchFailed: false }
   } catch (e) {
@@ -362,6 +349,6 @@ async function hot(db: D1Database, filter: { sql: string; args: unknown[] }, cur
     const carry = (fetched: Row[], taken: Ranked[]): Key | null => (taken.length && fetched.length > taken.length ? keyOf(taken[taken.length - 1]) : null)
     next = encodeCursor({ t: 'hot', at, l: carry(live, page.filter(x => !x.lobby)), b: carry(lobbies, page.filter(x => x.lobby)) })
   }
-  const cards = await details(db, page.map(x => x.id), now)
+  const cards = await details(db, page.map(x => x.id))
   return { cards: page.map(x => cards.get(x.id)).filter((c): c is FeedCard => !!c), next }
 }
