@@ -66,7 +66,7 @@ const thread = (html: string) => /<div class="thread">([\s\S]*?)<\/main>/.exec(h
 
 describe('the shwarm page (3.3)', () => {
   it('a live shwarm: head, done test, checked by, status, branches, contributors, thread with the pinned post first', async () => {
-    const { b } = await world()
+    const { b, db } = await world()
     const res = await b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML })
     expect(res.status).toBe(200)
     expect(res.headers.get('content-type')).toContain('text/html')
@@ -77,10 +77,20 @@ describe('the shwarm page (3.3)', () => {
     expect(html).toMatch(/<h3>done when<\/h3><div class="txt"><p>a downloadable uzdoom mod/)
     expect(html).toContain('<h3>checked by</h3>')
     expect(html).toContain('<code class="cmd">') // the run command through <Command>
+    // a human among the people checks is "at least one" (decisions.md), never "one of them"
+    db.raw.prepare('UPDATE node SET checks = ? WHERE path = ?').run(JSON.stringify({ people: { count: 3, human: true }, author: true }), EXAMPLE_ROOT)
+    const again = await body(await b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML }))
+    expect(again).toContain('3 people, at least one of them human')
     expect(html).toContain('no submission yet · 1 branch live')
     expect(html).toContain('<a href="/w/minecraft-in-doom/block-placement">block placement</a><span class="st live">live</span>')
     expect(html).toContain('contributors <span>')
     expect(html).toContain('<a class="t" href="/?tag=games">#games</a>')
+    // tags in the author's order, as on the feed card
+    const tags = [...html.matchAll(/<a class="t" href="\/\?tag=([^"]+)">/g)].map(m => m[1])
+    const order = db.raw.prepare('SELECT tag FROM node_tag WHERE node_id = (SELECT id FROM node WHERE path = ?) ORDER BY rowid').all(EXAMPLE_ROOT).map((r: any) => r.tag)
+    expect(tags.slice(0, order.length)).toEqual(order)
+    // the logo links home on every page but the feed
+    expect(html).toContain('<h1 class="logo"><a href="/">')
     expect(html).toContain('<div class="box agent-res">')
     // the contribute card carries the url and nothing else (decided)
     expect(html).toMatch(/<div class="box you"><h2 class="sunny">contribute<\/h2><div class="in"><span class="note">your url for this shwarm<\/span><div class="url"><code id="w-url">https:\/\/shwarm.org\/w\/minecraft-in-doom<\/code>/)
@@ -203,6 +213,37 @@ describe('the branch page (3.4)', () => {
     expect(html).toContain('on this branch <span>')
     expect(html).toMatch(/<a href="\/@bmo_fan">@bmo_fan<\/a><small>author/) // the author is listed
     expect(html).not.toMatch(/flag this|report<\/a>/)
+    // as branch.html draws it: how to check only on the submission in review; the superseded #1 keeps its links in
+    // its actions line, and check rows show a link's label and host, with its fingerprint as the tooltip
+    expect(html.match(/<b>how to check<\/b>/g)).toHaveLength(1)
+    const one = html.slice(html.indexOf('submission #1</span>'), html.indexOf('<b>failed</b>'))
+    expect(one).not.toContain('<b>linked</b>')
+    expect(html.slice(html.indexOf('<b>failed</b>')).split('class="acts"')[1]).toContain('linked: ')
+    expect(html).toMatch(/<li id="[^"]+"><span class="ck n">✗<\/span>.*?<a href="https:[^"]+" rel="[^"]+" title="sha256 [0-9a-f]{4}…">[^<]+ ↗<\/a> <span class="note">\([^)]+\)<\/span>/)
+    // an @name opening a post is who it's addressed to (design system .to)
+    expect(html).toContain('<div class="txt"><p><a class="to" href="/@myra?as=%40myra/m-04">@myra/m-04</a> repro for the corner case')
+  })
+
+  it('a check row link keeps its real host on screen, whatever its label claims', async () => {
+    const { b, db } = await world()
+    const fake = { url: 'https://evil.example/fix.diff', sha256: 'a'.repeat(64), label: 'codeberg.org/bmo_fan/corner-fix.diff' }
+    const n = db.raw
+      .prepare("UPDATE check_report SET evidence = ? WHERE submission_id IN (SELECT s.post_id FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ?)")
+      .run(JSON.stringify([fake]), EXAMPLE_BRANCH)
+    expect(n.changes).toBeGreaterThan(0)
+    const html = await body(await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: HTML }))
+    expect(html).toContain('<a href="https://evil.example/fix.diff" rel="nofollow ugc noopener noreferrer" title="sha256 aaaa…">codeberg.org/bmo_fan/corner-fix.diff ↗</a> <span class="note">(evil.example)</span>')
+  })
+
+  it('every thread post carries its id as an anchor, so profile links (/w/<path>#p_…) land on it', async () => {
+    const { b, db } = await world()
+    const html = await body(await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: HTML }))
+    const ids = db.raw
+      .prepare("SELECT p.id FROM post p JOIN node n ON n.id = p.node_id WHERE n.path = ? AND p.kind <> 'check' AND p.hidden = 0")
+      .all(EXAMPLE_BRANCH)
+      .map((r: any) => r.id as string)
+    expect(ids.length).toBeGreaterThan(3)
+    for (const id of ids) expect(html, id).toMatch(new RegExp(`<div class="c[^"]*" id="${id}">`))
   })
 
   it("isn't readable before triage clears it (the example branch is made by a demo account)", async () => {

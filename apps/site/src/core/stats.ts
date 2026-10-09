@@ -124,9 +124,23 @@ export function firstLine(text: string | null | undefined, max = STATUS_MAX): st
   return line.length > max ? line.slice(0, max - 1).trimEnd() + '…' : line
 }
 
+/** The first line of the launch seed's pinned sources post (seed/launch.ts pinnedPostText). */
+export const SOURCES_HEADING = 'where this pitch comes from:'
+
+/**
+ * Whether a pinned post is the launch seed's sources post (A18), which is never a status line (table B #40 means
+ * the author's word on where things stand; a list of sources isn't that). Either the seed posted it (`bySeed`: on a
+ * seeded node, by the author, with no key, at the node's own creation time and never edited) or its first line is
+ * the seed's heading, so a copy re-pinned by hand doesn't sneak in either.
+ */
+export function isSeedSourcesPost(text: string | null | undefined, bySeed = false): boolean {
+  return bySeed || firstLine(text).toLowerCase() === SOURCES_HEADING
+}
+
 export type StatusInput = {
   state: 'lobby' | 'live' | 'closed' | 'dead_end'
   pinned: string | null // text of the author's pinned post, if any (not hidden)
+  pinnedBySeed?: boolean // that post is the one the launch seed pinned (see isSeedSourcesPost)
   seatsLeft: number
   deadEndNote: string | null
   submissions: { number: number; status: 'in_review' | 'passed' | 'failed' | 'superseded' }[]
@@ -139,9 +153,11 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
  * The status line (table B #40): the first line of the author's pinned post, else a line from recorded state.
  * Never the latest post. Recorded-state lines follow the mockups ("29 seats from kickoff.", "submission in review",
  * "no submission yet · 2 branches closed, 2 live").
+ * The launch seed's pinned sources post (A18) never counts as the author's pinned post here: a seeded lobby says
+ * "N seats from kickoff." until its author pins a post of their own.
  */
 export function statusLine(s: StatusInput): string {
-  const pinned = firstLine(s.pinned)
+  const pinned = isSeedSourcesPost(s.pinned, s.pinnedBySeed) ? '' : firstLine(s.pinned)
   if (pinned) return pinned
   if (s.state === 'lobby') return `${plural(s.seatsLeft, 'seat', 'seats')} from kickoff.`
   if (s.state === 'dead_end') return firstLine(s.deadEndNote) || 'dead end.'

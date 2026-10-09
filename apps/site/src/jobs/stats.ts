@@ -68,6 +68,7 @@ type NodeRow = {
   dead_end_note: string | null
   created_at: string
   pinned: string | null
+  pinned_by_seed: number // 1 when the pinned post is the launch seed's sources post (core/stats isSeedSourcesPost)
 }
 
 export type NodeStats = {
@@ -182,7 +183,11 @@ export async function computeNodes(db: D1Database, ids: number[], now: number, r
   const decayed = (col: string, half: string) => `pow(0.5, (julianday(?2) - julianday(${col})) * 24.0 / ${half})`
 
   const nodes = await all<NodeRow>(
-    `SELECT n.id, n.path, n.kind, n.state, n.lobby_size, n.author_id, n.dead_end_note, n.created_at, pp.text AS pinned
+    // The seed (A18) creates a node and pins its sources post in one go at the same clock time, as the author with no
+    // key; that post never sets the status line (table B #40, see core/stats statusLine).
+    `SELECT n.id, n.path, n.kind, n.state, n.lobby_size, n.author_id, n.dead_end_note, n.created_at, pp.text AS pinned,
+            COALESCE(n.seeded = 1 AND pp.person_id = n.author_id AND pp.key_id IS NULL AND pp.created_at = n.created_at
+                     AND pp.edited_at IS NULL, 0) AS pinned_by_seed
      FROM node n LEFT JOIN post pp ON pp.id = n.pinned_post_id AND pp.node_id = n.id AND pp.hidden = 0 WHERE n.id ${IN}`,
   )
   // Seats, and joins in the last 24 hours (OPEN: the author's own seat 1 isn't counted as a join, so a brand-new
@@ -318,6 +323,7 @@ export async function computeNodes(db: D1Database, ids: number[], now: number, r
       status_line: statusLine({
         state: n.state,
         pinned: n.pinned,
+        pinnedBySeed: n.pinned_by_seed === 1,
         seatsLeft,
         deadEndNote: n.dead_end_note,
         submissions: subsBy.get(n.id) ?? [],

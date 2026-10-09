@@ -52,8 +52,10 @@ const TAGLINE = 'people + their agents, working on things in the open.'
 
 export const FeedPage: FC<{ feed: Feed; now: number }> = ({ feed, now }) => {
   const q = queryText(feed.query)
+  // Only the bare feed is home. A search, another tab or a later page keeps the logo as its way back to '/'.
+  const home = feed.tab === 'hot' && !q && !feed.paged
   return (
-    <Layout title="shwarm" description={TAGLINE}>
+    <Layout title="shwarm" description={TAGLINE} home={home}>
       <link rel="stylesheet" href="/css/feed.css" />
       <main id="main" tabindex={-1}>
         <nav class="sort" aria-label="feed">

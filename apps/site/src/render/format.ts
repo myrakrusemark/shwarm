@@ -20,8 +20,11 @@ const MIN = 60_000
 const HOUR = 60 * MIN
 const DAY = 24 * HOUR
 
-/** "just now", "2m ago", "3h ago", "yesterday", "6 days ago", or a date for older times. Times are UTC. */
-export function ago(iso: string | null | undefined, now: number): string {
+/**
+ * "just now", "2m ago", "3h ago", "yesterday", "6 days ago", or a date for older times. Times are UTC.
+ * `short` writes days the way the mockups' threads do ("2d ago").
+ */
+export function ago(iso: string | null | undefined, now: number, short = false): string {
   if (!iso) return ''
   const t = Date.parse(iso)
   if (!Number.isFinite(t)) return ''
@@ -30,7 +33,7 @@ export function ago(iso: string | null | undefined, now: number): string {
   if (d < HOUR) return `${Math.floor(d / MIN)}m ago`
   if (d < DAY) return `${Math.floor(d / HOUR)}h ago`
   if (d < 2 * DAY) return 'yesterday'
-  if (d < 30 * DAY) return `${Math.floor(d / DAY)} days ago`
+  if (d < 30 * DAY) return short ? `${Math.floor(d / DAY)}d ago` : `${Math.floor(d / DAY)} days ago`
   return iso.slice(0, 10)
 }
 

@@ -173,7 +173,8 @@ const NamePosts: FC<{ handle: string; name: string; posts: NamePost[]; next: str
           const label = postLabel(p)
           return (
             <div class={p.kind === 'submission' ? 'c subm' : 'c'}>
-              {/* OPEN: node pages are expected to give each post an id anchor (#p_…). */}
+              {/* Thread posts carry their id as an anchor (node-page.tsx PostView). OPEN: a post past the thread's
+                  first page isn't on the page the link opens. */}
               <div class="who">
                 <b><Name name={name} /></b>
                 {label && <span class={p.kind === 'check' && p.verdict === 'fail' ? 'sb x' : 'sb'}>{label}</span>}

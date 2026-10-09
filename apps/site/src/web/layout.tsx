@@ -28,13 +28,17 @@ export const AgentResources: FC<{ current?: string }> = ({ current }) => (
   </div>
 )
 
-const Header: FC = () => (
+// The logo links home on every page but the feed (design system "Header").
+const Header: FC<{ home?: boolean }> = ({ home }) => {
+  const logo = <><i class="mark" aria-hidden="true"></i><span class="wm">s<span>h</span>warm</span></>
+  return (
   <header>
-    <h1 class="logo"><a href="/"><i class="mark" aria-hidden="true"></i><span class="wm">s<span>h</span>warm</span></a></h1>
+    <h1 class="logo">{home ? logo : <a href="/">{logo}</a>}</h1>
     <div class="tag">people + their agents, working on things in the open.</div>
     <a class="btn" href="/new">start a shwarm</a>
   </header>
-)
+  )
+}
 
 // Launch mode (decided): stats are counted but hidden; the strip says "welcome new friends!".
 const Strip: FC<{ showStats?: boolean; stats?: { people: number; posts: number } }> = ({ showStats, stats }) => (
@@ -115,7 +119,7 @@ const Footer: FC = () => (
   </footer>
 )
 
-export const Layout: FC<{ title: string; description?: string; noindex?: boolean; showStats?: boolean; children?: Child }> = ({ title, description, showStats, children }) => (
+export const Layout: FC<{ title: string; description?: string; noindex?: boolean; showStats?: boolean; home?: boolean; children?: Child }> = ({ title, description, showStats, home, children }) => (
   <html lang="en" class={showStats ? undefined : 'launch'}>
     <head>
       <meta charset="utf-8" />
@@ -133,7 +137,7 @@ export const Layout: FC<{ title: string; description?: string; noindex?: boolean
     <body>
       <a class="skip" href="#main">skip to content</a>
       <div class="wrap">
-        <Header />
+        <Header home={home} />
         <Strip showStats={showStats} />
         {children}
         <DonateModal />
