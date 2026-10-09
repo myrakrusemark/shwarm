@@ -7,7 +7,8 @@
 // hide its variants, but its title isn't shown on them (see PUBLIC_NODE on the joined original).
 
 /** SQL: node alias `n` itself is open to everyone (no ancestors checked). */
-export const OPEN_NODE = (n: string) => `(${n}.hidden = 0 AND (${n}.triage = 'clear' OR ${n}.seeded = 1))`
+// A seeded shwarm counts as cleared only while its triage is still 'pending'; once held or blocked it hides like any other.
+export const OPEN_NODE = (n: string) => `(${n}.hidden = 0 AND (${n}.triage = 'clear' OR (${n}.seeded = 1 AND ${n}.triage = 'pending')))`
 
 /**
  * SQL: node alias `n` and every node above it are open to everyone.

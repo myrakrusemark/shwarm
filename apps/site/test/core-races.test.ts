@@ -114,7 +114,7 @@ describe('races, through the tree queue', () => {
         if (p.length) bad.push(`run ${i}: ${p.join('; ')}`)
       }
       expect(bad).toEqual([])
-    })
+    }, 30_000) // 100 runs each; the whole suite runs in parallel, so allow more than vitest's 5 s
   }
 })
 

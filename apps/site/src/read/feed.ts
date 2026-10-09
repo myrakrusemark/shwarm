@@ -1,3 +1,4 @@
+import { OPEN_NODE } from './visibility'
 // The feed's queries (go-live 3.2): the four tabs, search, and cursor paging. SQL lives here, not in the page.
 //
 // Tabs (spec "Feed ranking", table B #9, #24, #39):
@@ -31,7 +32,7 @@ export const PAGE_SIZE = 20
  * they aren't hidden. A held or blocked node is visible only to its author, on its own page.
  * OPEN: the feed never shows an author their own held node; it shows on its page and their profile.
  */
-export const visibleSql = (a: string) => `(${a}.hidden = 0 AND (${a}.triage = 'clear' OR (${a}.seeded = 1 AND ${a}.triage = 'pending')))`
+export const visibleSql = OPEN_NODE // one rule for every page (src/read/visibility.ts)
 
 // OPEN: branches never appear in the feed; it lists shwarms and variants (spec: "new (newest shwarms)",
 // "branches don't take their own tags", and tags filter every tab).

@@ -1,3 +1,4 @@
+import { OPEN_NODE } from './visibility'
 // Reads for the node pages and the agent URLs (go-live 3.3, 3.4, 3.6): one node at /w/<path>, its ancestors,
 // branches, variants, seats, contributors, submissions with their checks, and its thread. SQL lives here, not in
 // the JSX. Each read is a fixed handful of indexed queries, run side by side where they don't depend on each
@@ -18,7 +19,7 @@ import type { NodeKind, NodeState } from '../core/context'
  * "being checked"), so on staging the running example's branch (made by a demo account, not seeded) shows only
  * once it's cleared.
  */
-export const PUBLIC_SQL = (n: string) => `(${n}.hidden = 0 AND (${n}.triage = 'clear' OR (${n}.seeded = 1 AND ${n}.triage = 'pending')))`
+export const PUBLIC_SQL = OPEN_NODE // one rule for every page (src/read/visibility.ts)
 
 /**
  * PUBLIC_SQL for the node and every node above it: a branch of a hidden or held shwarm is hidden too. Its ancestors'
