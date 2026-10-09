@@ -299,5 +299,13 @@
       "text": "Recorded: all of table B is accepted as the build defaults.",
       "at": "2026-10-08T15:57:37.865059+00:00"
     }
+  ],
+  "A21": [
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "recorded: all yes (Oct 9, in chat). A21\u2013A25 decided; privacy page now mentions the two form cookies.",
+      "at": "2026-10-09T00:27:23.644263+00:00"
+    }
   ]
 }
