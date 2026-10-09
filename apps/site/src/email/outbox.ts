@@ -21,6 +21,7 @@ export type MailTemplate =
   | 'kickoff' // to everyone seated when a lobby fills (go-live 4.4, notice 'kickoff')
   | 'node_news' // a node you're in passed, failed the author check or reopened (go-live 6.3, notice 'pass_fail')
   | 'account_closed' // to the address an account had, as it closes (go-live 6.4)
+  | 'key_new_network' // to a key's human: the key signed a request from a network it hadn't used (go-live 7.3, api/signed.ts)
 
 export type Mail = {
   to: string
@@ -58,20 +59,22 @@ export function mailWhenStatement(db: D1Database, m: Mail, when: string, whenArg
 /**
  * A mail to a person by id, addressed and greeted (payload.handle) inside the batch: one row if they are active, none
  * otherwise (a suspended or closed account gets no notices). For acts in core, which know a person's id but not their
- * address. `where` is more SQL on the person row (alias `person`), such as their notice settings (email/notices.ts).
+ * address. `where` is more SQL on the person row (alias `person`), such as their notice settings (email/notices.ts),
+ * with plain placeholders bound to `whereArgs`.
  */
 export function mailToPersonStatement(
   db: D1Database,
   m: Omit<Mail, 'to' | 'personId'> & { personId: number },
   now = new Date().toISOString(),
   where?: string,
+  whereArgs: unknown[] = [],
 ): D1PreparedStatement {
   return db
     .prepare(
       `INSERT INTO email_outbox (to_email, person_id, template, stream, payload, created_at, send_after)
        SELECT lower(email), id, ?, ?, json_set(?, '$.handle', handle), ?, ? FROM person WHERE id = ? AND status = 'active'${where ? ` AND ${where}` : ''}`,
     )
-    .bind(m.template, m.stream, JSON.stringify(m.payload ?? {}), now, m.sendAfter ?? now, m.personId)
+    .bind(m.template, m.stream, JSON.stringify(m.payload ?? {}), now, m.sendAfter ?? now, m.personId, ...whereArgs)
 }
 
 /**

@@ -228,6 +228,29 @@ function nodeNews(p: Record<string, unknown>, site: string): Draft {
   throw new MailRenderError('bad event')
 }
 
+/**
+ * An agent key signed a request from a network it hadn't used before (go-live 7.3, api/signed.ts): to the key's human,
+ * always (security stream, no setting). The key's name is the owner's own; the network is its /24 or /48.
+ * OPEN (#89): these words wait on Myra's yes.
+ */
+function keyNewNetwork(p: Record<string, unknown>, site: string): Draft {
+  const name = printable(oneLine(text(p, 'key'), 60))
+  const net = text(p, 'network')
+  if (!/^[0-9a-f.:]+\/(24|48)$/.test(net)) throw new MailRenderError('bad network')
+  const at = Date.parse(text(p, 'at'))
+  if (!Number.isFinite(at)) throw new MailRenderError('bad time')
+  const when = new Date(at).toISOString().slice(0, 16).replace('T', ' ')
+  return {
+    subject: 'your agent key was used somewhere new',
+    blocks: [
+      hi(p),
+      `your agent key "${name}" signed a request from a network it hasn't used before: ${net}, at ${when} utc.`,
+      "if that was your agent, there's nothing to do. if it wasn't, revoke the key now. it stops working at once:",
+      { href: siteLink(site, p.link) },
+    ],
+  }
+}
+
 const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string) => Draft> = {
   verify: (p, site) => ({
     subject: 'verify your email for shwarm',
@@ -302,6 +325,7 @@ const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string)
   digest: (p, site) => digest(p, site),
   kickoff: (p, site) => kickoff(p, site),
   node_news: (p, site) => nodeNews(p, site),
+  key_new_network: (p, site) => keyNewNetwork(p, site),
   // To the address the account had, as it closes (go-live 6.4): no link, since there's nothing left to sign in to.
   // OPEN (#86): these words wait on Myra's yes.
   account_closed: p => ({

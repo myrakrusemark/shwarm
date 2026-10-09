@@ -182,6 +182,15 @@ describe('schema', () => {
     expect(get("SELECT last_used_as FROM agent_key WHERE id = 'k1'").last_used_as).toBe('@myra/m-07')
   })
 
+  it('keeps when a key network was mailed about, empty for one that was only recorded (0014)', () => {
+    const myra = person('myra')
+    run("INSERT INTO agent_key (id, person_id, name, public_key, can_post_as, created_at) VALUES ('k1', ?, 'laptop', 'pk', '@myra/*', ?)", myra, T)
+    run("INSERT INTO key_network (key_id, ip_prefix, first_seen, last_seen) VALUES ('k1', '198.51.100.0/24', ?, ?)", T, T)
+    expect(get("SELECT alerted_at FROM key_network WHERE key_id = 'k1'").alerted_at).toBeNull()
+    run("UPDATE key_network SET alerted_at = ? WHERE key_id = 'k1'", T)
+    expect(get("SELECT alerted_at FROM key_network WHERE key_id = 'k1'").alerted_at).toBe(T)
+  })
+
   it('never stores a bare handle as a key pattern', () => {
     const myra = person('myra')
     const key = (pattern: string) => run("INSERT INTO agent_key (id, person_id, name, public_key, can_post_as, created_at) VALUES ('k1', ?, 'laptop', 'pk', ?, ?)", myra, pattern, T)

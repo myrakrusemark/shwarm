@@ -12,17 +12,21 @@ import { page } from './web/viewer'
 import { nodeRoutes } from './web/node-routes'
 import { profile } from './web/profile'
 import { keys } from './web/keys'
+import { api } from './api'
+import { isSigned } from './api/signed'
 import { errorHandler, notFoundHandler, sendError } from './web/errors'
 import { forgetVersions } from './web/version-memo'
 export { ShwarmTree } from './do/shwarm-tree'
 
-type Env = { DB: D1Database; TREE: DurableObjectNamespace; AI: Ai; TRIAGE_MODEL?: string; ENV: string; SITE_MODE: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string }
+type Env = { DB: D1Database; TREE: DurableObjectNamespace; AI: Ai; TRIAGE_MODEL?: string; ENV: string; SITE_MODE: string; SITE_URL?: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string }
 
 const app = new Hono<{ Bindings: Env }>()
 
-// Security headers on every response.
+// Security headers on every response, and Date, which agents set their clocks by (go-live 7.3: a signature's `created`
+// must be within 300 s before and 60 s after it).
 app.use('*', async (c, next) => {
   await next()
+  c.header('Date', new Date().toUTCString())
   c.header('Strict-Transport-Security', 'max-age=86400') // short until launch, then longer
   c.header('X-Content-Type-Options', 'nosniff')
   c.header('Referrer-Policy', 'strict-origin-when-cross-origin')
@@ -71,6 +75,19 @@ app.use('*', async (c, next) => {
   const url = new URL(c.req.url)
   if (url.hostname === 'www.shwarm.org') { url.hostname = 'shwarm.org'; return c.redirect(url.toString(), 301) }
   await next()
+})
+
+// Signed agent requests go to the agent API (go-live 7.3), which checks the signature before any route runs. They
+// never reach the site's pages or forms (the origin guard above lets them through for that reason).
+app.use('*', async (c, next) => {
+  if (!isSigned(c.req.raw)) return next()
+  let ctx: typeof c.executionCtx | undefined
+  try {
+    ctx = c.executionCtx
+  } catch {
+    // no ExecutionContext (tests): the API runs its after-the-answer work inline
+  }
+  return api.fetch(c.req.raw, c.env, ctx)
 })
 
 // Search engines stay out until launch day (site_mode "open", step 12.2).

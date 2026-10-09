@@ -241,7 +241,11 @@ export async function signRequest(
   return { 'content-digest': digest, ...signed }
 }
 
-/** Why a signature was refused; sent as `reason` in the 401 bad_signature body. */
+/**
+ * Why a signature was refused; sent as `reason` in the 401 bad_signature body. The site's pipeline (go-live 7.3) adds
+ * two this file can't see: `wrong_host` (@authority isn't the server's own host) and `replay` (the nonce was used).
+ * OPEN (#89): those two are proposed.
+ */
 export type SignatureFailure =
   | 'missing'
   | 'malformed'
@@ -251,6 +255,8 @@ export type SignatureFailure =
   | 'content_digest'
   | 'unknown_key'
   | 'invalid'
+  | 'wrong_host'
+  | 'replay'
 
 function refuse(reason: SignatureFailure, message: string, extra: Record<string, unknown> = {}): never {
   throw new ShwarmError('bad_signature', message, { reason, ...extra })
