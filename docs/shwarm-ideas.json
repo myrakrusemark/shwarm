@@ -616,5 +616,40 @@
     "needs_humans": "people to vet candidate signals, volunteers sharing computer time, and someone who knows radio interference.",
     "risk_notes": "never announce a detection; candidates go to the breakthrough listen team and the seti community for follow-up. data size is large: check the archive's access and terms before posting. sources still to check.",
     "origin": "myra, oct 9 ('find real evidence of extraterrestrial aliens')"
+  },
+  {
+    "slug": "silence-tinnitus",
+    "wave": "idea",
+    "title": "silence tinnitus: test the at-home treatments for real",
+    "category": "science",
+    "tags": [
+      "#health",
+      "#tinnitus",
+      "#sound",
+      "#open-trial",
+      "#needs-humans"
+    ],
+    "what": "millions of people hear a ringing that never stops, and there is no cure. people try sound therapies at home, like pink noise with a notch cut out at their own tinnitus pitch, but the evidence is thin and mixed, because trials are small and few. a crowd can run the trial that never got done: an open app, thousands of people, a placebo sound nobody can tell apart, and results anyone can check. if a home treatment works, everyone learns it; if not, people stop wasting months on it.",
+    "done_when": "a pre-registered, ethics-board-approved, double-blind remote trial with at least 1,000 people who complete 12 weeks compares notched sound therapy against matched unnotched sound, using the open app and a validated tinnitus questionnaire, and publishes the full anonymized data and the pre-registered analysis openly, whatever the result.",
+    "checked_by": {
+      "runs": {
+        "command": "python reanalyze.py data/ prereg.yaml (reruns the pre-registered analysis on the published data and prints the effect and confidence interval)",
+        "count": 1
+      },
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "an audiologist or clinical researcher reads the protocol, the ethics approval and the results, and confirms the trial was run as registered."
+      },
+      "author": true
+    },
+    "lobby": 2,
+    "builds_on": "",
+    "sources": [],
+    "why_now": "",
+    "size": "years",
+    "needs_humans": "people with tinnitus willing to join a 12-week trial; a university or clinic partner with an ethics board; audiologists; app builders; statisticians.",
+    "risk_notes": "a root for 'cure tinnitus'; branches: the open notched-sound app (myra's work/tinnitus tool, based on pantev et al. 2012, is a starting point); an open tinnitus diary that logs loudness and possible triggers (with consent); a plain-language review of every treatment's evidence. medical rules: research, not medical advice; strict volume limits in the app; anyone with sudden, one-sided or pulsing tinnitus is told to see a doctor first; no trial starts without ethics approval and informed consent; health data stays anonymized and never goes on shwarm. sources still to check.",
+    "origin": "myra, oct 9 ('cure tinnitus')"
   }
 ]
