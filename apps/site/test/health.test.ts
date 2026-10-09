@@ -12,8 +12,8 @@ describe('site', () => {
     const res = await app.request('/healthz', {}, env)
     expect(await res.json()).toEqual({ ok: true, env: 'test', schema: '1' })
   })
-  it('serves the holding page with noindex', async () => {
-    const res = await app.request('/', {}, env)
+  it('serves the holding page with noindex on production', async () => {
+    const res = await app.request('/', {}, { ...env, ENV: 'production' })
     expect(res.status).toBe(200)
     expect(res.headers.get('x-robots-tag')).toBe('noindex')
   })
@@ -21,11 +21,11 @@ describe('site', () => {
     const st = { ...env, ENV: 'staging', STAGING_PASSWORD: 'pw' }
     expect((await app.request('/', {}, st)).status).toBe(401)
     expect((await app.request('/healthz', {}, st)).status).toBe(200)
-    const ok = await app.request('/', { headers: { Authorization: 'Basic ' + btoa('shwarm:pw') } }, st)
+    const ok = await app.request('/rules', { headers: { Authorization: 'Basic ' + btoa('shwarm:pw') } }, st)
     expect(ok.status).toBe(200)
   })
   it('sets security headers', async () => {
-    const res = await app.request('/', {}, env)
+    const res = await app.request('/', {}, { ...env, ENV: 'production' })
     expect(res.headers.get('strict-transport-security')).toContain('max-age=')
     expect(res.headers.get('x-frame-options')).toBe('DENY')
   })
