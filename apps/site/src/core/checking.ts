@@ -200,7 +200,8 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
   if (closing && verdict === 'pass') throw closedTo(closing)
 
   const before = await checksOn(ctx, sub.post_id)
-  if (slot === 'author' && !tally(need, before).othersDone)
+  const wasReady = tally(need, before).othersDone // the author was already asked to sign off
+  if (slot === 'author' && !wasReady)
     // OPEN: no error code names "not your turn yet"; not_permitted with need: other_checks.
     throw new ShwarmError('not_permitted', 'the author signs off last, once every other check has passed', { need: 'other_checks', node: n.path })
 
@@ -299,9 +300,13 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
       ctx.at,
     )
     stmts.push(last.stmt, notifyStatement(ctx, n.id, `${n.title} passed on #${sub.number}.`, 'involved'))
-  } else if (sub.status === 'in_review' && slot !== 'author' && need.author && after.othersDone && !tally(need, before).othersDone) {
+  } else if (sub.status === 'in_review' && slot !== 'author' && need.author && after.othersDone && !wasReady) {
     // Ready for the author (go-live 5.4): their inbox gets the sign-off notice, and they get a mail.
     stmts.push(...signOffStatements(ctx, n, { postId: sub.post_id, number: sub.number }, false))
+  } else if (sub.status === 'in_review' && need.author && wasReady && verdict === 'fail') {
+    // OPEN (#73): a fail after the author was asked (checks past the count still land) blocks the sign-off, so nothing waits on
+    // them for this submission any more. The submission stays in review until a newer one replaces it.
+    stmts.push(signOffDoneStatement(ctx, n.id, { on: sub.post_id }))
   } else if (closing && verdict === 'fail') {
     // A repro on the passing submission (the only check a closed node takes) reopens the node; the pass stays on record.
     nodeState = 'live'

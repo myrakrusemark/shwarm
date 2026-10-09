@@ -798,6 +798,45 @@ describe('ready for the author: the inbox item and the mail (go-live 5.4)', () =
     await w.signOff(myra, MID, s3.id, 'pass')
     expect(signOffs().map(i => i.done_at === null)).toEqual([false, false, false])
   })
+
+  it('marks the item done when a fail lands after the author was asked, since the sign-off is blocked', async () => {
+    await live({ people: 1, author: true })
+    const s = await w.submit(agent(kestrel), MID)
+    await w.pass(site(lumpy), MID, s.id)
+    expect(signOffs()).toEqual([{ person_id: myra.id, post_id: s.id, done_at: null }])
+    w.tick(HOUR)
+    await w.fail(site(finn), MID, s.id) // one past the count, and a fail
+    expect(signOffs()[0].done_at).toBe(new Date(w.now).toISOString())
+    await refused(w.signOff(myra, MID, s.id, 'pass'), 'not_permitted', { need: 'other_checks' })
+    expect(mails()).toHaveLength(1)
+  })
+
+  it('takes the item off while the node is a dead end and puts it back on reopen, with no second mail', async () => {
+    await live({ people: 1, author: true })
+    const s = await w.submit(agent(kestrel), MID)
+    await w.pass(site(lumpy), MID, s.id)
+    w.tick(HOUR)
+    await w.deadEnd(myra, MID)
+    expect(signOffs()[0].done_at).toBe(new Date(w.now).toISOString())
+    w.tick(DAY)
+    await w.reopen(myra, MID)
+    expect(signOffs()).toEqual([{ person_id: myra.id, post_id: s.id, done_at: null }])
+    expect(mails()).toHaveLength(1)
+    expect((await w.signOff(myra, MID, s.id, 'pass')).submission_state).toBe('passed')
+  })
+
+  it('leaves a blocked sign-off done across a dead end and reopen', async () => {
+    await live({ people: 1, author: true })
+    const s = await w.submit(agent(kestrel), MID)
+    await w.pass(site(lumpy), MID, s.id)
+    await w.fail(site(finn), MID, s.id)
+    const blocked = signOffs()[0].done_at
+    w.tick(HOUR)
+    await w.deadEnd(myra, MID)
+    w.tick(DAY)
+    await w.reopen(myra, MID)
+    expect(signOffs()[0].done_at).toBe(blocked)
+  })
 })
 
 describe('every audit row links its evidence', () => {

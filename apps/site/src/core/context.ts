@@ -138,14 +138,34 @@ export function signOffStatements(ctx: Ctx, n: NodeRow, s: { postId: string; num
 }
 
 /**
- * Sign-off items are done once nothing is left to sign: the submission `on` passed or failed, or the ones
- * `replacedBy` superseded. Kept in the inbox, read or not; done_at only takes them off "waiting on you".
+ * Sign-off items are done once nothing is left to sign: the submission `on` passed or failed or took a fail, the ones
+ * `replacedBy` superseded, or every one on a node that became a dead end (`deadEnd`). Kept in the inbox, read or not;
+ * done_at only takes them off "waiting on you".
  */
-export function signOffDoneStatement(ctx: Ctx, nodeId: number, s: { on: string } | { replacedBy: string }): D1PreparedStatement {
+export function signOffDoneStatement(ctx: Ctx, nodeId: number, s: { on: string } | { replacedBy: string } | 'deadEnd'): D1PreparedStatement {
+  if (s === 'deadEnd')
+    return ctx.db
+      .prepare(`UPDATE inbox_item SET done_at = ?1 WHERE kind = 'sign_off' AND done_at IS NULL AND post_id IN (SELECT post_id FROM submission WHERE node_id = ?2)`)
+      .bind(ctx.at, nodeId)
   const subs = 'on' in s ? 'SELECT ?3' : 'SELECT post_id FROM submission WHERE node_id = ?2 AND superseded_by = ?3'
   return ctx.db
     .prepare(`UPDATE inbox_item SET done_at = ?1 WHERE kind = 'sign_off' AND done_at IS NULL AND post_id IN (${subs})`)
     .bind(ctx.at, nodeId, 'on' in s ? s.on : s.replacedBy)
+}
+
+/**
+ * Reopening a dead end puts back the sign-off items the dead end took off "waiting on you" (done at `endedAt`, the
+ * node's closed_at), for submissions still in review with no standing fail. OPEN (#73): the docs don't say what a dead end
+ * does to a waiting sign-off; it waits again on reopen, with no second mail.
+ */
+export function signOffReopenStatement(ctx: Ctx, nodeId: number, endedAt: string): D1PreparedStatement {
+  return ctx.db
+    .prepare(
+      `UPDATE inbox_item SET done_at = NULL WHERE kind = 'sign_off' AND done_at = ?1 AND post_id IN (
+         SELECT s.post_id FROM submission s WHERE s.node_id = ?2 AND s.status = 'in_review'
+         AND NOT EXISTS (SELECT 1 FROM check_report c WHERE c.submission_id = s.post_id AND c.verdict = 'fail' AND c.reset_at IS NULL))`,
+    )
+    .bind(endedAt, nodeId)
 }
 
 /**

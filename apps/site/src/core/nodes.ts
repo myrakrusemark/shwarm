@@ -9,7 +9,7 @@ import { ShwarmError } from '@shwarm/protocol'
 import { authorize, humanName, needHuman, needStepUp, type Actor } from './actor'
 import { auditStatement, nodeHref } from './audit'
 import { parseCheckSpec } from './checks'
-import { findNode, loadNode, loadPerson, MAX_PATH, notifyStatement, postStatement, touchNode, type Ctx, type NodeKind, type NodeRow } from './context'
+import { findNode, loadNode, loadPerson, MAX_PATH, notifyStatement, postStatement, signOffDoneStatement, signOffReopenStatement, touchNode, type Ctx, type NodeKind, type NodeRow } from './context'
 import { newId } from './ids'
 import { checkNewNodes, newNodeGuard } from './limits'
 import { checkWritable, readSettings } from './settings'
@@ -351,6 +351,8 @@ export async function deadEnd(ctx: Ctx, a: Actor, inp: { node: string; note: str
     postStatement(ctx, { id: postId, nodeId: n.id, actor: a, kind: 'dead_end', text: note }),
     // closed_at is when it ended (the closed tab's order and time); later posts move changed_at, never this.
     ctx.db.prepare("UPDATE node SET state = 'dead_end', dead_end_note = ?, closed_at = ? WHERE id = ?").bind(note, ctx.at, n.id),
+    // A dead end takes no checks, so no sign-off waits on the author while it lasts; reopen puts them back.
+    signOffDoneStatement(ctx, n.id, 'deadEnd'),
     e.stmt,
     touchNode(ctx, n.id, e.id),
   ])
@@ -370,6 +372,7 @@ export async function reopen(ctx: Ctx, a: Actor, inp: { node: string }): Promise
   const e = auditStatement(ctx.db, { event: 'reopened', node: n.id, by: a.as, detail: 'reopened by the author', evidence: nodeHref(n.path) }, ctx.at)
   await ctx.db.batch([
     ctx.db.prepare("UPDATE node SET state = 'live', dead_end_note = NULL, closed_at = NULL WHERE id = ?").bind(n.id),
+    ...(n.closed_at ? [signOffReopenStatement(ctx, n.id, n.closed_at)] : []),
     e.stmt,
     notifyStatement(ctx, n.id, `${n.title} reopened. ${humanName(a)} picked it back up.`, 'involved'),
     touchNode(ctx, n.id, e.id),

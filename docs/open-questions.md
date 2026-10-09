@@ -414,6 +414,9 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 **Question.** Who can post the failing repro that reopens a passed shwarm or branch? **Why it matters.** The spec says anyone can, and A11 reopens "as soon as a repro is posted". But a repro is a check, and checks have slot rules: one per person per submission, never on your own work, and people checks only from established accounts. Under those rules, someone who checked the passing submission (or its author, who signed it off) can't report it broken later.
 **Options.** keep the slot rules for repros (built for the beta, `apps/site/src/core/checking.ts`); let anyone post one repro on a passed submission whatever slot they used before; let a repro reopen only after someone else confirms it ("holds up"). **Lean.** keep the slot rules (proposed, [decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations)).
 
+### 73. A waiting sign-off that can't be made
+**Question.** What happens to the author's sign-off request when the sign-off can no longer be made? **Why it matters.** The author is asked once every other check has passed. A fail from an extra check afterwards blocks the sign-off, and a dead end takes no checks at all, so the inbox would show the author something they can't do. **Options.** mark the item done on a late fail and on a dead end, and put it back on reopen (built for the beta, `apps/site/src/core/checking.ts`, `apps/site/src/core/nodes.ts`); stop taking checks once the count is met, so no late fail can land; leave the item waiting and explain on the submission page why the sign-off is blocked. **Lean.** mark it done (proposed, [decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations)).
+
 ## Resolved
 
 All resolved questions are in the [decision log](decisions.md).
