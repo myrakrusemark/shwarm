@@ -2,7 +2,7 @@
 // to when nobody is, and safe `next=` paths.
 import type { Context } from 'hono'
 import { getCookie } from 'hono/cookie'
-import { toBase64url } from '@shwarm/protocol'
+import { fromBase64url, toBase64url, utf8 } from '@shwarm/protocol'
 import { formToken, formTokenOk } from './csrf'
 import { COOKIE, readSession, type Session } from './session'
 
@@ -25,9 +25,23 @@ export const clientIp = (c: Context) => c.req.header('cf-connecting-ip') ?? null
 
 export type Who = { session: Session | null; token: string | undefined; pre: string | undefined }
 
+// One session read per request, shared by who(), the header strip and anything else that asks.
+const sessions = new WeakMap<Request, Promise<Session | null>>()
+
+/** This request's signed-in session, read at most once. No cookie means no database read. */
+export function sessionOf<E extends { Bindings: { DB: D1Database } }>(c: Context<E>): Promise<Session | null> {
+  let s = sessions.get(c.req.raw)
+  if (!s) {
+    const token = getCookie(c, COOKIE)
+    s = token ? readSession((c.env as { DB: D1Database }).DB, token) : Promise.resolve(null)
+    sessions.set(c.req.raw, s)
+  }
+  return s
+}
+
 export async function who(c: AuthContext): Promise<Who> {
   const token = getCookie(c, COOKIE)
-  const session = await readSession(c.env.DB, token)
+  const session = await sessionOf(c)
   const pre = getCookie(c, PRE_COOKIE)
   return { session, token, pre: pre && /^[A-Za-z0-9_-]{43}$/.test(pre) ? pre : undefined }
 }
@@ -75,6 +89,32 @@ export function safeNext(raw: unknown): string | null {
   } catch {
     return null
   }
+}
+
+// Return-to (go-live 3.x/4.1): a `next` path that has to survive a trip through a URL or an emailed link is
+// carried signed, "<base64url path>.<mac>", and checked with safeNext() again when it comes back. `scope`
+// names the leg it's good for ('check', 'verified', or 'verify:<the email token>'), so one can't stand in
+// for another.
+const nextMac = (secret: string, path: string, scope: string) => formToken(secret, `next:${scope}:${path}`)
+
+/** `next` (already a safeNext() path) signed for one leg of the trip. */
+export async function signNext(secret: string, next: string, scope: string): Promise<string> {
+  return `${toBase64url(utf8(next))}.${await nextMac(secret, next, scope)}`
+}
+
+/** The same-site path in a signed next, or null if it's missing, altered, from another scope or not same-site. */
+export async function openNext(secret: string, signed: unknown, scope: string): Promise<string | null> {
+  if (typeof signed !== 'string' || signed.length > 1024) return null
+  const m = /^([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]{43})$/.exec(signed)
+  if (!m) return null
+  let path: string
+  try {
+    path = new TextDecoder('utf-8', { fatal: true, ignoreBOM: false }).decode(fromBase64url(m[1]))
+  } catch {
+    return null
+  }
+  if (!(await formTokenOk(secret, `next:${scope}:${path}`, m[2]))) return null
+  return safeNext(path) === path ? path : null
 }
 
 /**

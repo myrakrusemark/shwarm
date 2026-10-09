@@ -3,14 +3,15 @@
 // GET never changes anything: emailed links open a page whose button POSTs.
 import { Hono } from 'hono'
 import { getCookie } from 'hono/cookie'
-import { html } from 'hono/html'
 import type { Child } from 'hono/jsx'
 import {
   CheckEmailPage, ExpiredPage, ForgotPage, FormExpiredPage, JoinPage, ResetPage, SignInPage, SlowDownPage,
   StepUpPage, VerifiedPage, VerifyPage,
 } from '../web/auth-pages'
+import { page } from '../web/viewer'
 import { isPwned, passwordProblem } from './password'
-import { clientIp, formOf, later, pageToken, postedTokenOk, safeNext, who, type AuthContext, type AuthEnv, type Who } from './request'
+import { clientIp, formOf, later, openNext, pageToken, postedTokenOk, safeNext, signNext, who, type AuthContext, type AuthEnv, type Who } from './request'
+import { backLabel } from './return-to'
 import { clearCookie, endSession, sessionCookie } from './session'
 import { applyReset, markVerified, sendReset, signIn, stepUp } from './signin'
 import { COPY, PEND_COOKIE, PEND_SECONDS, resendVerify, setting, signUp } from './signup'
@@ -22,7 +23,7 @@ export const auth = new Hono<{ Bindings: AuthEnv }>()
 const render = (c: AuthContext, node: Child, status: 200 | 400 | 403 | 410 | 429 = 200) => {
   c.header('Cache-Control', 'no-store')
   c.header('X-Robots-Tag', 'noindex')
-  return c.html(html`<!doctype html>${node}`, status)
+  return page(c, node, status)
 }
 const origin = (c: AuthContext) => new URL(c.req.url).origin
 const slow = (c: AuthContext, seconds: number) => {
@@ -40,11 +41,16 @@ async function personOf(c: AuthContext, w: Who) {
 
 // ---------- sign-up (2.5) ----------
 
+// Return-to: /join?next= and /signin?next= come back to that same-site path. Through /check-email and the
+// verify link it travels signed (signNext), never raw.
+const checkEmail = async (c: AuthContext, next: string | undefined, extra = '') =>
+  next ? `/check-email?n=${await signNext(c.env.CSRF_SECRET, next, 'check')}${extra && '&' + extra}` : `/check-email${extra && '?' + extra}`
+
 auth.get('/join', async c => {
   const w = await who(c)
   const token = await pageToken(c, w)
   const inviteOnly = (await setting<string>(c.env.DB, 'signup')) !== 'open'
-  return render(c, <JoinPage token={token} siteKey={c.env.TURNSTILE_SITE_KEY} inviteOnly={inviteOnly} />)
+  return render(c, <JoinPage token={token} siteKey={c.env.TURNSTILE_SITE_KEY} inviteOnly={inviteOnly} next={safeNext(c.req.query('next')) ?? undefined} />)
 })
 
 auth.post('/join', async c => {
@@ -52,18 +58,19 @@ auth.post('/join', async c => {
   const f = await formOf(c)
   if (!(await postedTokenOk(c, w, f))) return formExpired(c)
   const values = { handle: f.handle, display_name: f.display_name, email: f.email, age: !!f.age, terms: !!f.terms }
+  const next = safeNext(f.next) ?? undefined
   const again = async (errors: Record<string, string | undefined>) => {
     const inviteOnly = (await setting<string>(c.env.DB, 'signup')) !== 'open'
-    return render(c, <JoinPage token={await pageToken(c, w)} siteKey={c.env.TURNSTILE_SITE_KEY} inviteOnly={inviteOnly} values={values} errors={errors} />, 400)
+    return render(c, <JoinPage token={await pageToken(c, w)} siteKey={c.env.TURNSTILE_SITE_KEY} inviteOnly={inviteOnly} values={values} errors={errors} next={next} />, 400)
   }
   if (!(await turnstileOk(c.env, f[TURNSTILE_FIELD], clientIp(c)))) return again({ turnstile: COPY.turnstile })
   const r = await signUp(c.env.DB, c.env, f, {
-    ip: clientIp(c), origin: origin(c), pend: getCookie(c, PEND_COOKIE), sessionPersonId: w.session?.personId, defer: work => later(c, work),
+    ip: clientIp(c), origin: origin(c), pend: getCookie(c, PEND_COOKIE), sessionPersonId: w.session?.personId, defer: work => later(c, work), next,
   })
   if (r.kind === 'errors') return again(r.errors)
   if (r.kind === 'slow') return slow(c, r.seconds)
   c.header('Set-Cookie', `${PEND_COOKIE}=${r.pend}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=${PEND_SECONDS}`, { append: true })
-  return c.redirect('/check-email', 303)
+  return c.redirect(await checkEmail(c, next), 303)
 })
 
 auth.get('/check-email', async c => {
@@ -71,15 +78,19 @@ auth.get('/check-email', async c => {
   const p = await personOf(c, w)
   const kind = c.req.query('r') === 'reset' ? 'reset' : 'verify'
   const inviteOnly = (await setting<string>(c.env.DB, 'signup')) !== 'open'
-  return render(c, <CheckEmailPage token={await pageToken(c, w)} kind={kind} sent={c.req.query('sent') === '1'} unverified={!!p && !p.email_verified_at} inviteOnly={inviteOnly} />)
+  const n = c.req.query('n')
+  const back = (await openNext(c.env.CSRF_SECRET, n, 'check')) ? n : undefined
+  return render(c, <CheckEmailPage token={await pageToken(c, w)} kind={kind} sent={c.req.query('sent') === '1'} unverified={!!p && !p.email_verified_at} inviteOnly={inviteOnly} n={back} />)
 })
 
 auth.post('/check-email', async c => {
   const w = await who(c)
-  if (!(await postedTokenOk(c, w, await formOf(c)))) return formExpired(c)
-  const wait = await resendVerify(c.env.DB, c.env, { ip: clientIp(c), origin: origin(c), pend: getCookie(c, PEND_COOKIE), sessionPersonId: w.session?.personId })
+  const f = await formOf(c)
+  if (!(await postedTokenOk(c, w, f))) return formExpired(c)
+  const next = (await openNext(c.env.CSRF_SECRET, f.n, 'check')) ?? undefined
+  const wait = await resendVerify(c.env.DB, c.env, { ip: clientIp(c), origin: origin(c), pend: getCookie(c, PEND_COOKIE), sessionPersonId: w.session?.personId, next })
   if (wait) return slow(c, wait)
-  return c.redirect('/check-email?sent=1', 303)
+  return c.redirect(await checkEmail(c, next, 'sent=1'), 303)
 })
 
 // ---------- emailed links: a page with one button ----------
@@ -90,7 +101,9 @@ auth.get('/verify', async c => {
   const p = personId ? await c.env.DB.prepare('SELECT handle FROM person WHERE id = ?').bind(personId).first<{ handle: string }>() : null
   if (!p) return render(c, <ExpiredPage kind="verify" />, 410)
   const w = await who(c)
-  return render(c, <VerifyPage token={await pageToken(c, w)} t={t} handle={p.handle} />)
+  const n = c.req.query('n')
+  const back = (await openNext(c.env.CSRF_SECRET, n, `verify:${t}`)) ? n : undefined
+  return render(c, <VerifyPage token={await pageToken(c, w)} t={t} handle={p.handle} n={back} />)
 })
 
 auth.post('/verify', async c => {
@@ -101,12 +114,15 @@ auth.post('/verify', async c => {
   if (!personId) return render(c, <ExpiredPage kind="verify" />, 410)
   // Every other session of the account ends: whoever signed in before never proved they hold this inbox.
   await markVerified(c.env.DB, personId, origin(c), { keepSession: w.session?.personId === personId ? w.session.id : undefined })
-  return c.redirect('/verified', 303)
+  const next = await openNext(c.env.CSRF_SECRET, f.n, `verify:${f.t}`)
+  return c.redirect(next ? `/verified?n=${await signNext(c.env.CSRF_SECRET, next, 'verified')}` : '/verified', 303)
 })
 
 auth.get('/verified', async c => {
   const w = await who(c)
-  return render(c, <VerifiedPage signedIn={!!w.session} />)
+  const next = await openNext(c.env.CSRF_SECRET, c.req.query('n'), 'verified')
+  const back = next && next !== '/' ? { href: next, label: await backLabel(c.env.DB, next) } : undefined
+  return render(c, <VerifiedPage signedIn={!!w.session} back={back} />)
 })
 
 // ---------- sign in and out (2.7) ----------
@@ -132,7 +148,7 @@ auth.post('/signin', async c => {
   if (r.kind === 'bad') return again("that email and password don't match.")
   await endSession(c.env.DB, w.token) // rotate: the old cookie's session ends
   c.header('Set-Cookie', sessionCookie(r.token), { append: true })
-  return c.redirect(r.verified ? next ?? '/' : '/check-email', 303)
+  return c.redirect(r.verified ? next ?? '/' : await checkEmail(c, next), 303)
 })
 
 auth.post('/signout', async c => {

@@ -12,6 +12,7 @@ import { isDisposable, parseEmail } from './email'
 import { hashPassword, isPwned, passwordProblem } from './password'
 import { ipPrefix } from './session'
 import { bump, LIMITS } from './throttle'
+import { signNext } from './request'
 import { newToken } from './tokens'
 
 export const DISPLAY_NAME_MAX = 50 // OPEN: no decided limit; 50 is easy to raise
@@ -31,7 +32,8 @@ export type SignupResult =
 type Env = { PASSWORD_PEPPER: string; CSRF_SECRET: string }
 /** Runs the writes; the route passes one that runs them after the response. The default runs them now. */
 export type Defer = (work: () => Promise<unknown>) => Promise<void>
-export type SignupContext = { ip: string | null; origin: string; pend?: string; sessionPersonId?: number; now?: number; defer?: Defer }
+/** `next`: a safeNext() path to come back to; the verify link carries it signed. */
+export type SignupContext = { ip: string | null; origin: string; pend?: string; sessionPersonId?: number; now?: number; defer?: Defer; next?: string }
 
 export const COPY = {
   handlePattern: 'use 2 to 32 lowercase letters, numbers or underscores.',
@@ -82,9 +84,13 @@ export async function pendingAccount(db: D1Database, env: Env, handle: string, c
   return pend && pend.handle === handle && (await formTokenOk(env.CSRF_SECRET, `pend:${p.handle}:${p.created_at}`, pend.mac)) ? p : null
 }
 
-export function verifyMail(db: D1Database, p: { id: number; handle: string; email: string }, token: string, origin: string, now: string) {
-  return mailStatement(db, { to: p.email, template: 'verify', stream: 'account', personId: p.id, payload: { handle: p.handle, link: `${origin}/verify?t=${token}` } }, now)
+export function verifyMail(db: D1Database, p: { id: number; handle: string; email: string }, token: string, origin: string, now: string, signedNext?: string) {
+  const link = `${origin}/verify?t=${token}${signedNext ? `&n=${signedNext}` : ''}`
+  return mailStatement(db, { to: p.email, template: 'verify', stream: 'account', personId: p.id, payload: { handle: p.handle, link } }, now)
 }
+
+/** The signed return-to for a verify link, bound to that link's token (see signNext). */
+const verifyNext = (secret: string, token: string, next?: string) => (next ? signNext(secret, next, `verify:${token}`) : Promise.resolve(undefined))
 
 export async function signUp(db: D1Database, env: Env, input: SignupInput, ctx: SignupContext): Promise<SignupResult> {
   const nowMs = ctx.now ?? Date.now()
@@ -153,19 +159,20 @@ export async function signUp(db: D1Database, env: Env, input: SignupInput, ctx: 
   // 6. make the account. Replacing this browser's pending one keeps its creation time, so re-sending the form
   // never restarts the 7-day clock that frees the handle (table B).
   const created_at = mine?.created_at ?? now
-  await defer(() => createAccount(db, { handle, displayName, email: email.email, norm: email.norm, hash, termsVersion, created_at, replaces: mine?.id }, ctx.origin, nowMs))
+  await defer(() => createAccount(db, { handle, displayName, email: email.email, norm: email.norm, hash, termsVersion, created_at, replaces: mine?.id }, ctx.origin, nowMs, { secret: env.CSRF_SECRET, next: ctx.next }))
   return { kind: 'sent', pend: `${handle}.${await pendMac(env, { handle, created_at })}` }
 }
 
 type NewAccount = { handle: string; displayName: string; email: string; norm: string; hash: string; termsVersion: string; created_at: string; replaces?: number }
 
 /** The account (replacing this browser's pending one), its verify link and the mail, in one batch. */
-async function createAccount(db: D1Database, a: NewAccount, origin: string, nowMs: number) {
+async function createAccount(db: D1Database, a: NewAccount, origin: string, nowMs: number, back: { secret: string; next?: string }) {
   const now = new Date(nowMs).toISOString()
   for (let attempt = 0; attempt < 3; attempt++) {
     const max = await db.prepare('SELECT COALESCE(MAX(id), 0) AS id FROM person').first<{ id: number }>()
     const p = { id: (max?.id ?? 0) + 1, handle: a.handle, email: a.email }
     const { token, stmt } = await newToken(db, p.id, 'verify', nowMs)
+    const signedNext = await verifyNext(back.secret, token, back.next)
     const stmts: D1PreparedStatement[] = []
     if (a.replaces) {
       stmts.push(db.prepare('DELETE FROM email_outbox WHERE person_id = ? AND sent_at IS NULL').bind(a.replaces))
@@ -179,7 +186,7 @@ async function createAccount(db: D1Database, a: NewAccount, origin: string, nowM
         )
         .bind(p.id, a.handle, a.displayName, a.email, a.norm, a.hash, a.termsVersion, now, now, a.created_at),
       stmt,
-      verifyMail(db, p, token, origin, now),
+      verifyMail(db, p, token, origin, now, signedNext),
     )
     try {
       await db.batch(stmts)
@@ -200,7 +207,7 @@ async function createAccount(db: D1Database, a: NewAccount, origin: string, nowM
  * "send it again" on the check-your-email page: a fresh verify link for this browser's unverified account, if
  * any. Throttled per network and per account; the new link replaces the older ones. Returns seconds to wait, or 0.
  */
-export async function resendVerify(db: D1Database, env: Env, ctx: { ip: string | null; origin: string; pend?: string; sessionPersonId?: number; now?: number }): Promise<number> {
+export async function resendVerify(db: D1Database, env: Env, ctx: { ip: string | null; origin: string; pend?: string; sessionPersonId?: number; now?: number; next?: string }): Promise<number> {
   const nowMs = ctx.now ?? Date.now()
   const now = new Date(nowMs).toISOString()
   const ipWait = await bump(db, `resend:ip:${ipPrefix(ctx.ip) ?? 'unknown'}`, LIMITS.resendIp, nowMs)
@@ -218,10 +225,11 @@ export async function resendVerify(db: D1Database, env: Env, ctx: { ip: string |
   const wait = await bump(db, `resend:person:${p.id}`, LIMITS.resendPerson, nowMs)
   if (wait) return wait
   const { token, stmt } = await newToken(db, p.id, 'verify', nowMs)
+  const signedNext = await verifyNext(env.CSRF_SECRET, token, ctx.next)
   await db.batch([
     db.prepare("UPDATE email_token SET used_at = ? WHERE person_id = ? AND purpose = 'verify' AND used_at IS NULL").bind(now, p.id),
     stmt,
-    verifyMail(db, p, token, ctx.origin, now),
+    verifyMail(db, p, token, ctx.origin, now, signedNext),
   ])
   return 0
 }

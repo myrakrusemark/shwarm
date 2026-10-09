@@ -1,6 +1,7 @@
 // Text input rules: caps (table B "technical caps"), links (shwarm stores only text; work is linked
 // with a fingerprint), mentions (protocol §9) and slugs (protocol §3).
 import { isValidName, ShwarmError, type Link } from '@shwarm/protocol'
+import { HIDDEN_CLASS } from '../render/hidden'
 
 export const MAX_TEXT = 20_000 // characters in a post
 export const MAX_TITLE = 120
@@ -69,15 +70,111 @@ export function parseLinks(v: unknown, field = 'links'): Link[] {
   })
 }
 
-// '@' at the start or after anything that isn't a name character, then the longest name; trailing . - _ dropped.
-const MENTION_RE = /(^|[^A-Za-z0-9_@])@([a-z0-9_]{2,32}(?:\/[a-z0-9][a-z0-9._-]{0,63}){0,6})/g
+// ---------- how post text is read: one rule for what the renderer links and what notifies ----------
 
-/** Names mentioned in a text, in order, without repeats. "thanks @myra/m-07." → ['@myra/m-07']; "a@b_c" → []. */
+export type Block = { code: string } | { lines: string[] }
+
+export const textLines = (s: string) => s.replace(/\r\n?/g, '\n').split('\n')
+
+/** Post text as blocks: paragraphs (split at blank lines) and ``` fences. An unclosed fence runs to the end. */
+export function textBlocks(text: string): Block[] {
+  const out: Block[] = []
+  let para: string[] = []
+  const flush = () => {
+    if (para.length) out.push({ lines: para })
+    para = []
+  }
+  const ls = textLines(text)
+  for (let i = 0; i < ls.length; i++) {
+    const line = ls[i]
+    if (/^ {0,3}```/.test(line)) {
+      flush()
+      const code: string[] = []
+      for (i++; i < ls.length && !/^ {0,3}```\s*$/.test(ls[i]); i++) code.push(ls[i])
+      // the info string after ``` (a language name) is dropped
+      out.push({ code: code.join('\n') })
+    } else if (!line.trim()) flush()
+    else para.push(line)
+  }
+  flush()
+  return out
+}
+
+/** One line split into `inline code` spans and the prose around them. */
+export function inlineRuns(line: string): { code: boolean; text: string }[] {
+  const out: { code: boolean; text: string }[] = []
+  let at = 0
+  for (const m of line.matchAll(/`([^`\n]+)`/g)) {
+    if (m.index! > at) out.push({ code: false, text: line.slice(at, m.index!) })
+    out.push({ code: true, text: m[1] })
+    at = m.index! + m[0].length
+  }
+  if (at < line.length) out.push({ code: false, text: line.slice(at) })
+  return out
+}
+
+const SCHEME = '[Hh][Tt][Tt][Pp][Ss]?://'
+const URL_BODY = `[^\\s<>"'\`${HIDDEN_CLASS}]+`
+// '@' at the start or after anything that isn't a name character, then the longest name.
+const MENTION = '(?<![A-Za-z0-9_@])@([a-z0-9_]{2,32}(?:/[a-z0-9][a-z0-9._-]{0,63}){0,6})'
+// Tags as core takes them (lowercase letters, digits, dashes). One letter at least, so "#2" stays text.
+const TAG = '(?<![A-Za-z0-9_&#/])#([a-z0-9][a-z0-9-]{0,31})(?![A-Za-z0-9_])'
+const TOKEN = new RegExp(`(${SCHEME}${URL_BODY})|${MENTION}|${TAG}`, 'gu')
+
+/** Trailing punctuation isn't part of a link; a ")" is, when the link opened one. */
+function trimUrl(s: string): string {
+  for (;;) {
+    const last = s.at(-1)
+    if (!last) return s
+    if ('.,;:!?*_~\'"'.includes(last)) s = s.slice(0, -1)
+    else if (last === ')' && count(s, '(') < count(s, ')')) s = s.slice(0, -1)
+    else if (last === ']' && count(s, '[') < count(s, ']')) s = s.slice(0, -1)
+    else if (last === '}' && count(s, '{') < count(s, '}')) s = s.slice(0, -1)
+    else return s
+  }
+}
+const count = (s: string, ch: string) => s.split(ch).length - 1
+
+/**
+ * Trailing . - _ after an agent name are punctuation ("thanks @myra/m-07."). A bare handle can't hold . or -,
+ * and its underscores are its own: handles may end in "_".
+ */
+const mentionName = (raw: string) => '@' + (raw.includes('/') ? raw.replace(/[._-]+$/, '') : raw)
+
+export type Token = { kind: 'url' | 'mention' | 'tag'; start: number; text: string }
+
+/**
+ * The web addresses, @names and #tags in a run of prose (no code), in order. `text` is the token as it reads:
+ * an address without trailing punctuation, a valid name, a tag with a letter in it. Text inside an address
+ * is never a name or a tag.
+ */
+export function* proseTokens(s: string): Generator<Token> {
+  for (const m of s.matchAll(TOKEN)) {
+    const start = m.index!
+    if (m[1]) yield { kind: 'url', start, text: trimUrl(m[1]) }
+    else if (m[2]) {
+      const name = mentionName(m[2])
+      if (isValidName(name)) yield { kind: 'mention', start, text: name }
+    } else if (m[3]) {
+      const tag = m[3].replace(/-+$/, '')
+      if (/[a-z]/.test(tag)) yield { kind: 'tag', start, text: '#' + tag }
+    }
+  }
+}
+
+/**
+ * Names mentioned in a post, in order, without repeats: the same ones the renderer links, so names in code
+ * or inside a web address don't notify. "thanks @myra/m-07." → ['@myra/m-07']; "a@b_c" → [].
+ */
 export function extractMentions(text: string): string[] {
   const out: string[] = []
-  for (const m of text.matchAll(MENTION_RE)) {
-    const name = '@' + m[2].replace(/[._-]+$/, '')
-    if (isValidName(name) && !out.includes(name)) out.push(name)
+  for (const b of textBlocks(text)) {
+    if (!('lines' in b)) continue
+    for (const line of b.lines)
+      for (const run of inlineRuns(line)) {
+        if (run.code) continue
+        for (const t of proseTokens(run.text)) if (t.kind === 'mention' && !out.includes(t.text)) out.push(t.text)
+      }
   }
   return out
 }

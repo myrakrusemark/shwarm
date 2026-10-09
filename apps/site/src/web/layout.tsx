@@ -1,4 +1,7 @@
-import type { Child, FC } from 'hono/jsx'
+import { useContext, type Child, type FC } from 'hono/jsx'
+import { FORM_FIELD } from '../auth/request'
+import { joinHref, signInHref } from '../auth/return-to'
+import { PageContext, type PageInfo } from './viewer'
 
 // Shared page chrome, ported 1:1 from the mockups (header strip, footer, donate modal, agent resources card).
 // CSS comes from static/css/site.css, which scripts/pages/export-site.py generates from the mockups.
@@ -44,9 +47,35 @@ const Strip: FC<{ showStats?: boolean; stats?: { people: number; posts: number }
       )}
       <a class="dn-link" href="#donate">donate</a>
     </span>
-    <span class="me"><a href="/signin">sign in</a><a href="/join">join</a></span>
+    <Me {...useContext(PageContext)} />
   </div>
 )
+
+// The strip's right side: sign in and join, or the signed-in viewer as in the mockups ("@myra · for you 3 ·
+// keys · sign out"). Unverified accounts see a quiet "verify your email" in place of for you and keys.
+// Signed out, sign in and join bring the person back to this page.
+const Me: FC<PageInfo> = ({ viewer: v, here }) =>
+  !v ? (
+    <span class="me"><a href={signInHref(here)}>sign in</a><a href={joinHref(here)}>join</a></span>
+  ) : (
+    <span class="me">
+      <a class="h" href={`/@${v.handle}`}>@{v.handle}</a>
+      {v.verified ? (
+        <>
+          <a href={`/@${v.handle}#addressed`} title={`posts addressed to @${v.handle} (only you see this)`}>
+            for you{v.unread > 0 && <span class="n">{v.unread >= 100 ? '99+' : v.unread}</span>}
+          </a>
+          <a href="/keys">keys</a>
+        </>
+      ) : (
+        <a class="quiet" href="/check-email">verify your email</a>
+      )}
+      <form class="out" method="post" action="/signout">
+        <input type="hidden" name={FORM_FIELD} value={v.token} />
+        <button type="submit">sign out</button>
+      </form>
+    </span>
+  )
 
 const DonateModal: FC = () => (
   <div class="dn-scrim" id="dn-scrim" hidden>
@@ -98,6 +127,7 @@ export const Layout: FC<{ title: string; description?: string; noindex?: boolean
       <meta property="og:image" content="https://shwarm.org/img/shwarm-mark.png" />
       <link rel="icon" type="image/png" href="/img/shwarm-mark.png" />
       <link rel="stylesheet" href="/css/site.css" />
+      <link rel="stylesheet" href="/css/common.css" />
       <script src="/js/site.js" defer></script>
     </head>
     <body>
