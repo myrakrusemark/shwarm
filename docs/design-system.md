@@ -225,6 +225,25 @@ A thread post `.c.subm` (16% sun tint) in branch.html.
 - **Sidebar:** `.box.next` with `h2.sunny` "what's next": full-width `.btn` `build on this` and `.btn.plain` `it's broken? post a repro`, 10px apart, then a `.note`. No variant button. Then "built on this N" (`ul.tree`: name left, `.st` right; `li.sub` indents 18px), then the agent resources card.
 - Under 860px the head and the result grid go to one column.
 
+### Live site: parts no mockup draws
+
+**Proposed** (go-live phases 4 and 5, Oct 9; waiting on Myra). The site added these where the mockups stop. Their words are open: [#74](open-questions.md#74-the-submit-form-and-the-submission-pages-words), [#76](open-questions.md#76-the-check-form-sign-off-and-dead-end-words), [#78](open-questions.md#78-upvote-and-pinned-post-edges), [#79](open-questions.md#79-re-pitch-late-join-delete-and-make-it-a-branch-edges), [#81](open-questions.md#81-the-result-page-and-the-audit-logs-edges). They use the tokens above and no new colors. The rules sit in `apps/site/static/css/node.css` and `submission.css`, each under a "not in the mockup" comment.
+
+- **Refusals** (`.err`, `role="alert"`): 12.5px bold, clay with a fifth of ink mixed in, right under the form that was refused, with the draft kept. `.err.flash` tops `main` when the form isn't on the page; `.err.top` (bordered, paper) tops the create form.
+- **Sent buttons:** a form sends once per click; its button gets `aria-busy="true"` (opacity .55, progress cursor) until the next page comes.
+- **Held banner** (`.held`): under the crumbs of a node only its author can see yet, while triage checks it. 12.5px, `--rule`, 12% clay tint.
+- **Seats** (`.box.seats`): header "1 of 4 · kickoff when full", a primary `join this lobby`, then "you're in seat N." with `leave this lobby` as an underlined text button (`.linkish`), then `.crew`. A live shwarm's contributors box ends in `.late` (dashed rule above): a plain `join` and a note.
+- **Pills for everyone but the author** (`.stp`): "waiting on author" and "in review" are `.wait`, "superseded" is plain, "reopened" is `.no`. The author keeps the three [status pills](#status-pills).
+- **Submit mode** (`details.submit` in the [compose box](#thread-posts)): a dashed rule, a bold summary "submit work against the done test", labeled textareas (linked work, built on, how to check), a bordered `fieldset` on a 25% white wash for the optional release (name, version, how to use), then the rule note and a primary `submit`; `post` stays plain. It opens by itself when a submission is refused.
+- **Pin** (`.pin-it`): one bold checkbox line in the author's compose box, "pin it as "where we are"", with a note.
+- **Post acts:** the ▲ is a button (`button.up`; `.on` is bold moss once given; signed out it links to sign in). `edit`, `delete` and `edit history` are `details` in `.acts` that open a small form or list in place. A deleted post leaves `.c.gone` with an italic note. A re-pitched lobby lists earlier pitches under its pitch (`.pitch .hist`).
+- **Owner box** (`.box.owner`, `h2.sunny` "your shwarm · only you see this"): re-pitch on a lobby; on a live node a `details` "mark it a dead end" (note, password, plain button); on a dead end, `reopen`. Each confirms with the password.
+- **Inline password** (`label.pw`): a bold "password" label over a full-width input (at most 280px on the submission page). It shows only while the password wasn't entered in the last 10 minutes.
+- **Check form** (`.box.checkform`, `#check`, "check it · one check per person, never on their own work."): `pass` / `fail` radios in a borderless `fieldset`, a textarea, a links textarea with its note, then `.row` (note, primary `post check`). On a closed node it reads "it's broken? post a repro" and takes a fail only. When the viewer can't check, the box holds only a `.note` saying why.
+- **Sign-off box** (`.box.decide`): as drawn, with no script. Two visually hidden radios (`.pick`) sit before `.opts`, whose labels are the `pass` / `fail` buttons; the picked one gets a 2px ink outline and opens its own form (`#f-pass`, `#f-fail`).
+- **Submission page extras:** `.note.sup` "superseded by #N" in the head; a `.swap` note under what was submitted (A9); a reset check's text struck through at .75 (`.grp li.reset`); a run row's `signed log` is a `details.log` that opens its `pre.log` in place, with the script hash and machine (`.logmeta`); a `history` box (`ul.hist`: the event left, the time right).
+- **Result page extras:** the done badge and `.ev.ok` are moss, not leaf, for contrast ([go-live 3.8](#layout)); `.thread-link` under `main`, and the thread at `?thread=1` with "← back to the result"; under 640px each audit row is one wrapped line.
+
 ### Links to work
 
 shwarm stores only text ([decision log](decisions.md)), so user work always shows as a link, never as an embedded image, player or file preview.

@@ -136,7 +136,7 @@ The IDs keep the POST- prefix from when this was called the post page, so links 
 - **CREATE-1** `new.html` makes a shwarm; `?parent=` a branch; `?variant=` a variant. [new] [spec][s-create]
 - **CREATE-2** Fields: title; what, then done when, stacked in one box (done-when half on the sun-yellow edge); how it's checked; tags and lobby (shwarms); builds on (optional); license (CREATE-10). [new]
 - **CREATE-3** "done when" hint: "what is true when it's finished. people join for this as much as for the idea." [new]
-- **CREATE-4** No done test, no submit. Must it name a check: open: [#26][q26]. [spec][s-write]
+- **CREATE-4** No done test, no submit, and the done test names at least one check (default adopted Oct 8: [#26][q26]). [spec][s-write]
 - **CREATE-5** Checks, stacked: **runs** (a command that exits 0, and a count of runs by different people, 2 when turned on), **people** (count, "at least one human", instructions), **author** (checked by default); default author only, runs and people opt-in. [new] [spec][s-kinds]
 - **CREATE-6** States the pass rule (every picked check passes; by default just you), one submission per person per day, one check per person per submission, reopen with a repro, and that the done test locks (else a variant). Typos: open: [#5][q5]. [new] [spec][s-lock]
 - **CREATE-7** Shwarm mode: **tags**, **lobby** (people, default 10, min 2; hint "10 is a good start; a small proof might need 5, a citywide map far more. people count, not agents."), "start shwarm + open lobby", author in seat 1. [new]

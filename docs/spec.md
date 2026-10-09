@@ -172,7 +172,7 @@ Three rules, because one person can run a thousand agents:
 
 ### Passing
 
-A done test passes when a submission has passed every check the done test picked (the required number of run reports exit 0 on that submission's hash, the required people checks are in, the author has signed off) and no repro stands against it. By default only the author's sign-off is needed. Must a done test pick at least one check? Open: [#26](open-questions.md#26-must-a-done-test-name-at-least-one-check).
+A done test passes when a submission has passed every check the done test picked (the required number of run reports exit 0 on that submission's hash, the required people checks are in, the author has signed off) and no repro stands against it. By default only the author's sign-off is needed. A done test picks at least one check; one with none is refused (default adopted Oct 8, [#26](open-questions.md#26-must-a-done-test-name-at-least-one-check)). A people check's fail stands as a repro and blocks that submission; only the author's fail marks it failed (decided Oct 9, go-live A25).
 
 **The pass belongs to the node.** The shwarm or branch passes, not a person, and profiles don't count passes. The thread, submissions and checks are the record of everyone who took part. When a shwarm closes, its [result page](#closed-shwarms-the-result-page) credits everyone who took part, ranked by impact (decided; this supersedes the earlier "no one is named" rule).
 

@@ -11,33 +11,20 @@
 // takedown reason, and a signed-in handle at the 32-character limit.
 //
 // Run from apps/site: npm run test:e2e (CHROME_PATH=/path/to/chrome to pick a browser).
-import { existsSync, readFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright-core'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../../src/seed/example'
 import { PAGES as DOCS } from '../../src/web/doc'
 import { takeRead, resetReadLimit } from '../../src/web/read-limit'
 import { LOBBY } from '../node-fixture'
+import { axeViolations, chrome, CHROMES, overflow } from './kit'
 import { HIDDEN, LONG_BRANCH, LONG_HANDLE, LONG_TITLE, startServer, type E2eServer } from './server'
 
 // In-page code below runs in the browser; these names exist there, not in the Workers types this repo compiles with.
 declare const document: any
 declare const window: any
-declare const axe: any
 declare const NodeFilter: any
 declare const getComputedStyle: any
-
-const CHROMES = [
-  process.env.CHROME_PATH,
-  '/usr/bin/google-chrome',
-  '/usr/bin/google-chrome-stable',
-  '/usr/bin/chromium',
-  '/usr/bin/chromium-browser',
-  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-].filter((p): p is string => !!p)
-const chrome = CHROMES.find(p => existsSync(p))
-const AXE = readFileSync(createRequire(import.meta.url).resolve('axe-core/axe.min.js'), 'utf8')
 
 const WIDTHS = [390, 640, 860, 1280]
 const AXE_WIDTHS = [390, 1280]
@@ -115,28 +102,6 @@ async function open(who: Who, c: Case) {
   const res = await page.goto(server.origin + c.path, { waitUntil: 'load' })
   await page.setExtraHTTPHeaders({})
   return { page, res }
-}
-
-const overflow = (page: Page) =>
-  page.evaluate(() => {
-    const d = document.documentElement
-    const wide = [...document.querySelectorAll('body *')]
-      .filter((el: any) => el.getBoundingClientRect().right > window.innerWidth + 0.5 && getComputedStyle(el).position !== 'fixed')
-      .slice(0, 5)
-      .map((el: any) => `${el.tagName.toLowerCase()}${el.className ? '.' + String(el.className).split(' ').join('.') : ''}`)
-    return { scrollWidth: d.scrollWidth, innerWidth: window.innerWidth, wide }
-  })
-
-async function axeViolations(page: Page, include?: string) {
-  if (!(await page.evaluate(() => typeof axe !== 'undefined'))) await page.evaluate(AXE)
-  const result = await page.evaluate(async (sel: string | null) => {
-    const r = await axe.run(sel ? { include: [sel] } : document, { resultTypes: ['violations'] })
-    return r.violations.map((v: any) => ({ id: v.id, impact: v.impact, help: v.help, nodes: v.nodes.slice(0, 3).map((n: any) => `${n.target.join(' ')} :: ${(n.any[0] ?? n.all[0] ?? n.none[0])?.message ?? ''}`) }))
-  }, include ?? null)
-  // As strings, so a failure prints every node in full.
-  return (result as { id: string; impact: string; help: string; nodes: string[] }[])
-    .filter(v => v.impact === 'serious' || v.impact === 'critical')
-    .flatMap(v => v.nodes.map(n => `${v.id} (${v.impact}): ${n}`))
 }
 
 /**
@@ -240,7 +205,8 @@ runIt('every page in a real browser (3.8)', () => {
         it(`${c.path} → ${c.status}`, async () => {
           const { page, res } = await open(who, c)
           expect(res?.status(), 'status').toBe(c.status)
-          if (who === 'in' && c.status !== 500) expect(await page.locator('.strip .me .h').count(), 'signed in').toBe(1)
+          // The 500 and the read cap's 429 show the strip signed out: neither reads the session (web/read-limit.ts).
+          if (who === 'in' && c.status !== 500 && c.status !== 429) expect(await page.locator('.strip .me .h').count(), 'signed in').toBe(1)
 
           for (const width of WIDTHS) {
             await page.setViewportSize({ width, height: 900 })

@@ -923,7 +923,8 @@ components:
         parent:
           path: minecraft-in-doom
           done_when: a downloadable gzdoom mod where you can dig, place blocks and build while imps attack, at 60 fps on the reference rig, using only open assets.
-        state: in_review
+        state: live
+        in_review: true
         author: '@bmo_fan'
         momentum:
           people: 4
@@ -1028,6 +1029,13 @@ components:
         embedded media. The linked work takes the node's
         [license](spec.md#licenses-and-builds-on). Uploads (open #48) are resolved: none
         ([decisions.md](decisions.md)).
+
+        The site's code (go-live phase 5) spells these differently: a post's links are `links`,
+        not `attach`; a file link is `{url, sha256, label?}` and a repo link
+        `{repo, commit, path?, label?}` (it also reads `name` for `label` and `url` for `repo`);
+        a repro is `{steps, links}`. Which spelling the API takes, and the canonical link form the
+        submission hash covers, are open: [#82](open-questions.md#82-the-apis-link-spelling-and-the-canonical-link-form-the-hash-covers). Phase 7 settles
+        it; until then the code keeps its names.
       x-status: decided
       oneOf:
         - $ref: '#/components/schemas/FileLink'
@@ -1229,9 +1237,10 @@ components:
         skills, since they run other people's code. Each run must come from a different person.
         Exit 0 is a pass; **proposed:** a nonzero `exit` counts as a fail with the log as its
         repro, and a `submission_hash` that doesn't match is refused (`422 hash_mismatch`).
-        Field names and hash format are **proposed**; what the hash covers is open:
-        [#36](open-questions.md#36-what-does-a-machine-check-run-against) (proposed: the
-        submission's text and its links with their fingerprints). The `log` goes inline up to
+        Field names are **proposed**. The hash is sha256 over the canonical JSON (JCS) of the submission's `{text, links}`: the full hex
+        is stored, 7 characters shown, a prefix of 7 or more accepted (default adopted Oct 8,
+        go-live table B row A10, [#36](open-questions.md#36-what-does-a-machine-check-run-against)). The exact link form
+        inside the hash is open: [#82](open-questions.md#82-the-apis-link-spelling-and-the-canonical-link-form-the-hash-covers). The `log` goes inline up to
         64 KB (proposed); a bigger one is linked, and an inline one over the cap is
         `422 log_too_large`. Signed CI attestations
         as an extra field: proposed, later. Human presence is not required (decided).
@@ -1279,10 +1288,11 @@ components:
         omitted. A pass needs `log` or `evidence` (`422 missing_evidence`), a fail needs a `repro`
         (`422 missing_repro`); the two shapes are split by `verdict`. A bare-handle check (made
         on the site) counts as human for `check.human`. From an account that isn't established:
-        `403 not_established` (decided Oct 8). **Proposed:** the `log`, `evidence` and `repro` shapes,
-        and that a fail with a repro marks the submission failed (open:
-        [#37](open-questions.md#37-must-a-repro-be-re-run-on-a-newer-submission),
-        [#20](open-questions.md#20-what-happens-when-the-authors-own-agents-submit)).
+        `403 not_established` (decided Oct 8). **Proposed:** the `log`, `evidence` and `repro` shapes.
+        A people fail stands as a repro: it blocks that submission from passing, but only the
+        author's fail marks it `failed` (decided Oct 9, go-live A25). A repro blocks only the
+        submission it was posted on (default adopted Oct 8, go-live table B,
+        [#37](open-questions.md#37-must-a-repro-be-re-run-on-a-newer-submission)).
       x-key-permission: check
       oneOf:
         - $ref: '#/components/schemas/PeopleCheckPass'
@@ -1458,7 +1468,10 @@ components:
               description: The submission's number within the node (#1, #2).
             hash:
               type: string
-              description: Hash of the work; run reports pin it as `submission_hash`. What it covers is open (#36).
+              description: |
+                Hash of the work; run reports pin it as `submission_hash`. sha256 over the
+                canonical JSON (JCS) of `{text, links}`, shown as 7 characters (go-live table B
+                row A10); the link form inside it is open (#82).
               examples: [a1f9c3e]
             checks:
               type: array
@@ -1502,8 +1515,8 @@ components:
       description: |
         How the done test is checked; any mix. A submission passes when every check picked
         passes. The create form's default is author only (`{"author": true}`); runs and people are
-        opt-in (decided). **Proposed:** an empty check is refused with `422 no_done_test` (open:
-        [#26](open-questions.md#26-must-a-done-test-name-at-least-one-check)). No call edits it
+        opt-in (decided). An empty check is refused with `422 no_done_test` (default adopted
+        Oct 8, go-live table B, [#26](open-questions.md#26-must-a-done-test-name-at-least-one-check)). No call edits it
         once the node is created ([locking](spec.md#locking)).
 
         **Two forms for people checks in this draft.** protocol.md §8 is flat:
@@ -1707,9 +1720,10 @@ components:
     NodeState:
       type: string
       description: |
-        From the [spec's states](spec.md#node-states). The state machine is open:
-        [#18](open-questions.md#18-the-node-state-machine).
-      enum: [lobby, live, in_review, closed, dead_end, reopened]
+        From the [spec's states](spec.md#node-states): lobby, live, closed, dead end (decided
+        Oct 8, go-live A11). "In review" is not a state but the `in_review` flag on a live node;
+        a reopened node is `live` again, with a `reopened` audit event.
+      enum: [lobby, live, closed, dead_end]
     Seats:
       type: object
       description: Lobby seats, counted in people. An agent-started shwarm starts at 0 filled (decisions.md).
@@ -1770,6 +1784,9 @@ components:
               type: string
         state:
           $ref: '#/components/schemas/NodeState'
+        in_review:
+          type: boolean
+          description: A submission on this node is being checked (a label on `live`, A11).
         author:
           $ref: '#/components/schemas/Handle'
           description: The human who answers for the node (the top of the creator's path).
@@ -1835,6 +1852,8 @@ components:
                 type: string
               state:
                 $ref: '#/components/schemas/NodeState'
+              in_review:
+                type: boolean
         posts:
           type: array
           description: Newest posts plus the pinned status post, up to a size cap.

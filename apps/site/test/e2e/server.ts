@@ -4,17 +4,28 @@
 // Test-only switches, read from request headers so a browser page can set them:
 //   x-e2e-ip: the client address the app sees (cf-connecting-ip), so a test can drain one network's read bucket.
 //   x-e2e-db: 'broken' gives the request a database whose every query throws, to reach the 500 page.
+//   x-e2e-session: a session token, sent on as the session cookie. A __Host- cookie can't be set on http://localhost,
+//     and Chrome drops a cookie header set by hand when it follows a redirect, so a form's 303 would land signed out.
+//
+// Two worlds: startServer() for the page suite, startLoopServer() for the whole loop (go-live 5.8): four accounts
+// with passwords, and a hook that posts a run report through core, since signed `shwarm run` reports need phase 7.
+// Triage answers through a stand-in model that clears everything, so a new shwarm goes public as on staging.
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { readFile, stat } from 'node:fs/promises'
 import type { AddressInfo } from 'node:net'
 import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import app from '../../src/index'
+import { hashPassword } from '../../src/auth/password'
 import { COOKIE, createSession } from '../../src/auth/session'
+import { keyActor } from '../../src/core/actor'
+import type { CheckInput, CheckResult } from '../../src/core/checking'
+import { runInTree } from '../../src/do/shwarm-tree'
 import { rollupStats } from '../../src/jobs/stats'
 import { EXAMPLE_ROOT } from '../../src/seed/example'
+import { CATEGORIES } from '../../src/triage/rubric'
 import { addPerson, T0 } from '../d1'
-import { testEnv } from '../browser'
+import { GOOD_PASSWORD, pepper, testEnv } from '../browser'
 import { stagingWorld } from '../node-fixture'
 
 const STATIC = fileURLToPath(new URL('../../static/', import.meta.url))
@@ -68,6 +79,8 @@ async function toRequest(req: IncomingMessage, origin: string): Promise<Request>
   const headers = new Headers()
   for (const [k, v] of Object.entries(req.headers)) if (v !== undefined) headers.set(k, Array.isArray(v) ? v.join(', ') : v)
   headers.set('cf-connecting-ip', String(req.headers['x-e2e-ip'] ?? '127.0.0.1'))
+  const sid = req.headers['x-e2e-session']
+  if (typeof sid === 'string') headers.set('cookie', [headers.get('cookie'), `${COOKIE}=${sid}`].filter(Boolean).join('; '))
   const chunks: Buffer[] = []
   for await (const c of req) chunks.push(c as Buffer)
   const body = chunks.length && req.method !== 'GET' && req.method !== 'HEAD' ? Buffer.concat(chunks) : undefined
@@ -93,19 +106,30 @@ async function send(r: Response, res: ServerResponse) {
   res.end(r.body ? Buffer.from(await r.arrayBuffer()) : undefined)
 }
 
-export type E2eServer = { origin: string; cookie: { name: string; value: string }; longCookie: { name: string; value: string }; db: Awaited<ReturnType<typeof world>>['db']; close(): Promise<void> }
+type Cookie = { name: string; value: string }
+type Db = Awaited<ReturnType<typeof stagingWorld>>['db']
 
-/** Starts the server on a free port of localhost. `cookie` signs a browser in as @myra (verified), `longCookie` as LONG_HANDLE. */
-export async function startServer(): Promise<E2eServer> {
-  const { db, myraId, longId } = await world()
-  const env = { ...testEnv(db), MAIL_SECRET: 'e2e-mail-secret' } // so /unsubscribe reads its token (a bad one is a 400)
-  const token = await createSession(db, myraId, { ip: '127.0.0.1', ua: 'e2e' })
-  const longToken = await createSession(db, longId, { ip: '127.0.0.1', ua: 'e2e' })
+/** A stand-in for the triage model (Workers AI's Clef): every node is clear ("no" to the hard-block question). */
+const clearingModel = {
+  run: async () => ({
+    model: 'clef-flash',
+    answers: {
+      hard_block: { type: 'choice', choice: 'no', probabilities: { yes: 0.02, no: 0.96, unsure: 0.02 }, confidence: 0.96 },
+      ...Object.fromEntries(CATEGORIES.map(c => [c, { type: 'noul', noul: 0.01 }])),
+    },
+  }),
+} as unknown as Ai
+
+/** The app over node:http on a free port of localhost, on `db`. */
+async function serve(db: Db) {
+  // MAIL_SECRET, so /unsubscribe reads its token (a bad one is a 400)
+  const env = { ...testEnv(db), MAIL_SECRET: 'e2e-mail-secret', AI: clearingModel }
   let origin = ''
   const server = createServer(async (req, res) => {
     try {
       const path = (req.url ?? '/').split('?')[0]
       if (req.method === 'GET' && path !== '/' && (await sendStatic(path, res))) return
+      // waitUntil does nothing: the work handed to it (triage, mail) is already running, and finishes on its own.
       const ctx = { waitUntil() {}, passThroughOnException() {} }
       const e = req.headers['x-e2e-db'] === 'broken' ? { ...env, DB: brokenDb } : env
       await send(await app.fetch(await toRequest(req, origin), e, ctx as unknown as ExecutionContext), res)
@@ -115,12 +139,70 @@ export async function startServer(): Promise<E2eServer> {
   })
   await new Promise<void>(ok => server.listen(0, '127.0.0.1', ok))
   origin = `http://localhost:${(server.address() as AddressInfo).port}`
+  return { origin, env, close: () => new Promise<void>(ok => server.close(() => ok())) }
+}
+
+const session = async (db: Db, personId: number): Promise<Cookie> => ({ name: COOKIE, value: await createSession(db, personId, { ip: '127.0.0.1', ua: 'e2e' }) })
+
+export type E2eServer = { origin: string; cookie: Cookie; longCookie: Cookie; db: Db; close(): Promise<void> }
+
+/** Starts the page suite's server. `cookie` signs a browser in as @myra (verified), `longCookie` as LONG_HANDLE. */
+export async function startServer(): Promise<E2eServer> {
+  const { db, myraId, longId } = await world()
+  const s = await serve(db)
+  return { origin: s.origin, db, cookie: await session(db, myraId), longCookie: await session(db, longId), close: s.close }
+}
+
+/** The loop's four accounts (go-live 5.8): the author, someone who submits, a people checker, someone whose agent runs the check. */
+export const LOOP_PEOPLE = ['myra', 'submitter', 'checker', 'runner'] as const
+export type LoopPerson = (typeof LOOP_PEOPLE)[number]
+/** Every loop account's password, for the author's inline step-up at the sign-off. */
+export const LOOP_PASSWORD = GOOD_PASSWORD
+
+/** The staging world plus the loop's three other accounts: verified and founding (so established, A6), with passwords. */
+async function loopWorld() {
+  const { db, myraId } = await stagingWorld()
+  const hash = await hashPassword(LOOP_PASSWORD, pepper, 1000)
+  const ids = { myra: myraId } as Record<LoopPerson, number>
+  db.raw.prepare('UPDATE person SET password_hash = ? WHERE id = ?').run(hash, myraId)
+  for (const handle of LOOP_PEOPLE.slice(1)) {
+    ids[handle] = await addPerson(db, handle, { hash })
+    db.raw.prepare('UPDATE person SET email_verified_at = ?, founding = 1 WHERE id = ?').run(new Date(T0).toISOString(), ids[handle])
+  }
+  return { db, ids }
+}
+
+export type LoopServer = {
+  origin: string
+  db: Db
+  /** A session token for each account, for the x-e2e-session header. */
+  sessions: Record<LoopPerson, string>
+  /**
+   * A passing run report on submission #`number` of `path`, from @`by`'s agent (@by/r-01), through the shwarm tree and
+   * core as a signed one will go (go-live 5.8: signed runs need phase 7, so the loop inserts its run through core).
+   */
+  runReport(path: string, number: number, by: LoopPerson): Promise<CheckResult>
+  close(): Promise<void>
+}
+
+export async function startLoopServer(): Promise<LoopServer> {
+  const { db, ids } = await loopWorld()
+  const s = await serve(db)
+  const sessions = {} as Record<LoopPerson, string>
+  for (const h of LOOP_PEOPLE) sessions[h] = (await session(db, ids[h])).value
   return {
-    origin,
+    origin: s.origin,
     db,
-    cookie: { name: COOKIE, value: token },
-    longCookie: { name: COOKIE, value: longToken },
-    close: () => new Promise<void>(ok => server.close(() => ok())),
+    sessions,
+    runReport: async (path, number, by) => {
+      const sub = db.raw
+        .prepare('SELECT s.post_id, s.hash FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ? AND s.number = ?')
+        .get(path, number) as { post_id: string; hash: string }
+      const actor = keyActor({ id: ids[by], handle: by }, `@${by}/r-01`, { id: `${by}-key`, canPostAs: `@${by}/*`, grants: [{ node: path, perms: ['read', 'check'] }] })
+      const input: CheckInput = { node: path, on: sub.post_id, slot: 'run', submissionHash: sub.hash.slice(0, 7), scriptHash: '5d02b7e', exit: 0, log: 'check.sh: 3 of 3 cases pass\nexit 0', env: 'linux, e2e' }
+      return runInTree<CheckResult>(s.env.TREE, { type: 'check', actor, input })
+    },
+    close: s.close,
   }
 }
 

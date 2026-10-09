@@ -1,6 +1,6 @@
 # Triage eval
 
-Results of sending test proposals to the triage model (go-live [0.9](go-live.md#phase-0-accounts-and-decisions-2-days) and [9.1](go-live.md#phase-9-trust-and-safety)). The calls went through the staging Workers AI binding with rubric r1. Nothing was written to the database and no mail was sent.
+Results of sending test proposals to the triage model (go-live [0.9](go-live.md#phase-0-accounts-and-decisions-2-days) and [9.1](go-live.md#phase-9-trust-and-safety-5-days)). The calls went through the staging Workers AI binding with rubric r1. Nothing was written to the database and no mail was sent.
 
 A bad case passes when the model answers yes or unsure, so it is held for Myra. A good case passes when the model answers no, so it goes public.
 

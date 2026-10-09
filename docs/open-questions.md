@@ -88,6 +88,10 @@ Blank lean means none yet.
 |76|The check form, sign-off and dead-end words|keep the built words for the beta|
 |77|The branch and variant form's extras|keep the built ones for the beta|
 |78|Upvote and pinned-post edges|the built defaults (proposed)|
+|79|Re-pitch, late join, delete and "make it a branch" edges|the built defaults (proposed)|
+|80|Limit gaps found by the limit tests||
+|81|The result page and the audit log's edges|the built defaults (proposed)|
+|82|The API's link spelling and the canonical link form the hash covers|settle in phase 7; the code keeps its names until then (proposed)|
 
 ## Questions
 
@@ -461,3 +465,7 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 ## Resolved
 
 All resolved questions are in the [decision log](decisions.md).
+
+### 82. The API's link spelling and the canonical link form the hash covers
+**Question.** Which field names does the API take for links, and what exact link form goes into the submission hash? **Why it matters.** [protocol §6–7](protocol.md#links-not-files) and [openapi.yaml](openapi.yaml) say `attach`, a file link `{url, sha256, name?}`, a repo link `{url, commit, name?}`, and a repro `{steps, attach}`. The site's code (go-live phase 5, `apps/site/src/core/text.ts` parseLinks) takes `links`, a file link `{url, sha256, label?}`, a repo link `{repo, commit, path?, label?}` (it also reads `name` for `label` and `url` for `repo`), and a repro `{steps, links}`. The submission hash (go-live table B row A10) is sha256 over the canonical JSON (JCS) of `{text, links}`, so the field names, and whether a label is part of it, change every hash. A runner who computes the hash to check it needs one canonical form, and v0 freezes the API.
+**Options.** the docs take the code's spelling (`links`, `label`, `repo`, `path`); the code takes the docs' spelling before v0; accept both on input and hash one canonical form (for example names normalized and labels left out, so relabeling a link doesn't change the hash). **Lean.** settle it in phase 7's API work; until then the code keeps its names and the docs carry a note (proposed, [decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations)).
