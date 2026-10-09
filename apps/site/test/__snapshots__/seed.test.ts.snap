@@ -32,7 +32,7 @@ exports[`mapping the launch list > snapshots of a few mapped entries > bot-beats
       "benchmarks",
     ],
     "title": "a bot that beats freedoom",
-    "what": "in the 2025 videogamebench test, the best ai models barely got out of the first room of doom ii. vizdoom lets a bot see the screen plus a few helper views like a depth map. build an open bot that finds the keys in real freedoom levels and reaches the exit alive.
+    "what": "people keep saying ai can do almost anything, and a bot that plays a whole doom level is a simple, public way to check. it's also fun to watch. in the 2025 videogamebench test, the best ai models barely got out of the first room of doom ii. vizdoom lets a bot see the screen plus a few helper views like a depth map. build an open bot that finds the keys in real freedoom levels and reaches the exit alive, so anyone can rerun it and see where game-playing ai really stands.
 
 why now: vizdoom 1.3.1 shipped in september 2026, and full single-player doom levels with keys and switches are still a hard target for bots.",
   },
@@ -244,7 +244,7 @@ exports[`mapping the launch list > snapshots of a few mapped entries > minecraft
     ],
     "title": "minecraft in doom: survival",
     "variantOf": "minecraft-in-doom",
-    "what": "you get hungry, and when night falls monsters spawn wherever it's dark, so a lit shelter is the line between dawn and a respawn. this variant of minecraft in doom keeps the same goal and gives you a reason to build.
+    "what": "this one is for fun. survival is what gives building a point: you get hungry, and when night falls monsters spawn wherever it's dark, so a lit shelter is the line between dawn and a respawn. this variant of minecraft in doom keeps the same goal and gives you a reason to build.
 
 why now: a variant that can start as soon as the parent's block engine holds up; we found no survival block mod for any doom port.",
   },
