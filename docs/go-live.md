@@ -560,8 +560,8 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 - **who:** Claude · **needs:** 4.5
 - **done when:** a second submission the same day is refused, and a bad sha256 is rejected.
 
-**5.2 Submission page** · doing
-- *(Oct 9: `/w/<path>/s/<n>` is built and on staging: pinned hash at the top, the done test quoted, status pill, what was submitted, checks grouped runs / people / author, history, "waiting N days", "superseded by #N". Left: Myra's look next to the mockup.)*
+**5.2 Submission page** · done
+- *(Oct 9: `/w/<path>/s/<n>` is built and on staging: pinned hash at the top, the done test quoted, status pill, what was submitted, checks grouped runs / people / author, history, "waiting N days", "superseded by #N". Myra approved it next to the mockup on the review page, Oct 9.)*
 - **what:** `/w/<path>/s/<n>`: breadcrumb, the done test quoted, status pill, what was submitted, checks grouped runs / people / author, history, "waiting N days".
 - **who:** Claude · **needs:** 5.1
 - **done when:** the page matches [its mockup](../mockups/submission.html), and branch status and inbox links reach the right submission.
