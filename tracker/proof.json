@@ -1,0 +1,264 @@
+{
+  "bot-beats-freedoom": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T00:39:29.767Z"
+    }
+  ],
+  "kart-race-on-the-moon": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T00:40:16.567Z"
+    }
+  ],
+  "minecraft-in-doom": [
+    {
+      "from": "myra",
+      "choice": "question",
+      "text": "this should be a block for block recreation of the first episode of doom. steve is the doom guy, and he holds the gun. a total trip. other ideas?",
+      "at": "2026-10-09T00:42:04.843Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "love it, and it's a sharper finish line. one snag: doom's own episode 1 maps and minecraft's steve belong to id and mojang, and every shwarm has to be open (rule 2), so a block-for-block copy of e1 with steve can't pass the license scan. same trip, open version: rebuild freedoom phase 1, episode 1 (its own 9 maps, bsd licensed, same layout spirit as doom e1) block for block in uzdoom, and you play a blocky marine in steve's spirit, holding a blocky shotgun. other ideas, pick any: (a) a creeper-style monster built from freedoom sprites that blows holes in the block walls, (b) every wall diggable, so you can tunnel past the level instead of through it, (c) build mode between waves: wall yourself in before the imps come. proposed done test: 'a downloadable uzdoom mod that rebuilds freedoom phase 1 maps 1 to 9 entirely from minable, placeable blocks, played as a blocky marine with a shotgun, every map finishable from a pistol start, at 60 fps on the reference rig, using only freedoom and other open assets.' say yes (or tweak it) and i'll rewrite the card. note: this is also the running example in every doc and mockup, so i'll update those to match.",
+      "at": "2026-10-09T00:43:15.927497+00:00"
+    }
+  ],
+  "a-year-of-earthquakes-played": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "no",
+      "at": "2026-10-09T00:42:31.667Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "got it: drop it from wave 1? it was one of the three shwarms with an author sign-off (a20). if you say yes, i'll move it out, promote a wave-2 shwarm in its place (suggest 'every freedoom map, proven beatable' or 'the bayeux tapestry in ascii'), and give the author check to another wave-1 shwarm so we still test sign-off three times. or tell me what to change instead.",
+      "at": "2026-10-09T00:43:15.979828+00:00"
+    },
+    {
+      "from": "myra",
+      "choice": "question",
+      "text": "it just doesnt feel like something that would require an entire shwarm. other ideas?",
+      "at": "2026-10-09T00:59:42.126Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "agreed, one person could do that in a weekend. bigger ideas that genuinely need a crowd, same earthquake spirit: (1) recommended, 'a seismograph in 100 homes': an open design for a home seismometer under $100 (a geophone or accelerometer plus a raspberry pi), built by people in their own houses in at least 10 countries, all streaming to one open map. done when: at least 100 home-built stations in 10+ countries stream to a public server, and the network detects at least 20 magnitude 4+ earthquakes that usgs also logs, each within 60 seconds of usgs's origin time, from the open data alone. it can still play the quakes as sound on the live map. that's hardware, software, and people everywhere: a real shwarm. (2) 'the dawn chorus of the world': people in 50 countries record the same 10 minutes of sunrise birdsong on the same day, and an open model names every species in every recording, checked against birdnet and human birders. (3) 'earthquake early warning for one city': phones and home sensors in one quake-prone city (e.g. lima or kathmandu) give a 5-second warning before shaking arrives, shown in a replay of a real quake. pick one (or none) and i'll write the full card. it keeps the author sign-off either way.",
+      "at": "2026-10-09T00:59:59.780580+00:00"
+    }
+  ],
+  "printer-motor-orchestra": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T00:43:07.808Z"
+    },
+    {
+      "from": "myra",
+      "choice": "question",
+      "text": "actually no. make multiple 3d printers TALK using TTS. like that piano that they programmed to talk",
+      "at": "2026-10-09T00:44:00.145Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "yes, much better. that's the peter ablinger move (his 'speaking piano' splits a voice into frequencies and has a robot hand play them). printers can do it the same way: break a recorded voice into its loudest frequencies every few milliseconds, give each stepper motor one of them, and the room says the words. proposed rewrite. title: 'printers that talk'. what: 'a stepper motor hums whatever pitch you spin it at, and every 3d printer has four. split a spoken sentence into its strongest frequencies, many times a second, hand one to each motor, and a room of printers can say words out loud. ablinger did it with a piano and a robot hand; nobody has done it with printers.' done when: 'an unedited single-take video shows at least 4 3d printers, making sound only with their own stepper motors, saying a public-domain sentence of at least 12 words, and the open whisper model (large-v3) transcribes the audio with a word error rate under 40%.' checked by: 1 run (whisper wer script on the recording) + 1 human who listens without the script first and writes down what they hear. tweaks welcome: the word count, the error rate, or a fixed sentence (e.g. 'daisy, daisy, give me your answer do', the first song a computer sang). say yes and i'll rewrite the card and its sources.",
+      "at": "2026-10-09T00:44:20.279012+00:00"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "correction: i wrote 'nobody has done it with printers' without checking. i'll search for prior talking-printer or stepper-motor speech projects before i write the final card, and say what i find.",
+      "at": "2026-10-09T00:44:26.427377+00:00"
+    },
+    {
+      "from": "myra",
+      "choice": "question",
+      "text": "again though, it doesnt seem like something that goes beyond what someone would be able to do with their max plan...thoughts?",
+      "at": "2026-10-09T01:00:32.430Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "you're right: one person with a few printers and a max plan could do the talking version alone. what makes it a shwarm is printers nobody owns alone. 'the printer choir': like eric whitacre's virtual choir, but with 3d printers in people's homes. each owner gets one voice part (a few frequencies of the same sentence or song), records their printer playing it to a shared click track, and the parts are lined up into one recording that speaks or sings. done when: at least 50 printers in at least 10 countries, each filmed unedited in its owner's home playing its own part, add up to one recording of a public-domain song (e.g. 'daisy bell', the first song a computer sang) that the open whisper model transcribes with under 30% word error, every part's video and g-code linked. that needs dozens of strangers with printers, which no single plan can buy. if that's still not it, drop it and i'll replace it. also: i'll re-read all 100 with your bar ('could one person with a max plan just do this?') and flag the ones that fail, so you don't have to catch them one by one.",
+      "at": "2026-10-09T01:00:50.096797+00:00"
+    }
+  ],
+  "mosquito-hearing-chip": [
+    {
+      "from": "myra",
+      "choice": "question",
+      "text": "why do we want to do this? are there species more dangerous than others? can you detect if they have malaria by how they sound?",
+      "at": "2026-10-09T00:47:52.115Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "good questions. why: malaria kills about 600,000 people a year, mostly young children in africa (who's yearly report), and dengue infects millions more. health teams fight it by knowing which mosquitoes are where and when, so they know where to spray and hand out nets. today that means trapping them and having an expert identify them under a microscope, which is slow and scarce. a $5 sensor that hears them could map that automatically, day and night. that's the point of the humbug project this builds on. which species: yes, hugely. of about 3,500 mosquito species, only some anopheles species carry malaria (and only the females bite). aedes aegypti carries dengue, zika and yellow fever; culex carries west nile. most species are harmless nuisances. can you hear malaria: not as far as i know. no reliable sound signature for infection has been shown; what sound can do is tell the species apart, and the species tells you the risk. so a sharper version of this shwarm: 'tell malaria-carrying anopheles apart from every other mosquito, on a $5 chip'. humbugdb has species labels for that. want me to rewrite it that way? i'd check the latest numbers and papers before writing the final card.",
+      "at": "2026-10-09T00:48:14.386897+00:00"
+    }
+  ],
+  "trappist-1-blind-search": [
+    {
+      "from": "myra",
+      "choice": "question",
+      "text": "has this not been done? if so, then hell yeah",
+      "at": "2026-10-09T00:48:40.497Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "honest answer: it has been done. luger et al. found the seventh planet's 18.77-day orbit in exactly this k2 data in 2017 (that's the paper the done test checks against), though they knew the inner six from spitzer first. so this shwarm is a rediscovery, not new science: can an open crew, starting from raw pixels and not peeking, find all seven on their own? the payoff is an open, step-by-step notebook anyone can learn planet hunting from, and a test of whether a crowd plus agents can redo a nature paper from scratch. if that's enough of a hell yeah, approve it and i'll make the pitch say 'rediscover' plainly so nobody thinks it's a new find. if you'd rather have something unsolved, say so and i'll look for an open, still-unanswered search in public telescope data to put in its place.",
+      "at": "2026-10-09T00:48:58.420189+00:00"
+    }
+  ],
+  "measure-the-earth-with-sticks": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "no",
+      "at": "2026-10-09T00:49:11.964Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "reading 'no' as: drop it from wave 1. i'll keep a list of drops and, when you're through wave 1, propose replacements from wave 2 for all of them at once. if you meant something else, say so here.",
+      "at": "2026-10-09T00:49:21.361686+00:00"
+    }
+  ],
+  "heesch-number-7": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T00:49:38.990Z"
+    }
+  ],
+  "beat-one-bound-in-taos-table": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T00:50:01.718Z"
+    }
+  ],
+  "beat-the-open-solar-forecast": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T00:50:43.484Z"
+    }
+  ],
+  "light-up-grey-zones": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T00:51:08.757Z"
+    }
+  ],
+  "pfas-in-your-tap": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T00:51:24.312Z"
+    }
+  ],
+  "where-the-grocery-stores-went": [
+    {
+      "from": "myra",
+      "choice": "question",
+      "text": "to what end?",
+      "at": "2026-10-09T00:52:14.948Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "to see which towns lost their grocery store, and when. when the last supermarket in a town closes, people drive 20 miles for food or live on dollar-store shelves, and that shows up in health and in who stays. today nobody has an open, year-by-year record of it: usda's food access atlas is a snapshot, and usda has stopped updating its snap data system. this table would let a local reporter write 'our county lost 4 of its 6 grocery stores since 2010', let a city council or nonprofit back a grant to bring one back, and let researchers line it up with health or population data. if the pitch doesn't make that clear, i can rewrite 'what' to lead with it (e.g. 'when a town's last grocery store closes, nobody keeps the record. usda's retailer file does, by accident...') and add a per-county page a reporter can quote. want that, or approve as is?",
+      "at": "2026-10-09T00:52:31.966405+00:00"
+    }
+  ],
+  "caption-vital-article-videos": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T00:52:43.684Z"
+    }
+  ],
+  "map-sherlock-holmes": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "no",
+      "at": "2026-10-09T00:53:04.787Z"
+    }
+  ],
+  "teach-latexml-25-packages": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T00:53:12.564Z"
+    }
+  ],
+  "rust-coreutils-last-tests": [
+    {
+      "from": "myra",
+      "choice": "question",
+      "text": "i dont get it but im not knowledgeable. rust rewrites of linux tools? anyway, they recently converted adobe tools to rust, we should convert all of linux to rust..?",
+      "at": "2026-10-09T00:54:22.421Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "plain version: every linux computer has a set of tiny commands (ls, cp, sort, cat\u2026) that nearly everything else runs on. they were written in c decades ago. uutils rewrote them in rust, which rules out whole classes of memory bugs, and ubuntu now ships it by default. it's almost there: it fails 51 of the original tools' 703 tests, each a small real bug. this shwarm closes most of them, so ubuntu's rust tools behave exactly like the old ones. on the adobe news: i can't confirm that one. on 'all of linux in rust': that's a great root shwarm, and a goal tree is exactly how shwarm handles something that big. the kernel already takes rust drivers, sudo has a rust rewrite (sudo-rs) and redox is a whole os written in rust. a checkable version: 'a bootable ubuntu image where coreutils, findutils, diffutils, sudo and the shell utilities are all rust, passing each original project's test suite at 99% or better.' this coreutils shwarm then becomes its first branch. want me to add that as a new shwarm with this one under it, or keep this one as is?",
+      "at": "2026-10-09T00:54:41.908929+00:00"
+    }
+  ],
+  "libreoffice-screen-reader-labels": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T00:54:48.679Z"
+    }
+  ],
+  "the-hand-drawn-world": [
+    {
+      "from": "myra",
+      "choice": "question",
+      "text": "i dont really get it. however, you could make this a hand drawn map of the world where people can submit their own drawn maps of their neighborhood and match it up to google maps or something.",
+      "at": "2026-10-09T00:46:29.595Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "fair, the pixel-tile version is abstract. yours is warmer: people draw their own neighborhood by hand, and it gets pinned to the real map. one change: match it to openstreetmap, not google maps (google's terms don't allow copying or overlaying like this; osm is open and made for it). proposed rewrite. title: 'the hand-drawn world'. what: 'everyone carries a map of their own neighborhood in their head. draw yours by hand, on paper or screen, the way you'd sketch it for a friend. we pin each drawing to openstreetmap at a few matching corners, so the sketches sit where they belong, and a world map grows out of the places people actually know.' done when: 'a public web map shows at least 30 hand-drawn neighborhood maps by 30 different people in at least 5 countries, each warped onto openstreetmap from at least 4 matching points with an average error under 25 meters, every drawing under an open license.' checked by: 1 run (script that recomputes each drawing's error from its matching points) + 1 human who opens the map and compares 10 random drawings with the street layout. the drawings live where the crew keeps them (e.g. wikimedia commons) and are linked, since shwarm holds only text. it keeps its author sign-off. say yes or tweak the numbers.",
+      "at": "2026-10-09T00:46:49.203483+00:00"
+    },
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:00:49.828Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "done: rewritten as 'the hand-drawn world' (new slug the-hand-drawn-world), with the done test above, author sign-off kept, osm and qgis/gdal as sources.",
+      "at": "2026-10-09T01:01:26.728721+00:00"
+    }
+  ]
+}

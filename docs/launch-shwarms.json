@@ -184,38 +184,41 @@
     "risk_notes": "public-domain scores only. long runs at odd speeds heat motors and drivers, so log temperatures. we checked and found no prior full clair de lune on printers, but short printer covers of other songs are common."
   },
   {
-    "slug": "hand-pixeled-world",
+    "slug": "the-hand-drawn-world",
     "wave": 1,
-    "title": "the hand-pixeled world",
+    "title": "the hand-drawn world",
     "category": "weird",
     "tags": [
+      "#maps",
       "#art",
-      "#pixel-art",
-      "#maps"
+      "#openstreetmap",
+      "#community"
     ],
-    "what": "cut a 2048 by 1024 pixel map of earth into 128 tiles and hand them out. you draw your coastlines pixel by pixel, from memory or from a reference, and the tiles snap back together into one world where each pixel is about 20 km.",
-    "done_when": "a 2048 by 1024 pixel world map made of 128 hand-drawn 128x128 tiles, from at least 32 different people, agrees with natural earth's land mask on at least 95% of pixels.",
+    "what": "everyone carries a map of their own neighborhood in their head. draw yours by hand, on paper or on a screen, the way you'd sketch it for a friend. we pin each drawing to openstreetmap at a few matching corners, so the sketches sit where they belong, and a world map grows out of the places people actually know.",
+    "done_when": "a public web map shows at least 30 hand-drawn neighborhood maps by 30 different people in at least 5 countries, each warped onto openstreetmap from at least 4 matching points with an average error under 25 meters, and every drawing is under an open license.",
     "checked_by": {
       "runs": {
-        "command": "python check_map.py world.png --mask ne_10m_land --min-agree 0.95",
+        "command": "python check_fit.py drawings/ (recomputes each drawing's average error at its matching points against openstreetmap and checks the counts: 30 drawings, 30 people, 5 countries, open licenses)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "check the tile ledger for 128 tiles and at least 32 people. spot check 20 tiles in their edit history to confirm hand-placed pixels, not a traced mask."
+        "instructions": "open the map and compare 10 random drawings with the openstreetmap street layout underneath. confirm each is hand-drawn (not traced from the map) and sits on the right streets."
       },
       "author": true
     },
     "lobby": 2,
-    "builds_on": "natural earth 1:10m land polygons, public domain: https://www.naturalearthdata.com/downloads/10m-physical-vectors/10m-land/",
+    "builds_on": "openstreetmap (odbl) https://www.openstreetmap.org, with map warping in gdal or qgis georeferencer (open source)",
     "sources": [
-      "https://www.naturalearthdata.com/downloads/10m-physical-vectors/10m-land/"
+      "https://www.openstreetmap.org/copyright",
+      "https://docs.qgis.org/latest/en/docs/user_manual/working_with_raster/georeferencer.html",
+      "https://gdal.org/programs/gdalwarp.html"
     ],
-    "why_now": "a hand-drawn world is a fun first shwarm: anyone can claim a tile in an evening, and the checker is ten lines of python.",
-    "size": "days",
-    "needs_humans": "pixel artists, and people who know their own coastline.",
-    "risk_notes": "ocean tiles can hold sea creatures as long as water stays in the water palette. disputed borders aren't drawn; it's land and sea only."
+    "why_now": "phones make it easy to photograph a paper sketch, and open georeferencing tools can pin it to real streets in minutes. a map of how people see their own streets doesn't exist anywhere.",
+    "size": "weeks",
+    "needs_humans": "people in many countries who will draw their own neighborhood by hand. that part can't be generated.",
+    "risk_notes": "drawings must be hand-made by the person who knows the place, not traced or generated, and shared under an open license (cc by or cc by-sa). drawings live where the crew keeps them (e.g. wikimedia commons) and are linked; shwarm holds only text. don't draw private details like someone's front door."
   },
   {
     "slug": "mosquito-hearing-chip",
