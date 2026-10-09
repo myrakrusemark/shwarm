@@ -1,6 +1,6 @@
 # Wording to approve
 
-New site wording from Oct 9 that no mockup had. Each line is live on staging. Mark changes inline or tell Claude; approved lines can be deleted from this list.
+New site wording from Oct 9 that no mockup had. **Reviewed by Myra on the review page (tracker/review.html), Oct 9: all approved, except these changes, which are queued:** the blocked banner says only "blocked. see the rules." (done); "where we are" becomes "status update"; lobby wording goes away (no lobby); the repro form and reopen controls go away (an ended shwarm is locked; continuing is "build on"); variant wording goes away.
 
 ## 9.1: triage
 

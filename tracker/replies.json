@@ -304,8 +304,680 @@
     {
       "from": "claude",
       "choice": "answer",
-      "text": "recorded: all yes (Oct 9, in chat). A21\u2013A25 decided; privacy page now mentions the two form cookies.",
+      "text": "recorded: all yes (Oct 9, in chat). A21–A25 decided; privacy page now mentions the two form cookies.",
       "at": "2026-10-09T00:27:23.644263+00:00"
+    }
+  ],
+  "r:repro-or-build-on": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "build on with the same done test, shown as \"challenged by\" on the result page (recommended)",
+      "at": "2026-10-09T23:02:31.028Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "recorded in decisions.md. i'll take out reopen-on-repro and add the same-done-test build on plus the \"challenged by\" line once the phase 6/7 round finishes.",
+      "at": "2026-10-09T23:02:44.030388+00:00"
+    }
+  ],
+  "r:passed-branch-page": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "keep: normal page with passed pill and proof (recommended)",
+      "at": "2026-10-09T23:02:55.703Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "recorded as decided. nothing to change: that's how it's built.",
+      "at": "2026-10-09T23:03:04.602966+00:00"
+    }
+  ],
+  "r:milestones": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "rename to \"key events\" with that fixed set (recommended)",
+      "at": "2026-10-09T23:03:04.059Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "recorded. the rename and the fixed set go in with the next fixes, after the phase 6/7 round.",
+      "at": "2026-10-09T23:03:15.559357+00:00"
+    }
+  ],
+  "r:copy-new-shwarm": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:03:53.475Z"
+    }
+  ],
+  "r:copy-new-branch": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:04:07.896Z"
+    }
+  ],
+  "r:copy-new-builds-on": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:04:19.236Z"
+    }
+  ],
+  "r:copy-node-being-checked": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "dont worry about this. we will be getting rid of lobbies",
+      "at": "2026-10-09T23:04:48.194Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "ok, skipping it. the lobby wording goes away with 8.1 (no lobby).",
+      "at": "2026-10-09T23:04:55.111203+00:00"
+    }
+  ],
+  "r:copy-owner-repitch": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:05:24.316Z"
+    }
+  ],
+  "r:copy-owner-repitch-refused": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:05:31.466Z"
+    }
+  ],
+  "r:copy-repitch-history": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:05:39.756Z"
+    }
+  ],
+  "r:copy-node-blocked": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:05:44.967Z"
+    },
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "just say ots blocked. we dont have agents to answer this way",
+      "at": "2026-10-09T23:06:04.878Z"
+    },
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "and refer the user to The Rules",
+      "at": "2026-10-09T23:06:17.865Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "done: it now says \"blocked. see the rules.\" with a link, and nothing else. on staging after the next deploy.",
+      "at": "2026-10-09T23:07:44.295071+00:00"
+    }
+  ],
+  "r:copy-owner-dead-end": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:06:31.752Z"
+    }
+  ],
+  "r:copy-owner-reopen": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "reopening or continuing an ended shwarm is always \"build on\"",
+      "at": "2026-10-09T23:07:00.053Z"
+    },
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "no need to pin it as something. when a shwarn ends, it's locked",
+      "at": "2026-10-09T23:07:31.950Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "recorded: nothing reopens. a dead end or a passed shwarm carries on only through \"build on\", so build on will accept dead ends too, and the author's reopen button comes out. queued with the variant removal.",
+      "at": "2026-10-09T23:07:44.492646+00:00"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "got it: an ended shwarm (passed or dead end) is locked. no compose box, no pin, no posts, edits, joins, submissions or checks. recorded, and queued with the other changes.",
+      "at": "2026-10-09T23:08:03.823491+00:00"
+    }
+  ],
+  "r:copy-late-join": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "no more lobby. so people will always just join",
+      "at": "2026-10-09T23:08:06.510Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "noted. one question: lobby removal (8.1) is parked until after launch. since i'm about to take variants out anyway, i could take lobbies out in the same pass, so beta testers never see them. want that? (yes/no here is enough.)",
+      "at": "2026-10-09T23:08:15.890133+00:00"
+    }
+  ],
+  "r:copy-compose-pin": [
+    {
+      "from": "myra",
+      "choice": "question",
+      "text": "where we are? how about, \"status update\"",
+      "at": "2026-10-09T23:09:05.715Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "good name. i'll rename \"where we are\" to \"status update\" everywhere: the site, the mockups and the docs. queued with the other changes.",
+      "at": "2026-10-09T23:09:15.053682+00:00"
+    }
+  ],
+  "r:copy-pinned-edit-form": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:09:17.842Z"
+    }
+  ],
+  "r:copy-pinned-post": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:09:25.263Z"
+    },
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:09:27.333Z"
+    }
+  ],
+  "r:copy-own-post-edit-delete": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:09:36.875Z"
+    }
+  ],
+  "r:copy-thread-edited-deleted-upvoted": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:09:41.474Z"
+    }
+  ],
+  "r:copy-thread-signed-out-upvote": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "yes must be signed in to interact with content",
+      "at": "2026-10-09T23:10:03.300Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "that's how it works now: signed out, the upvote (and every other act) sends you to sign in and back. reading stays open to everyone.",
+      "at": "2026-10-09T23:10:10.392407+00:00"
+    }
+  ],
+  "r:copy-compose-submit-mode": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:10:19.303Z"
+    }
+  ],
+  "r:copy-submit-refused": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:10:32.847Z"
+    }
+  ],
+  "r:copy-submission-as-submitter": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:10:47.962Z"
+    }
+  ],
+  "r:copy-submission-check-form": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:10:58.026Z"
+    }
+  ],
+  "r:copy-check-refused": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:11:09.059Z"
+    }
+  ],
+  "r:copy-live-submission-author": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:11:19.582Z"
+    }
+  ],
+  "r:copy-submission-author-waiting": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:11:27.551Z"
+    }
+  ],
+  "r:copy-signoff-pass-password": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:11:33.060Z"
+    }
+  ],
+  "r:copy-signoff-refused": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:11:37.192Z"
+    }
+  ],
+  "r:copy-node-waiting-on-you": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:11:45.330Z"
+    }
+  ],
+  "r:copy-node-waiting-on-author": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:11:51.161Z"
+    }
+  ],
+  "r:copy-submission-waiting-on-author": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:11:55.940Z"
+    }
+  ],
+  "r:copy-submission-after-author-fail": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:11:59.328Z"
+    }
+  ],
+  "r:copy-submission-approved": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:12:02.852Z"
+    }
+  ],
+  "r:copy-submission-repro-form": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "not a repro. any challenge is a build on",
+      "at": "2026-10-09T23:12:25.847Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "agreed, and already decided: this repro form comes out. on a passed shwarm the only way forward is \"build on this\", with the same done test filled in.",
+      "at": "2026-10-09T23:12:31.871015+00:00"
+    }
+  ],
+  "r:copy-result-page": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:12:32.996Z"
+    }
+  ],
+  "r:copy-result-log": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:12:44.594Z"
+    }
+  ],
+  "r:copy-closed-thread-view": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:12:47.631Z"
+    }
+  ],
+  "r:copy-author-gone-operator-signoff": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:12:58.780Z"
+    }
+  ],
+  "r:copy-branch-passed": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:13:03.491Z"
+    }
+  ],
+  "r:copy-submission-operator-row": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:13:09.716Z"
+    }
+  ],
+  "r:copy-email-sign-off-ready": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:13:19.651Z"
+    }
+  ],
+  "r:copy-email-sign-off-only-check": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:13:26.549Z"
+    }
+  ],
+  "r:copy-email-sign-off-author-gone": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:13:33.169Z"
+    }
+  ],
+  "r:copy-triage-banners": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:13:49.285Z"
+    }
+  ],
+  "r:copy-triage-new-note": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:14:07.593Z"
+    }
+  ],
+  "r:copy-triage-alert-email": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:14:22.381Z"
+    }
+  ],
+  "r:copy-triage-rubric": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:14:26.975Z"
+    }
+  ],
+  "r:copy-rest-core-refusals": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:14:31.395Z"
+    },
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:14:38.874Z"
+    }
+  ],
+  "r:copy-rest-submit": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:14:44.137Z"
+    }
+  ],
+  "r:copy-rest-checks": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:14:46.895Z"
+    }
+  ],
+  "r:copy-rest-branch-variant": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:14:49.201Z"
+    }
+  ],
+  "r:copy-rest-pin-upvote": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:14:51.450Z"
+    }
+  ],
+  "r:copy-rest-repitch-delete": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:14:56.679Z"
+    }
+  ],
+  "r:copy-rest-limits": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:14:58.842Z"
+    }
+  ],
+  "r:copy-rest-result": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:15:01.027Z"
+    }
+  ],
+  "r:submission-page-5-2": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:15:08.118Z"
+    }
+  ],
+  "r:branch-variant-create-form": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:15:17.202Z"
+    }
+  ],
+  "r:repitch-late-join-edit-delete-make-branch": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "skip, no more lobby",
+      "at": "2026-10-09T23:15:37.949Z"
+    }
+  ],
+  "r:repitch-history-visibility": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "no more lobby",
+      "at": "2026-10-09T23:15:56.629Z"
+    }
+  ],
+  "r:upvotes-and-pinned-post": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:16:03.777Z"
+    }
+  ],
+  "r:limit-tests-three-gaps": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:16:11.993Z"
+    }
+  ],
+  "r:repeat-304-no-d1-read": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:16:18.253Z"
+    }
+  ],
+  "r:phase-5-core-defaults": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:16:23.638Z"
+    }
+  ],
+  "r:submit-form-and-submission-page": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:16:29.096Z"
+    }
+  ],
+  "r:check-form-signoff-dead-end": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:16:34.282Z"
+    }
+  ],
+  "r:signoff-nobody-can-make": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:16:38.558Z"
+    }
+  ],
+  "r:who-may-post-reopening-repro": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "not needed. use \"build on\"",
+      "at": "2026-10-09T23:16:56.614Z"
+    }
+  ],
+  "r:result-page-and-audit-log": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:16:59.730Z"
+    }
+  ],
+  "r:link-field-names-and-e2e-loop": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:17:04.565Z"
+    }
+  ],
+  "r:owner-inbox-on-profile": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:17:07.888Z"
+    }
+  ],
+  "r:triage-build-defaults": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-09T23:17:11.899Z"
     }
   ]
 }
