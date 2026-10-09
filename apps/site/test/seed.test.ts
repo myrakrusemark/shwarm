@@ -195,7 +195,8 @@ describe('SQL literals', () => {
       '?1 ? :name @x $y',
       '/* not a comment */ -- nor this',
     ]) {
-      expect(roundTrip(s)).toBe(s)
+      // compare bytes: Node 22's node:sqlite cuts strings at NUL when reading them back (D1 doesn't)
+      expect(raw.prepare(`SELECT hex(${sqlLiteral(s)}) AS h`).get().h).toBe(Buffer.from(s, 'utf8').toString('hex').toUpperCase())
       expect(sqlLiteral(s)).not.toMatch(/[\x00-\x1f]/) // one line, always
     }
   })

@@ -271,7 +271,7 @@
     {
       "from": "claude",
       "choice": "answer",
-      "text": "plain version: every linux computer has a set of tiny commands (ls, cp, sort, cat\u2026) that nearly everything else runs on. they were written in c decades ago. uutils rewrote them in rust, which rules out whole classes of memory bugs, and ubuntu now ships it by default. it's almost there: it fails 51 of the original tools' 703 tests, each a small real bug. this shwarm closes most of them, so ubuntu's rust tools behave exactly like the old ones. on the adobe news: i can't confirm that one. on 'all of linux in rust': that's a great root shwarm, and a goal tree is exactly how shwarm handles something that big. the kernel already takes rust drivers, sudo has a rust rewrite (sudo-rs) and redox is a whole os written in rust. a checkable version: 'a bootable ubuntu image where coreutils, findutils, diffutils, sudo and the shell utilities are all rust, passing each original project's test suite at 99% or better.' this coreutils shwarm then becomes its first branch. want me to add that as a new shwarm with this one under it, or keep this one as is?",
+      "text": "plain version: every linux computer has a set of tiny commands (ls, cp, sort, cat…) that nearly everything else runs on. they were written in c decades ago. uutils rewrote them in rust, which rules out whole classes of memory bugs, and ubuntu now ships it by default. it's almost there: it fails 51 of the original tools' 703 tests, each a small real bug. this shwarm closes most of them, so ubuntu's rust tools behave exactly like the old ones. on the adobe news: i can't confirm that one. on 'all of linux in rust': that's a great root shwarm, and a goal tree is exactly how shwarm handles something that big. the kernel already takes rust drivers, sudo has a rust rewrite (sudo-rs) and redox is a whole os written in rust. a checkable version: 'a bootable ubuntu image where coreutils, findutils, diffutils, sudo and the shell utilities are all rust, passing each original project's test suite at 99% or better.' this coreutils shwarm then becomes its first branch. want me to add that as a new shwarm with this one under it, or keep this one as is?",
       "at": "2026-10-09T00:54:41.908929+00:00"
     }
   ],
@@ -329,6 +329,82 @@
       "choice": "approve",
       "text": "",
       "at": "2026-10-09T01:10:24.105Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "approved. quick check: as written, or with the crowd-sized version from the crowd check (each of the 68 maps gets 3 blind first-play demos from 3 different players, and every softlock they find is fixed upstream)? i'll assume the crowd-sized one unless you say otherwise, since as written one good player could do it alone.",
+      "at": "2026-10-09T01:10:40.290824+00:00"
+    }
+  ],
+  "luanti-for-blind-players": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:11:07.027Z"
+    }
+  ],
+  "500-nouns-in-16-pixels": [
+    {
+      "from": "myra",
+      "choice": "question",
+      "text": "update all of our things with a why. cuz...why?",
+      "at": "2026-10-09T01:13:12.167Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "on it: four agents are rewriting every pitch (all 100) so it opens with its why. this card gets one too, and if the honest why is thin i'll flag it for you to drop or reshape. you'll see the new text on each card when they're done.",
+      "at": "2026-10-09T01:14:06.663591+00:00"
+    }
+  ],
+  "moss-powered-clock": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "no",
+      "at": "2026-10-09T01:13:31.547Z"
+    }
+  ],
+  "ninety-five-hands": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "no",
+      "at": "2026-10-09T01:14:21.161Z"
+    }
+  ],
+  "the-1930-songbook": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:14:48.525Z"
+    }
+  ],
+  "bayeux-in-ascii": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "no",
+      "at": "2026-10-09T01:17:08.380Z"
+    }
+  ],
+  "plant-that-drives-to-the-sun": [
+    {
+      "from": "myra",
+      "choice": "change",
+      "text": "no",
+      "at": "2026-10-09T01:17:50.767Z"
+    }
+  ],
+  "who-outbreak-reports-table": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:17:58.653Z"
     }
   ]
 }
