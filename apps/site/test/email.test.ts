@@ -4,7 +4,8 @@ import { emailNorm } from '../src/email/norm'
 import { accountLink, MailRenderError, renderMail } from '../src/email/templates'
 import { readUnsubToken, unsubToken, UNSUB_TTL_MS } from '../src/email/unsubscribe'
 import { selfAuthenticated } from '../src/auth/csrf'
-import type { MailTemplate } from '../src/email/outbox'
+import { mailToPersonStatement, type MailTemplate } from '../src/email/outbox'
+import { sweepOutbox } from '../src/jobs/mail'
 import { addPerson, T0, testDb } from './d1'
 
 const SITE = 'https://shwarm.org'
@@ -69,6 +70,51 @@ describe('templates', () => {
     expect(m.text).toContain('mention mails are on')
     expect(m.text).toContain(`${SITE}/unsubscribe?t=x`)
     expect(() => renderMail('welcome', {}, { ...ctx, stream: 'notices' })).toThrow(MailRenderError)
+  })
+})
+
+describe('sign_off_ready (go-live 5.4)', () => {
+  const notice = { siteUrl: SITE, stream: 'notices' as const, unsubscribe: { url: `${SITE}/unsubscribe?t=x`, label: 'sign off' } }
+  const payload = { notice: 'sign_off', handle: 'myra', number: 2, title: 'minecraft in doom', link: '/w/minecraft-in-doom/s/2' }
+
+  it('renders the subject, the submission link and the opt-out footer', () => {
+    const m = renderMail('sign_off_ready', payload, notice)
+    expect(m.subject).toBe('#2 on minecraft in doom is ready for your sign-off')
+    expect(m.text).toContain('hi @myra,')
+    expect(m.text).toContain('every other check on #2 on minecraft in doom has passed. yours is the last one.')
+    expect(m.text).toContain(`${SITE}/w/minecraft-in-doom/s/2`)
+    expect(m.html).toContain(`<a href="${SITE}/w/minecraft-in-doom/s/2">`)
+    expect(m.text).toContain('sign off mails are on')
+    expect(m.text.replace(/https:\S+/g, '')).toBe(m.text.replace(/https:\S+/g, '').toLowerCase())
+    expect(m.text + m.html).not.toMatch(/[—–]/)
+    expect(renderMail('sign_off_ready', { ...payload, only: true }, notice).text).toContain("#2 on minecraft in doom is waiting on you. you're its only check.")
+  })
+
+  it("keeps a node title to one plain line, and refuses a link off the site or a bad number", () => {
+    const m = renderMail('sign_off_ready', { ...payload, title: 'doom\r\nBcc: x@evil.example <img src=x>' }, notice)
+    expect(m.subject).not.toMatch(/[\r\n]/)
+    expect(m.html).not.toContain('<img')
+    expect(() => renderMail('sign_off_ready', { ...payload, link: 'https://evil.example/w/x/s/2' }, notice)).toThrow(MailRenderError)
+    expect(() => renderMail('sign_off_ready', { ...payload, number: '2' }, notice)).toThrow(MailRenderError)
+    expect(() => renderMail('sign_off_ready', { ...payload, title: undefined }, notice)).toThrow(MailRenderError)
+  })
+
+  it('goes only to an active person, and honours their sign_off opt-out when sent', async () => {
+    const e = { DB: testDb(), ENV: 'production', SITE_URL: SITE, RESEND_API_KEY: 're_key', MAIL_SECRET: 'mail-secret' } as any
+    const me = await addPerson(e.DB, 'myra')
+    const gone = await addPerson(e.DB, 'gone_one', { status: 'suspended' })
+    const at = new Date(T0).toISOString()
+    const mail = (personId: number) => mailToPersonStatement(e.DB, { template: 'sign_off_ready', stream: 'notices', personId, payload }, at)
+    await e.DB.batch([mail(me), mail(gone)])
+    expect(e.DB.raw.prepare('SELECT to_email, person_id FROM email_outbox').all().map((r: any) => ({ ...r }))).toEqual([{ to_email: 'myra@example.org', person_id: me }])
+    const sent: any[] = []
+    const f = (async (_url: string, init: RequestInit) => (sent.push(JSON.parse(String(init.body))), new Response('{"id":"re_1"}', { status: 200 }))) as unknown as typeof fetch
+    expect(await sweepOutbox(e, { now: T0, fetch: f })).toMatchObject({ sent: 1 })
+    expect(sent[0].subject).toBe('#2 on minecraft in doom is ready for your sign-off')
+    e.DB.raw.prepare(`UPDATE person SET notice_prefs = '{"sign_off":false}' WHERE id = ?`).run(me)
+    await mail(me).run()
+    expect(await sweepOutbox(e, { now: T0 + 60_000, fetch: f })).toMatchObject({ sent: 0, skipped: 1 })
+    expect(e.DB.raw.prepare('SELECT last_error FROM email_outbox ORDER BY id DESC').get().last_error).toBe('skipped: turned off sign_off notices')
   })
 })
 

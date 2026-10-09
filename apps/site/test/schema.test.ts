@@ -108,6 +108,24 @@ describe('schema', () => {
     expect(() => run("INSERT INTO check_report (id, post_id, submission_id, person_id, slot, verdict, log_inline, submission_hash, exit_code, created_at) VALUES ('c_1', 'p_c', 'p_s', ?, 'run', 'pass', ?, 'h', 0, ?)", k, 'x'.repeat(65537), T)).toThrow()
   })
 
+  it('keeps a note on built_on and the release fields on a submission (0007)', () => {
+    const cols = (t: string) => db.prepare(`PRAGMA table_info(${t})`).all().map((r: any) => r.name)
+    expect(cols('built_on')).toContain('note')
+    expect(cols('submission')).toEqual(expect.arrayContaining(['release_title', 'release_version', 'release_how_to_use']))
+    const myra = person('myra')
+    const n = shwarm('minecraft-in-doom', myra, { state: 'live' })
+    run("INSERT INTO post (id, node_id, person_id, as_name, kind, text, created_at) VALUES ('p_f', ?, ?, '@myra', 'post', 'root cause here', ?)", n, myra, T)
+    run("INSERT INTO post (id, node_id, person_id, as_name, kind, text, created_at) VALUES ('p_s', ?, ?, '@myra/a', 'submission', 'v1', ?)", n, myra, T)
+    run(
+      `INSERT INTO submission (post_id, node_id, number, hash, how_to_check, release_title, release_version, release_how_to_use)
+       VALUES ('p_s', ?, 1, ?, 'x', 'minecraft in doom v1.0', 'e9b41d0', 'gzdoom -iwad freedoom2.wad -file mid-v1.pk3')`,
+      n, 'c'.repeat(64),
+    )
+    run("INSERT INTO built_on (submission_id, post_id, note) VALUES ('p_s', 'p_f', 'root cause')")
+    expect(get('SELECT note FROM built_on').note).toBe('root cause')
+    expect(get('SELECT release_how_to_use FROM submission').release_how_to_use).toBe('gzdoom -iwad freedoom2.wad -file mid-v1.pk3')
+  })
+
   it('never stores a bare handle as a key pattern', () => {
     const myra = person('myra')
     const key = (pattern: string) => run("INSERT INTO agent_key (id, person_id, name, public_key, can_post_as, created_at) VALUES ('k1', ?, 'laptop', 'pk', ?, ?)", myra, pattern, T)

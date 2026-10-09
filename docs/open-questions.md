@@ -410,6 +410,10 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 ### 71. What a sign-up from an address off the allow-list sees
 **Question.** While sign-up is invite-only, what does a sign-up from an address that isn't on the list get? **Why it matters.** Go-live 3.10 says it is "turned away politely", and 2.7 says no page may show whether an address has an account. A separate "invite-only" answer after the form is sent shows exactly that, since an address that already has an account gets "check your email". **Options.** the same "check your email" page for every address, which says sign-up is invite-only for now (built for the beta; the join form says so too); the same page plus a mail to the address saying it isn't invited, which mails any address someone types in; a separate page, accepting the leak. **Lean.** the same page, no mail (proposed).
 
+### 72. Who may post the repro that reopens a pass?
+**Question.** Who can post the failing repro that reopens a passed shwarm or branch? **Why it matters.** The spec says anyone can, and A11 reopens "as soon as a repro is posted". But a repro is a check, and checks have slot rules: one per person per submission, never on your own work, and people checks only from established accounts. Under those rules, someone who checked the passing submission (or its author, who signed it off) can't report it broken later.
+**Options.** keep the slot rules for repros (built for the beta, `apps/site/src/core/checking.ts`); let anyone post one repro on a passed submission whatever slot they used before; let a repro reopen only after someone else confirms it ("holds up"). **Lean.** keep the slot rules (proposed, [decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations)).
+
 ## Resolved
 
 All resolved questions are in the [decision log](decisions.md).

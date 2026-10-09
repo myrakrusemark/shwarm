@@ -1,10 +1,11 @@
-// Race tests (go-live 2.3 "done when"): parallel requests at kickoff (the last seat), the final check, and
-// simultaneous submissions, 100 times each, with zero double results. The control runs the same races
+// Race tests (go-live 2.3 and 5.6 "done when"): parallel requests at kickoff (the last seat), the final check,
+// simultaneous submissions, a final check racing a new submission and the sign-off, repros racing to reopen, and a
+// final check racing a dead end, 100 times each, with zero double results. The control runs the same races
 // without the tree's queue and shows the invariants catch the double results it produces.
 import { describe, expect, it } from 'vitest'
 import type { Actor } from '../src/core/actor'
 import { TreeEngine, treeName, type Command } from '../src/core/engine'
-import { agent, person, site, World, type P } from './core-fixtures'
+import { agent, person, site, stepped, World, type P } from './core-fixtures'
 
 const RUNS = 100
 const RACERS = 5
@@ -18,6 +19,18 @@ async function people(w: World, n: number): Promise<P[]> {
   for (let i = 0; i < n; i++) out.push(await person(w.db, `racer_${i}`))
   return out
 }
+
+/** The queue runs commands in the order they arrive, so each run sends them in a new order. */
+function shuffled<T>(xs: T[]): T[] {
+  const out = [...xs]
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[out[i], out[j]] = [out[j], out[i]]
+  }
+  return out
+}
+
+const codes = (errors: any[]) => [...new Set(errors.map(e => e?.code ?? String(e)))].sort().join()
 
 /** Fire every command at once; collect results and errors. */
 async function fire(w: World, mode: Mode, cmds: Command[]) {
@@ -62,7 +75,8 @@ async function finalCheckRace(mode: Mode): Promise<string[]> {
     racers.map(p => ({ type: 'check', actor: site(p), input: { node: MID, on: s.id, verdict: 'pass', log: 'corner 0: 0/200 failed' } })),
   )
   const problems: string[] = []
-  if (r.errors.length) problems.push(`${r.errors.length} checks failed`)
+  // The first one in passes it; a closed node takes no more passes (A25).
+  if (r.ok.length !== 1 || (r.errors.length && codes(r.errors) !== 'shwarm_closed')) problems.push(`${r.ok.length} checks went in; refused: ${codes(r.errors)}`)
   const passed = w.events(MID, 'passed').length
   if (passed !== 1) problems.push(`${passed} passed events`)
   const closes = w.all("SELECT COUNT(*) AS n FROM inbox_item WHERE kind = 'system' AND text LIKE '%passed%'")[0].n
@@ -96,13 +110,93 @@ async function submissionRace(mode: Mode): Promise<string[]> {
   return problems
 }
 
-const RACES = { 'kickoff (the last seat)': kickoffRace, 'the final check': finalCheckRace, 'two simultaneous submissions': submissionRace }
+/**
+ * Two submissions finishing at once (go-live 5.6): #1 needs 2 people checks and the author; 1 is in. The final
+ * checks on #1, a new #2 and the author's sign-off on #1 all arrive together. Either #1 passes (the sign-off came
+ * after a final check, before #2) and #2 is refused, or #2 replaces #1 and nothing passes.
+ */
+async function mixedFinishRace(mode: Mode): Promise<string[]> {
+  const w = new World()
+  const [myra, kestrel, lumpy, finn, ...racers] = await people(w, 4 + RACERS)
+  await w.shwarm(site(myra), { check: { people: 2, author: true } })
+  await w.join(site(kestrel), MID)
+  const s1 = await w.submit(agent(kestrel), MID)
+  await w.pass(site(lumpy), MID, s1.id)
+  const sub2: Command = { type: 'submit', actor: agent(finn), input: { node: MID, text: 'another way', links: [{ repo: 'https://codeberg.org/f/y', commit: 'b'.repeat(40) }], howToCheck: 'run it' } }
+  const signOff: Command = { type: 'check', actor: stepped(myra), input: { node: MID, on: s1.id, slot: 'author', verdict: 'pass', text: 'played it' } }
+  const finals: Command[] = racers.map(p => ({ type: 'check', actor: site(p), input: { node: MID, on: s1.id, verdict: 'pass', log: 'corner 0: 0/200 failed' } }))
+  await fire(w, mode, shuffled([...finals, sub2, signOff]))
+  const problems: string[] = []
+  const passed = w.events(MID, 'passed').length
+  if (passed > 1) problems.push(`${passed} passed events`)
+  const one = w.sub(s1.id).status
+  const two = w.get('SELECT status FROM submission WHERE number = 2')?.status
+  if (passed === 1) {
+    if (one !== 'passed' || two !== undefined || w.node(MID).state !== 'closed') problems.push(`passed, but #1 ${one}, #2 ${two}, node ${w.node(MID).state}`)
+  } else if (one !== 'superseded' || two !== 'in_review' || w.node(MID).state !== 'live') problems.push(`no pass, but #1 ${one}, #2 ${two}, node ${w.node(MID).state}`)
+  const notices = w.all("SELECT COUNT(*) AS n FROM inbox_item WHERE kind = 'sign_off' AND post_id = ?", s1.id)[0].n
+  const mails = w.all("SELECT COUNT(*) AS n FROM email_outbox WHERE template = 'sign_off_ready'")[0].n
+  if (notices > 1 || mails !== notices) problems.push(`${notices} sign-off notices, ${mails} mails`)
+  if (w.all("SELECT 1 FROM inbox_item WHERE kind = 'sign_off' AND post_id = ? AND done_at IS NULL", s1.id).length) problems.push('#1 still waits on the author')
+  return problems
+}
+
+/** Reopening: a passed node, then 5 repros on its passing submission at once. Exactly one reopens it. */
+async function reopenRace(mode: Mode): Promise<string[]> {
+  const w = new World()
+  const [myra, kestrel, lumpy, ...racers] = await people(w, 3 + RACERS)
+  await w.shwarm(site(myra), { check: { people: 1 } })
+  await w.join(site(kestrel), MID)
+  const s = await w.submit(agent(kestrel), MID)
+  await w.pass(site(lumpy), MID, s.id)
+  const r = await fire(w, mode, racers.map(p => ({ type: 'check', actor: site(p), input: { node: MID, on: s.id, verdict: 'fail', repro: 'place on corner 3. the block vanishes.' } })))
+  const problems: string[] = []
+  if (r.errors.length) problems.push(`${r.errors.length} repros failed: ${codes(r.errors)}`)
+  const reopened = w.events(MID, 'reopened').length
+  if (reopened !== 1) problems.push(`${reopened} reopened events`)
+  if (w.node(MID).state !== 'live') problems.push(`state ${w.node(MID).state}`)
+  if (w.sub(s.id).status !== 'passed') problems.push(`submission ${w.sub(s.id).status}`) // the pass stays on record
+  return problems
+}
+
+/** A final check racing the author's dead end: 2 people checks needed, 1 in. Exactly one of them ends the node. */
+async function deadEndRace(mode: Mode): Promise<string[]> {
+  const w = new World()
+  const [myra, kestrel, lumpy, ...racers] = await people(w, 3 + RACERS)
+  await w.shwarm(site(myra), { check: { people: 2 } })
+  await w.join(site(kestrel), MID)
+  const s = await w.submit(agent(kestrel), MID)
+  await w.pass(site(lumpy), MID, s.id)
+  const end: Command = { type: 'deadEnd', actor: stepped(myra), input: { node: MID, note: 'the engine caps dynamic geometry.' } }
+  const finals: Command[] = racers.map(p => ({ type: 'check', actor: site(p), input: { node: MID, on: s.id, verdict: 'pass', log: 'corner 0: 0/200 failed' } }))
+  const r = await fire(w, mode, shuffled([...finals, end]))
+  const problems: string[] = []
+  const passed = w.events(MID, 'passed').length
+  const ended = w.events(MID, 'dead_end').length
+  if (passed + ended !== 1) problems.push(`${passed} passed and ${ended} dead_end events`)
+  const state = w.node(MID).state
+  if (state !== (passed ? 'closed' : 'dead_end')) problems.push(`state ${state}`)
+  if (r.errors.length && codes(r.errors) !== 'shwarm_closed') problems.push(`refused: ${codes(r.errors)}`)
+  return problems
+}
+
+const RACES = {
+  'kickoff (the last seat)': kickoffRace,
+  'the final check': finalCheckRace,
+  'two simultaneous submissions': submissionRace,
+  'mixed finish (final checks, a new submission, the sign-off)': mixedFinishRace,
+  'reopen (repros on the passing submission)': reopenRace,
+  'final check vs dead end': deadEndRace,
+}
 
 // What each race does without the queue: every racer reads before anyone writes.
 const DOUBLED: Record<keyof typeof RACES, RegExp> = {
   'kickoff (the last seat)': /^[2-5] lobby_filled events$/,
   'the final check': /^[2-5] passed events$/,
   'two simultaneous submissions': /^[1-4] submissions failed$/, // every racer took #1; the unique index refused the rest
+  'mixed finish (final checks, a new submission, the sign-off)': /^[2-5] sign-off notices/, // each final check saw itself as the last
+  'reopen (repros on the passing submission)': /^[2-5] reopened events$/,
+  'final check vs dead end': /^[1-5] passed and 1 dead_end events$/,
 }
 
 describe('races, through the tree queue', () => {

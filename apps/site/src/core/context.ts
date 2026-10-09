@@ -1,7 +1,9 @@
 // What every command shares: the clock, loading the actor's person and the node, and the statements
 // most acts add to their batch (mentions, inbox notices, the node's review flag and ETag).
 import { ShwarmError } from '@shwarm/protocol'
+import { mailToPersonStatement } from '../email/outbox'
 import type { Actor } from './actor'
+import { submissionHref } from './audit'
 import type { CheckSpec } from './checks'
 import { newId } from './ids'
 import { extractMentions } from './text'
@@ -112,6 +114,38 @@ export function inboxStatement(ctx: Ctx, i: { personId: number; kind: 'mention' 
   return ctx.db
     .prepare('INSERT INTO inbox_item (person_id, kind, node_id, post_id, text, created_at) VALUES (?, ?, ?, ?, ?, ?)')
     .bind(i.personId, i.kind, i.nodeId, i.postId ?? null, i.text, ctx.at)
+}
+
+/**
+ * Ready for the author (go-live 5.4): the sign_off inbox item and its mail, both in the act's batch. The mail goes
+ * only to an active author (mailToPersonStatement); the notices stream honours their 'sign_off' opt-out when it sends.
+ * `only`: the author is the submission's only check, so it is ready at once.
+ */
+export function signOffStatements(ctx: Ctx, n: NodeRow, s: { postId: string; number: number }, only: boolean): D1PreparedStatement[] {
+  return [
+    inboxStatement(ctx, { personId: n.author_id, kind: 'sign_off', nodeId: n.id, postId: s.postId, text: `#${s.number} on ${n.title} is ready for your sign-off.` }),
+    mailToPersonStatement(
+      ctx.db,
+      {
+        template: 'sign_off_ready',
+        stream: 'notices',
+        personId: n.author_id,
+        payload: { notice: 'sign_off', handle: n.author_handle, number: s.number, title: n.title, link: submissionHref(n.path, s.number), ...(only ? { only: true } : {}) },
+      },
+      ctx.at,
+    ),
+  ]
+}
+
+/**
+ * Sign-off items are done once nothing is left to sign: the submission `on` passed or failed, or the ones
+ * `replacedBy` superseded. Kept in the inbox, read or not; done_at only takes them off "waiting on you".
+ */
+export function signOffDoneStatement(ctx: Ctx, nodeId: number, s: { on: string } | { replacedBy: string }): D1PreparedStatement {
+  const subs = 'on' in s ? 'SELECT ?3' : 'SELECT post_id FROM submission WHERE node_id = ?2 AND superseded_by = ?3'
+  return ctx.db
+    .prepare(`UPDATE inbox_item SET done_at = ?1 WHERE kind = 'sign_off' AND done_at IS NULL AND post_id IN (${subs})`)
+    .bind(ctx.at, nodeId, 'on' in s ? s.on : s.replacedBy)
 }
 
 /**

@@ -1,6 +1,6 @@
 // Rule tests for the domain core (go-live 2.3): every refusal, every state transition, the audit log.
 import { beforeEach, describe, expect, it } from 'vitest'
-import { agent, DAY, HOUR, MIN, person, refused, site, SHA, World, WORK, type P } from './core-fixtures'
+import { agent, DAY, HOUR, MIN, person, refused, site, SHA, stepped, World, WORK, type P } from './core-fixtures'
 
 let w: World
 let myra: P, kestrel: P, lumpy: P, finn: P
@@ -64,8 +64,12 @@ describe('actor and permissions', () => {
     await w.join(site(kestrel), MID)
     await refused(w.run({ type: 'deadEnd', actor: agent(myra), input: { node: MID, note: 'x' } }), 'bare_handle_needs_human')
     const s = await w.submit(agent(kestrel), MID)
-    await refused(w.pass(agent(myra), MID, s.id), 'bare_handle_needs_human') // the author's agent can't sign off
+    await refused(w.signOff(agent(myra), MID, s.id), 'bare_handle_needs_human') // the author's agent can't sign off
     await refused(w.pass(agent(lumpy), MID, s.id, { slot: 'author' }), 'bare_handle_needs_human')
+    // and the author's check is never an implicit sign-off, from an agent or the site
+    await refused(w.pass(agent(myra), MID, s.id), 'not_permitted', { reason: 'sign_off', node: MID })
+    const e = await refused(w.pass(stepped(myra), MID, s.id, { text: 'played it' }), 'not_permitted', { reason: 'sign_off' })
+    expect(e.message).toBe('your check here is the sign-off, on the submission page')
   })
 
   it('refuses unverified and suspended accounts', async () => {
@@ -167,7 +171,7 @@ describe('creating nodes', () => {
       w.run({ type: 'createNode', actor: site(finn), input: { kind: 'variant', variantOf: BP, title: 'bp 2', what: 'w', doneWhen: 'd', check: { author: true }, tags: ['x'] } }),
       'bad_request',
     )
-    await w.run({ type: 'deadEnd', actor: site(myra), input: { node: MID, note: 'the engine cannot do it' } })
+    await w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: MID, note: 'the engine cannot do it' } })
     await refused(
       w.run({ type: 'createNode', actor: site(lumpy), input: { kind: 'variant', variantOf: MID, title: 'v2', what: 'w', doneWhen: 'd', check: { author: true }, tags: ['x'] } }),
       'shwarm_closed',
@@ -413,20 +417,20 @@ describe('author sign-off and passing', () => {
   })
 
   it('makes the author go last, then passes and closes the node in one batch', async () => {
-    await refused(w.pass(site(myra), MID, s.id, { text: 'played it for 10 minutes' }), 'not_permitted', { need: 'other_checks' })
+    await refused(w.signOff(myra, MID, s.id, 'pass', { text: 'played it for 10 minutes' }), 'not_permitted', { need: 'other_checks' })
     await w.runReport(agent(lumpy, 'runner'), MID, s.id, s.hash)
     await w.runReport(agent(finn, 'runner'), MID, s.id, s.hash)
     const tallgrass = await person(w.db, 'tallgrass')
     // an agent's people check doesn't satisfy "at least one human"
     await w.pass(agent(tallgrass), MID, s.id)
     expect(w.all("SELECT 1 FROM inbox_item WHERE kind = 'sign_off'")).toHaveLength(0)
-    await refused(w.pass(site(myra), MID, s.id, { text: 'ok' }), 'not_permitted')
+    await refused(w.signOff(myra, MID, s.id, 'pass', { text: 'ok' }), 'not_permitted')
     const bmo = await person(w.db, 'bmo_fan')
     expect((await w.pass(site(bmo), MID, s.id)).submission_state).toBe('in_review')
     // ready for the author: one inbox item
     expect(w.all("SELECT person_id, post_id FROM inbox_item WHERE kind = 'sign_off'")).toEqual([{ person_id: myra.id, post_id: s.id }])
-    await refused(w.pass(site(myra), MID, s.id, { evidence: [], text: '' }), 'missing_evidence') // say what you checked
-    const r = await w.pass(site(myra), MID, s.id, { evidence: [], text: 'played it for 10 minutes, no stutter' })
+    await refused(w.signOff(myra, MID, s.id, 'pass', { evidence: [], text: '' }), 'missing_evidence') // say what you checked
+    const r = await w.signOff(myra, MID, s.id, 'pass', { evidence: [], text: 'played it for 10 minutes, no stutter' })
     expect(r).toMatchObject({ slot: 'author', verdict: 'pass', submission_state: 'passed', node_state: 'closed' })
     expect(w.node(MID)).toMatchObject({ state: 'closed', in_review: 0 })
     expect(w.node(MID).closed_at).toBeTruthy()
@@ -448,7 +452,7 @@ describe('author sign-off and passing', () => {
     await w.runReport(agent(finn), MID, s.id, s.hash)
     const bmo = await person(w.db, 'bmo_fan')
     await w.pass(site(bmo), MID, s.id)
-    const r = await w.fail(site(myra), MID, s.id)
+    const r = await w.signOff(myra, MID, s.id, 'fail')
     expect(r).toMatchObject({ slot: 'author', verdict: 'fail', submission_state: 'failed', node_state: 'live', node_checks: 'reset' })
     expect(w.sub(s.id).status).toBe('failed')
     expect(w.all('SELECT slot FROM check_report WHERE reset_at IS NOT NULL ORDER BY slot').map(c => c.slot)).toEqual(['people', 'run', 'run'])
@@ -471,7 +475,7 @@ describe('author sign-off and passing', () => {
     await w.fail(site(tall), MID, s.id)
     await w.pass(site(bmo), MID, s.id)
     expect(w.all("SELECT 1 FROM inbox_item WHERE kind = 'sign_off'")).toHaveLength(0)
-    await refused(w.pass(site(myra), MID, s.id, { text: 'fine by me' }), 'not_permitted', { need: 'other_checks' })
+    await refused(w.signOff(myra, MID, s.id, 'pass', { text: 'fine by me' }), 'not_permitted', { need: 'other_checks' })
     expect(w.sub(s.id).status).toBe('in_review')
   })
 })
@@ -496,22 +500,22 @@ describe('dead ends and reopening', () => {
   it('lets only the author mark a dead end, with a note, and reopen it', async () => {
     await live()
     await refused(w.run({ type: 'deadEnd', actor: site(kestrel), input: { node: MID, note: 'x' } }), 'not_permitted', { need: 'author' })
-    await refused(w.run({ type: 'deadEnd', actor: site(myra), input: { node: MID, note: '  ' } }), 'bad_request')
-    const r = await w.run({ type: 'deadEnd', actor: site(myra), input: { node: MID, note: 'gzdoom caps dynamic geometry; 60 fps is out of reach.' } })
+    await refused(w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: MID, note: '  ' } }), 'bad_request')
+    const r = await w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: MID, note: 'gzdoom caps dynamic geometry; 60 fps is out of reach.' } })
     expect(r.state).toBe('dead_end')
     expect(w.node(MID)).toMatchObject({ state: 'dead_end', dead_end_note: 'gzdoom caps dynamic geometry; 60 fps is out of reach.' })
     expect(w.get('SELECT kind, text FROM post WHERE id = ?', r.post)).toMatchObject({ kind: 'dead_end' })
     await refused(w.submit(agent(kestrel), MID), 'shwarm_closed')
     await refused(w.run({ type: 'reopen', actor: site(kestrel), input: { node: MID } }), 'not_permitted')
-    expect((await w.run({ type: 'reopen', actor: site(myra), input: { node: MID } })).state).toBe('live')
+    expect((await w.run({ type: 'reopen', actor: stepped(myra), input: { node: MID } })).state).toBe('live')
     expect(w.node(MID)).toMatchObject({ state: 'live', dead_end_note: null })
     expect(w.events(MID).map(e => e.event)).toEqual(['lobby_filled', 'dead_end', 'reopened'])
   })
 
   it('keeps lobbies and closed nodes out of dead ends', async () => {
     await w.shwarm(site(myra))
-    await refused(w.run({ type: 'deadEnd', actor: site(myra), input: { node: MID, note: 'x' } }), 'lobby_not_open')
-    await refused(w.run({ type: 'reopen', actor: site(myra), input: { node: MID } }), 'bad_request')
+    await refused(w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: MID, note: 'x' } }), 'lobby_not_open')
+    await refused(w.run({ type: 'reopen', actor: stepped(myra), input: { node: MID } }), 'bad_request')
   })
 
   it('never lets a branch passing touch its parent', async () => {
@@ -531,7 +535,7 @@ describe('the audit log', () => {
     await w.branch(site(myra), MID)
     const s = await w.submit(agent(kestrel), MID)
     await w.pass(site(lumpy), MID, s.id)
-    await w.pass(site(myra), MID, s.id, { text: 'checked' })
+    await w.signOff(myra, MID, s.id, 'pass', { text: 'checked' })
     const rows = w.all('SELECT id, event FROM audit_event')
     for (const r of rows) expect(r.id).toMatch(/^e_[a-z0-9]{10}$/)
     expect(new Set(rows.map(r => r.event))).toEqual(new Set(['lobby_filled', 'branch_opened', 'submission', 'check', 'signed_off', 'passed']))
@@ -608,18 +612,18 @@ describe('an author fail after a reopen', () => {
   it('resets checks only on submissions that never passed, and leaves the old pass on record', async () => {
     await live() // author only
     const s1 = await w.submit(agent(kestrel), MID)
-    await w.pass(site(myra), MID, s1.id, { text: 'played it, works' })
+    await w.signOff(myra, MID, s1.id, 'pass', { text: 'played it, works' })
     expect(w.node(MID).state).toBe('closed')
     await w.fail(site(lumpy), MID, s1.id) // the repro that reopens it
     expect(w.node(MID).state).toBe('live')
     const s2 = await w.submit(agent(finn), MID)
-    expect((await w.fail(site(myra), MID, s2.id)).node_checks).toBe('reset')
+    expect((await w.signOff(myra, MID, s2.id, 'fail')).node_checks).toBe('reset')
     // #1's sign-off and the repro that reopened the node stand
     expect(w.all('SELECT reset_at FROM check_report WHERE submission_id = ?', s1.id).map(c => c.reset_at)).toEqual([null, null])
     expect(w.sub(s1.id).status).toBe('passed')
     // and the author can't fail the passed submission now
-    await refused(w.fail(site(myra), MID, s1.id), 'bad_request')
-    await refused(w.pass(site(myra), MID, s1.id, { text: 'again' }), 'bad_request')
+    await refused(w.signOff(myra, MID, s1.id, 'fail'), 'bad_request')
+    await refused(w.signOff(myra, MID, s1.id, 'pass', { text: 'again' }), 'bad_request')
     expect(w.sub(s1.id).status).toBe('passed')
     expect(w.events(MID, 'failed').map(e => e.number)).toEqual([2])
   })
@@ -630,9 +634,9 @@ describe('the in review flag and the ETag', () => {
     await live()
     await w.submit(agent(kestrel), MID)
     expect(w.node(MID).in_review).toBe(1)
-    await w.run({ type: 'deadEnd', actor: site(myra), input: { node: MID, note: 'the engine cannot do it' } })
+    await w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: MID, note: 'the engine cannot do it' } })
     expect(w.node(MID)).toMatchObject({ state: 'dead_end', in_review: 0 })
-    await w.run({ type: 'reopen', actor: site(myra), input: { node: MID } })
+    await w.run({ type: 'reopen', actor: stepped(myra), input: { node: MID } })
     expect(w.node(MID)).toMatchObject({ state: 'live', in_review: 1 }) // the submission is still waiting
   })
 
@@ -658,5 +662,172 @@ describe('the in review flag and the ETag', () => {
     look()
     const p = await w.post(site(lumpy), MID, 'live now')
     expect(w.node(MID).last_event_id).toBe(p.id)
+  })
+})
+
+describe('release fields and built_on notes (go-live 5.1)', () => {
+  it('stores the optional release fields with the submission, and refuses them over their caps', async () => {
+    await live({ people: 1 })
+    const release = { name: 'minecraft in doom v1.0', version: 'e9b41d0', howToUse: 'gzdoom -iwad freedoom2.wad -file mid-v1.pk3' }
+    for (const [bad, field] of [
+      [{ name: 'x'.repeat(121) }, 'release.name'],
+      [{ version: 'v'.repeat(51) }, 'release.version'],
+      [{ howToUse: 'y'.repeat(2001) }, 'release.how_to_use'],
+      [{ name: 'v1.0\nand more' }, 'release.name'],
+      [{ howToUse: 'gzdoom‮ -file evil.pk3' }, 'release.how_to_use'],
+    ] as const)
+      await refused(w.submit(agent(kestrel), MID, 'x', { release: bad }), 'bad_request', { field })
+    await refused(w.submit(agent(kestrel), MID, 'x', { release: { title: 'v1' } }), 'bad_request')
+    expect(w.all('SELECT 1 FROM submission')).toHaveLength(0)
+    const s = await w.submit(agent(kestrel), MID, 'v1, the whole mod.', { release })
+    expect(w.sub(s.id)).toMatchObject({ release_title: release.name, release_version: release.version, release_how_to_use: release.howToUse, release_summary: null })
+    // all three are optional, and none is part of the submission hash
+    w.tick(DAY)
+    const bare = await w.submit(agent(kestrel), MID, 'v1, the whole mod.')
+    expect(w.sub(bare.id)).toMatchObject({ release_title: null, release_version: null, release_how_to_use: null })
+    expect(bare.hash).toBe(s.hash)
+  })
+
+  it('keeps the note on each built_on post; the first note given wins', async () => {
+    await live({ people: 1 })
+    const finn1 = await w.post(site(finn), MID, 'P_CheckSight treats the voxel faces as 2-sided lines.')
+    const repro = await w.post(site(lumpy), MID, 'repro for the corner case.')
+    await refused(w.submit(agent(kestrel), MID, 'x', { builtOn: [{ post: finn1.id, note: 'n'.repeat(281) }] }), 'bad_request')
+    const s = await w.submit(agent(kestrel), MID, 'two-line fix.', { builtOn: [{ post: finn1.id, note: 'root cause' }, repro.id, { post: finn1.id, note: 'again' }, { post: repro.id, note: 'the repro' }] })
+    expect(w.all('SELECT post_id, note FROM built_on WHERE submission_id = ? ORDER BY note', s.id)).toEqual([
+      { post_id: finn1.id, note: 'root cause' },
+      { post_id: repro.id, note: 'the repro' },
+    ])
+  })
+})
+
+describe('the sign-off is asked for by name, behind the password (A5)', () => {
+  it('refuses an author slot without the step-up, and writes nothing', async () => {
+    await live({ people: 1, author: true })
+    const s = await w.submit(agent(kestrel), MID)
+    await w.pass(site(lumpy), MID, s.id)
+    const e = await refused(w.signOff(site(myra), MID, s.id), 'not_permitted', { need: 'step_up' })
+    expect(e.message).toBe('the author sign-off confirms with your password')
+    expect(w.all("SELECT 1 FROM check_report WHERE slot = 'author'")).toHaveLength(0)
+    expect((await w.signOff(myra, MID, s.id)).submission_state).toBe('passed')
+  })
+
+  it('gates dead ends and reopening on the step-up too; the seed import is exempt', async () => {
+    await live()
+    await refused(w.deadEnd(site(myra), MID), 'not_permitted', { need: 'step_up' })
+    await refused(w.deadEnd(site(kestrel), MID), 'not_permitted', { need: 'author' }) // not the author: said first
+    await w.deadEnd(myra, MID)
+    await refused(w.reopen(site(myra), MID), 'not_permitted', { need: 'step_up' })
+    expect((await w.reopen(myra, MID)).state).toBe('live')
+    expect((await w.deadEnd(seed(myra), MID)).state).toBe('dead_end')
+  })
+})
+
+describe('a closed node takes only a repro on the submission that passed (A25, A11)', () => {
+  it('refuses a pass, and any check on another submission, with shwarm_closed', async () => {
+    await live({ runs: { command: './soak.sh', count: 1 }, people: 1 })
+    const s1 = await w.submit(agent(kestrel), MID)
+    const s2 = await w.submit(agent(lumpy), MID) // supersedes #1
+    await w.runReport(agent(finn), MID, s2.id, s2.hash)
+    expect((await w.pass(site(myra), MID, s2.id)).node_state).toBe('closed')
+    const tall = await person(w.db, 'tallgrass')
+    const closed = { node: MID }
+    await refused(w.pass(site(tall), MID, s2.id), 'shwarm_closed', closed)
+    await refused(w.runReport(agent(tall), MID, s2.id, s2.hash), 'shwarm_closed', closed) // exit 0 is a pass
+    await refused(w.fail(site(tall), MID, s1.id), 'shwarm_closed', closed)
+    const e = await refused(w.pass(site(tall), MID, s1.id), 'shwarm_closed', closed)
+    expect(e.message).toBe(`${MID} passed on #2. it takes only a repro on #2, which reopens it`)
+    expect(w.all('SELECT COUNT(*) AS n FROM check_report')[0].n).toBe(2)
+    // a failing run is a repro too: it reopens the node
+    const r = await w.runReport(agent(tall), MID, s2.id, s2.hash, 1)
+    expect(r).toMatchObject({ verdict: 'fail', node_state: 'live', submission_state: 'passed' })
+    expect(w.events(MID, 'reopened')).toHaveLength(1)
+  })
+})
+
+describe('ready for the author: the inbox item and the mail (go-live 5.4)', () => {
+  const signOffs = () => w.all("SELECT person_id, post_id, done_at FROM inbox_item WHERE kind = 'sign_off' ORDER BY id")
+  const mails = () => w.all("SELECT to_email, person_id, template, stream, payload FROM email_outbox WHERE template = 'sign_off_ready' ORDER BY id")
+
+  it('writes both once, on the final check, to the author', async () => {
+    await live({ people: 2, author: true })
+    const s = await w.submit(agent(kestrel), MID)
+    await w.pass(site(lumpy), MID, s.id)
+    expect(signOffs()).toEqual([])
+    expect(mails()).toEqual([])
+    await w.pass(site(finn), MID, s.id)
+    const tall = await person(w.db, 'tallgrass')
+    await w.pass(site(tall), MID, s.id) // one more than needed: no second notice
+    expect(signOffs()).toEqual([{ person_id: myra.id, post_id: s.id, done_at: null }])
+    const m = mails()
+    expect(m).toHaveLength(1)
+    expect({ ...m[0], payload: JSON.parse(m[0].payload) }).toEqual({
+      to_email: 'myra@example.org',
+      person_id: myra.id,
+      template: 'sign_off_ready',
+      stream: 'notices',
+      payload: { notice: 'sign_off', handle: 'myra', number: 1, title: 'minecraft in doom', link: '/w/minecraft-in-doom/s/1' },
+    })
+  })
+
+  it('writes both at submit when the author is the only check', async () => {
+    await live({ author: true })
+    const s = await w.submit(agent(kestrel), MID)
+    expect(signOffs()).toEqual([{ person_id: myra.id, post_id: s.id, done_at: null }])
+    expect(mails().map(r => JSON.parse(r.payload))).toEqual([{ notice: 'sign_off', handle: 'myra', number: 1, title: 'minecraft in doom', link: '/w/minecraft-in-doom/s/1', only: true }])
+  })
+
+  it('mails only an active author', async () => {
+    await live({ author: true })
+    await w.db.prepare("UPDATE person SET status = 'suspended' WHERE id = ?").bind(myra.id).run()
+    await w.submit(agent(kestrel), MID)
+    expect(signOffs()).toHaveLength(1)
+    expect(mails()).toEqual([])
+  })
+
+  it('marks the item done when the submission passes, fails or is replaced', async () => {
+    await live({ author: true })
+    const s1 = await w.submit(agent(kestrel), MID)
+    const s2 = await w.submit(agent(lumpy), MID) // replaces #1
+    expect(signOffs().map(i => [i.post_id, i.done_at])).toEqual([[s1.id, w.get('SELECT created_at FROM post WHERE id = ?', s2.id).created_at], [s2.id, null]])
+    w.tick(HOUR)
+    await w.signOff(myra, MID, s2.id, 'fail')
+    expect(signOffs()[1].done_at).toBe(new Date(w.now).toISOString())
+    w.tick(DAY)
+    const s3 = await w.submit(agent(kestrel), MID)
+    await w.signOff(myra, MID, s3.id, 'pass')
+    expect(signOffs().map(i => i.done_at === null)).toEqual([false, false, false])
+  })
+})
+
+describe('every audit row links its evidence', () => {
+  it('as a site path: the node, the post, the submission or one check on it', async () => {
+    await live({ people: 1, author: true })
+    await w.branch(site(myra), MID, { check: { people: 1 } })
+    const s1 = await w.submit(agent(kestrel), MID)
+    const c1 = await w.pass(site(lumpy), MID, s1.id)
+    const f1 = await w.signOff(myra, MID, s1.id, 'fail')
+    w.tick(DAY)
+    const s2 = await w.submit(agent(kestrel), MID)
+    await w.pass(site(lumpy), MID, s2.id)
+    const p2 = await w.signOff(myra, MID, s2.id, 'pass')
+    const repro = await w.fail(site(finn), MID, s2.id)
+    const d = await w.deadEnd(myra, BP)
+    await w.reopen(myra, BP)
+
+    const rows = w.all('SELECT event, evidence FROM audit_event ORDER BY rowid')
+    expect(new Set(rows.map(r => r.event)).size).toBe(9) // every event type
+    for (const r of rows) expect(r.evidence, r.event).toMatch(/^\/w\/[a-z0-9/-]+(\/s\/\d+)?(#[cp]_[a-z0-9]{10})?$/)
+    const ev = (path: string, event: string) => w.events(path, event).map(e => e.evidence)
+    expect(ev(MID, 'lobby_filled')).toEqual([`/w/${MID}`])
+    expect(ev(BP, 'branch_opened')).toEqual([`/w/${BP}`])
+    expect(ev(MID, 'submission')).toEqual([`/w/${MID}/s/1`, `/w/${MID}/s/2`])
+    expect(ev(MID, 'check')[0]).toBe(`/w/${MID}/s/1#${c1.id}`)
+    expect(ev(MID, 'signed_off')).toEqual([`/w/${MID}/s/1#${f1.id}`, `/w/${MID}/s/2#${p2.id}`])
+    expect(ev(MID, 'failed')).toEqual([`/w/${MID}/s/1`])
+    expect(ev(MID, 'passed')).toEqual([`/w/${MID}/s/2`])
+    expect(ev(MID, 'reopened')).toEqual([`/w/${MID}/s/2#${repro.id}`])
+    expect(ev(BP, 'dead_end')).toEqual([`/w/${BP}#${d.post}`])
+    expect(ev(BP, 'reopened')).toEqual([`/w/${BP}`])
   })
 })

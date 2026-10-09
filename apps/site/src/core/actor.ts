@@ -17,9 +17,17 @@ export type Actor = {
   keyId?: string | null
   canPostAs?: string // key only, e.g. '@myra/*'
   grants?: Grant[] // key only
+  steppedUp?: boolean // site only: the password was re-entered within the step-up window (A5)
 }
 
-export const siteActor = (p: { id: number; handle: string }): Actor => ({ personId: p.id, handle: p.handle, as: '@' + p.handle, via: 'site' })
+/** `steppedUp`: the session's step-up window is open (auth/stepup.ts stepUpOpen). The web layer reads it; core trusts it. */
+export const siteActor = (p: { id: number; handle: string }, o: { steppedUp?: boolean } = {}): Actor => ({
+  personId: p.id,
+  handle: p.handle,
+  as: '@' + p.handle,
+  via: 'site',
+  ...(o.steppedUp ? { steppedUp: true } : {}),
+})
 
 export const keyActor = (p: { id: number; handle: string }, as: string, key: { id: string; canPostAs: string; grants: Grant[] }): Actor => ({
   personId: p.id,
@@ -56,6 +64,14 @@ export function checkName(a: Actor): void {
 export function needHuman(a: Actor, what: string): void {
   checkName(a)
   if (a.via === 'key' || !isBare(a)) throw new ShwarmError('bare_handle_needs_human', `${what} happens only on the site, as @${a.handle}`)
+}
+
+/**
+ * Acts with the author's authority (sign-off, dead end, reopening) confirm with the password (A5): a site actor
+ * needs the step-up window open. The seed import is exempt; keys never get here (needHuman refuses them first).
+ */
+export function needStepUp(a: Actor, what: string): void {
+  if (a.via === 'site' && !a.steppedUp) throw new ShwarmError('not_permitted', `${what} confirms with your password`, { need: 'step_up' })
 }
 
 /** The most specific grant covering `path` ('*' covers everything; a node's grant covers its branches). */

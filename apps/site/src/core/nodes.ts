@@ -6,8 +6,8 @@
 //   dead_end → live   when the author reopens it
 // "In review" is a flag on live, not a state. Branches are live at once; shwarms and variants open as lobbies.
 import { ShwarmError } from '@shwarm/protocol'
-import { authorize, humanName, needHuman, type Actor } from './actor'
-import { auditStatement } from './audit'
+import { authorize, humanName, needHuman, needStepUp, type Actor } from './actor'
+import { auditStatement, nodeHref } from './audit'
 import { parseCheckSpec } from './checks'
 import { findNode, loadNode, loadPerson, MAX_PATH, notifyStatement, postStatement, touchNode, type Ctx, type NodeKind, type NodeRow } from './context'
 import { newId } from './ids'
@@ -239,12 +239,12 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
     stmts.push(ctx.db.prepare("INSERT INTO seat (node_id, person_id, number, joined_at) SELECT id, ?, 1, ? FROM node WHERE path = ?").bind(person.id, ctx.at, path))
   let last: string | null = null
   if (kind === 'branch') {
-    const e = auditStatement(ctx.db, { event: 'branch_opened', node: ref, by: a.as, detail: title }, ctx.at)
+    const e = auditStatement(ctx.db, { event: 'branch_opened', node: ref, by: a.as, detail: title, evidence: nodeHref(path) }, ctx.at)
     stmts.push(e.stmt)
     last = e.id
   }
   if (filled) {
-    const e = auditStatement(ctx.db, { event: 'lobby_filled', node: ref, by: a.as, detail: `1 of ${lobby} seats` }, ctx.at)
+    const e = auditStatement(ctx.db, { event: 'lobby_filled', node: ref, by: a.as, detail: `1 of ${lobby} seats`, evidence: nodeHref(path) }, ctx.at)
     stmts.push(e.stmt)
     last = e.id
   }
@@ -308,7 +308,7 @@ export async function join(ctx: Ctx, a: Actor, inp: { node: string }): Promise<J
   let last: string | null = null
   if (kickoff) {
     stmts.push(ctx.db.prepare("UPDATE node SET state = 'live', live_at = ? WHERE id = ?").bind(ctx.at, n.id))
-    const e = auditStatement(ctx.db, { event: 'lobby_filled', node: n.id, by: a.as, detail: `${filled} of ${of} seats` }, ctx.at)
+    const e = auditStatement(ctx.db, { event: 'lobby_filled', node: n.id, by: a.as, detail: `${filled} of ${of} seats`, evidence: nodeHref(n.path) }, ctx.at)
     stmts.push(e.stmt, notifyStatement(ctx, n.id, `${n.title}: the lobby filled. it's live now.`, 'seats'))
     last = e.id
   }
@@ -334,18 +334,19 @@ export async function leave(ctx: Ctx, a: Actor, inp: { node: string }): Promise<
   return { node: n.path, seats: { filled: r!.filled, of: n.lobby_size as number } }
 }
 
-/** live → dead end, by the author, with a note so nobody repeats it. */
+/** live → dead end, by the author, with a note so nobody repeats it. Acts with the author's authority, so it confirms with the password. */
 export async function deadEnd(ctx: Ctx, a: Actor, inp: { node: string; note: string }): Promise<{ node: string; state: 'dead_end'; post: string }> {
   needHuman(a, 'marking a dead end')
   const person = await loadPerson(ctx, a)
   checkWritable(await readSettings(ctx.db, ['read_only']))
   const n = await loadNode(ctx, inp?.node)
   if (n.author_id !== person.id) throw new ShwarmError('not_permitted', 'only the author marks a dead end', { need: 'author', node: n.path })
+  needStepUp(a, 'marking a dead end')
   if (n.state === 'lobby') throw new ShwarmError('lobby_not_open', `${n.path} is still a lobby`, { node: n.path })
   if (n.state !== 'live') throw new ShwarmError('shwarm_closed', `${n.path} is ${n.state.replace('_', ' ')}`, { node: n.path })
   const note = needText(inp.note, 'note')
   const postId = newId('p')
-  const e = auditStatement(ctx.db, { event: 'dead_end', node: n.id, by: a.as, detail: note.slice(0, 280) }, ctx.at)
+  const e = auditStatement(ctx.db, { event: 'dead_end', node: n.id, by: a.as, detail: note.slice(0, 280), evidence: `${nodeHref(n.path)}#${postId}` }, ctx.at)
   await ctx.db.batch([
     postStatement(ctx, { id: postId, nodeId: n.id, actor: a, kind: 'dead_end', text: note }),
     // closed_at is when it ended (the closed tab's order and time); later posts move changed_at, never this.
@@ -363,9 +364,10 @@ export async function reopen(ctx: Ctx, a: Actor, inp: { node: string }): Promise
   checkWritable(await readSettings(ctx.db, ['read_only']))
   const n = await loadNode(ctx, inp?.node)
   if (n.author_id !== person.id) throw new ShwarmError('not_permitted', 'only the author reopens a dead end', { need: 'author', node: n.path })
+  needStepUp(a, 'reopening')
   if (n.state === 'closed') throw bad('a closed node reopens when someone posts a repro on the passing submission')
   if (n.state !== 'dead_end') throw bad(`${n.path} is ${n.state}, not a dead end`)
-  const e = auditStatement(ctx.db, { event: 'reopened', node: n.id, by: a.as, detail: 'reopened by the author' }, ctx.at)
+  const e = auditStatement(ctx.db, { event: 'reopened', node: n.id, by: a.as, detail: 'reopened by the author', evidence: nodeHref(n.path) }, ctx.at)
   await ctx.db.batch([
     ctx.db.prepare("UPDATE node SET state = 'live', dead_end_note = NULL, closed_at = NULL WHERE id = ?").bind(n.id),
     e.stmt,

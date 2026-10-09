@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { grantFor } from '../src/core/actor'
 import { needs, parseCheckSpec, tally } from '../src/core/checks'
 import { treeName } from '../src/core/engine'
+import { parseRelease, RELEASE_CAPS } from '../src/core/posts'
 import { isId, newId } from '../src/core/ids'
 import { readSettings, setting } from '../src/core/settings'
 import { extractMentions, parseLinks, slugify } from '../src/core/text'
@@ -69,6 +70,32 @@ describe('check specs', () => {
     expect(tally(n, [...others, { slot: 'people', verdict: 'fail', human: false }]).othersDone).toBe(false)
     expect(needs(spec, true)).toEqual({ runs: 1, people: 2, human: true, author: false })
     expect(needs(parseCheckSpec({ people: 1 }), true)).toEqual({ runs: 0, people: 1, human: false, author: false })
+  })
+})
+
+describe('release fields (table B #64)', () => {
+  it('takes name, version and how to use, each optional and trimmed', () => {
+    expect(parseRelease(undefined)).toEqual({ name: null, version: null, howToUse: null })
+    expect(parseRelease({ name: ' minecraft in doom v1.0 ', version: 'e9b41d0', howToUse: 'gzdoom -iwad freedoom2.wad\n-file mid-v1.pk3' })).toEqual({
+      name: 'minecraft in doom v1.0',
+      version: 'e9b41d0',
+      howToUse: 'gzdoom -iwad freedoom2.wad\n-file mid-v1.pk3',
+    })
+    expect(parseRelease({ version: '' })).toEqual({ name: null, version: null, howToUse: null })
+  })
+  it('caps them at 120, 50 and 2000 characters (proposed)', () => {
+    expect(RELEASE_CAPS).toEqual({ name: 120, version: 50, howToUse: 2000 })
+    expect(parseRelease({ name: 'é'.repeat(120), version: 'v'.repeat(50), howToUse: 'x'.repeat(2000) }).name).toHaveLength(120)
+    expect(() => parseRelease({ name: 'x'.repeat(121) })).toThrow(/release.name is longer than 120/)
+    expect(() => parseRelease({ version: 'x'.repeat(51) })).toThrow(/release.version is longer than 50/)
+    expect(() => parseRelease({ howToUse: 'x'.repeat(2001) })).toThrow(/release.how_to_use is longer than 2000/)
+  })
+  it('refuses other shapes, a second line in name or version, and hidden characters', () => {
+    expect(() => parseRelease('v1')).toThrow(expect.objectContaining({ code: 'bad_request' }))
+    expect(() => parseRelease([])).toThrow(expect.objectContaining({ code: 'bad_request' }))
+    expect(() => parseRelease({ name: 'v1', archives: [] })).toThrow(/unknown fields: archives/)
+    expect(() => parseRelease({ version: 'v1\r\nv2' })).toThrow(/one line/)
+    expect(() => parseRelease({ howToUse: 'run\u200b it' })).toThrow(/hidden characters/)
   })
 })
 

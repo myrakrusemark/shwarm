@@ -1,14 +1,15 @@
 // Thread posts and submissions (spec "Submitting", protocol §6–7). A submission is a thread post marked
 // against the done test: numbered within its node, frozen by its hash, and it replaces older ones in review.
 import { shortHash, ShwarmError, submissionHash } from '@shwarm/protocol'
+import { hiddenProblem } from '../render/hidden'
 import { authorize, isBare, type Actor } from './actor'
-import { auditStatement } from './audit'
+import { auditStatement, submissionHref } from './audit'
 import { needs } from './checks'
-import { inboxStatement, loadNode, loadPerson, mentionStatements, postStatement, specOf, touchNode, type Ctx } from './context'
+import { loadNode, loadPerson, mentionStatements, postStatement, signOffDoneStatement, signOffStatements, specOf, touchNode, type Ctx } from './context'
 import { isId, newId } from './ids'
 import { checkSubmissions, takeThreadToken } from './limits'
 import { checkWritable, readSettings } from './settings'
-import { MAX_LINKS, needText, parseLinks } from './text'
+import { MAX_LINKS, needText, optText, parseLinks } from './text'
 
 const bad = (m: string, d: Record<string, unknown> = {}) => new ShwarmError('bad_request', m, d)
 
@@ -55,6 +56,29 @@ export type SubmitInput = {
   links: unknown
   howToCheck: string
   builtOn?: (string | { post: string; note?: string })[]
+  release?: { name?: string; version?: string; howToUse?: string } | null // optional (table B #64)
+}
+
+// OPEN: the caps are proposed (decisions, Oct 9). Name and version are one line; how to use is often a command to copy.
+export const RELEASE_CAPS = { name: 120, version: 50, howToUse: 2000 } as const
+export const MAX_BUILT_ON_NOTE = 280 // OPEN: proposed (decisions, Oct 9)
+
+export type Release = { name: string | null; version: string | null; howToUse: string | null }
+
+/** The optional release fields a submitter fills: what the result page shows if this submission passes. */
+export function parseRelease(v: unknown): Release {
+  if (v === undefined || v === null) return { name: null, version: null, howToUse: null }
+  if (typeof v !== 'object' || Array.isArray(v)) throw bad('release is {name, version, how_to_use}')
+  const o = v as Record<string, unknown>
+  const unknown = Object.keys(o).filter(k => k !== 'name' && k !== 'version' && k !== 'howToUse')
+  if (unknown.length) throw bad(`release has unknown fields: ${unknown.join(', ')}`)
+  const name = optText(o.name, 'release.name', RELEASE_CAPS.name)
+  const version = optText(o.version, 'release.version', RELEASE_CAPS.version)
+  for (const [k, x] of [['name', name], ['version', version]] as const) if (x && /[\r\n]/.test(x)) throw bad(`release.${k} is one line`, { field: `release.${k}` })
+  const howToUse = optText(o.howToUse, 'release.how_to_use', RELEASE_CAPS.howToUse)
+  const hidden = howToUse ? hiddenProblem(howToUse, 'how to use') : null // Trojan Source, as for run commands
+  if (hidden) throw bad(hidden, { field: 'release.how_to_use' })
+  return { name, version, howToUse }
 }
 
 export type CheckRowOut = { id: null; slot: 'run' | 'people' | 'author'; as?: string; verdict: 'waiting' }
@@ -73,14 +97,15 @@ export async function submit(ctx: Ctx, a: Actor, inp: SubmitInput): Promise<Subm
   const links = parseLinks(inp.links)
   if (!links.length) throw bad('a submission links the work: {url, sha256} or {repo, commit}')
   const howToCheck = needText(inp.howToCheck, 'how_to_check')
-  const builtOn: string[] = []
+  const release = parseRelease(inp.release)
+  const builtOn = new Map<string, string | null>() // post id → why it was used
   if (inp.builtOn !== undefined && inp.builtOn !== null) {
     if (!Array.isArray(inp.builtOn) || inp.builtOn.length > MAX_LINKS) throw bad(`built_on is a list of at most ${MAX_LINKS} posts`)
     for (const b of inp.builtOn) {
-      // OPEN: the protocol's {post, note} carries a note; the schema's built_on has no column for it yet, so it's dropped.
       const id = typeof b === 'string' ? b : b?.post
+      const note = typeof b === 'string' || !b ? null : optText(b.note, 'built_on.note', MAX_BUILT_ON_NOTE)
       if (!isId('p', id) || !(await ctx.db.prepare('SELECT 1 FROM post WHERE id = ?').bind(id).first())) throw bad(`built_on: ${String(id)} is not a post`)
-      if (!builtOn.includes(id)) builtOn.push(id)
+      if (!builtOn.get(id)) builtOn.set(id, note) // named twice: the first note given wins
     }
   }
 
@@ -93,25 +118,32 @@ export async function submit(ctx: Ctx, a: Actor, inp: SubmitInput): Promise<Subm
   const hash = await submissionHash({ text, links })
   const id = newId('p')
   const m = await mentionStatements(ctx, { postId: id, text, nodeId: n.id, actor: a })
-  const e = auditStatement(ctx.db, { event: 'submission', node: n.id, by: a.as, submissionId: id, number, detail: `#${number} (${shortHash(hash)})` }, ctx.at)
+  const e = auditStatement(
+    ctx.db,
+    { event: 'submission', node: n.id, by: a.as, submissionId: id, number, detail: `#${number} (${shortHash(hash)})`, evidence: submissionHref(n.path, number) },
+    ctx.at,
+  )
   const stmts: D1PreparedStatement[] = [
     postStatement(ctx, { id, nodeId: n.id, actor: a, kind: 'submission', text, links }),
     ctx.db
-      .prepare('INSERT INTO submission (post_id, node_id, number, hash, how_to_check, author_swap) VALUES (?, ?, ?, ?, ?, ?)')
-      .bind(id, n.id, number, hash, howToCheck, authorSwap ? 1 : 0),
-    // A newer submission replaces the ones still in review; their checks and repros stay visible.
+      .prepare(
+        `INSERT INTO submission (post_id, node_id, number, hash, how_to_check, author_swap, release_title, release_version, release_how_to_use)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(id, n.id, number, hash, howToCheck, authorSwap ? 1 : 0, release.name, release.version, release.howToUse),
+    // A newer submission replaces the ones still in review; their checks and repros stay visible, their sign-off items are done.
     ctx.db
       .prepare("UPDATE submission SET status = 'superseded', superseded_by = ? WHERE node_id = ? AND status = 'in_review' AND post_id <> ?")
       .bind(id, n.id, id),
-    ...builtOn.map(p => ctx.db.prepare('INSERT INTO built_on (submission_id, post_id) VALUES (?, ?)').bind(id, p)),
+    signOffDoneStatement(ctx, n.id, { replacedBy: id }),
+    ...[...builtOn].map(([p, note]) => ctx.db.prepare('INSERT INTO built_on (submission_id, post_id, note) VALUES (?, ?, ?)').bind(id, p, note)),
     ctx.db.prepare('UPDATE node SET next_submission = ? WHERE id = ?').bind(number + 1, n.id),
     e.stmt,
     ...m.stmts,
     bucket.stmt,
   ]
-  // Author only: the author is notified at once (spec "The author goes last").
-  if (need.author && need.runs === 0 && need.people === 0)
-    stmts.push(inboxStatement(ctx, { personId: n.author_id, kind: 'sign_off', nodeId: n.id, postId: id, text: `#${number} on ${n.title} is ready for your sign-off.` }))
+  // Author only: the author is notified at once, in the inbox and by mail (spec "The author goes last").
+  if (need.author && need.runs === 0 && need.people === 0) stmts.push(...signOffStatements(ctx, n, { postId: id, number }, true))
   stmts.push(touchNode(ctx, n.id, e.id))
   await ctx.db.batch(stmts)
 

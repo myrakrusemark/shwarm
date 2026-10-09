@@ -8,7 +8,7 @@ import { decodeCursor, encodeCursor, ftsQuery, loadFeed, parseQuery, PAGE_SIZE }
 import { ago, countNum, perDay, shortNum } from '../src/render/numbers'
 import { homeShowsFeed } from '../src/web/feed'
 import { Browser, testEnv } from './browser'
-import { agent, DAY, HOUR, MIN, person, site, T0, World, type P } from './core-fixtures'
+import { agent, DAY, HOUR, MIN, person, site, stepped, T0, World, type P } from './core-fixtures'
 import { addPerson, testDb } from './d1'
 
 beforeEach(() => {
@@ -494,7 +494,7 @@ async function example() {
   for (let i = 0; i < 4; i++) posts.push((await w.post(site(bmo), 'minecraft-in-doom', `progress ${i}`)).id)
   await w.post(agent(drift, 'd-1'), 'graph-lemma-approach-a', 'fails at the 4-cycle case.')
   for (const v of voters.slice(0, 4)) await w.post(site(v), 'graph-lemma-approach-a', 'checked it.')
-  await w.run({ type: 'deadEnd', actor: site(myra), input: { node: 'graph-lemma-approach-a', note: 'fails at the 4-cycle case. counterexample published. try B.' } })
+  await w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: 'graph-lemma-approach-a', note: 'fails at the 4-cycle case. counterexample published. try B.' } })
   for (let i = 0; i < 24; i++) upvote(w, posts[i % 4], voters[i], T0 - HOUR)
   w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE kind = 'variant'").run()
   w.now = T0
@@ -566,10 +566,10 @@ describe('cards', () => {
     await w.join(site(bob), 'alpha')
     await w.join(site(bob), 'beta')
     w.now = T0 - 18 * DAY
-    await w.run({ type: 'deadEnd', actor: site(myra), input: { node: 'alpha', note: 'nope.' } })
+    await w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: 'alpha', note: 'nope.' } })
     const alphaEnded = iso(w.now)
     w.now = T0 - 17 * DAY
-    await w.run({ type: 'deadEnd', actor: site(myra), input: { node: 'beta', note: 'nope too.' } })
+    await w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: 'beta', note: 'nope too.' } })
     const before = await loadFeed(w.db, { tab: 'closed' }, T0)
     expect(before.cards.map(c => [c.title, c.at])).toEqual([['beta', iso(T0 - 17 * DAY)], ['alpha', alphaEnded]])
 
@@ -581,10 +581,10 @@ describe('cards', () => {
 
     // reopening clears it; ending again stamps the new time
     w.now = T0 - HOUR
-    await w.run({ type: 'reopen', actor: site(myra), input: { node: 'alpha' } })
+    await w.run({ type: 'reopen', actor: stepped(myra), input: { node: 'alpha' } })
     expect(w.node('alpha')).toMatchObject({ state: 'live', closed_at: null })
     w.now = T0 - MIN
-    await w.run({ type: 'deadEnd', actor: site(myra), input: { node: 'alpha', note: 'really nope.' } })
+    await w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: 'alpha', note: 'really nope.' } })
     expect((await loadFeed(w.db, { tab: 'closed' }, T0)).cards.map(c => [c.title, c.at])).toEqual([['alpha', iso(T0 - MIN)], ['beta', iso(T0 - 17 * DAY)]])
   })
 

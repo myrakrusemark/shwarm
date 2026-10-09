@@ -15,6 +15,7 @@ export type MailTemplate =
   | 'email_change_old'
   | 'signup_existing'
   | 'triage_alert' // to the admins: a node triage held or flagged (go-live 8.1, triage/run.ts)
+  | 'sign_off_ready' // to a node's author: a submission waits on their sign-off (go-live 5.4, notice 'sign_off')
 
 export type Mail = {
   to: string
@@ -47,6 +48,19 @@ export function mailWhenStatement(db: D1Database, m: Mail, when: string, whenArg
        SELECT ?, ?, ?, ?, ?, ?, ? WHERE ${when}`,
     )
     .bind(m.to.toLowerCase(), m.personId ?? null, m.template, m.stream, JSON.stringify(m.payload ?? {}), now, m.sendAfter ?? now, ...whenArgs)
+}
+
+/**
+ * A mail to a person by id, addressed inside the batch: one row if they are active, none otherwise (a suspended or
+ * closed account gets no notices). For acts in core, which know a person's id but not their address.
+ */
+export function mailToPersonStatement(db: D1Database, m: Omit<Mail, 'to' | 'personId'> & { personId: number }, now = new Date().toISOString()): D1PreparedStatement {
+  return db
+    .prepare(
+      `INSERT INTO email_outbox (to_email, person_id, template, stream, payload, created_at, send_after)
+       SELECT lower(email), id, ?, ?, ?, ?, ? FROM person WHERE id = ? AND status = 'active'`,
+    )
+    .bind(m.template, m.stream, JSON.stringify(m.payload ?? {}), now, m.sendAfter ?? now, m.personId)
 }
 
 export async function enqueueMail(db: D1Database, m: Mail, now?: string): Promise<void> {

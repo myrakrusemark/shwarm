@@ -10,7 +10,7 @@ export type CheckSpec = {
 }
 
 export const DEFAULT_RUNS = 2
-const MAX_COUNT = 50 // OPEN: no cap is decided; 50 keeps a typo from locking a done test nobody can meet
+const MAX_COUNT = 50 // decided (A25): up to 50 for any check count, so a typo can't lock a done test nobody can meet
 
 const noTest = (m: string) => new ShwarmError('no_done_test', m)
 const bad = (m: string) => new ShwarmError('bad_request', m)

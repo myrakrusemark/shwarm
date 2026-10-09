@@ -1,5 +1,6 @@
 // The audit writer (spec "The audit log", table B #66). One row per recorded event, append-only;
-// rows go into the same D1 batch as the act they record.
+// rows go into the same D1 batch as the act they record. Every row links its evidence as a site path, so the
+// log view and GET /w/<path>/log can link each row without guessing (go-live 5.7).
 import { newId } from './ids'
 
 export const AUDIT_EVENTS = [
@@ -25,13 +26,18 @@ export type AuditRow = {
   submissionId?: string | null
   number?: number | null
   detail?: string
-  evidence?: string | null
+  evidence: string // a site path: nodeHref, submissionHref, or either with a #post or #check anchor
 }
+
+/** A node's page. Paths are slugs joined by '/', so they need no escaping. */
+export const nodeHref = (path: string) => `/w/${path}`
+/** A submission's page (go-live 5.2), optionally at one check on it (`#c_…`). */
+export const submissionHref = (path: string, number: number, checkId?: string) => `/w/${path}/s/${number}${checkId ? '#' + checkId : ''}`
 
 export function auditStatement(db: D1Database, r: AuditRow, at: string): { id: string; stmt: D1PreparedStatement } {
   const id = newId('e')
   const cols = 'INSERT INTO audit_event (id, at, event, node_id, by_name, submission_id, number, detail, evidence, milestone)'
-  const rest = [r.by ?? null, r.submissionId ?? null, r.number ?? null, r.detail ?? '', r.evidence ?? null, MILESTONES.has(r.event) ? 1 : 0]
+  const rest = [r.by ?? null, r.submissionId ?? null, r.number ?? null, r.detail ?? '', r.evidence, MILESTONES.has(r.event) ? 1 : 0]
   // By path, the row is written only if the node is there: a create whose guarded INSERT wrote nothing writes no event either.
   const stmt =
     typeof r.node === 'number'

@@ -21,6 +21,8 @@ export async function person(db: D1Database, handle: string, o: { founding?: boo
 }
 
 export const site = (p: P): Actor => siteActor(p)
+/** The site actor with the password just re-entered: sign-off, dead ends and reopening need it (A5). */
+export const stepped = (p: P): Actor => siteActor(p, { steppedUp: true })
 export const agent = (p: P, path = 'm-04', perms: Perm[] = ['read', 'post', 'submit', 'check', 'branch'], node = '*'): Actor =>
   keyActor(p, `@${p.handle}/${path}`, { id: `${p.handle}-key`, canPostAs: `@${p.handle}/*`, grants: [{ node, perms }] })
 
@@ -109,6 +111,18 @@ export class World {
   }
   fail(by: Actor, node: string, on: string, extra: Record<string, unknown> = {}) {
     return this.run({ type: 'check', actor: by, input: { node, on, verdict: 'fail', repro: { steps: 'place on corner 3. the block vanishes.' }, ...extra } })
+  }
+  /** The author's sign-off: asked for by name, on the site, stepped up. A pass says what was checked; a fail carries a repro. */
+  signOff(by: P | Actor, node: string, on: string, verdict: 'pass' | 'fail' = 'pass', extra: Record<string, unknown> = {}) {
+    const actor = 'via' in by ? by : stepped(by)
+    const backing = verdict === 'pass' ? { text: 'played it for 10 minutes, no stutter' } : { repro: { steps: 'place on corner 3. the block vanishes.' } }
+    return this.run({ type: 'check', actor, input: { node, on, slot: 'author', verdict, ...backing, ...extra } })
+  }
+  deadEnd(by: P | Actor, node: string, note = 'the engine cannot do it') {
+    return this.run({ type: 'deadEnd', actor: 'via' in by ? by : stepped(by), input: { node, note } })
+  }
+  reopen(by: P | Actor, node: string) {
+    return this.run({ type: 'reopen', actor: 'via' in by ? by : stepped(by), input: { node } })
   }
   runReport(by: Actor, node: string, on: string, hash: string, exit = 0, extra: Record<string, unknown> = {}) {
     return this.run({

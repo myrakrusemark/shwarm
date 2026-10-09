@@ -110,6 +110,28 @@ function triageAlert(p: Record<string, unknown>): Draft {
   }
 }
 
+/**
+ * A submission is ready for its author's sign-off (go-live 5.4): every other check passed, or the author is the only
+ * check. Sent with the sign_off inbox item (core/posts.ts, core/checking.ts). The title is the author's own node's.
+ */
+function signOffReady(p: Record<string, unknown>, site: string): Draft {
+  const n = p.number
+  if (!Number.isSafeInteger(n) || (n as number) < 1) throw new MailRenderError('bad number')
+  const title = printable(oneLine(text(p, 'title'), 80))
+  return {
+    subject: `#${n} on ${title} is ready for your sign-off`,
+    blocks: [
+      hi(p),
+      p.only === true
+        ? `#${n} on ${title} is waiting on you. you're its only check.`
+        : `every other check on #${n} on ${title} has passed. yours is the last one.`,
+      'open the submission to pass it with what you checked, or fail it with a repro:',
+      { href: siteLink(site, p.link) },
+      'nothing passes until you sign off. the work stays open to everyone meanwhile.',
+    ],
+  }
+}
+
 const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string) => Draft> = {
   verify: (p, site) => ({
     subject: 'verify your email for shwarm',
@@ -179,6 +201,7 @@ const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string)
     ],
   }),
   triage_alert: p => triageAlert(p),
+  sign_off_ready: (p, site) => signOffReady(p, site),
 }
 
 const esc = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)

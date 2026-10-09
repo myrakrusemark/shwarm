@@ -23,7 +23,7 @@ import {
 import { MAIL_CRON, scheduled, stats as runStats, STATS_CRON } from '../src/jobs'
 import { CHUNK, MAX_NODES, refreshAfter, rollupSite, rollupStats } from '../src/jobs/stats'
 import { getHeaderStats, stripStats } from '../src/web/header-stats'
-import { agent, DAY, HOUR, MIN, person, site, T0, World, type P } from './core-fixtures'
+import { agent, DAY, HOUR, MIN, person, site, stepped, T0, World, type P } from './core-fixtures'
 import { testDb } from './d1'
 
 const iso = (ms: number) => new Date(ms).toISOString()
@@ -182,7 +182,7 @@ async function fixture() {
   await w.join(site(dave), 'lobby-a')
   await w.join(site(erin), 'lobby-a')
   await w.join(site(dave), 'lobby-b')
-  await w.run({ type: 'deadEnd', actor: site(myra), input: { node: 'zeta', note: "menus can't nest.\nnotes published." } })
+  await w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: 'zeta', note: "menus can't nest.\nnotes published." } })
 
   w.now = T0 - HOUR
   const sub = await w.submit(site(bob), 'epsilon/block-placement')
@@ -299,7 +299,7 @@ describe('stats rollup', () => {
 
     // the branch passes: the branch and its shwarm are rolled up, and the shwarm gets the +20 bump
     w.now = T0 + 6 * MIN
-    await w.pass(site(myra), 'epsilon/block-placement', sub.id, { text: 'placed 200 times per corner. no failures.' })
+    await w.signOff(myra, 'epsilon/block-placement', sub.id, 'pass', { text: 'placed 200 times per corner. no failures.' })
     expect(await rollupStats(w.db, T0 + 10 * MIN)).toMatchObject({ nodes: 2, changed: 2 })
     const s = stats(w)
     expect(s.epsilon.status_line).toBe('no submission yet · 1 branch closed.')
