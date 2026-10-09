@@ -6,9 +6,14 @@ import { groupDigits } from '../core/stats'
 
 export type HeaderStats = { day: string; people: number; posts: number; shwarms: number }
 
-/** The newest day's counters, or null before the first hourly rollup. */
+/**
+ * The newest day the stats job has counted, or null before its first count. A row the mail sweep started for a new
+ * day (emails_sent only) isn't counted yet, so it never shows as zeros.
+ */
 export async function getHeaderStats(db: D1Database): Promise<HeaderStats | null> {
-  return db.prepare('SELECT day, people, posts, shwarms FROM site_stats_daily ORDER BY day DESC LIMIT 1').first<HeaderStats>()
+  return db
+    .prepare('SELECT day, people, posts, shwarms FROM site_stats_daily WHERE computed_at IS NOT NULL ORDER BY day DESC LIMIT 1')
+    .first<HeaderStats>()
 }
 
 /**

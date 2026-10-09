@@ -1,5 +1,6 @@
 // Stats and ranking (go-live 3.7): the pure formulas, then the rollup job on fixed fixtures.
-import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { describe, expect, it, vi } from 'vitest'
 import {
   RANKING,
   byScore,
@@ -13,12 +14,13 @@ import {
   people,
   postsPerDay,
   rankingFrom,
+  scoreNow,
   statusLine,
   surge,
   type StatusInput,
 } from '../src/core/stats'
-import { scheduled } from '../src/jobs'
-import { MAX_NODES, rollupSite, rollupStats } from '../src/jobs/stats'
+import { MAIL_CRON, scheduled, stats as runStats, STATS_CRON } from '../src/jobs'
+import { CHUNK, MAX_NODES, refreshAfter, rollupSite, rollupStats } from '../src/jobs/stats'
 import { getHeaderStats, stripStats } from '../src/web/header-stats'
 import { agent, DAY, HOUR, MIN, person, site, T0, World, type P } from './core-fixtures'
 import { testDb } from './d1'
@@ -295,9 +297,9 @@ describe('stats rollup', () => {
     const { w } = await fixture()
     await rollupStats(w.db, T0)
     expect(await rollupStats(w.db, T0 + 30 * MIN)).toMatchObject({ nodes: 0 }) // not stale yet
-    const r = await rollupStats(w.db, T0 + 61 * MIN)
+    const r = await rollupStats(w.db, T0 + 76 * MIN) // the hourly refresh comes 45 to 75 minutes on, by node id
     expect(r.warm).toBeGreaterThan(0)
-    expect(stats(w).alpha.score).toBeCloseTo(33 * half(2 + 1 / 60), 3)
+    expect(stats(w).alpha.score).toBeCloseTo(33 * half(2 + 16 / 60), 3)
 
     // a day later the scores and hot flags are gone; a week later posts per day too, and nothing is warm
     await rollupStats(w.db, T0 + 25 * HOUR)
@@ -326,9 +328,10 @@ describe('stats rollup', () => {
 
   it('works on an empty database', async () => {
     const db = testDb()
-    expect(await rollupStats(db, T0, { site: true })).toEqual({ nodes: 0, changed: 0, warm: 0, person_rows: 0, site: true })
+    expect(await rollupStats(db, T0)).toEqual({ nodes: 0, changed: 0, warm: 0, person_rows: 0 })
+    await rollupSite(db, T0)
     expect(db.raw.prepare('SELECT * FROM site_stats_daily').all().map((r: any) => ({ ...r }))).toEqual([
-      { day: '2026-10-08', shwarms: 0, people: 0, posts: 0, d1_rows_read: 0, d1_rows_written: 0, emails_sent: 0, triage_calls: 0 },
+      { day: '2026-10-08', shwarms: 0, people: 0, posts: 0, d1_rows_read: 0, d1_rows_written: 0, emails_sent: 0, triage_calls: 0, computed_at: iso(T0) },
     ])
     expect(await getHeaderStats(db)).toEqual({ day: '2026-10-08', people: 0, posts: 0, shwarms: 0 })
   })
@@ -387,24 +390,225 @@ describe('header counters', () => {
 })
 
 describe('cron', () => {
-  async function fire(db: D1Database, at: string) {
+  async function fire(db: D1Database, at: string, cron = STATS_CRON) {
     const waits: Promise<unknown>[] = []
-    await scheduled({ scheduledTime: Date.parse(at), cron: '* * * * *', noRetry() {} } as ScheduledController, { DB: db, ENV: 'test', SITE_URL: 'https://shwarm.org' }, {
+    await scheduled({ scheduledTime: Date.parse(at), cron, noRetry() {} } as ScheduledController, { DB: db, ENV: 'test', SITE_URL: 'https://shwarm.org' }, {
       waitUntil: (p: Promise<unknown>) => waits.push(p),
       passThroughOnException() {},
     } as unknown as ExecutionContext)
     await Promise.all(waits)
   }
   const cursor = (db: any) => db.raw.prepare("SELECT value FROM meta WHERE key = 'stats_cursor'").get()
+  const day = (db: any, d: string) => db.raw.prepare('SELECT * FROM site_stats_daily WHERE day = ?').get(d)
 
-  it('runs the rollup every 5 minutes and the header counters on the hour', async () => {
+  it('sweeps mail on the minute trigger and runs stats on the 5-minute one, never both in one invocation', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      const db = testDb()
+      await fire(db, '2026-10-08T12:05:00Z', MAIL_CRON)
+      expect(cursor(db)).toBeUndefined() // no stats
+      expect(warn).toHaveBeenCalledWith(expect.stringMatching(/^outbox:/)) // the sweep ran (no Resend key in tests)
+      warn.mockClear()
+      await fire(db, '2026-10-08T12:05:00Z', STATS_CRON)
+      expect(cursor(db)).toBeDefined()
+      expect(warn).not.toHaveBeenCalled() // no sweep
+    } finally {
+      warn.mockRestore()
+    }
+  })
+
+  it('has both triggers in staging and production', () => {
+    const conf = readFileSync(new URL('../wrangler.jsonc', import.meta.url), 'utf8')
+    const crons = [...conf.matchAll(/"crons":\s*(\[[^\]]*\])/g)].map(m => JSON.parse(m[1]))
+    expect(crons).toEqual([
+      [MAIL_CRON, STATS_CRON],
+      [MAIL_CRON, STATS_CRON],
+    ])
+  })
+
+  it('counts the header first and on its own, so a failing node rollup leaves it alone', async () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      const db = testDb()
+      db.raw.exec('DROP TABLE node_stats') // the node rollup throws
+      const midnight = Date.parse('2026-10-09T00:00:00Z')
+      await runStats(db, midnight, midnight)
+      expect(err).toHaveBeenCalledWith('stats failed', expect.anything())
+      expect(day(db, '2026-10-09')).toMatchObject({ computed_at: iso(midnight) })
+    } finally {
+      err.mockRestore()
+    }
+  })
+
+  it('counts the header at the next run when the one on the hour was missed, then waits for the hour', async () => {
     const db = testDb()
-    await fire(db, '2026-10-08T12:03:00Z')
-    expect(cursor(db)).toBeUndefined()
-    await fire(db, '2026-10-08T12:05:00Z')
-    expect(cursor(db)).toBeDefined()
-    expect(db.raw.prepare('SELECT COUNT(*) AS n FROM site_stats_daily').get().n).toBe(0)
-    await fire(db, '2026-10-08T13:00:00Z')
-    expect(db.raw.prepare('SELECT COUNT(*) AS n FROM site_stats_daily').get().n).toBeGreaterThan(0)
+    const at = (t: string) => Date.parse(`2026-10-08T${t}:00Z`)
+    await runStats(db, at('12:05'), at('12:05')) // the 12:00 run never happened
+    expect(day(db, '2026-10-08')).toMatchObject({ computed_at: iso(at('12:05')) })
+    await runStats(db, at('12:10'), at('12:10'))
+    expect(day(db, '2026-10-08')).toMatchObject({ computed_at: iso(at('12:05')) }) // counted under an hour ago
+    await runStats(db, at('13:00'), at('13:00'))
+    expect(day(db, '2026-10-08')).toMatchObject({ computed_at: iso(at('13:00')) })
+  })
+})
+
+// ---- review fixes: CPU per run, stale scores, unfinished days ----
+
+/** The same database, counting queries and rows read back, and failing the nth batch when asked. */
+function watched(db: D1Database & { raw: any }, o: { failBatch?: number } = {}) {
+  const seen = { queries: 0, rows: 0, batches: 0 }
+  const wrap = (st: any): any => ({
+    ...st,
+    bind: (...a: unknown[]) => wrap(st.bind(...a)),
+    all: async () => {
+      const r = await st.all()
+      seen.queries++
+      seen.rows += r.results.length
+      return r
+    },
+    first: async (c?: string) => {
+      seen.queries++
+      seen.rows++
+      return st.first(c)
+    },
+  })
+  const out = {
+    ...db,
+    prepare: (sql: string) => wrap(db.prepare(sql)),
+    batch: async (stmts: any[]) => {
+      seen.batches++
+      if (seen.batches === o.failBatch) throw new Error('exceeded CPU')
+      return db.batch(stmts)
+    },
+  }
+  return { db: out as unknown as D1Database, seen }
+}
+
+describe('stats rollup cost and freshness', () => {
+  it('reads a few rows per node, not one per upvote, and the score still matches the formula', async () => {
+    const w = new World()
+    const myra = await person(w.db, 'myra')
+    const bob = await person(w.db, 'bob')
+    w.now = T0 - 8 * DAY
+    await w.shwarm(seed(myra), { title: 'busy', lobby: 2 })
+    await w.join(site(bob), 'busy')
+    w.now = T0 - 7 * DAY + HOUR
+    const ids = await posts(w, site(bob), 'busy', 4)
+    const times: number[] = []
+    for (let i = 0; i < 100; i++) {
+      const voter = await person(w.db, `fan${String(i).padStart(3, '0')}`)
+      for (let k = 0; k < 4; k++) {
+        const t = T0 - (i * 4 + k) * 25 * MIN // 400 upvotes, each at its own time, over the last week
+        upvote(w, ids[k], voter, t)
+        times.push(t)
+      }
+    }
+    w.now = T0
+    const { db, seen } = watched(w.db)
+    await rollupStats(db, T0)
+    expect(seen.rows).toBeLessThan(25) // was one row per upvote: over 400
+    const s = stats(w).busy
+    expect(s.upvotes).toBe(400)
+    expect(s.score).toBeCloseTo(liveScore({ upvotes: times, submissions: [], passes: [] }, T0), 3)
+    const up24 = times.filter(t => t > T0 - DAY).length
+    expect(s.hot).toBe(isHot(up24, 400) ? 1 : 0)
+  })
+
+  it('keeps each finished chunk when a run is cut short, and carries on after it next time', async () => {
+    const w = new World()
+    const myra = await person(w.db, 'myra')
+    const total = MAX_NODES + 20
+    const insert = w.db.raw.prepare(
+      `INSERT INTO node (path, slug, kind, title, what, done_when, checks, lobby_size, license, author_id, posted_by, state, created_at, changed_at)
+       VALUES (?, ?, 'shwarm', ?, 'w', 'd', '{"author":true}', 2, 'MIT + CC-BY-4.0', ?, '@myra', 'lobby', ?, ?)`,
+    )
+    for (let i = 0; i < total; i++) insert.run(`n${i}`, `n${i}`, `n${i}`, myra.id, iso(T0), iso(T0 + i))
+    const cut = watched(w.db, { failBatch: 2 })
+    await expect(rollupStats(cut.db, T0 + MIN)).rejects.toThrow('exceeded CPU')
+    expect(w.get('SELECT COUNT(*) AS n FROM node_stats').n).toBe(CHUNK) // the first chunk stayed
+    expect(await rollupStats(w.db, T0 + 6 * MIN)).toMatchObject({ nodes: total - CHUNK }) // and isn't done again
+    expect(w.get('SELECT COUNT(*) AS n FROM node_stats').n).toBe(total)
+  })
+
+  it('spreads the hourly refresh of nodes rolled up together', async () => {
+    const { w } = await fixture()
+    await rollupStats(w.db, T0)
+    const refresh = ['alpha', 'beta', 'gamma', 'delta'].map(p => Date.parse(stats(w)[p].stale_at))
+    expect(new Set(refresh).size).toBe(4)
+    for (const t of refresh) expect(t).toBeGreaterThan(T0 + 44 * MIN)
+    for (const t of refresh) expect(t).toBeLessThanOrEqual(T0 + 75 * MIN)
+    expect(refreshAfter(1)).not.toBe(refreshAfter(2))
+  })
+
+  it('drops a hot badge and score as soon as the upvotes leave the 24 hours, not up to an hour later', async () => {
+    const w = new World()
+    const myra = await person(w.db, 'myra')
+    const bob = await person(w.db, 'bob')
+    const voters: P[] = []
+    for (let i = 0; i < 25; i++) voters.push(await person(w.db, `voter${String(i).padStart(2, '0')}`))
+    w.now = T0 - 2 * DAY
+    for (const title of ['a', 'b']) {
+      await w.shwarm(seed(myra), { title, lobby: 2 })
+      await w.join(site(bob), title)
+    }
+    w.now = T0 - 23.5 * HOUR
+    const [pa] = await posts(w, site(bob), 'a', 1)
+    for (const v of voters) upvote(w, pa, v, T0 - 23.5 * HOUR)
+    const [pb] = await posts(w, site(bob), 'b', 1)
+    w.now = T0
+    for (let t = T0; t <= T0 + 55 * MIN; t += 5 * MIN) {
+      if (t === T0 + 40 * MIN) {
+        for (const v of voters.slice(0, 5)) upvote(w, pb, v, t)
+        w.now = t
+        await w.post(site(bob), 'b', 'more.') // a write marks b changed
+      }
+      await rollupStats(w.db, t)
+      if (t === T0) expect(stats(w).a).toMatchObject({ hot: 1, stale_at: iso(T0 + 30 * MIN) })
+    }
+    const s = stats(w)
+    expect(s.a).toMatchObject({ hot: 0, score: 0, updated_at: iso(T0 + 30 * MIN) }) // re-rolled at 12:30, not 13:05
+    expect(s.b.score).toBeCloseTo(5 * half(5 / 60), 3)
+    expect(hotTab(w)).toEqual(['b', 'a'])
+  })
+
+  it('ranks scores computed at different times as of now', async () => {
+    const at = (h: number) => iso(T0 + h * HOUR)
+    expect(scoreNow({ state: 'live', score: 10, updated_at: at(0) }, T0 + 12 * HOUR)).toBeCloseTo(5, 10)
+    expect(scoreNow({ state: 'lobby', score: 0.5, updated_at: at(0) }, T0 + 12 * HOUR)).toBe(0.5) // lobbies step, they don't decay
+    // x was rolled up an hour before y: stored 10 beats 9.6, but as of now x is 9.44
+    const rows = [
+      { id: 1, score: 10, updated_at: at(0), state: 'live', created_at: at(-48) },
+      { id: 2, score: 9.6, updated_at: at(1), state: 'live', created_at: at(-48) },
+    ]
+    const now = T0 + HOUR
+    expect(rows.map(r => ({ ...r, score: scoreNow(r, now) })).sort(byScore).map(r => r.id)).toEqual([2, 1])
+  })
+})
+
+describe('header counters catch up', () => {
+  it('finishes a day whose midnight run was missed, then leaves it alone', async () => {
+    const w = new World()
+    const myra = await person(w.db, 'myra')
+    w.now = Date.parse('2026-10-08T09:00:00Z')
+    await w.shwarm(seed(myra), { title: 'alpha', lobby: 3 })
+    await w.post(site(myra), 'alpha', 'morning.')
+    w.now = Date.parse('2026-10-08T23:30:00Z')
+    await w.post(site(myra), 'alpha', 'late.')
+    await rollupSite(w.db, Date.parse('2026-10-08T23:00:00Z'))
+    expect(w.get("SELECT posts FROM site_stats_daily WHERE day = '2026-10-08'").posts).toBe(1)
+    // no run at 00:00; the next one, an hour later, finishes oct 8
+    await rollupSite(w.db, Date.parse('2026-10-09T01:00:00Z'))
+    expect(w.get("SELECT posts, computed_at FROM site_stats_daily WHERE day = '2026-10-08'")).toEqual({ posts: 2, computed_at: '2026-10-09T01:00:00.000Z' })
+    // a final day isn't counted again
+    await rollupSite(w.db, Date.parse('2026-10-09T02:00:00Z'))
+    expect(w.get("SELECT computed_at FROM site_stats_daily WHERE day = '2026-10-08'").computed_at).toBe('2026-10-09T01:00:00.000Z')
+  })
+
+  it('shows the last day counted, never a new day the mail sweep started with zeros', async () => {
+    const db = testDb()
+    await rollupSite(db, T0)
+    db.raw.prepare("UPDATE site_stats_daily SET people = 12, posts = 40").run()
+    db.raw.prepare("INSERT INTO site_stats_daily (day, emails_sent) VALUES ('2026-10-09', 1)").run() // as jobs/mail.ts does
+    expect(await getHeaderStats(db)).toMatchObject({ day: '2026-10-08', people: 12, posts: 40 })
   })
 })

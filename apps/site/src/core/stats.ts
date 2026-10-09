@@ -59,6 +59,21 @@ export function liveScore(ev: { upvotes: number[]; submissions: number[]; passes
   return sum(ev.upvotes, 1) + sum(ev.submissions, r.submission) + sum(ev.passes, r.pass)
 }
 
+/** The same live score from sums already decayed to `now` (the stats job adds them up in SQL). */
+export function liveScoreFrom(decayed: { upvotes: number; submissions: number; passes: number }, r: Ranking = RANKING): number {
+  return decayed.upvotes + r.submission * decayed.submissions + r.pass * decayed.passes
+}
+
+/**
+ * A stored score brought to `now`, for ranking rows the job computed at different times. Between its updated_at and
+ * its stale_at nothing leaves a live node's window, so its score only decays, every part at the same rate: this is
+ * exact. A lobby's score doesn't decay; it only steps when a join leaves its 24 hours.
+ */
+export function scoreNow(s: { state: string; score: number; updated_at: string }, now: number, r: Ranking = RANKING): number {
+  if (s.state !== 'live') return s.score
+  return s.score * decay(Math.max(0, now - Date.parse(s.updated_at)), r)
+}
+
 /** Lobby score (table B #24): joins in the last 24 hours ÷ seats left. */
 export function lobbyScore(joins24: number, seatsLeft: number): number {
   return joins24 / Math.max(1, seatsLeft)

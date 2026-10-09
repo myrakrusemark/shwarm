@@ -9,9 +9,14 @@ CREATE INDEX node_changed ON node (changed_at);
 -- All-time thread totals for the feed card's "2.1k upvotes" and the impact mark (counted upvotes, non-hidden posts).
 ALTER TABLE node_stats ADD COLUMN upvotes INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE node_stats ADD COLUMN posts INTEGER NOT NULL DEFAULT 0;
--- Nodes whose numbers still move with time alone (decay, the 24-hour and 7-day windows), stalest first.
-CREATE INDEX node_stats_warm ON node_stats (updated_at) WHERE score > 0 OR hot = 1 OR posts_per_day > 0;
+-- When a node's numbers next change with time alone, with no new write: an upvote, bump or join leaving its window,
+-- the hot flag able to flip, or the hourly refresh of a decaying score and posts per day. NULL when nothing moves.
+ALTER TABLE node_stats ADD COLUMN stale_at TEXT;
+CREATE INDEX node_stats_stale ON node_stats (stale_at) WHERE stale_at IS NOT NULL;
 CREATE INDEX person_node_stats_node ON person_node_stats (node_id);
+
+-- When the stats job last counted a day. A day is final once this is at or after its end; until then it's redone.
+ALTER TABLE site_stats_daily ADD COLUMN computed_at TEXT;
 
 -- Header counters: posts today, and people active in the last 24 hours (posted, joined or upvoted).
 CREATE INDEX post_created ON post (created_at);
