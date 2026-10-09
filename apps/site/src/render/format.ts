@@ -41,6 +41,16 @@ export function ago(iso: string | null | undefined, now: number, short = false):
 /** The exact time for a title attribute (go-live 3.8): "2026-10-08 14:55 utc". */
 export const exact = (iso: string | null | undefined) => (iso ? `${iso.slice(0, 10)} ${iso.slice(11, 16)} utc` : '')
 
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
+/** A date as the result page prints it, in UTC: "oct 13", or with `time` "oct 13 21:47" (shwarm-closed.html). */
+export function monthDay(iso: string | null | undefined, time = false): string {
+  const t = iso ? Date.parse(iso) : NaN
+  if (!Number.isFinite(t)) return ''
+  const d = new Date(t)
+  const day = `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`
+  return time ? `${day} ${iso!.slice(11, 16)}` : day
+}
+
 /** Day N of being live, counting the first day as day 1. */
 export const dayOf = (liveAt: string | null, now: number) => (liveAt ? Math.max(1, Math.floor((now - Date.parse(liveAt)) / DAY) + 1) : 1)
 

@@ -1,0 +1,74 @@
+/* a closed shwarm's result page, /w/<path> (go-live 5.7), and "proof it's done" on a passed branch. rules copied from
+   mockups/shwarm-closed.html; tokens come from site.css, the shared node rules (back link, impact mark, agent resources)
+   from node.css. the last blocks are for contrast and for things the mockup sets inline. */
+
+/* from shwarm-closed.html */
+.done-head { background: linear-gradient(90deg, rgba(92,154,62,.30), transparent 72%), var(--paper); padding: 18px 16px; display: grid; grid-template-columns: 1fr auto; gap: 14px; margin-top: 4px; }
+.done-head h1 { margin: 6px 0 6px; font: 900 32px/1.1 "Arial Black", Arial, sans-serif; letter-spacing: -1px; }
+.donebadge { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 2px 8px; background: var(--leaf); color: var(--paper); }
+.passed { margin: 10px 0 0; padding: 8px 12px; border-left: 4px solid var(--leaf); background: rgba(255,255,255,.4); font-size: 14px; max-width: 72ch; }
+.passed b { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: .7; }
+main .box + .box { margin-top: 18px; }
+.result { border: var(--rule-heavy); box-shadow: 6px 6px 0 var(--ink); }
+.result .in { display: grid; gap: 14px; }
+.result h3 { margin: 0 0 4px; font: 900 20px/1.2 "Arial Black", Arial, sans-serif; }
+.kv { display: grid; grid-template-columns: 120px 1fr; gap: 5px 12px; font-size: 13px; margin: 8px 0 0; }
+.kv dt { opacity: .7; } .kv dd { margin: 0; }
+.kv code { font-size: 12px; background: var(--paper-2); padding: 0 4px; }
+.dl { display: flex; flex-wrap: wrap; gap: 10px; }
+.grp { padding: 8px 12px; border-bottom: 1px solid var(--ink); }
+.grp:last-child { border-bottom: 0; }
+.grp h4 { margin: 0 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; display: flex; justify-content: space-between; }
+.grp ul { list-style: none; margin: 0; padding: 0; font-size: 12.5px; }
+.grp li { padding: 2px 0; display: flex; gap: 8px; }
+table.credit { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.credit th { text-align: left; font-size: 11px; font-weight: 400; opacity: .7; padding: 6px 10px; border-bottom: 1px solid var(--ink); background: var(--paper-2); }
+table.credit td { padding: 8px 10px; border-bottom: 1px dashed rgba(19,38,27,.3); vertical-align: top; }
+table.credit tr:last-child td { border-bottom: 0; }
+table.credit td.rk { font-weight: 700; width: 28px; opacity: .6; }
+table.credit td.n { text-align: right; white-space: nowrap; }
+.role { display: inline-block; font-size: 10.5px; padding: 0 5px; margin: 3px 4px 0 0; border: 1px solid rgba(19,38,27,.45); background: var(--paper); }
+.role.key { background: rgba(244,197,49,.45); border-color: var(--ink); font-weight: 700; }
+table.log { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.log th { text-align: left; font-size: 11px; font-weight: 400; opacity: .7; padding: 6px 10px; border-bottom: 1px solid var(--ink); background: var(--paper-2); }
+table.log td { padding: 6px 10px; border-bottom: 1px dashed rgba(19,38,27,.3); vertical-align: top; }
+table.log td.when { white-space: nowrap; opacity: .7; font-variant-numeric: tabular-nums; }
+.ev { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 0 5px; border: 1px solid var(--ink); white-space: nowrap; }
+.ev.ok { background: var(--leaf); color: var(--paper); border-color: var(--leaf); }
+.ev.dead { text-decoration: line-through; opacity: .7; }
+.src { font-size: 11px; opacity: .65; margin-top: 4px; }
+.tree { list-style: none; margin: 0; padding: 6px 12px; font-size: 13px; }
+.tree li { padding: 4px 0; display: flex; justify-content: space-between; gap: 8px; }
+.next .btn { display: block; text-align: center; margin-bottom: 10px; }
+.next .btn:last-child { margin-bottom: 0; }
+@media (max-width: 860px) { .result .in, .done-head { grid-template-columns: 1fr; } .dl { min-width: 0; } }
+
+/* contrast (go-live 3.8): paper on leaf is 2.9:1, under 4.5:1 for small text; the done badge and the ok event go moss (5.5:1),
+   and the src line's link stays over 4.5:1 at .92 instead of .65 */
+body .donebadge { background: var(--moss); }
+body .ev.ok { background: var(--moss); border-color: var(--moss); }
+body .src { opacity: .92; }
+
+/* what the mockup sets inline: the builds-on link in the head, the notes, the boxes' footers */
+.done-head .meta a.up { color: inherit; }
+.result .in > .note, .next .note, .in.rule .note { margin: 0; }
+.in.rule { border-top: 1px solid var(--ink); }
+.in.rule.foot { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.thread-link { margin: 18px 0 0; }
+.result .sum { font-size: 13.5px; }
+
+/* rendered text and long words inside the mockup's layout */
+.result .sum .txt p, .passed .txt p { margin: 0 0 6px; }
+.result .sum .txt p:last-child, .passed .txt p:last-child, .kv dd .txt p:last-child { margin-bottom: 0; }
+.grp .txt { display: inline; }
+.grp li > span:last-child, .kv dd, .done-head > *, table.credit td, table.log td { min-width: 0; overflow-wrap: anywhere; }
+.grp li code.cmd { background: none; padding: 0; } /* the mockup prints the command plain */
+.done-head h1 { overflow-wrap: anywhere; }
+
+/* narrow screens (go-live 3.8): five log columns don't fit at 390 px, so each row becomes one wrapped line */
+@media (max-width: 640px) {
+  table.log thead { display: none; }
+  table.log tr { display: block; padding: 6px 10px; border-bottom: 1px dashed rgba(19,38,27,.3); }
+  table.log td { display: inline; padding: 0; border: 0; }
+  table.log td + td::before { content: " · "; opacity: .6; }
+}

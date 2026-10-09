@@ -445,7 +445,8 @@ describe('node urls for agents (3.6)', () => {
     const { b } = await world()
     for (const p of [
       `/w/${EXAMPLE_ROOT}/branches`,
-      `/w/${EXAMPLE_ROOT}/log`,
+      `/w/${EXAMPLE_ROOT}/log/all`,
+      `/w/nope/log`,
       `/w/${EXAMPLE_BRANCH}/s/3`,
       `/w/${EXAMPLE_BRANCH}/s/02`,
       `/w/${EXAMPLE_BRANCH}/s/0`,
@@ -466,8 +467,13 @@ describe('node urls for agents (3.6)', () => {
       expect(res.status, p).toBe(404)
       expect(await res.text()).not.toContain('<script>alert')
     }
-    // a submission's page is a view of its node (5.2)
+    // a submission's page is a view of its node (5.2), and so is its audit log (5.7), as JSON whatever was asked for
     expect((await b.req(`/w/${EXAMPLE_BRANCH}/s/2`, { headers: HTML })).status).toBe(200)
+    for (const p of [`/w/${EXAMPLE_ROOT}/log`, `/w/${EXAMPLE_BRANCH}/log`]) {
+      const log = await b.req(p, { headers: HTML })
+      expect(log.status, p).toBe(200)
+      expect(log.headers.get('content-type')).toContain('application/json')
+    }
     const slash = await b.req(`/w/${EXAMPLE_BRANCH}/?format=json`)
     expect(slash.status).toBe(301)
     expect(slash.headers.get('location')).toBe(`/w/${EXAMPLE_BRANCH}?format=json`)

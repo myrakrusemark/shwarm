@@ -1,6 +1,7 @@
 // The shwarm page (live and lobby templates) and the branch page, /w/<path> (go-live 3.3, 3.4), ported from
 // mockups/shwarm.html and mockups/branch.html. Every piece of participant text goes through render/text.tsx.
-// A closed shwarm still uses the live template here; its result template comes in 5.7.
+// A closed shwarm shows its result page instead (web/result-page.tsx, go-live 5.7); this live template is its thread
+// (?thread=1). A passed branch keeps this template, with "proof it's done" above its thread.
 import type { FC } from 'hono/jsx'
 import { shortHash } from '@shwarm/protocol'
 import type { Link } from '@shwarm/protocol'
@@ -8,8 +9,8 @@ import { joinHref, signInHref } from '../auth/return-to'
 import type { CheckSpec } from '../core/checks'
 import type { BuiltOnBy, BuiltOnLink, Chain, CheckReport, Child, Contributor, NodeHead, PitchEdit, PostEdit, PostRow, Seat, Show, Sort, SubmissionRow, Thread } from '../read/node'
 import { EDITS_SHOWN, SHOWS, SORTS } from '../read/node'
-import { isOpen, openReview, recordedStatus, review, waitingDays, type ReviewRow } from '../read/review'
-import { ago, cut, dayOf, exact, licenseName, perDay, plural, q1, shortNum, triageNote } from '../render/format'
+import { groupBySlot, isOpen, openReview, recordedStatus, review, waitingDays, type ReviewRow } from '../read/review'
+import { ago, cut, dayOf, exact, licenseName, monthDay, perDay, plural, q1, shortNum, triageNote } from '../render/format'
 import { showHidden } from '../render/hidden'
 import { MAX_TEXT, MAX_TITLE } from '../core/text'
 import { Command, LINK_REL, linkParts, Log, Name, Plain, tagHref, Text } from '../render/text'
@@ -48,6 +49,7 @@ export type NodePageData = {
   limit?: { left: number; wait: number } // thread posts left right now (core/limits.ts peekThreadTokens)
   steppedUp?: boolean // the password was entered in the last 10 minutes (auth/stepup.ts stepUpOpen), so the author's acts don't ask again
   flash?: Flash
+  threadView?: boolean // a closed shwarm's thread, behind its result page (?thread=1): links keep it and go back to the result
 }
 
 export const nodeHref = (path: string) => `/w/${path}`
@@ -66,10 +68,20 @@ const onPage = (t: Thread, id: string | undefined) =>
 export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
   const isBranch = n.kind === 'branch'
+  // A passed branch shows what passed it above the thread (no result page of its own: OPEN #81).
+  const passed = isBranch && n.state === 'closed' ? d.subs.find(s => s.status === 'passed') : undefined
   return (
     <Layout title={`${showHidden(n.title)} · shwarm`} description={cut(showHidden(n.what), 200)}>
       <link rel="stylesheet" href="/css/node.css" />
-      {isBranch ? <Crumbs chain={d.chain} /> : <a class="back" href="/">← back to hot</a>}
+      {passed && <link rel="stylesheet" href="/css/result.css" />}
+      {isBranch ? (
+        <Crumbs chain={d.chain} />
+      ) : d.threadView ? (
+        // OPEN (#81): "back to the result" isn't in a mockup; it waits on Myra's yes.
+        <a class="back" href={nodeHref(n.path)}>← back to the result</a>
+      ) : (
+        <a class="back" href="/">← back to hot</a>
+      )}
       {n.visibility === 'author' && <p class="held">{triageNote(n)}</p>}
       <Head d={d} />
       <div class="grid">
@@ -78,6 +90,7 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
           {((d.flash?.at === 'seats' && !hasSeatForm(d)) || (d.flash?.at === 'owner' && !hasOwnerBox(d)) || (d.flash?.at === 'post' && !onPage(d.thread, d.flash.post))) && (
             <p class="err flash" role="alert">{d.flash.text}</p>
           )}
+          {passed && <Proof n={n} sub={passed} checks={d.checks.get(passed.post_id) ?? []} />}
           <Compose d={d} />
           <ThreadView d={d} />
         </main>
@@ -384,6 +397,7 @@ function query(d: NodePageData, o: { sort?: Sort; show?: Show; page?: number }):
   const sort = o.sort ?? d.sort
   const show = o.show ?? d.show
   const q = new URLSearchParams()
+  if (d.threadView) q.set('thread', '1')
   if (sort !== 'active') q.set('sort', sort)
   if (show !== 'all') q.set('show', show)
   if (o.page && o.page > 1) q.set('page', String(o.page))
@@ -451,17 +465,7 @@ export const parseLinks = (s: string | null): Link[] => {
  * screen, because the label is free text ("codeberg.org/…" on a link to evil.example) and touch screens show no tooltips.
  */
 export const LinkChip: FC<{ l: Link; compact?: boolean }> = ({ l, compact }) => {
-  const url = 'sha256' in l ? l.url : l.repo
-  const p = linkParts(url)
-  let label = l.label ?? ''
-  let host = ''
-  try {
-    const u = new URL(url)
-    host = u.hostname
-    if (!label) label = 'sha256' in l ? decodeURIComponent(u.pathname.split('/').filter(Boolean).pop() ?? '') || host : u.pathname.replace(/^\/|\.git$/g, '') || host
-  } catch {
-    label ||= url
-  }
+  const { p, label, host } = linkView(l)
   const print = 'sha256' in l ? `sha256 ${l.sha256.slice(0, 4)}…` : `commit ${l.commit.slice(0, 7)}`
   if (compact) {
     const where = host && <>{' '}<span class="note">(<Plain text={host} />)</span></>
@@ -473,6 +477,25 @@ export const LinkChip: FC<{ l: Link; compact?: boolean }> = ({ l, compact }) => 
       <span class="note">({host && <><Plain text={host} />, </>}{print})</span>
     </>
   )
+}
+
+/**
+ * A link's safe href (null when it isn't http or https), its label (the one given, else the file or repo name) and its
+ * host, which always shows beside the label: the label is free text.
+ */
+export function linkView(l: Link): { p: { href: string; text: string } | null; label: string; host: string } {
+  const url = 'sha256' in l ? l.url : l.repo
+  const p = linkParts(url)
+  let label = l.label ?? ''
+  let host = ''
+  try {
+    const u = new URL(url)
+    host = u.hostname
+    if (!label) label = 'sha256' in l ? decodeURIComponent(u.pathname.split('/').filter(Boolean).pop() ?? '') || host : u.pathname.replace(/^\/|\.git$/g, '') || host
+  } catch {
+    label ||= url
+  }
+  return { p, label, host }
 }
 
 export const Links: FC<{ links: Link[]; compact?: boolean }> = ({ links, compact }) => (
@@ -773,9 +796,35 @@ export const CheckRowView: FC<{ row: ReviewRow; n: NodeHead; sub: SubmissionRow;
 }
 
 /**
+ * "proof it's done" (shwarm-closed.html): the passing submission's standing checks, grouped runs / people / author, each
+ * with its evidence. On a closed shwarm's result page (web/result-page.tsx), and above a passed branch's thread.
+ */
+export const Proof: FC<{ n: NodeHead; sub: SubmissionRow; checks: CheckReport[] }> = ({ n, sub, checks }) => {
+  const r = review(n.spec, n.author, sub, checks)
+  return (
+    <div class="box proof">
+      <h2>proof it's done <span>submission #{sub.number} · {r.done} of {plural(r.total, 'check', 'checks')}</span></h2>
+      {groupBySlot(r).map(g => {
+        const rows = g.rows.filter(row => row.verdict !== 'waiting')
+        if (!rows.length) return null
+        const signed = rows.find((row): row is Extract<ReviewRow, { verdict: 'pass' | 'fail' }> => row.verdict === 'pass' && row.slot === 'author')
+        const note =
+          g.slot === 'author' ? (signed ? `signed off ${monthDay(signed.check.created_at)}` : '') : `${g.done} of ${g.of}${g.slot === 'people' && r.need.human ? ' · one human' : ''}`
+        return (
+          <div class="grp">
+            <h4><span>{g.label}</span><span class="note">{note}</span></h4>
+            <ul>{rows.map(row => <CheckRowView row={row} n={n} sub={sub} />)}</ul>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/**
  * A closed node takes only a repro on the submission that passed it (A25, A11), which reopens it: the way there. A
- * closed shwarm is also built on.
- * OPEN: the closed mockup's words, on the live template until the result page (5.7) replaces it for shwarms.
+ * closed shwarm is also built on. On a closed shwarm's thread (behind its result page) and a passed branch.
+ * OPEN: the closed mockup's words, which its result page's "what's next" box uses too.
  */
 const ReproLink: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node

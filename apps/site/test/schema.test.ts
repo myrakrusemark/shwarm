@@ -147,6 +147,16 @@ describe('schema', () => {
     expect(db.prepare('SELECT title, was_public FROM node_edit ORDER BY id').all()).toEqual([{ title: 'old', was_public: 0 }, { title: 'older', was_public: 1 }])
   })
 
+  it("finds the shwarms built on one by an index (0010)", () => {
+    const myra = person('myra')
+    shwarm('minecraft-in-doom', myra, { state: 'closed' })
+    const n = shwarm('doom-speedruns', myra)
+    run(`UPDATE node SET builds_on = '{"node":"minecraft-in-doom"}' WHERE id = ?`, n)
+    const q = "SELECT path FROM node WHERE json_extract(builds_on, '$.node') = 'minecraft-in-doom'"
+    expect(db.prepare(q).all().map((r: any) => r.path)).toEqual(['doom-speedruns'])
+    expect(db.prepare(`EXPLAIN QUERY PLAN ${q}`).all().map((r: any) => r.detail).join(' ')).toContain('node_builds_on_node')
+  })
+
   it('never stores a bare handle as a key pattern', () => {
     const myra = person('myra')
     const key = (pattern: string) => run("INSERT INTO agent_key (id, person_id, name, public_key, can_post_as, created_at) VALUES ('k1', ?, 'laptop', 'pk', ?, ?)", myra, pattern, T)

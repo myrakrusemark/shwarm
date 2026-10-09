@@ -1,6 +1,7 @@
 // Everything one node view needs, read in three rounds of side-by-side queries after the chain:
-// the page (go-live 3.3, 3.4) and the agent prompt and JSON (3.6).
+// the page (go-live 3.3, 3.4), a closed shwarm's result page (5.7) and the agent prompt and JSON (3.6).
 import type { NodePageData, Me } from '../web/node-page'
+import type { ResultPageData } from '../web/result-page'
 import type { AgentView } from '../render/prompt'
 import {
   readBuiltOn,
@@ -18,6 +19,8 @@ import {
   type Show,
   type Sort,
 } from './node'
+import { readLog } from './log'
+import { readBuiltOnThis, readCredits, readResult } from './result'
 
 export async function loadPageData(
   db: D1Database,
@@ -37,6 +40,9 @@ export async function loadPageData(
   const shown = new Set<string>()
   for (const p of [thread.pinned, ...thread.items, ...thread.items.flatMap(i => i.replies)]) if (p?.kind === 'submission') shown.add(p.id)
   for (const s of subs) if (s.status === 'in_review') shown.add(s.post_id)
+  // A passed branch's "proof it's done" (web/node-page.tsx Proof): the checks on what passed it.
+  const passed = n.state === 'closed' ? subs.find(s => s.status === 'passed') : undefined
+  if (passed) shown.add(passed.post_id)
   // The viewer's own upvotes on the posts shown, so each ▲ says whether it's theirs.
   const onPage = [thread.pinned, ...thread.pinned?.replies ?? [], ...thread.items, ...thread.items.flatMap(i => i.replies)].flatMap(p => (p ? [p.id] : []))
   // And the viewer's seat: the seats list stops at SEAT_LIST_MAX, so it can't say on its own.
@@ -63,4 +69,23 @@ export async function loadAgentView(db: D1Database, chain: Chain, o: { origin: s
   const listedSubs = [posts.pinned, ...posts.posts].filter(p => p?.kind === 'submission').map(p => p!.id)
   const [checks, links] = await Promise.all([readChecks(db, subIds), readBuiltOn(db, listedSubs)])
   return { origin: o.origin, chain, branches: children.branches, seats, subs, checks, posts, builtOn: links.builtOn, now: o.now }
+}
+
+/** How many milestones the result page's log box lists, newest ones, oldest first. OPEN: not decided; 20. */
+export const RESULT_LOG_ROWS = 20
+
+/**
+ * A closed shwarm's result page (go-live 5.7): the pass, who made it, what's built on it, the newest milestones. Null
+ * when it has no result to show (see readResult), so the page falls back to the live template.
+ */
+export async function loadResultData(db: D1Database, chain: Chain, o: { me: Me; now: number }): Promise<ResultPageData | null> {
+  const n = chain.node
+  const [result, builtOnThis, log] = await Promise.all([
+    readResult(db, n),
+    readBuiltOnThis(db, n.path),
+    readLog(db, chain, { filter: 'milestones', before: null, limit: RESULT_LOG_ROWS }),
+  ])
+  if (!result) return null
+  const credits = await readCredits(db, chain, result)
+  return { chain, result, credits, builtOnThis, log: log ?? { rows: [], total: 0, all: 0, next: null }, me: o.me, now: o.now }
 }

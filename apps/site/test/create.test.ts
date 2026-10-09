@@ -258,6 +258,12 @@ describe('branch and variant modes (4.3)', () => {
     const open = await body(await b.get('/new?builds_on=minecraft-in-doom'))
     expect(open).toContain('name="builds_on" aria-describedby="up-hint" placeholder="https://github.com/… or a passed shwarm\'s link" autocomplete="off" value="minecraft-in-doom"')
     expect(open).not.toContain('id="picked"')
+    // Unknown: the same, as typed (core refuses it on send); nothing about it is looked up or shown (5.7).
+    const unknown = await b.get('/new?builds_on=no-such-shwarm')
+    expect(unknown.status).toBe(200)
+    const unknownPage = await body(unknown)
+    expect(unknownPage).toContain('autocomplete="off" value="no-such-shwarm"')
+    expect(unknownPage).not.toContain('id="picked"')
     db.raw.prepare("UPDATE node SET state = 'closed', closed_at = ? WHERE path = 'minecraft-in-doom'").run(new Date(T0).toISOString())
     // The closed page links here.
     expect(await body(await html(b, '/w/minecraft-in-doom'))).toContain('<a href="/new?builds_on=minecraft-in-doom">build on this</a>')

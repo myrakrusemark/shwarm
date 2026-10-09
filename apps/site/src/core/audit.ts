@@ -16,8 +16,11 @@ export const AUDIT_EVENTS = [
 ] as const
 export type AuditEvent = (typeof AUDIT_EVENTS)[number]
 
-// OPEN: which events are milestones is #66. Default: the ones that change a node's state or open a branch.
-const MILESTONES = new Set<AuditEvent>(['lobby_filled', 'branch_opened', 'passed', 'dead_end', 'reopened'])
+// OPEN: which events are milestones is #66 (open-questions #81 for the set). Default: the ones that change a node's state
+// or open a branch, and the author's sign-off, which protocol §4's example marks as one. The log views (read/log.ts)
+// read the set from here, not from the stored milestone column, so changing it changes old rows too.
+export const MILESTONE_EVENTS: readonly AuditEvent[] = ['lobby_filled', 'branch_opened', 'passed', 'dead_end', 'reopened', 'signed_off']
+const MILESTONES = new Set<AuditEvent>(MILESTONE_EVENTS)
 
 export type AuditRow = {
   event: AuditEvent

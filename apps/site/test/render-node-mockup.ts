@@ -1,8 +1,8 @@
-// Renders the shwarm page, the branch page, the submission page and the profile with the mockups' content (and @myra signed in) to static
+// Renders the shwarm page, the branch page, the submission page, the closed shwarm's result page and the profile with the mockups' content (and @myra signed in) to static
 // pages, for scripts/mockup-diff.py. Not a test (vitest runs only *.test.ts). From apps/site:
 //   npx vite-node test/render-node-mockup.ts <out-dir>
 //   python3 ../../scripts/mockup-diff.py file://<out-dir>/shwarm.html file://$PWD/../../mockups/shwarm.html
-// (and branch.html, submission.html, profile.html). Data the live pages don't have yet (thread branch chips, reply and report links,
+// (and branch.html, submission.html, shwarm-closed.html, profile.html). Data the live pages don't have yet (thread branch chips, reply and report links,
 // the private inbox, the account button) isn't faked: the difference that leaves is the real one.
 import { cpSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
@@ -10,7 +10,9 @@ import { fileURLToPath } from 'node:url'
 import { jsx } from 'hono/jsx'
 import type { CheckReport, Child, Contributor, HistoryRow, NodeHead, PostRow, SubmissionDetail, SubmissionRow, ThreadItem } from '../src/read/node'
 import type { Person, Profile } from '../src/read/profile'
+import type { LogRow } from '../src/read/log'
 import { NodePage, type NodePageData } from '../src/web/node-page'
+import { ResultPage, type ResultPageData } from '../src/web/result-page'
 import { ProfilePage } from '../src/web/profile'
 import { SubmissionPage, type SubmissionPageData } from '../src/web/submission-page'
 import { PageContext } from '../src/web/viewer'
@@ -215,6 +217,77 @@ const submission: SubmissionPageData = {
   now: T0,
 }
 
+// ---------- the result page (shwarm-closed.html: minecraft in doom, passed on #4) ----------
+const oct = (day: number, hm: string) => `2026-10-${String(day).padStart(2, '0')}T${hm}:00.000Z`
+const done = head({
+  ...root, state: 'closed', in_review: 0, live_at: oct(7, '07:02'), closed_at: oct(13, '21:47'), created_at: oct(6, '18:00'),
+  builds_on: { name: 'gzdoom', url: 'https://github.com/ZDoom/gzdoom', license: 'GPL-3.0' },
+})
+const sub4: SubmissionDetail = {
+  post_id: 'p_r40v1', number: 4, hash: 'e9b41d0'.padEnd(64, '3'), how_to_check: 'bench.sh, license-scan.sh, then play 10 minutes.', status: 'passed', author_swap: 0,
+  superseded_number: null, as_name: '@kestrel/swarm/r-40', person_id: ids.kestrel, created_at: oct(13, '09:12'), ready_at: null,
+  text: 'a gzdoom mod: dig, place and break blocks, build while imps hunt you. freedoom assets only. 61 fps on the reference rig.',
+  links: JSON.stringify([
+    { url: 'https://zenodo.org/records/17346201/files/mid-v1.pk3', sha256: '9c4e07b2'.padEnd(60, '5') + 'a71f', label: 'download v1.0' },
+    { repo: 'https://codeberg.org/kestrel/mcdoom', commit: 'e9b41d0'.padEnd(40, '2'), label: 'source' },
+    { url: 'https://archive.org/download/mcdoom/demo.mp4', sha256: '4'.repeat(64), label: 'video' },
+  ]),
+  release_title: 'minecraft in doom v1.0', release_version: 'v1.0', release_how_to_use: 'gzdoom -iwad freedoom2.wad -file mid-v1.pk3', decided_at: oct(13, '21:47'),
+}
+const ck = (o: Partial<CheckReport>) => check({ submission_id: 'p_r40v1', created_at: oct(13, '15:00'), ...o })
+const role = (label: string, key = false) => ({ tag: 'checked' as const, label, key })
+const ev = (day: number, hm: string, event: string, title: string, by: string | null, detail: string, evidence: string, number: number | null = null): LogRow => ({
+  id: `e_${day}${hm.replace(':', '')}${event.length}`, at: oct(day, hm), event, node: 'minecraft-in-doom', title, by, submission: null, number, detail, evidence, milestone: true,
+})
+const closed: ResultPageData = {
+  chain: { node: done, ancestors: [], moderated: null },
+  result: {
+    sub: sub4,
+    checks: [
+      ck({ id: 'c_lm', as_name: '@lumpy', machine: 'linux, rtx 3060' }),
+      ck({ id: 'c_fn', as_name: '@finn_irl/f-11', machine: 'macos, m2' }),
+      ck({ id: 'c_mc', slot: 'people', as_name: '@marceline', exit_code: null, log_inline: 0, text: 'played 10 minutes, dug to y=-80, built a bunker under fire', evidence: JSON.stringify([{ url: 'https://archive.org/download/x/bunker.mp4', sha256: '7'.repeat(64), label: 'recording' }]) }),
+      ck({ id: 'c_kr', slot: 'people', as_name: '@kestrel/swarm/r-03', human: 0, exit_code: null, log_inline: 0, text: '40 scripted build runs, no crash', evidence: JSON.stringify([{ url: 'https://codeberg.org/kestrel/logs/build-runs.log', sha256: '8'.repeat(64), label: 'log' }]) }),
+      ck({ id: 'c_tg', slot: 'people', as_name: '@tallgrass', exit_code: null, log_inline: 0, text: 'license scan clean, every asset traced to freedoom', evidence: JSON.stringify([{ url: 'https://codeberg.org/tallgrass/scan.txt', sha256: '6'.repeat(64), label: 'report' }]) }),
+      ck({ id: 'c_bm', slot: 'author', as_name: '@bmo_fan', exit_code: null, log_inline: 0, text: "played it for an hour with my kid. it's what we wanted.", created_at: oct(13, '21:47') }),
+    ],
+    builtOn: [],
+    posts: 412,
+  },
+  credits: {
+    rows: [
+      { rank: 1, handle: '@kestrel', posts: 312, upvotes: 1284, roles: [role('submitted the passing work', true), role('ran a check')] },
+      { rank: 2, handle: '@myra', posts: 196, upvotes: 902, roles: [role('block placement passed')] },
+      { rank: 3, handle: '@finn_irl', posts: 122, upvotes: 611, roles: [role('built on', true), role('ran a check')] },
+      { rank: 4, handle: '@bmo_fan', posts: 186, upvotes: 540, roles: [role('author', true)] },
+      { rank: 5, handle: '@gunter', posts: 88, upvotes: 388, roles: [role('demo + video passed')] },
+      { rank: 6, handle: '@lumpy', posts: 77, upvotes: 301, roles: [role('ran a check')] },
+      { rank: 7, handle: '@marceline', posts: 55, upvotes: 264, roles: [role('ran a check')] },
+      { rank: 8, handle: '@tallgrass', posts: 30, upvotes: 97, roles: [role('ran a check')] },
+    ],
+    more: { people: 4, posts: 61, upvotes: 142 },
+  },
+  builtOnThis: [{ path: 'doom-block-building-speedruns', title: 'doom block-building speedruns', kind: 'shwarm', state: 'live', in_review: 0, lobby_size: 8, seats: 8 }],
+  log: {
+    rows: [
+      ev(13, '21:47', 'passed', 'minecraft in doom', null, '#4 (e9b41d0) passed', '/w/minecraft-in-doom/s/4', 4),
+      ev(13, '21:47', 'signed_off', 'minecraft in doom', '@bmo_fan', 'pass · author on #4', '/w/minecraft-in-doom/s/4#c_bm'),
+      ev(12, '11:20', 'passed', 'demo + video', null, '#1 (4c1d2e9) passed', '/w/minecraft-in-doom/demo-video/s/1', 1),
+      ev(9, '18:05', 'passed', 'block placement', null, '#2 (a1f9c3e) passed', '/w/minecraft-in-doom/block-placement/s/2', 2),
+      ev(8, '02:10', 'dead_end', 'crafting UI', '@finn_irl/f-11', "menus can't nest", '/w/minecraft-in-doom/crafting-ui#p_n0tes'),
+      ev(7, '15:31', 'passed', 'voxel renderer', null, '#3 (77d0a1b) passed', '/w/minecraft-in-doom/voxel-renderer/s/3', 3),
+      ev(7, '07:44', 'branch_opened', 'block placement', '@bmo_fan', 'block placement', '/w/minecraft-in-doom/block-placement'),
+      ev(7, '07:40', 'branch_opened', 'voxel renderer', '@kestrel', 'voxel renderer', '/w/minecraft-in-doom/voxel-renderer'),
+      ev(7, '07:02', 'lobby_filled', 'minecraft in doom', '@tallgrass', '12 of 12 seats', '/w/minecraft-in-doom'),
+    ],
+    total: 10,
+    all: 96,
+    next: null,
+  },
+  me,
+  now: Date.parse(oct(14, '09:00')),
+}
+
 // ---------- the profile ----------
 const person: Person = { id: ids.myra, handle: 'myra', display_name: 'myra', about: 'product designer who also ships the things i make. mostly here for games and tools.', links: '[]', status: 'active', verified: 1, created_at: ago(21 * D) }
 const fig = (impact: number, perDay: number) => ({ posts: 10, upvotes: impact * 10, impact, perDay })
@@ -252,4 +325,5 @@ async function write(name: string, here: string, el: unknown) {
 await write('shwarm.html', shwarm.here, NodePage({ d: shwarm }))
 await write('branch.html', branch.here, NodePage({ d: branch }))
 await write('submission.html', '/w/minecraft-in-doom/voxel-renderer/deep-chunk-fix/s/1', SubmissionPage({ d: submission }))
+await write('shwarm-closed.html', '/w/minecraft-in-doom', ResultPage({ d: closed }))
 await write('profile.html', '/@myra', ProfilePage({ person, profile, all: false, now: T0 }))

@@ -1,5 +1,6 @@
 // GET /w/<path> (go-live 3.3, 3.4, 3.6) and /w/<path>/s/<n> (5.2, a submission's page): one URL, three forms. Browsers get the page, agents the text prompt
-// (the default, protocol §4) or the Node JSON, picked by ?format=text|json|html or else the Accept header.
+// (the default, protocol §4) or the Node JSON, picked by ?format=text|json|html or else the Accept header. A closed shwarm's
+// page is its result page (5.7), with its thread at ?thread=1. GET /w/<path>/log (5.7) is the audit log, as JSON.
 // Signed-out responses carry a weak ETag (the node's version plus its stats' time) and answer If-None-Match with
 // 304, and may be cached for 15 seconds; signed-in responses are never stored. Reads are capped per network. A repeat
 // signed-out read whose ETag this isolate saw in D1 within those 15 seconds gets its 304 with no D1 read (version-memo.ts).
@@ -34,11 +35,14 @@ import { renderNodeJson, renderPrompt, renderSubmissionJson, renderSubmissionPro
 import type { RepitchResult } from '../core/nodes'
 import type { SubmitInput, SubmitResult } from '../core/posts'
 import { triageNew } from '../triage/run'
-import { loadAgentView, loadPageData } from '../read/views'
+import { loadAgentView, loadPageData, loadResultData } from '../read/views'
+import { LOG_FILTERS, readLog, renderLogJson, type LogFilter } from '../read/log'
+import { readTreeVersion } from '../read/result'
 import { readTombstone } from '../read/tombstone'
 import { sendError, waitText } from './errors'
 import { pickFormat, type Format } from './format'
 import { NodePage, type Flash } from './node-page'
+import { ResultPage } from './result-page'
 import { SubmissionPage, type SubFlash } from './submission-page'
 import { overReadCap } from './read-limit'
 import { knownVersion, noteVersion } from './version-memo'
@@ -92,10 +96,17 @@ async function gone(c: C, f: Format, path: string): Promise<Response | null> {
  * one site-wide version (core/context.ts moderatedStatement) and with it every signed-out ETag. Moderation is rare,
  * so the extra misses cost little.
  */
-export function etagOf(chain: Chain, f: Format, view = ''): string {
+export function etagOf(chain: Chain, f: Format, view = '', tree?: string): string {
   const n = chain.node
-  return `W/"${RENDER_VERSION}.${n.last_event_id ?? n.changed_at ?? n.created_at}.${n.stats?.updated_at ?? '-'}.${chain.moderated?.replace(/[^\w-]/g, '') || '-'}.${f}${view ? '.' + view : ''}"`
+  return `W/"${RENDER_VERSION}.${n.last_event_id ?? n.changed_at ?? n.created_at}.${n.stats?.updated_at ?? '-'}.${chain.moderated?.replace(/[^\w-]/g, '') || '-'}.${f}${view ? '.' + view : ''}${tree ? '.' + tree.replace(/[^\w.:-]/g, '') : ''}"`
 }
+
+/**
+ * Whether this node's page is its result page (go-live 5.7): a closed shwarm or variant, unless its thread was asked for
+ * (?thread=1). A passed branch keeps the live template (OPEN #81). The page falls back to the live template when the
+ * passing submission can't be shown (read/result.ts readResult).
+ */
+export const showsResult = (n: Chain['node'], thread: boolean) => n.state === 'closed' && n.kind !== 'branch' && !thread
 
 /** If-None-Match against our ETag: weak comparison, any entry, or *. */
 export function matches(header: string | undefined, etag: string): boolean {
@@ -124,13 +135,16 @@ nodeRoutes.get('/*', async c => {
     return c.redirect(to.pathname + to.search, 301)
   }
   const parsed = parseNodePath(rest)
-  // /s/<n> is a submission's page (5.2). OPEN: the other reserved views (/branches, /log) come with later steps (7.x, 5.7); until then they 404.
+  // /s/<n> is a submission's page (5.2); /log the audit log (5.7). OPEN: /branches comes with a later step (7.x); until then it 404s.
   const subNumber = parsed.kind === 'view' ? submissionNumber(parsed.view) : null
-  if (parsed.kind === 'bad' || (parsed.kind === 'view' && subNumber === null)) return notFound(c, f, parsed.kind === 'view' ? 'nothing is here yet.' : undefined)
+  const isLog = parsed.kind === 'view' && parsed.view === 'log'
+  if (parsed.kind === 'bad' || (parsed.kind === 'view' && subNumber === null && !isLog)) return notFound(c, f, parsed.kind === 'view' ? 'nothing is here yet.' : undefined)
+  if (isLog) return logView(c, parsed.path)
 
   // Signed out: publicly cacheable for 15 seconds, with a validator. Signed in: never stored (the strip, own held nodes).
   const view = subNumber === null ? '' : `s${subNumber}`
-  const memoKey = `${parsed.path}|${f}|${view}`
+  const thread = c.req.query('thread') !== undefined
+  const memoKey = `${parsed.path}|${f}|${view}${thread ? '|thread' : ''}`
   const ifNoneMatch = c.req.header('if-none-match')
   const validator = (etag: string) => (c.header('ETag', etag), c.header('Cache-Control', 'public, s-maxage=15'))
 
@@ -148,9 +162,11 @@ nodeRoutes.get('/*', async c => {
   if (!chain) return (await gone(c, f, parsed.path)) ?? notFound(c, f)
   common(c, parsed.path)
 
+  // A result page also shows its branches' events, its credits and what's built on it: their version joins the ETag.
+  const result = subNumber === null && f === 'html' && showsResult(chain.node, thread)
   if (session) c.header('Cache-Control', 'private, no-store')
   else {
-    const etag = etagOf(chain, f, view)
+    const etag = etagOf(chain, f, view, result ? await readTreeVersion(db, chain) : undefined)
     noteVersion(memoKey, etag)
     validator(etag)
     if (matches(ifNoneMatch, etag)) return c.body(null, 304)
@@ -158,6 +174,11 @@ nodeRoutes.get('/*', async c => {
 
   const now = Date.now()
   if (subNumber !== null) return submissionView(c, chain, subNumber, session, f, now)
+  if (result) {
+    const me = session ? { personId: session.personId, handle: session.handle, verified: session.verified } : null
+    const d = await loadResultData(db, chain, { me, now })
+    if (d) return page(c, <ResultPage d={d} />)
+  }
   if (f === 'html') return htmlPage(c, chain, parsed.path, session, now)
 
   const v = await loadAgentView(db, chain, { origin: url.origin, before: c.req.query('before') ?? null, now })
@@ -165,6 +186,42 @@ nodeRoutes.get('/*', async c => {
   if (f === 'json') return c.json(renderNodeJson(v))
   return c.body(renderPrompt(v), 200, { 'Content-Type': 'text/plain; charset=utf-8' })
 })
+
+/**
+ * GET /w/<path>/log (go-live 5.7; protocol §4): one page of the audit log as NodeLog JSON, newest first, with ?filter=
+ * milestones|all and ?before=<event id>. Visibility, tombstones, the read cap, the ETag and 304 work as on the node.
+ * OPEN (#81): no text or page form of the log is decided, so every Accept and ?format= gets the JSON.
+ */
+async function logView(c: C, path: string) {
+  const filterQ = c.req.query('filter') ?? 'milestones'
+  if (!(LOG_FILTERS as string[]).includes(filterQ)) return errorOut(c, 'json', 400, 'bad_request', 'filter is milestones or all')
+  const filter = filterQ as LogFilter
+  const before = c.req.query('before') ?? null
+  const view = `log.${filter}.${before ?? ''}`
+  const memoKey = `${path}|json|${view}`
+  const ifNoneMatch = c.req.header('if-none-match')
+  const validator = (etag: string) => (c.header('ETag', etag), c.header('Cache-Control', 'public, s-maxage=15'))
+  const known = ifNoneMatch && !hasSessionCookie(c) ? knownVersion(memoKey) : null
+  if (known && matches(ifNoneMatch, known)) {
+    common(c, null)
+    validator(known)
+    return c.body(null, 304)
+  }
+  const session = await sessionOf(c)
+  const db = c.env.DB
+  const chain = await readChain(db, path, session?.personId ?? null)
+  if (!chain) return (await gone(c, 'json', path)) ?? notFound(c, 'json')
+  if (session) c.header('Cache-Control', 'private, no-store')
+  else {
+    const etag = etagOf(chain, 'json', view, await readTreeVersion(db, chain))
+    noteVersion(memoKey, etag)
+    validator(etag)
+    if (matches(ifNoneMatch, etag)) return c.body(null, 304)
+  }
+  const page = await readLog(db, chain, { filter, before })
+  if (!page) return errorOut(c, 'json', 400, 'bad_request', 'before is not an event in this log')
+  return c.json(renderLogJson(path, filter, page, new URL(c.req.url).origin))
+}
 
 /** "s/12" → 12; anything else (s, s/0, s/012, s/1/x) → null. */
 export function submissionNumber(view: string): number | null {
@@ -241,6 +298,8 @@ async function htmlPage(c: C, chain: Chain, path: string, session: Session | nul
   }
   d.flash = flash
   d.steppedUp = stepUpOpen(session, now)
+  // A closed shwarm's thread sits behind its result page (5.7); a refused form there comes back here, on the thread.
+  d.threadView = chain.node.state === 'closed' && chain.node.kind !== 'branch' && (flash !== undefined || c.req.query('thread') !== undefined)
   return page(c, <NodePage d={d} />, status)
 }
 
@@ -392,9 +451,11 @@ nodeRoutes.post('/*', async c => {
         )
         .bind(n.id, session.personId, actor.as, text, new Date(now - DOUBLE_POST_MS).toISOString(), pin ? 1 : 0)
         .first<{ id: string }>()
-      if (dup) return c.redirect(`${back}#${dup.id}`, 303)
+      // On a closed shwarm the thread is behind the result page (5.7): back to the thread, where the post is.
+      const to = n.state === 'closed' && n.kind !== 'branch' ? `${back}?thread=1` : back
+      if (dup) return c.redirect(`${to}#${dup.id}`, 303)
       const r = await runInTree<{ id: string }>(c.env.TREE, { type: 'post', actor, input: { node: parsed.path, text, replyTo, ...(pin ? { pin } : {}) } })
-      return c.redirect(`${back}#${r.id}`, 303)
+      return c.redirect(`${to}#${r.id}`, 303)
     }
     // Upvotes, edits and deletes go back to the post, on the page (sort, filter, page) the form was on.
     const at = `${back}${url.search}${isId('p', f.post) ? `#${f.post}` : ''}`
