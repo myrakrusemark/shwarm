@@ -39,10 +39,14 @@ export function takeRead(ip: string | null | undefined, now = Date.now()): numbe
   return null
 }
 
-/** Takes one read for this request: null when allowed, else the 429 to send (in the form `f`, or the one asked for). */
+/**
+ * Takes one read for this request: null when allowed, else the 429 to send (in the form `f`, or the one asked for).
+ * The 429 page shows the header strip signed out and never reads the session, so a refused read costs nothing in D1
+ * even when it carries a cookie.
+ */
 export function overReadCap(c: Context, f?: Format): Promise<Response> | null {
   const wait = takeRead(clientIp(c))
-  return wait === null ? null : sendError(c, { status: 429, text: 'too many reads from your network.', wait, extra: { limit: 'public_reads' } }, f)
+  return wait === null ? null : sendError(c, { status: 429, text: 'too many reads from your network.', wait, extra: { limit: 'public_reads' }, signedOut: true }, f)
 }
 
 /** For tests. */

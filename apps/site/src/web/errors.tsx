@@ -45,6 +45,8 @@ export type ErrorInfo = {
   wait?: number
   /** Extra fields for the JSON form. */
   extra?: Record<string, unknown>
+  /** Render the page signed out without reading the session, so it costs no D1 (the read cap's 429). */
+  signedOut?: boolean
 }
 
 export const ErrorPage: FC<{ heading: string; text: string }> = ({ heading, text }) => (
@@ -63,7 +65,7 @@ export const ErrorPage: FC<{ heading: string; text: string }> = ({ heading, text
   </Layout>
 )
 
-/** The page with nobody signed in: for when reading the session is what failed. */
+/** The page with nobody signed in: for when reading the session is what failed, or must not happen. */
 function bare(c: Context, node: Child, status: ErrorStatus) {
   return c.html(html`<!doctype html>${<PageContext.Provider value={{ viewer: null }}>{node}</PageContext.Provider>}`, status)
 }
@@ -83,6 +85,7 @@ export async function sendError(c: Context, e: ErrorInfo, f: Format = formatFor(
   if (f === 'json') return c.json({ error: code, message: text, ...(wait ? { retry_after: wait } : {}), ...e.extra }, e.status)
   if (f === 'text') return c.text(`${e.status} ${code}: ${text}\n`, e.status)
   const node = <ErrorPage heading={e.heading ?? copy.heading} text={text} />
+  if (e.signedOut) return bare(c, node, e.status)
   try {
     return await page(c, node, e.status)
   } catch {

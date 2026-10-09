@@ -1,11 +1,12 @@
 // GET /w/<path> (go-live 3.3, 3.4, 3.6) and /w/<path>/s/<n> (5.2, a submission's page): one URL, three forms. Browsers get the page, agents the text prompt
 // (the default, protocol §4) or the Node JSON, picked by ?format=text|json|html or else the Accept header.
 // Signed-out responses carry a weak ETag (the node's version plus its stats' time) and answer If-None-Match with
-// 304, and may be cached for 15 seconds; signed-in responses are never stored. Reads are capped per network.
+// 304, and may be cached for 15 seconds; signed-in responses are never stored. Reads are capped per network. A repeat
+// signed-out read whose ETag this isolate saw in D1 within those 15 seconds gets its 304 with no D1 read (version-memo.ts).
 import { Hono, type Context } from 'hono'
 import { ShwarmError } from '@shwarm/protocol'
 import { formToken } from '../auth/csrf'
-import { clientIp, formOf, later, postedTokenOk, sessionOf, who, type AuthContext } from '../auth/request'
+import { clientIp, formOf, hasSessionCookie, later, postedTokenOk, sessionOf, who, type AuthContext } from '../auth/request'
 import { signInHref } from '../auth/return-to'
 import type { Session } from '../auth/session'
 import { stepUp } from '../auth/signin'
@@ -40,6 +41,7 @@ import { pickFormat, type Format } from './format'
 import { NodePage, type Flash } from './node-page'
 import { SubmissionPage, type SubFlash } from './submission-page'
 import { overReadCap } from './read-limit'
+import { knownVersion, noteVersion } from './version-memo'
 import { page } from './viewer'
 
 export { pickFormat, type Format }
@@ -126,19 +128,32 @@ nodeRoutes.get('/*', async c => {
   const subNumber = parsed.kind === 'view' ? submissionNumber(parsed.view) : null
   if (parsed.kind === 'bad' || (parsed.kind === 'view' && subNumber === null)) return notFound(c, f, parsed.kind === 'view' ? 'nothing is here yet.' : undefined)
 
+  // Signed out: publicly cacheable for 15 seconds, with a validator. Signed in: never stored (the strip, own held nodes).
+  const view = subNumber === null ? '' : `s${subNumber}`
+  const memoKey = `${parsed.path}|${f}|${view}`
+  const ifNoneMatch = c.req.header('if-none-match')
+  const validator = (etag: string) => (c.header('ETag', etag), c.header('Cache-Control', 'public, s-maxage=15'))
+
+  // A repeat read with no session cookie, of a version this isolate read from D1 moments ago: 304 without D1.
+  const known = ifNoneMatch && !hasSessionCookie(c) ? knownVersion(memoKey) : null
+  if (known && matches(ifNoneMatch, known)) {
+    common(c, parsed.path)
+    validator(known)
+    return c.body(null, 304)
+  }
+
   const session = await sessionOf(c)
   const db = c.env.DB
   const chain = await readChain(db, parsed.path, session?.personId ?? null)
   if (!chain) return (await gone(c, f, parsed.path)) ?? notFound(c, f)
   common(c, parsed.path)
 
-  // Signed out: publicly cacheable for 15 seconds, with a validator. Signed in: never stored (the strip, own held nodes).
   if (session) c.header('Cache-Control', 'private, no-store')
   else {
-    const etag = etagOf(chain, f, subNumber === null ? '' : `s${subNumber}`)
-    c.header('ETag', etag)
-    c.header('Cache-Control', 'public, s-maxage=15')
-    if (matches(c.req.header('if-none-match'), etag)) return c.body(null, 304)
+    const etag = etagOf(chain, f, view)
+    noteVersion(memoKey, etag)
+    validator(etag)
+    if (matches(ifNoneMatch, etag)) return c.body(null, 304)
   }
 
   const now = Date.now()

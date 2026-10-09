@@ -12,6 +12,7 @@ import { page } from './web/viewer'
 import { nodeRoutes } from './web/node-routes'
 import { profile } from './web/profile'
 import { errorHandler, notFoundHandler, sendError } from './web/errors'
+import { forgetVersions } from './web/version-memo'
 export { ShwarmTree } from './do/shwarm-tree'
 
 type Env = { DB: D1Database; TREE: DurableObjectNamespace; AI: Ai; TRIAGE_MODEL?: string; ENV: string; SITE_MODE: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string }
@@ -57,6 +58,12 @@ app.use('*', async (c, next) => {
 
 // Writes from other sites are refused (step 2.4). Form tokens are checked in each handler.
 app.use('*', originGuard())
+
+// Once a write is done, this isolate forgets the node versions it knew, so its next 304 reads D1 again (4.9).
+app.use('*', async (c, next) => {
+  await next()
+  if (c.req.method !== 'GET' && c.req.method !== 'HEAD') forgetVersions()
+})
 
 // www → apex.
 app.use('*', async (c, next) => {

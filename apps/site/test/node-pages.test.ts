@@ -8,9 +8,10 @@ import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
 import { breakMarkers, quoteText } from '../src/render/prompt'
 import { READ_BURST, resetReadLimit } from '../src/web/read-limit'
 import { pickFormat } from '../src/web/node-routes'
+import { forgetVersions, VERSION_MEMO_MS } from '../src/web/version-memo'
 import { rollupStats } from '../src/jobs/stats'
 import { addPerson, T0 } from './d1'
-import { body, Browser, fakeFetch, GOOD_PASSWORD, pepper, testEnv } from './browser'
+import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv } from './browser'
 import { LOBBY, stagingWorld } from './node-fixture'
 import { OWASP } from './owasp'
 
@@ -19,6 +20,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(T0)
   resetReadLimit()
+  forgetVersions()
 })
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -380,15 +382,32 @@ describe('node urls for agents (3.6)', () => {
     const etags = await Promise.all([HTML, JSON_, ANY].map(async h => (await b.req(`/w/${EXAMPLE_ROOT}`, { headers: h })).headers.get('etag')))
     expect(new Set(etags).size).toBe(3) // each form has its own
     const before = (await b.req(`/w/${EXAMPLE_ROOT}`)).headers.get('etag')!
-    // A write moves the node's version (touchNode), so the old ETag no longer matches.
+    // A write moves the node's version (touchNode), so the old ETag no longer matches. Written straight to D1 (as from
+    // another isolate), this isolate trusts the version it read for 15 seconds at most.
     const pid = addPost(EXAMPLE_ROOT, 'gunter', 'new post')
     env.DB.raw.prepare('UPDATE node SET last_event_id = ? WHERE id = ?').run(pid, nodeId(EXAMPLE_ROOT))
+    vi.setSystemTime(T0 + VERSION_MEMO_MS - 1)
+    expect((await b.req(`/w/${EXAMPLE_ROOT}`, { headers: { 'if-none-match': before } })).status).toBe(304)
+    vi.setSystemTime(T0 + VERSION_MEMO_MS)
     const after = await b.req(`/w/${EXAMPLE_ROOT}`, { headers: { 'if-none-match': before } })
     expect(after.status).toBe(200)
     expect(await after.text()).toContain('new post')
   })
 
-  it('a fixed handful of queries whatever the thread size (no N+1); a 304 reads only the node chain', async () => {
+  it('a write through this isolate ends its 304s for the old version at once', async () => {
+    const { env } = await world()
+    const { b } = await member(env, 'poster')
+    const reader = new Browser(env, '198.51.100.7')
+    const before = (await reader.req(`/w/${EXAMPLE_BRANCH}`)).headers.get('etag')!
+    expect((await reader.req(`/w/${EXAMPLE_BRANCH}`, { headers: { 'if-none-match': before } })).status).toBe(304)
+    const token = formTokenIn(await (await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: HTML })).text())
+    expect((await b.req(`/w/${EXAMPLE_BRANCH}`, { form: { form_token: token, do: 'post', text: 'a fresh post' } })).status).toBe(303)
+    const after = await reader.req(`/w/${EXAMPLE_BRANCH}`, { headers: { 'if-none-match': before } })
+    expect(after.status).toBe(200)
+    expect(await after.text()).toContain('a fresh post')
+  })
+
+  it('a fixed handful of queries whatever the thread size (no N+1); a repeat 304 reads nothing, a later one only the node chain', async () => {
     const { b, env, addPost } = await world()
     for (let i = 0; i < 60; i++) addPost(EXAMPLE_BRANCH, ['gunter', 'lumpy', 'finn_irl'][i % 3], `post ${i}`, { minutesAgo: 100 + i })
     const seen: string[] = []
@@ -401,6 +420,9 @@ describe('node urls for agents (3.6)', () => {
     const prompt = await b.req(`/w/${EXAMPLE_BRANCH}`)
     expect(seen.length).toBeLessThanOrEqual(7)
     seen.length = 0
+    expect((await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: { 'if-none-match': prompt.headers.get('etag')! } })).status).toBe(304)
+    expect(seen).toHaveLength(0)
+    vi.setSystemTime(T0 + VERSION_MEMO_MS)
     expect((await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: { 'if-none-match': prompt.headers.get('etag')! } })).status).toBe(304)
     expect(seen).toHaveLength(1)
   })
@@ -577,7 +599,7 @@ describe('takedowns, dead ends and hidden submissions in all three forms', () =>
     expect(await body(await b.req(`/w/${LOBBY}`, { headers: HTML }))).not.toContain('secret branch title')
   })
 
-  it('a moderation act anywhere moves every signed-out ETag, so a takedown never answers 304', async () => {
+  it('a moderation act anywhere moves every signed-out ETag, so a takedown answers 304 for 15 seconds at most', async () => {
     const { env, b } = await world()
     const { moderatedStatement } = await import('../src/core/context')
     const first = await b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML })
@@ -586,6 +608,9 @@ describe('takedowns, dead ends and hidden submissions in all three forms', () =>
     // hide the branch the parent's sidebar lists, as a moderation act does
     const ctx = { db: env.DB as unknown as D1Database, now: T0, at: new Date(T0).toISOString() }
     await env.DB.batch([env.DB.prepare('UPDATE node SET hidden = 1 WHERE path = ?').bind(EXAMPLE_BRANCH), moderatedStatement(ctx)])
+    // done straight in D1 (as from another isolate), this isolate trusts the version it read for 15 seconds at most
+    expect((await b.req(`/w/${EXAMPLE_ROOT}`, { headers: { ...HTML, 'if-none-match': etag } })).status).toBe(304)
+    vi.setSystemTime(T0 + VERSION_MEMO_MS)
     const after = await b.req(`/w/${EXAMPLE_ROOT}`, { headers: { ...HTML, 'if-none-match': etag } })
     expect(after.status).toBe(200)
     const etag2 = after.headers.get('etag')!
@@ -594,6 +619,7 @@ describe('takedowns, dead ends and hidden submissions in all three forms', () =>
     expect(await body(after)).not.toContain('/w/minecraft-in-doom/block-placement"')
     // and again: each act is a new version
     await env.DB.batch([moderatedStatement(ctx)])
+    vi.setSystemTime(T0 + 2 * VERSION_MEMO_MS)
     expect((await b.req(`/w/${EXAMPLE_ROOT}`, { headers: { ...HTML, 'if-none-match': etag2 } })).status).toBe(200)
   })
 })

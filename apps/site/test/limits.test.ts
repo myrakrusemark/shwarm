@@ -1,7 +1,7 @@
 // Go-live 4.9: every product limit, through the site. Thread posts (a burst of 5, then 1 every 5 minutes, per thread,
 // per person), 3 new shwarms, branches and variants a day with the in-batch guard behind the count, one submission
 // per person per node per day, the per-network caps on the account forms, the per-network cap on public reads (and a
-// 304 that reads only the node chain), and the 256 KB cap on request bodies.
+// 304 that reads no D1 while this isolate knows the version, else only the node chain), and the 256 KB cap on request bodies.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import app from '../src/index'
 import { hashPassword } from '../src/auth/password'
@@ -9,6 +9,7 @@ import { NEW_NODES_PER_DAY, THREAD_BURST, THREAD_REFILL_S } from '../src/core/li
 import { newId } from '../src/core/ids'
 import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
 import { READ_BURST, READ_REFILL_PER_S, resetReadLimit, takeRead } from '../src/web/read-limit'
+import { forgetVersions, VERSION_MEMO_MS } from '../src/web/version-memo'
 import { addPerson, T0 } from './d1'
 import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, joinForm, ORIGIN, pepper, setSignup, testEnv, type TestEnv } from './browser'
 import { stagingWorld } from './node-fixture'
@@ -22,6 +23,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(T0)
   resetReadLimit()
+  forgetVersions()
 })
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -328,25 +330,35 @@ describe('public reads: one bucket per network', () => {
     expect((await new Browser(env, '2001:db8:8::1').get('/')).status).toBe(200)
   })
 
-  it('a refused read costs nothing in D1', async () => {
+  it('a refused read costs nothing in D1, with or without a cookie', async () => {
     const { env } = await world()
-    const b = new Browser(env, '203.0.113.9')
-    for (let i = 0; i < READ_BURST; i++) takeRead(b.ip)
-    const seen = watch(env)
-    for (const p of [`/w/${EXAMPLE_ROOT}`, `/w/${EXAMPLE_BRANCH}/s/2`, '/', '/@myra']) {
-      for (const h of [HTML, JSON_, {}]) expect((await b.req(p, { headers: h })).status).toBe(429)
+    const { b: signedIn } = await member(env, 'ana')
+    const junk = new Browser(env)
+    junk.jar.set('__Host-shwarm', 'x'.repeat(43))
+    for (const b of [new Browser(env), junk, signedIn]) {
+      resetReadLimit()
+      for (let i = 0; i < READ_BURST; i++) takeRead(b.ip)
+      const seen = watch(env)
+      for (const p of [`/w/${EXAMPLE_ROOT}`, `/w/${EXAMPLE_BRANCH}/s/2`, '/', '/@myra']) {
+        for (const h of [HTML, JSON_, {}]) {
+          const res = await b.req(p, { headers: h })
+          expect(res.status).toBe(429)
+          if (h === HTML) expect(await body(res)).toContain('too many reads from your network.')
+        }
+      }
+      expect(seen.sql).toEqual([])
+      expect(seen.writes).toBe(0)
     }
-    expect(seen.sql).toEqual([])
-    expect(seen.writes).toBe(0)
   })
 
-  it('a 304 reads only the node chain: one indexed query, the same however long the thread, and no writes', async () => {
+  it('a repeat 304 costs no D1 row reads, however long the thread; past 15 seconds, one indexed chain query and no writes', async () => {
     const { env, db } = await world()
     const b = new Browser(env)
     const seen = watch(env)
     const nodeId = (db.raw.prepare('SELECT id FROM node WHERE path = ?').get(EXAMPLE_BRANCH) as { id: number }).id
     const anyone = (db.raw.prepare("SELECT id FROM person WHERE handle = 'myra'").get() as { id: number }).id
     const queries: string[][] = []
+    let t = 0
     for (const posts of [0, 200]) {
       for (let i = 0; i < posts; i++)
         db.raw.prepare("INSERT INTO post (id, node_id, person_id, as_name, kind, text, links, created_at) VALUES (?, ?, ?, '@myra', 'post', ?, '[]', ?)")
@@ -354,11 +366,27 @@ describe('public reads: one bucket per network', () => {
       const these: string[] = []
       for (const p of [`/w/${EXAMPLE_BRANCH}`, `/w/${EXAMPLE_BRANCH}/s/2`]) {
         for (const h of [HTML, JSON_, {}]) {
+          at((t += VERSION_MEMO_MS))
           const first = await b.req(p, { headers: h })
           expect(first.status).toBe(200)
+          const etag = first.headers.get('etag')!
+          // straight after: answered from the version this isolate just read, with nothing asked of D1
           seen.reset()
-          const again = await b.req(p, { headers: { ...h, 'if-none-match': first.headers.get('etag')! } })
+          const again = await b.req(p, { headers: { ...h, 'if-none-match': etag } })
           expect(again.status, p).toBe(304)
+          expect(again.headers.get('etag')).toBe(etag)
+          expect(again.headers.get('cache-control')).toBe('public, s-maxage=15')
+          expect(seen.sql).toEqual([])
+          expect(seen.writes).toBe(0)
+          // a cookie (even a made-up one) means the session must be read first, so it goes to D1
+          const junk = new Browser(env)
+          junk.jar.set('__Host-shwarm', 'x'.repeat(43))
+          expect((await junk.req(p, { headers: { ...h, 'if-none-match': etag } })).status).toBe(304)
+          expect(seen.sql.length).toBeGreaterThan(0)
+          // 15 seconds on, the version is read again: one query, on the node chain only
+          at((t += VERSION_MEMO_MS))
+          seen.reset()
+          expect((await b.req(p, { headers: { ...h, 'if-none-match': etag } })).status, p).toBe(304)
           expect(seen.sql).toHaveLength(1)
           expect(seen.writes).toBe(0)
           these.push(seen.sql[0])
@@ -367,6 +395,10 @@ describe('public reads: one bucket per network', () => {
           expect(plan.filter((d: string) => /^SCAN /.test(d) && !/^SCAN (json_each VIRTUAL TABLE|CONSTANT ROW|pre$|\(subquery-\d+\))/.test(d))).toEqual([])
           // and what it reads back is the chain: the branch and its shwarm
           expect(db.raw.prepare(seen.sql[0]).all(...seen.args[0])).toHaveLength(2)
+          // and that read is trusted again for the next 15 seconds
+          seen.reset()
+          expect((await b.req(p, { headers: { ...h, 'if-none-match': etag } })).status).toBe(304)
+          expect(seen.sql).toEqual([])
         }
       }
       queries.push(these)

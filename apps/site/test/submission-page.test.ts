@@ -12,6 +12,7 @@ import { review } from '../src/read/review'
 import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
 import { mapLaunchShwarm } from '../src/seed/launch'
 import { resetReadLimit } from '../src/web/read-limit'
+import { forgetVersions } from '../src/web/version-memo'
 import { addPerson, T0 } from './d1'
 import { body, Browser, fakeFetch, GOOD_PASSWORD, pepper, testEnv } from './browser'
 import { stagingWorld } from './node-fixture'
@@ -21,6 +22,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(T0)
   resetReadLimit()
+  forgetVersions()
 })
 afterEach(() => {
   vi.unstubAllGlobals()

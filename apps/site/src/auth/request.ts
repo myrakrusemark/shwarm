@@ -28,6 +28,9 @@ export type Who = { session: Session | null; token: string | undefined; pre: str
 // One session read per request, shared by who(), the header strip and anything else that asks.
 const sessions = new WeakMap<Request, Promise<Session | null>>()
 
+/** Whether the request carries a session cookie at all (it may still be expired or made up). No database read. */
+export const hasSessionCookie = (c: Context) => !!getCookie(c, COOKIE)
+
 /** This request's signed-in session, read at most once. No cookie means no database read. */
 export function sessionOf<E extends { Bindings: { DB: D1Database } }>(c: Context<E>): Promise<Session | null> {
   let s = sessions.get(c.req.raw)
