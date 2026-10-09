@@ -654,5 +654,271 @@
       "text": "no",
       "at": "2026-10-09T01:53:23.176Z"
     }
+  ],
+  "knit-the-warming-stripes": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:54:05.462Z"
+    }
+  ],
+  "rerun-200-dataverse-r-scripts": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:54:38.273Z"
+    }
+  ],
+  "see-your-alpha-waves": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:54:52.832Z"
+    },
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "yes! more stuff like this. research project into making gauges, meters and scopes through printing, off the shelf parts, or generation techniques.",
+      "at": "2026-10-09T01:55:45.209Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "great direction. a root shwarm for it, with branches: 'the open home lab: 20 real scientific instruments under $50 each'. done when: 20 open instrument designs (printed parts, off-the-shelf electronics, or computer-generated shapes), each built by at least 5 people in different places and each matching a professional instrument within a stated tolerance on the same samples. branch ideas, each its own done test: a spectrometer from a printed body and a diffraction grating, checked against a lab spectrometer's lines; an oscilloscope from a cheap microcontroller, checked against a bench scope; a microscope that resolves 1 micron (we already have five-strangers-one-microscope); a ph meter, a light meter calibrated against an sqm, a seismometer (the 100-homes idea), a geiger counter, a soil moisture meter (the $2 sensor shwarm), this alpha-wave eeg. a few of these are already in waves 2–3, so they'd become its first branches. want me to add the root shwarm and list the branches under it?",
+      "at": "2026-10-09T01:56:00.890441+00:00"
+    }
+  ],
+  "tb-smear-photo-benchmark": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:56:09.102Z"
+    }
+  ],
+  "weigh-the-earth-on-a-table": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:56:53.865Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "approved. to make it crowd-sized i'd give it the open-home-lab shape: an open torsion balance under $50, built by at least 10 people in different places, whose measurements of g average within 5% of the accepted value. it could be a branch of the home lab root if you add that. i'll apply that version unless you say otherwise.",
+      "at": "2026-10-09T01:57:03.059309+00:00"
+    }
+  ],
+  "smaller-5-chromatic-graph": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:57:51.660Z"
+    }
+  ],
+  "green-100-problems-in-lean": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:57:57.629Z"
+    }
+  ],
+  "flt-definitions-review": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:58:02.357Z"
+    }
+  ],
+  "link-erdos-problems-to-oeis": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:58:04.771Z"
+    }
+  ],
+  "r45-in-lean": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:58:08.241Z"
+    }
+  ],
+  "settle-a-rupert-solid": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:58:10.719Z"
+    }
+  ],
+  "25-dollar-sky-darkness-meter": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:58:24.658Z"
+    }
+  ],
+  "cardboard-solar-cooker": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:58:28.283Z"
+    }
+  ],
+  "kenya-on-open-food-facts": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:58:30.855Z"
+    }
+  ],
+  "open-heat-mapping-kit": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:58:34.924Z"
+    }
+  ],
+  "oysters-on-coffee-grounds": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:58:48.410Z"
+    }
+  ],
+  "read-nitrate-strips-by-phone": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:58:52.119Z"
+    }
+  ],
+  "every-15-minute-bus": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:59:00.744Z"
+    }
+  ],
+  "every-us-street-tree": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:59:15.429Z"
+    }
+  ],
+  "gtfs-for-small-agencies": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:59:23.397Z"
+    }
+  ],
+  "city-open-data-census": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:59:26.402Z"
+    }
+  ],
+  "east-austin-vacant-parcels": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:59:29.738Z"
+    }
+  ],
+  "2000-yoruba-words-on-wikidata": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:59:34.748Z"
+    }
+  ],
+  "tagalog-on-common-voice": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:59:38.258Z"
+    }
+  ],
+  "igbo-vital-articles": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:59:42.928Z"
+    }
+  ],
+  "validate-10000-wikisource-pages": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T01:59:45.900Z"
+    }
+  ],
+  "auto-tagged-pdfs-screen-readers": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T02:00:04.378Z"
+    }
+  ],
+  "inkscape-100-oldest-bugs": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T02:00:07.263Z"
+    }
+  ],
+  "gtk2-holdouts": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T02:00:13.805Z"
+    }
+  ],
+  "gimp-plugins-gimp-3": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T02:00:17.632Z"
+    }
+  ],
+  "xerahs-on-linux": [
+    {
+      "from": "myra",
+      "choice": "approve",
+      "text": "",
+      "at": "2026-10-09T02:00:20.734Z"
+    }
   ]
 }
