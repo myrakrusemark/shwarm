@@ -1,7 +1,7 @@
 // Thread posts and submissions (spec "Submitting", protocol §6–7). A submission is a thread post marked
 // against the done test: numbered within its node, frozen by its hash, and it replaces older ones in review.
 import { shortHash, ShwarmError, submissionHash } from '@shwarm/protocol'
-import { authorize, type Actor } from './actor'
+import { authorize, isBare, type Actor } from './actor'
 import { auditStatement } from './audit'
 import { needs } from './checks'
 import { inboxStatement, loadNode, loadPerson, mentionStatements, postStatement, specOf, touchNode, type Ctx } from './context'
@@ -15,7 +15,7 @@ const bad = (m: string, d: Record<string, unknown> = {}) => new ShwarmError('bad
 export type Limits = { thread_posts: { burst_left: number; then: string } }
 const limits = (left: number): Limits => ({ thread_posts: { burst_left: left, then: '1 per 5 min' } })
 
-export type PostInput = { node: string; text: string; links?: unknown; replyTo?: string | null }
+export type PostInput = { node: string; text: string; links?: unknown; replyTo?: string | null; pin?: boolean }
 export type PostResult = { id: string; node: string; as: string; at: string; mentions: string[]; limits: Limits }
 
 export async function post(ctx: Ctx, a: Actor, inp: PostInput): Promise<PostResult> {
@@ -31,6 +31,11 @@ export async function post(ctx: Ctx, a: Actor, inp: PostInput): Promise<PostResu
       throw bad('reply_to is not a post in this thread')
     replyTo = inp.replyTo
   }
+  // The author pins one "where we are" post (prd THREAD-4); a new pin replaces the old one.
+  // OPEN: who else may pin isn't decided; only the author, as the bare handle (site or seed), for now.
+  const pin = inp.pin === true
+  if (pin && (a.via === 'key' || !isBare(a) || person.id !== n.author_id))
+    throw new ShwarmError('not_permitted', 'only the author pins a post, as their bare handle', { need: 'author', node: n.path })
   const bucket = await takeThreadToken(ctx.db, { personId: person.id, handle: person.handle, nodeId: n.id, path: n.path }, ctx.now)
   const id = newId('p')
   const m = await mentionStatements(ctx, { postId: id, text, nodeId: n.id, actor: a })
@@ -38,6 +43,7 @@ export async function post(ctx: Ctx, a: Actor, inp: PostInput): Promise<PostResu
     postStatement(ctx, { id, nodeId: n.id, actor: a, kind: 'post', text, links, replyTo }),
     ...m.stmts,
     bucket.stmt,
+    ...(pin ? [ctx.db.prepare('UPDATE node SET pinned_post_id = ? WHERE id = ?').bind(id, n.id)] : []),
     touchNode(ctx, n.id, id), // a new post changes the signed-out page, so it changes the ETag
   ])
   return { id, node: n.path, as: a.as, at: ctx.at, mentions: m.names, limits: limits(bucket.left) }
