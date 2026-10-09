@@ -17,7 +17,7 @@ export type PageInfo = { viewer: Viewer | null; here?: string }
 export const PageContext = createContext<PageInfo>({ viewer: null })
 
 // Account pages don't send people back to themselves.
-const NO_RETURN = /^\/(join|signin|signout|check-email|verify|verified|forgot|reset|step-up)(\/|\?|$)/
+const NO_RETURN = /^\/(join|signin|signout|check-email|verify|verified|forgot|reset|step-up|email-change)(\/|\?|$)/
 
 type PageEnv = { Bindings: { DB: D1Database; CSRF_SECRET: string } }
 const envOf = (c: Context) => c.env as PageEnv['Bindings']

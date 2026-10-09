@@ -10,8 +10,8 @@ import { formToken } from '../auth/csrf'
 import { clientIp, formOf, hasSessionCookie, later, postedTokenOk, sessionOf, who, type AuthContext } from '../auth/request'
 import { signInHref } from '../auth/return-to'
 import type { Session } from '../auth/session'
-import { stepUp } from '../auth/signin'
-import { STEP_UP_MS, stepUpOpen } from '../auth/stepup'
+import { inlineStepUp } from '../auth/signin'
+import { stepUpOpen } from '../auth/stepup'
 import { siteActor, type Actor } from '../core/actor'
 import type { CheckInput, CheckResult } from '../core/checking'
 import { peekThreadTokens } from '../core/limits'
@@ -265,19 +265,10 @@ async function isOperatorFor(db: D1Database, n: Chain['node'], personId: number)
   return p?.is_admin === 1
 }
 
-/**
- * The inline step-up (A5) for acts with the author's authority: the sign-off, a re-pitch, a dead end, reopening. With the 10-minute
- * window open nothing is asked; otherwise the form carries the password, checked and throttled as /step-up does
- * (auth/signin.ts stepUp, which opens the window on success), so the draft never leaves for the /step-up page.
- */
+/** The inline step-up (A5, auth/signin.ts inlineStepUp) for acts with the author's authority: the sign-off, a re-pitch, a dead end, reopening. */
 async function steppedUp(c: C, session: Session, password: string | undefined, now: number): Promise<{ actor: Actor } | { refuse: string; status: 400 | 429; wait?: number }> {
-  if (!stepUpOpen(session, now)) {
-    if (!password) return { refuse: 'enter your password to confirm.', status: 400 }
-    const r = await stepUp(c.env.DB, c.env.PASSWORD_PEPPER, session.personId, session.id, password, clientIp(c), now)
-    if (r.kind === 'slow') return { refuse: `there have been too many tries from here. wait about ${Math.max(1, Math.ceil(r.seconds / 60))} minutes, then try again.`, status: 429, wait: r.seconds }
-    if (r.kind === 'bad') return { refuse: "that password doesn't match.", status: 400 }
-    session.stepUpUntil = new Date(now + STEP_UP_MS).toISOString() // this request's copy, so a page re-rendered after a refusal doesn't ask again
-  }
+  const s = await inlineStepUp(c.env.DB, c.env.PASSWORD_PEPPER, session, password, clientIp(c), now)
+  if ('refuse' in s) return s
   return { actor: siteActor({ id: session.personId, handle: session.handle }, { steppedUp: true }) }
 }
 

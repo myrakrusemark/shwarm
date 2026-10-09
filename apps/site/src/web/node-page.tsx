@@ -843,11 +843,12 @@ const ReproLink: FC<{ d: NodePageData }> = ({ d }) => {
 /**
  * The inline step-up (A5): the password field an act with the author's authority carries while the 10-minute window
  * is closed, so the form's draft never leaves for the /step-up page. With the window open it isn't asked again.
+ * `form` ties the field to a form it doesn't sit inside (the account modal's save, go-live 6.2).
  */
-export const StepUpField: FC<{ id: string; open?: boolean }> = ({ id, open }) =>
+export const StepUpField: FC<{ id: string; open?: boolean; form?: string }> = ({ id, open, form }) =>
   open ? null : (
     <label class="pw" for={id}>
-      password <input id={id} type="password" name="password" autocomplete="current-password" required maxlength={1024} />
+      password <input id={id} type="password" name="password" autocomplete="current-password" required maxlength={1024} form={form} />
     </label>
   )
 

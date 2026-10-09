@@ -5,8 +5,8 @@ import { sha256, toHex } from '@shwarm/protocol'
 import { mailStatement } from '../email/outbox'
 import { parseEmail } from './email'
 import { hashPassword, PBKDF2_ITERATIONS, verifyPassword } from './password'
-import { createSession, ipPrefix, sessionId } from './session'
-import { openStepUp } from './stepup'
+import { createSession, ipPrefix, sessionId, type Session } from './session'
+import { openStepUp, STEP_UP_MS, stepUpOpen } from './stepup'
 import { blockedFor, bump, clearThrottle, LIMITS, recentCount, stamp } from './throttle'
 import { newToken } from './tokens'
 
@@ -155,15 +155,43 @@ export async function sendReset(db: D1Database, email: string, origin: string, n
 
 /** After the reset button (token already used up): new password, every session ended, every other reset link dead, a security mail. */
 export async function applyReset(db: D1Database, pepper: string, personId: number, password: string, nowMs = Date.now()) {
-  const now = new Date(nowMs).toISOString()
+  await setPassword(db, pepper, personId, password, { now: nowMs })
+}
+
+/**
+ * A new password, from a reset link or the account modal's "change password" (go-live 6.2): every session of the
+ * account ends except `keepSession` (the browser that changed it; none after a reset), every reset link dies, and the
+ * "password changed" mail goes to the account's address.
+ */
+export async function setPassword(db: D1Database, pepper: string, personId: number, password: string, opts: { keepSession?: string; now?: number } = {}) {
+  const now = new Date(opts.now ?? Date.now()).toISOString()
   const p = await db.prepare('SELECT id, handle, email, email_norm FROM person WHERE id = ?').bind(personId).first<{ id: number; handle: string; email: string; email_norm: string }>()
   if (!p) return
   const hash = await hashPassword(password, pepper)
   await db.batch([
-    db.prepare('UPDATE person SET password_hash = ? WHERE id = ?').bind(hash, p.id),
-    db.prepare('DELETE FROM session WHERE person_id = ?').bind(p.id), // same as endAllSessions, inside the batch
+    db.prepare('UPDATE person SET password_hash = ?, password_changed_at = ? WHERE id = ?').bind(hash, now, p.id),
+    // endAllSessions, inside the batch, sparing only the browser that made the change
+    db.prepare('DELETE FROM session WHERE person_id = ? AND id != ?').bind(p.id, opts.keepSession ?? ''),
     db.prepare("UPDATE email_token SET used_at = ? WHERE person_id = ? AND purpose = 'reset' AND used_at IS NULL").bind(now, p.id),
     mailStatement(db, { to: p.email, template: 'password_changed', stream: 'security', personId: p.id, payload: { handle: p.handle } }, now),
   ])
   await clearThrottle(db, await addrScope(p.email_norm))
+}
+
+export type InlineStepUp = { ok: true } | { refuse: string; status: 400 | 429; wait?: number }
+
+/**
+ * The inline step-up (A5) for a form that acts with the person's authority: the sign-off, the author's own box, saving
+ * the account. With the 10-minute window open nothing is asked; otherwise the form carries the password, checked and
+ * throttled as /step-up does (stepUp, which opens the window on success), so the draft never leaves for the /step-up
+ * page. On success the session object's window is moved too, so a page re-rendered after a later refusal doesn't ask again.
+ */
+export async function inlineStepUp(db: D1Database, pepper: string, session: Session, password: string | undefined, ip: string | null, now = Date.now()): Promise<InlineStepUp> {
+  if (stepUpOpen(session, now)) return { ok: true }
+  if (!password) return { refuse: 'enter your password to confirm.', status: 400 }
+  const r = await stepUp(db, pepper, session.personId, session.id, password, ip, now)
+  if (r.kind === 'slow') return { refuse: `there have been too many tries from here. wait about ${Math.max(1, Math.ceil(r.seconds / 60))} minutes, then try again.`, status: 429, wait: r.seconds }
+  if (r.kind === 'bad') return { refuse: "that password doesn't match.", status: 400 }
+  session.stepUpUntil = new Date(now + STEP_UP_MS).toISOString()
+  return { ok: true }
 }

@@ -5,9 +5,10 @@ import { Hono } from 'hono'
 import { getCookie } from 'hono/cookie'
 import type { Child } from 'hono/jsx'
 import {
-  CheckEmailPage, ExpiredPage, ForgotPage, FormExpiredPage, JoinPage, ResetPage, SignInPage, SlowDownPage,
-  StepUpPage, VerifiedPage, VerifyPage,
+  CheckEmailPage, EmailChangedPage, EmailChangePage, ExpiredPage, ForgotPage, FormExpiredPage, JoinPage, ResetPage, SignInPage,
+  SlowDownPage, StepUpPage, VerifiedPage, VerifyPage,
 } from '../web/auth-pages'
+import { applyEmailChange } from './account'
 import { page } from '../web/viewer'
 import { isPwned, passwordProblem } from './password'
 import { clientIp, formOf, later, openNext, pageToken, postedTokenOk, safeNext, signNext, who, type AuthContext, type AuthEnv, type Who } from './request'
@@ -16,7 +17,7 @@ import { clearCookie, endSession, ipPrefix, sessionCookie } from './session'
 import { applyReset, markVerified, sendReset, signIn, stepUp } from './signin'
 import { COPY, PEND_COOKIE, PEND_SECONDS, resendVerify, setting, signUp } from './signup'
 import { bump, LIMITS } from './throttle'
-import { consumeToken, peekToken } from './tokens'
+import { consumeToken, peekEmailChange, peekToken } from './tokens'
 import { TURNSTILE_FIELD, turnstileOk } from './turnstile'
 
 export const auth = new Hono<{ Bindings: AuthEnv }>()
@@ -126,12 +127,35 @@ auth.get('/verified', async c => {
   return render(c, <VerifiedPage signedIn={!!w.session} back={back} />)
 })
 
+// An email change (6.2): the link goes to the new address. The page names the account and the address; its button
+// moves the account there. Like every emailed link, it works signed out and on any device.
+auth.get('/email-change', async c => {
+  const w = await who(c)
+  if (c.req.query('done') === '1') return render(c, <EmailChangedPage handle={w.session?.handle} />)
+  const t = c.req.query('t') ?? ''
+  const ch = await peekEmailChange(c.env.DB, t)
+  const p = ch ? await c.env.DB.prepare('SELECT handle FROM person WHERE id = ?').bind(ch.personId).first<{ handle: string }>() : null
+  if (!ch || !p) return render(c, <ExpiredPage kind="email_change" />, 410)
+  return render(c, <EmailChangePage token={await pageToken(c, w)} t={t} handle={p.handle} email={ch.newEmail} />)
+})
+
+auth.post('/email-change', async c => {
+  const w = await who(c)
+  const f = await formOf(c)
+  if (!(await postedTokenOk(c, w, f))) return formExpired(c)
+  const r = await applyEmailChange(c.env.DB, f.t)
+  if (r.kind !== 'done') return render(c, <ExpiredPage kind={r.kind === 'taken' ? 'email_taken' : 'email_change'} />, 410)
+  return c.redirect('/email-change?done=1', 303)
+})
+
 // ---------- sign in and out (2.7) ----------
 
 auth.get('/signin', async c => {
   const w = await who(c)
   const p = await personOf(c, w)
-  const notice = c.req.query('done') === 'reset' ? 'your new password is set. sign in with it.' : undefined
+  const done = c.req.query('done')
+  // OPEN (#84): "signed out everywhere" (go-live 6.2) waits on Myra's yes.
+  const notice = done === 'reset' ? 'your new password is set. sign in with it.' : done === 'everywhere' ? "you're signed out everywhere." : undefined
   return render(c, <SignInPage token={await pageToken(c, w)} siteKey={c.env.TURNSTILE_SITE_KEY} next={safeNext(c.req.query('next')) ?? undefined} notice={notice} signedInAs={p?.handle} />)
 })
 

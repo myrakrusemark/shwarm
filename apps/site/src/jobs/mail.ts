@@ -14,6 +14,7 @@ import type { MailStream } from '../email/outbox'
 import { REPLY_TO } from '../email/env'
 import { ResendError, sendViaResend } from '../email/resend'
 import { MailRenderError, renderMail } from '../email/templates'
+import { noticeOn, parsePrefs } from '../email/notices'
 import { NOTICE_TYPE, noticeLabel, unsubToken, unsubUrl } from '../email/unsubscribe'
 
 export const RETRY_MINUTES = [1, 5, 30, 120] // waits after attempts 1–4; attempt 5 failing gives up
@@ -21,10 +22,12 @@ export const MAX_ATTEMPTS = RETRY_MINUTES.length + 1
 export const CLAIM_LEASE_MS = 5 * 60_000 // a row claimed by a sweep that dies goes again after this
 export const BATCH = 20 // rows per sweep; each send is one subrequest
 
-// Account mail caps (table B): at most 3 an hour and 10 a day to one address, across these templates.
+// Account mail caps (table B): at most 3 an hour and 10 a day to one address, across these templates. The link to a
+// new address in an email change counts too (go-live 6.2, OPEN #84), so the account modal can't be used to fill a
+// stranger's inbox; the warning to the old address is security mail and always goes.
 // Rolling windows: each capped send leaves a row in auth_throttle ('outbox:sent:<address>#<outbox id>', window_start =
 // when it went), and the check counts that address's rows from the last hour and the last day.
-export const CAPPED = new Set(['verify', 'reset', 'signup_existing'])
+export const CAPPED = new Set(['verify', 'reset', 'signup_existing', 'email_change_new'])
 export const CAPS = [
   { limit: 3, windowMs: 3_600_000, why: 'over the hourly account mail cap' },
   { limit: 10, windowMs: 86_400_000, why: 'over the daily account mail cap' },
@@ -203,7 +206,7 @@ async function skipReason(env: MailEnv, row: Row, payload: Record<string, unknow
     if (row.person_id == null) return 'notice has no person'
     const p = await db.prepare('SELECT status, notice_prefs FROM person WHERE id = ?').bind(row.person_id).first<{ status: string; notice_prefs: string }>()
     if (!p || p.status !== 'active') return 'account is not active'
-    if (parseObject(p.notice_prefs)[type] === false) return `turned off ${type} notices`
+    if (!noticeOn(parsePrefs(p.notice_prefs), type)) return `turned off ${type} notices`
   }
   // Checked here and counted on send. Sweeps run one a minute and finish in seconds, so overlap (which could let
   // one extra through) is rare; the page can always say "check your email" since the cap lives here.

@@ -2,19 +2,25 @@
 //   /@handle            head (handle, display name, joined, about, links, three figures), working on, created,
 //                       and the "look up a name" box
 //   /@handle?as=@h/x    the same head, then only that name's posts (not its mentions)
-//   POST /@handle       the owner's inbox forms: an inline reply, mark read or unread, mark all read
+//   /@handle?account=1  the owner's account modal (6.2), open (web/account.tsx)
+//   POST /@handle       the owner's forms: the inbox's (an inline reply, mark read or unread, mark all read) and the
+//                       account modal's (save, change password, sign out everywhere)
 // Profiles are about the human: no agent profiles, no list of names under a person, no agent counts, no passes.
 // The owner, signed in, also sees the private inbox (PROF-5: mentions of the bare handle, sign-off items with their
 // live status, system items), "waiting on you" on working on and created (PROF-9), and their own nodes still being
 // checked in "created". Nobody else's session ever reads the inbox: the page asks for it only when the session is the
 // profile's own, and the POST refuses anyone else.
-// OPEN: the account button and modal come with go-live 6.2.
+// The owner also gets the "account" button and its modal (6.2); it reads their private settings only for them.
 import { Hono, type Context } from 'hono'
 import { useContext, type Child, type FC } from 'hono/jsx'
 import { HANDLE_RE, isValidName, ShwarmError } from '@shwarm/protocol'
-import { formOf, postedTokenOk, sessionOf, who, type AuthContext } from '../auth/request'
+import { checkAccount, checkNewPassword, saveAccount, type AccountForm } from '../auth/account'
+import { clientIp, formOf, postedTokenOk, sessionOf, who, type AuthContext } from '../auth/request'
 import { signInHref } from '../auth/return-to'
-import type { Session } from '../auth/session'
+import { clearCookie, endAllSessions, type Session } from '../auth/session'
+import { inlineStepUp, setPassword } from '../auth/signin'
+import { stepUpOpen } from '../auth/stepup'
+import { readAccount } from '../read/account'
 import { siteActor } from '../core/actor'
 import { peekThreadTokensMany } from '../core/limits'
 import { MAX_TEXT } from '../core/text'
@@ -38,6 +44,7 @@ import {
   type Profile,
   type WorkingRow,
 } from '../read/profile'
+import { ACCOUNT_STATUS, AccountModal, type AccountFlash, type AccountView } from './account'
 import { formatFor, sendError, waitText, type ErrorStatus } from './errors'
 import { Layout } from './layout'
 import { limitLine } from './node-page'
@@ -46,7 +53,7 @@ import { overReadCap } from './read-limit'
 import { pillOf, PillView } from './submission-page'
 import { page, PageContext } from './viewer'
 
-type Env = { DB: D1Database; TREE: DurableObjectNamespace; ENV: string; SITE_MODE: string; CSRF_SECRET: string }
+type Env = { DB: D1Database; TREE: DurableObjectNamespace; ENV: string; SITE_MODE: string; CSRF_SECRET: string; PASSWORD_PEPPER: string }
 
 /** Rows each list shows before "show all". */
 export const SHOWN = 25
@@ -98,14 +105,17 @@ const Imp: FC<{ figures: WorkingRow['figures'] }> = ({ figures }) => {
 
 // ---------- the page ----------
 
-const WhoHead: FC<{ person: Person; head: Head; now: number }> = ({ person: p, head, now }) => {
+const WhoHead: FC<{ person: Person; head: Head; now: number; owner?: boolean }> = ({ person: p, head, now, owner }) => {
   const links = linksOf(p.links)
   return (
     <section class="who-head">
       <div>
         <h1 class="path"><Name name={`@${p.handle}`} /></h1>
-        {/* OPEN: no "verified human" mark at launch; the owner's account button comes with the account modal (phase 6). */}
-        <div class="meta">{dotted([p.display_name ? <Name name={p.display_name} /> : null, <>joined <Ago at={p.created_at} now={now} /></>])}</div>
+        {/* OPEN: no "verified human" mark at launch. The account button is a link, so the modal opens without script too. */}
+        <div class="meta">
+          {dotted([p.display_name ? <Name name={p.display_name} /> : null, <>joined <Ago at={p.created_at} now={now} /></>])}
+          {owner && <a class="acct" id="acct" href={`/@${p.handle}?account=1`} aria-haspopup="dialog">account</a>}
+        </div>
         {p.about && <p class="about"><Text inline text={p.about} /></p>}
         {links.length > 0 && (
           <p class="plinks">
@@ -345,12 +355,13 @@ type View = {
   now: number
   name?: { name: string; value: string; error?: string; posts: NamePost[]; next: string | null }
   inbox?: InboxView // the owner's own, signed in
+  account?: AccountView // the owner's account modal, open or not
 }
 
-export const ProfilePage: FC<View> = ({ person, profile, all, now, name, inbox }) => (
+export const ProfilePage: FC<View> = ({ person, profile, all, now, name, inbox, account }) => (
   <Layout title={`@${person.handle} · shwarm`}>
     <link rel="stylesheet" href="/css/profile.css" />
-    <WhoHead person={person} head={profile.head} now={now} />
+    <WhoHead person={person} head={profile.head} now={now} owner={!!account} />
     <div class="grid">
       <main id="main" tabindex={-1}>
         {name && !name.error ? (
@@ -368,7 +379,9 @@ export const ProfilePage: FC<View> = ({ person, profile, all, now, name, inbox }
         <LookUp handle={person.handle} value={name?.value ?? ''} error={name?.error} />
       </aside>
     </div>
+    {account && <AccountModal v={account} />}
     {inbox && <script src="/js/node.js" defer></script>}
+    {account && <script src="/js/account.js" defer></script>}
   </Layout>
 )
 
@@ -457,7 +470,15 @@ profile.get('/:at{@[A-Za-z0-9_]+}', async c => {
  * The profile as `url` asks for it (the name view, ?all=1), with the owner's inbox when `owner`. Also the page for a
  * refused inline reply, with the reason under its item and the draft kept (`flash`).
  */
-async function profileView(c: Context<{ Bindings: Env }>, person: Person, url: URL, owner: boolean, flash?: ReplyFlash, status: 200 | 400 | 429 = 200) {
+async function profileView(
+  c: Context<{ Bindings: Env }>,
+  person: Person,
+  url: URL,
+  owner: boolean,
+  flash?: ReplyFlash,
+  status: 200 | 400 | 429 = 200,
+  accountFlash?: AccountFlash,
+) {
   const now = Date.now()
   const handle = person.handle
   const all = url.searchParams.get('all') === '1'
@@ -475,10 +496,15 @@ async function profileView(c: Context<{ Bindings: Env }>, person: Person, url: U
       posts = readNamePosts(c.env.DB, person.id, n.name, url.searchParams.get('before'))
     }
   }
-  const [prof, found, inbox] = await Promise.all([readProfile(c.env.DB, person.id, { owner, now }), posts, owner ? ownInbox(c.env.DB, person.id, all, now) : undefined])
+  const [prof, found, inbox, account] = await Promise.all([
+    readProfile(c.env.DB, person.id, { owner, now }),
+    posts,
+    owner ? ownInbox(c.env.DB, person.id, all, now) : undefined,
+    owner ? ownAccount(c, person.id, url, now, accountFlash) : undefined,
+  ])
   if (name && found) Object.assign(name, found)
   if (inbox) inbox.flash = flash
-  return page(c, <ProfilePage person={person} profile={prof} all={all} now={now} name={name} inbox={inbox} />, name?.error ? 400 : status)
+  return page(c, <ProfilePage person={person} profile={prof} all={all} now={now} name={name} inbox={inbox} account={account} />, name?.error ? 400 : status)
 }
 
 /** The owner's inbox, and the reply pace in each thread a mention is in (one read for all of them). */
@@ -486,6 +512,14 @@ async function ownInbox(db: D1Database, personId: number, all: boolean, now: num
   const box = await readInbox(db, personId, { all, max: LIST_MAX })
   const threads = box.items.filter(i => i.kind === 'mention' && i.node_id !== null).map(i => i.node_id as number)
   return { ...box, limits: await peekThreadTokensMany(db, personId, threads, now) }
+}
+
+/** The owner's account modal (6.2): open on ?account= (no script needed) or after a refused form, with what ?account= says. */
+async function ownAccount(c: Context<{ Bindings: Env }>, personId: number, url: URL, now: number, flash?: AccountFlash): Promise<AccountView | undefined> {
+  const [session, account] = await Promise.all([sessionOf(c), readAccount(c.env.DB, personId, now)])
+  if (!session || !account) return undefined
+  const asked = url.searchParams.get('account')
+  return { account, open: asked !== null || flash !== undefined, steppedUp: stepUpOpen(session, now), status: flash ? undefined : ACCOUNT_STATUS[asked ?? ''], flash }
 }
 
 /** An inbox item id from a form field, or null. */
@@ -506,7 +540,7 @@ profile.post('/:at{@[A-Za-z0-9_]+}', async c => {
   if (!w.session) return c.redirect(signInHref(`/@${handle}`), 303)
   const f = await formOf(c)
   if (!(await postedTokenOk(c as unknown as AuthContext, w, f))) return sendError(c, { status: 403, heading: 'this form expired', text: 'go back, reload the page and try again.' }, 'html')
-  // Nobody acts on someone else's inbox, and the profile has no other forms.
+  // Nobody acts on someone else's inbox or account.
   if (w.session.handle !== handle || !w.session.verified) return sendError(c, { status: 403 }, 'html')
   const s = w.session
   const db = c.env.DB
@@ -524,8 +558,49 @@ profile.post('/:at{@[A-Za-z0-9_]+}', async c => {
     return c.redirect(`${back}#addressed`, 303)
   }
   if (f.do === 'reply') return reply(c, s, url, f)
+  if (f.do === 'account' || f.do === 'password') return accountForm(c, s, f.do, f)
+  if (f.do === 'signout_all') {
+    // Every session ends, this one too (sign-in's notice says so). No password: it can only sign the person out.
+    // OPEN (#84): "every other browser only" is the other choice.
+    await endAllSessions(db, s.personId)
+    c.header('Set-Cookie', clearCookie(), { append: true })
+    return c.redirect('/signin?done=everywhere', 303)
+  }
   return sendError(c, { status: 400, text: 'that form asked for nothing we know.' }, 'html')
 })
+
+/**
+ * The account modal's save and change password (6.2), both behind the password step-up (A5), asked inline as the
+ * sign-off does. Each form is checked first, so a draft with a mistake doesn't spend the password; a refusal re-renders
+ * the profile with the modal open, the reason at its field and the draft kept (never the passwords).
+ */
+async function accountForm(c: Context<{ Bindings: Env }>, s: Session, act: 'account' | 'password', f: AccountForm) {
+  const db = c.env.DB
+  const person = await findPerson(db, s.handle)
+  const cur = await readAccount(db, s.personId)
+  if (!person || !cur) return sendError(c, { status: 404 }, 'html')
+  const at = act === 'account' ? 'save' : 'password'
+  const values = act === 'account' ? Object.fromEntries(Object.entries(f).filter(([k]) => !/password|form_token/.test(k))) : undefined
+  const refuse = (flash: Omit<AccountFlash, 'at' | 'values'>, status: 400 | 429 = 400) =>
+    profileView(c, person, new URL(`/@${s.handle}`, c.req.url), true, undefined, status, { at, values, ...flash })
+  const now = Date.now()
+  const me = { id: s.personId, handle: s.handle, email: cur.email, prefs: cur.prefs }
+  const checked = act === 'account' ? await checkAccount(db, f, me) : null
+  if (checked && 'errors' in checked) return refuse({ errors: checked.errors })
+  const pwErrors = act === 'password' ? await checkNewPassword(f) : null
+  if (pwErrors) return refuse({ errors: pwErrors })
+  const up = await inlineStepUp(db, c.env.PASSWORD_PEPPER, s, f.password, clientIp(c), now)
+  if ('refuse' in up) {
+    if (up.wait) c.header('Retry-After', String(up.wait))
+    return refuse({ error: up.refuse }, up.status)
+  }
+  if (checked) {
+    await saveAccount(db, me, checked.save, now)
+    return c.redirect(`/@${s.handle}?account=saved`, 303)
+  }
+  await setPassword(db, c.env.PASSWORD_PEPPER, s.personId, f.new_password ?? '', { keepSession: s.id, now })
+  return c.redirect(`/@${s.handle}?account=password`, 303)
+}
 
 async function reply(c: Context<{ Bindings: Env }>, s: Session, url: URL, f: Record<string, string>) {
   const db = c.env.DB

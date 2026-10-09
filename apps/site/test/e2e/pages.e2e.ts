@@ -17,14 +17,13 @@ import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../../src/seed/example'
 import { PAGES as DOCS } from '../../src/web/doc'
 import { takeRead, resetReadLimit } from '../../src/web/read-limit'
 import { LOBBY } from '../node-fixture'
-import { axeViolations, chrome, CHROMES, overflow } from './kit'
+import { axeViolations, badRing, chrome, CHROMES, overflow } from './kit'
 import { HIDDEN, LONG_BRANCH, LONG_HANDLE, LONG_TITLE, startServer, type E2eServer } from './server'
 
 // In-page code below runs in the browser; these names exist there, not in the Workers types this repo compiles with.
 declare const document: any
 declare const window: any
 declare const NodeFilter: any
-declare const getComputedStyle: any
 
 const WIDTHS = [390, 640, 860, 1280]
 const AXE_WIDTHS = [390, 1280]
@@ -51,6 +50,8 @@ const CASES: Case[] = [
   { path: '/@myra', status: 200 },
   { path: '/@myra?as=@myra/m-04', status: 200 },
   { path: '/@myra?as=not%20a%20name!', status: 400 },
+  // the owner's account modal, open without script (go-live 6.2)
+  { path: '/@myra?account=1', status: 200, only: 'in' },
   // footer pages and guides
   ...DOCS.map(d => ({ path: `/${d.slug}`, status: 200 })),
   // account pages
@@ -102,46 +103,6 @@ async function open(who: Who, c: Case) {
   const res = await page.goto(server.origin + c.path, { waitUntil: 'load' })
   await page.setExtraHTTPHeaders({})
   return { page, res }
-}
-
-/**
- * The focused element's ring: whether it has one, and its contrast against what's behind it. The ring sits outside
- * the element (outline-offset >= 0), so "behind" is the nearest ancestor background, blended down through any
- * translucent ones; an inset ring (negative offset) sits on the element's own background.
- */
-const focusRing = (page: Page) =>
-  page.evaluate(() => {
-    const el = document.activeElement
-    if (!el || el === document.body) return null
-    const s = getComputedStyle(el)
-    const what = `${el.tagName.toLowerCase()} ${(el.textContent || el.getAttribute('aria-label') || el.name || '').trim().slice(0, 30)}`
-    if (s.outlineStyle === 'none' || !(parseFloat(s.outlineWidth) > 0)) {
-      return { what, ring: !!(s.boxShadow && s.boxShadow !== 'none'), contrast: null as number | null }
-    }
-    const rgba = (c: string) => { const m = c.match(/[\d.]+/g)!.map(Number); return [m[0], m[1], m[2], m[3] ?? 1] }
-    const layers: number[][] = []
-    for (let n = parseFloat(s.outlineOffset) < 0 ? el : el.parentElement; n; n = n.parentElement) {
-      const c = rgba(getComputedStyle(n).backgroundColor)
-      if (c[3] > 0) layers.push(c)
-      if (c[3] >= 1) break
-    }
-    let bg = [255, 255, 255]
-    for (const c of layers.reverse()) bg = bg.map((v, i) => v * (1 - c[3]) + c[i] * c[3])
-    const lum = (c: number[]) => {
-      const [r, g, b] = c.slice(0, 3).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4 })
-      return 0.2126 * r + 0.7152 * g + 0.0722 * b
-    }
-    const a = lum(rgba(s.outlineColor)), b = lum(bg)
-    return { what, ring: true, contrast: Math.round(((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)) * 100) / 100 }
-  })
-
-/** A ring that's missing or under 3:1, as a line for the failure message; null when it's fine. */
-async function badRing(page: Page): Promise<string | null> {
-  const r = await focusRing(page)
-  if (!r) return null
-  if (!r.ring) return `${r.what}: no ring`
-  if (r.contrast !== null && r.contrast < 3) return `${r.what}: ring ${r.contrast}:1`
-  return null
 }
 
 /** Relative times outside participant text: how many, and those with no exact time in a title above them. */
@@ -232,10 +193,11 @@ runIt('every page in a real browser (3.8)', () => {
           it(`${path}, signed ${who}, ${width}px`, async () => {
             const { page } = await open(who, { path, status: 200 })
             await page.setViewportSize({ width, height: 800 })
-            const dialog = page.locator('[role="dialog"]')
+            // the owner's profile also has the account modal (go-live 6.2, test/e2e/account.e2e.ts)
+            const dialog = page.locator('#dn-scrim [role="dialog"]')
             expect(await dialog.count()).toBe(1)
             expect(await dialog.getAttribute('aria-modal')).toBe('true')
-            const label = await page.evaluate(() => document.getElementById(document.querySelector('[role="dialog"]').getAttribute('aria-labelledby'))?.textContent?.trim())
+            const label = await page.evaluate(() => document.getElementById(document.querySelector('#dn-scrim [role="dialog"]').getAttribute('aria-labelledby'))?.textContent?.trim())
             expect(label).toBeTruthy()
             expect(await dialog.isVisible()).toBe(false)
 
@@ -244,7 +206,7 @@ runIt('every page in a real browser (3.8)', () => {
             await opener.focus()
             await page.keyboard.press('Enter')
             expect(await dialog.isVisible()).toBe(true)
-            const inside = () => page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]'))
+            const inside = () => page.evaluate(() => !!document.activeElement?.closest('#dn-scrim [role="dialog"]'))
             expect(await inside(), 'focus moves into the dialog').toBe(true)
 
             // the focus ring shows on whatever has focus, at 3:1 against what's behind it (the × sits on the sun header)
@@ -275,7 +237,7 @@ runIt('every page in a real browser (3.8)', () => {
             expect(await inside(), 'Shift+Tab after a click on the text stays inside').toBe(true)
             const o = await overflow(page)
             expect(o.scrollWidth, `open modal scrolls sideways at ${width}px`).toBeLessThanOrEqual(o.innerWidth)
-            expect(await axeViolations(page, '[role="dialog"]'), 'axe on the open dialog').toEqual([])
+            expect(await axeViolations(page, '#dn-scrim [role="dialog"]'), 'axe on the open dialog').toEqual([])
 
             await page.keyboard.press('Escape')
             expect(await dialog.isVisible(), 'Esc closes').toBe(false)

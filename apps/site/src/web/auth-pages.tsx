@@ -175,15 +175,54 @@ export const VerifiedPage: FC<{ signedIn: boolean; back?: { href: string; label:
   </Shell>
 )
 
-export const ExpiredPage: FC<{ kind: 'verify' | 'reset' }> = ({ kind }) => (
-  <Shell title="link expired" heading="this link doesn't work anymore">
+export const ExpiredPage: FC<{ kind: 'verify' | 'reset' | 'email_change' | 'email_taken' }> = ({ kind }) =>
+  kind === 'email_taken' ? (
+    // OPEN (#84): the email change pages' words (go-live 6.2) wait on Myra's yes.
+    <Shell title="link expired" heading="this link doesn't work anymore">
+      <div class="in">
+        <p>that address is on another shwarm account now, so this one can't move to it. your old address stays.</p>
+      </div>
+    </Shell>
+  ) : (
+    <Shell title="link expired" heading="this link doesn't work anymore">
+      <div class="in">
+        {kind === 'email_change' ? (
+          <>
+            <p>it was already used, or it ran out of time. email change links last 24 hours.</p>
+            <p>to try again, open "account" on your profile and change the address there.</p>
+          </>
+        ) : (
+          <p>it was already used, or it ran out of time. verify links last 7 days and reset links 1 hour.</p>
+        )}
+        {kind === 'reset' ? (
+          <p><a href="/forgot">ask for a new reset link</a></p>
+        ) : kind === 'verify' ? (
+          <p>already verified? <a href="/signin">sign in</a>. if not, sign in and send a new link from there.</p>
+        ) : null}
+      </div>
+    </Shell>
+  )
+
+/** The link in an email change mail (go-live 6.2): one button, so a mail scanner that opens the link changes nothing. */
+export const EmailChangePage: FC<{ token: string; t: string; handle: string; email: string }> = ({ token, t, handle, email }) => (
+  <Shell title="confirm your new email" heading="confirm your new email">
     <div class="in">
-      <p>it was already used, or it ran out of time. verify links last 7 days and reset links 1 hour.</p>
-      {kind === 'reset' ? (
-        <p><a href="/forgot">ask for a new reset link</a></p>
-      ) : (
-        <p>already verified? <a href="/signin">sign in</a>. if not, sign in and send a new link from there.</p>
-      )}
+      <p>this link moves <strong>@{handle}</strong> to <strong>{email}</strong>. until you press the button, the old address stays on the account.</p>
+      <p>didn't ask for this? don't press the button.</p>
+    </div>
+    <form method="post" action="/email-change">
+      <Token value={token} />
+      <input type="hidden" name="t" value={t} />
+      <div class="go"><span>press the button to use this address.</span><button class="btn" type="submit">use this address</button></div>
+    </form>
+  </Shell>
+)
+
+export const EmailChangedPage: FC<{ handle?: string }> = ({ handle }) => (
+  <Shell title="email changed" heading="your new email is set">
+    <div class="in">
+      <p>shwarm sends your mail here from now on, and you sign in with it.</p>
+      <p>{handle ? <a href={`/@${handle}`}>back to @{handle}</a> : <a href="/signin">sign in</a>}</p>
     </div>
   </Shell>
 )

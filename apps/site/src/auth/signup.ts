@@ -56,7 +56,8 @@ export async function setting<T>(db: D1Database, key: string): Promise<T | null>
   return row ? (JSON.parse(row.value) as T) : null
 }
 
-const cleanName = (s: string) => s.replace(/[\x00-\x1f\x7f​-‏‪-‮⁦-⁩]/g, '').trim()
+/** Control, zero-width and bidi characters out, ends trimmed: a display name (and the about line, 6.2) as stored. */
+export const cleanName = (s: string) => s.replace(/[\x00-\x1f\x7f​-‏‪-‮⁦-⁩]/g, '').trim()
 
 // The pending-account cookie: "<handle>.<mac over the handle and the account's creation time>". It proves this
 // browser made that pending account, so signing up again here with the same handle replaces it (table B), and

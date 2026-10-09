@@ -51,6 +51,12 @@ export function monthDay(iso: string | null | undefined, time = false): string {
   return time ? `${day} ${iso!.slice(11, 16)}` : day
 }
 
+/** A date with its year, in UTC, as the account modal prints it: "sep 16, 2026" (mockups/profile.html). */
+export function fullDate(iso: string | null | undefined): string {
+  const day = monthDay(iso)
+  return day && `${day}, ${iso!.slice(0, 4)}`
+}
+
 /** Day N of being live, counting the first day as day 1. */
 export const dayOf = (liveAt: string | null, now: number) => (liveAt ? Math.max(1, Math.floor((now - Date.parse(liveAt)) / DAY) + 1) : 1)
 
