@@ -1,0 +1,33 @@
+-- Expand only (go-live 3.7, the stats and ranking job). Adds columns, indexes and setting rows; drops and renames nothing.
+
+-- When anything a signed-out view shows last changed (set with last_event_id by touchNode in core/context.ts).
+-- The stats job reads only nodes changed since its last run. Existing nodes start at their created_at.
+ALTER TABLE node ADD COLUMN changed_at TEXT;
+UPDATE node SET changed_at = created_at WHERE changed_at IS NULL;
+CREATE INDEX node_changed ON node (changed_at);
+
+-- All-time thread totals for the feed card's "2.1k upvotes" and the impact mark (counted upvotes, non-hidden posts).
+ALTER TABLE node_stats ADD COLUMN upvotes INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE node_stats ADD COLUMN posts INTEGER NOT NULL DEFAULT 0;
+-- When a node's numbers next change with time alone, with no new write: an upvote, bump or join leaving its window,
+-- the hot flag able to flip, or the hourly refresh of a decaying score and posts per day. NULL when nothing moves.
+ALTER TABLE node_stats ADD COLUMN stale_at TEXT;
+CREATE INDEX node_stats_stale ON node_stats (stale_at) WHERE stale_at IS NOT NULL;
+CREATE INDEX person_node_stats_node ON person_node_stats (node_id);
+
+-- When the stats job last counted a day. A day is final once this is at or after its end; until then it's redone.
+ALTER TABLE site_stats_daily ADD COLUMN computed_at TEXT;
+
+-- Header counters: posts today, and people active in the last 24 hours (posted, joined or upvoted).
+CREATE INDEX post_created ON post (created_at);
+CREATE INDEX upvote_created ON upvote (created_at);
+CREATE INDEX seat_joined ON seat (joined_at);
+-- Daily usage: mail actually sent, and triage model calls.
+CREATE INDEX email_outbox_sent ON email_outbox (sent_at) WHERE provider_id IS NOT NULL;
+CREATE INDEX triage_created ON triage_decision (created_at);
+
+-- Ranking knobs (table B #9, #10, #24). The code has the same defaults if a row is missing.
+INSERT OR IGNORE INTO setting (key, value, updated_at) VALUES
+  ('hot_floor', '20', '2026-10-08T00:00:00Z'),   -- counted upvotes in 24h before a thread can be hot
+  ('hot_mix',   '3',  '2026-10-08T00:00:00Z'),   -- live shwarms per lobby on the hot tab
+  ('ranking',   '{"half_life_hours":12,"window_hours":24,"submission":5,"pass":20,"hot_ratio":2,"bumps_from_branches":true}', '2026-10-08T00:00:00Z');

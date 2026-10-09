@@ -151,6 +151,7 @@ export async function mentionStatements(
  * Last in every batch that changes what a signed-out view shows: the "in review" flag (a label on live only,
  * so a dead end or a closed node never shows it) and the node's version, its ETag for signed-out views.
  * The version is the act's audit event id, or else its post id, or else a fresh v_ token (seat changes).
+ * changed_at tells the stats job (jobs/stats.ts) which nodes to roll up again.
  */
 export function touchNode(ctx: Ctx, nodeId: number | { path: string }, version: string | null): D1PreparedStatement {
   const where = typeof nodeId === 'number' ? 'id = ?' : 'path = ?'
@@ -158,9 +159,9 @@ export function touchNode(ctx: Ctx, nodeId: number | { path: string }, version: 
   return ctx.db
     .prepare(
       `UPDATE node SET in_review = (state = 'live' AND EXISTS (SELECT 1 FROM submission s WHERE s.node_id = node.id AND s.status = 'in_review')),
-       last_event_id = ? WHERE ${where}`,
+       last_event_id = ?, changed_at = ? WHERE ${where}`,
     )
-    .bind(version ?? newId('v'), key)
+    .bind(version ?? newId('v'), ctx.at, key)
 }
 
 export function postStatement(
