@@ -1,12 +1,12 @@
 import { Hono } from 'hono'
 import { basicAuth } from 'hono/basic-auth'
-import { html } from 'hono/html'
 import { DocPage, findPage } from './web/doc'
 import { HOLDING } from './web/holding'
 import { originGuard } from './auth/csrf'
 import { mailRoutes } from './email/routes'
 import { scheduled } from './jobs'
 import { auth } from './auth/routes'
+import { page } from './web/viewer'
 export { ShwarmTree } from './do/shwarm-tree'
 
 type Env = { DB: D1Database; TREE: DurableObjectNamespace; ENV: string; SITE_MODE: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string }
@@ -64,10 +64,10 @@ app.route('/', auth)
 
 // Footer pages and guides (live on production since go-live step 1.8b).
 app.get('/:slug{[a-z0-9-]+}', (c, next) => {
-  const page = findPage(c.req.param('slug'))
-  if (!page) return next()
+  const doc = findPage(c.req.param('slug'))
+  if (!doc) return next()
   noindex(c)
-  return c.html(html`<!doctype html>${DocPage({ page })}`)
+  return page(c, DocPage({ page: doc }))
 })
 
 // Holding home page until launch.

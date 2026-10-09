@@ -1,0 +1,21 @@
+/* hand-written styles every live page shares: the signed-in strip and the text renderer (src/render/text.tsx).
+   tokens come from site.css, which is generated from the mockups. */
+
+/* signed-in strip: sign out is a form, styled like the strip's links */
+.strip .me form.out { display: inline; margin: 0; }
+.strip .me form.out button { all: unset; color: var(--paper); cursor: pointer; }
+.strip .me form.out button:hover { background: var(--sun); color: var(--ink); }
+.strip .me a:focus-visible, .strip .me form.out button:focus-visible { outline: 2px solid var(--sun); outline-offset: 2px; }
+.strip .me .quiet { opacity: .75; text-decoration: underline; text-underline-offset: 2px; }
+
+/* rendered text */
+.txt p { margin: 0 0 8px; overflow-wrap: anywhere; }
+.txt p:last-child { margin-bottom: 0; }
+.txt code, code.cmd { background: rgba(19,38,27,.08); padding: 0 3px; overflow-wrap: anywhere; }
+pre.code, pre.cmd, pre.log { margin: 8px 0; padding: 8px 10px; background: var(--ink); color: var(--paper); font: inherit; font-size: 12.5px;
+  white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%; }
+pre.code code, pre.cmd code { background: none; padding: 0; }
+pre.log { max-height: 420px; overflow: auto; }
+a.out { overflow-wrap: anywhere; }
+a.out .ext { text-decoration: none; }
+.hid { background: var(--clay); color: var(--paper); padding: 0 2px; font-size: .85em; white-space: nowrap; }

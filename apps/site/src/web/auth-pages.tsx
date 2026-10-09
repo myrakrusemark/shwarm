@@ -1,5 +1,6 @@
 import type { Child, FC } from 'hono/jsx'
 import { FORM_FIELD } from '../auth/request'
+import { withNext } from '../auth/return-to'
 import { Layout } from './layout'
 
 // Account pages (go-live 2.5, 2.7, 2.8). Plain HTML forms: they work without JavaScript, except the
@@ -74,14 +75,17 @@ const Field: FC<FieldProps> = ({ label, name, type = 'text', value, hint, error,
 
 export type JoinValues = { handle?: string; display_name?: string; email?: string; age?: boolean; terms?: boolean }
 
-export const JoinPage: FC<{ token: string; siteKey?: string; inviteOnly: boolean; values?: JoinValues; errors?: Errors }> = ({
-  token, siteKey, inviteOnly, values = {}, errors = {},
+const Next: FC<{ next?: string }> = ({ next }) => (next ? <input type="hidden" name="next" value={next} /> : null)
+
+export const JoinPage: FC<{ token: string; siteKey?: string; inviteOnly: boolean; values?: JoinValues; errors?: Errors; next?: string }> = ({
+  token, siteKey, inviteOnly, values = {}, errors = {}, next,
 }) => (
-  <Shell title="join" heading="join shwarm" below={<>have an account? <a href="/signin">sign in</a></>}>
+  <Shell title="join" heading="join shwarm" below={<>have an account? <a href={withNext('/signin', next)}>sign in</a></>}>
     {inviteOnly && <div class="msg ok">shwarm is invite-only for now. join with the address your invite came to.</div>}
     <Msg text={errors.form} />
     <form method="post" action="/join">
       <Token value={token} />
+      <Next next={next} />
       <Field label="handle" name="handle" value={values.handle} error={errors.handle} autocomplete="username" maxlength={32} required
         hint="your name here, like @myra. 2 to 32 lowercase letters, numbers or underscores. it can't change later." />
       <Field label="display name" name="display_name" value={values.display_name} error={errors.display_name} autocomplete="name" maxlength={50}
@@ -104,8 +108,9 @@ export const JoinPage: FC<{ token: string; siteKey?: string; inviteOnly: boolean
 
 // ---------- check your email ----------
 
-export const CheckEmailPage: FC<{ token: string; kind: 'verify' | 'reset'; sent?: boolean; unverified?: boolean; inviteOnly?: boolean }> = ({
-  token, kind, sent, unverified, inviteOnly,
+/** `n`: the signed return-to, passed on to the new verify link. */
+export const CheckEmailPage: FC<{ token: string; kind: 'verify' | 'reset'; sent?: boolean; unverified?: boolean; inviteOnly?: boolean; n?: string }> = ({
+  token, kind, sent, unverified, inviteOnly, n,
 }) => (
   <Shell title="check your email" heading="check your email">
     {sent && <Msg ok text="sent again. it can take a minute or two." />}
@@ -130,6 +135,7 @@ export const CheckEmailPage: FC<{ token: string; kind: 'verify' | 'reset'; sent?
           <p>nothing there? look in spam, or send it again.</p>
           <form method="post" action="/check-email">
             <Token value={token} />
+            {n && <input type="hidden" name="n" value={n} />}
             <button class="btn plain" type="submit">send it again</button>
           </form>
         </>
@@ -140,7 +146,7 @@ export const CheckEmailPage: FC<{ token: string; kind: 'verify' | 'reset'; sent?
 
 // ---------- links from email ----------
 
-export const VerifyPage: FC<{ token: string; t: string; handle: string }> = ({ token, t, handle }) => (
+export const VerifyPage: FC<{ token: string; t: string; handle: string; n?: string }> = ({ token, t, handle, n }) => (
   <Shell title="verify your email" heading="verify your email">
     <div class="in">
       <p>this link finishes joining as <strong>@{handle}</strong>.</p>
@@ -149,16 +155,22 @@ export const VerifyPage: FC<{ token: string; t: string; handle: string }> = ({ t
     <form method="post" action="/verify">
       <Token value={token} />
       <input type="hidden" name="t" value={t} />
+      {n && <input type="hidden" name="n" value={n} />}
       <div class="go"><span>press the button to finish joining.</span><button class="btn" type="submit">verify my email</button></div>
     </form>
   </Shell>
 )
 
-export const VerifiedPage: FC<{ signedIn: boolean }> = ({ signedIn }) => (
+/** `back`: where they were before joining (a same-site path) and what to call it. */
+export const VerifiedPage: FC<{ signedIn: boolean; back?: { href: string; label: string } }> = ({ signedIn, back }) => (
   <Shell title="verified" heading="you're in">
     <div class="in">
       <p>your email is verified. welcome to shwarm.</p>
-      <p>{signedIn ? <a href="/">go to shwarm</a> : <a href="/signin">sign in</a>}</p>
+      {back ? (
+        <p>{signedIn ? <a href={back.href}>back to {back.label}</a> : <><a href={withNext('/signin', back.href)}>sign in</a> to go back to {back.label}.</>}</p>
+      ) : (
+        <p>{signedIn ? <a href="/">go to shwarm</a> : <a href="/signin">sign in</a>}</p>
+      )}
     </div>
   </Shell>
 )
@@ -181,7 +193,7 @@ export const ExpiredPage: FC<{ kind: 'verify' | 'reset' }> = ({ kind }) => (
 export const SignInPage: FC<{ token: string; siteKey?: string; email?: string; next?: string; error?: string; notice?: string; signedInAs?: string }> = ({
   token, siteKey, email, next, error, notice, signedInAs,
 }) => (
-  <Shell title="sign in" heading="sign in" below={<>new here? <a href="/join">join</a></>}>
+  <Shell title="sign in" heading="sign in" below={<>new here? <a href={withNext('/join', next)}>join</a></>}>
     <Msg ok text={notice} />
     {signedInAs && (
       <div class="msg ok">
@@ -192,7 +204,7 @@ export const SignInPage: FC<{ token: string; siteKey?: string; email?: string; n
     <Msg text={error} />
     <form method="post" action="/signin">
       <Token value={token} />
-      {next && <input type="hidden" name="next" value={next} />}
+      <Next next={next} />
       <Field label="email" name="email" type="email" value={email} autocomplete="email" maxlength={254} required />
       <Field label="password" name="password" type="password" autocomplete="current-password" maxlength={128} required
         hint={<a href="/forgot">forgot it?</a>} />

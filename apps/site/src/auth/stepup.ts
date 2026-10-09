@@ -4,7 +4,7 @@
 import type { Context } from 'hono'
 import { getCookie } from 'hono/cookie'
 import { COOKIE, readSession, type Session } from './session'
-import { safeNext } from './request'
+import { safeNext, sessionOf } from './request'
 
 export const STEP_UP_MS = 10 * 60_000
 
@@ -37,7 +37,7 @@ function backTo(c: Context): string {
  *   const stop = await requireVerified(c); if (stop) return stop
  */
 export async function requireVerified<E extends { Bindings: { DB: D1Database } }>(c: Context<E>, opts: { next?: string; now?: number } = {}): Promise<Response | null> {
-  const session = await readSession((c.env as { DB: D1Database }).DB, getCookie(c, COOKIE), opts.now ?? Date.now())
+  const session = await sessionFor(c, opts.now)
   return gate(c, session, opts.next) ?? null
 }
 
@@ -50,12 +50,16 @@ export async function requireVerified<E extends { Bindings: { DB: D1Database } }
  */
 export async function requireStepUp<E extends { Bindings: { DB: D1Database } }>(c: Context<E>, opts: { next?: string; now?: number } = {}): Promise<Response | null> {
   const now = opts.now ?? Date.now()
-  const session = await readSession((c.env as { DB: D1Database }).DB, getCookie(c, COOKIE), now)
+  const session = await sessionFor(c, opts.now)
   const stop = gate(c, session, opts.next)
   if (stop) return stop
   if (stepUpOpen(session, now)) return null
   return c.redirect(`/step-up?next=${encodeURIComponent(safeNext(opts.next ?? backTo(c)) ?? '/')}`, 303)
 }
+
+/** The request's session: the shared per-request read, unless a test passes its own clock. */
+const sessionFor = <E extends { Bindings: { DB: D1Database } }>(c: Context<E>, now?: number) =>
+  now === undefined ? sessionOf(c) : readSession((c.env as { DB: D1Database }).DB, getCookie(c, COOKIE), now)
 
 /** Signed out goes to sign-in, unverified goes to check-your-email; undefined when neither. */
 function gate(c: Context, session: Session | null, next?: string): Response | undefined {
