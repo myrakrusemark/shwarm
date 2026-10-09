@@ -181,6 +181,24 @@ describe('waiting on the author (5.4)', () => {
     }
   })
 
+  it('a dead end waits on no one: its submission stays in review, but nobody is told to sign off', async () => {
+    const { db, env, b } = await world()
+    db.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'stuck on chunk seams' WHERE path = ?").run(EXAMPLE_BRANCH)
+    const author = await signIn(env, 'bmo_fan', true)
+    vi.setSystemTime(T0 + 3 * DAY)
+    for (const v of [author, b]) {
+      const html = await body(await v.req(S2, { headers: HTML }))
+      expect(pill(html)).toBe('in review')
+      expect(html).not.toContain('waiting on')
+      expect(html).not.toContain('waiting 3 days')
+      expect(html).not.toContain('the last check')
+    }
+    const text = await (await b.req(`${S2}?format=text`)).text()
+    expect(text).toContain('status: in review · 3 of 4 checks')
+    expect(text).toContain('this submission takes no checks now.')
+    expect((await (await b.req(`${S2}?format=json`)).json<any>()).review).toMatchObject({ done: 3, total: 4, waiting_on: null })
+  })
+
   it('counts the days since the author was asked: "waiting 3 days"', async () => {
     const { b } = await world()
     vi.setSystemTime(T0 + 3 * DAY)

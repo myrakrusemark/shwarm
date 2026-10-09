@@ -10,7 +10,7 @@ import type { Link } from '@shwarm/protocol'
 import { LICENSES } from '../core/nodes'
 import type { CheckSpec } from '../core/checks'
 import type { BuiltOnLink, Chain, CheckReport, Child, NodeHead, PromptPost, Seat, SubmissionDetail, SubmissionRow } from '../read/node'
-import { openReview, recordedStatus, review, type Review } from '../read/review'
+import { isOpen, openReview, recordedStatus, review, type Review } from '../read/review'
 import { BIDI_RE, escapeOf, showHidden } from './hidden'
 import { dayOf, licenseName, perDay, plural, q1, triageNote } from './format'
 
@@ -369,14 +369,16 @@ export function renderNodeJson(v: AgentView): Record<string, unknown> {
 
 export type SubmissionView = { origin: string; chain: Chain; sub: SubmissionDetail; checks: CheckReport[]; builtOn: BuiltOnLink[]; now: number }
 
-const subStatus = (s: SubmissionDetail, r: Review) =>
-  s.status === 'superseded' ? `superseded by #${s.superseded_number ?? '?'}` : s.status === 'in_review' && r.waitingOn ? `in review · waiting on ${r.waitingOn}` : s.status.replace('_', ' ')
+// On a dead end the submission stays in review but takes nothing, so it waits on no one (isOpen).
+const subStatus = (s: SubmissionDetail, r: Review, open: boolean) =>
+  s.status === 'superseded' ? `superseded by #${s.superseded_number ?? '?'}` : open && r.waitingOn ? `in review · waiting on ${r.waitingOn}` : s.status.replace('_', ' ')
 
 export function renderSubmissionPrompt(v: SubmissionView, nonce = makeNonce()): string {
   const n = v.chain.node
   const s = v.sub
   const standing = v.checks.filter(c => !c.reset_at)
   const r = review(n.spec, n.author, s, standing)
+  const open = isOpen(n, s)
   const out: string[] = []
   const line = (x = '') => out.push(x)
   const block = (attrs: string, body: string) => {
@@ -390,7 +392,7 @@ export function renderSubmissionPrompt(v: SubmissionView, nonce = makeNonce()): 
   line(`node:   ${v.origin}/w/${n.path} · "${flat(n.title)}"`)
   line(`number: #${s.number} · ${s.post_id} · hash ${s.hash}`)
   line(`by:     ${s.as_name}, ${s.created_at.slice(0, 10)}`)
-  line(`status: ${subStatus(s, r)} · ${r.done} of ${plural(r.total, 'check', 'checks')}`)
+  line(`status: ${subStatus(s, r, open)} · ${r.done} of ${plural(r.total, 'check', 'checks')}`)
   if (s.author_swap) line("note:   the author's own work: one more people check stands in for the sign-off.")
   line()
   line('DONE WHEN')
@@ -407,7 +409,6 @@ export function renderSubmissionPrompt(v: SubmissionView, nonce = makeNonce()): 
   block(`id=${s.post_id} author=${s.as_name} kind=submission number=${s.number}`, body.join('\n'))
   line()
   line(`CHECKS (${r.done} of ${r.total})`)
-  const open = n.state === 'live' && s.status === 'in_review'
   checkLines(s, { ...r, rows: r.rows.filter(x => x.verdict !== 'waiting' || open) }, v.checks.filter(c => c.reset_at), line)
   if (!v.checks.length && !open) line('  none')
   line()
@@ -437,7 +438,7 @@ export function renderSubmissionJson(v: SubmissionView): Record<string, unknown>
     how_to_check: s.how_to_check,
     built_on: v.builtOn.map(b => ({ post: b.post_id, by: b.as_name, ...(b.number !== null ? { number: b.number } : {}), ...(b.note ? { note: b.note } : {}) })),
     release: s.release_title || s.release_version || s.release_how_to_use ? { name: s.release_title, version: s.release_version, how_to_use: s.release_how_to_use } : null,
-    review: { done: r.done, total: r.total, waiting_on: r.waitingOn, failed: r.failed },
+    review: { done: r.done, total: r.total, waiting_on: isOpen(n, s) ? r.waitingOn : null, failed: r.failed },
     checks: v.checks.map(c => ({
       id: c.id,
       post: c.post_id,

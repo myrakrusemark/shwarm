@@ -44,7 +44,8 @@ export const SubmissionPage: FC<{ d: SubmissionPageData }> = ({ d }) => {
   const isAuthor = d.me?.personId === n.author_id
   const standing = d.checks.filter(c => !c.reset_at)
   const r = review(n.spec, n.author, sub, standing)
-  const pill = pillOf(sub.status, r.waitingOn === 'author', isAuthor)
+  // A dead end keeps its submission in review but takes no checks or sign-off, so nobody is waited on (isOpen).
+  const pill = pillOf(sub.status, isOpen(n, sub) && r.waitingOn === 'author', isAuthor)
   const what = cut(showHidden(sub.text), 200)
   return (
     <Layout title={`submission #${sub.number} · ${showHidden(n.title)} · shwarm`} description={what}>
@@ -176,7 +177,7 @@ const ChecksBox: FC<{ d: SubmissionPageData; r: Review; isAuthor: boolean }> = (
   const sub = d.sub
   const open = isOpen(n, sub)
   const reset: ReviewRow[] = d.checks.filter(c => c.reset_at).map(c => ({ verdict: c.verdict, slot: c.slot, as: c.as_name, check: c }))
-  const days = r.waitingOn === 'author' ? waitingDays(sub.ready_at, d.now) : null
+  const days = open && r.waitingOn === 'author' ? waitingDays(sub.ready_at, d.now) : null
   const authorNote = (): string => {
     const own = r.rows.find(x => x.slot === 'author' && x.verdict !== 'waiting')
     if (own) return own.verdict === 'pass' ? 'passed' : isAuthor ? 'failed by you' : 'failed'
