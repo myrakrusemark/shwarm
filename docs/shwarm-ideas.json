@@ -410,5 +410,74 @@
     "needs_humans": "amateur astronomers with telescopes and cameras in many time zones (each needs an mpc observatory code); people to vet candidates; volunteers sharing computer time for image stacking.",
     "risk_notes": "work with existing efforts (mpc confirmation page, zooniverse projects such as hubble asteroid hunter and active asteroids) rather than duplicating them. report only what's vetted; false reports waste observers' time. 'potentially hazardous' claims are the mpc's and nasa's to make, never the crew's. sources and numbers still to check.",
     "origin": "myra, oct 9 ('would a shwarm do a good job reviewing recent astronomy photos for moving objects?')"
+  },
+  {
+    "slug": "end-veteran-homelessness-in-st-louis",
+    "wave": "idea",
+    "title": "end veteran homelessness in st. louis",
+    "category": "open data",
+    "tags": [
+      "#homelessness",
+      "#housing",
+      "#st-louis",
+      "#civic",
+      "#needs-humans"
+    ],
+    "what": "a person without a home has to fight paperwork, waitlists and phone trees just to get back inside, and the people helping them are stretched thin. some cities have shown homelessness can be made rare and brief by tracking every person by name and moving them into housing fast. this shwarm gives st. louis's helpers better tools and more hands: agents build and maintain them, humans do the outreach, the paperwork help, the counts and the politics.",
+    "done_when": "st. louis reaches functional zero for veteran homelessness as defined and confirmed by community solutions' built for zero standard (or the closest recognized benchmark if the city isn't in that program), with the confirmation published.",
+    "checked_by": {
+      "runs": {
+        "command": "python check_confirmation.py (fetches the published functional-zero confirmation for st. louis and checks its date and population)",
+        "count": 1
+      },
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "a person who works at a st. louis homeless service organization confirms the result is real and describes what changed on the ground."
+      },
+      "author": true
+    },
+    "lobby": 2,
+    "builds_on": "",
+    "sources": [],
+    "why_now": "",
+    "size": "years",
+    "needs_humans": "outreach volunteers, people who help with applications in person, local service organizations as partners, volunteers for the annual street counts, people who show up at city council and talk to their representatives.",
+    "risk_notes": "a root shwarm; the work happens in branches, each with its own done test: (1) an open benefits and housing-voucher application helper, checked by caseworkers; (2) a live map of open shelter beds and affordable units, kept current by local volunteers; (3) an open write-up of what cities that cut homelessness sharply actually did, so st. louis can copy it; (4) tools and volunteers for the annual point-in-time count; (5) a civic branch for testimony, letters and meetings on housing policy. hard rules: never collect or post personal data about people experiencing homelessness; every branch works with a local organization that does the real work; the author sign-off should go to someone at a local service provider, not to us. check whether st. louis's continuum of care is in built for zero before posting. city chosen as myra's own; easy to change.",
+    "origin": "myra, oct 9 ('can end homelessness be a shwarm?' — tools and resources, humans perform tasks, do politics)"
+  },
+  {
+    "slug": "read-the-voynich-manuscript",
+    "wave": "idea",
+    "title": "read the voynich manuscript, or prove it can't be read",
+    "category": "knowledge",
+    "tags": [
+      "#mystery",
+      "#history",
+      "#languages",
+      "#cryptography"
+    ],
+    "what": "a 600-year-old book full of plants that don't exist, star charts and bathing women, written in a script nobody has ever read. it's one of the great unsolved puzzles, and people announce a 'solution' every year that falls apart within weeks. the scans are free from yale. a crowd with agents can test every serious theory the same honest way, and either crack it or show clearly what it isn't.",
+    "done_when": "a decipherment key built from at most half the manuscript, applied by 3 people who didn't build it to 20 pages they haven't seen, produces text that at least 2 of 3 independent specialists in the proposed language judge grammatical and matching the pages' illustrations; or, failing that, a published open study that rules out at least 10 named hypotheses with tests anyone can rerun.",
+    "checked_by": {
+      "runs": {
+        "command": "python blind_test.py key.json heldout/ (applies the key to the held-out pages and prints the output for the specialists)",
+        "count": 1
+      },
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "read the blind-test output and the specialists' judgments, and confirm the held-out pages really weren't used to build the key."
+      },
+      "author": true
+    },
+    "lobby": 2,
+    "builds_on": "",
+    "sources": [],
+    "why_now": "",
+    "size": "months",
+    "needs_humans": "people to check transcriptions against the scans, specialists in historical languages to judge blind outputs, and skeptics to attack every claimed solution.",
+    "risk_notes": "two finish lines on purpose: a real reading, or an honest map of what doesn't work. many 'solutions' have been claimed; the blind held-out test is the point, so no reading counts without it. branches: a consensus transcription; a statistical fingerprint; one branch per hypothesis. the scans are yale's beinecke ms 408 (check the license before reuse). sources still to check.",
+    "origin": "myra, oct 9"
   }
 ]
