@@ -479,5 +479,73 @@
     "needs_humans": "people to check transcriptions against the scans, specialists in historical languages to judge blind outputs, and skeptics to attack every claimed solution.",
     "risk_notes": "two finish lines on purpose: a real reading, or an honest map of what doesn't work. many 'solutions' have been claimed; the blind held-out test is the point, so no reading counts without it. branches: a consensus transcription; a statistical fingerprint; one branch per hypothesis. the scans are yale's beinecke ms 408 (check the license before reuse). sources still to check.",
     "origin": "myra, oct 9"
+  },
+  {
+    "slug": "settle-the-warp-drive-papers",
+    "wave": "idea",
+    "title": "settle the warp drive papers",
+    "category": "science",
+    "tags": [
+      "#physics",
+      "#warp",
+      "#relativity",
+      "#space"
+    ],
+    "what": "faster-than-light travel is the dream behind half of science fiction, and it's a real open question in physics. alcubierre's 1994 warp bubble needs negative energy, which may not exist. since 2021 several papers claim warp solutions that avoid it, and other physicists dispute whether they hold. nobody has checked them all the same open way. settle it: rerun every claimed solution in open code, test it against the energy conditions, and publish which ones survive.",
+    "done_when": "every peer-reviewed warp solution published since 2021 that claims to avoid negative energy (list frozen at kickoff) is reproduced in open numerical-relativity code and checked against the weak, null and dominant energy conditions, with each verdict independently rerun by a second group and confirmed or disputed in writing by at least one of the original authors or another published relativist.",
+    "checked_by": {
+      "runs": {
+        "command": "python rerun_all.py solutions/ (regenerates each metric, evaluates the energy conditions on a grid, and prints a verdict per solution)",
+        "count": 1
+      },
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "a physicist reads one verdict and its code and confirms the metric matches the paper and the energy-condition test is done correctly."
+      },
+      "author": true
+    },
+    "lobby": 2,
+    "builds_on": "",
+    "sources": [],
+    "why_now": "",
+    "size": "months",
+    "needs_humans": "people who know general relativity and numerical methods, students who want a real research project, and published relativists willing to read the verdicts.",
+    "risk_notes": "a verification project, not a promise of warp travel; the pitch must say so. stick to peer-reviewed papers; treat preprints as optional extras. sources (alcubierre 1994; lentz 2021; bobrick and martire 2021; fell and heisenberg 2024) still to check before posting.",
+    "origin": "myra, oct 9 ('solve warp propulsion would be cool')"
+  },
+  {
+    "slug": "test-the-antigravity-claims",
+    "wave": "idea",
+    "title": "floating cars: test every antigravity and no-fuel thrust claim",
+    "category": "science",
+    "tags": [
+      "#physics",
+      "#propulsion",
+      "#replication",
+      "#weird"
+    ],
+    "what": "a car that floats with no track and no rotors would need physics nobody has shown yet. but every few years someone claims thrust without propellant or a weight-reducing effect, and most claims fade without a careful test. the emdrive did get one, and its thrust turned out to be a measurement error. a crowd can rebuild each famous claim in several places, measure it properly and publish the results. if anything survives, that's the start of the floating car.",
+    "done_when": "at least 5 published antigravity or propellantless-thrust claims (list frozen at kickoff) are each rebuilt from the original description by at least 3 independent teams in different places, measured with a pre-registered protocol that controls for heat, magnetism and vibration, and each claim gets a published verdict with all raw data linked.",
+    "checked_by": {
+      "runs": {
+        "command": "python analyze.py data/ protocol.yaml (reruns each team's analysis from raw data under the pre-registered protocol and prints thrust or weight change with error bars)",
+        "count": 1
+      },
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "a physicist or engineer reviews one claim's three builds, the protocol and the verdict, and confirms the controls were real."
+      },
+      "author": false
+    },
+    "lobby": 2,
+    "builds_on": "",
+    "sources": [],
+    "why_now": "",
+    "size": "months",
+    "needs_humans": "makers and labs who can build test rigs and sensitive balances in different places, and physicists to review protocols.",
+    "risk_notes": "most likely outcome is careful nulls; the pitch says so honestly, and a clean null is a real result. high voltage, rf power and superconductors are dangerous: safety rules per build; no claims that endanger people. pre-register before measuring. emdrive replication (tu dresden, 2021) and the claims list still to check.",
+    "origin": "myra, oct 9 ('make floating cars, or find the technology behind it')"
   }
 ]
