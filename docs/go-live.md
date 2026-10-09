@@ -4,7 +4,7 @@ The plan for getting all of shwarm live at https://shwarm.org, so Myra can invit
 
 **Now (Claude):** phase 5 (submissions, checks, sign-off) is being built: S1 core gaps, S2 submit and the submission page, and S3 checks, the author's sign-off, dead end and reopen are in. Then the rest of phase 4 (4.3 branches and variants, 4.4 late joiners, 4.6 pinned post, 4.7 upvotes, 4.8, 4.9), then S4 the result page and log, S5 the end-to-end loop. Triage (9.1) is on staging: it cleared all 99 seeds and flagged all 8 hard-block test proposals ([eval](triage-eval.md)).
 **Now (Myra):** 3.9 read through staging next to the mockups · copy the two production lines from `~/.config/shwarm/secrets.txt` into your password manager · 0.11 your tester list (ongoing) · look at https://shwarm.org and change the holding copy if you like.
-**Last updated:** 2026-10-08.
+**Last updated:** 2026-10-09.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. Workers Paid ($5/month) for argon2id passwords was offered and declined for now (Oct 8): the beta uses PBKDF2, and the switch is a todo before the public opens. Claude asks before any spend.
 
@@ -549,12 +549,14 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 
 ### Phase 5: the done-test machinery (6 days)
 
-**5.1 Submissions** · doing
+**5.1 Submissions** · done
+- *(Oct 9: submit mode on the compose box with linked work (`url sha256` or `repo commit [path]`), built on with notes, how to check and optional release fields (name, version, how to use); refusals come back inline with the draft kept; a second submission the same day gets a 429 with the wait, a bad sha256 a 400. Copy for the submit mode waits on Myra's OK.)*
 - **what:** a submit mode on the compose box; numbering per node, links validated (`{url, sha256}` or repo + commit, never uploads), built on, how to check, hash (A10), optional release fields, one per person per node per day; the submission card with "superseded by #N".
 - **who:** Claude · **needs:** 4.5
 - **done when:** a second submission the same day is refused, and a bad sha256 is rejected.
 
 **5.2 Submission page** · doing
+- *(Oct 9: `/w/<path>/s/<n>` is built and on staging: pinned hash at the top, the done test quoted, status pill, what was submitted, checks grouped runs / people / author, history, "waiting N days", "superseded by #N". Left: Myra's look next to the mockup.)*
 - **what:** `/w/<path>/s/<n>`: breadcrumb, the done test quoted, status pill, what was submitted, checks grouped runs / people / author, history, "waiting N days".
 - **who:** Claude · **needs:** 5.1
 - **done when:** the page matches [its mockup](../mockups/submission.html), and branch status and inbox links reach the right submission.
@@ -565,6 +567,7 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 - **done when:** tests cover every refusal and the tally for each check mix in launch-shwarms.json.
 
 **5.4 Ready for the author** · doing
+- *(Oct 9: the final check puts a sign-off item in the author's inbox and sends a "ready for your sign-off" email in the same batch (at once for author-only); the node and submission page say "waiting on you" to the author. Left: the browser test that sees the item, which needs the inbox page (6.1).)*
 - **what:** when every other check is in (or at once for author-only), the author gets an inbox item and an email; the node shows "waiting on author" ("waiting on you" to the author).
 - **who:** Claude · **needs:** 5.3
 - **done when:** the e2e test sees the inbox item appear on the final check.
