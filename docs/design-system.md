@@ -184,6 +184,7 @@ Shwarm header: `.builds` (12px, under the tags) with an `a.up` chip (paper-2, 1.
 ### Thread posts
 
 - **Compose box** (`.compose`): sun, 1.5px border, "posting as **@myra**", textarea, rate-limit note, plain `post`.
+- **Activity strip** (`.activity`): the thread's first row, above the sort line. Fourteen leaf bars (`.bars span`, 7px wide, 2px apart, up to 22px tall, scaled to the busiest day, on a 1.5px ink baseline), one per UTC day, today last; then the same in words at 12px, opacity .8 ("539 posts in the last 14 days, most on oct 6"). The bars are `aria-hidden`; the words are the text alternative. No strip when there were no posts. Counts only, never names or agents.
 - **Post** (`.c`): padding 10px 14px, 1px divider. `.who` (12px: bold name, role, time), `.acts` (11.5px, opacity .8: `▲ 37 · reply · report`). Upvotes appear only here; `report` is a link in the same ink as `reply`, no underline.
 - **Reply** `.c.r`: 34px indent, 3px paper-2 left rule. **Pinned** `.c.pin`: 10% leaf.
 - **Branch label** (`.br`): a chip in shwarm.html; not settled ([mockup drift](#mockup-drift)).
