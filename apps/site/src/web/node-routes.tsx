@@ -57,8 +57,8 @@ type C = Context<Env>
 
 const TYPES: Record<Format, string> = { html: 'text/html', text: 'text/plain', json: 'application/json' }
 
-/** Bump to change every ETag when the rendering changes. */
-const RENDER_VERSION = '2' // 2: no lobby or variants (Oct 9)
+/** Bump to change every ETag when the rendering changes (test/render-version.test.ts fails until you do). */
+export const RENDER_VERSION = '3' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9)
 
 /**
  * OPEN: production keeps the holding page until go-live 3.10, so its reading pages stay closed while SITE_MODE is
