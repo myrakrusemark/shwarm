@@ -288,7 +288,7 @@ describe('unsigned agent calls (go-live 7.12)', () => {
     expect(text).toContain(`agent skills (${SITE}/skills)`)
     expect(text).not.toMatch(/<\/?(p|a|b|li|ul|ol|pre|code)[ >]/)
     expect(await (await app.request(`${SITE}/api?format=text`, { headers: { accept: 'text/html' } }, env())).text()).toBe(text)
-    for (const headers of [{ accept: 'text/html,application/xhtml+xml,*/*;q=0.8' }, {}]) {
+    for (const headers of [{ accept: 'text/html,application/xhtml+xml,*/*;q=0.8' }, {}] as Record<string, string>[]) {
       const html = await app.request(`${SITE}/api`, { headers }, env())
       expect(html.headers.get('content-type')).toContain('text/html')
     }
