@@ -12,6 +12,7 @@ import type { CheckSpec } from '../core/checks'
 import type { BuiltOnBy, BuiltOnLink, Chain, CheckReport, Child, Contributor, NodeHead, PitchEdit, PostEdit, PostRow, Show, Sort, SubmissionRow, Thread } from '../read/node'
 import { EDITS_SHOWN, lockedBy, SHOWS, SORTS } from '../read/node'
 import { FORMER } from '../read/names'
+import { ACTIVITY_DAYS, type ActivityDay } from '../read/activity'
 import { groupBySlot, isOpen, openReview, recordedStatus, review, waitingDays, type ReviewRow } from '../read/review'
 import { ago, cut, dayOf, exact, licenseName, monthDay, perDay, plural, q1, shortNum, triageNote } from '../render/format'
 import { showHidden } from '../render/hidden'
@@ -53,6 +54,7 @@ export type NodePageData = {
   myUps?: Map<string, boolean> // the viewer's upvotes on the posts shown: post id → counted (A6)
   mySeat?: number | null // the viewer's join on a shwarm (a seat row's number), if they're working on it
   pitchEdits?: PitchEdit[] // the shwarm's earlier titles and pitches, newest first (re-pitches, go-live 4.4)
+  activity: ActivityDay[] // public posts per UTC day here and under here, oldest first, today last (read/activity.ts)
   sort: Sort
   show: Show
   url: string // this node's absolute URL, for the contribute card
@@ -434,12 +436,48 @@ function query(d: NodePageData, o: { sort?: Sort; show?: Show; page?: number }):
   return s ? `?${s}` : nodeHref(d.chain.node.path)
 }
 
+const posts = (n: number) => `${n.toLocaleString('en-US')} ${n === 1 ? 'post' : 'posts'}`
+
+/**
+ * The activity strip's words, its text alternative: "84 posts in the last 14 days, most on oct 6" (the latest of the
+ * busiest days), or "…, on oct 6" when all of them fell on one day. Null when there were none.
+ */
+export function activityWords(days: ActivityDay[]): string | null {
+  const total = days.reduce((t, d) => t + d.posts, 0)
+  if (!total) return null
+  const top = days.reduce((m, d) => (d.posts >= m.posts ? d : m))
+  const one = days.filter(d => d.posts > 0).length === 1
+  return `${posts(total)} in the last ${ACTIVITY_DAYS} days, ${one ? 'on' : 'most on'} ${monthDay(top.day)}`
+}
+
+/**
+ * The activity strip at the top of the thread (decided Oct 10, "just a visualization of activity above the thread"):
+ * a bar per day, scaled to the busiest, then the same in words. The bars are hidden from screen readers, which read
+ * the words. Nothing at all when there were no posts in the window (the thread says "no posts yet." on its own).
+ */
+export const Activity: FC<{ days: ActivityDay[] }> = ({ days }) => {
+  const words = activityWords(days)
+  if (!words) return null
+  const max = Math.max(...days.map(d => d.posts))
+  return (
+    <div class="activity">
+      <span class="bars" aria-hidden="true">
+        {days.map(d => (
+          <span style={`height:${d.posts ? Math.max(8, Math.round((100 * d.posts) / max)) : 0}%`} title={`${monthDay(d.day)}: ${posts(d.posts)}`}></span>
+        ))}
+      </span>
+      <span>{words}</span>
+    </div>
+  )
+}
+
 const ThreadView: FC<{ d: NodePageData }> = ({ d }) => {
   const t = d.thread
   const subs = new Map(d.subs.map(s => [s.post_id, s]))
   const post = (p: PostRow, o: { reply?: boolean; pinned?: boolean } = {}) => <PostView p={p} d={d} sub={subs.get(p.id)} {...o} />
   return (
     <div class="thread">
+      <Activity days={d.activity} />
       <div class="sorter">
         sort:{' '}
         {SORTS.map((s, i) => (

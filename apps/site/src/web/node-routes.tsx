@@ -4,6 +4,8 @@
 // Signed-out responses carry a weak ETag (the node's version plus its stats' time) and answer If-None-Match with
 // 304, and may be cached for 15 seconds; signed-in responses are never stored. Reads are capped per network. A repeat
 // signed-out read whose ETag this isolate saw in D1 within those 15 seconds gets its 304 with no D1 read (version-memo.ts).
+// The page's activity strip covers the last 14 UTC days, which move at midnight with no write, so a page's ETag and
+// memo key also carry the UTC day: the first read after midnight is a miss, and a cached page is a day old 15 seconds at most.
 import { Hono, type Context } from 'hono'
 import { ShwarmError } from '@shwarm/protocol'
 import { formToken } from '../auth/csrf'
@@ -39,6 +41,7 @@ import { loadAgentView, loadPageData, loadResultData } from '../read/views'
 import { BAD_FILTER, logFilter, readLog, renderLogJson } from '../read/log'
 import { readTreeVersion } from '../read/result'
 import { readTombstone } from '../read/tombstone'
+import { utcDay } from '../read/activity'
 import { sendError, waitText } from './errors'
 import { pickFormat, type Format } from './format'
 import { NodePage, type Flash } from './node-page'
@@ -58,7 +61,7 @@ type C = Context<Env>
 const TYPES: Record<Format, string> = { html: 'text/html', text: 'text/plain', json: 'application/json' }
 
 /** Bump to change every ETag when the rendering changes (test/render-version.test.ts fails until you do). */
-export const RENDER_VERSION = '4' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9). 4: the log's `key` field (v0, Oct 9)
+export const RENDER_VERSION = '5' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9). 4: the log's `key` field (v0, Oct 9). 5: the activity strip (Oct 10)
 
 // Production's reading pages stay closed in holding mode and open in beta (go-live 3.10); core/site-mode.ts.
 import { readingOpen } from '../core/site-mode'
@@ -92,11 +95,13 @@ async function gone(c: C, f: Format, path: string): Promise<Response | null> {
  * moderation act anywhere, the form. A takedown (a hidden post or branch, a held node, a node that something here
  * builds on or is built on by) can change this page without writing to this node, so every moderation act moves
  * one site-wide version (core/context.ts moderatedStatement) and with it every signed-out ETag. Moderation is rare,
- * so the extra misses cost little.
+ * so the extra misses cost little. `day` is the UTC date on a page with the activity strip (its window moves at midnight).
+ * A post in a branch moves the branch's version, not the parent's; the parent's strip counts it once the stats job
+ * rolls the parent up (every 5 minutes, with the changed node's ancestors), which moves its stats' time.
  */
-export function etagOf(chain: Chain, f: Format, view = '', tree?: string): string {
+export function etagOf(chain: Chain, f: Format, view = '', tree?: string, day?: string): string {
   const n = chain.node
-  return `W/"${RENDER_VERSION}.${n.last_event_id ?? n.changed_at ?? n.created_at}.${n.stats?.updated_at ?? '-'}.${chain.moderated?.replace(/[^\w-]/g, '') || '-'}.${f}${view ? '.' + view : ''}${tree ? '.' + tree.replace(/[^\w.:-]/g, '') : ''}"`
+  return `W/"${RENDER_VERSION}.${n.last_event_id ?? n.changed_at ?? n.created_at}.${n.stats?.updated_at ?? '-'}.${chain.moderated?.replace(/[^\w-]/g, '') || '-'}.${f}${view ? '.' + view : ''}${tree ? '.' + tree.replace(/[^\w.:-]/g, '') : ''}${day ? '.' + day : ''}"`
 }
 
 /**
@@ -142,7 +147,10 @@ nodeRoutes.get('/*', async c => {
   // Signed out: publicly cacheable for 15 seconds, with a validator. Signed in: never stored (the strip, own held nodes).
   const view = subNumber === null ? '' : `s${subNumber}`
   const thread = c.req.query('thread') !== undefined
-  const memoKey = `${parsed.path}|${f}|${view}${thread ? '|thread' : ''}`
+  const now = Date.now()
+  // The activity strip's window moves with the UTC day (read/activity.ts): the node page's validator carries the day.
+  const day = f === 'html' && subNumber === null ? utcDay(now) : undefined
+  const memoKey = `${parsed.path}|${f}|${view}${thread ? '|thread' : ''}${day ? '|' + day : ''}`
   const ifNoneMatch = c.req.header('if-none-match')
   const validator = (etag: string) => (c.header('ETag', etag), c.header('Cache-Control', 'public, s-maxage=15'))
 
@@ -164,13 +172,12 @@ nodeRoutes.get('/*', async c => {
   const result = subNumber === null && f === 'html' && showsResult(chain.node, thread)
   if (session) c.header('Cache-Control', 'private, no-store')
   else {
-    const etag = etagOf(chain, f, view, result ? await readTreeVersion(db, chain) : undefined)
+    const etag = etagOf(chain, f, view, result ? await readTreeVersion(db, chain) : undefined, day)
     noteVersion(memoKey, etag)
     validator(etag)
     if (matches(ifNoneMatch, etag)) return c.body(null, 304)
   }
 
-  const now = Date.now()
   if (subNumber !== null) return submissionView(c, chain, subNumber, session, f, now)
   if (result) {
     const me = session ? { personId: session.personId, handle: session.handle, verified: session.verified } : null

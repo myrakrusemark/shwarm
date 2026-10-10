@@ -18,8 +18,12 @@ import {
   type Show,
   type Sort,
 } from './node'
+import { readActivity } from './activity'
 import { readLog } from './log'
 import { readBuiltOnThis, readCredits, readResult } from './result'
+
+/** The id of the shwarm at the top of the chain (a shwarm is its own). */
+const rootIdOf = (chain: Chain) => chain.ancestors[0]?.id ?? chain.node.id
 
 export async function loadPageData(
   db: D1Database,
@@ -27,12 +31,13 @@ export async function loadPageData(
   o: { sort: Sort; show: Show; page: number; url: string; here: string; me: Me; now: number },
 ): Promise<NodePageData> {
   const n = chain.node
-  const [children, contributors, subs, thread, pitchEdits] = await Promise.all([
+  const [children, contributors, subs, thread, pitchEdits, activity] = await Promise.all([
     readChildren(db, n.id),
     readContributors(db, n),
     readSubmissions(db, n.id),
     readThread(db, n, o),
     n.kind === 'branch' ? Promise.resolve([]) : readPitchEdits(db, n.id, o.me?.personId === n.author_id), // only a shwarm is re-pitched
+    readActivity(db, n, rootIdOf(chain), o.now),
   ])
   // Checks for the submissions on this page of the thread, and for the one in review (the head's status line).
   const shown = new Set<string>()
@@ -49,7 +54,7 @@ export async function loadPageData(
     o.me ? readMyUpvotes(db, o.me.personId, onPage) : Promise.resolve(new Map<string, boolean>()),
     o.me && n.kind !== 'branch' ? readMySeat(db, n.id, o.me.personId) : Promise.resolve(null),
   ])
-  return { chain, branches: children.branches, contributors, subs, checks, thread, myUps, mySeat, pitchEdits, sort: o.sort, show: o.show, url: o.url, here: o.here, me: o.me, now: o.now }
+  return { chain, branches: children.branches, contributors, subs, checks, thread, myUps, mySeat, pitchEdits, activity, sort: o.sort, show: o.show, url: o.url, here: o.here, me: o.me, now: o.now }
 }
 
 /** The prompt's and the JSON's data; null when ?before= doesn't name a post in this thread. */

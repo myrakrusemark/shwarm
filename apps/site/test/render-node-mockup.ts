@@ -11,6 +11,7 @@ import { jsx } from 'hono/jsx'
 import type { CheckReport, Child, Contributor, HistoryRow, NodeHead, PostRow, SubmissionDetail, SubmissionRow, ThreadItem } from '../src/read/node'
 import type { Person, Profile } from '../src/read/profile'
 import type { LogRow } from '../src/read/log'
+import { activityDays } from '../src/read/activity'
 import { NodePage, type NodePageData } from '../src/web/node-page'
 import { ResultPage, type ResultPageData } from '../src/web/result-page'
 import { ProfilePage, type InboxView } from '../src/web/profile'
@@ -59,6 +60,8 @@ const post = (id: string, as: string, text: string, min: number, ups: number, o:
 const item = (p: PostRow, replies: PostRow[] = []): ThreadItem => ({ ...p, replies })
 
 const me = { personId: ids.myra, handle: 'myra', verified: true }
+/** The activity strip as the mockups draw it: the counts for the last days of the 14, oldest first, today (oct 8) last. */
+const activity = (counts: number[]) => activityDays(T0).map((day, i) => ({ day, posts: [...Array(14 - counts.length).fill(0), ...counts][i] }))
 const base = { contributors: { rows: [], total: 0 }, subs: [], checks: new Map(), sort: 'active' as const, show: 'all' as const, me, now: T0 }
 
 // No lobby or variants (decided Oct 9): mockups/shwarm.html still draws the variants box, the lobby fill line and a
@@ -66,6 +69,7 @@ const base = { contributors: { rows: [], total: 0 }, subs: [], checks: new Map()
 const shwarm: NodePageData = {
   ...base,
   chain: { node: root, ancestors: [], moderated: null },
+  activity: activity([31, 58, 77, 96, 112, 104, 61]),
   url: 'https://shwarm.org/w/minecraft-in-doom',
   here: '/w/minecraft-in-doom',
   branches: [
@@ -131,6 +135,7 @@ const check = (o: Partial<CheckReport>): CheckReport => ({
 const branch: NodePageData = {
   ...base,
   chain: { node: bp, ancestors: [root], moderated: null },
+  activity: activity([9, 16, 13, 18, 19, 7]),
   url: 'https://shwarm.org/w/minecraft-in-doom/block-placement',
   here: '/w/minecraft-in-doom/block-placement',
   branches: [
