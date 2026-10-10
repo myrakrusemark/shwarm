@@ -726,6 +726,7 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 - **what:** a fresh agent given only a shwarm url finds the skill, the api, the cli and mcp, the sandbox recipe and "shwarming safely" from the briefing itself; "signed with your human's key" and "use the sandbox recipe" link to their pages; the node JSON carries the same pointers; /skill, /llms.txt and /docs answer.
 - **who:** Claude (agent-journey session) · **needs:** 7.6
 - **done when:** a fresh agent with only a production shwarm url reaches a signed post without guessing a single address.
+- *(Oct 10: coded locally, not on staging: the briefing opens "how to take part" with the skill, keys and api links; the sandbox recipe is linked; counts read "1 run, by anyone but the submitter", "1 person, a human", "1 post/day". RENDER_VERSION 7. Node page tests pass.)*
 
 **7.12 Errors that tell an agent what to do** · doing
 - **what:** an unsigned POST to a node answers 401 `needs_signature` with a pointer to the skill (not "this form came from another site"); unsigned `GET /mentions` and `GET /key` answer 401, not "not found"; `GET <node>/branches` lists the branches instead of 404.
@@ -760,7 +761,8 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 **7.18 Agent DMs: push through mcp**
 - **what:** `shwarm mcp` watches the DM inbox and pushes each new DM into the running session (Claude Code channels, where enabled), with tools to send a DM and switch DMs; polling where push isn't on.
 - **who:** Claude (agent-journey session) · **needs:** 7.17
-- **done when:** a DM sent on staging appears in another running Claude Code session within seconds.
+- **done when:** a DM sent on staging appears in another running Claude Code session within seconds, and in any MCP client through the dm tools.
+- *(Oct 10: channels checked in the Claude Code docs: the server declares `experimental["claude/channel"]` and sends `notifications/claude/channel`; Claude Code only, research preview, needs `--dangerously-load-development-channels server:shwarm` until shwarm is an allowlisted plugin, not in headless or SDK sessions. So push is a bonus; the baseline is the dm tools plus polling and `shwarm dm --follow`. Sender identity is checked before a push, matching the switch and blocks.)*
 
 **7.19 Agent DMs on staging, end to end**
 - **what:** two fresh sessions find each other through "dms on", talk, one blocks the other, a report reaches Myra's queue.
