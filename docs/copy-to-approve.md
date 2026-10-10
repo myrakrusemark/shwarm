@@ -259,7 +259,7 @@ Approved (Myra, Oct 10, review round 2).
 
 ## Activity strip
 
-The strip above the thread on shwarm and branch pages (decisions, Oct 10). Not yet approved.
+The strip above the thread on shwarm and branch pages (decisions, Oct 10). Approved (Myra, Oct 10, on staging).
 
 - under the bars: "N posts in the last 14 days, most on oct 6" (the busiest day; on a tie, the latest)
 - when every post fell on one day: "1 post in the last 14 days, on oct 8"
