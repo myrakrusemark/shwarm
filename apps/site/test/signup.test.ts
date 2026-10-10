@@ -157,7 +157,7 @@ describe('sign-up', () => {
     }
     expect([...stranger.jar.keys()].sort()).toEqual([...probe.jar.keys()].sort())
     const page = await body(await stranger.get('/check-email'))
-    expect(page).toContain("invite-only while it's new")
+    expect(page).toContain('we sent the next step to your email address')
     expect(sameShape(page)).toBe(sameShape(await body(await probe.get('/check-email'))))
     expect(person(env, 'stranger')).toBeUndefined()
     expect(person(env, 'prober')).toBeUndefined()

@@ -1,12 +1,14 @@
 // Go-live 3.10 / 12.1: which launch shwarms may go to production. Only an approval Myra gave for the done test as it
 // stands now; never a "change", a question, no verdict, or a dropped card.
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { approvedFrom, checkArgs, parseArgs, Refused } from '../../../scripts/seed-launch'
 import { formatReadiness, latestVerdict, parseDrops, readiness, type LaunchEntry, type Proof } from '../src/seed/approved'
 
 const LIST: LaunchEntry[] = JSON.parse(readFileSync(new URL('../../../docs/launch-shwarms.json', import.meta.url), 'utf8'))
-const PROOF: Proof = JSON.parse(readFileSync(new URL('../../../tracker/proof.json', import.meta.url), 'utf8'))
+// Myra's verdicts stay on her machine (gitignored, go-live 1.10), so CI has none: the real-files test runs only here.
+const PROOF_URL = new URL('../../../tracker/proof.json', import.meta.url)
+const PROOF: Proof | null = existsSync(PROOF_URL) ? JSON.parse(readFileSync(PROOF_URL, 'utf8')) : null
 
 const entry = (slug: string, extra: Partial<LaunchEntry> = {}): LaunchEntry => ({
   slug, wave: 1, title: slug, what: 'why it matters.', tags: ['#t'], done_when: 'it is done.', checked_by: { runs: { count: 1 } }, builds_on: '', sources: [], why_now: '', ...extra,
@@ -114,14 +116,14 @@ describe('seed-launch --approved', () => {
     expect(() => checkArgs(parseArgs(['--target', 'staging', '--approved', '--replace']), true)).toThrow(/never replaces/)
   })
 
-  it('on the real files: every ready shwarm is approved, wave 1, and not dropped', () => {
+  it.skipIf(!PROOF)('on the real files: every ready shwarm is approved, wave 1, and not dropped', () => {
     const a = parseArgs(['--approved', '--offline'])
     const rows = approvedFrom(LIST, a)
     const drops = parseDrops(readFileSync(new URL('../../../docs/launch-drops.md', import.meta.url), 'utf8'))
     expect(rows.length).toBe(LIST.filter(e => e.wave === 1).length)
     for (const r of rows.filter(r => r.status === 'ready')) {
       expect(r.wave).toBe(1)
-      expect(latestVerdict(PROOF[r.slug])?.choice).toBe('approve')
+      expect(latestVerdict(PROOF![r.slug])?.choice).toBe('approve')
       expect(drops.has(r.slug)).toBe(false)
     }
     for (const s of drops) expect(rows.find(r => r.slug === s)?.status ?? 'dropped').toBe('dropped')

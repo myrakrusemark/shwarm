@@ -110,7 +110,7 @@ export const JoinPage: FC<{ token: string; siteKey?: string; inviteOnly: boolean
 
 /** `n`: the signed return-to, passed on to the new verify link. */
 export const CheckEmailPage: FC<{ token: string; kind: 'verify' | 'reset'; sent?: boolean; unverified?: boolean; inviteOnly?: boolean; n?: string }> = ({
-  token, kind, sent, unverified, inviteOnly, n,
+  token, kind, sent, unverified, n,
 }) => (
   <Shell title="check your email" heading="check your email">
     {sent && <Msg ok text="sent again. it can take a minute or two." />}
@@ -124,15 +124,11 @@ export const CheckEmailPage: FC<{ token: string; kind: 'verify' | 'reset'; sent?
         <>
           {unverified ? (
             <p>your email isn't verified yet. until it is, you can read and sign in, nothing else.</p>
-          ) : inviteOnly ? (
-            <>
-              <p>if that address can join, we sent the next step to it. a link to verify it works for 7 days.</p>
-              <p>shwarm is invite-only while it's new. if you got an invite, join with the address it came to.</p>
-            </>
           ) : (
-            <p>we sent the next step to that address. a link to verify it works for 7 days.</p>
+            // Myra's words (Oct 10). Shown for every address, invited or not, so the page never tells who can join.
+            <p>we sent the next step to your email address. it will expire after 7 days.</p>
           )}
-          <p>nothing there? look in spam, or send it again.</p>
+          <p>be sure to check your spam folder!</p>
           <form method="post" action="/check-email">
             <Token value={token} />
             {n && <input type="hidden" name="n" value={n} />}
