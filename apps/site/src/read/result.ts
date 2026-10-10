@@ -117,17 +117,16 @@ export async function readCredits(db: D1Database, chain: Chain, r: Result): Prom
 
 // ---------- built on this ----------
 
-export type BuiltOnThis = { path: string; title: string; kind: NodeHead['kind']; state: NodeHead['state']; in_review: number; lobby_size: number | null; seats: number }
+export type BuiltOnThis = { path: string; title: string; kind: NodeHead['kind']; state: NodeHead['state']; in_review: number }
 
 /**
  * The public shwarms whose builds_on names this one (protocol §4 built_on_by), oldest first. Their branches carry the
- * same builds_on (they inherit it), so only shwarms and variants count. OPEN: no cap is decided; 100.
+ * same builds_on (they inherit it), so only shwarms count (and variants made before they were dropped). OPEN: no cap is decided; 100.
  */
 export async function readBuiltOnThis(db: D1Database, path: string): Promise<BuiltOnThis[]> {
   const { results } = await db
     .prepare(
-      `SELECT c.path, c.title, c.kind, c.state, c.in_review, c.lobby_size,
-              (SELECT COUNT(*) FROM seat st WHERE st.node_id = c.id AND st.left_at IS NULL) AS seats
+      `SELECT c.path, c.title, c.kind, c.state, c.in_review
        FROM node c WHERE json_extract(c.builds_on, '$.node') = ? AND c.kind <> 'branch' AND ${OPEN_NODE('c')}
        ORDER BY c.created_at, c.id LIMIT 100`,
     )

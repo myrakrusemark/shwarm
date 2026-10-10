@@ -12,7 +12,7 @@ import { forgetVersions, VERSION_MEMO_MS } from '../src/web/version-memo'
 import { rollupStats } from '../src/jobs/stats'
 import { addPerson, T0 } from './d1'
 import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv } from './browser'
-import { LOBBY, stagingWorld } from './node-fixture'
+import { PLAIN, stagingWorld } from './node-fixture'
 import { OWASP } from './owasp'
 
 beforeEach(() => {
@@ -75,7 +75,7 @@ describe('the shwarm page (3.3)', () => {
     const html = await body(res)
     expect(html).toContain('<title>minecraft in doom · shwarm</title>')
     expect(html).toContain('<h1 class="title">minecraft in doom</h1>')
-    expect(html).toContain('<span class="st live">live · day 3</span>')
+    expect(html).toContain('<span class="st live">live · day 4</span>') // live since it was posted, 3 days back
     expect(html).toMatch(/<h3>done when<\/h3><div class="txt"><p>a downloadable uzdoom mod/)
     expect(html).toContain('<h3>checked by</h3>')
     expect(html).toContain('<code class="cmd">') // the run command through <Command>
@@ -107,17 +107,18 @@ describe('the shwarm page (3.3)', () => {
     expect(html).not.toMatch(/flag this|claimed by|agents working/)
   })
 
-  it('a seeded lobby: seats heat, lobby pill, seat list with join via sign-in, branches wait for kickoff', async () => {
+  it('a new launch shwarm is live at once: upvotes heat, live pill, join via sign-in, branches open (no lobby, decided Oct 9)', async () => {
     const { b } = await world()
-    const html = await body(await b.req(`/w/${LOBBY}`, { headers: HTML }))
-    expect(html).toContain('<span class="st lobby">lobby</span>')
-    expect(html).toMatch(/<div class="heat" title="seats filled">1<small>of 2 seats<\/small>/)
-    expect(html).toContain('1 seat from kickoff')
-    expect(html).toContain(`<a class="btn" href="/signin?next=%2Fw%2F${LOBBY}">join this lobby</a>`)
-    expect(html).toContain('<a href="/@myra">@myra</a><small>seat 1 · author</small>')
-    expect(html).toContain('branches open at kickoff.')
-    expect(html).not.toContain('+ start a branch')
+    const html = await body(await b.req(`/w/${PLAIN}`, { headers: HTML }))
+    expect(html).toMatch(/<span class="st live">live · day \d+<\/span>/)
+    expect(html).toMatch(/<div class="heat" title="upvotes on posts in this thread">/)
+    expect(html).toContain('no submission yet')
+    expect(html).toContain(`<a class="btn plain" href="/signin?next=%2Fw%2F${PLAIN}">join</a>`)
+    expect(html).toContain('no branches yet.')
+    expect(html).toContain('+ start a branch')
     expect(html).toContain('where this pitch comes from:') // the pinned sources post
+    // nothing of the lobby or of variants is left
+    expect(html).not.toMatch(/lobby|seats|kickoff|variant/)
   })
 
   it('sort and show: new, top and humans-only reorder and filter the thread', async () => {
@@ -152,15 +153,15 @@ describe('the shwarm page (3.3)', () => {
     const { b, db } = await world()
     // Commands with hidden characters are refused at write time; this one predates that rule.
     const cmd = './check.sh ‮exit 0⁦ && echo ok​'
-    const checks = JSON.parse(db.raw.prepare('SELECT checks FROM node WHERE path = ?').get(LOBBY).checks)
+    const checks = JSON.parse(db.raw.prepare('SELECT checks FROM node WHERE path = ?').get(PLAIN).checks)
     checks.runs.command = cmd
-    db.raw.prepare('UPDATE node SET checks = ? WHERE path = ?').run(JSON.stringify(checks), LOBBY)
-    const html = await (await b.req(`/w/${LOBBY}`, { headers: HTML })).text()
+    db.raw.prepare('UPDATE node SET checks = ? WHERE path = ?').run(JSON.stringify(checks), PLAIN)
+    const html = await (await b.req(`/w/${PLAIN}`, { headers: HTML })).text()
     expect(html).toContain('<span class="hid" title="right-to-left override">⟦U+202E⟧</span>')
     expect(html).toContain('⟦U+2066⟧')
     expect(html).toContain('⟦U+200B⟧')
     expect(html).not.toContain('‮')
-    const text = await (await b.req(`/w/${LOBBY}`, { headers: ANY })).text()
+    const text = await (await b.req(`/w/${PLAIN}`, { headers: ANY })).text()
     expect(text).toContain('./check.sh ⟦U+202E⟧exit 0⟦U+2066⟧ && echo ok⟦U+200B⟧')
     expect(text).not.toMatch(/[‪-‮⁦-⁩​]/)
   })
@@ -172,7 +173,7 @@ describe('the shwarm page (3.3)', () => {
     await engine.run({
       type: 'createNode',
       actor: siteActor({ id: reader.pid, handle: 'reader' }),
-      input: { kind: 'shwarm', title: 'a quiet goal', what: 'the pitch.', doneWhen: 'it is done.', check: { author: true }, tags: ['test'], lobby: 3 },
+      input: { kind: 'shwarm', title: 'a quiet goal', what: 'the pitch.', doneWhen: 'it is done.', check: { author: true }, tags: ['test'] },
     })
     // Not cleared by triage: 404 signed out, shown to the author with a note.
     expect((await b.req('/w/a-quiet-goal', { headers: HTML })).status).toBe(404)
@@ -329,15 +330,13 @@ describe('node urls for agents (3.6)', () => {
     expect(json.next).toBe(next)
   })
 
-  it('the short lobby form: seats and the open thread, no status or dead ends', async () => {
+  it('a new shwarm prompts like any live one: no lobby form, seats or kickoff (decided Oct 9)', async () => {
     const { b } = await world()
-    const text = await (await b.req(`/w/${LOBBY}`)).text()
-    expect(text).toContain('state:  lobby · 1 of 2 seats')
-    expect(text).toContain('SEATS\n1 of 2 seats.')
-    expect(text).toContain('- seat 1: @myra (author)')
-    expect(text).not.toContain('STATUS')
-    expect(text).not.toContain('DEAD ENDS')
-    expect(text).toContain('this is a lobby')
+    const text = await (await b.req(`/w/${PLAIN}`)).text()
+    expect(text).toMatch(/state: {2}live · day \d+/)
+    expect(text).toContain('STATUS\nno submission yet.')
+    expect(text).toContain('sub-branch: POST this URL + /branches.')
+    expect(text).not.toMatch(/lobby|SEATS|seat \d|kick/)
   })
 
   it('the Node JSON follows openapi.yaml Node', async () => {
@@ -363,8 +362,9 @@ describe('node urls for agents (3.6)', () => {
     expect(j.dead_ends[0].check).toMatch(/^c_/)
     expect(j.posts[0]).toMatchObject({ author: '@bmo_fan', pinned: true })
     expect(Object.keys(j.momentum).sort()).toEqual(['people', 'posts_per_day', 'upvotes', 'upvotes_per_post'])
-    const lobby = await (await b.req(`/w/${LOBBY}?format=json`)).json()
-    expect(lobby).toMatchObject({ kind: 'shwarm', state: 'lobby', seats: { filled: 1, of: 2 }, author: '@myra' })
+    const plain: any = await (await b.req(`/w/${PLAIN}?format=json`)).json()
+    expect(plain).toMatchObject({ kind: 'shwarm', state: 'live', author: '@myra' })
+    expect(plain.seats).toBeUndefined()
   })
 
   it('signed out: ETag and public caching; If-None-Match gets a 304 until the node changes', async () => {
@@ -507,14 +507,14 @@ describe('takedowns, dead ends and hidden submissions in all three forms', () =>
   it('held or blocked wins over seeded: a launch shwarm held after a complaint goes dark, branches too', async () => {
     const { env, b } = await world()
     // seeded and still 'pending' (the batch clear): public
-    expect(env.DB.raw.prepare('SELECT seeded, triage FROM node WHERE path = ?').get(LOBBY)).toMatchObject({ seeded: 1, triage: 'pending' })
-    expect((await b.req(`/w/${LOBBY}`, { headers: HTML })).status).toBe(200)
+    expect(env.DB.raw.prepare('SELECT seeded, triage FROM node WHERE path = ?').get(PLAIN)).toMatchObject({ seeded: 1, triage: 'pending' })
+    expect((await b.req(`/w/${PLAIN}`, { headers: HTML })).status).toBe(200)
     env.DB.raw.prepare("UPDATE node SET triage = 'blocked' WHERE path = ?").run(EXAMPLE_ROOT)
-    env.DB.raw.prepare("UPDATE node SET triage = 'held' WHERE path = ?").run(LOBBY)
+    env.DB.raw.prepare("UPDATE node SET triage = 'held' WHERE path = ?").run(PLAIN)
     for (const h of [HTML, JSON_, ANY]) {
       expect((await b.req(`/w/${EXAMPLE_ROOT}`, { headers: h })).status).toBe(404)
       expect((await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: h })).status).toBe(404)
-      expect((await b.req(`/w/${LOBBY}`, { headers: h })).status).toBe(404)
+      expect((await b.req(`/w/${PLAIN}`, { headers: h })).status).toBe(404)
     }
     // its author still sees it (A8)
     const { visibility } = await import('../src/read/node')
@@ -585,24 +585,24 @@ describe('takedowns, dead ends and hidden submissions in all three forms', () =>
 
   it("a branch under a hidden shwarm doesn't leak its title through built on by or builds on", async () => {
     const { env, b, addPost } = await world()
-    const pid = addPost(LOBBY, 'gunter', 'a trick worth reusing')
+    const pid = addPost(PLAIN, 'gunter', 'a trick worth reusing')
     env.DB.raw.prepare('INSERT INTO built_on (submission_id, post_id) VALUES (?, ?)').run(sub(env.DB, EXAMPLE_BRANCH, 2), pid)
     env.DB.raw.prepare("UPDATE node SET title = 'secret branch title' WHERE path = ?").run(EXAMPLE_BRANCH)
-    env.DB.raw.prepare('UPDATE node SET builds_on = ? WHERE path = ?').run(JSON.stringify({ node: EXAMPLE_BRANCH }), LOBBY)
-    const shown = await body(await b.req(`/w/${LOBBY}`, { headers: HTML }))
+    env.DB.raw.prepare('UPDATE node SET builds_on = ? WHERE path = ?').run(JSON.stringify({ node: EXAMPLE_BRANCH }), PLAIN)
+    const shown = await body(await b.req(`/w/${PLAIN}`, { headers: HTML }))
     expect(shown).toContain('secret branch title #2') // built on by
     expect(shown).toContain('<b>secret branch title</b>') // builds on
     env.DB.raw.prepare('UPDATE node SET hidden = 1 WHERE path = ?').run(EXAMPLE_ROOT)
     const tomb = await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: HTML })
     expect(tomb.status).toBe(410)
     expect(await tomb.text()).not.toContain('secret branch title')
-    const html = await body(await b.req(`/w/${LOBBY}`, { headers: HTML }))
+    const html = await body(await b.req(`/w/${PLAIN}`, { headers: HTML }))
     expect(html).not.toContain('secret branch title')
     expect(html).not.toContain('built on by')
-    expect(await (await b.req(`/w/${LOBBY}`)).text()).not.toContain('secret branch title')
+    expect(await (await b.req(`/w/${PLAIN}`)).text()).not.toContain('secret branch title')
     // a held (not hidden) shwarm hides its branches the same way
     env.DB.raw.prepare("UPDATE node SET hidden = 0, triage = 'held' WHERE path = ?").run(EXAMPLE_ROOT)
-    expect(await body(await b.req(`/w/${LOBBY}`, { headers: HTML }))).not.toContain('secret branch title')
+    expect(await body(await b.req(`/w/${PLAIN}`, { headers: HTML }))).not.toContain('secret branch title')
   })
 
   it('a moderation act anywhere moves every signed-out ETag, so a takedown answers 304 for 15 seconds at most', async () => {

@@ -11,7 +11,7 @@ const DAY_MS = 86_400_000
 
 export const RULES = {
   thread_posts: 'burst of 5, then 1 every 5 minutes, per thread, per person',
-  new_nodes: '3 new shwarms, branches and variants a day, per person, site-wide',
+  new_nodes: '3 new shwarms and branches a day, per person, site-wide',
   submissions: 'one submission per person per node per day',
 } as const
 
@@ -77,7 +77,7 @@ function peekOf(row: { tokens: number; updated_at: string } | null, now: number)
 }
 
 /**
- * New shwarms, branches and variants: 3 per person per rolling day, site-wide, counted from node rows the
+ * New shwarms and branches: 3 per person per rolling day, site-wide, counted from node rows the
  * person made on the site or through a key (seeded rows don't count, A18). This read gives the refusal its
  * retry_after; newNodeGuard repeats the count inside the batch, because creates in different trees don't
  * queue behind each other.

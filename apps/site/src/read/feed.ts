@@ -1,10 +1,9 @@
 import { OPEN_NODE } from './visibility'
 // The feed's queries (go-live 3.2): the four tabs, search, and cursor paging. SQL lives here, not in the page.
 //
-// Tabs (spec "Feed ranking", table B #9, #24, #39):
-//   hot      live shwarms by live score and lobbies by lobby score, interleaved about hot_mix live to 1 lobby;
-//            no closed cards
-//   filling  lobbies by closeness to kickoff (the lobby score)
+// Tabs (spec "Feed ranking", table B #9, #24, #39; decided Oct 9, "No lobby": the filling tab and the lobby score are
+// dropped):
+//   hot      live shwarms by live score; no closed cards
 //   new      newest first
 //   closed   passed and dead ends, newest first
 // Search and #tags filter every tab; the tab's order stays.
@@ -17,10 +16,11 @@ import { OPEN_NODE } from './visibility'
 // that page's ids. Scores, the hot flag and its ratio come from node_stats, which the stats job (jobs/stats.ts)
 // fills, so a view never counts a thread's posts or upvotes; nothing here counts agents.
 import { readSettings } from '../core/settings'
-import { WEEK_MS, hotMix, rankingFrom, type Ranking } from '../core/stats'
+import { WEEK_MS, rankingFrom, type Ranking } from '../core/stats'
 import { NAME_SHOWN } from './names'
 
-export const TABS = ['hot', 'filling', 'new', 'closed'] as const
+// OPEN: whether something like "needs hands" takes the filling tab's place is undecided.
+export const TABS = ['hot', 'new', 'closed'] as const
 export type FeedTab = (typeof TABS)[number]
 export const isTab = (t: unknown): t is FeedTab => typeof t === 'string' && (TABS as readonly string[]).includes(t)
 
@@ -35,8 +35,8 @@ export const PAGE_SIZE = 20
  */
 export const visibleSql = OPEN_NODE // one rule for every page (src/read/visibility.ts)
 
-// OPEN: branches never appear in the feed; it lists shwarms and variants (spec: "new (newest shwarms)",
-// "branches don't take their own tags", and tags filter every tab).
+// OPEN: branches never appear in the feed; it lists shwarms (spec: "new (newest shwarms)", "branches don't take their
+// own tags", and tags filter every tab), and the variants made before they were dropped, which read as shwarms.
 const TOP = "n.kind IN ('shwarm', 'variant')"
 
 // ---------- search ----------
@@ -88,7 +88,7 @@ export const queryText = (q: Query) => [...q.words, ...q.tags.map(t => `#${t}`)]
 // ---------- cursors ----------
 
 type Key = [number | string, string, number] // k1, created_at, id
-type Cursor = { t: FeedTab; k?: Key; at?: number; l?: Key | null; b?: Key | null }
+type Cursor = { t: FeedTab; k?: Key; at?: number }
 
 const b64 = (s: string) => btoa(String.fromCharCode(...new TextEncoder().encode(s))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 const unb64 = (s: string) => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)))
@@ -115,9 +115,7 @@ export function decodeCursor(s: string | null | undefined, tab: FeedTab): Cursor
   if (!c || typeof c !== 'object' || c.t !== tab) return null
   if (tab === 'hot') {
     if (!Number.isSafeInteger(c.at) || c.at <= 0 || c.at > 8.64e15) return null // a time Date can hold
-    if (c.l !== null && !isKey(c.l)) return null
-    if (c.b !== null && !isKey(c.b)) return null
-    return { t: tab, at: c.at, l: c.l, b: c.b }
+    return isKey(c.k) ? { t: tab, at: c.at, k: c.k } : null
   }
   return isKey(c.k) ? { t: tab, k: c.k } : null
 }
@@ -125,7 +123,6 @@ export function decodeCursor(s: string | null | undefined, tab: FeedTab): Cursor
 // ---------- the lists ----------
 
 type Row = { id: number; k1: number | string; k2: string }
-type Ranked = Row & { score: number; created_at: string; lobby: boolean }
 
 type ListSpec = { where: string; whereArgs?: unknown[]; k1: string; k1Args?: unknown[] }
 
@@ -146,8 +143,6 @@ async function list(db: D1Database, spec: ListSpec, filter: { sql: string; args:
 
 const keyOf = (r: Row): Key => [r.k1, r.k2, r.id]
 
-// Lobby score: joins in 24 hours ÷ seats left; it doesn't decay between runs of the stats job.
-const LOBBY: ListSpec = { where: "n.state = 'lobby'", k1: 'COALESCE(ns.score, 0)' }
 // When a closed or dead-end shwarm ended: closed_at, set by a pass and by a dead end (never changed_at, which every
 // later post moves). created_at only stands in for a row with no closed_at, so the key never moves.
 const ENDED = 'COALESCE(n.closed_at, n.created_at)'
@@ -171,9 +166,7 @@ export type FeedCard = {
   title: string
   what: string
   doneWhen: string
-  state: 'lobby' | 'live' | 'closed' | 'dead_end'
-  lobbySize: number
-  seats: number
+  state: 'live' | 'closed' | 'dead_end'
   postedBy: string
   tags: string[]
   upvotes: number
@@ -184,9 +177,8 @@ export type FeedCard = {
   hot: boolean
   surge: number | null // the hot badge's ratio: 24-hour upvotes over the 7-day daily average (as of the stats job)
   statusLine: string
-  variantOf: { title: string; path: string } | null
   buildsOn: { name: string; url?: string; path?: string } | null
-  at: string // the card's time: made (lobby), last change (live), ended (closed, dead end)
+  at: string // the card's time: last change (live), ended (closed, dead end)
 }
 
 export type Feed = { tab: FeedTab; query: Query; cards: FeedCard[]; next: string | null; paged: boolean; searchFailed: boolean }
@@ -199,7 +191,6 @@ type DetailRow = {
   what: string
   done_when: string
   state: FeedCard['state']
-  lobby_size: number | null
   posted_by: string
   builds_on: string | null
   created_at: string
@@ -213,10 +204,7 @@ type DetailRow = {
   hot: number
   surge: number | null
   status_line: string
-  seats: number
   tags: string
-  v_title: string | null
-  v_path: string | null
   b_title: string | null
   b_path: string | null
 }
@@ -226,18 +214,15 @@ async function details(db: D1Database, ids: number[]): Promise<Map<number, FeedC
   if (!ids.length) return out
   const { results } = await db
     .prepare(
-      `SELECT n.id, n.path, n.kind, n.title, n.what, n.done_when, n.state, n.lobby_size, ${NAME_SHOWN('n.posted_by')} AS posted_by, n.builds_on,
+      `SELECT n.id, n.path, n.kind, n.title, n.what, n.done_when, n.state, ${NAME_SHOWN('n.posted_by')} AS posted_by, n.builds_on,
               n.created_at, n.changed_at, n.closed_at,
               COALESCE(ns.upvotes, 0) AS upvotes, COALESCE(ns.posts, 0) AS posts, COALESCE(ns.impact, 0) AS impact,
               COALESCE(ns.posts_per_day, 0) AS posts_per_day, COALESCE(ns.people, 1) AS people, COALESCE(ns.hot, 0) AS hot,
               ns.surge, COALESCE(ns.status_line, '') AS status_line,
-              -- only a lobby card shows its seats
-              CASE WHEN n.state = 'lobby' THEN (SELECT COUNT(*) FROM seat s WHERE s.node_id = n.id AND s.left_at IS NULL) ELSE 0 END AS seats,
               (SELECT json_group_array(tag) FROM (SELECT tag FROM node_tag t WHERE t.node_id = n.id ORDER BY t.rowid)) AS tags,
-              v.title AS v_title, v.path AS v_path, b.title AS b_title, b.path AS b_path
+              b.title AS b_title, b.path AS b_path
        FROM node n
        LEFT JOIN node_stats ns ON ns.node_id = n.id
-       LEFT JOIN node v ON v.id = n.variant_of_id AND ${visibleSql('v')}
        LEFT JOIN node b ON b.path = (CASE WHEN json_valid(n.builds_on) THEN json_extract(n.builds_on, '$.node') END) AND ${visibleSql('b')}
        WHERE n.id IN (SELECT value FROM json_each(?))`,
     )
@@ -259,8 +244,6 @@ async function details(db: D1Database, ids: number[]): Promise<Map<number, FeedC
       what: r.what,
       doneWhen: r.done_when,
       state: r.state,
-      lobbySize: r.lobby_size ?? 0,
-      seats: r.seats,
       postedBy: r.posted_by,
       tags,
       upvotes: r.upvotes,
@@ -271,9 +254,8 @@ async function details(db: D1Database, ids: number[]): Promise<Map<number, FeedC
       hot: !!r.hot && r.state === 'live',
       surge: r.hot && r.state === 'live' && r.surge ? r.surge : null,
       statusLine: r.status_line,
-      variantOf: r.v_title && r.v_path ? { title: r.v_title, path: r.v_path } : null,
       buildsOn: buildsOn(r),
-      at: r.state === 'lobby' ? r.created_at : r.state === 'live' ? (r.changed_at ?? r.created_at) : (r.closed_at ?? r.created_at),
+      at: r.state === 'live' ? (r.changed_at ?? r.created_at) : (r.closed_at ?? r.created_at),
     })
   }
   return out
@@ -316,7 +298,7 @@ export async function loadFeed(db: D1Database, opts: FeedOptions, now = Date.now
   try {
     if (tab === 'hot') return { ...base, ...(await hot(db, filter, cursor, now)), searchFailed: false }
     const spec: ListSpec =
-      tab === 'filling' ? LOBBY : tab === 'new' ? { where: '1', k1: 'n.created_at' } : { where: "n.state IN ('closed', 'dead_end')", k1: ENDED }
+      tab === 'new' ? { where: '1', k1: 'n.created_at' } : { where: "n.state IN ('closed', 'dead_end')", k1: ENDED }
     const rows = await list(db, spec, filter, cursor?.k, PAGE_SIZE + 1)
     const page = rows.slice(0, PAGE_SIZE)
     const cards = await details(db, page.map(r => r.id))
@@ -331,26 +313,12 @@ export async function loadFeed(db: D1Database, opts: FeedOptions, now = Date.now
 }
 
 async function hot(db: D1Database, filter: { sql: string; args: unknown[] }, cursor: Cursor | null, now: number) {
-  const r = rankingFrom(await readSettings(db, ['hot_floor', 'hot_mix', 'ranking']))
-  const mix = Math.ceil(r.hot_mix)
-  // A page holds whole groups of `mix` live and 1 lobby, so the pattern carries on across pages.
-  const size = (mix + 1) * Math.ceil(PAGE_SIZE / (mix + 1))
+  const r = rankingFrom(await readSettings(db, ['hot_floor', 'ranking']))
   // Every page of one walk through hot ranks at the same moment. A cursor older than a week starts again from now.
   const at = cursor?.at && Math.abs(now - cursor.at) < WEEK_MS ? cursor.at : now
-  const [live, lobbies] = await Promise.all([
-    cursor?.l === null ? [] : list(db, liveSpec(at, r), filter, cursor?.l, size + 1),
-    cursor?.b === null ? [] : list(db, LOBBY, filter, cursor?.b, size + 1),
-  ])
-  const rank = (x: Row, lobby: boolean): Ranked => ({ ...x, score: Number(x.k1), created_at: x.k2, lobby })
-  const mixed = hotMix(live.map(x => rank(x, false)), lobbies.map(x => rank(x, true)), mix)
-  const page = mixed.slice(0, size)
-  let next: string | null = null
-  if (mixed.length > size) {
-    // Where each list carries on: after the last row this page took from it, or null once it has nothing left.
-    // (While a list has rows, every page takes at least one from it: hotMix takes a lobby after each `mix` live.)
-    const carry = (fetched: Row[], taken: Ranked[]): Key | null => (taken.length && fetched.length > taken.length ? keyOf(taken[taken.length - 1]) : null)
-    next = encodeCursor({ t: 'hot', at, l: carry(live, page.filter(x => !x.lobby)), b: carry(lobbies, page.filter(x => x.lobby)) })
-  }
+  const rows = await list(db, liveSpec(at, r), filter, cursor?.at === at ? cursor.k : undefined, PAGE_SIZE + 1)
+  const page = rows.slice(0, PAGE_SIZE)
+  const next = rows.length > PAGE_SIZE ? encodeCursor({ t: 'hot', at, k: keyOf(page[page.length - 1]) }) : null
   const cards = await details(db, page.map(x => x.id))
   return { cards: page.map(x => cards.get(x.id)).filter((c): c is FeedCard => !!c), next }
 }

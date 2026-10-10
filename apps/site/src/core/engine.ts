@@ -23,7 +23,7 @@ export type Command =
   | { type: 'reopen'; actor: Actor; input: { node: string } }
   | { type: 'repitch'; actor: Actor; input: RepitchInput }
 
-/** New top-level shwarms and variants share one tree name, so their slugs (and the daily limit) are decided one at a time. */
+/** New top-level shwarms share one tree name, so their slugs (and the daily limit) are decided one at a time. */
 export const NEW_TREE = ':new'
 
 /** Which tree runs a command: the root shwarm of the node it touches (idFromName of that path). */

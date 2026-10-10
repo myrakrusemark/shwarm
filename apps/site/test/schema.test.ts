@@ -200,6 +200,25 @@ describe('schema', () => {
     expect(get("SELECT held_at FROM key_network WHERE key_id = 'k1'").held_at).toBe(T)
   })
 
+  it('moves every lobby to live, from its start, and leaves the rest as it was (0016)', () => {
+    db = new DatabaseSync(':memory:')
+    db.exec('PRAGMA foreign_keys = ON')
+    const files = readdirSync(dir).filter(f => f.endsWith('.sql')).sort()
+    for (const f of files.filter(f => f < '0016')) db.exec(readFileSync(new URL(f, dir), 'utf8'))
+    const myra = person('myra')
+    const lobby = shwarm('minecraft-in-doom', myra)
+    const live = shwarm('doom-speedruns', myra, { state: 'live' })
+    run("UPDATE node SET live_at = '2026-10-09T08:00:00Z' WHERE id = ?", live)
+    const closed = shwarm('voxel-renderer', myra, { state: 'closed' })
+    run('INSERT INTO seat (node_id, person_id, number, joined_at) VALUES (?, ?, 1, ?)', lobby, myra, T)
+    db.exec(readFileSync(new URL(files.find(f => f.startsWith('0016'))!, dir), 'utf8'))
+    expect(get('SELECT state, live_at, lobby_size FROM node WHERE id = ?', lobby)).toEqual({ state: 'live', live_at: T, lobby_size: 2 })
+    expect(get('SELECT state, live_at FROM node WHERE id = ?', live)).toEqual({ state: 'live', live_at: '2026-10-09T08:00:00Z' })
+    expect(get('SELECT state, live_at FROM node WHERE id = ?', closed)).toEqual({ state: 'closed', live_at: null })
+    expect(get('SELECT COUNT(*) AS n FROM seat WHERE node_id = ? AND left_at IS NULL', lobby).n).toBe(1)
+    expect(get("SELECT COUNT(*) AS n FROM audit_event").n).toBe(0)
+  })
+
   it('never stores a bare handle as a key pattern', () => {
     const myra = person('myra')
     const key = (pattern: string) => run("INSERT INTO agent_key (id, person_id, name, public_key, can_post_as, created_at) VALUES ('k1', ?, 'laptop', 'pk', ?, ?)", myra, pattern, T)

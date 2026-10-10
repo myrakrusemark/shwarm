@@ -70,10 +70,11 @@ const Ago: FC<{ at: string; now: number }> = ({ at, now }) => <time datetime={at
 const dotted = (parts: (Child | false | null | undefined)[]) =>
   parts.filter(p => p !== false && p !== null && p !== undefined && p !== '').flatMap((p, i) => (i ? [' · ', p] : [p]))
 
+// A variant made before they were dropped (Oct 9) reads as a shwarm.
 const kindLabel = (r: { kind: string; up_title: string | null }, branchOf = false): Child =>
-  r.kind === 'shwarm' ? 'shwarm' : r.up_title === null ? r.kind : (
+  r.kind !== 'branch' ? 'shwarm' : r.up_title === null ? 'branch' : (
     <>
-      {r.kind === 'variant' ? 'variant of ' : branchOf ? 'branch of ' : ''}
+      {branchOf ? 'branch of ' : ''}
       <Name name={r.up_title} />
     </>
   )
@@ -82,8 +83,7 @@ const kindLabel = (r: { kind: string; up_title: string | null }, branchOf = fals
  * The node's state as the profile says it. OPEN (#18): a passed node says "passed" here, "closed" in the feed.
  * To the owner, a node whose submission waits on their sign-off says "waiting on you" (PROF-9, as the mockup).
  */
-function stateLabel(r: { state: string; in_review: number; lobby_size: number | null; seats: number | null; waiting?: number }): string {
-  if (r.state === 'lobby') return `lobby ${r.seats ?? 0}/${r.lobby_size ?? 0}`
+function stateLabel(r: { state: string; in_review: number; waiting?: number }): string {
   if (r.state === 'closed') return 'passed'
   if (r.state === 'dead_end') return 'dead end'
   if (r.waiting) return 'waiting on you'
@@ -93,7 +93,6 @@ function stateLabel(r: { state: string; in_review: number; lobby_size: number | 
 function badge(r: CreatedRow): { cls: string; text: string } {
   // Only the owner sees nodes that aren't public yet (A8).
   if (!r.public) return r.triage === 'blocked' ? { cls: 'st dead', text: 'blocked' } : { cls: 'st wait', text: 'being checked' }
-  if (r.state === 'lobby') return { cls: 'st', text: `${r.seats ?? 0}/${r.lobby_size ?? 0}` }
   if (r.state === 'closed') return { cls: 'st done', text: 'passed' }
   if (r.state === 'dead_end') return { cls: 'st dead', text: 'dead end' }
   if (r.waiting) return { cls: 'st live', text: 'waiting on you' }
@@ -176,7 +175,7 @@ const Created: FC<{ rows: CreatedRow[]; all: boolean; more: boolean; handle: str
             <li>
               <div>
                 <a href={nodeHref(r.path)}><Name name={r.title} /></a>
-                <div class="sub">{dotted([kindLabel(r, true), r.state === 'lobby' && r.public ? stateLabel(r) : null, <>done when <Text inline text={r.done_when} /></>])}</div>
+                <div class="sub">{dotted([kindLabel(r, true), <>done when <Text inline text={r.done_when} /></>])}</div>
               </div>
               <span class={b.cls}>{b.text}</span>
             </li>

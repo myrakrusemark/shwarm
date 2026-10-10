@@ -209,7 +209,7 @@ describe('the inbox is private (6.1)', () => {
     const html = await body(await myra.get('/@myra'))
     expect(html.match(/<div class="c( new)?( signoff)?" id="i\d+">/g)).toHaveLength(INBOX_SHOWN)
     expect(html).toContain('<a href="/@myra?all=1#addressed">show all</a>')
-    expect((await body(await myra.get('/@myra?all=1'))).match(/<div class="c( new)?( signoff)?" id="i\d+">/g)!.length).toBeGreaterThan(40)
+    expect((await body(await myra.get('/@myra?all=1'))).match(/<div class="c( new)?( signoff)?" id="i\d+">/g)!.length).toBeGreaterThanOrEqual(40)
   })
 })
 

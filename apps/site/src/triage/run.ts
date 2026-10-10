@@ -1,4 +1,4 @@
-// Triage (go-live 8.1, A8): one model call per new shwarm, branch or variant, and the minute sweep that retries.
+// Triage (go-live 8.1, A8): one model call per new shwarm or branch, and the minute sweep that retries.
 //
 // A new node is written 'pending' ("being checked", seen only by its author). Then:
 //   model says no            → 'clear' (public)
@@ -9,7 +9,7 @@
 // Seeded launch shwarms (seeded = 1) are public while 'pending' (read/visibility.ts), so triage never hides one:
 // a no clears it; a yes or unsure leaves it 'pending' and alerts Myra once; 5 errors alert once and stop retrying.
 // No node is called again once it has a model answer under the current rubric, in its current round.
-// A round starts when the node is made, and again when its author re-pitches a lobby (core/nodes.ts repitch sets
+// A round starts when the node is made, and again when its author re-pitches a shwarm (core/nodes.ts repitch sets
 // triage_since and puts a cleared node back to 'pending'): answers, errors and the 10 minutes count from it, and an
 // answer from an earlier round never moves the node.
 //
@@ -163,7 +163,7 @@ async function runMove(db: D1Database, p: Plan): Promise<boolean> {
 const overdue = (n: Row, now: number) => now - Date.parse(n.since) >= HOLD_AFTER_MS
 
 /**
- * Triage one node by id: a shwarm, branch or variant. Never throws for a model problem (that's an 'error' row);
+ * Triage one node by id: a shwarm or branch (or a variant made before they were dropped). Never throws for a model problem (that's an 'error' row);
  * a database failure does throw, and the node stays 'pending' for the sweep.
  */
 export async function triageNode(env: TriageEnv, nodeId: number, o: { now?: number; timeoutMs?: number } = {}): Promise<Outcome> {
@@ -310,7 +310,7 @@ export async function sweepTriage(env: TriageEnv, o: { now?: number; timeoutMs?:
 }
 
 /**
- * The hook after a create (web/create.tsx; branches and variants in 4.3 call it the same way) and after a re-pitch
+ * The hook after a create (web/create.tsx; branches in 4.3 call it the same way) and after a re-pitch
  * (web/node-routes.tsx), run after the response. A failure here is only logged: the node stays 'pending' and the sweep picks it up.
  */
 export async function triageNew(env: TriageEnv, path: string): Promise<Outcome | null> {

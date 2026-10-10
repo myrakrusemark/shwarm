@@ -1,7 +1,8 @@
 // The whole loop, end to end (go-live 5.8): four accounts in a real Chrome, through the real pages, from an empty
 // create form to the result page.
-//   1. @myra starts a shwarm on /new: one run, one human people check, and her own sign-off; four seats. Triage clears it.
-//   2. @submitter, @checker and @runner join the lobby; the fourth seat kicks it off.
+//   1. @myra starts a shwarm on /new: one run, one human people check, and her own sign-off. It's live at once (no
+//      lobby, decided Oct 9). Triage clears it.
+//   2. @submitter, @checker and @runner join it ("working on it"); nothing waits on them.
 //   3. @submitter submits from the compose box's submit mode and lands on submission #1.
 //   4. @runner's agent posts a passing run report, through core (signed `shwarm run` reports come in phase 7; 7.10
 //      repeats this loop with them).
@@ -107,28 +108,28 @@ runIt('the whole loop, end to end (5.8)', () => {
     await my.check('#human')
     expect(await my.isChecked('#c-author'), 'the author check is on by default').toBe(true)
     await my.fill('#tags', '#games #gzdoom')
-    await my.fill('#seats', '4')
+    expect(await my.locator('#seats').count(), 'no lobby size').toBe(0)
     const landed = await send(my, '#go')
     expect(landed.pathname).toMatch(/^\/w\/a-doom-map-you-can-dig-through$/)
     path = landed.pathname.slice('/w/'.length)
     const node = () => all('SELECT state, triage, author_id, checks FROM node WHERE path = ?', path)[0]
-    expect(node()).toMatchObject({ state: 'lobby' })
+    expect(node()).toMatchObject({ state: 'live' })
     expect(JSON.parse(node().checks)).toEqual({ runs: { command: './check.sh', count: 1 }, people: { count: 1, human: true }, author: true })
     await until('triage clears the new shwarm', () => node().triage === 'clear')
-    // public now: signed out, the lobby shows with its seats
+    // public now: signed out, it shows live, with join under its contributors
     expect(await open('out', `/w/${path}`)).toBe(200)
-    expect(await pages.out.locator('.seats h2').textContent()).toContain('1 of 4')
+    expect(await pages.out.locator('.head .st').textContent()).toContain('live')
     await open('myra', `/w/${path}`)
-    expect(await my.locator('.seats').textContent()).toContain("you're in seat 1.")
-    await pageChecks(my, 'the lobby, to its author')
+    expect(await my.locator('.late').textContent()).toContain("you're working on this.")
+    await pageChecks(my, 'a new shwarm, to its author')
   })
 
-  it('2. three people join the lobby; the fourth seat kicks it off', async () => {
+  it('2. three people join it; it was live already', async () => {
     for (const who of ['submitter', 'checker', 'runner'] as const) {
       const page = pages[who]
       expect(await open(who, `/w/${path}`)).toBe(200)
-      if (who === 'submitter') await pageChecks(page, 'the lobby, to someone not in it')
-      const back = await send(page, '.seats form.seat-act button')
+      if (who === 'submitter') await pageChecks(page, 'a new shwarm, to someone not in it')
+      const back = await send(page, '.late form.seat-act button')
       expect(back.pathname).toBe(`/w/${path}`)
     }
     expect(all('SELECT state FROM node WHERE path = ?', path)[0].state).toBe('live')
@@ -250,14 +251,13 @@ runIt('the whole loop, end to end (5.8)', () => {
     const stored = all('SELECT a.id, a.event FROM audit_event a JOIN node n ON n.id = a.node_id WHERE n.path = ?', path)
     expect(log.total).toBe(stored.length)
     expect(new Set(log.events.map(e => e.id))).toEqual(new Set(stored.map(e => e.id)))
-    // newest first: the pass, the sign-off, the two checks, the submission, the kickoff
+    // newest first: the pass, the sign-off, the two checks, the submission (no kickoff: no lobby)
     expect(log.events.map(e => [e.event, e.by])).toEqual([
       ['passed', null],
       ['signed_off', '@myra'],
       ['check', '@checker'],
       ['check', '@runner/r-01'],
       ['submission', '@submitter'],
-      ['lobby_filled', '@runner'],
     ])
     for (const e of log.events) {
       const [at, anchor] = e.evidence.slice(server.origin.length).split('#')

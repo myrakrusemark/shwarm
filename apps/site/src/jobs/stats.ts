@@ -23,7 +23,6 @@ import {
   impact,
   isHot,
   liveScoreFrom,
-  lobbyScore,
   postsPerDay,
   rankingFrom,
   statusLine,
@@ -63,7 +62,6 @@ type NodeRow = {
   path: string
   kind: string
   state: StatusInput['state']
-  lobby_size: number | null
   author_id: number
   dead_end_note: string | null
   created_at: string
@@ -87,7 +85,7 @@ export type NodeStats = {
 
 /** Roll up stats for changed and stale nodes. */
 export async function rollupStats(db: D1Database, now = Date.now()): Promise<StatsResult> {
-  const settings = await readSettings(db, ['hot_floor', 'hot_mix', 'ranking'])
+  const settings = await readSettings(db, ['hot_floor', 'ranking'])
   const r = rankingFrom(settings)
 
   // ---- which nodes ----
@@ -185,20 +183,12 @@ export async function computeNodes(db: D1Database, ids: number[], now: number, r
   const nodes = await all<NodeRow>(
     // The seed (A18) creates a node and pins its sources post in one go at the same clock time, as the author with no
     // key; that post never sets the status line (table B #40, see core/stats statusLine).
-    `SELECT n.id, n.path, n.kind, n.state, n.lobby_size, n.author_id, n.dead_end_note, n.created_at, pp.text AS pinned,
+    `SELECT n.id, n.path, n.kind, n.state, n.author_id, n.dead_end_note, n.created_at, pp.text AS pinned,
             COALESCE(n.seeded = 1 AND pp.person_id = n.author_id AND pp.key_id IS NULL AND pp.created_at = n.created_at
                      AND pp.edited_at IS NULL, 0) AS pinned_by_seed
      FROM node n LEFT JOIN post pp ON pp.id = n.pinned_post_id AND pp.node_id = n.id AND pp.hidden = 0 WHERE n.id ${IN}`,
   )
-  // Seats, and joins in the last 24 hours (OPEN: the author's own seat 1 isn't counted as a join, so a brand-new
-  // lobby doesn't jump ahead for a day).
-  const seats = await all<{ node_id: number; seats: number; joins: number; oldest_join: string | null }>(
-    `SELECT s.node_id, COUNT(*) AS seats, SUM(s.joined_at > ?2 AND s.person_id <> n.author_id) AS joins,
-            MIN(CASE WHEN s.joined_at > ?2 AND s.person_id <> n.author_id THEN s.joined_at END) AS oldest_join
-     FROM seat s JOIN node n ON n.id = s.node_id WHERE s.node_id ${IN} AND s.left_at IS NULL GROUP BY s.node_id`,
-    dayAgo,
-  )
-  // People (table B #44): seat holders, humans who posted (themselves or by agent) in the last 7 days, and the author.
+  // People (table B #44): everyone who joined (said they're working on it), humans who posted (themselves or by agent) in the last 7 days, and the author.
   const people = await all<{ node_id: number; n: number }>(
     `SELECT node_id, COUNT(*) AS n FROM (
        SELECT node_id, person_id FROM seat WHERE node_id ${IN} AND left_at IS NULL
@@ -268,7 +258,6 @@ export async function computeNodes(db: D1Database, ids: number[], now: number, r
     return m
   }
   const byNode = <T extends { node_id: number }>(rows: T[]) => new Map(rows.map(x => [x.node_id, x]))
-  const seatsBy = byNode(seats)
   const peopleBy = byNode(people)
   const postsBy = group(posts)
   const upsBy = byNode(ups)
@@ -281,7 +270,6 @@ export async function computeNodes(db: D1Database, ids: number[], now: number, r
   const fresh = new Map<string, { node_id: number; person_id: number; posts: number; upvotes: number }>()
   for (const n of nodes) {
     const nodePosts = postsBy.get(n.id) ?? []
-    const st = seatsBy.get(n.id)
     const u = upsBy.get(n.id)
     const b = bumpsBy.get(n.id)
 
@@ -292,10 +280,8 @@ export async function computeNodes(db: D1Database, ids: number[], now: number, r
     const up24 = u?.up24 ?? 0
     const up7 = u?.up7 ?? 0
 
-    const seatsLeft = Math.max(0, (n.lobby_size ?? 0) - (st?.seats ?? 0))
     let score = 0
-    if (n.state === 'lobby') score = lobbyScore(st?.joins ?? 0, seatsLeft)
-    else if (n.state === 'live') score = liveScoreFrom({ upvotes: u?.decayed ?? 0, submissions: b?.subs ?? 0, passes: b?.passes ?? 0 }, r)
+    if (n.state === 'live') score = liveScoreFrom({ upvotes: u?.decayed ?? 0, submissions: b?.subs ?? 0, passes: b?.passes ?? 0 }, r)
     const hot = n.state === 'live' && isHot(up24, up7, r) ? 1 : 0
     const perDay = round(postsPerDay(posts7, Date.parse(n.created_at), now), 2)
 
@@ -309,7 +295,6 @@ export async function computeNodes(db: D1Database, ids: number[], now: number, r
     }
     if (hot) plus(u?.oldest24, DAY_MS) // the 24-hour count drops: hot may go off
     else if (n.state === 'live' && up24 >= r.hot_floor) plus(u?.oldest7, WEEK_MS) // the 7-day average drops: hot may come on
-    if (n.state === 'lobby' && (st?.joins ?? 0) > 0) plus(st?.oldest_join, DAY_MS) // a join leaves the lobby score's 24 hours
 
     const br = branchBy.get(n.id)
     out.push({
@@ -324,7 +309,6 @@ export async function computeNodes(db: D1Database, ids: number[], now: number, r
         state: n.state,
         pinned: n.pinned,
         pinnedBySeed: n.pinned_by_seed === 1,
-        seatsLeft,
         deadEndNote: n.dead_end_note,
         submissions: subsBy.get(n.id) ?? [],
         branches: { live: br?.live ?? 0, closed: br?.closed ?? 0 },
@@ -406,7 +390,8 @@ export async function siteStale(db: D1Database, now = Date.now()): Promise<boole
  * Header counters and daily usage (site_stats_daily), for today so far, and the final numbers for any earlier day
  * whose row was last counted before that day ended (a missed or failed run at midnight is made up by the next run).
  * people = distinct people who posted (themselves or by agent), joined or upvoted in the 24 hours up to then
- * (table B #44); posts = thread posts made that UTC day; shwarms = shwarms and variants on the site.
+ * (table B #44); posts = thread posts made that UTC day; shwarms = shwarms on the site (variants made before Oct 9 count
+ * as shwarms).
  * The D1 usage columns stay as they are: D1 reports usage only through Cloudflare's analytics API.
  */
 export async function rollupSite(db: D1Database, now = Date.now()): Promise<void> {

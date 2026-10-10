@@ -1,7 +1,7 @@
-/* node pages: the shwarm page (lobby and live) and the branch page, /w/<path> (go-live 3.3, 3.4).
+/* node pages: the shwarm page and the branch page, /w/<path> (go-live 3.3, 3.4).
    rules copied from mockups/shwarm.html, branch.html and index.html where site.css (generated from
    how-it-works.html) doesn't have them; tokens come from site.css. the last block is for states the mockups
-   don't draw (lobby seats, sort menu, signed-out compose box, held banner). */
+   don't draw (join, sort menu, signed-out compose box, held banner). */
 
 /* from shwarm.html */
 .back { display: inline-block; margin: 16px 0 10px; }
@@ -24,10 +24,7 @@
 .agent-res li a:hover { background: rgba(244,197,49,.35); }
 .agent-res li.on a { font-weight: 700; text-decoration: underline; }
 
-/* from index.html (the feed): lobby seats and the hot badge */
-.heat .fill { display: block; width: 44px; height: 6px; margin: 7px auto 0; box-shadow: inset 0 0 0 1px rgba(19,38,27,.35);
-  background: repeating-linear-gradient(45deg, var(--leaf) 0 5px, var(--moss) 5px 10px) 0 0 / calc(var(--f) * 44px) 100% no-repeat, var(--paper-2); }
-.st.lobby { background: var(--sun); }
+/* from index.html (the feed): the hot badge */
 .hotb { font-size: 10.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 1px 5px; background: var(--sun); border: 1.5px solid var(--ink); margin-left: 8px; vertical-align: 6px; cursor: help; }
 
 /* rendered text inside the mockup's layout */
@@ -45,7 +42,7 @@
 
 /* states the mockups don't draw */
 .held { margin: 12px 0 0; padding: 6px 10px; border: var(--rule); background: rgba(196,87,45,.12); font-size: 12.5px; }
-.compose .btn[disabled], .seats .btn[disabled] { opacity: .55; cursor: not-allowed; transform: none; box-shadow: 4px 4px 0 var(--ink); }
+.compose .btn[disabled], .late .btn[disabled] { opacity: .55; cursor: not-allowed; transform: none; box-shadow: 4px 4px 0 var(--ink); }
 .compose textarea[disabled] { opacity: .7; }
 .compose p { margin: 0; font-size: 13px; }
 .sorter details { display: inline-block; position: relative; }
@@ -56,14 +53,11 @@
 .sorter .opts a, .sorter .opts b { padding: 4px 10px; white-space: nowrap; }
 .thread .more { padding: 8px 14px; font-size: 12.5px; border-top: 1px solid var(--ink); }
 .thread .empty { padding: 14px; font-size: 13px; opacity: .8; }
-.seats .crew { margin-top: 8px; }
-.seats .join { margin: 0 0 6px; }
 .url code { min-width: 0; }
 
-/* not in the mockup: the refusal next to the compose box or the seats, and "leave this lobby" (go-live 4.4, 4.5) */
-.compose .err, .seats .err, main > .err.flash { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 6px 0 0; }
-.seats .seat-act { margin: 0; }
-.seats .linkish { font: inherit; font-size: 12px; background: none; border: 0; padding: 0; color: var(--ink); text-decoration: underline; cursor: pointer; }
+/* not in the mockup: the refusal next to the compose box, and "leave" under join (go-live 4.4, 4.5) */
+.compose .err, main > .err.flash { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 6px 0 0; }
+.late .linkish { font: inherit; font-size: 12px; background: none; border: 0; padding: 0; color: var(--ink); text-decoration: underline; cursor: pointer; }
 .compose .btn[aria-busy="true"] { opacity: .55; cursor: progress; }
 main > .err.flash { margin: 0 0 10px; }
 
@@ -113,7 +107,7 @@ main > .err.flash { margin: 0 0 10px; }
 .c > .err { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 6px 0 0; }
 .acts .edit .err { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 6px 0 0; }
 
-/* not in the mockup: delete and the tombstone, re-pitch and its history, late joiners on a live shwarm (go-live 4.4, 4.8) */
+/* not in the mockup: delete and the tombstone, re-pitch and its history, join on a live shwarm (go-live 4.4, 4.8) */
 .acts .del .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .acts .del-act .btn[aria-busy="true"], .acts .edit-act .btn[aria-busy="true"] { opacity: .55; cursor: progress; }
 .c.gone > .note { margin: 4px 0 0; font-style: italic; }

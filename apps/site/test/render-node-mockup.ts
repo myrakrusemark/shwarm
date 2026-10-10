@@ -29,10 +29,10 @@ const pid = (name: string) => ids[name.replace(/^@/, '').split('/')[0]] ?? 99
 
 // ---------- the shwarm ----------
 const head = (o: Partial<NodeHead>): NodeHead => ({
-  id: 1, path: 'minecraft-in-doom', kind: 'shwarm', parent_id: null, variant_of_id: null, title: 'minecraft in doom', what: '', done_when: '',
-  spec: { author: true }, lobby_size: 12, license: 'GPL-3.0', builds_on: null, author_id: ids.bmo_fan, author: '@bmo_fan', author_status: 'active', posted_by: '@bmo_fan',
+  id: 1, path: 'minecraft-in-doom', kind: 'shwarm', parent_id: null, title: 'minecraft in doom', what: '', done_when: '',
+  spec: { author: true }, license: 'GPL-3.0', builds_on: null, author_id: ids.bmo_fan, author: '@bmo_fan', author_status: 'active', posted_by: '@bmo_fan',
   state: 'live', in_review: 0, triage: 'clear', hidden: 0, seeded: 0, paused: 0, dead_end_note: null, pinned_post_id: null, last_event_id: null,
-  created_at: ago(6 * D), live_at: ago(5 * H), closed_at: null, changed_at: ago(2), tags: [], stats: null, variant_of: null, visibility: 'public', blocked: null, ...o,
+  created_at: ago(6 * D), live_at: ago(5 * H), closed_at: null, changed_at: ago(2), tags: [], stats: null, visibility: 'public', blocked: null, ...o,
 })
 const stats = (o: Partial<NonNullable<NodeHead['stats']>>) => ({ impact: 0, posts_per_day: 0, people: 1, hot: 0, upvotes: 0, posts: 0, status_line: '', updated_at: ago(1), ...o })
 
@@ -49,8 +49,8 @@ const root = head({
 })
 
 const child = (o: Partial<Child>): Child => ({
-  path: 'x', title: '', kind: 'branch', state: 'live', in_review: 0, lobby_size: null, dead_end_note: null, done_when: '', posted_by: '@bmo_fan', author: '@bmo_fan',
-  seats: 0, impact: null, posts_per_day: null, people: null, status_line: null, created_at: ago(5 * D), ...o,
+  path: 'x', title: '', kind: 'branch', state: 'live', in_review: 0, dead_end_note: null, done_when: '', posted_by: '@bmo_fan', author: '@bmo_fan',
+  impact: null, posts_per_day: null, people: null, status_line: null, created_at: ago(5 * D), ...o,
 })
 
 const post = (id: string, as: string, text: string, min: number, ups: number, o: Partial<PostRow> = {}): PostRow => ({
@@ -59,8 +59,10 @@ const post = (id: string, as: string, text: string, min: number, ups: number, o:
 const item = (p: PostRow, replies: PostRow[] = []): ThreadItem => ({ ...p, replies })
 
 const me = { personId: ids.myra, handle: 'myra', verified: true }
-const base = { contributors: { rows: [], total: 0 }, subs: [], checks: new Map(), sort: 'active' as const, show: 'all' as const, me, now: T0, seats: null }
+const base = { contributors: { rows: [], total: 0 }, subs: [], checks: new Map(), sort: 'active' as const, show: 'all' as const, me, now: T0 }
 
+// No lobby or variants (decided Oct 9): mockups/shwarm.html still draws the variants box, the lobby fill line and a
+// lobby on the profile; they're left out here.
 const shwarm: NodePageData = {
   ...base,
   chain: { node: root, ancestors: [], moderated: null },
@@ -72,10 +74,6 @@ const shwarm: NodePageData = {
     child({ path: 'minecraft-in-doom/voxel-renderer', title: 'voxel renderer', state: 'closed', status_line: '61 fps · sub-branch: deep-chunk fix' }),
     child({ path: 'minecraft-in-doom/texture-pack', title: 'texture pack', state: 'closed', status_line: 'freedoom-based · merged 4:20 am' }),
     child({ path: 'minecraft-in-doom/crafting-ui', title: 'crafting UI', state: 'dead_end', dead_end_note: "menus can't nest · notes published" }),
-  ],
-  variants: [
-    child({ path: 'minecraft-in-doom-survival', title: 'minecraft in doom: survival', kind: 'variant', state: 'lobby', lobby_size: 12, seats: 9, done_when: 'it also has hunger, a day/night cycle and monsters that spawn in the dark', author: '@tallgrass', posted_by: '@tallgrass' }),
-    child({ path: 'minecraft-in-doom-handheld', title: 'minecraft in doom, handheld', kind: 'variant', done_when: 'it runs at 30 fps on a steam deck', author: '@bmo_fan', people: 4, impact: 3.0, posts_per_day: 38 }),
   ],
   contributors: {
     rows: [
@@ -115,7 +113,7 @@ const shwarm: NodePageData = {
 
 // ---------- the branch ----------
 const bp = head({
-  id: 2, path: 'minecraft-in-doom/block-placement', kind: 'branch', parent_id: 1, title: 'block placement', lobby_size: null, in_review: 1, pinned_post_id: 'p_bpin',
+  id: 2, path: 'minecraft-in-doom/block-placement', kind: 'branch', parent_id: 1, title: 'block placement', in_review: 1, pinned_post_id: 'p_bpin',
   created_at: ago(5 * D), live_at: ago(5 * D),
   what:
     "dig and place blocks inside gzdoom without breaking doom's own collision. the engine thinks in sectors and lines, not cubes, so every placed block has to look like real geometry to the player, the monsters and the line-of-sight checks.\n\n" +
@@ -139,7 +137,6 @@ const branch: NodePageData = {
     child({ path: 'minecraft-in-doom/block-placement/monster-collision', title: 'monster collision', people: 1, impact: 3.6, posts_per_day: 3, status_line: 'incremental blockmap · 1 person' }),
     child({ path: 'minecraft-in-doom/block-placement/break-blocks', title: 'break blocks', state: 'closed', status_line: 'updates within one frame · merged yesterday' }),
   ],
-  variants: [],
   contributors: {
     rows: [
       { person_id: ids.myra, handle: '@myra', posts: 22, upvotes: 88 },
@@ -182,9 +179,9 @@ const branch: NodePageData = {
 }
 
 // ---------- the submission page (submission.html: deep-chunk fix #1, @myra viewing as its author) ----------
-const vr = head({ id: 3, path: 'minecraft-in-doom/voxel-renderer', kind: 'branch', parent_id: 1, title: 'voxel renderer', lobby_size: null, state: 'closed' })
+const vr = head({ id: 3, path: 'minecraft-in-doom/voxel-renderer', kind: 'branch', parent_id: 1, title: 'voxel renderer', state: 'closed' })
 const dc = head({
-  id: 21, path: 'minecraft-in-doom/voxel-renderer/deep-chunk-fix', kind: 'branch', parent_id: 3, title: 'deep-chunk fix', lobby_size: null, in_review: 1,
+  id: 21, path: 'minecraft-in-doom/voxel-renderer/deep-chunk-fix', kind: 'branch', parent_id: 3, title: 'deep-chunk fix', in_review: 1,
   author_id: ids.myra, author: '@myra', posted_by: '@myra', done_when: '60 fps holds below y=-40 on the reference rig.',
   spec: { runs: { command: 'bench.sh --deep', count: 2 }, people: { count: 1, human: false }, author: true },
 })
@@ -267,7 +264,7 @@ const closed: ResultPageData = {
     ],
     more: { people: 4, posts: 61, upvotes: 142 },
   },
-  builtOnThis: [{ path: 'doom-block-building-speedruns', title: 'doom block-building speedruns', kind: 'shwarm', state: 'live', in_review: 0, lobby_size: 8, seats: 8 }],
+  builtOnThis: [{ path: 'doom-block-building-speedruns', title: 'doom block-building speedruns', kind: 'shwarm', state: 'live', in_review: 0 }],
   log: {
     rows: [
       ev(13, '21:47', 'passed', 'minecraft in doom', null, '#4 (e9b41d0) passed', '/w/minecraft-in-doom/s/4', 4),
@@ -278,9 +275,8 @@ const closed: ResultPageData = {
       ev(7, '15:31', 'passed', 'voxel renderer', null, '#3 (77d0a1b) passed', '/w/minecraft-in-doom/voxel-renderer/s/3', 3),
       ev(7, '07:44', 'branch_opened', 'block placement', '@bmo_fan', 'block placement', '/w/minecraft-in-doom/block-placement'),
       ev(7, '07:40', 'branch_opened', 'voxel renderer', '@kestrel', 'voxel renderer', '/w/minecraft-in-doom/voxel-renderer'),
-      ev(7, '07:02', 'lobby_filled', 'minecraft in doom', '@tallgrass', '12 of 12 seats', '/w/minecraft-in-doom'),
     ],
-    total: 10,
+    total: 9,
     all: 96,
     next: null,
   },
@@ -291,7 +287,7 @@ const closed: ResultPageData = {
 // ---------- the profile ----------
 const person: Person = { id: ids.myra, handle: 'myra', display_name: 'myra', about: 'product designer who also ships the things i make. mostly here for games and tools.', links: '[]', status: 'active', verified: 1, created_at: ago(21 * D) }
 const fig = (impact: number, perDay: number) => ({ posts: 10, upvotes: impact * 10, impact, perDay })
-const nb = { kind: 'branch' as const, in_review: 0, lobby_size: null, seats: null, waiting: 0 }
+const nb = { kind: 'branch' as const, in_review: 0, waiting: 0 }
 const profile: Profile = {
   head: { workingOn: 4, workingMore: false, postsThisWeek: 138, perPost: 3.4, siteAvg: 2.7 },
   working: [
@@ -301,7 +297,7 @@ const profile: Profile = {
     { ...nb, id: 1, path: 'minecraft-in-doom', kind: 'shwarm', title: 'minecraft in doom', state: 'live', up_title: null, last_post: ago(5 * H), joined_at: null, figures: fig(2.1, 5.3) },
   ],
   created: [
-    { ...nb, id: 20, path: 'reading-clock-for-kids', kind: 'shwarm', title: 'reading clock for kids', state: 'lobby', lobby_size: 8, seats: 4, up_title: null, done_when: 'a 7-year-old reads for 20 minutes without being asked, 3 days in a row', triage: 'clear', public: 1 },
+    { ...nb, id: 20, path: 'reading-clock-for-kids', kind: 'shwarm', title: 'reading clock for kids', state: 'live', up_title: null, done_when: 'a 7-year-old reads for 20 minutes without being asked, 3 days in a row', triage: 'clear', public: 1 },
     { ...nb, id: 21, path: 'minecraft-in-doom/voxel-renderer/deep-chunk-fix', title: 'deep-chunk fix', state: 'live', in_review: 1, waiting: 1, up_title: 'voxel renderer', done_when: '60 fps holds below y=-40', triage: 'clear', public: 1 },
     { ...nb, id: 22, path: 'every-us-lead-pipe/ohio-service-line-archive', title: 'ohio service-line archive', state: 'live', up_title: 'every US lead pipe', done_when: 'all 41 missing ohio utilities are on the map with sources', triage: 'clear', public: 1 },
   ],

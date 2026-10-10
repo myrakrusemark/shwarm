@@ -4,7 +4,7 @@
 //
 // The local copy holds what the plan needs to read: the @myra row (with its real id), the target's settings, and
 // a stand-in for every node already there, with its real kind, state, license, hidden and paused, so slugs are
-// checked against them and a variant can name an original that went in earlier (go-live 3.10, 11.1). Rows the plan creates
+// checked against them (go-live 3.10, 11.1). Rows the plan creates
 // get ids from a sentinel range and are written into the SQL as subqueries by path or handle (see sql.ts).
 import type { Actor } from '../core/actor'
 import { TreeEngine, type Command } from '../core/engine'
@@ -20,7 +20,7 @@ export const NODE_BASE = 9_000_000_000_000 // nodes the plan creates (and placeh
 
 export type PersonState = { id: number; handle: string; status: string; email_verified_at: string | null; founding: number; established_at: string | null }
 
-/** A node already on the target: what core reads when a planned node names it (a variant's original). */
+/** A node already on the target: what core reads when a planned node names it (a slug it would take). */
 export type ExistingNode = { path: string; kind: string; state: string; license: string; hidden: number; paused: number }
 
 /** What the plan reads from the target first. */
@@ -99,8 +99,8 @@ async function setUpCopy(db: D1Database, state: TargetState, at: string): Promis
         .bind(m.id, m.handle, m.email_verified_at, m.status, m.founding, m.established_at, at, at, at),
     )
   }
-  // Nodes already on the target, as core would load them. Branches and variants point at the anchor, which
-  // the schema needs; their ids map back to the real rows by path when the SQL is written.
+  // Nodes already on the target, as core would load them. Branches and the variants made before they were dropped
+  // (Oct 9) point at the anchor, which the schema needs; their ids map back to the real rows by path when the SQL is written.
   for (const n of state.nodes)
     stmts.push(
       db
@@ -152,7 +152,7 @@ export async function planSeed(copy: D1Database, entries: unknown[], state: Targ
   const listed = new Set<string>()
   const made = new Set<string>()
   for (const e of entries) {
-    const m = mapLaunchShwarm(e, entries)
+    const m = mapLaunchShwarm(e)
     listed.add(m.slug)
     if (only && !only.has(m.slug)) continue
     const r: ShwarmReport = { slug: m.slug, wave: m.wave, status: 'new', notes: m.notes }

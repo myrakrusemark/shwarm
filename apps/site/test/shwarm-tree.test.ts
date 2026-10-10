@@ -15,7 +15,7 @@ describe('ShwarmTree', () => {
     const made = await runInTree<{ path: string }>(ns, {
       type: 'createNode',
       actor: site(myra),
-      input: { kind: 'shwarm', title: 'minecraft in doom', what: 'w', doneWhen: 'd', check: { author: true }, tags: ['games'], lobby: 2 },
+      input: { kind: 'shwarm', title: 'minecraft in doom', what: 'w', doneWhen: 'd', check: { author: true }, tags: ['games'] },
     })
     expect(made.path).toBe('minecraft-in-doom')
     await runInTree(ns, { type: 'join', actor: site(kestrel), input: { node: 'minecraft-in-doom' } })
@@ -49,7 +49,7 @@ describe('ShwarmTree', () => {
     const myra = await person(w.db, 'myra')
     const tree = new ShwarmTree({} as DurableObjectState, { DB: w.db })
     const call = (input: object) => tree.fetch(new Request('https://tree.internal/run', { method: 'POST', body: JSON.stringify({ type: 'post', actor: site(myra), input }) }))
-    await w.shwarm(site(myra), { lobby: 1 })
+    await w.shwarm(site(myra))
     for (let i = 0; i < 5; i++) expect((await call({ node: 'minecraft-in-doom', text: 'hi' })).status).toBe(200)
     const r = await call({ node: 'minecraft-in-doom', text: 'hi' })
     expect(r.status).toBe(429)

@@ -1,5 +1,6 @@
 // A staging-like database for the node page tests: two launch shwarms seeded through the real import plan
-// (minecraft in doom with the running example, and one plain lobby), stats rolled up, as on staging.
+// (minecraft in doom with the running example, and one plain shwarm: live, with nothing submitted and no branches),
+// stats rolled up, as on staging.
 import { readFileSync } from 'node:fs'
 import { rollupStats } from '../src/jobs/stats'
 import { EXAMPLE_BRANCH } from '../src/seed/example'
@@ -7,7 +8,7 @@ import { planSeed, type TargetState } from '../src/seed/plan'
 import { addPerson, T0, testDb } from './d1'
 
 const LIST: any[] = JSON.parse(readFileSync(new URL('../../../docs/launch-shwarms.json', import.meta.url), 'utf8'))
-export const LOBBY = 'bot-beats-freedoom'
+export const PLAIN = 'bot-beats-freedoom'
 
 /** `extra`: more launch shwarms (by slug) to seed alongside the two. */
 export async function stagingWorld(o: { clearBranch?: boolean; extra?: string[] } = {}) {
@@ -22,7 +23,7 @@ export async function stagingWorld(o: { clearBranch?: boolean; extra?: string[] 
     handles: [],
     settings: all('SELECT key, value FROM setting'),
   }
-  const plan = await planSeed(testDb(), LIST, state, { target: 'staging', now: T0 - 60_000, example: true, only: ['minecraft-in-doom', LOBBY, ...(o.extra ?? [])] })
+  const plan = await planSeed(testDb(), LIST, state, { target: 'staging', now: T0 - 60_000, example: true, only: ['minecraft-in-doom', PLAIN, ...(o.extra ?? [])] })
   if (plan.report.failures) throw new Error('seed plan failed')
   db.raw.exec(plan.sql)
   // The example's branch is made by a demo account, so it waits for triage like any new node; staging clears it by hand.

@@ -44,10 +44,11 @@ describe('mapping the launch list', () => {
   test('all 100 map with no parse failures, and the offline dry run plans all of them', async () => {
     expect(LIST).toHaveLength(100)
     for (const e of LIST) {
-      const m = mapLaunchShwarm(e, LIST)
+      const m = mapLaunchShwarm(e)
       expect(m.notes.filter(n => n.kind === 'failed'), e.slug).toEqual([])
       expect(m.input.slug).toBe(e.slug)
-      expect(m.input.lobby).toBe(2) // A18: lobby 2
+      expect(m.input).not.toHaveProperty('lobby') // no lobby (decided Oct 9): the JSON's "lobby" is no longer read
+      expect(m.input.kind).toBe('shwarm') // no variants (decided Oct 9)
       // A20: the light check counts are kept as written.
       const check = m.input.check as any
       expect(check.runs?.count ?? null).toBe(e.checked_by.runs?.count ?? null)
@@ -66,7 +67,7 @@ describe('mapping the launch list', () => {
 
   test('snapshots of a few mapped entries', () => {
     const pick = (slug: string) => {
-      const m = mapLaunchShwarm(LIST.find(e => e.slug === slug), LIST)
+      const m = mapLaunchShwarm(LIST.find(e => e.slug === slug))
       return { input: m.input, pinned: m.pinned, notes: m.notes }
     }
     for (const slug of ['bot-beats-freedoom', 'minecraft-in-doom', 'mosquito-hearing-chip', 'map-sherlock-holmes', 'minecraft-in-doom-survival']) expect(pick(slug)).toMatchSnapshot(slug)
@@ -77,9 +78,14 @@ describe('mapping the launch list', () => {
     expect(m.input.what).toBe(`${LIST[0].what}\n\nwhy now: ${LIST[0].why_now}`)
   })
 
-  test('a variant is found by its #variant tag and title', () => {
-    const m = mapLaunchShwarm(LIST.find(e => e.slug === 'minecraft-in-doom-survival'), LIST)
-    expect(m.input).toMatchObject({ kind: 'variant', variantOf: 'minecraft-in-doom' })
+  test('variants are dropped (Oct 9): a #variant entry goes in as a plain shwarm, its tag kept; an explicit variant_of says so', () => {
+    const e = LIST.find(e => e.slug === 'minecraft-in-doom-survival')
+    const m = mapLaunchShwarm(e)
+    expect(m.input).toMatchObject({ kind: 'shwarm' })
+    expect(m.input).not.toHaveProperty('variantOf')
+    expect(m.input.tags).toContain('variant')
+    expect(m.notes.filter(n => n.field === 'kind' || n.field === 'variant_of')).toEqual([])
+    expect(mapLaunchShwarm({ ...e, variant_of: 'minecraft-in-doom' }).notes).toContainEqual({ field: 'variant_of', kind: 'dropped', text: 'variants are dropped; imported as a plain shwarm' })
   })
 
   test('broken entries fail with a reason', () => {
@@ -254,7 +260,7 @@ describe('rendering statements', () => {
 })
 
 describe('the plan end to end', () => {
-  test('applied to a staging-like database: 100 seeded lobbies (plus the example), @myra in seat 1, pinned sources', async () => {
+  test('applied to a staging-like database: 100 seeded shwarms, live at once (plus the example), @myra working on each, pinned sources', async () => {
     const { db, myraId } = await stagingLike()
     const copy = testDb()
     const plan = await planSeed(copy, LIST, stateOf(db), { target: 'staging', now: NOW, example: true })
@@ -270,15 +276,16 @@ describe('the plan end to end', () => {
       expect(n.seat1, n.path).toBe(myraId)
       expect(n.author_id).toBe(myraId)
       expect(n.posted_by).toBe('@myra')
-      expect(n.lobby_size).toBe(2)
-      expect(n.state, n.path).toBe(n.path === EXAMPLE_ROOT ? 'live' : 'lobby') // the example filled its lobby
+      expect(n.state, n.path).toBe('live') // no lobby (decided Oct 9)
+      expect(n.live_at, n.path).toBe(n.created_at)
       const pin = db.raw.prepare('SELECT * FROM post WHERE id = ?').get(n.pinned_post_id)
       expect(pin.person_id).toBe(myraId)
       expect(pin.as_name).toBe('@myra')
       expect(pin.text.split('\n')[0]).toBe('where this pitch comes from:')
       expect(seededLogRow(n)?.detail).toBe('seeded by @myra at launch') // A18
     }
-    expect(db.raw.prepare("SELECT kind FROM node WHERE path = 'minecraft-in-doom-survival'").get().kind).toBe('variant')
+    expect(db.raw.prepare("SELECT kind, variant_of_id FROM node WHERE path = 'minecraft-in-doom-survival'").get()).toMatchObject({ kind: 'shwarm', variant_of_id: null })
+    expect(db.raw.prepare("SELECT COUNT(*) AS n FROM audit_event WHERE event = 'lobby_filled'").get().n).toBe(0)
     // The text went in exactly as core wrote it on the copy: compare the rows that matter, ids aside.
     const rows = (d: any, sql: string) => d.raw.prepare(sql).all().map((r: any) => JSON.stringify(r))
     const nodeSql = "SELECT path, title, what, done_when, checks, license, builds_on, state, posted_by, created_at, live_at, pinned_post_id, last_event_id, in_review, seeded FROM node WHERE path NOT LIKE ':%' AND hidden = 0 ORDER BY path"
@@ -311,7 +318,7 @@ describe('the plan end to end', () => {
     for (const h of EXAMPLE_PEOPLE) expect(db.raw.prepare('SELECT password_hash FROM person WHERE handle = ?').get(h).password_hash).toMatch(/^!/)
   })
 
-  test("the seed's pinned sources post is never a status line: seeded lobbies say how many seats are left (table B #40, A18)", async () => {
+  test("the seed's pinned sources post is never a status line: seeded shwarms say where they are from recorded state (table B #40, A18)", async () => {
     const { db } = await stagingLike()
     db.raw.exec((await planSeed(testDb(), LIST, stateOf(db), { target: 'staging', now: NOW, example: true })).sql)
     // A seed post without the heading (only a builds-on line) is still the seed's: it went in with the node.
@@ -324,9 +331,9 @@ describe('the plan end to end', () => {
     expect(rows.length).toBeGreaterThan(90)
     for (const r of rows) {
       expect(r.status_line, r.path).not.toMatch(/where this pitch comes from|^builds on:/)
-      if (r.state === 'lobby' && r.pinned) expect(r.status_line, r.path).toBe('1 seat from kickoff.')
+      if (r.path !== EXAMPLE_ROOT && r.pinned) expect(r.status_line, r.path).toBe('no submission yet.')
     }
-    expect(rows.find((r: any) => r.path === 'bot-beats-freedoom')).toMatchObject({ pinned: 'builds on: gzdoom', status_line: '1 seat from kickoff.' })
+    expect(rows.find((r: any) => r.path === 'bot-beats-freedoom')).toMatchObject({ pinned: 'builds on: gzdoom', status_line: 'no submission yet.' })
     // The running example's branch keeps its author's pinned post.
     expect(db.raw.prepare('SELECT s.status_line FROM node_stats s JOIN node n ON n.id = s.node_id WHERE n.path = ?').get(EXAMPLE_BRANCH).status_line).toMatch(/^where we are:/)
   })
@@ -445,7 +452,7 @@ describe('core additions for the seed', () => {
     const myra = await person(w.db, 'myra')
     await refused(w.run({ type: 'createNode', actor: site(myra), input: { kind: 'shwarm', slug: 'x', title: 't', what: 'w', doneWhen: 'd', check: { author: true }, tags: ['a'] } }), 'bad_request')
     const seed = { ...site(myra), via: 'seed' as const }
-    const input = { kind: 'shwarm' as const, slug: 'short-name', title: 'a much longer title', what: 'w', doneWhen: 'd', check: { author: true }, tags: ['a'], lobby: 2 }
+    const input = { kind: 'shwarm' as const, slug: 'short-name', title: 'a much longer title', what: 'w', doneWhen: 'd', check: { author: true }, tags: ['a'] }
     expect((await w.run({ type: 'createNode', actor: seed, input })).path).toBe('short-name')
     await refused(w.run({ type: 'createNode', actor: seed, input }), 'bad_request')
     await refused(w.run({ type: 'createNode', actor: seed, input: { ...input, slug: 'Not OK' } }), 'bad_request')
@@ -466,21 +473,15 @@ describe('core additions for the seed', () => {
 describe('review fixes (go-live 3.1)', () => {
   const failedFields = (e: unknown) => mapLaunchShwarm(e).notes.filter(n => n.kind === 'failed').map(n => n.field)
 
-  test('a variant goes in alone when its original is already on the target', async () => {
+  test('a launch entry that was a variant goes in alone, as a plain shwarm, whatever its old original is doing', async () => {
     const { db } = await stagingLike()
     db.raw.exec((await planSeed(testDb(), LIST, stateOf(db), { target: 'production', now: NOW, example: false, only: ['minecraft-in-doom'] })).sql)
+    db.raw.prepare("UPDATE node SET state = 'closed', hidden = 1 WHERE path = 'minecraft-in-doom'").run()
     const plan = await planSeed(testDb(), LIST, stateOf(db), { target: 'production', now: NOW, example: false, only: ['minecraft-in-doom-survival'] })
     expect(plan.report.failures).toBe(0)
     expect(plan.newPaths).toEqual(['minecraft-in-doom-survival'])
     db.raw.exec(plan.sql)
-    const parent = db.raw.prepare("SELECT id FROM node WHERE path = 'minecraft-in-doom'").get().id
-    expect(db.raw.prepare("SELECT kind, variant_of_id, seeded FROM node WHERE path = 'minecraft-in-doom-survival'").get()).toMatchObject({ kind: 'variant', variant_of_id: parent, seeded: 1 })
-    // The original's real state counts: closed or hidden on the target, the variant fails.
-    const variantAlone = async () => (await planSeed(testDb(), LIST, { ...stateOf(db), nodes: stateOf(db).nodes.filter((n: any) => n.path === 'minecraft-in-doom') }, { target: 'production', now: NOW, example: false, only: ['minecraft-in-doom-survival'] })).report.shwarms[0]
-    db.raw.prepare("UPDATE node SET state = 'closed' WHERE id = ?").run(parent)
-    expect((await variantAlone()).notes.at(-1)?.text).toMatch(/shwarm_closed/)
-    db.raw.prepare("UPDATE node SET state = 'lobby', hidden = 1 WHERE id = ?").run(parent)
-    expect((await variantAlone()).notes.at(-1)?.text).toMatch(/no_such_node/)
+    expect(db.raw.prepare("SELECT kind, state, variant_of_id, seeded FROM node WHERE path = 'minecraft-in-doom-survival'").get()).toMatchObject({ kind: 'shwarm', state: 'live', variant_of_id: null, seeded: 1 })
   })
 
   test('non-commercial, no-derivatives and unknown licenses fail; they are never read as an open one', () => {

@@ -36,7 +36,7 @@ export async function readExport(db: D1Database, personId: number, now = Date.no
        FROM agent_key k WHERE k.person_id = ?1 ORDER BY k.created_at`,
     ),
     list(
-      `SELECT n.path, n.kind, n.title, n.what, n.done_when, n.checks, n.lobby_size, n.license, n.builds_on, n.posted_by, n.state,
+      `SELECT n.path, n.kind, n.title, n.what, n.done_when, n.checks, n.license, n.builds_on, n.posted_by, n.state,
               n.triage, n.hidden, n.dead_end_note, n.created_at, n.live_at, n.closed_at,
               (SELECT json_group_array(t.tag) FROM node_tag t WHERE t.node_id = n.id) AS tags
        FROM node n WHERE n.author_id = ?1 ORDER BY n.created_at`,

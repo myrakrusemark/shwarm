@@ -14,7 +14,7 @@
   const DEFAULT = ['read', 'post', 'submit', 'check']
   const TITLES = {
     read: 'fetch what is addressed to its names', post: 'thread posts', submit: 'submissions against the done test',
-    check: "checks on others' submissions", branch: 'open branches and variants', new_shwarms: 'start new shwarms',
+    check: "checks on others' submissions", branch: 'open branches', new_shwarms: 'start new shwarms',
     edit: 'edit its own posts', delete: 'delete its own posts',
   }
   // OPEN (#88): new words.

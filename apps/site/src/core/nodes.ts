@@ -1,11 +1,13 @@
-// Nodes and their states (A11, spec "Node states", "Creating a node", protocol §8).
-//   lobby → live      when the seats fill (lobby_filled; everyone seated gets an inbox item)
+// Nodes and their states (A11, spec "Node states", "Creating a node", protocol §8; decided Oct 9, "No lobby").
+//   live              from the moment it's posted, shwarm or branch alike: no lobby, size or kickoff
 //   live → closed     on a pass (checks.ts / checking.ts)
 //   live → dead_end   by the author, with a required note
 //   closed → live     when a repro is posted on the passing submission (reopened; the pass stays on record)
 //   dead_end → live   when the author reopens it
-// While a lobby, the author may re-pitch it: a new title and pitch, the old ones kept in node_edit (repitch).
-// "In review" is a flag on live, not a state. Branches are live at once; shwarms and variants open as lobbies.
+// Until its first submission, the author may re-pitch a shwarm: a new title and pitch, the old ones kept in node_edit
+// (repitch). "In review" is a flag on live, not a state. "join" says you're working on a shwarm; it gates nothing.
+// Variants are dropped (decided Oct 9): none are made. Rows made before that keep kind 'variant' and their
+// variant_of_id, and read as plain shwarms; nothing reads variant_of_id. Old 'lobby' rows went live in migration 0016.
 import { ShwarmError } from '@shwarm/protocol'
 import { authorize, needHuman, needStepUp, type Actor } from './actor'
 import { auditStatement, nodeHref } from './audit'
@@ -21,8 +23,6 @@ import { MAX_SLUG, MAX_TITLE, needText, RESERVED_SLUGS, slugify } from './text'
 export const DEFAULT_LICENSE = 'MIT+CC-BY-4.0'
 export const LICENSES: readonly string[] = ['MIT+CC-BY-4.0', 'MIT', 'Apache-2.0', 'GPL-3.0', 'AGPL-3.0', 'CC-BY-4.0', 'CC-BY-SA-4.0', 'CC0-1.0']
 
-export const DEFAULT_LOBBY = 10 // decided
-const MAX_LOBBY = 10_000 // OPEN: no upper bound is decided (#22 covers changing it later)
 const MAX_TAGS = 8 // OPEN: no tag count or tag pattern is decided
 const TAG_RE = /^[a-z0-9][a-z0-9-]{0,31}$/
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/
@@ -32,13 +32,11 @@ const bad = (m: string, d: Record<string, unknown> = {}) => new ShwarmError('bad
 export type CreateNodeInput = {
   kind: NodeKind
   parent?: string // branch: the parent's path
-  variantOf?: string // variant: the original shwarm's path
   title: string
   what: string
   doneWhen: string
   check: unknown // CheckSpec, flat or grouped
   tags?: string[]
-  lobby?: number
   license?: string
   buildsOn?: string | { name: string; url?: string; license: string } | null
   slug?: string // the launch import only (A18): keeps the slug the launch list chose instead of one from the title
@@ -47,8 +45,7 @@ export type CreateNodeInput = {
 export type CreateNodeResult = {
   path: string
   kind: NodeKind
-  state: 'lobby' | 'live'
-  seats?: { filled: number; of: number }
+  state: 'live'
   license: string
   limits: { new_nodes_today: { left: number } }
 }
@@ -62,27 +59,15 @@ function parseTags(v: unknown): string[] {
 }
 
 // OPEN: building on a node that is still open isn't described; the protocol only builds on closed shwarms.
+// OPEN (#69): with variants gone, the words no longer point at one; they wait on Myra's yes.
 function needClosed(n: NodeRow): void {
-  if (n.state !== 'closed') throw bad(`${n.path} isn't closed. to change an open shwarm's done test, start a variant`)
+  if (n.state !== 'closed') throw bad(`${n.path} is still open. a shwarm is built on once it's closed`)
 }
 
 type NodeAt = Pick<NodeRow, 'path' | 'kind' | 'state'>
 
-/** Variants are only for open shwarms (lobby or live); a closed one is built on instead. */
-function needOpen(n: Pick<NodeRow, 'path' | 'state'>): void {
-  if (n.state === 'closed' || n.state === 'dead_end')
-    throw new ShwarmError('shwarm_closed', `${n.path} is ${n.state.replace('_', ' ')}. variants are only for open shwarms; build on it instead`, { node: n.path })
-}
-
-/** A variant's original: an open shwarm or variant, never a branch. The create form (web/create.tsx) asks before it shows. */
-export function needVariantable(n: NodeAt): void {
-  if (n.kind === 'branch') throw bad('variants are of shwarms only. disagree with a branch? open a sibling branch')
-  needOpen(n)
-}
-
-/** A branch's parent: live only. Branches open at kickoff, and a closed or dead-end node takes none. */
+/** A branch's parent: live only. A new shwarm is live at once, and a closed or dead-end node takes none. */
 export function needBranchable(n: NodeAt): void {
-  if (n.state === 'lobby') throw new ShwarmError('lobby_not_open', `${n.path} is still a lobby. branches open at kickoff`, { node: n.path })
   // OPEN: branching a closed or dead-end node isn't described; refused until decided.
   if (n.state !== 'live') throw new ShwarmError('shwarm_closed', `${n.path} is ${n.state.replace('_', ' ')}`, { node: n.path })
 }
@@ -130,9 +115,9 @@ async function freePath(ctx: Ctx, prefix: string, base: string): Promise<string>
 
 export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Promise<CreateNodeResult> {
   const kind = inp?.kind
-  if (kind !== 'shwarm' && kind !== 'branch' && kind !== 'variant') throw bad('kind is shwarm, branch or variant')
+  // Variants are dropped (decided Oct 9): building on a closed shwarm takes their place.
+  if (kind !== 'shwarm' && kind !== 'branch') throw bad('kind is shwarm or branch')
   if (kind === 'branch') authorize(a, 'branch', String(inp.parent))
-  else if (kind === 'variant') authorize(a, 'branch', String(inp.variantOf))
   else authorize(a, 'new_shwarms', '*')
   const person = await loadPerson(ctx, a)
   // The launch import skips pause_new_nodes: in beta, new nodes stay paused while approved shwarms go in (go-live 3.10).
@@ -145,30 +130,21 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
   const spec = parseCheckSpec(inp.check)
 
   let parent = null
-  let original = null
   let license: string
   let buildsOn: string | null = null
   let upstream: NodeRow | null = null // builds_on another node, in another tree
   let tags: string[] = []
-  let lobby: number | null = null
   if (kind === 'branch') {
     parent = await loadNode(ctx, inp.parent, a)
     needBranchable(parent)
     if (inp.license !== undefined && inp.license !== null && inp.license !== parent.license)
       throw new ShwarmError('bad_license', `branches take the parent's license (${parent.license})`)
     if (inp.buildsOn !== undefined && inp.buildsOn !== null) throw bad("branches take the parent's builds on. send none")
-    if (inp.lobby !== undefined && inp.lobby !== null) throw bad('branches have no lobby')
     if (Array.isArray(inp.tags) && inp.tags.length) throw bad('branches have no tags')
     license = parent.license
     buildsOn = parent.builds_on
   } else {
-    if (kind === 'variant') {
-      original = await loadNode(ctx, inp.variantOf, a)
-      needVariantable(original)
-    }
     tags = parseTags(inp.tags)
-    lobby = inp.lobby === undefined || inp.lobby === null ? DEFAULT_LOBBY : (inp.lobby as number)
-    if (!Number.isInteger(lobby) || lobby < 1 || lobby > MAX_LOBBY) throw bad(`lobby is a number of people from 1 to ${MAX_LOBBY}`)
     const b = await parseBuildsOn(ctx, a, inp.buildsOn)
     if (b) {
       buildsOn = b.json
@@ -197,24 +173,19 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
   }
   if (path.length > MAX_PATH) throw bad(`that path would be over ${MAX_PATH} characters. use a shorter title, or branch higher up`)
 
-  // The author takes seat 1 when they start it themselves; an agent's shwarm opens with no seat (decisions, "agents may start").
+  // Every node is live the moment it's posted (decided Oct 9, "No lobby"). The author starting a shwarm themselves
+  // is down as working on it (a seat: what "join" records); an agent's shwarm starts with no one (decisions, "agents may start").
   const seated = kind !== 'branch' && a.via !== 'key'
-  const filled = kind !== 'branch' && seated && (lobby as number) <= 1
-  const state = kind === 'branch' || filled ? 'live' : 'lobby'
   const ref = { path }
   // What was read from outside this tree is checked again inside the batch: the daily limit (creates in
-  // other trees don't queue behind this one), and the state of the original or upstream node, whose own
-  // tree may close or reopen it meanwhile. If any fails, the INSERT writes nothing, and nor does the rest.
+  // other trees don't queue behind this one), and the state of the upstream node, whose own tree may close
+  // or reopen it meanwhile. If any fails, the INSERT writes nothing, and nor does the rest.
   const guards: string[] = []
   const guardArgs: unknown[] = []
   if (a.via !== 'seed') {
     const g = newNodeGuard(person.id, ctx.now)
     guards.push(g.sql)
     guardArgs.push(...g.args)
-  }
-  if (original) {
-    guards.push("EXISTS (SELECT 1 FROM node WHERE id = ? AND state IN ('lobby', 'live'))")
-    guardArgs.push(original.id)
   }
   if (upstream) {
     guards.push("EXISTS (SELECT 1 FROM node WHERE id = ? AND state = 'closed')")
@@ -223,9 +194,10 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
   const stmts: D1PreparedStatement[] = [
     ctx.db
       .prepare(
-        `INSERT INTO node (path, slug, kind, parent_id, root_id, variant_of_id, title, what, done_when, checks, lobby_size, license,
+        // lobby_size is no longer read; the schema still wants one on a shwarm, so it's 1 (expand only, migration 0016).
+        `INSERT INTO node (path, slug, kind, parent_id, root_id, title, what, done_when, checks, lobby_size, license,
            builds_on, author_id, posted_by, state, created_at, live_at, seeded)
-         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE ${guards.length ? guards.join(' AND ') : '1'}`,
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'live', ?, ?, ? WHERE ${guards.length ? guards.join(' AND ') : '1'}`,
       )
       .bind(
         path,
@@ -233,19 +205,17 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
         kind,
         parent?.id ?? null,
         parent ? (parent.root_id ?? parent.id) : null,
-        original?.id ?? null,
         title,
         what,
         doneWhen,
         JSON.stringify(spec),
-        lobby,
+        kind === 'branch' ? null : 1,
         license,
         buildsOn,
         person.id,
         a.as,
-        state,
         ctx.at,
-        state === 'live' ? ctx.at : null,
+        ctx.at,
         a.via === 'seed' ? 1 : 0,
         ...guardArgs,
       ),
@@ -262,17 +232,11 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
     stmts.push(e.stmt)
     last = e.id
   }
-  if (filled) {
-    const e = auditStatement(ctx.db, { event: 'lobby_filled', node: ref, by: a.as, detail: `1 of ${lobby} seats`, evidence: nodeHref(path) }, ctx.at)
-    stmts.push(e.stmt)
-    last = e.id
-  }
   stmts.push(touchNode(ctx, ref, last))
   const res = await ctx.db.batch(stmts)
   if (!res[0]?.meta?.changes) {
     // A guard failed: say which, from a fresh read.
     if (a.via !== 'seed') await checkNewNodes(ctx.db, { personId: person.id, handle: person.handle }, ctx.now)
-    if (original) needOpen(await loadNode(ctx, original.path, a))
     if (upstream) {
       const u = await findNode(ctx, upstream.path)
       if (!u || !(await seenByPerson(ctx, a, u))) throw bad(NO_UPSTREAM)
@@ -283,94 +247,79 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
   return {
     path,
     kind,
-    state,
-    ...(kind !== 'branch' ? { seats: { filled: seated ? 1 : 0, of: lobby as number } } : {}),
+    state: 'live',
     license,
     limits: { new_nodes_today: { left: Number.isFinite(left) ? left : 0 } },
   }
 }
 
-export type JoinResult = { node: string; seat: number; state: 'lobby' | 'live'; seats: { filled: number; of: number }; kickoff: boolean }
+export type JoinResult = { node: string; joined: boolean }
 
-/** Take a seat. Each person is one seat, however many agents they bring. When the last seat fills, the shwarm kicks off. */
+/**
+ * "join": say you're working on a shwarm (decided Oct 9, "No lobby"). It gates nothing and has no size: the joiner shows
+ * among its contributors and on their profile as working on it, and gets its notices. One join per person, however many
+ * agents they bring; joining again changes nothing. It's kept as a seat row (the table the lobby used), so earlier
+ * joins carry over. OPEN: branches have no join, as before. An ended shwarm is locked: it takes no joins.
+ */
 export async function join(ctx: Ctx, a: Actor, inp: { node: string }): Promise<JoinResult> {
   needHuman(a, 'joining')
   const person = await loadPerson(ctx, a)
   checkWritable(await readSettings(ctx.db, ['read_only']))
   const n = await loadNode(ctx, inp?.node)
-  if (n.kind === 'branch') throw bad('branches have no seats. just start working')
-  // OPEN: joining a closed or dead-end shwarm isn't described; late joiners are welcome only while it's open.
-  if (n.state !== 'lobby' && n.state !== 'live') throw new ShwarmError('shwarm_closed', `${n.path} is ${n.state.replace('_', ' ')}`, { node: n.path })
-  const of = n.lobby_size as number
-  const seats = await ctx.db
-    .prepare('SELECT COALESCE(SUM(left_at IS NULL), 0) AS filled, COALESCE(MAX(number), 0) AS top FROM seat WHERE node_id = ?')
-    .bind(n.id)
-    .first<{ filled: number; top: number }>()
-  const mine = await ctx.db.prepare('SELECT number, left_at FROM seat WHERE node_id = ? AND person_id = ?').bind(n.id, person.id).first<{ number: number; left_at: string | null }>()
-  if (mine && mine.left_at === null) return { node: n.path, seat: mine.number, state: n.state, seats: { filled: seats!.filled, of }, kickoff: false }
-
-  const stmts: D1PreparedStatement[] = []
-  let seat: number
-  if (mine) {
-    seat = mine.number
-    stmts.push(ctx.db.prepare('UPDATE seat SET left_at = NULL, joined_at = ? WHERE node_id = ? AND person_id = ?').bind(ctx.at, n.id, person.id))
-  } else {
-    seat = seats!.top + 1
-    stmts.push(
-      ctx.db
-        .prepare('INSERT INTO seat (node_id, person_id, number, joined_at) VALUES (?, ?, (SELECT COALESCE(MAX(number), 0) + 1 FROM seat WHERE node_id = ?), ?)')
-        .bind(n.id, person.id, n.id, ctx.at),
-    )
-  }
-  const filled = seats!.filled + 1
-  const kickoff = n.state === 'lobby' && filled >= of
-  let last: string | null = null
-  if (kickoff) {
-    stmts.push(ctx.db.prepare("UPDATE node SET state = 'live', live_at = ? WHERE id = ?").bind(ctx.at, n.id))
-    const e = auditStatement(ctx.db, { event: 'lobby_filled', node: n.id, by: a.as, detail: `${filled} of ${of} seats`, evidence: nodeHref(n.path) }, ctx.at)
-    stmts.push(
-      e.stmt,
-      notifyStatement(ctx, n.id, `${n.title}: the lobby filled. it's live now.`, 'seats'),
-      // The kickoff mail (go-live 4.4) to everyone seated, the joiner too.
-      noticeMailStatement(ctx, n.id, 'seats', { template: 'kickoff', payload: { notice: 'kickoff', title: n.title, path: n.path, link: nodeHref(n.path), seats: filled } }),
-    )
-    last = e.id
-  }
-  stmts.push(touchNode(ctx, n.id, last))
-  await ctx.db.batch(stmts)
-  return { node: n.path, seat, state: kickoff ? 'live' : n.state, seats: { filled, of }, kickoff }
+  // OPEN: the words wait on Myra's yes.
+  if (n.kind === 'branch') throw bad('a branch has nothing to join. just start working')
+  if (n.state !== 'live') throw new ShwarmError('shwarm_closed', `${n.path} is ${n.state.replace('_', ' ')}`, { node: n.path })
+  const mine = await ctx.db.prepare('SELECT left_at FROM seat WHERE node_id = ? AND person_id = ?').bind(n.id, person.id).first<{ left_at: string | null }>()
+  if (mine && mine.left_at === null) return { node: n.path, joined: false }
+  await ctx.db.batch([
+    mine
+      ? ctx.db.prepare('UPDATE seat SET left_at = NULL, joined_at = ? WHERE node_id = ? AND person_id = ?').bind(ctx.at, n.id, person.id)
+      : ctx.db
+          .prepare('INSERT INTO seat (node_id, person_id, number, joined_at) VALUES (?, ?, (SELECT COALESCE(MAX(number), 0) + 1 FROM seat WHERE node_id = ?), ?)')
+          .bind(n.id, person.id, n.id, ctx.at),
+    touchNode(ctx, n.id, null), // the contributors box shows signed out
+  ])
+  return { node: n.path, joined: true }
 }
 
-/** Leave a seat: any time before kickoff; the author can't leave (table B #29). */
-export async function leave(ctx: Ctx, a: Actor, inp: { node: string }): Promise<{ node: string; seats: { filled: number; of: number } }> {
-  needHuman(a, 'leaving a seat')
+/** Stop working on a shwarm: undoes "join", any time while it's live. The author can't leave their own (table B #29). */
+export async function leave(ctx: Ctx, a: Actor, inp: { node: string }): Promise<{ node: string }> {
+  needHuman(a, 'leaving')
   const person = await loadPerson(ctx, a)
   checkWritable(await readSettings(ctx.db, ['read_only']))
   const n = await loadNode(ctx, inp?.node)
-  if (n.kind === 'branch') throw bad('branches have no seats')
-  if (n.state !== 'lobby') throw bad('seats are kept after kickoff')
-  if (n.author_id === person.id) throw bad("the author can't leave their own lobby")
+  // OPEN: the words wait on Myra's yes.
+  if (n.kind === 'branch') throw bad('a branch has nothing to leave')
+  if (n.state !== 'live') throw new ShwarmError('shwarm_closed', `${n.path} is ${n.state.replace('_', ' ')}`, { node: n.path })
+  if (n.author_id === person.id) throw bad("the author can't leave their own shwarm")
   await ctx.db.batch([
     ctx.db.prepare('UPDATE seat SET left_at = ? WHERE node_id = ? AND person_id = ? AND left_at IS NULL').bind(ctx.at, n.id, person.id),
-    touchNode(ctx, n.id, null), // the seat count shows signed out
+    touchNode(ctx, n.id, null), // the contributors box shows signed out
   ])
-  const r = await ctx.db.prepare('SELECT COUNT(*) AS filled FROM seat WHERE node_id = ? AND left_at IS NULL').bind(n.id).first<{ filled: number }>()
-  return { node: n.path, seats: { filled: r!.filled, of: n.lobby_size as number } }
+  return { node: n.path }
 }
 
 export type RepitchInput = { node: string; title: string; what: string }
 export type RepitchResult = { node: string; repitched: boolean; at: string; triage: NodeRow['triage'] }
 
+/** Whether anything was ever submitted to this node: from then on its title and what stay as they are. */
+const submitted = async (ctx: Ctx, nodeId: number) => !!(await ctx.db.prepare('SELECT 1 FROM submission WHERE node_id = ? LIMIT 1').bind(nodeId).first())
+// The same rule inside the batch, on the node row: a block from triage (which runs outside the tree) can land meanwhile.
+const REPITCHABLE = "state = 'live' AND triage <> 'blocked' AND NOT EXISTS (SELECT 1 FROM submission s WHERE s.node_id = node.id)"
+
 /**
- * Re-pitch a lobby (spec "Starting a shwarm", LOBBY-6; table B #30): the author changes the title and the pitch ("what")
- * while it's a lobby; the done test, checks, license and address never change. The version it replaces goes to node_edit,
+ * Re-pitch a shwarm (spec "Starting a shwarm", LOBBY-6; table B #30; decided Oct 9, "No lobby": "title and what stay
+ * editable until the first submission"): the author changes the title and the pitch ("what") while it's live and nothing
+ * has been submitted to it; the done test, checks, license and address never change. OPEN: a branch keeps the words it
+ * was opened with, as before; whether it may be re-pitched too waits on Myra. The version it replaces goes to node_edit,
  * so the page can show the history: to everyone only if everyone could read it then, otherwise to the author alone
  * (OPEN #79). Acts with the author's authority, so it confirms with the password (A5), and happens only on the site, as
  * the bare handle (no edit API at launch, table B #30). The same title and pitch again change nothing.
  * The new words are checked like a new node's (A8): a cleared node goes back to 'pending' ("being checked", seen only by
  * its author; a seeded one stays public while pending) and a new triage round starts (triage_since), which the caller
  * runs after this batch (triage/run.ts triageNew). A held node stays held, for Myra to read again; a blocked one can't be
- * re-pitched.
+ * re-pitched. OPEN (#79): now that a shwarm is live from the start, a cleared one being checked again goes dark to everyone
+ * else for that minute, its thread and branches with it, as a lobby did; a held one stays dark until Myra reads it.
  * OPEN (#79): a re-pitch spends a thread post token, so it can't flood the history or triage.
  */
 export async function repitch(ctx: Ctx, a: Actor, inp: RepitchInput): Promise<RepitchResult> {
@@ -380,7 +329,10 @@ export async function repitch(ctx: Ctx, a: Actor, inp: RepitchInput): Promise<Re
   const n = await loadNode(ctx, inp?.node)
   if (n.author_id !== person.id) throw new ShwarmError('not_permitted', 'only the author re-pitches', { need: 'author', node: n.path })
   needStepUp(a, 're-pitching')
-  if (n.state !== 'lobby') throw bad(n.kind === 'branch' ? 'branches have no lobby to re-pitch' : `${n.path} kicked off. the pitch is kept as it was`, { node: n.path })
+  // OPEN: the words for a branch and for a shwarm with a submission wait on Myra's yes.
+  if (n.kind === 'branch') throw bad("a branch keeps the title and what it was opened with", { node: n.path })
+  if (n.state !== 'live') throw new ShwarmError('shwarm_closed', `${n.path} is ${n.state.replace('_', ' ')}`, { node: n.path })
+  if (await submitted(ctx, n.id)) throw bad(`${n.path} has a submission. its title and what stay as they are`, { node: n.path })
   if (n.triage === 'blocked') throw new ShwarmError('not_permitted', `${n.path} was blocked. it can't be re-pitched`, { reason: 'blocked', node: n.path })
   const title = needText(inp.title, 'title', MAX_TITLE)
   const what = needText(inp.what, 'what')
@@ -396,7 +348,7 @@ export async function repitch(ctx: Ctx, a: Actor, inp: RepitchInput): Promise<Re
     ctx.db
       .prepare(
         `INSERT INTO node_edit (node_id, by_name, title, what, edited_at, was_public)
-         SELECT id, ?1, title, what, ?2, ${OPEN_NODE('node')} FROM node WHERE id = ?3 AND state = 'lobby' AND triage <> 'blocked'`,
+         SELECT id, ?1, title, what, ?2, ${OPEN_NODE('node')} FROM node WHERE id = ?3 AND ${REPITCHABLE}`,
       )
       .bind(a.as, ctx.at, n.id),
     ctx.db
@@ -404,7 +356,7 @@ export async function repitch(ctx: Ctx, a: Actor, inp: RepitchInput): Promise<Re
         `UPDATE node SET title = ?1, what = ?2,
            triage_since = CASE WHEN triage IN ('clear', 'pending') THEN ?3 ELSE triage_since END,
            triage = CASE WHEN triage = 'clear' THEN 'pending' ELSE triage END
-         WHERE id = ?4 AND state = 'lobby' AND triage <> 'blocked'`,
+         WHERE id = ?4 AND ${REPITCHABLE}`,
       )
       .bind(title, what, ctx.at, n.id),
     bucket.stmt,
@@ -424,7 +376,6 @@ export async function deadEnd(ctx: Ctx, a: Actor, inp: { node: string; note: str
   const n = await loadNode(ctx, inp?.node)
   if (n.author_id !== person.id) throw new ShwarmError('not_permitted', 'only the author marks a dead end', { need: 'author', node: n.path })
   needStepUp(a, 'marking a dead end')
-  if (n.state === 'lobby') throw new ShwarmError('lobby_not_open', `${n.path} is still a lobby`, { node: n.path })
   if (n.state !== 'live') throw new ShwarmError('shwarm_closed', `${n.path} is ${n.state.replace('_', ' ')}`, { node: n.path })
   const note = needText(inp.note, 'note')
   const postId = newId('p')

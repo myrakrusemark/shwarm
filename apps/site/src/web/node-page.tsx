@@ -1,4 +1,4 @@
-// The shwarm page (live and lobby templates) and the branch page, /w/<path> (go-live 3.3, 3.4), ported from
+// The shwarm page (the live template) and the branch page, /w/<path> (go-live 3.3, 3.4), ported from
 // mockups/shwarm.html and mockups/branch.html. Every piece of participant text goes through render/text.tsx.
 // A closed shwarm shows its result page instead (web/result-page.tsx, go-live 5.7); this live template is its thread
 // (?thread=1). A passed branch keeps this template, with "proof it's done" above its thread.
@@ -7,7 +7,7 @@ import { shortHash } from '@shwarm/protocol'
 import type { Link } from '@shwarm/protocol'
 import { joinHref, signInHref } from '../auth/return-to'
 import type { CheckSpec } from '../core/checks'
-import type { BuiltOnBy, BuiltOnLink, Chain, CheckReport, Child, Contributor, NodeHead, PitchEdit, PostEdit, PostRow, Seat, Show, Sort, SubmissionRow, Thread } from '../read/node'
+import type { BuiltOnBy, BuiltOnLink, Chain, CheckReport, Child, Contributor, NodeHead, PitchEdit, PostEdit, PostRow, Show, Sort, SubmissionRow, Thread } from '../read/node'
 import { EDITS_SHOWN, SHOWS, SORTS } from '../read/node'
 import { FORMER } from '../read/names'
 import { groupBySlot, isOpen, openReview, recordedStatus, review, waitingDays, type ReviewRow } from '../read/review'
@@ -32,7 +32,7 @@ export const TriageNote = (p: { triage: string }) =>
 export type Me = { personId: number; handle: string; verified: boolean } | null
 
 /**
- * A refused form, shown next to it: the compose box, the seats (or the live shwarm's join), the author's own box (re-pitch,
+ * A refused form, shown next to it: the compose box, join or leave (`seats`), the author's own box (re-pitch,
  * dead end, reopen), or one post's upvote, edit or delete (`post` names it). `draft` keeps the text they wrote; a refused
  * submission (`mode: 'submit'`) keeps every field of the submit form in `fields` and opens it again, as a refused re-pitch
  * keeps its title and what; a refused edit opens its form again.
@@ -42,15 +42,13 @@ export type Flash = { at: 'compose' | 'seats' | 'owner' | 'post'; text: string; 
 export type NodePageData = {
   chain: Chain
   branches: Child[]
-  variants: Child[]
-  seats: { filled: number; list: Seat[] } | null
   contributors: { rows: Contributor[]; total: number }
   subs: SubmissionRow[]
   checks: Map<string, CheckReport[]>
   thread: Thread
   myUps?: Map<string, boolean> // the viewer's upvotes on the posts shown: post id → counted (A6)
-  mySeat?: number | null // the viewer's seat number, if they hold one (shwarms and variants)
-  pitchEdits?: PitchEdit[] // the lobby's earlier titles and pitches, newest first (re-pitches, go-live 4.4)
+  mySeat?: number | null // the viewer's join on a shwarm (a seat row's number), if they're working on it
+  pitchEdits?: PitchEdit[] // the shwarm's earlier titles and pitches, newest first (re-pitches, go-live 4.4)
   sort: Sort
   show: Show
   url: string // this node's absolute URL, for the contribute card
@@ -99,7 +97,7 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
       <div class="grid">
         <main id="main" tabindex={-1}>
           {/* a refusal whose form isn't on the page (a forged or stale one) shows at the top */}
-          {((d.flash?.at === 'seats' && !hasSeatForm(d)) || (d.flash?.at === 'owner' && !hasOwnerBox(d)) || (d.flash?.at === 'post' && !onPage(d.thread, d.flash.post))) && (
+          {((d.flash?.at === 'seats' && !hasSeatForm(d)) || (d.flash?.at === 'owner' && (!hasOwnerBox(d) || (!!d.flash.fields && !canRepitch(d)))) || (d.flash?.at === 'post' && !onPage(d.thread, d.flash.post))) && (
             <p class="err flash" role="alert">{d.flash.text}</p>
           )}
           {passed && <Proof n={n} sub={passed} checks={d.checks.get(passed.post_id) ?? []} />}
@@ -115,9 +113,7 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
             </div>
           </div>
           <Owner d={d} />
-          {n.state === 'lobby' && d.seats && <Seats d={d} />}
           <Branches d={d} />
-          {!isBranch && <Variants d={d} />}
           <Contributors d={d} />
           <AgentResources />
         </aside>
@@ -141,9 +137,7 @@ const Crumbs: FC<{ chain: Chain }> = ({ chain }) => (
   </nav>
 )
 
-export const Pill: FC<{ n: { kind: string; state: string; in_review: number; live_at?: string | null; lobby_size?: number | null }; now: number; seats?: number; short?: boolean }> = ({ n, now, seats, short }) => {
-  // A sidebar row's lobby pill is plain, its seats only (shwarm.html variants); the head's is sun.
-  if (n.state === 'lobby') return short ? <span class="st">{seats ?? 0}/{n.lobby_size}</span> : <span class="st lobby">lobby</span>
+export const Pill: FC<{ n: { kind: string; state: string; in_review: number; live_at?: string | null }; now: number; short?: boolean }> = ({ n, now, short }) => {
   if (n.state === 'closed') return <span class="st done">closed</span>
   if (n.state === 'dead_end') return <span class="st dead">dead end</span>
   if (short) return <span class="st live">live</span>
@@ -156,26 +150,16 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
   const parent = d.chain.ancestors[d.chain.ancestors.length - 1]
   const isBranch = n.kind === 'branch'
   const s = n.stats
-  const filled = d.seats?.filled ?? 0
   return (
     <section class={isBranch ? 'head' : 'head shwarm'}>
-      {n.state === 'lobby' ? (
-        <div class="heat" title="seats filled">
-          {filled}
-          <small>of {n.lobby_size} seats</small>
-          <span class="fill" style={`--f:${Math.min(1, filled / Math.max(1, n.lobby_size ?? 1)).toFixed(3)}`}></span>
-        </div>
-      ) : (
-        <div class="heat" title="upvotes on posts in this thread">
-          ▲<br />
-          {shortNum(s?.upvotes ?? 0)}
-          <small>upvotes</small>
-          <span class="qbar" style={`--q:${q1(s?.impact ?? 0)}`} title={`▲${q1(s?.impact ?? 0)} per post`}></span>
-        </div>
-      )}
+      <div class="heat" title="upvotes on posts in this thread">
+        ▲<br />
+        {shortNum(s?.upvotes ?? 0)}
+        <small>upvotes</small>
+        <span class="qbar" style={`--q:${q1(s?.impact ?? 0)}`} title={`▲${q1(s?.impact ?? 0)} per post`}></span>
+      </div>
       <div>
         {isBranch && <div class="kicker">branch of <a href={nodeHref(parent.path)}><Plain text={parent.title} /></a></div>}
-        {n.variant_of && <div class="kicker">variant of <a href={nodeHref(n.variant_of.path)}><Plain text={n.variant_of.title} /></a></div>}
         <h1 class="title">
           <Text inline text={n.title} />
           {s?.hot === 1 && <span class="hotb" title="upvotes in the last 24 hours are at least twice this thread's daily average">hot</span>}
@@ -186,8 +170,6 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
         {!isBranch && <Builds n={n} />}
         <div class="meta">
           {isBranch ? 'opened' : 'started'} by <Name name={n.posted_by} link /> <Ago at={n.created_at} now={d.now} />
-          {n.state === 'lobby' && <> · {filled} of {n.lobby_size} seats</>}
-          {!isBranch && n.state !== 'lobby' && n.live_at && <> · lobby filled <Ago at={n.live_at} now={d.now} /> ({n.lobby_size}/{n.lobby_size})</>}
           {isBranch && s && <> · {plural(s.people, 'person', 'people')}</>}
           {s && s.posts_per_day > 0 && <> · {perDay(s.posts_per_day)} posts/day</>}
           {n.changed_at && <> · last activity <Ago at={n.changed_at} now={d.now} /></>}
@@ -205,9 +187,6 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
             <h3>checked by</h3>
             <CheckedBy spec={n.spec} author={n.author} />
             <div class="stat"><StatusLine d={d} /></div>
-            {!isBranch && (n.state === 'lobby' || n.state === 'live') && (
-              <div class="alt">different finish line in mind? <a href={`/new?variant=${n.path}`}>start a variant</a></div>
-            )}
             <ReproLink d={d} />
           </div>
         </div>
@@ -303,7 +282,7 @@ const StatusLine: FC<{ d: NodePageData }> = ({ d }) => {
       </>
     )
   }
-  return <>{recordedStatus(n, d.subs, d.branches, d.seats?.filled ?? 0).replace(/\.$/, '')}</>
+  return <>{recordedStatus(n, d.subs, d.branches).replace(/\.$/, '')}</>
 }
 
 // ---------- thread ----------
@@ -842,7 +821,7 @@ export const Proof: FC<{ n: NodeHead; sub: SubmissionRow; checks: CheckReport[] 
 const ReproLink: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
   const passed = n.state === 'closed' ? d.subs.find(s => s.status === 'passed') : undefined
-  // Closed shwarms offer "build on this", not "start a variant" (decisions, Oct 7; shwarm-closed.html's "what's next").
+  // Closed shwarms offer "build on this" (decisions, Oct 7 and Oct 9; shwarm-closed.html's "what's next").
   const buildOn = n.state === 'closed' && n.kind !== 'branch' && <div class="alt"><a href={buildOnHref(n.path)}>build on this</a></div>
   if (!passed) return buildOn || null
   return (
@@ -868,37 +847,42 @@ export const StepUpField: FC<{ id: string; open?: boolean; form?: string }> = ({
 // ---------- sidebar ----------
 
 /**
- * The author's own box (go-live 5.6, 4.4): re-pitch a lobby (a new title and what; the done test stays locked), mark a
- * live node a dead end, with a note, or reopen a dead end. All three act with the author's authority, so all confirm
- * with the password. A closed node reopens only through a repro.
+ * The author's own box (go-live 5.6, 4.4): re-pitch a shwarm until its first submission (a new title and what; the done
+ * test stays locked), mark a live node a dead end, with a note, or reopen a dead end. All three act with the author's
+ * authority, so all confirm with the password. A closed node reopens only through a repro.
  * OPEN (#76, #79): no mockup draws this box; its words wait on Myra's yes.
  */
 const hasOwnerBox = (d: NodePageData) => {
   const n = d.chain.node
-  return !!d.me?.verified && d.me.personId === n.author_id && (n.state === 'lobby' || n.state === 'live' || n.state === 'dead_end')
+  return !!d.me?.verified && d.me.personId === n.author_id && (n.state === 'live' || n.state === 'dead_end')
 }
+
+/** Whether the author may still re-pitch: a live shwarm with nothing submitted yet (decided Oct 9, "No lobby"). */
+const canRepitch = (d: NodePageData) => d.chain.node.kind !== 'branch' && d.chain.node.state === 'live' && !d.subs.length
 
 const Owner: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
   if (!hasOwnerBox(d)) return null
   const flash = d.flash?.at === 'owner' ? d.flash : undefined
-  const word = n.kind === 'branch' ? 'branch' : n.kind === 'variant' ? 'variant' : 'shwarm'
-  const err = flash && <p class="err" role="alert">{flash.text}</p>
+  const word = n.kind === 'branch' ? 'branch' : 'shwarm'
+  // A refused re-pitch keeps its title and what in `fields`; a refused dead end its note in `draft`.
+  const repitchFlash = flash?.fields ? flash : undefined
+  const deadFlash = flash && !flash.fields ? flash : undefined
+  const err = deadFlash && <p class="err" role="alert">{deadFlash.text}</p>
   return (
     <div class="box owner" id="owner">
       <h2 class="sunny">your {word} <span>only you see this</span></h2>
       <div class="in">
-        {n.state === 'lobby' ? (
-          <Repitch d={d} flash={flash} />
-        ) : n.state === 'live' ? (
-          <details open={flash ? true : undefined}>
+        {canRepitch(d) && <Repitch d={d} flash={repitchFlash} />}
+        {n.state === 'live' ? (
+          <details open={deadFlash ? true : undefined}>
             <summary>mark it a dead end</summary>
             <form method="post" action={nodeHref(n.path)} class="owner-act">
               <input type="hidden" name="form_token" value={d.token} />
               <input type="hidden" name="do" value="dead_end" />
               <label for="o-note">why it stops here</label>
               <span class="note" id="o-note-n">so nobody repeats it. the note shows on the {word}.</span>
-              <textarea id="o-note" name="note" required maxlength={MAX_TEXT} aria-describedby="o-note-n">{flash?.draft ?? ''}</textarea>
+              <textarea id="o-note" name="note" required maxlength={MAX_TEXT} aria-describedby="o-note-n">{deadFlash?.draft ?? ''}</textarea>
               <StepUpField id="o-pw" open={d.steppedUp} />
               {err}
               <div class="row">
@@ -926,9 +910,9 @@ const Owner: FC<{ d: NodePageData }> = ({ d }) => {
 }
 
 /**
- * Re-pitch a lobby (go-live 4.4; spec "Starting a shwarm"; table B #30): a new title and what, in place, while it's a
- * lobby; the version it replaces stays in the history under the what. The new words are checked again before the public
- * sees them, as a new shwarm's are.
+ * Re-pitch a shwarm (go-live 4.4; spec "Starting a shwarm"; table B #30; decided Oct 9, "No lobby"): a new title and
+ * what, in place, until the first submission; the version it replaces stays in the history under the what. The new
+ * words are checked again before the public sees them, as a new shwarm's are.
  */
 const Repitch: FC<{ d: NodePageData; flash?: Flash }> = ({ d, flash }) => {
   const n = d.chain.node
@@ -942,7 +926,7 @@ const Repitch: FC<{ d: NodePageData; flash?: Flash }> = ({ d, flash }) => {
         <label for="o-title">title</label>
         <input id="o-title" name="title" required maxlength={MAX_TITLE} value={f.title ?? n.title} />
         <label for="o-what">what</label>
-        <span class="note" id="o-what-n">the done test stays locked. the version you replace stays in the history.</span>
+        <span class="note" id="o-what-n">the done test stays locked. the version you replace stays in the history. you can re-pitch until the first submission.</span>
         <textarea id="o-what" name="what" required maxlength={MAX_TEXT} aria-describedby="o-what-n">{f.what ?? n.what}</textarea>
         <StepUpField id="o-pw" open={d.steppedUp} />
         {flash && <p class="err" role="alert">{flash.text}</p>}
@@ -955,11 +939,8 @@ const Repitch: FC<{ d: NodePageData; flash?: Flash }> = ({ d, flash }) => {
   )
 }
 
-/** Where a seat is taken: a lobby's seats box, or a live shwarm's contributors box (late joiners, go-live 4.4). */
-const hasSeatForm = (d: NodePageData) => {
-  const n = d.chain.node
-  return !!d.seats && (n.state === 'lobby' || (n.state === 'live' && n.kind !== 'branch'))
-}
+/** Where "join" sits: a live shwarm's contributors box (decided Oct 9, "No lobby": join says you're working on it). */
+const hasSeatForm = (d: NodePageData) => d.chain.node.state === 'live' && d.chain.node.kind !== 'branch'
 
 const seatForm = (d: NodePageData, act: 'join' | 'leave', label: string, cls: string) => (
   <form method="post" action={nodeHref(d.chain.node.path)} class="seat-act">
@@ -968,45 +949,6 @@ const seatForm = (d: NodePageData, act: 'join' | 'leave', label: string, cls: st
     <button class={cls} type="submit">{label}</button>
   </form>
 )
-
-const Seats: FC<{ d: NodePageData }> = ({ d }) => {
-  const n = d.chain.node
-  const seats = d.seats!
-  const mine = d.mySeat ?? null
-  const flash = d.flash?.at === 'seats' ? d.flash : undefined
-  return (
-    <div class="box seats">
-      <h2>seats <span>{seats.filled} of {n.lobby_size} · kickoff when full</span></h2>
-      <div class="in">
-        {!d.me ? (
-          <>
-            <p class="join"><a class="btn" href={signInHref(d.here)}>join this lobby</a></p>
-            <p class="note">sign in first. new here? <a href={joinHref(d.here)}>make an account</a>.</p>
-          </>
-        ) : mine !== null ? (
-          <>
-            <p class="note">you're in seat {mine}.</p>
-            {n.state === 'lobby' && d.me.personId !== n.author_id && seatForm(d, 'leave', 'leave this lobby', 'linkish')}
-          </>
-        ) : !d.me.verified ? (
-          <>
-            <p class="join"><button class="btn" type="button" disabled>join this lobby</button></p>
-            <p class="note">verify your email to join.</p>
-          </>
-        ) : (
-          <div class="join">{seatForm(d, 'join', n.state === 'lobby' ? 'join this lobby' : 'join', 'btn')}</div>
-        )}
-        {flash && <p class="err" role="alert">{flash.text}</p>}
-        <ul class="crew">
-          {seats.list.map(s => (
-            <li><Name name={s.handle} link /><small>seat {s.number}{s.person_id === n.author_id ? ' · author' : ''}</small></li>
-          ))}
-          {seats.filled > seats.list.length && <li><span>+ {seats.filled - seats.list.length} more</span><small></small></li>}
-        </ul>
-      </div>
-    </div>
-  )
-}
 
 const ChildSub: FC<{ c: Child }> = ({ c }) => {
   const imp = c.posts_per_day && c.posts_per_day > 0 ? <Imp q={c.impact ?? 0} ppd={c.posts_per_day} /> : null
@@ -1037,45 +979,11 @@ const Branches: FC<{ d: NodePageData }> = ({ d }) => {
           ))}
         </ul>
       ) : (
-        <div class="in note">{n.state === 'lobby' ? 'branches open at kickoff.' : `no ${word}es yet.`}</div>
+        <div class="in note">no {word}es yet.</div>
       )}
       {n.state === 'live' && (
         <div class="in" style="border-top:1px solid var(--ink)">
           <a class="btn plain" href={`/new?parent=${n.path}`} style="display:block;text-align:center">+ start a {word}</a>
-        </div>
-      )}
-    </div>
-  )
-}
-
-const Variants: FC<{ d: NodePageData }> = ({ d }) => {
-  const n = d.chain.node
-  const open = n.state === 'lobby' || n.state === 'live'
-  if (!d.variants.length && !open) return null
-  return (
-    <div class="box">
-      <h2>variants <span>same goal, different done</span></h2>
-      {d.variants.length ? (
-        <ul class="branches">
-          {d.variants.map(v => (
-            <li>
-              <div class="nm"><a href={nodeHref(v.path)}><Plain text={v.title} /></a><Pill n={v} now={d.now} seats={v.seats} short /></div>
-              <div class="sub">
-                {/* as on the feed cards and in shwarm.html: a lobby says who started it, a live one how many people */}
-                done when <Text inline text={cut(v.done_when, 120)} />
-                {v.state !== 'live' && <> · <Name name={v.author} link /></>}
-                {v.state === 'live' && v.people ? <> · {plural(v.people, 'person', 'people')}</> : null}
-                {v.state === 'live' && v.posts_per_day ? <> · <Imp q={v.impact ?? 0} ppd={v.posts_per_day} /></> : null}
-              </div>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <div class="in note">no variants yet.</div>
-      )}
-      {open && (
-        <div class="in" style="border-top:1px solid var(--ink)">
-          <a class="btn plain" href={`/new?variant=${n.path}`} style="display:block;text-align:center">+ start a variant</a>
         </div>
       )}
     </div>
@@ -1105,28 +1013,31 @@ const Contributors: FC<{ d: NodePageData }> = ({ d }) => {
           ))}
           {total > rows.length && <li><span>+ {total - rows.length} more</span><small></small></li>}
         </ul>
-        <LateJoin d={d} />
+        <Join d={d} />
       </div>
     </div>
   )
 }
 
 /**
- * Late joiners (go-live 4.4; spec "Kickoff": late joiners are always welcome): once a shwarm or variant is live, anyone
- * verified may still take a seat, with no seat limit. It changes nothing but this: they show among its contributors and
- * on their profile as working on it, and get its notices. Seats are kept after kickoff, so there's no leave.
- * OPEN (#79): no mockup draws it on a live shwarm; its words wait on Myra's yes.
+ * "join" (decided Oct 9, "No lobby"): a live shwarm takes anyone verified who says they're working on it, with no gate and
+ * no size. It changes nothing but this: they show among its contributors and on their profile as working on it, and get
+ * its notices. Anyone but the author can leave again.
+ * OPEN: no mockup draws it on a live shwarm; its words wait on Myra's yes.
  */
-const LateJoin: FC<{ d: NodePageData }> = ({ d }) => {
+const Join: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
-  if (!hasSeatForm(d) || n.state !== 'live') return null
+  if (!hasSeatForm(d)) return null
   const flash = d.flash?.at === 'seats' ? d.flash : undefined
   return (
     <div class="late">
       {!d.me ? (
         <p class="join"><a class="btn plain" href={signInHref(d.here)}>join</a></p>
       ) : d.mySeat ? (
-        <p class="note">you're working on this.</p>
+        <>
+          <p class="note">you're working on this.</p>
+          {d.me.personId !== n.author_id && seatForm(d, 'leave', 'leave', 'linkish')}
+        </>
       ) : !d.me.verified ? (
         <>
           <p class="join"><button class="btn plain" type="button" disabled>join</button></p>
@@ -1135,7 +1046,7 @@ const LateJoin: FC<{ d: NodePageData }> = ({ d }) => {
       ) : (
         <>
           <div class="join">{seatForm(d, 'join', 'join', 'btn plain')}</div>
-          <p class="note">late joiners are welcome: no seat limit now it's live.</p>
+          <p class="note">join to say you're working on this.</p>
         </>
       )}
       {flash && <p class="err" role="alert">{flash.text}</p>}

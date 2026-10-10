@@ -66,7 +66,7 @@ export const ResultPage: FC<{ d: ResultPageData }> = ({ d }) => {
               <h2>built on this <span>{d.builtOnThis.length}</span></h2>
               <ul class="tree">
                 {d.builtOnThis.map(b => (
-                  <li><a href={nodeHref(b.path)}><Plain text={b.title} /></a><Pill n={b} now={d.now} seats={b.seats} short /></li>
+                  <li><a href={nodeHref(b.path)}><Plain text={b.title} /></a><Pill n={b} now={d.now} short /></li>
                 ))}
               </ul>
             </div>
@@ -91,7 +91,6 @@ const DoneHead: FC<{ d: ResultPageData }> = ({ d }) => {
         <h1><Text inline text={n.title} /></h1>
         <div class="meta">
           started by <Name name={n.posted_by} link />
-          {n.live_at && n.lobby_size && <> · lobby filled {monthDay(n.live_at)} ({n.lobby_size}/{n.lobby_size})</>}
           {days && <> · {plural(days, 'day', 'days')}, start to finish</>}
           {up && (
             <>

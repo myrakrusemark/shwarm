@@ -9,7 +9,6 @@ export const WEEK_MS = 7 * DAY_MS
 export type Ranking = {
   hot_floor: number // counted upvotes in 24h before a thread can be hot (table B #10)
   hot_ratio: number // 24h upvotes at least this many times the 7-day daily average (spec "Hot")
-  hot_mix: number // live shwarms per lobby on the hot tab (table B #9)
   half_life_hours: number // live score decay (table B #24)
   window_hours: number // live score looks back this far (table B #24)
   submission: number // live score bump per submission (table B #24)
@@ -20,7 +19,6 @@ export type Ranking = {
 export const RANKING: Ranking = {
   hot_floor: 20,
   hot_ratio: 2,
-  hot_mix: 3,
   half_life_hours: 12,
   window_hours: 24,
   submission: 5,
@@ -30,19 +28,17 @@ export const RANKING: Ranking = {
   bumps_from_branches: true,
 }
 
-/** Settings rows over the defaults; a value of the wrong type keeps the default. */
+/** Settings rows over the defaults; a value of the wrong type keeps the default. The hot_mix row is no longer read (no lobbies). */
 export function rankingFrom(rows: Record<string, unknown>): Ranking {
   const out: Ranking = { ...RANKING }
   const num = (k: keyof Ranking, v: unknown) => {
     if (typeof v === 'number' && Number.isFinite(v) && v >= 0) (out as Record<string, unknown>)[k] = v
   }
   const r = rows.ranking && typeof rows.ranking === 'object' ? (rows.ranking as Record<string, unknown>) : {}
-  for (const k of ['hot_ratio', 'half_life_hours', 'window_hours', 'submission', 'pass', 'hot_floor', 'hot_mix'] as const) num(k, r[k])
+  for (const k of ['hot_ratio', 'half_life_hours', 'window_hours', 'submission', 'pass', 'hot_floor'] as const) num(k, r[k])
   if (typeof r.bumps_from_branches === 'boolean') out.bumps_from_branches = r.bumps_from_branches
   num('hot_floor', rows.hot_floor)
-  num('hot_mix', rows.hot_mix)
   if (out.half_life_hours <= 0) out.half_life_hours = RANKING.half_life_hours
-  if (out.hot_mix < 1) out.hot_mix = RANKING.hot_mix
   return out
 }
 
@@ -67,16 +63,11 @@ export function liveScoreFrom(decayed: { upvotes: number; submissions: number; p
 /**
  * A stored score brought to `now`, for ranking rows the job computed at different times. Between its updated_at and
  * its stale_at nothing leaves a live node's window, so its score only decays, every part at the same rate: this is
- * exact. A lobby's score doesn't decay; it only steps when a join leaves its 24 hours.
+ * exact. Only a live node has a score; the lobby score went with the lobby (decided Oct 9).
  */
 export function scoreNow(s: { state: string; score: number; updated_at: string }, now: number, r: Ranking = RANKING): number {
   if (s.state !== 'live') return s.score
   return s.score * decay(Math.max(0, now - Date.parse(s.updated_at)), r)
-}
-
-/** Lobby score (table B #24): joins in the last 24 hours ÷ seats left. */
-export function lobbyScore(joins24: number, seatsLeft: number): number {
-  return joins24 / Math.max(1, seatsLeft)
 }
 
 /**
@@ -111,7 +102,7 @@ export function postsPerDay(posts7: number, createdAt: number, now: number): num
   return posts7 / days
 }
 
-/** People (table B #44): seat holders, humans who posted (themselves or by agent) in the last 7 days, and the author. */
+/** People (table B #44): everyone who joined (said they're working on it), humans who posted (themselves or by agent) in the last 7 days, and the author. */
 export function people(seatHolders: Iterable<number>, recentPosters: Iterable<number>, authorId: number): number {
   return new Set<number>([...seatHolders, ...recentPosters, authorId]).size
 }
@@ -138,10 +129,9 @@ export function isSeedSourcesPost(text: string | null | undefined, bySeed = fals
 }
 
 export type StatusInput = {
-  state: 'lobby' | 'live' | 'closed' | 'dead_end'
+  state: 'live' | 'closed' | 'dead_end'
   pinned: string | null // text of the author's pinned post, if any (not hidden)
   pinnedBySeed?: boolean // that post is the one the launch seed pinned (see isSeedSourcesPost)
-  seatsLeft: number
   deadEndNote: string | null
   submissions: { number: number; status: 'in_review' | 'passed' | 'failed' | 'superseded' }[]
   branches: { live: number; closed: number }
@@ -151,15 +141,14 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 
 /**
  * The status line (table B #40): the first line of the author's pinned post, else a line from recorded state.
- * Never the latest post. Recorded-state lines follow the mockups ("29 seats from kickoff.", "submission in review",
+ * Never the latest post. Recorded-state lines follow the mockups ("submission in review",
  * "no submission yet · 2 branches closed, 2 live").
- * The launch seed's pinned sources post (A18) never counts as the author's pinned post here: a seeded lobby says
- * "N seats from kickoff." until its author pins a post of their own.
+ * The launch seed's pinned sources post (A18) never counts as the author's pinned post here: a seeded shwarm says
+ * "no submission yet." until its author pins a post of their own.
  */
 export function statusLine(s: StatusInput): string {
   const pinned = isSeedSourcesPost(s.pinned, s.pinnedBySeed) ? '' : firstLine(s.pinned)
   if (pinned) return pinned
-  if (s.state === 'lobby') return `${plural(s.seatsLeft, 'seat', 'seats')} from kickoff.`
   if (s.state === 'dead_end') return firstLine(s.deadEndNote) || 'dead end.'
   const subs = [...s.submissions].sort((a, b) => b.number - a.number)
   if (s.state === 'closed') {
@@ -184,23 +173,6 @@ export type Ranked = { id: number; score: number; created_at: string }
 /** Best first; ties go to the newer node, then the higher id, so the order is stable. */
 export function byScore(a: Ranked, b: Ranked): number {
   return b.score - a.score || (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0) || b.id - a.id
-}
-
-/**
- * The hot tab (spec "Feed ranking", table B #9): live shwarms and lobbies each by their own rank, interleaved
- * about `mix` live to 1 lobby. When one list runs out, the rest of the other follows. Closed cards never show on hot.
- */
-export function hotMix<T extends Ranked>(live: T[], lobbies: T[], mix = RANKING.hot_mix): T[] {
-  const a = [...live].sort(byScore)
-  const b = [...lobbies].sort(byScore)
-  const out: T[] = []
-  let i = 0
-  let j = 0
-  while (i < a.length || j < b.length) {
-    for (let k = 0; k < mix && i < a.length; k++) out.push(a[i++])
-    if (j < b.length) out.push(b[j++])
-  }
-  return out
 }
 
 /** "2,418": digits grouped for the header strip. Shortening ("2.1k") is the feed's job. */

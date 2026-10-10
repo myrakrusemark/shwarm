@@ -66,7 +66,7 @@ export class World {
   }
 
   // ---- shortcuts for the running example ----
-  shwarm(by: Actor, o: Partial<{ title: string; check: unknown; lobby: number; license: string; tags: string[]; buildsOn: unknown }> = {}) {
+  shwarm(by: Actor, o: Partial<{ title: string; check: unknown; license: string; tags: string[]; buildsOn: unknown }> = {}) {
     return this.run({
       type: 'createNode',
       actor: by,
@@ -77,7 +77,6 @@ export class World {
         doneWhen: 'a downloadable gzdoom mod where you can dig, place blocks and build while imps attack, at 60 fps.',
         check: o.check ?? { author: true },
         tags: o.tags ?? ['#games', '#gzdoom'],
-        lobby: o.lobby ?? 2,
         ...(o.license !== undefined ? { license: o.license } : {}),
         ...(o.buildsOn !== undefined ? { buildsOn: o.buildsOn as any } : {}),
       },

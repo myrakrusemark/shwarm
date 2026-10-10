@@ -1,7 +1,7 @@
 // The create form, /new (go-live 4.2), ported from mockups/new.html in shwarm mode: title, what, done when, how
-// it's checked (at least one check), tags, lobby (min 2, default 10), builds on, license. It publishes a lobby with
-// the author in seat 1 through the shwarm tree (core/nodes.ts createNode), counted toward 3 new nodes a day, and
-// goes to the new page. New nodes start 'pending' and triage (8.1, triage/run.ts) runs right after the redirect;
+// it's checked (at least one check), tags, builds on, license. No lobby (decided Oct 9): it publishes a live shwarm
+// with the author down as working on it, through the shwarm tree (core/nodes.ts createNode), counted toward 3 new
+// nodes a day, and goes to the new page. New nodes start 'pending' and triage (8.1, triage/run.ts) runs right after the redirect;
 // production keeps creation paused (setting pause_new_nodes) until the seeds are checked.
 //
 // Builds on: paste a passed shwarm's link or path, or any link. GitHub repo links get their name and SPDX license
@@ -9,12 +9,11 @@
 // license replaces the license picker (protocol §8).
 // OPEN: the mockup's live search and the chip with "change" need JavaScript; this first version is a plain form.
 //
-// Branch and variant modes (go-live 4.3), as mockups/new.html draws them. /new?parent=<path> makes a branch: the
-// parent's done test shown as what it helps reach, no tags, lobby or builds-on, the parent's license, live at once.
-// /new?variant=<path> makes a variant: prefilled from the original (title, what, tags), its own lobby with the author
-// in seat 1, its own license; refused once the original is closed (build on it instead). /new?builds_on=<path>
-// fills the builds-on field, and names the shwarm when it's a closed one this viewer can see (the result page's
-// "build on this"). Both modes reach the parent or original only as the node page would show it to this viewer.
+// Branch mode (go-live 4.3), as mockups/new.html draws it. /new?parent=<path> makes a branch: the parent's done
+// test shown as what it helps reach, no tags or builds-on, the parent's license, live at once. It reaches the parent
+// only as the node page would show it to this viewer. Variants are dropped (decided Oct 9): there is no ?variant= mode.
+// /new?builds_on=<path> fills the builds-on field, and names the shwarm when it's a closed one this viewer can see (the
+// result page's "build on this").
 // /new?parent=<path>&from=<post id> is a post's "make it a branch" (go-live 4.8): the branch form, filled from the post.
 import { Hono, type Context } from 'hono'
 import type { FC } from 'hono/jsx'
@@ -25,7 +24,7 @@ import { signInHref } from '../auth/return-to'
 import { siteActor } from '../core/actor'
 import { isId } from '../core/ids'
 import { DEFAULT_RUNS } from '../core/checks'
-import { DEFAULT_LOBBY, LICENSES, needBranchable, needVariantable, type CreateNodeInput } from '../core/nodes'
+import { LICENSES, needBranchable, type CreateNodeInput } from '../core/nodes'
 import { MAX_TEXT, MAX_TITLE } from '../core/text'
 import { runInTree } from '../do/shwarm-tree'
 import { parseNodePath, readChain, type Chain, type NodeHead } from '../read/node'
@@ -35,27 +34,25 @@ import { Plain, Text } from '../render/text'
 import { triageNew } from '../triage/run'
 import { sendError, waitText } from './errors'
 import { AgentResources, Layout } from './layout'
-import { buildOnHref, nodeHref } from './node-page'
+import { nodeHref } from './node-page'
 import { page } from './viewer'
 
 type Env = { Bindings: { DB: D1Database; TREE: DurableObjectNamespace; AI: Ai; TRIAGE_MODEL?: string; CSRF_SECRET: string; ENV: string; SITE_MODE: string } }
 type C = Context<Env>
 
-export const MIN_LOBBY = 2 // go-live 4.2: a lobby is at least 2 people
-
 /** The form's fields, as posted (and as shown again after a refusal). */
 export type CreateForm = Partial<Record<
-  'title' | 'what' | 'done_when' | 'c_runs' | 'command' | 'runs' | 'c_people' | 'people' | 'human' | 'instructions' | 'c_author' | 'tags' | 'lobby' | 'license' | 'builds_on' | 'builds_on_name' | 'builds_on_license' | 'parent' | 'variant',
+  'title' | 'what' | 'done_when' | 'c_runs' | 'command' | 'runs' | 'c_people' | 'people' | 'human' | 'instructions' | 'c_author' | 'tags' | 'license' | 'builds_on' | 'builds_on_name' | 'builds_on_license' | 'parent',
   string
 >>
 
 /**
  * What the form makes (go-live 4.3): a shwarm, with `upstream` when ?builds_on= names a closed shwarm this viewer can
- * see; a branch under `chain.node`; or a variant of `original`.
+ * see; or a branch under `chain.node`.
  */
-export type Mode = { kind: 'shwarm'; upstream?: NodeHead | null } | { kind: 'branch'; chain: Chain } | { kind: 'variant'; original: NodeHead }
+export type Mode = { kind: 'shwarm'; upstream?: NodeHead | null } | { kind: 'branch'; chain: Chain }
 
-const FRESH: CreateForm = { c_author: 'on', runs: String(DEFAULT_RUNS), people: '2', lobby: String(DEFAULT_LOBBY), license: LICENSES[0] }
+const FRESH: CreateForm = { c_author: 'on', runs: String(DEFAULT_RUNS), people: '2', license: LICENSES[0] }
 
 const PLACE = {
   title: 'minecraft in doom',
@@ -64,7 +61,7 @@ const PLACE = {
   command: './bench.sh --fps 60 && ./license-scan.sh',
   look: 'what checkers do and what they should see: play the demo build for 10 minutes, dig and build while being chased, no crash, no stutter.',
 }
-// mockups/new.html's branch and variant placeholders
+// mockups/new.html's branch placeholders
 const BRANCH_PLACE: typeof PLACE = {
   title: 'monster collision',
   what: 'imps walk straight through placed blocks because the blockmap is only built at level load…',
@@ -72,10 +69,6 @@ const BRANCH_PLACE: typeof PLACE = {
   command: './bench.sh --blockmap',
   look: 'what checkers do and what they should see: build a wall in front of an imp; it paths around.',
 }
-const VARIANT_PLACE: typeof PLACE = { ...PLACE, done: 'same mod, but with hunger, a day/night cycle, and monsters that spawn in the dark. 60 fps on the reference rig.' }
-
-/** A variant starts from its original's title, what and tags. OPEN (#77): mockups/new.html prefills only the first two. */
-export const variantFields = (o: NodeHead): CreateForm => ({ ...FRESH, title: `${o.title}: `, what: o.what, tags: o.tags.map(t => '#' + t).join(' ') })
 
 /**
  * "make it a branch" (go-live 4.8, mockups/shwarm.html): a plain post in the parent's thread fills the branch form, its
@@ -102,7 +95,7 @@ function wordsOf(mode: Mode) {
     return {
       page: `new branch · ${showHidden(n.title)} · shwarm`,
       heading: 'new branch',
-      sub: 'goes live as soon as you start it. no lobby: the crew is already here.',
+      sub: 'goes live as soon as you start it. the crew is already here.', // OPEN: mockups/new.html's "no lobby:" dropped; waits on Myra's yes
       pitchHint: 'what is stuck or missing, and how this branch helps the parent get done.',
       oneTest: 'one done test per branch',
       licHint: "a branch inherits its shwarm's license.",
@@ -113,29 +106,25 @@ function wordsOf(mode: Mode) {
       root,
     }
   }
-  const variant = mode.kind === 'variant'
+  // OPEN (decided Oct 9, "No lobby"): the sub line, the license hint's "locks once you post it", the go note's last
+  // sentence and the button lost their lobby words; the new words wait on Myra's yes.
   return {
-    page: variant ? `new variant · ${showHidden(mode.original.title)} · shwarm` : 'new shwarm · shwarm',
-    heading: variant ? 'new variant' : 'new shwarm',
-    sub: variant ? 'same goal, your own finish line. a variant is a shwarm of its own, with its own lobby.' : 'a goal worth a crowd. your shwarm starts when enough people join.',
+    page: 'new shwarm · shwarm',
+    heading: 'new shwarm',
+    sub: 'a goal worth a crowd. it goes live as soon as you start it.',
     pitchHint: 'what is this, why does it matter, and why now?',
     oneTest: 'one done test per shwarm',
-    licHint: variant
-      ? 'a variant picks its own license. it locks when the lobby opens, and branches inherit it.'
-      : 'everything made here is open. the default is MIT for code and CC BY 4.0 for everything else. it locks when the lobby opens, and branches inherit it.',
-    // OPEN (#77): the variant's "linked from the original" sentence, after the check-first one, waits on Myra's yes.
-    goNote: variant
-      ? "a quick automatic check runs first. until it's done, usually within a minute, only you can see it. then it's linked from the original as a variant. you start in seat 1 of its lobby."
-      : "a quick automatic check runs first. until it's done, usually within a minute, only you can see it. you start in seat 1 of its lobby.",
-    go: 'start shwarm + open lobby',
-    place: variant ? VARIANT_PLACE : PLACE,
+    licHint: 'everything made here is open. the default is MIT for code and CC BY 4.0 for everything else. it locks once you post it, and branches inherit it.',
+    goNote: "a quick automatic check runs first. until it's done, usually within a minute, only you can see it. then it's live, and anyone can work on it.",
+    go: 'start shwarm',
+    place: PLACE,
     root: null,
   }
 }
 
 const Crumbs: FC<{ mode: Mode }> = ({ mode }) => {
   if (mode.kind === 'shwarm') return null
-  const up = mode.kind === 'branch' ? [...mode.chain.ancestors, mode.chain.node] : [mode.original]
+  const up = [...mode.chain.ancestors, mode.chain.node]
   return (
     <nav class="crumbs" aria-label="breadcrumb">
       {up.map(n => (
@@ -144,14 +133,14 @@ const Crumbs: FC<{ mode: Mode }> = ({ mode }) => {
           <span>/</span>
         </>
       ))}
-      {mode.kind === 'branch' ? 'new branch' : 'new variant'}
+      new branch
     </nav>
   )
 }
 
 /**
- * The form in its mode. `refused`: why this parent or original takes no branch or variant right now (a lobby, a closed
- * shwarm), shown in place of the form.
+ * The form in its mode. `refused`: why this parent takes no branch right now (a closed or dead-end node), shown in
+ * place of the form.
  */
 export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refused?: string; verified: boolean; mode?: Mode }> = ({
   token,
@@ -164,7 +153,6 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refus
   const on = (k: keyof CreateForm) => v[k] === 'on'
   const w = wordsOf(mode)
   const branch = mode.kind === 'branch' ? mode.chain.node : null
-  const original = mode.kind === 'variant' ? mode.original : null
   const upstream = mode.kind === 'shwarm' ? mode.upstream : null
   return (
     <Layout title={w.page}>
@@ -175,16 +163,12 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refus
       <div class="grid">
         <main id="main" tabindex={-1}>
           {(error || refused) && <p class="err top" role="alert">{error ?? refused}</p>}
-          {refused ? (
-            // A closed shwarm is built on instead (decisions: "Closed shwarms offer 'build on this'").
-            original?.state === 'closed' && <p class="note"><a class="btn" href={buildOnHref(original.path)}>build on this</a></p>
-          ) : !verified ? (
+          {refused ? null : !verified ? (
             <div class="box"><div class="f"><p class="note" style="margin:0">verify your email to start a shwarm. the link is in your inbox.</p></div></div>
           ) : (
             <form method="post" action="/new" class="new">
               <input type="hidden" name={FORM_FIELD} value={token} />
               {branch && <input type="hidden" name="parent" value={branch.path} />}
-              {original && <input type="hidden" name="variant" value={original.path} />}
               <div class="box">
                 {branch && (
                   <div class="f" id="f-parent">
@@ -211,13 +195,6 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refus
                     <textarea id="done" name="done_when" required maxlength={2000} aria-describedby="done-hint" placeholder={w.place.done}>{v.done_when ?? ''}</textarea>
                   </div>
                 </div>
-                {original && (
-                  <div class="f" id="f-variant">
-                    <span class="lbl">the original is done when</span>
-                    <div class="parent"><b><Plain text={original.title} /> ({original.author})</b><Text inline text={original.done_when} /></div>
-                    <p class="hint">a variant is the same goal with a different finish line. both run; people join the one they agree with.</p>
-                  </div>
-                )}
               </div>
               <div class="box">
                 <h2 class="sunny">how it's checked <span>{w.oneTest}</span></h2>
@@ -253,7 +230,8 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refus
                   </div>
                 </div>
                 <div class="f">
-                  <p class="note" style="margin:0">the done test locks once it goes live. people join for this finish line, so changing it means <b>starting a variant</b>, not editing this one.</p>
+                  {/* OPEN (#69): variants are dropped, so this no longer says "starting a variant"; the words wait on Myra's yes. */}
+                  <p class="note" style="margin:0">the done test locks once it goes live. people join for this finish line, so changing it means <b>starting a new shwarm</b>, not editing this one.</p>
                 </div>
               </div>
               {!branch && (
@@ -262,11 +240,6 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refus
                     <label for="tags">tags</label>
                     <p class="hint" id="tags-hint">how people find it. no categories, just tags.</p>
                     <input type="text" id="tags" name="tags" required aria-describedby="tags-hint" placeholder="#weird #games #gzdoom" value={v.tags ?? ''} />
-                  </div>
-                  <div class="f">
-                    <label for="seats">lobby</label>
-                    <p class="hint" id="seats-hint">how many people need to join before it opens. 10 is a good start; a small proof might need 5, a citywide map far more. people count, not agents.</p>
-                    <div class="row"><input type="number" id="seats" name="lobby" min={MIN_LOBBY} max={10000} aria-describedby="seats-hint" value={v.lobby ?? String(DEFAULT_LOBBY)} /> people</div>
                   </div>
                 </div>
               )}
@@ -422,7 +395,7 @@ export const create = new Hono<Env>()
 
 const formFields = (f: Record<string, string>): CreateForm => {
   const keep: CreateForm = {}
-  for (const k of ['title', 'what', 'done_when', 'c_runs', 'command', 'runs', 'c_people', 'people', 'human', 'instructions', 'c_author', 'tags', 'lobby', 'license', 'builds_on', 'builds_on_name', 'builds_on_license', 'parent', 'variant'] as const)
+  for (const k of ['title', 'what', 'done_when', 'c_runs', 'command', 'runs', 'c_people', 'people', 'human', 'instructions', 'c_author', 'tags', 'license', 'builds_on', 'builds_on_name', 'builds_on_license', 'parent'] as const)
     if (typeof f[k] === 'string') keep[k] = f[k]
   return keep
 }
@@ -441,24 +414,20 @@ function refusal(check: () => void): string | undefined {
   return undefined
 }
 
-/** The node at a ?parent= or ?variant= path as the node page would show it to this viewer; null when it wouldn't. */
+/** The node at a ?parent= path as the node page would show it to this viewer; null when it wouldn't. */
 async function shownNode(db: D1Database, raw: string, viewerId: number): Promise<Chain | null> {
   const p = parseNodePath(raw.trim().replace(/^\/?(w\/)?|\/+$/g, ''))
   return p.kind === 'node' ? readChain(db, p.path, viewerId) : null
 }
 
 /**
- * The form's mode from ?parent= / ?variant= (or the posted parent / variant fields), with why it's refused, if it is.
- * Null when the parent or original isn't there for this viewer: a 404, as on its own page.
+ * The form's mode from ?parent= (or the posted parent field), with why it's refused, if it is. Null when the parent
+ * isn't there for this viewer: a 404, as on its own page. A ?variant= is ignored: variants are dropped (decided Oct 9).
  */
-async function modeOf(db: D1Database, q: { parent?: string; variant?: string; builds_on?: string }, viewerId: number, origin: string): Promise<{ mode: Mode; refused?: string } | null> {
+async function modeOf(db: D1Database, q: { parent?: string; builds_on?: string }, viewerId: number, origin: string): Promise<{ mode: Mode; refused?: string } | null> {
   if (q.parent) {
     const chain = await shownNode(db, q.parent, viewerId)
     return chain && { mode: { kind: 'branch', chain }, refused: refusal(() => needBranchable(chain.node)) }
-  }
-  if (q.variant) {
-    const chain = await shownNode(db, q.variant, viewerId)
-    return chain && { mode: { kind: 'variant', original: chain.node }, refused: refusal(() => needVariantable(chain.node)) }
   }
   // ?builds_on= names a closed shwarm (the result page's "build on this"): the field shows its path and the chip its name.
   const path = q.builds_on ? shwarmPathOf(q.builds_on.trim(), origin) : null
@@ -466,9 +435,8 @@ async function modeOf(db: D1Database, q: { parent?: string; variant?: string; bu
   return { mode: { kind: 'shwarm', upstream: up?.node.state === 'closed' ? up.node : null } }
 }
 
-/** Where this form lives: /new, or /new in its branch or variant mode. */
-const formHref = (mode: Mode) =>
-  mode.kind === 'branch' ? `/new?parent=${encodeURIComponent(mode.chain.node.path)}` : mode.kind === 'variant' ? `/new?variant=${encodeURIComponent(mode.original.path)}` : '/new'
+/** Where this form lives: /new, or /new in its branch mode. */
+const formHref = (mode: Mode) => (mode.kind === 'branch' ? `/new?parent=${encodeURIComponent(mode.chain.node.path)}` : '/new')
 
 const noNode = (c: C) => sendError(c, { status: 404, code: 'no_such_node', text: 'there is no shwarm or branch at this address.' }, 'html')
 
@@ -477,18 +445,16 @@ create.get('/new', async c => {
   const w = await who(c as unknown as AuthContext)
   const url = new URL(c.req.url)
   if (!w.session) return c.redirect(signInHref(url.pathname + url.search), 303)
-  const q = { parent: c.req.query('parent'), variant: c.req.query('variant'), builds_on: c.req.query('builds_on') }
+  const q = { parent: c.req.query('parent'), builds_on: c.req.query('builds_on') }
   const m = await modeOf(c.env.DB, q, w.session.personId, url.origin)
   if (!m) return noNode(c as C)
   const token = await formToken(c.env.CSRF_SECRET, w.session.id)
   const v: CreateForm =
-    m.mode.kind === 'variant'
-      ? variantFields(m.mode.original)
-      : m.mode.kind === 'branch'
-        ? ((await fieldsFromPost(c.env.DB, m.mode.chain.node.id, c.req.query('from'))) ?? FRESH)
-        : q.builds_on
-          ? { ...FRESH, builds_on: q.builds_on.trim().slice(0, 600) }
-          : FRESH
+    m.mode.kind === 'branch'
+      ? ((await fieldsFromPost(c.env.DB, m.mode.chain.node.id, c.req.query('from'))) ?? FRESH)
+      : q.builds_on
+        ? { ...FRESH, builds_on: q.builds_on.trim().slice(0, 600) }
+        : FRESH
   return page(c, <NewPage token={token} v={v} refused={m.refused} verified={w.session.verified} mode={m.mode} />)
 })
 
@@ -500,30 +466,26 @@ create.post('/new', async (c: C) => {
   const session = w.session
   const origin = new URL(c.req.url).origin
   // builds_on too, so a refused form that builds on a closed shwarm comes back with its chip and the license picker hidden.
-  const m = await modeOf(c.env.DB, { parent: f.parent, variant: f.variant, builds_on: f.builds_on }, session.personId, origin)
+  const m = await modeOf(c.env.DB, { parent: f.parent, builds_on: f.builds_on }, session.personId, origin)
   if (!m) return noNode(c)
   const mode = m.mode
   if (!(await postedTokenOk(c as unknown as AuthContext, w, raw))) return c.redirect(formHref(mode), 303)
   const again = async (error: string, status: 400 | 429) =>
     page(c, <NewPage token={await formToken(c.env.CSRF_SECRET, session.id)} v={f} error={error} verified={session.verified} mode={mode} />, status)
-  // The parent or original changed since the form was shown (a lobby, now closed): the page says so, without the form.
+  // The parent changed since the form was shown (live, now closed): the page says so, without the form.
   if (m.refused) return page(c, <NewPage refused={m.refused} verified={session.verified} mode={mode} />, 400)
   try {
     const text = { title: (f.title ?? '').trim(), what: (f.what ?? '').trim(), doneWhen: (f.done_when ?? '').trim(), check: checkFromForm(f) }
     let input: CreateNodeInput
     if (mode.kind === 'branch') {
-      // A branch takes its parent's license and builds-on, and has no tags or lobby: none are sent.
+      // A branch takes its parent's license and builds-on, and has no tags: none are sent.
       input = { kind: 'branch', parent: mode.chain.node.path, ...text }
     } else {
-      const lobby = whole(f.lobby, 'lobby', DEFAULT_LOBBY)
-      if (lobby < MIN_LOBBY) throw bad(`a lobby is at least ${MIN_LOBBY} people`)
       const buildsOn = await buildsOnFromForm(f, origin)
       input = {
-        kind: mode.kind,
-        ...(mode.kind === 'variant' ? { variantOf: mode.original.path } : {}),
+        kind: 'shwarm',
         ...text,
         tags: parseTagField(f.tags),
-        lobby,
         license: buildsOn ? undefined : f.license,
         buildsOn,
       }

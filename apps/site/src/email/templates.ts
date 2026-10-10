@@ -74,7 +74,7 @@ function moreOfIt(p: Record<string, unknown>): Block[] {
 function triageAlert(p: Record<string, unknown>): Draft {
   const path = text(p, 'path')
   if (!/^[a-z0-9][a-z0-9/-]*$/.test(path)) throw new MailRenderError('bad path')
-  const kind = ['shwarm', 'branch', 'variant'].includes(p.kind as string) ? (p.kind as string) : 'node'
+  const kind = p.kind === 'branch' ? 'branch' : p.kind === 'shwarm' || p.kind === 'variant' ? 'shwarm' : 'node' // a variant made before Oct 9 reads as a shwarm
   const env = p.env === 'staging' || p.env === 'production' ? p.env : '<staging|production>'
   const title = text(p, 'title')
   const seeded = p.seeded === true
@@ -194,15 +194,6 @@ function digest(p: Record<string, unknown>, site: string): Draft {
   if (more && typeof p.handle === 'string' && HANDLE.test(p.handle)) blocks.push(`and ${more} more in your inbox:`, { href: `${base(site)}/@${p.handle}#addressed` })
   blocks.push('this comes once a day. you can get each mention right away instead, in your account.')
   return { subject: total === 1 ? 'you were mentioned on shwarm' : `you were mentioned ${total} times on shwarm`, blocks }
-}
-
-/** A lobby filled and its shwarm is live (go-live 4.4): to everyone seated. OPEN (#85): these words wait on Myra's yes. */
-function kickoff(p: Record<string, unknown>, site: string): Draft {
-  const title = titleOf(p)
-  return {
-    subject: `${title} is live`,
-    blocks: [hi(p), `the lobby for ${title} filled, so it's live now. branches and submissions are open.`, { href: siteLink(site, p.link) }],
-  }
 }
 
 /**
@@ -328,7 +319,6 @@ const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string)
   sign_off_ready: (p, site) => signOffReady(p, site),
   mention: (p, site) => mention(p, site),
   digest: (p, site) => digest(p, site),
-  kickoff: (p, site) => kickoff(p, site),
   node_news: (p, site) => nodeNews(p, site),
   key_new_network: (p, site) => keyNewNetwork(p, site),
   // To the address the account had, as it closes (go-live 6.4): no link, since there's nothing left to sign in to.

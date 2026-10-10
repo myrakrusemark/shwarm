@@ -18,14 +18,14 @@ export type LaunchShwarm = {
     people?: { count?: number; human?: boolean; instructions?: string } | null
     author?: boolean
   }
-  lobby: number
+  lobby?: number // no longer read: every shwarm is live once it's posted (decided Oct 9, "No lobby")
   builds_on?: string | { name: string; url?: string; license: string } | null
   sources?: string[]
   why_now?: string | null
   size?: string
   needs_humans?: string | null
   risk_notes?: string | null
-  variant_of?: string // optional: the slug of the launch shwarm this one is a variant of
+  variant_of?: string // no longer read: variants are dropped (decided Oct 9); the entry goes in as a plain shwarm
 }
 
 export type NoteKind = 'changed' | 'normalized' | 'dropped' | 'warning' | 'failed'
@@ -46,7 +46,7 @@ const KNOWN_RUNS = new Set(['command', 'count', 'description'])
 const KNOWN_PEOPLE = new Set(['count', 'human', 'instructions'])
 
 /** Fields the import never copies: risk notes stay private (table B); the rest has no place on a node yet. */
-export const NOT_IMPORTED = ['wave', 'category', 'size', 'needs_humans', 'risk_notes'] as const
+export const NOT_IMPORTED = ['wave', 'category', 'size', 'needs_humans', 'risk_notes', 'lobby', 'variant_of'] as const
 
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/
 const TAG_RE = /^[a-z0-9][a-z0-9-]{0,31}$/
@@ -388,7 +388,7 @@ function isHttpUrl(s: unknown): s is string {
 
 /**
  * The pinned first post. It is never the status line (table B #40, A18: core/stats isSeedSourcesPost); a seeded
- * lobby shows its recorded state until the author pins a post of their own.
+ * shwarm shows its recorded state until the author pins a post of their own.
  */
 export function pinnedPostText(sources: string[], buildsOnText: string | null): string | null {
   const parts: string[] = []
@@ -397,20 +397,7 @@ export function pinnedPostText(sources: string[], buildsOnText: string | null): 
   return parts.length ? parts.join('\n\n') : null
 }
 
-/**
- * A launch shwarm that is a variant of another: an explicit `variant_of` slug, or else a #variant tag plus a
- * title that starts with the other one's title and a colon ("minecraft in doom: survival").
- */
-function variantOf(e: Partial<LaunchShwarm> & { variant_of?: unknown }, all: unknown[]): { slug: string | null; note: Note | null } {
-  if (typeof e.variant_of === 'string') return { slug: e.variant_of, note: null }
-  if (!Array.isArray(e.tags) || !e.tags.some(t => t === '#variant' || t === 'variant')) return { slug: null, note: null }
-  const title = String(e.title ?? '')
-  const parent = all.find((x): x is LaunchShwarm => !!x && typeof x === 'object' && (x as LaunchShwarm).slug !== e.slug && title.startsWith(`${(x as LaunchShwarm).title}:`))
-  if (!parent) return { slug: null, note: { field: 'kind', kind: 'warning', text: 'tagged #variant, but no other launch shwarm\'s title starts this one; imported as a plain shwarm' } }
-  return { slug: parent.slug, note: { field: 'kind', kind: 'changed', text: `imported as a variant of ${parent.slug} (from its #variant tag and its title)` } }
-}
-
-export function mapLaunchShwarm(raw: unknown, all: unknown[] = []): MappedShwarm {
+export function mapLaunchShwarm(raw: unknown): MappedShwarm {
   const notes: Note[] = []
   const fail = (field: string, text: string) => notes.push({ field, kind: 'failed', text })
   const e = (raw && typeof raw === 'object' ? raw : {}) as Partial<LaunchShwarm>
@@ -494,10 +481,6 @@ export function mapLaunchShwarm(raw: unknown, all: unknown[] = []): MappedShwarm
     if (tags.length > 8) fail('tags', 'more than 8 tags')
   }
 
-  const lobby = e.lobby
-  if (!Number.isInteger(lobby) || (lobby as number) < 1) fail('lobby', 'lobby must be a whole number from 1')
-  else if (lobby !== 2) notes.push({ field: 'lobby', kind: 'warning', text: `lobby is ${lobby}; A18 seeds lobby 2. kept as written` })
-
   const b = parseBuildsOn(e.builds_on)
   notes.push(...b.notes)
 
@@ -511,19 +494,16 @@ export function mapLaunchShwarm(raw: unknown, all: unknown[] = []): MappedShwarm
   if (pinned) notes.push({ field: 'pinned post', kind: 'changed', text: `${sources.length} source${sources.length === 1 ? '' : 's'}${b.keepText && typeof e.builds_on === 'string' ? ', plus the builds-on text as written' : ''}` })
   else notes.push({ field: 'pinned post', kind: 'warning', text: 'no sources, so no pinned post' })
 
-  const v = variantOf(e, all)
-  if (v.note) notes.push(v.note)
-  if (v.slug !== null && !SLUG_RE.test(v.slug)) fail('variant_of', `${q(v.slug)} is not a slug`)
+  // Variants are dropped (decided Oct 9): one named as such goes in as a plain shwarm, its #variant tag kept as a tag.
+  if (typeof e.variant_of === 'string') notes.push({ field: 'variant_of', kind: 'dropped', text: 'variants are dropped; imported as a plain shwarm' })
   const input: CreateNodeInput = {
-    kind: v.slug ? 'variant' : 'shwarm',
-    ...(v.slug ? { variantOf: v.slug } : {}),
+    kind: 'shwarm',
     slug,
     title,
     what,
     doneWhen,
     check,
     tags,
-    lobby: lobby as number,
     ...(b.buildsOn ? { buildsOn: b.buildsOn } : {}),
   }
   return { slug, wave: typeof e.wave === 'number' ? e.wave : null, input, pinned, notes }

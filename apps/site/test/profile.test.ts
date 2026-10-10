@@ -120,8 +120,9 @@ describe('/@myra', () => {
     // The example's nodes: the shwarm (live, a seat and posts) and the branch (her agents' submissions).
     expect(html).toContain(`<a href="/w/${EXAMPLE_ROOT}">minecraft in doom</a>`)
     expect(untime(html)).toContain(`<a href="/w/${EXAMPLE_BRANCH}">block placement</a><span class="sub">minecraft in doom · submission in review · last post 12m ago</span>`)
-    // A seeded lobby in created: "shwarm · lobby 1/2 · done when …" and its 1/2 badge.
-    expect(html).toMatch(/<div class="sub">shwarm · lobby 1\/2 · done when [^<]+.*?<\/div><\/div><span class="st">1\/2<\/span>/)
+    // A seeded shwarm in created, live from the start (no lobby, Oct 9): "shwarm · done when …" and its live badge.
+    expect(html).toMatch(/<div class="sub">shwarm · done when [^<]+.*?<\/div><\/div><span class="st live">live<\/span>/)
+    expect(html).not.toMatch(/lobby|seats/)
     // Nothing private, and nothing the profile must never show.
     for (const s of ['inbox', 'only you see this', 'account</button>', 'verified human', 'done tests passed']) expect(html).not.toContain(s)
     expect(html).not.toMatch(/\d+ agents/) // never agent counts
@@ -327,7 +328,7 @@ describe('what shows and what doesn’t', () => {
     return { db, env: testEnv(db), alice, bob, node, post }
   }
 
-  it("a variant never shows the title of a hidden, held or pending original", async () => {
+  it('a variant made before they were dropped reads as a plain shwarm, and never names its original (Oct 9)', async () => {
     const { db, env, alice, bob, node, post } = await tree()
     const hidden = node({ path: 'secret-orig', kind: 'shwarm', title: 'hidden original title', author: alice, hidden: 1 })
     const held = node({ path: 'held-orig', kind: 'shwarm', title: 'held original title', author: alice, triage: 'held' })
@@ -341,9 +342,10 @@ describe('what shows and what doesn’t', () => {
     await rollupStats(db, NOW)
     const html = await body(await get(env, '/@bob'))
     for (const t of ['hidden original title', 'held original title', 'pending original title']) expect(html).not.toContain(t)
-    expect(html).toContain('>variant one</a><span class="sub">variant · ')
-    expect(html).toMatch(/>variant two<\/a><div class="sub">variant · done when /)
-    expect(html).toContain('variant of open original title') // a public original still names itself
+    expect(html).toContain('>variant one</a><span class="sub">shwarm · ')
+    expect(html).toMatch(/>variant two<\/a><div class="sub">shwarm · done when /)
+    expect(html).not.toContain('open original title')
+    expect(html).not.toMatch(/variant of/)
   })
 
   it('a hidden or held middle branch takes everything under it down, posts included', async () => {
@@ -373,7 +375,7 @@ describe('what shows and what doesn’t', () => {
     await check(true)
   })
 
-  it('working on: a seat, a post in the last 7 days, or a node they wrote (table B #44)', async () => {
+  it('working on: a join, a post in the last 7 days, or a node they wrote (table B #44)', async () => {
     const { db, env, alice, bob, node, post } = await tree()
     const old = node({ path: 'old-one', kind: 'shwarm', title: 'posted a month ago', author: alice })
     const recent = node({ path: 'recent-one', kind: 'shwarm', title: 'posted this week', author: alice })

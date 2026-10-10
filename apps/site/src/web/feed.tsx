@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import type { FC } from 'hono/jsx'
-import { firstLine, impactBar } from '../core/stats'
+import { impactBar } from '../core/stats'
 import { loadFeed, queryText, TABS, type Feed, type FeedCard, type FeedTab } from '../read/feed'
 import { ago, countNum, exactTime, perDay, shortNum } from '../render/numbers'
 import { LINK_REL, linkParts, Name, Text } from '../render/text'
@@ -91,12 +91,10 @@ const Empty: FC<{ feed: Feed; q: string }> = ({ feed, q }) => (
       <p>that's all of them. <a href={feedHref(feed.tab, q)}>back to the top</a></p>
     ) : q ? (
       <p>no shwarms match that search. <a href={feedHref(feed.tab)}>clear the search</a></p>
-    ) : feed.tab === 'filling' ? (
-      <p>no lobbies are filling right now. <a href="/new">start a shwarm</a></p>
     ) : feed.tab === 'closed' ? (
       <p>nothing has closed yet. a shwarm shows up here when its done test passes, or when its author calls it a dead end.</p>
     ) : feed.tab === 'hot' ? (
-      <p>nothing is live or filling right now. <a href={feedHref('closed')}>see what closed</a> or <a href="/new">start a shwarm</a></p>
+      <p>nothing is live right now. <a href={feedHref('closed')}>see what closed</a> or <a href="/new">start a shwarm</a></p>
     ) : (
       <p>no shwarms yet. <a href="/new">start the first one</a></p>
     )}
@@ -104,8 +102,6 @@ const Empty: FC<{ feed: Feed; q: string }> = ({ feed, q }) => (
 )
 
 // ---------- cards ----------
-
-export const PITCH_MAX = 200 // OPEN: no length is decided for the feed's one-line pitch
 
 const Ago: FC<{ at: string; now: number }> = ({ at, now }) => <time datetime={at} title={exactTime(at)}>{ago(at, now)}</time>
 
@@ -139,10 +135,9 @@ const Heat: FC<{ card: FeedCard; mark: boolean }> = ({ card, mark }) => {
 }
 
 const Say: FC<{ card: FeedCard }> = ({ card }) =>
-  card.statusLine || card.variantOf ? (
+  card.statusLine ? (
     <div class="say">
-      {card.variantOf && <>variant of <a href={nodeHref(card.variantOf.path)}><Name name={card.variantOf.title} /></a>.{card.statusLine ? ' ' : ''}</>}
-      {card.statusLine && <Text inline text={card.statusLine} />}
+      <Text inline text={card.statusLine} />
     </div>
   ) : null
 
@@ -156,26 +151,6 @@ const Title: FC<{ card: FeedCard }> = ({ card }) => (
 )
 
 export const Card: FC<{ card: FeedCard; now: number }> = ({ card, now }) => {
-  if (card.state === 'lobby') {
-    const size = Math.max(1, card.lobbySize)
-    return (
-      <li class="lobby">
-        <div class="heat" title="seats filled">
-          {countNum(card.seats)}<small>of {countNum(card.lobbySize)} seats</small>
-          <span class="fill" style={`--f:${Math.min(1, card.seats / size).toFixed(3)}`}></span>
-        </div>
-        <div>
-          <Title card={card} />
-          <div class="pitch"><Text inline text={firstLine(card.what, PITCH_MAX)} /></div>
-          <div class="done sm">Done when: <Text inline text={card.doneWhen} /></div>
-          <Say card={card} />
-          <div class="meta"><Tags tags={card.tags} /> · started by <Name name={card.postedBy} /> · <Ago at={card.at} now={now} /></div>
-        </div>
-        {/* OPEN: joining is a write (phase 4); until then "join now" opens the shwarm's page. */}
-        <div class="right"><a class="join" href={nodeHref(card.path)}>join now</a></div>
-      </li>
-    )
-  }
   const dead = card.state === 'dead_end'
   return (
     <li>

@@ -13,7 +13,7 @@ const MID = 'minecraft-in-doom'
 /** One spec per distinct mix: run count, people count, at least one human, author. Commands and words don't matter here. */
 const mixes = new Map<string, { spec: CheckSpec; slugs: string[] }>()
 for (const e of LIST) {
-  const spec = parseCheckSpec(mapLaunchShwarm(e, LIST).input.check)
+  const spec = parseCheckSpec(mapLaunchShwarm(e).input.check)
   const key = `runs ${spec.runs?.count ?? 0} · people ${spec.people?.count ?? 0}${spec.people?.human ? ' (one human)' : ''}${spec.author ? ' · author' : ''}`
   const m = mixes.get(key) ?? { spec, slugs: [] }
   m.slugs.push(e.slug)
@@ -28,7 +28,7 @@ async function world(spec: CheckSpec): Promise<{ w: World } & Crowd> {
   const kestrel = await person(w.db, 'kestrel')
   const others: P[] = []
   for (const h of ['lumpy', 'finn_irl', 'marceline', 'tallgrass', 'bmo_fan', 'gunter']) others.push(await person(w.db, h))
-  await w.shwarm(site(myra), { check: spec, lobby: 2 })
+  await w.shwarm(site(myra), { check: spec })
   await w.join(site(kestrel), MID)
   return { w, myra, kestrel, others }
 }

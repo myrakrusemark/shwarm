@@ -3,8 +3,8 @@
 // A node shows when it isn't hidden and triage cleared it, or it's one of the seeded launch shwarms (Myra cleared
 // those by proofreading them). A node still being checked ('pending'), held or blocked shows only to its author,
 // and a hidden one never shows. A branch shows only while every node above it shows too: its root and each branch
-// between (a hidden middle branch takes its whole subtree down). Variants stand alone: a hidden original doesn't
-// hide its variants, but its title isn't shown on them (see PUBLIC_NODE on the joined original).
+// between (a hidden middle branch takes its whole subtree down). The variants made before they were dropped (Oct 9)
+// stand alone, as shwarms.
 
 /** SQL: node alias `n` itself is open to everyone (no ancestors checked). */
 // A seeded shwarm counts as cleared only while its triage is still 'pending'; once held or blocked it hides like any other.

@@ -30,13 +30,13 @@ async function sweep(w: World, now = w.now) {
   return { ...r, mails: sent }
 }
 
-/** @myra's live shwarm (a lobby of one, cleared by triage), with @ana and @bob around. */
+/** @myra's live shwarm (live at once, cleared by triage), with @ana and @bob around. */
 async function live() {
   const w = new World()
   const myra = await person(w.db, 'myra')
   const ana = await person(w.db, 'ana')
   const bob = await person(w.db, 'bob')
-  const { path } = await w.shwarm(site(myra), { lobby: 1 })
+  const { path } = await w.shwarm(site(myra))
   clear(w, path)
   return { w, myra, ana, bob, path }
 }
@@ -78,10 +78,8 @@ describe('the templates (6.3, 4.4)', () => {
     expect(() => renderMail('digest', { handle: 'bob', items: [] }, notice('mention'))).toThrow(MailRenderError)
   })
 
-  it('kickoff, pass, fail and reopen say what the inbox item says', () => {
-    const k = renderMail('kickoff', { handle: 'bob', title: 'minecraft in doom', link: '/w/minecraft-in-doom', seats: 2 }, notice('kickoff'))
-    expect(k.subject).toBe('minecraft in doom is live')
-    expect(k.text).toContain("the lobby for minecraft in doom filled, so it's live now. branches and submissions are open.")
+  it('pass, fail and reopen say what the inbox item says; the kickoff mail is gone (no lobby, Oct 9)', () => {
+    expect(() => renderMail('kickoff', { handle: 'bob', title: 'minecraft in doom', link: '/w/minecraft-in-doom', seats: 2 }, notice('kickoff'))).toThrow(MailRenderError)
     const news = (p: Record<string, unknown>) => renderMail('node_news', { handle: 'bob', title: 'minecraft in doom', link: '/w/minecraft-in-doom/s/2', ...p }, notice('pass and fail'))
     expect(news({ event: 'passed', number: 2 })).toMatchObject({ subject: 'minecraft in doom passed' })
     expect(news({ event: 'passed', number: 2 }).text).toContain('minecraft in doom passed on #2.')
@@ -92,7 +90,7 @@ describe('the templates (6.3, 4.4)', () => {
     expect(news({ event: 'passed', number: 2 }).text).toContain('you get this because pass and fail mails are on.')
     expect(() => news({ event: 'exploded' })).toThrow(MailRenderError)
     expect(() => news({ event: 'passed' })).toThrow(MailRenderError)
-    for (const m of [k, news({ event: 'passed', number: 2 }), news({ event: 'reopened' })]) {
+    for (const m of [news({ event: 'passed', number: 2 }), news({ event: 'reopened' })]) {
       expect(lower(m.text)).toBe(lower(m.text).toLowerCase())
       expect(m.text + m.html).not.toMatch(/[—–]/)
     }
@@ -191,7 +189,7 @@ describe('mentions (6.3)', () => {
     const ana = await person(w.db, 'ana')
     const bob = await person(w.db, 'bob')
     prefs(w, bob, { inbox_every: 'now' })
-    const { path } = await w.shwarm(site(ana), { lobby: 1 }) // 'pending': only ana sees it
+    const { path } = await w.shwarm(site(ana)) // 'pending': only ana sees it
     await w.post(site(ana), path, '@bob look at this')
     w.tick(MIN)
     expect(await sweep(w)).toMatchObject({ sent: 0, skipped: 0, retrying: 1 })
@@ -278,26 +276,16 @@ describe('the daily digest (6.3)', () => {
   })
 })
 
-describe('kickoff (4.4) and passes, fails and reopenings (6.3)', () => {
-  it('the lobby filling mails everyone seated, in the kickoff batch, honouring the setting', async () => {
+describe('no kickoff (decided Oct 9), and passes, fails and reopenings (6.3)', () => {
+  it('starting and joining a shwarm mail no one', async () => {
     const w = new World()
     const myra = await person(w.db, 'myra')
     const ana = await person(w.db, 'ana')
-    const bob = await person(w.db, 'bob')
-    const { path } = await w.shwarm(site(myra), { lobby: 3 })
-    prefs(w, ana, { kickoff: false })
+    const { path } = await w.shwarm(site(myra))
     await w.join(site(ana), path)
-    expect(outbox(w, 'kickoff')).toEqual([])
-    await w.join(site(bob), path)
-    const rows = outbox(w, 'kickoff')
-    expect(rows.map(r => r.person_id).sort()).toEqual([myra.id, bob.id].sort())
-    expect(rows[0].payload).toEqual({ notice: 'kickoff', handle: rows[0].person_id === myra.id ? 'myra' : 'bob', title: 'minecraft in doom', path, link: `/w/${path}`, seats: 3 })
-    // a late joiner starts no second kickoff
     await w.join(site(await person(w.db, 'cy')), path)
-    expect(outbox(w, 'kickoff')).toHaveLength(2)
-    // the node is still being checked, so the sweep holds it back from everyone but its author
-    const r = await sweep(w)
-    expect(r.mails.map(m => m.to[0])).toEqual(['myra@example.org'])
+    expect(w.all('SELECT template FROM email_outbox')).toEqual([])
+    expect(w.all('SELECT 1 FROM inbox_item')).toEqual([])
   })
 
   it('off by default; on, the people in the node hear of a fail, a pass, and a reopening either way', async () => {

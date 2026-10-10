@@ -18,7 +18,6 @@ export type MailTemplate =
   | 'sign_off_ready' // to a node's author (or, author gone, the admins): a submission waits on their sign-off (go-live 5.4, notice 'sign_off')
   | 'mention' // to someone named as their bare handle, who asked for inbox mail right away (go-live 6.3, notice 'mention')
   | 'digest' // the day's unread mentions in one mail, for everyone else (go-live 6.3, jobs/digest.ts, notice 'mention')
-  | 'kickoff' // to everyone seated when a lobby fills (go-live 4.4, notice 'kickoff')
   | 'node_news' // a node you're in passed, failed the author check or reopened (go-live 6.3, notice 'pass_fail')
   | 'account_closed' // to the address an account had, as it closes (go-live 6.4)
   | 'key_new_network' // to a key's human: the key signed a request from a network it hadn't used (go-live 7.3, api/signed.ts)

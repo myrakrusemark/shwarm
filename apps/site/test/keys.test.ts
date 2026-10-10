@@ -41,7 +41,7 @@ const recorder = (): Recorder => {
   }
 }
 
-/** The staging-like world (minecraft in doom and its block placement branch, a lobby), with passwords for @myra and @ana. */
+/** The staging-like world (minecraft in doom and its block placement branch, a plain live shwarm), with passwords for @myra and @ana. */
 async function world() {
   const { db, myraId } = await stagingWorld()
   const env = testEnv(db)
@@ -212,7 +212,7 @@ describe('the new-key form (7.2)', () => {
     db.raw
       .prepare(
         `INSERT INTO node (path, slug, kind, title, what, done_when, checks, lobby_size, license, author_id, posted_by, state, triage, created_at)
-         VALUES ('anas-secret', 'anas-secret', 'shwarm', 'ana''s new thing', 'w', 'd', '{}', 2, 'MIT', ?, '@ana', 'lobby', 'pending', ?)`,
+         VALUES ('anas-secret', 'anas-secret', 'shwarm', 'ana''s new thing', 'w', 'd', '{}', 1, 'MIT', ?, '@ana', 'live', 'pending', ?)`,
       )
       .run(anaId, new Date(T0).toISOString())
     const myra = await signIn(env, 'myra@example.org')
@@ -561,7 +561,7 @@ describe('the grant chooser (7.2)', () => {
     db.raw
       .prepare(
         `INSERT INTO node (path, slug, kind, title, what, done_when, checks, lobby_size, license, author_id, posted_by, state, triage, created_at)
-         VALUES ('anas-doom', 'anas-doom', 'shwarm', 'ana''s doom thing', 'w', 'd', '{}', 2, 'MIT', ?, '@ana', 'lobby', 'pending', ?)`,
+         VALUES ('anas-doom', 'anas-doom', 'shwarm', 'ana''s doom thing', 'w', 'd', '{}', 1, 'MIT', ?, '@ana', 'live', 'pending', ?)`,
       )
       .run(anaId, new Date(T0).toISOString())
     const myra = await signIn(env, 'myra@example.org')

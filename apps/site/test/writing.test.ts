@@ -1,12 +1,12 @@
 // Go-live 4.4 and 4.5: the page's forms. Posting from the compose box (limit line, the inline 429 with the wait,
-// mentions to the inbox, double clicks), and joining and leaving a lobby (kickoff when the last seat fills).
+// mentions to the inbox, double clicks), and joining and leaving a shwarm (working on it; no lobby since Oct 9).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { hashPassword } from '../src/auth/password'
 import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
 import { resetReadLimit } from '../src/web/read-limit'
 import { addPerson, T0 } from './d1'
 import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv } from './browser'
-import { LOBBY, stagingWorld } from './node-fixture'
+import { PLAIN, stagingWorld } from './node-fixture'
 
 beforeEach(() => {
   vi.stubGlobal('fetch', fakeFetch())
@@ -126,15 +126,17 @@ describe('submitting from the compose box (5.1)', () => {
   const subCount = (q: (sql: string, ...a: unknown[]) => unknown) =>
     (q('SELECT COUNT(*) AS n FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ?', BRANCH) as { n: number }).n
 
-  it('a verified member sees the submit mode on a live node, not on a lobby', async () => {
-    const { env } = await world()
+  it('a verified member sees the submit mode on a live node, a new launch shwarm too (no lobby), not on an ended one', async () => {
+    const { env, db } = await world()
     const { b } = await member(env, 'ana')
     const html = await body(await b.req(`/w/${BRANCH}`, { headers: HTML }))
     expect(html).toContain('<summary>submit work against the done test</summary>')
     expect(html).toContain('<button class="btn" type="submit" name="do" value="submit">submit</button>')
     expect(html).toContain('<button class="btn plain" type="submit" name="do" value="post">post</button>')
     expect(html).not.toMatch(/<details class="submit" open/)
-    expect(await body(await b.req(`/w/${LOBBY}`, { headers: HTML }))).not.toContain('submit work against the done test')
+    expect(await body(await b.req(`/w/${PLAIN}`, { headers: HTML }))).toContain('submit work against the done test')
+    db.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'x' WHERE path = ?").run(PLAIN)
+    expect(await body(await b.req(`/w/${PLAIN}`, { headers: HTML }))).not.toContain('submit work against the done test')
   })
 
   it('submits with links, built on, how to check and release fields, and lands on the new submission', async () => {
@@ -212,16 +214,13 @@ describe('submitting from the compose box (5.1)', () => {
     expect(subCount(q)).toBe(2)
   })
 
-  it('signed out goes to sign-in; an expired form is refused; a lobby and a closed node take no submissions', async () => {
+  it('signed out goes to sign-in; an expired form is refused; a closed node takes no submissions', async () => {
     const { env, db, q } = await world()
     const out = await new Browser(env).req(`/w/${BRANCH}`, { form: form() })
     expect(out.status).toBe(303)
     expect(out.headers.get('location')).toBe(`/signin?next=${encodeURIComponent('/w/' + BRANCH)}`)
     const { b } = await member(env, 'ana')
     expect((await b.req(`/w/${BRANCH}`, { form: { form_token: 'expired', ...form() } })).status).toBe(403)
-    const lobby = await act(b, LOBBY, form())
-    expect(lobby.status).toBe(400)
-    expect(await body(lobby)).toContain('is still a lobby. submissions open at kickoff.')
     db.raw.prepare("UPDATE node SET state = 'closed' WHERE path = ?").run(BRANCH)
     const token = formTokenIn(await (await b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML })).text())
     const closed = await b.req(`/w/${BRANCH}`, { form: { form_token: token, ...form() } })
@@ -231,37 +230,46 @@ describe('submitting from the compose box (5.1)', () => {
   })
 })
 
-describe('seats (4.4)', () => {
-  it('joining the last seat kicks off the lobby', async () => {
+describe('join and leave (4.4, decided Oct 9)', () => {
+  it('joining a new launch shwarm says you are working on it; it was live already', async () => {
     const { env, q } = await world()
-    const before = q('SELECT state FROM node WHERE path = ?', LOBBY) as { state: string }
-    expect(before.state).toBe('lobby')
+    expect((q('SELECT state FROM node WHERE path = ?', PLAIN) as { state: string }).state).toBe('live')
     const { b } = await member(env, 'ana')
-    expect(await body(await b.req(`/w/${LOBBY}`, { headers: HTML }))).toContain('join this lobby')
-    const res = await act(b, LOBBY, { do: 'join' })
+    expect(await body(await b.req(`/w/${PLAIN}`, { headers: HTML }))).toContain("join to say you're working on this.")
+    const res = await act(b, PLAIN, { do: 'join' })
     expect(res.status).toBe(303)
-    expect(res.headers.get('location')).toBe(`/w/${LOBBY}`)
-    expect((q('SELECT state FROM node WHERE path = ?', LOBBY) as { state: string }).state).toBe('live')
+    expect(res.headers.get('location')).toBe(`/w/${PLAIN}`)
+    expect((q('SELECT state FROM node WHERE path = ?', PLAIN) as { state: string }).state).toBe('live')
+    expect((q("SELECT COUNT(*) AS n FROM audit_event a JOIN node n ON n.id = a.node_id WHERE n.path = ?", PLAIN) as { n: number }).n).toBe(0)
+    // a double click changes nothing
+    expect((await act(b, PLAIN, { do: 'join' })).status).toBe(303)
+    expect((q("SELECT COUNT(*) AS n FROM seat s JOIN node n ON n.id = s.node_id WHERE n.path = ? AND s.left_at IS NULL", PLAIN) as { n: number }).n).toBe(2)
   })
 
-  it('leaves before kickoff, and the author can\'t leave', async () => {
-    const { env, q, db } = await world()
-    db.raw.prepare('UPDATE node SET lobby_size = 3 WHERE path = ?').run(LOBBY)
+  it("leaves any time while it's live, and the author can't leave", async () => {
+    const { env, q } = await world()
     const { b } = await member(env, 'ana')
-    await act(b, LOBBY, { do: 'join' })
-    const html = await body(await b.req(`/w/${LOBBY}`, { headers: HTML }))
-    expect(html).toContain("you're in seat")
-    expect(html).toContain('leave this lobby')
-    expect((await act(b, LOBBY, { do: 'leave' })).status).toBe(303)
-    expect((q("SELECT COUNT(*) AS n FROM seat s JOIN node n ON n.id = s.node_id WHERE n.path = ? AND s.left_at IS NULL", LOBBY) as { n: number }).n).toBe(1)
+    await act(b, PLAIN, { do: 'join' })
+    const html = await body(await b.req(`/w/${PLAIN}`, { headers: HTML }))
+    expect(html).toContain("you're working on this.")
+    expect(html).toContain('<button class="linkish" type="submit">leave</button>')
+    expect((await act(b, PLAIN, { do: 'leave' })).status).toBe(303)
+    expect((q("SELECT COUNT(*) AS n FROM seat s JOIN node n ON n.id = s.node_id WHERE n.path = ? AND s.left_at IS NULL", PLAIN) as { n: number }).n).toBe(1)
+    // the author's forged leave says why, at the top (the author's box has no leave)
+    const author = new Browser(env)
+    env.DB.raw.prepare('UPDATE person SET password_hash = ? WHERE handle = ?').run(await hashPassword(GOOD_PASSWORD, pepper, 1000), 'myra')
+    expect((await author.post('/signin', { email: 'myra@example.org', password: GOOD_PASSWORD })).status).toBe(303)
+    const res = await act(author, PLAIN, { do: 'leave' })
+    expect(res.status).toBe(400)
+    expect(await body(res)).toContain("the author can't leave their own shwarm.")
   })
 
-  it('a refused join says why next to the seats', async () => {
+  it('a refused join says why next to it', async () => {
     const { env, db } = await world()
-    db.raw.prepare("UPDATE node SET state = 'closed' WHERE path = ?").run(LOBBY)
+    db.raw.prepare("UPDATE node SET state = 'closed' WHERE path = ?").run(PLAIN)
     const { b } = await member(env, 'ana')
     const token = formTokenIn(await (await b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML })).text())
-    const res = await b.req(`/w/${LOBBY}`, { form: { form_token: token, do: 'join' } })
+    const res = await b.req(`/w/${PLAIN}`, { form: { form_token: token, do: 'join' } })
     expect(res.status).toBe(400)
     expect(await body(res)).toMatch(/class="err[^"]*" role="alert">[^<]*closed/)
   })
@@ -273,15 +281,15 @@ describe('signed-out actions go to sign-in and back (4.1)', () => {
     const pid = await addPerson(env.DB, 'ana', { hash: await hashPassword(GOOD_PASSWORD, pepper, 1000) })
     env.DB.raw.prepare('UPDATE person SET email_verified_at = ? WHERE id = ?').run(new Date(T0).toISOString(), pid)
     const out = new Browser(env)
-    const lobby = await body(await out.req(`/w/${LOBBY}`, { headers: HTML }))
+    const plain = await body(await out.req(`/w/${PLAIN}`, { headers: HTML }))
     const post = await body(await out.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML }))
     const start = await out.get('/new')
     const legs: [string, string][] = [
-      ['join', `/w/${LOBBY}`],
+      ['join', `/w/${PLAIN}`],
       ['post', `/w/${EXAMPLE_ROOT}`],
       ['start a shwarm', '/new'],
     ]
-    expect(lobby).toContain(`href="/signin?next=${encodeURIComponent(`/w/${LOBBY}`)}">join this lobby`)
+    expect(plain).toContain(`href="/signin?next=${encodeURIComponent(`/w/${PLAIN}`)}">join</a>`)
     expect(post).toContain(`href="/signin?next=${encodeURIComponent(`/w/${EXAMPLE_ROOT}`)}">sign in</a>`)
     expect(start.headers.get('location')).toBe('/signin?next=%2Fnew')
     for (const [what, next] of legs) {

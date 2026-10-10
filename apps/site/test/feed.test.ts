@@ -2,7 +2,7 @@
 // operators and stray quotes that must never give a 500.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import app from '../src/index'
-import { hotMix } from '../src/core/stats'
+import { byScore } from '../src/core/stats'
 import { rollupStats } from '../src/jobs/stats'
 import { decodeCursor, encodeCursor, ftsQuery, loadFeed, parseQuery, PAGE_SIZE } from '../src/read/feed'
 import { ago, countNum, perDay, shortNum } from '../src/render/numbers'
@@ -25,8 +25,8 @@ const iso = (ms: number) => new Date(ms).toISOString()
 
 type NodeOpts = {
   title: string
-  state?: 'lobby' | 'live' | 'closed' | 'dead_end'
-  kind?: 'shwarm' | 'variant' | 'branch'
+  state?: 'live' | 'closed' | 'dead_end'
+  kind?: 'shwarm' | 'variant' | 'branch' // 'variant': a row made before variants were dropped (Oct 9)
   parent?: number
   variantOf?: number
   tags?: string[]
@@ -36,8 +36,7 @@ type NodeOpts = {
   created?: number
   changed?: number
   closed?: number
-  lobby?: number
-  seats?: number
+  seats?: number // people who joined, the author first
   score?: number
   statsAt?: number
   upvotes?: number
@@ -64,7 +63,7 @@ class Rows {
   }
   node(o: NodeOpts): number {
     const kind = o.kind ?? 'shwarm'
-    const state = o.state ?? (kind === 'branch' ? 'live' : 'lobby')
+    const state = o.state ?? 'live'
     const slug = o.title.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `n${this.n}`
     const parentPath = o.parent ? this.db.raw.prepare('SELECT path FROM node WHERE id = ?').get(o.parent).path : null
     const path = parentPath ? `${parentPath}/${slug}` : slug
@@ -85,7 +84,7 @@ class Rows {
         o.title,
         o.what ?? `why ${o.title} matters.\nmore detail below.`,
         o.doneWhen ?? `${o.title} is done.`,
-        kind === 'branch' ? null : (o.lobby ?? 2),
+        kind === 'branch' ? null : 1, // lobby_size: no longer read, still wanted by the schema
         o.buildsOn === undefined ? null : JSON.stringify(o.buildsOn),
         this.author,
         o.postedBy ?? '@myra',
@@ -97,7 +96,7 @@ class Rows {
         iso(created),
         iso(o.changed ?? created),
         o.closed ? iso(o.closed) : null,
-        state === 'lobby' ? null : iso(created),
+        iso(created),
       )
     const id = Number(r.lastInsertRowid)
     for (const t of o.tags ?? (kind === 'branch' ? [] : ['games'])) this.db.raw.prepare('INSERT INTO node_tag (node_id, tag) VALUES (?, ?)').run(id, t)
@@ -165,9 +164,6 @@ async function tabFixture() {
   id.l5 = r.node({ title: 'live five', state: 'live', score: 10 })
   // a high score computed 24 hours ago has halved twice: 60 → 15, between four and five
   id.old = r.node({ title: 'live stale', state: 'live', score: 60, statsAt: T0 - 24 * HOUR })
-  // lobbies: by lobby score
-  id.b1 = r.node({ title: 'lobby one', score: 1, lobby: 5, seats: 4 })
-  id.b2 = r.node({ title: 'lobby two', score: 0.5, lobby: 10, seats: 2 })
   // closed and dead end
   id.c1 = r.node({ title: 'closed early', state: 'closed', closed: T0 - 5 * HOUR, score: 999 })
   id.c2 = r.node({ title: 'closed late', state: 'closed', closed: T0 - HOUR })
@@ -177,21 +173,22 @@ async function tabFixture() {
 }
 
 describe('tabs', () => {
-  it('hot: live by live score (brought to now) and lobbies by lobby score, 3 to 1, no closed cards', async () => {
+  it('hot: live by live score (brought to now), no closed cards', async () => {
     const { r } = await tabFixture()
-    expect(titles(await html(r.db, '/'))).toEqual(['live one', 'live two', 'live three', 'lobby one', 'live four', 'live stale', 'live five', 'lobby two'])
+    expect(titles(await html(r.db, '/'))).toEqual(['live one', 'live two', 'live three', 'live four', 'live stale', 'live five'])
   })
 
-  it('filling: lobbies only, closest to kickoff first', async () => {
+  it('no filling tab (decided Oct 9, "No lobby"): the bar is hot, new, closed, and ?tab=filling is hot', async () => {
     const { r } = await tabFixture()
     const h = await html(r.db, '/?tab=filling')
-    expect(titles(h)).toEqual(['lobby one', 'lobby two'])
-    expect(h).toContain('<a class="on" href="/?tab=filling" aria-current="page">filling</a>')
+    expect(titles(h)).toEqual(titles(await html(r.db, '/')))
+    expect([...h.matchAll(/<nav class="sort"[\s\S]*?<\/nav>/g)][0][0].match(/>(hot|new|closed|filling)<\/a>/g)).toEqual(['>hot</a>', '>new</a>', '>closed</a>'])
+    expect(h.slice(h.indexOf('<main'), h.indexOf('</main>'))).not.toMatch(/filling|lobby|seats/)
   })
 
   it('new: newest first, every state', async () => {
     const { r } = await tabFixture()
-    expect(titles(await html(r.db, '/?tab=new'))).toEqual(['dead end', 'closed late', 'closed early', 'lobby two', 'lobby one', 'live stale', 'live five', 'live four', 'live three', 'live two', 'live one'])
+    expect(titles(await html(r.db, '/?tab=new'))).toEqual(['dead end', 'closed late', 'closed early', 'live stale', 'live five', 'live four', 'live three', 'live two', 'live one'])
   })
 
   it('closed: passed and dead ends, newest first by when they ended', async () => {
@@ -206,9 +203,8 @@ describe('tabs', () => {
 
   it('empty states say why, per tab', async () => {
     const db = testDb()
-    expect(await html(db, '/')).toContain('nothing is live or filling right now. <a href="/?tab=closed">see what closed</a> or <a href="/new">start a shwarm</a>')
+    expect(await html(db, '/')).toContain('nothing is live right now. <a href="/?tab=closed">see what closed</a> or <a href="/new">start a shwarm</a>')
     expect(await html(db, '/?tab=new')).toContain('no shwarms yet. <a href="/new">start the first one</a>')
-    expect(await html(db, '/?tab=filling')).toContain('no lobbies are filling right now.')
     expect(await html(db, '/?tab=closed')).toContain('nothing has closed yet.')
     expect(await html(db, '/?q=zebra')).toContain('no shwarms match that search. <a href="/">clear the search</a>')
     const h = await html(db, '/?q=zebra')
@@ -221,7 +217,7 @@ describe('tabs', () => {
     r.node({ title: 'given up', state: 'dead_end', closed: T0 - 2 * HOUR })
     const h = await html(r.db, '/')
     expect(titles(h)).toEqual([])
-    expect(h).toContain('nothing is live or filling right now.')
+    expect(h).toContain('nothing is live right now.')
     expect(h).not.toContain('no shwarms yet')
     expect(titles(await html(r.db, '/?tab=closed'))).toEqual(['passed one', 'given up'])
   })
@@ -244,7 +240,7 @@ describe('search', () => {
     const r = await searchFixture()
     expect(titles(await html(r.db, '/?q=%23weird'))).toEqual(['minecraft in doom', 'printer-motor orchestra', 'moss-powered clock'])
     expect(titles(await html(r.db, '/?tag=weird'))).toEqual(['minecraft in doom', 'printer-motor orchestra', 'moss-powered clock'])
-    expect(titles(await html(r.db, '/?tab=filling&q=%23weird'))).toEqual(['moss-powered clock'])
+    expect(titles(await html(r.db, '/?tab=new&q=%23weird'))).toEqual(['moss-powered clock', 'printer-motor orchestra', 'minecraft in doom'])
     expect(titles(await html(r.db, '/?tab=closed&q=%23weird'))).toEqual([])
     expect(titles(await html(r.db, '/?q=%23WEIRD+%23music'))).toEqual(['printer-motor orchestra']) // every tag must match
     const x = await html(r.db, '/?q=%22%3E%3Cscript%3Ealert(1)%3C%2Fscript%3E')
@@ -252,7 +248,7 @@ describe('search', () => {
     expect(x).toContain('value="&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;"')
     const h = await html(r.db, '/?tag=weird')
     expect(h).toContain('value="#weird"') // the box shows the search
-    expect(h).toContain('<a href="/?tab=filling&amp;q=%23weird">filling</a>') // tabs keep it
+    expect(h).toContain('<a href="/?tab=new&amp;q=%23weird">new</a>') // tabs keep it
   })
 
   it('words match the title, pitch and done test, by prefix, all required', async () => {
@@ -291,7 +287,7 @@ describe('search', () => {
     const r = await searchFixture()
     for (const q of [...FUZZ, ...RAW]) {
       resetReadLimit() // the list is longer than the read cap's burst
-      for (const tab of ['', '&tab=filling', '&tab=new', '&tab=closed']) {
+      for (const tab of ['', '&tab=new', '&tab=closed']) {
         const res = await get(r.db, `/?q=${RAW.includes(q) ? q : encodeURIComponent(q)}${tab}`)
         expect(res.status, JSON.stringify(q.slice(0, 40)) + tab).toBe(200)
         await res.text()
@@ -343,28 +339,22 @@ describe('cursor paging', () => {
   it('ties on the order keys break by id, so equal rows still page cleanly', async () => {
     const r = await new Rows().init()
     for (let i = 0; i < 25; i++) r.node({ title: `same ${String(i).padStart(2, '0')}`, score: 1, created: T0 - HOUR })
-    const p1 = await html(r.db, '/?tab=filling')
+    const p1 = await html(r.db, '/')
     const p2 = await html(r.db, moreHref(p1)!)
     const seen = [...titles(p1), ...titles(p2)]
     expect(new Set(seen).size).toBe(25)
   })
 
-  it('hot: the pages put together are the full hot mix, 3 live to 1 lobby across page edges', async () => {
+  it('hot: the pages put together are every live shwarm by score, across page edges', async () => {
     const r = await new Rows().init()
     const live: { id: number; score: number; created_at: string; title: string }[] = []
-    const lobbies: typeof live = []
     for (let i = 0; i < 31; i++) {
       const title = `live ${String(i).padStart(2, '0')}`
       const score = (i * 7) % 31 // scrambled
       const id = r.node({ title, state: 'live', score })
       live.push({ id, score, title, created_at: r.db.raw.prepare('SELECT created_at FROM node WHERE id = ?').get(id).created_at })
     }
-    for (let i = 0; i < 6; i++) {
-      const title = `lobby ${i}`
-      const id = r.node({ title, score: i / 10 })
-      lobbies.push({ id, score: i / 10, title, created_at: r.db.raw.prepare('SELECT created_at FROM node WHERE id = ?').get(id).created_at })
-    }
-    const want = hotMix(live, lobbies).map(x => x.title)
+    const want = [...live].sort(byScore).map(x => x.title)
     const seen: string[] = []
     let href: string | null = '/'
     let pages = 0
@@ -382,10 +372,10 @@ describe('cursor paging', () => {
     const r = await new Rows().init()
     for (let i = 0; i < 3; i++) r.node({ title: `shwarm ${i}`, state: 'live' })
     const top = titles(await html(r.db, '/?tab=new'))
-    for (const after of [encodeCursor({ t: 'hot', at: 1e300, l: null, b: null }), encodeCursor({ t: 'hot', at: 1, l: ['x', 'y', 1], b: null })]) {
+    for (const after of [encodeCursor({ t: 'hot', at: 1e300, k: ['x', 'y', 1] }), encodeCursor({ t: 'hot', at: 1, k: ['x', 'y', 1] })]) {
       expect((await get(r.db, `/?after=${after}`)).status).toBe(200)
     }
-    for (const after of ['x', '!!!', 'eyJ0IjoibmV3In0', encodeCursor({ t: 'hot', at: T0, l: null, b: null }), 'a'.repeat(5000), btoa('{"t":"new","k":[{},"x",1]}')]) {
+    for (const after of ['x', '!!!', 'eyJ0IjoibmV3In0', encodeCursor({ t: 'hot', at: T0, k: ['x', 'y', 1] }), 'a'.repeat(5000), btoa('{"t":"new","k":[{},"x",1]}')]) {
       expect(titles(await html(r.db, `/?tab=new&after=${encodeURIComponent(after)}`)), after.slice(0, 20)).toEqual(top)
     }
     expect(decodeCursor(encodeCursor({ t: 'new', k: ['2026-10-08T00:00:00.000Z', '2026-10-08T00:00:00.000Z', 4] }), 'new')).toEqual({
@@ -405,18 +395,14 @@ describe('cursor paging', () => {
   it('a full page costs a few queries, however many cards (no N+1)', async () => {
     const r = await new Rows().init()
     for (let i = 0; i < 30; i++) r.node({ title: `live ${i}`, state: 'live', score: i, hot: i % 2 ? 1 : 0, upvotes: 30, posts: 3 })
-    for (let i = 0; i < 10; i++) r.node({ title: `lobby ${i}`, score: i })
     const seen: string[] = []
     const prepare = r.db.prepare.bind(r.db)
     r.db.prepare = ((sql: string) => (seen.push(sql), prepare(sql))) as typeof r.db.prepare
     const h = await html(r.db, '/')
     expect(titles(h)).toHaveLength(20)
-    expect(seen.length).toBeLessThanOrEqual(4) // settings, live, lobbies, cards
-    // The hot badge's ratio comes stored from the stats job: a view never reads a thread's posts or upvotes,
-    // and only a lobby card counts its seats.
-    for (const sql of seen) expect(sql).not.toMatch(/\b(FROM|JOIN) (post|upvote)\b/)
-    const cards = seen.find(sql => sql.includes('FROM seat'))!
-    expect(cards).toMatch(/CASE WHEN n\.state = 'lobby' THEN \(SELECT COUNT\(\*\) FROM seat/)
+    expect(seen.length).toBeLessThanOrEqual(3) // settings, live, cards
+    // The hot badge's ratio comes stored from the stats job: a view never reads a thread's posts, upvotes or joins.
+    for (const sql of seen) expect(sql).not.toMatch(/\b(FROM|JOIN) (post|upvote|seat)\b/)
   })
 })
 
@@ -436,7 +422,7 @@ describe('visibility', () => {
     r.node({ title: 'a branch', kind: 'branch', parent: root, triage: 'clear' })
     const hiddenOriginal = r.node({ title: 'gone original', state: 'live', hidden: 1 })
     r.node({ title: 'variant of gone', kind: 'variant', variantOf: hiddenOriginal, triage: 'clear' })
-    for (const tab of ['new', 'hot', 'closed', 'filling']) {
+    for (const tab of ['new', 'hot', 'closed']) {
       const h = await html(r.db, `/?tab=${tab}`)
       for (const t of ['unchecked', 'held', 'blocked', 'seeded but held', 'hidden', 'a branch', 'gone original']) expect(titles(h), `${tab}: ${t}`).not.toContain(t)
       expect(h).not.toContain('variant of <a')
@@ -480,14 +466,12 @@ async function example() {
     type: 'createNode',
     actor: site(tall),
     input: {
-      kind: 'variant',
-      variantOf: 'minecraft-in-doom',
+      kind: 'shwarm',
       title: 'minecraft in doom: survival',
       what: 'the original is a sandbox. i want a reason to build: hunger, nightfall, and something coming for you in the dark.\n\nmore below.',
       doneWhen: 'the minecraft in doom mod, plus hunger, a day/night cycle and monsters that spawn in the dark.',
       check: { author: true },
       tags: ['#weird', '#games'],
-      lobby: 12,
     },
   })
   await w.shwarm(seed(myra), { title: 'graph lemma, approach A', tags: ['#math', '#lean'] })
@@ -499,7 +483,7 @@ async function example() {
   for (const v of voters.slice(0, 4)) await w.post(site(v), 'graph-lemma-approach-a', 'checked it.')
   await w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: 'graph-lemma-approach-a', note: 'fails at the 4-cycle case. counterexample published. try B.' } })
   for (let i = 0; i < 24; i++) upvote(w, posts[i % 4], voters[i], T0 - HOUR)
-  w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE kind = 'variant'").run()
+  w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = 'minecraft-in-doom-survival'").run()
   w.now = T0
   await rollupStats(w.db, T0)
   return w
@@ -527,16 +511,19 @@ describe('cards', () => {
     expect(c).toContain('<div class="right"><span class="st live">live</span></div>')
   })
 
-  it('lobby: n of m seats with the fill bar, pitch, small done line, variant of, started by, join now', async () => {
+  it('a new shwarm is a live card at once; a variant made before they were dropped reads as a plain shwarm (decided Oct 9)', async () => {
     const w = await example()
-    const c = card(await html(w.db, '/?tab=filling'), 'minecraft in doom: survival')
-    expect(c).toMatch(/^<li class="lobby">/)
-    expect(c).toContain('<div class="heat" title="seats filled">1<small>of 12 seats</small><span class="fill" style="--f:0.083"></span></div>')
-    expect(c).toContain('<div class="pitch">the original is a sandbox. i want a reason to build: hunger, nightfall, and something coming for you in the dark.</div>')
-    expect(c).toContain('<div class="done sm">Done when: the minecraft in doom mod, plus hunger, a day/night cycle and monsters that spawn in the dark.</div>')
-    expect(c).toContain('<div class="say">variant of <a href="/w/minecraft-in-doom">minecraft in doom</a>. 11 seats from kickoff.</div>')
-    expect(c).toContain('started by @tallgrass · <time')
-    expect(c).toContain('<div class="right"><a class="join" href="/w/minecraft-in-doom-survival">join now</a></div>')
+    const c = card(await html(w.db, '/?tab=new'), 'minecraft in doom: survival')
+    expect(c).toMatch(/^<li>/)
+    expect(c).toContain('<div class="say">no submission yet.</div>')
+    expect(c).toContain('<div class="right"><span class="st live">live</span></div>')
+    expect(c).not.toMatch(/lobby|seats|kickoff|join now|variant/)
+    const r = await new Rows().init()
+    const orig = r.node({ title: 'the original', triage: 'clear' })
+    r.node({ title: 'an old variant', kind: 'variant', variantOf: orig, triage: 'clear', status: 'no submission yet.' })
+    const v = card(await html(r.db, '/?tab=new'), 'an old variant')
+    expect(v).toMatch(/^<li>/)
+    expect(v).not.toMatch(/variant of|the original/)
   })
 
   it('dead end: struck badge, no impact bar, the author plus the others', async () => {
@@ -563,8 +550,8 @@ describe('cards', () => {
     const myra = await person(w.db, 'myra')
     const bob = await person(w.db, 'bob')
     w.now = T0 - 20 * DAY
-    await w.shwarm(site(myra), { title: 'alpha', lobby: 2 })
-    await w.shwarm(site(myra), { title: 'beta', lobby: 2 })
+    await w.shwarm(site(myra), { title: 'alpha' })
+    await w.shwarm(site(myra), { title: 'beta' })
     w.db.raw.prepare("UPDATE node SET triage = 'clear'").run()
     await w.join(site(bob), 'alpha')
     await w.join(site(bob), 'beta')

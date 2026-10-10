@@ -251,7 +251,7 @@ describe('the page tallies are core tallies', () => {
   const LIST: any[] = JSON.parse(readFileSync(new URL('../../../docs/launch-shwarms.json', import.meta.url), 'utf8'))
   const mixes = new Map<string, CheckSpec>()
   for (const e of LIST) {
-    const spec = parseCheckSpec(mapLaunchShwarm(e, LIST).input.check)
+    const spec = parseCheckSpec(mapLaunchShwarm(e).input.check)
     mixes.set(JSON.stringify({ ...spec, runs: spec.runs?.count, people: spec.people && { count: spec.people.count, human: spec.people.human } }), spec)
   }
   const sub = (swap: boolean): SubmissionRow => ({ post_id: 'p_s', number: 1, hash: '0'.repeat(64), how_to_check: '', status: 'in_review', author_swap: swap ? 1 : 0, superseded_number: null, as_name: '@x/a', person_id: 9, created_at: '', ready_at: null })

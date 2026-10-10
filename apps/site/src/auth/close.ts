@@ -4,7 +4,8 @@
 //     and the address is free to sign up again.
 //   * every session ends, every emailed link stops working, the inbox and the mentions of the handle are deleted, the
 //     mail rows that hold the address go, and its keys are revoked (with the networks they were used from).
-//   * a seat in someone else's lobby is given up, so the lobby doesn't kick off on it. Seats after kickoff stay.
+//   * they stop working on every live shwarm they joined but didn't start (their join is given up, as "leave" does),
+//     so nobody shows as working on it under "former member". OPEN (#86): a builder's default since no lobby (Oct 9).
 //   * a sign-off waiting on them as an author goes to the operator (the author-gone rule, core/context.ts
 //     operatorSignOffStatements): every active admin gets the item and the mail, as for a sign-off asked for after they left.
 //   * one last mail goes to the address, so a closing they didn't make doesn't pass unseen. Its row lets go of the
@@ -24,10 +25,10 @@ export async function closeAccount(db: D1Database, personId: number, nowMs = Dat
   const ctx = ctxAt(db, nowMs)
   const p = await db.prepare("SELECT id, handle, email FROM person WHERE id = ? AND status = 'active'").bind(personId).first<{ id: number; handle: string; email: string }>()
   if (!p) return null
-  const { results: lobbies } = await db
+  const { results: joined } = await db
     .prepare(
       `SELECT s.node_id FROM seat s JOIN node n ON n.id = s.node_id
-       WHERE s.person_id = ?1 AND s.left_at IS NULL AND n.state = 'lobby' AND n.author_id <> ?1`,
+       WHERE s.person_id = ?1 AND s.left_at IS NULL AND n.state = 'live' AND n.author_id <> ?1`,
     )
     .bind(p.id)
     .all<{ node_id: number }>()
@@ -68,15 +69,14 @@ export async function closeAccount(db: D1Database, personId: number, nowMs = Dat
     db.prepare('DELETE FROM auth_throttle WHERE scope >= ? AND scope < ?').bind(`outbox:sent:${norm}#`, `outbox:sent:${norm}$`),
     db.prepare('DELETE FROM email_outbox WHERE person_id = ?').bind(p.id),
     mailStatement(db, { to: p.email, template: 'account_closed', stream: 'security', personId: p.id, payload: { handle: p.handle } }, ctx.at),
-    // OPEN (#86): a seat given up here doesn't wait its turn in the lobby's tree, so a join landing in the same moment
-    // can count it; at worst a lobby kicks off one seat short.
+    // OPEN (#86): this doesn't wait its turn in each shwarm's tree; a join landing in the same moment stays, at worst.
     db
       .prepare(
         `UPDATE seat SET left_at = ?1 WHERE person_id = ?2 AND left_at IS NULL
-         AND node_id IN (SELECT id FROM node WHERE state = 'lobby' AND author_id <> ?2)`,
+         AND node_id IN (SELECT id FROM node WHERE state = 'live' AND author_id <> ?2)`,
       )
       .bind(ctx.at, p.id),
-    ...lobbies.map(l => touchNode(ctx, l.node_id, null)),
+    ...joined.map(j => touchNode(ctx, j.node_id, null)),
     // Every page that shows one of their names changes, so every signed-out version moves at once.
     moderatedStatement(ctx),
   ]

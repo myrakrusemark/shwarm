@@ -248,7 +248,6 @@ export async function submit(ctx: Ctx, a: Actor, inp: SubmitInput): Promise<Subm
   const person = await loadPerson(ctx, a)
   checkWritable(await readSettings(ctx.db, ['read_only']))
   const n = await loadNode(ctx, inp.node)
-  if (n.state === 'lobby') throw new ShwarmError('lobby_not_open', `${n.path} is still a lobby. submissions open at kickoff`, { node: n.path })
   // OPEN: no code names "this node is closed or a dead end" for submissions; shwarm_closed is the nearest.
   if (n.state !== 'live') throw new ShwarmError('shwarm_closed', `${n.path} is ${n.state.replace('_', ' ')}. it takes no submissions`, { node: n.path })
   const text = needText(inp.text, 'text')

@@ -23,7 +23,6 @@ exports[`mapping the launch list > snapshots of a few mapped entries > bot-beats
     },
     "doneWhen": "an open bot finishes freedoom phase 2 maps 1 to 8 from a pistol start on skill 3, using only vizdoom's screen, depth, label and automap buffers, with eight recorded demos that replay to the exit on other people's machines.",
     "kind": "shwarm",
-    "lobby": 2,
     "slug": "bot-beats-freedoom",
     "tags": [
       "games",
@@ -90,7 +89,6 @@ exports[`mapping the launch list > snapshots of a few mapped entries > map-sherl
     },
     "doneWhen": "an open geojson file lists every named real-world place in all 60 stories with coordinates and the quote that names it, and 2 checkers find at least 97 of 100 random rows correct.",
     "kind": "shwarm",
-    "lobby": 2,
     "slug": "map-sherlock-holmes",
     "tags": [
       "weird",
@@ -151,7 +149,6 @@ exports[`mapping the launch list > snapshots of a few mapped entries > minecraft
     },
     "doneWhen": "a downloadable uzdoom mod where you can dig and place blocks while imps attack, at 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), using only freedoom and other open assets.",
     "kind": "shwarm",
-    "lobby": 2,
     "slug": "minecraft-in-doom",
     "tags": [
       "weird",
@@ -233,8 +230,7 @@ exports[`mapping the launch list > snapshots of a few mapped entries > minecraft
       },
     },
     "doneWhen": "the minecraft in doom mod plus a hunger meter and a 20-minute day and night cycle, where monsters spawn only on dark blocks, still at 60 fps on the reference rig.",
-    "kind": "variant",
-    "lobby": 2,
+    "kind": "shwarm",
     "slug": "minecraft-in-doom-survival",
     "tags": [
       "weird",
@@ -243,7 +239,6 @@ exports[`mapping the launch list > snapshots of a few mapped entries > minecraft
       "variant",
     ],
     "title": "minecraft in doom: survival",
-    "variantOf": "minecraft-in-doom",
     "what": "this one is for fun. survival is what gives building a point: you get hungry, and when night falls monsters spawn wherever it's dark, so a lit shelter is the line between dawn and a respawn. this variant of minecraft in doom keeps the same goal and gives you a reason to build.
 
 why now: a variant that can start as soon as the parent's block engine holds up; we found no survival block mod for any doom port.",
@@ -284,11 +279,6 @@ why now: a variant that can start as soon as the parent's block engine holds up;
       "kind": "changed",
       "text": "3 sources, plus the builds-on text as written",
     },
-    {
-      "field": "kind",
-      "kind": "changed",
-      "text": "imported as a variant of minecraft-in-doom (from its #variant tag and its title)",
-    },
   ],
   "pinned": "where this pitch comes from:
 https://github.com/UZDoom/UZDoom
@@ -321,7 +311,6 @@ exports[`mapping the launch list > snapshots of a few mapped entries > mosquito-
     },
     "doneWhen": "a model under 256 kb that runs on an esp32-s3 or rp2040 scores roc-auc of at least 0.93 on humbugdb test a and at least 0.80 on test b, without training on either test set, using the shared eval script.",
     "kind": "shwarm",
-    "lobby": 2,
     "slug": "mosquito-hearing-chip",
     "tags": [
       "health",

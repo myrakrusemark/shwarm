@@ -16,7 +16,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../../src/seed/example'
 import { PAGES as DOCS } from '../../src/web/doc'
 import { takeRead, resetReadLimit } from '../../src/web/read-limit'
-import { LOBBY } from '../node-fixture'
+import { PLAIN } from '../node-fixture'
 import { axeViolations, badRing, chrome, CHROMES, overflow } from './kit'
 import { HIDDEN, LONG_BRANCH, LONG_HANDLE, LONG_TITLE, startServer, type E2eServer } from './server'
 
@@ -35,7 +35,6 @@ type Case = { path: string; status: number; only?: Who; headers?: Record<string,
 const CASES: Case[] = [
   // the feed
   { path: '/', status: 200 },
-  { path: '/?tab=filling', status: 200 },
   { path: '/?tab=new', status: 200 },
   { path: '/?tab=closed', status: 200 },
   { path: '/?q=doom', status: 200 },
@@ -44,7 +43,7 @@ const CASES: Case[] = [
   { path: `/w/${EXAMPLE_ROOT}`, status: 200 },
   { path: `/w/${EXAMPLE_ROOT}?sort=new&show=submissions`, status: 200 },
   { path: `/w/${EXAMPLE_BRANCH}`, status: 200 },
-  { path: `/w/${LOBBY}`, status: 200 },
+  { path: `/w/${PLAIN}`, status: 200 },
   { path: `/w/${LONG_BRANCH}`, status: 200 },
   // profiles
   { path: '/@myra', status: 200 },
@@ -66,10 +65,10 @@ const CASES: Case[] = [
   { path: '/verify?t=no-such-token', status: 410 },
   { path: '/reset?t=no-such-token', status: 410 },
   { path: '/step-up', status: 200, only: 'in' },
-  // the create form in its three modes (go-live 4.2, 4.3); the long branch title must wrap in the crumbs and the done test
+  // the create form, its branch mode and builds-on (go-live 4.2, 4.3; no variants since Oct 9); the long branch title must
+  // wrap in the crumbs and the done test
   { path: '/new', status: 200, only: 'in' },
   { path: `/new?parent=${LONG_BRANCH}`, status: 200, only: 'in' },
-  { path: `/new?variant=${EXAMPLE_ROOT}`, status: 200, only: 'in' },
   { path: `/new?builds_on=${EXAMPLE_ROOT}`, status: 200, only: 'in' },
   // error pages
   { path: '/no-such-page', status: 404 },

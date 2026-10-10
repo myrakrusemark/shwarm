@@ -1,5 +1,5 @@
 // The running example on staging and local only (CLAUDE.md "running example everywhere"): the launch shwarm
-// "minecraft in doom" filled and live, its branch "block placement", and a few thread posts. The words come from
+// "minecraft in doom", live, its branch "block placement", and a few thread posts. The words come from
 // mockups/shwarm.html and mockups/branch.html; lines that point at branches the example doesn't make are cut.
 // The demo people are staging-only accounts with sign-in disabled; production never gets them.
 import { keyActor, siteActor, type Actor, type Perm } from '../core/actor'
@@ -34,7 +34,7 @@ export async function runExample(run: RunAt, p: { myra: P } & Record<ExampleHand
   const root = EXAMPLE_ROOT
   const branch = EXAMPLE_BRANCH
 
-  // The lobby of 2 fills: @myra holds seat 1, @bmo_fan takes seat 2, and it goes live.
+  // @bmo_fan joins: they're working on it, as @myra is (she started it).
   await run(4200, { type: 'join', actor: site(p.bmo_fan), input: { node: root } })
   await run(2880, {
     type: 'createNode',

@@ -56,7 +56,7 @@ describe('the result page (5.7)', () => {
     expect(html).toContain('<title>minecraft in doom · done · shwarm</title>')
     expect(html).toContain('<a class="back" href="/?tab=closed">← back to closed</a>')
     expect(html).toContain('<span class="donebadge">✓ done · oct 8</span><h1>minecraft in doom</h1>')
-    expect(html).toContain('<div class="meta">started by <a href="/@myra">@myra</a> · lobby filled oct 5 (2/2) · 2 days, start to finish · builds on <a class="up" href="https://github.com/UZDoom/UZDoom" rel="nofollow ugc noopener noreferrer">uzdoom</a></div>')
+    expect(html).toContain('<div class="meta">started by <a href="/@myra">@myra</a> · 3 days, start to finish · builds on <a class="up" href="https://github.com/UZDoom/UZDoom" rel="nofollow ugc noopener noreferrer">uzdoom</a></div>')
     expect(html).toContain('<div class="passed"><b>done when · passed</b><div class="txt"><p>a downloadable uzdoom mod')
     expect(html).toContain('<div><span class="st done">closed</span></div>')
     // the result box: the submission's release name, its text, who, the hash the checks ran against, each link's pin
@@ -151,7 +151,7 @@ describe('the result page (5.7)', () => {
     w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = 'doom-block-building-speedruns'").run()
     forgetVersions()
     html = await w.page()
-    expect(html).toContain('<h2>built on this <span>1</span></h2><ul class="tree"><li><a href="/w/doom-block-building-speedruns">doom block-building speedruns</a><span class="st">1/10</span></li></ul>')
+    expect(html).toContain('<h2>built on this <span>1</span></h2><ul class="tree"><li><a href="/w/doom-block-building-speedruns">doom block-building speedruns</a><span class="st live">live</span></li></ul>')
   })
 
   it('shows the newest milestones oldest first, each linked to its evidence, with the full log in JSON', async () => {
@@ -161,12 +161,11 @@ describe('the result page (5.7)', () => {
     const rows = [...log.matchAll(/<tr><td class="when">([^<]+)<\/td><td><span class="([^"]+)">([^<]+)<\/span><\/td><td>([^<]+)<\/td><td>(.*?)<\/td><td><a href="([^"]+)">/g)].map(m => [m[1], m[2], m[3], m[4], m[5].replace(/<[^>]+>/g, ''), m[6]])
     expect(rows).toEqual([
       ['oct 5 11:59', 'ev', 'seeded', 'minecraft in doom', '@myra', '/w/minecraft-in-doom'],
-      ['oct 5 13:59', 'ev', 'lobby filled', 'minecraft in doom', '@bmo_fan', '/w/minecraft-in-doom'],
       ['oct 6 11:59', 'ev', 'branch opened', 'block placement', '@bmo_fan', '/w/minecraft-in-doom/block-placement'],
       expect.arrayContaining(['oct 8 12:04', 'ev ok', 'signed off', 'minecraft in doom', '@myra']),
       ['oct 8 12:04', 'ev ok', 'passed', 'minecraft in doom', 'submission #1', '/w/minecraft-in-doom/s/1'],
     ])
-    expect(html).toContain('<span class="note">showing 5 of 15 events · filter: <b>milestones</b> · <a href="/w/minecraft-in-doom/log?filter=all">all</a></span><a href="/w/minecraft-in-doom/log?filter=all">full log (json) →</a>')
+    expect(html).toContain('<span class="note">showing 4 of 14 events · filter: <b>milestones</b> · <a href="/w/minecraft-in-doom/log?filter=all">all</a></span><a href="/w/minecraft-in-doom/log?filter=all">full log (json) →</a>')
     expect(html).toContain('<a href="/w/minecraft-in-doom?thread=1">read the whole thread (8 posts) →</a> · it stays open for repros and pointers to follow-on work.')
   })
 

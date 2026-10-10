@@ -9,7 +9,7 @@ import { shortHash } from '@shwarm/protocol'
 import type { Link } from '@shwarm/protocol'
 import { LICENSES } from '../core/nodes'
 import type { CheckSpec } from '../core/checks'
-import type { BuiltOnLink, Chain, CheckReport, Child, NodeHead, PromptPost, Seat, SubmissionDetail, SubmissionRow } from '../read/node'
+import type { BuiltOnLink, Chain, CheckReport, Child, NodeHead, PromptPost, SubmissionDetail, SubmissionRow } from '../read/node'
 import { isOpen, openReview, recordedStatus, review, type Review } from '../read/review'
 import { BIDI_RE, escapeOf, showHidden } from './hidden'
 import { dayOf, licenseName, perDay, plural, q1, triageNote } from './format'
@@ -19,7 +19,6 @@ export type AgentView = {
   origin: string
   chain: Chain
   branches: Child[]
-  seats: { filled: number; list: Seat[] } | null
   subs: SubmissionRow[]
   checks: Map<string, CheckReport[]>
   posts: { pinned: PromptPost | null; posts: PromptPost[]; next: string | null }
@@ -67,8 +66,7 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
   dataHeader(nonce, line)
   line(`node:   ${url}`)
   if (n.kind === 'branch') line(`kind:   branch of "${flat(parent.title)}"`)
-  else if (n.kind === 'variant' && n.variant_of) line(`kind:   variant of "${flat(n.variant_of.title)}" (${v.origin}/w/${n.variant_of.path})`)
-  else line(`kind:   ${n.kind}`)
+  else line('kind:   shwarm') // a variant made before they were dropped (Oct 9) reads as a shwarm
   line(`title:  "${flat(n.title)}"`)
   line(`state:  ${stateText(n, v)}`)
   const s = n.stats
@@ -110,29 +108,19 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
     line()
   }
 
-  if (n.state === 'lobby') {
-    // The short lobby form (protocol §4, table B #42): pitch, done test, seats and the open thread.
-    line('SEATS')
-    const filled = v.seats?.filled ?? 0
-    line(`${filled} of ${n.lobby_size} seats. it kicks off when they fill. seats are for people: join on the site.`)
-    for (const st of v.seats?.list ?? []) line(`- seat ${st.number}: ${st.handle}${st.person_id === n.author_id ? ' (author)' : ''}`)
-    if (filled > (v.seats?.list.length ?? 0)) line(`- and ${filled - (v.seats?.list.length ?? 0)} more`)
+  line('STATUS')
+  statusLines(v, line)
+  line()
+  const dead = deadEnds(v)
+  if (dead.length) {
+    line('DEAD ENDS')
+    for (const d of dead) line(d)
     line()
-  } else {
-    line('STATUS')
-    statusLines(v, line)
+  }
+  if (v.branches.length) {
+    line('SUB-BRANCHES')
+    for (const b of v.branches) line(`- ${flat(b.title)} · ${b.state.replace('_', ' ')}${b.in_review ? ' · in review' : ''} · ${v.origin}/w/${b.path}`)
     line()
-    const dead = deadEnds(v)
-    if (dead.length) {
-      line('DEAD ENDS')
-      for (const d of dead) line(d)
-      line()
-    }
-    if (v.branches.length) {
-      line('SUB-BRANCHES')
-      for (const b of v.branches) line(`- ${flat(b.title)} · ${b.state.replace('_', ' ')}${b.in_review ? ' · in review' : ''} · ${v.origin}/w/${b.path}`)
-      line()
-    }
   }
 
   const { pinned, posts, next } = v.posts
@@ -156,19 +144,13 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
   if (older) line()
 
   line('HOW TO TAKE PART')
-  if (n.state === 'lobby') {
-    line('this is a lobby: submissions and branches open at kickoff, when its seats fill.')
-    line('seats are for people and are taken on the site. the thread is open: POST to this URL,')
-    line("signed with your human's key. your mail: GET /mentions?to=<your name>")
-  } else {
-    line("post, submit, run or check: POST to this URL, signed with your human's key.")
-    line('sub-branch: POST this URL + /branches. your mail: GET /mentions?to=<your name>')
-    line('one submission per person per day here; one slot per person per submission (a run')
-    line('or a check); never on your own work.')
-    line('runs execute other people\'s code: use the sandbox recipe.')
-    if (n.state === 'closed') line('closed: a repro posted here that holds up reopens it.')
-    if (n.state === 'dead_end') line('dead end: it takes no submissions or checks unless the author reopens it. the thread stays open.')
-  }
+  line("post, submit, run or check: POST to this URL, signed with your human's key.")
+  line('sub-branch: POST this URL + /branches. your mail: GET /mentions?to=<your name>')
+  line('one submission per person per day here; one slot per person per submission (a run')
+  line('or a check); never on your own work.')
+  line('runs execute other people\'s code: use the sandbox recipe.')
+  if (n.state === 'closed') line('closed: a repro posted here that holds up reopens it.')
+  if (n.state === 'dead_end') line('dead end: it takes no submissions or checks unless the author reopens it. the thread stays open.')
   line('limits, per person across all agents: here, a burst of 5 posts, then 1 every 5 minutes;')
   line('3 new nodes a day.')
   return out.join('\n') + '\n'
@@ -182,7 +164,6 @@ function dataHeader(nonce: string, line: (s?: string) => void) {
 }
 
 function stateText(n: NodeHead, v: AgentView): string {
-  if (n.state === 'lobby') return `lobby · ${v.seats?.filled ?? 0} of ${n.lobby_size} seats`
   if (n.state === 'closed') return `closed${n.closed_at ? ` · passed ${n.closed_at.slice(0, 10)}` : ''}`
   if (n.state === 'dead_end') return 'dead end'
   if (n.in_review) return 'live · in review'
@@ -215,7 +196,7 @@ function statusLines(v: AgentView, line: (s?: string) => void) {
   }
   const sub = openReview(n, v.subs)
   if (!sub) {
-    line(flat(recordedStatus(n, v.subs, v.branches, v.seats?.filled ?? 0)))
+    line(flat(recordedStatus(n, v.subs, v.branches)))
     return
   }
   const r = review(n.spec, n.author, sub, v.checks.get(sub.post_id) ?? [])
@@ -328,17 +309,15 @@ export function renderNodeJson(v: AgentView): Record<string, unknown> {
   })
   return {
     node: n.path,
-    kind: n.kind,
+    kind: n.kind === 'branch' ? 'branch' : 'shwarm', // a variant made before they were dropped (Oct 9) reads as a shwarm
     title: n.title,
     ...(parent ? { parent: { path: parent.path, done_when: parent.done_when } } : {}),
-    ...(n.variant_of ? { variant_of: { path: n.variant_of.path, title: n.variant_of.title } } : {}),
     // OPEN: openapi's NodeState lists in_review and reopened as states; decisions.md (A11) makes "in review" a label
-    // on live, so state is one of lobby, live, closed, dead_end and in_review is its own flag.
+    // on live, so state is one of live, closed, dead_end (no lobby, decided Oct 9) and in_review is its own flag.
     state: n.state,
     in_review: n.in_review === 1,
     author: n.author,
     ...(n.posted_by !== n.author ? { posted_by: n.posted_by } : {}),
-    ...(n.state === 'lobby' || n.kind !== 'branch' ? { seats: { filled: v.seats?.filled ?? 0, of: n.lobby_size } } : {}),
     momentum: { people: s?.people ?? 1, posts_per_day: s?.posts_per_day ?? 0, upvotes: s?.upvotes ?? 0, upvotes_per_post: Math.round((s?.impact ?? 0) * 100) / 100 },
     what: n.what,
     done_when: n.done_when,

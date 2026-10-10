@@ -105,7 +105,7 @@ export const SubmissionPage: FC<{ d: SubmissionPageData }> = ({ d }) => {
             <div class="in">
               <p class="lbl"><b>checked by</b></p>
               <CheckedBy spec={n.spec} author={n.author} />
-              <p class="note back"><a href={nodeHref(n.path)}>back to the {n.kind === 'branch' ? 'branch' : n.kind === 'variant' ? 'variant' : 'shwarm'} →</a></p>
+              <p class="note back"><a href={nodeHref(n.path)}>back to the {n.kind === 'branch' ? 'branch' : 'shwarm'} →</a></p>
             </div>
           </div>
           <div class="box">

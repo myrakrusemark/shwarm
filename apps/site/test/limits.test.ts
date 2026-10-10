@@ -1,5 +1,5 @@
 // Go-live 4.9: every product limit, through the site. Thread posts (a burst of 5, then 1 every 5 minutes, per thread,
-// per person), 3 new shwarms, branches and variants a day with the in-batch guard behind the count, one submission
+// per person), 3 new shwarms and branches a day with the in-batch guard behind the count, one submission
 // per person per node per day, the per-network caps on the account forms, the per-network cap on public reads (and a
 // 304 that reads no D1 while this isolate knows the version, else only the node chain), and the 256 KB cap on request bodies.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -63,16 +63,14 @@ const FILE = `https://codeberg.org/ana/doom-blocks/raw/branch/main/corner-fix.di
 const submit = (b: Browser, path: string, text: string) =>
   act(b, path, { do: 'submit', text, links: FILE, how_to_check: 'load corner-repro.lmp and place 200 blocks on each corner.' })
 
-/** The create form at `from` (/new, /new?parent=…, /new?variant=…), sent with every hidden field the page carries. */
+/** The create form at `from` (/new, /new?parent=…), sent with every hidden field the page carries. */
 async function create(b: Browser, from: string, fields: Record<string, string>) {
   const page = await (await b.get(from)).text()
-  const hidden = Object.fromEntries([...page.matchAll(/<input type="hidden" name="(parent|variant)" value="([^"]+)"/g)].map(m => [m[1], m[2]]))
+  const hidden = Object.fromEntries([...page.matchAll(/<input type="hidden" name="(parent)" value="([^"]+)"/g)].map(m => [m[1], m[2]]))
   return b.req('/new', { form: { form_token: formTokenIn(page), ...hidden, c_author: 'on', ...fields } })
 }
-const newShwarm = (b: Browser, title: string) => create(b, '/new', { title, what: 'a test goal.', done_when: 'it is done.', tags: '#test', lobby: '2', license: 'MIT' })
+const newShwarm = (b: Browser, title: string) => create(b, '/new', { title, what: 'a test goal.', done_when: 'it is done.', tags: '#test', license: 'MIT' })
 const newBranch = (b: Browser, title: string) => create(b, `/new?parent=${EXAMPLE_ROOT}`, { title, what: 'a part of it.', done_when: 'the part works.' })
-const newVariant = (b: Browser, title: string) =>
-  create(b, `/new?variant=${EXAMPLE_ROOT}`, { title, what: 'the same goal, harder.', done_when: 'the same mod, with hunger.', tags: '#games', lobby: '3', license: 'MIT' })
 
 /** Every query this database is asked (its SQL and bound values), and every write. */
 function watch(env: TestEnv) {
@@ -138,17 +136,17 @@ describe('thread posts: a burst of 5, then 1 every 5 minutes, per thread, per pe
 
 // ---------- new nodes ----------
 
-describe('new nodes: 3 a day, shwarms, branches and variants together', () => {
-  it('a shwarm, a branch and a variant use up the day; the 4th of any kind waits for the first to age out', async () => {
+describe('new nodes: 3 a day, shwarms and branches together (no variants since Oct 9)', () => {
+  it('two shwarms and a branch use up the day; the 4th of either kind waits for the first to age out', async () => {
     const { env, count } = await world()
     const { b: ana, pid } = await member(env, 'ana')
     expect((await newShwarm(ana, 'one of three')).status).toBe(303)
     at(HOUR)
     expect((await newBranch(ana, 'two of three')).status).toBe(303)
     at(2 * HOUR)
-    expect((await newVariant(ana, 'minecraft in doom: three of three')).status).toBe(303)
+    expect((await newShwarm(ana, 'three of three')).status).toBe(303)
     at(3 * HOUR)
-    for (const res of [await newShwarm(ana, 'four'), await newBranch(ana, 'four'), await newVariant(ana, 'minecraft in doom: four')]) {
+    for (const res of [await newShwarm(ana, 'four'), await newBranch(ana, 'four')]) {
       expect(res.status).toBe(429)
       expect(res.headers.get('retry-after')).toBe(String((DAY - 3 * HOUR) / 1000)) // when the first one is a day old
       expect(await body(res)).toContain("that's 3 new shwarms and branches today, the most for one person.")
@@ -204,7 +202,7 @@ describe('new nodes: 3 a day, shwarms, branches and variants together', () => {
     const pages = await Promise.all([0, 1, 2, 3].map(() => ana.get('/new').then(r => r.text())))
     const sent = await Promise.all(
       pages.map((page, i) =>
-        ana.req('/new', { form: { form_token: formTokenIn(page), c_author: 'on', title: `parallel ${i + 3}`, what: 'a test goal.', done_when: 'it is done.', tags: '#test', lobby: '2', license: 'MIT' } }),
+        ana.req('/new', { form: { form_token: formTokenIn(page), c_author: 'on', title: `parallel ${i + 3}`, what: 'a test goal.', done_when: 'it is done.', tags: '#test', license: 'MIT' } }),
       ),
     )
     expect(sent.map(r => r.status).sort()).toEqual([303, 429, 429, 429])

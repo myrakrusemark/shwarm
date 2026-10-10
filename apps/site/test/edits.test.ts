@@ -1,4 +1,5 @@
-// Go-live 4.4, the rest: late joiners on a live shwarm, and re-pitching a lobby (with its history and a new triage round).
+// Go-live 4.4, the rest, as no lobby left it (decided Oct 9): joining a live shwarm (working on it), and re-pitching a
+// shwarm until its first submission (with its history and a new triage round).
 // Go-live 4.8: editing any of your own plain posts (with "edited" and its history), deleting one (a tombstone), "make it
 // a branch" from a post, and no "claimed by" anywhere a page is drawn.
 import { readdirSync, readFileSync } from 'node:fs'
@@ -15,7 +16,7 @@ import { resetReadLimit } from '../src/web/read-limit'
 import { addPerson } from './d1'
 import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv } from './browser'
 import { agent, HOUR, MIN, person, refused, site, stepped, T0, World, type P } from './core-fixtures'
-import { LOBBY, stagingWorld } from './node-fixture'
+import { PLAIN, stagingWorld } from './node-fixture'
 
 const MID = 'minecraft-in-doom'
 const iso = (ms: number) => new Date(ms).toISOString()
@@ -38,9 +39,9 @@ function fakeClef() {
   return { ai: ai as unknown as Ai, calls, answer: (c: typeof choice) => void (choice = c), hold: (p: Promise<void> | null) => void (hold = p) }
 }
 
-// ---------- core: late joiners ----------
+// ---------- core: join ----------
 
-describe('late joiners (4.4)', () => {
+describe('join: working on it (4.4, decided Oct 9)', () => {
   let w: World
   let myra: P, bmo: P, ana: P, finn: P, kes: P
 
@@ -51,21 +52,22 @@ describe('late joiners (4.4)', () => {
     ana = await person(w.db, 'ana')
     finn = await person(w.db, 'finn_irl')
     kes = await person(w.db, 'kestrel')
-    await w.shwarm(site(myra)) // a lobby of 2
-    expect(await w.join(site(bmo), MID)).toMatchObject({ seat: 2, state: 'live', kickoff: true })
+    await w.shwarm(site(myra)) // live at once
+    expect(await w.join(site(bmo), MID)).toEqual({ node: MID, joined: true })
   })
 
-  it('join a live shwarm with no seat limit: no second kickoff, seats past the lobby size', async () => {
-    expect(await w.join(site(ana), MID)).toEqual({ node: MID, seat: 3, state: 'live', seats: { filled: 3, of: 2 }, kickoff: false })
-    expect(await w.join(site(finn), MID)).toMatchObject({ seat: 4, kickoff: false })
-    expect(await w.join(site(kes), MID)).toMatchObject({ seat: 5, seats: { filled: 5, of: 2 } })
-    expect(w.events(MID, 'lobby_filled')).toHaveLength(1)
-    // the kickoff notice went to the two in the lobby, not to the late joiners
-    expect(w.all("SELECT person_id FROM inbox_item WHERE kind = 'system' ORDER BY person_id")).toEqual([{ person_id: myra.id }, { person_id: bmo.id }])
-    // a double click keeps the one seat
-    expect(await w.join(site(ana), MID)).toMatchObject({ seat: 3, kickoff: false })
-    // seats are kept after kickoff; humans only; branches have none
-    await refused(w.run({ type: 'leave', actor: site(ana), input: { node: MID } }), 'bad_request')
+  it('join a live shwarm with no limit: no kickoff, no event, no notice', async () => {
+    expect(await w.join(site(ana), MID)).toEqual({ node: MID, joined: true })
+    expect(await w.join(site(finn), MID)).toEqual({ node: MID, joined: true })
+    expect(await w.join(site(kes), MID)).toEqual({ node: MID, joined: true })
+    expect(w.all('SELECT number FROM seat WHERE left_at IS NULL ORDER BY number').map(r => r.number)).toEqual([1, 2, 3, 4, 5])
+    expect(w.events(MID)).toEqual([])
+    expect(w.all("SELECT person_id FROM inbox_item WHERE kind = 'system'")).toEqual([])
+    // a double click keeps the one join
+    expect(await w.join(site(ana), MID)).toEqual({ node: MID, joined: false })
+    // anyone but the author can leave; humans only; branches have none
+    expect(await w.run({ type: 'leave', actor: site(ana), input: { node: MID } })).toEqual({ node: MID })
+    await refused(w.run({ type: 'leave', actor: site(myra), input: { node: MID } }), 'bad_request')
     await refused(w.join(agent(finn), MID), 'bare_handle_needs_human')
     await w.branch(site(myra), MID)
     await refused(w.join(site(ana), `${MID}/block-placement`), 'bad_request')
@@ -77,14 +79,14 @@ describe('late joiners (4.4)', () => {
     w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = ?").run(MID)
     const chain = (await readChain(w.db, MID, null))!
     const { rows } = await readContributors(w.db, chain.node)
-    // posters first (none counted yet: the stats job hasn't run), then the author, then seats in the order they joined
+    // posters first (none counted yet: the stats job hasn't run), then the author, then the others in the order they joined
     expect(rows.map(r => r.handle)).toEqual(expect.arrayContaining(['@myra', '@bmo_fan', '@ana']))
     expect(rows.find(r => r.handle === '@ana')).toEqual({ person_id: ana.id, handle: '@ana', posts: 0, upvotes: 0 })
     const profile = await readProfile(w.db, ana.id, { owner: false, now: w.now })
     expect(profile.working.map(r => r.path)).toEqual([MID])
   })
 
-  it("a closed or dead-end shwarm takes no late joiners", async () => {
+  it("a closed or dead-end shwarm takes no joins", async () => {
     await w.deadEnd(myra, MID)
     await refused(w.join(site(ana), MID), 'shwarm_closed')
   })
@@ -92,7 +94,7 @@ describe('late joiners (4.4)', () => {
 
 // ---------- core: re-pitch ----------
 
-describe('re-pitching a lobby (4.4)', () => {
+describe('re-pitching a shwarm until its first submission (4.4, decided Oct 9)', () => {
   let w: World
   let myra: P, ana: P
 
@@ -103,7 +105,7 @@ describe('re-pitching a lobby (4.4)', () => {
     w = new World()
     myra = await person(w.db, 'myra')
     ana = await person(w.db, 'ana')
-    await w.shwarm(site(myra), { lobby: 3 })
+    await w.shwarm(site(myra))
   })
 
   it('the author changes the title and what; the old ones go to the history; the address and done test stay', async () => {
@@ -122,20 +124,33 @@ describe('re-pitching a lobby (4.4)', () => {
     expect(w.get('SELECT tokens FROM rate_bucket').tokens).toBe(tokens)
   })
 
-  it('only the author, as the bare handle on the site, with the password; only while a lobby', async () => {
+  it('only the author, as the bare handle on the site, with the password; only a live shwarm with nothing submitted', async () => {
     await refused(repitch(site(myra)), 'not_permitted', { need: 'step_up' })
     await refused(repitch(stepped(ana)), 'not_permitted', { need: 'author' })
     await refused(repitch(agent(myra)), 'bare_handle_needs_human')
     await refused(repitch(stepped(myra), ' ', 'x'), 'bad_request')
     await refused(repitch(stepped(myra), 'x'.repeat(121), 'x'), 'bad_request')
     expect(w.all('SELECT 1 FROM node_edit')).toEqual([])
+    // others joining and branches opening change nothing: it's live from the start
     await w.join(site(ana), MID)
-    await w.join(site(await person(w.db, 'finn_irl')), MID) // the third seat: kickoff
-    await refused(repitch(stepped(myra)), 'bad_request')
-    expect(w.node(MID).title).toBe('minecraft in doom')
+    await w.branch(site(ana), MID)
+    expect(await repitch(stepped(myra), 'minecraft in doom, take two')).toMatchObject({ repitched: true })
+    // a branch keeps the words it was opened with (OPEN)
+    await refused(repitch(stepped(ana), 'x', 'y', `${MID}/block-placement`), 'bad_request')
+    // the first submission ends it
+    await w.submit(agent(ana), MID)
+    const e = await refused(repitch(stepped(myra)), 'bad_request')
+    expect(e.message).toBe(`${MID} has a submission. its title and what stay as they are`)
+    expect(w.node(MID).title).toBe('minecraft in doom, take two')
+    expect(w.all('SELECT 1 FROM node_edit')).toHaveLength(1)
   })
 
-  it('a cleared lobby goes back to being checked; a held one stays held; a blocked one is refused', async () => {
+  it('an ended shwarm keeps its words', async () => {
+    await w.deadEnd(myra, MID)
+    await refused(repitch(stepped(myra)), 'shwarm_closed')
+  })
+
+  it('a cleared shwarm goes back to being checked; a held one stays held; a blocked one is refused', async () => {
     w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = ?").run(MID)
     const moderated = () => w.get("SELECT value FROM setting WHERE key = 'moderated_at'")?.value ?? null
     const m0 = moderated()
@@ -352,13 +367,13 @@ describe('on the page', () => {
     return b.req(path, { form: { form_token: token, ...fields } })
   }
 
-  describe('late joiners (4.4)', () => {
-    it('a live shwarm offers "join" under its contributors; joining shows you there and on your profile', async () => {
+  describe('join (4.4, decided Oct 9)', () => {
+    it('a live shwarm offers "join" under its contributors; joining shows you there and on your profile; leave undoes it', async () => {
       const { env, q } = await world()
       const b = await signIn(env, 'ana')
       let box = boxOf(await page(b), 'contributors')
       expect(box).toContain('<input type="hidden" name="do" value="join"/>')
-      expect(box).toContain("late joiners are welcome: no seat limit now it's live.")
+      expect(box).toContain("join to say you're working on this.")
       const res = await act(b, { do: 'join' })
       expect(res.status).toBe(303)
       expect(res.headers.get('location')).toBe(`/w/${EXAMPLE_ROOT}`)
@@ -367,84 +382,107 @@ describe('on the page', () => {
       expect(box).toContain('href="/@ana">@ana</a>')
       expect(box).toContain("you're working on this.")
       expect(box).not.toContain('value="join"')
-      // the lobby filled long ago: no second kickoff
-      expect(q("SELECT COUNT(*) AS n FROM audit_event a JOIN node n ON n.id = a.node_id WHERE n.path = ? AND a.event = 'lobby_filled'", EXAMPLE_ROOT)).toEqual({ n: 1 })
+      // no lobby, no kickoff: joining writes no event
+      expect(q("SELECT COUNT(*) AS n FROM audit_event a JOIN node n ON n.id = a.node_id WHERE n.path = ? AND a.event = 'lobby_filled'", EXAMPLE_ROOT)).toEqual({ n: 0 })
       expect(await body(await b.req('/@ana', { headers: HTML }))).toContain('minecraft in doom')
+      // leave sits under it, and undoes it
+      expect(box).toContain('<input type="hidden" name="do" value="leave"/>')
+      expect((await act(b, { do: 'leave' })).status).toBe(303)
+      expect(q("SELECT s.left_at IS NOT NULL AS gone FROM seat s JOIN person p ON p.id = s.person_id WHERE p.handle = 'ana'")).toEqual({ gone: 1 })
+      expect(boxOf(await page(b), 'contributors')).toContain('value="join"')
     })
 
-    it('signed out, "join" goes to sign-in; unverified, it waits; a branch and a lobby offer none here', async () => {
+    it('signed out, "join" goes to sign-in; unverified, it waits; the author has no leave; a branch and an ended shwarm offer none', async () => {
       const { env } = await world()
       const out = boxOf(await page(new Browser(env)), 'contributors')
       expect(out).toContain(`<a class="btn plain" href="/signin?next=%2Fw%2F${EXAMPLE_ROOT}">join</a>`)
       const quiet = await signIn(env, 'quiet', { verified: false })
       expect(boxOf(await page(quiet), 'contributors')).toContain('verify your email to join.')
+      const author = await signIn(env, 'myra', { make: false })
+      const mine = boxOf(await page(author, `/w/${PLAIN}`), 'contributors')
+      expect(mine).toContain("you're working on this.")
+      expect(mine).not.toContain('value="leave"')
       const b = await signIn(env, 'ana')
+      expect(boxOf(await page(b, `/w/${PLAIN}`), 'contributors')).toContain('value="join"') // a new launch shwarm is live too
       expect(boxOf(await page(b, `/w/${EXAMPLE_ROOT}/block-placement`), 'on this branch')).not.toContain('join')
-      expect(boxOf(await page(b, `/w/${LOBBY}`), 'contributors')).not.toContain('join')
+      env.DB.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'x' WHERE path = ?").run(PLAIN)
+      expect(boxOf(await page(b, `/w/${PLAIN}`), 'contributors')).not.toContain('join')
     })
   })
 
   describe('re-pitch (4.4)', () => {
-    it('the author re-pitches the lobby behind the password; the history shows the old pitch', async () => {
+    it('the author re-pitches a live shwarm behind the password; the history shows the old pitch', async () => {
       const { env, q } = await world()
-      const before = q<{ title: string; what: string }>('SELECT title, what FROM node WHERE path = ?', LOBBY)
+      const before = q<{ title: string; what: string }>('SELECT title, what FROM node WHERE path = ?', PLAIN)
       const b = await signIn(env, 'myra', { make: false })
-      let html = await page(b, `/w/${LOBBY}`)
+      let html = await page(b, `/w/${PLAIN}`)
       expect(html).toContain('<summary>re-pitch it</summary>')
       expect(html).toContain('<input type="hidden" name="do" value="repitch"/>')
+      expect(html).toContain('you can re-pitch until the first submission.')
+      expect(html).toContain('<summary>mark it a dead end</summary>') // both, in the author's own box
       expect(html).toContain(`value="${before.title}"`)
       expect(html).not.toContain('<summary>re-pitched</summary>')
       // signing in opened the 10-minute window; once it's closed, a re-pitch without the password is refused at the
       // form, the new words kept
       vi.setSystemTime(T0 + 11 * MIN)
-      let res = await act(b, { do: 'repitch', title: 'a bot that beats freedoom, fast', what: 'new words.' }, `/w/${LOBBY}`)
+      let res = await act(b, { do: 'repitch', title: 'a bot that beats freedoom, fast', what: 'new words.' }, `/w/${PLAIN}`)
       expect(res.status).toBe(400)
       html = await body(res)
       expect(html).toMatch(/<details open="">\s*<summary>re-pitch it<\/summary>[\s\S]*enter your password to confirm\./)
       expect(html).toContain('value="a bot that beats freedoom, fast"')
       expect(html).toContain('>new words.</textarea>')
       // an empty what is refused before the password
-      res = await act(b, { do: 'repitch', title: 'x', what: ' ' }, `/w/${LOBBY}`)
+      res = await act(b, { do: 'repitch', title: 'x', what: ' ' }, `/w/${PLAIN}`)
       expect(await body(res)).toContain('a pitch needs a title and a what.')
-      res = await act(b, { do: 'repitch', title: 'a bot that beats freedoom, fast', what: 'new words.', password: GOOD_PASSWORD }, `/w/${LOBBY}`)
+      res = await act(b, { do: 'repitch', title: 'a bot that beats freedoom, fast', what: 'new words.', password: GOOD_PASSWORD }, `/w/${PLAIN}`)
       expect(res.status).toBe(303)
-      expect(res.headers.get('location')).toBe(`/w/${LOBBY}`)
-      expect(q('SELECT title, what, path FROM node WHERE path = ?', LOBBY)).toEqual({ title: 'a bot that beats freedoom, fast', what: 'new words.', path: LOBBY })
-      html = await page(b, `/w/${LOBBY}`)
+      expect(res.headers.get('location')).toBe(`/w/${PLAIN}`)
+      expect(q('SELECT title, what, path FROM node WHERE path = ?', PLAIN)).toEqual({ title: 'a bot that beats freedoom, fast', what: 'new words.', path: PLAIN })
+      html = await page(b, `/w/${PLAIN}`)
       expect(html).toContain('<summary>re-pitched</summary>')
       expect(html).toMatch(new RegExp(`<span class="note">started <span title="[^"]+">[^<]+</span></span><b>${before.title}</b>`))
       // a launch shwarm stays public while it's checked again (seeded, still pending)
-      expect(await body(await new Browser(env).req(`/w/${LOBBY}`, { headers: HTML }))).toContain('a bot that beats freedoom, fast')
+      expect(await body(await new Browser(env).req(`/w/${PLAIN}`, { headers: HTML }))).toContain('a bot that beats freedoom, fast')
     })
 
     it('words re-pitched before triage cleared them never reach the signed-out page; the author still sees them', async () => {
       const { env, q } = await world()
-      // a lobby by a user (not seeded), still being checked
-      env.DB.raw.prepare("UPDATE node SET seeded = 0, triage = 'pending' WHERE path = ?").run(LOBBY)
-      const before = q<{ title: string; what: string }>('SELECT title, what FROM node WHERE path = ?', LOBBY)
+      // a shwarm by a user (not seeded), still being checked
+      env.DB.raw.prepare("UPDATE node SET seeded = 0, triage = 'pending' WHERE path = ?").run(PLAIN)
+      const before = q<{ title: string; what: string }>('SELECT title, what FROM node WHERE path = ?', PLAIN)
       const b = await signIn(env, 'myra', { make: false })
-      const res = await act(b, { do: 'repitch', title: 'speedrunning freedoom, together', what: 'new words.' }, `/w/${LOBBY}`)
+      const res = await act(b, { do: 'repitch', title: 'speedrunning freedoom, together', what: 'new words.' }, `/w/${PLAIN}`)
       expect(res.status).toBe(303)
-      env.DB.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = ?").run(LOBBY) // the new words clear
-      const out = await body(await new Browser(env).req(`/w/${LOBBY}`, { headers: HTML }))
+      env.DB.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = ?").run(PLAIN) // the new words clear
+      const out = await body(await new Browser(env).req(`/w/${PLAIN}`, { headers: HTML }))
       expect(out).toContain('speedrunning freedoom, together')
       expect(out).not.toContain('<summary>re-pitched</summary>')
       expect(out).not.toContain(before.title)
       expect(out).not.toContain(before.what.split('\n')[0])
-      const mine = await page(b, `/w/${LOBBY}`)
+      const mine = await page(b, `/w/${PLAIN}`)
       expect(mine).toContain('<summary>re-pitched</summary>')
       expect(mine).toContain(`<b>${before.title}</b>`)
     })
 
-    it('a live shwarm has no re-pitch; nobody else gets the form, and a forged one is refused', async () => {
+    it('the first submission takes the re-pitch away; nobody else gets the form, and a forged one is refused', async () => {
       const { env } = await world()
       const author = await signIn(env, 'myra', { make: false })
-      expect(await page(author)).not.toContain('re-pitch it')
+      expect(await page(author, `/w/${PLAIN}`)).toContain('re-pitch it')
       const b = await signIn(env, 'ana')
-      expect(await page(b, `/w/${LOBBY}`)).not.toContain('re-pitch it')
-      const res = await act(b, { do: 'repitch', title: 'mine now', what: 'mine.' }, `/w/${LOBBY}`)
+      expect(await page(b, `/w/${PLAIN}`)).not.toContain('re-pitch it')
+      let res = await act(b, { do: 'repitch', title: 'mine now', what: 'mine.' }, `/w/${PLAIN}`)
       expect(res.status).toBe(400)
       expect(await body(res)).toContain('only the author re-pitches.')
+      const sub = { do: 'submit', text: 'a first bot.', links: `https://codeberg.org/ana/bot/raw/branch/main/bot.py ${'4e'.repeat(32)}`, how_to_check: 'run it against freedoom map01.' }
+      expect((await act(b, sub, `/w/${PLAIN}`)).status).toBe(303)
+      let html = await page(author, `/w/${PLAIN}`)
+      expect(html).not.toContain('re-pitch it')
+      expect(html).toContain('<summary>mark it a dead end</summary>')
+      // a re-pitch sent anyway (a stale page) says why, at the top
+      res = await act(author, { do: 'repitch', title: 'too late', what: 'late.', password: GOOD_PASSWORD }, `/w/${PLAIN}`)
+      expect(res.status).toBe(400)
+      html = await body(res)
+      expect(html).toContain(`<p class="err flash" role="alert">${PLAIN} has a submission. its title and what stay as they are.</p>`)
     })
   })
 
@@ -517,10 +555,12 @@ describe('on the page', () => {
         expect(empty).toContain('<h1 class="title" id="heading">new branch</h1>')
         expect(empty).not.toContain('value="monster collision"')
       }
-      // a lobby's posts have no "make it a branch": branches open at kickoff
-      await act(b, { do: 'post', text: 'a lobby post.' }, `/w/${LOBBY}`)
-      const lp = q<{ id: string }>("SELECT id FROM post WHERE text = 'a lobby post.'").id
-      expect(postIn(await page(b, `/w/${LOBBY}`), lp)).not.toContain('make it a branch')
+      // a new shwarm takes branches at once; an ended one's posts have no "make it a branch"
+      await act(b, { do: 'post', text: 'a first post.' }, `/w/${PLAIN}`)
+      const lp = q<{ id: string }>("SELECT id FROM post WHERE text = 'a first post.'").id
+      expect(postIn(await page(b, `/w/${PLAIN}`), lp)).toContain('make it a branch')
+      env.DB.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'x' WHERE path = ?").run(PLAIN)
+      expect(postIn(await page(b, `/w/${PLAIN}`), lp)).not.toContain('make it a branch')
     })
   })
 })

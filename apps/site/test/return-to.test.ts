@@ -27,7 +27,7 @@ async function shwarm(env: TestEnv, path: string, title: string, o: { hidden?: b
   env.DB.raw
     .prepare(
       `INSERT INTO node (path, slug, kind, parent_id, root_id, title, what, done_when, checks, lobby_size, license, author_id, posted_by, state, hidden, triage, seeded, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, 'w', 'd', '{"author":true}', 10, 'MIT', ?, '@a', 'lobby', ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, 'w', 'd', '{"author":true}', 1, 'MIT', ?, '@a', 'live', ?, ?, ?, ?)`,
     )
     .run(path, path.split('/').pop(), up ? 'branch' : 'shwarm', up?.id ?? null, up ? (up.root_id ?? up.id) : null, title, author, o.hidden ? 1 : 0, o.triage ?? 'clear', o.seeded ? 1 : 0, new Date(T0).toISOString())
   return author

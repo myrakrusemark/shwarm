@@ -79,11 +79,10 @@ export const openReview = (n: { state: NodeHead['state'] }, subs: SubmissionRow[
 export const isOpen = (n: { state: NodeHead['state'] }, sub: SubmissionRow) => n.state === 'live' && sub.status === 'in_review'
 
 /** The status line from recorded state (table B #40, without the pinned post: the page shows that post itself). */
-export function recordedStatus(n: NodeHead, subs: SubmissionRow[], branches: Child[], seatsFilled: number): string {
+export function recordedStatus(n: NodeHead, subs: SubmissionRow[], branches: Child[]): string {
   const s: StatusInput = {
     state: n.state,
     pinned: null,
-    seatsLeft: Math.max(0, (n.lobby_size ?? 0) - seatsFilled),
     deadEndNote: n.dead_end_note,
     submissions: subs.map(x => ({ number: x.number, status: x.status })),
     branches: { live: branches.filter(b => b.state === 'live').length, closed: branches.filter(b => b.state === 'closed').length },

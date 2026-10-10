@@ -23,7 +23,7 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { EXAMPLE_BRANCH, EXAMPLE_PEOPLE, EXAMPLE_ROOT } from '../apps/site/src/seed/example'
+import { EXAMPLE_BRANCH, EXAMPLE_PEOPLE } from '../apps/site/src/seed/example'
 import { formatReport, planSeed, type ExistingNode, type PersonState, type Target, type TargetState } from '../apps/site/src/seed/plan'
 import { sqlString } from '../apps/site/src/seed/sql'
 import { testDb } from '../apps/site/test/d1'
@@ -191,8 +191,9 @@ function verify(t: Target, paths: string[], hasPinned: Set<string>): string[] {
     const r = by.get(p)
     if (!r) bad.push(`${p}: missing`)
     else if (p === EXAMPLE_BRANCH) continue
-    else if (r.seeded !== 1 || r.seat1 !== myra) bad.push(`${p}: not seeded with @myra in seat 1`)
-    else if (r.state !== (p === EXAMPLE_ROOT && paths.includes(EXAMPLE_BRANCH) ? 'live' : 'lobby')) bad.push(`${p}: state ${r.state}`)
+    else if (r.seeded !== 1 || r.seat1 !== myra) bad.push(`${p}: not seeded with @myra working on it`)
+    // No lobby (decided Oct 9): every shwarm is live once it's posted.
+    else if (r.state !== 'live') bad.push(`${p}: state ${r.state}`)
     else if (hasPinned.has(p) && r.pinned !== 1) bad.push(`${p}: no pinned post`)
   }
   return bad

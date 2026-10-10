@@ -8,14 +8,14 @@
 // sent from 6.3) and sign-off items ('sign_off', sent since 5.4), on by default, a daily digest by default (the mockup's
 // first choice); passes and fails of nodes you're in ('pass_fail', sent from 6.3) are off by default, as the mockup
 // draws them. "a key is used somewhere new" is a security mail: always on, not a setting.
-// OPEN (go-live 6.3 defaults, open-questions #85): the kickoff mail ('kickoff', 4.4) sits under "new in your inbox" too.
-// How often applies to mentions only: right away, or one daily digest (jobs/digest.ts). Sign-off and kickoff mails always
+// The kickoff mail went with the lobby (decided Oct 9, "No lobby"); a stored 'kickoff' setting is no longer read.
+// How often applies to mentions only: right away, or one daily digest (jobs/digest.ts). Sign-off mails always
 // go right away, since work waits on them; passes, fails and reopenings go right away when their box is on.
 
 export type NoticeGroup = { key: 'inbox' | 'pass_fail'; label: string; types: string[]; on: boolean }
 
 export const NOTICE_GROUPS: NoticeGroup[] = [
-  { key: 'inbox', label: 'new in your inbox', types: ['mention', 'sign_off', 'kickoff'], on: true },
+  { key: 'inbox', label: 'new in your inbox', types: ['mention', 'sign_off'], on: true },
   { key: 'pass_fail', label: "a shwarm or branch you're in passes or fails", types: ['pass_fail'], on: false },
 ]
 

@@ -87,7 +87,7 @@ async function world(o: { ai?: Reply; off?: boolean } = {}) {
     const r = (await engine.run({
       type: 'createNode',
       actor: siteActor({ id: ana, handle: 'ana' }),
-      input: { kind: 'shwarm', title, what: `the pitch of ${title}.`, doneWhen: `${title} is done.`, check: { author: true }, tags: ['test'], lobby: 3 },
+      input: { kind: 'shwarm', title, what: `the pitch of ${title}.`, doneWhen: `${title} is done.`, check: { author: true }, tags: ['test'] },
     })) as { path: string }
     const id = (db.raw.prepare('SELECT id FROM node WHERE path = ?').get(r.path) as { id: number }).id
     if (extra.seeded) db.raw.prepare('UPDATE node SET seeded = 1 WHERE id = ?').run(id)
@@ -117,7 +117,7 @@ describe('triage on create (8.1)', () => {
     const b = await w.signedIn()
     b.withContext()
     const token = formTokenIn(await (await b.get('/new')).text())
-    const res = await b.req('/new', { form: { form_token: token, title: 'hello world', what: 'two accounts say hello.', done_when: 'both said hello.', c_author: 'on', tags: '#test', lobby: '2', license: 'MIT+CC-BY-4.0' } })
+    const res = await b.req('/new', { form: { form_token: token, title: 'hello world', what: 'two accounts say hello.', done_when: 'both said hello.', c_author: 'on', tags: '#test', license: 'MIT+CC-BY-4.0' } })
     expect(res.status).toBe(303)
     const id = (w.q("SELECT id FROM node WHERE path = 'hello-world'") as { id: number }).id
     // Answered after the response, in waitUntil.
@@ -216,7 +216,6 @@ describe('triage on create (8.1)', () => {
         check: { author: true, runs: { command: './fetch-the-botnet.sh', count: 2, description: 'run it on a box you rent' }, people: { count: 1, human: true, instructions: 'aim it at the target list' } },
         tags: ['games'],
         buildsOn: { name: 'some kit', url: 'https://example.org/kit', license: 'MIT' },
-        lobby: 3,
       },
     })) as { path: string }
     const id = (w.q('SELECT id FROM node WHERE path = ?', r.path) as { id: number }).id
@@ -283,7 +282,7 @@ describe('triage on create (8.1)', () => {
     const w = await world({ ai: { kind: 'throw' } })
     const b = await w.signedIn()
     const token = formTokenIn(await (await b.get('/new')).text())
-    const res = await b.req('/new', { form: { form_token: token, title: 'hello world', what: 'hi.', done_when: 'said hi.', c_author: 'on', tags: '#test', lobby: '2', license: 'MIT+CC-BY-4.0' } })
+    const res = await b.req('/new', { form: { form_token: token, title: 'hello world', what: 'hi.', done_when: 'said hi.', c_author: 'on', tags: '#test', license: 'MIT+CC-BY-4.0' } })
     expect(res.status).toBe(303)
     expect(w.q("SELECT triage FROM node WHERE path = 'hello-world'")).toEqual({ triage: 'pending' })
     // Without the binding at all, the same.
@@ -306,7 +305,6 @@ describe('the node text is data', () => {
         doneWhen: 'zebra-done is true.',
         check: { author: true, runs: { command: './zebra-cmd.sh', count: 2 }, people: { count: 1, human: true, instructions: 'zebra-look' } },
         tags: ['zebratag'],
-        lobby: 3,
       },
     })) as { path: string }
     const id = (w.q('SELECT id FROM node WHERE path = ?', r.path) as { id: number }).id
@@ -650,7 +648,6 @@ describe('the script prints people\'s text safely', () => {
         doneWhen: 'done.',
         check: { author: false, runs: { command: './do-harm.sh', count: 1 }, people: { count: 2, human: false, instructions: 'look closely' } },
         tags: ['games'],
-        lobby: 3,
       },
     })) as { path: string }
     const id = (w.q('SELECT id FROM node WHERE path = ?', r.path) as { id: number }).id

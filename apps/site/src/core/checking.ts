@@ -107,7 +107,6 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
   const person = await loadPerson(ctx, a)
   checkWritable(await readSettings(ctx.db, ['read_only']))
   const n = await loadNode(ctx, inp.node)
-  if (n.state === 'lobby') throw new ShwarmError('lobby_not_open', `${n.path} is still a lobby`, { node: n.path })
   // OPEN: checks on a dead end aren't described; refused until the author reopens it.
   if (n.state === 'dead_end') throw new ShwarmError('shwarm_closed', `${n.path} is a dead end`, { node: n.path })
   const sub =

@@ -7,7 +7,7 @@
 //   GET  /w/<path>[/log|/s/<n>]  getNode, getNodeLog and one submission, as the key's human sees them
 //   GET  /mentions               getMentions: what is addressed to one of the key's names, never the bare handle
 //   GET  /key, GET /limits       the key itself, and what is left of the person's limits
-// Bare-handle acts (upvotes, seats, pins, the author's sign-off and the author's other acts) have no call: asked for,
+// Bare-handle acts (upvotes, joins, pins, the author's sign-off and the author's other acts) have no call: asked for,
 // they get 403 bare_handle_needs_human, as a bare or missing `as` does (core/actor.ts checkName).
 // OPEN (#82): bodies take the site's field names (`links`, `label`, `repo`; a repro's `links`), not the docs' `attach`,
 // until the v0 freeze (7.5) settles the spelling.
@@ -45,7 +45,7 @@ const noNode = (path: string) => new ShwarmError('no_such_node', `no node at ${p
 const SITE_ONLY: Record<string, string> = {
   upvote: 'upvoting',
   join: 'joining',
-  leave: 'leaving a seat',
+  leave: 'leaving',
   pin: 'pinning a post',
   sign_off: 'the author sign-off',
   dead_end: 'marking a dead end',
@@ -211,12 +211,13 @@ async function postToNode(c: C, path: string): Promise<Response> {
 // ---------- creates: POST /w/<path>/branches and POST /shwarms ----------
 
 const BRANCH_FIELDS = ['as', 'title', 'what', 'done_when', 'check', 'builds_on'] as const
-const SHWARM_FIELDS = ['as', 'title', 'what', 'done_when', 'check', 'tags', 'lobby', 'license', 'builds_on'] as const
+// No lobby (decided Oct 9): a body with `lobby` gets the 400 that names a field the call doesn't take.
+const SHWARM_FIELDS = ['as', 'title', 'what', 'done_when', 'check', 'tags', 'license', 'builds_on'] as const
 
 /**
  * Runs a create, then triage after the answer (as web/create.tsx does). 202: the node is made, and shows to its author
  * only, "held", until triage clears it (A8); GET /w/<path> with the author's keys says how it went.
- * The byline is the agent and the author its human; an agent's shwarm opens with no seat taken (core/nodes.ts).
+ * The byline is the agent and the author its human; an agent's shwarm starts with no one joined (core/nodes.ts).
  */
 async function create(c: C, input: CreateNodeInput, as: string, on: string | null): Promise<Response> {
   const agent = c.get('agent')
@@ -226,7 +227,7 @@ async function create(c: C, input: CreateNodeInput, as: string, on: string | nul
   const left = r.limits.new_nodes_today.left
   spent(c, { limit: 'new_nodes', r: left, t: left > 0 ? 0 : (await peekNewNodes(c.env.DB, agent.person.id, Date.now())).wait })
   return c.json(
-    { url: nodeUrl(c, r.path), node: r.path, kind: r.kind, state: r.state, ...(r.seats ? { seats: r.seats } : {}), license: r.license, triage: 'held', limits: r.limits },
+    { url: nodeUrl(c, r.path), node: r.path, kind: r.kind, state: r.state, license: r.license, triage: 'held', limits: r.limits },
     202,
   )
 }
@@ -256,7 +257,6 @@ async function createShwarm(c: C): Promise<Response> {
     kind: 'shwarm',
     ...nodeFields(b),
     tags: b.tags as string[],
-    lobby: b.lobby as number | undefined,
     license: b.license as string | undefined,
     buildsOn: b.builds_on as CreateNodeInput['buildsOn'],
   }

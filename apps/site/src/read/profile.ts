@@ -9,7 +9,7 @@ import { figuresOf, type Figures } from './figures'
 import { PUBLIC_NODE } from './visibility'
 
 export type NodeKind = 'shwarm' | 'branch' | 'variant'
-export type NodeState = 'lobby' | 'live' | 'closed' | 'dead_end'
+export type NodeState = 'live' | 'closed' | 'dead_end'
 
 /** The public face of an account. */
 export type Person = {
@@ -46,7 +46,7 @@ export function linksOf(json: string): { label: string; url: string }[] {
     .slice(0, 5) // OPEN: the account modal has two (website, code); no cap is decided
 }
 
-type NodeBits = { id: number; path: string; kind: NodeKind; title: string; state: NodeState; in_review: number; lobby_size: number | null; up_title: string | null; seats: number | null }
+type NodeBits = { id: number; path: string; kind: NodeKind; title: string; state: NodeState; in_review: number; up_title: string | null }
 
 // `waiting`: a submission there waits on the owner's sign-off (PRD PROF-9); always 0 when someone else is looking.
 export type WorkingRow = NodeBits & { last_post: string | null; joined_at: string | null; figures: Figures | null; waiting: number }
@@ -58,11 +58,10 @@ export type Profile = { working: WorkingRow[]; created: CreatedRow[]; createdMor
 /** Rows a list reads at most; the page shows fewer unless asked for all (OPEN: no paging is mocked). */
 export const LIST_MAX = 500
 
-// The parent's or original's title, only while that node is public (A7, A8): a variant of a hidden or held
-// shwarm reads plain "variant", never the original's title.
-const UP = 'LEFT JOIN node up ON up.id = COALESCE(n.parent_id, n.variant_of_id)'
+// A branch's parent's title, only while that node is public (A7, A8): a branch of a hidden or held node reads plain
+// "branch". (Variants are dropped, decided Oct 9: one made before reads as a shwarm, with no original.)
+const UP = 'LEFT JOIN node up ON up.id = n.parent_id'
 const UP_TITLE = `CASE WHEN ${PUBLIC_NODE('up')} THEN up.title END AS up_title`
-const SEATS = `CASE WHEN n.state = 'lobby' THEN (SELECT COUNT(*) FROM seat x WHERE x.node_id = n.id AND x.left_at IS NULL) END AS seats`
 /**
  * "Waiting on you" (PROF-9, SUB-24): the owner (?1) has a sign-off item there not yet done, and can make it now: it's
  * their node, or its author is gone and they are an admin (the operator, table B; as read/inbox.ts readInbox decides).
@@ -75,8 +74,8 @@ const WAITING = (owner: string) =>
 /**
  * Working on, created and the head figures.
  * Working on: open nodes where the person counts among the node's people (table B #44, core/stats people()): they
- * hold a seat, posted there (themselves or by agent) in the last 7 days, or authored it. A node drops off a week
- * after their last post unless they hold a seat or wrote it. The row still shows their last post, however old.
+ * joined it (said they're working on it), posted there (themselves or by agent) in the last 7 days, or authored it.
+ * A node drops off a week after their last post unless they joined it or wrote it. The row still shows their last post, however old.
  * Created: nodes they authored; the owner also sees their own nodes that are still being checked, held or blocked.
  * The owner's rows also say where a submission waits on their sign-off.
  */
@@ -88,7 +87,7 @@ export async function readProfile(db: D1Database, personId: number, o: { owner: 
         `WITH mine AS (SELECT node_id, MAX(created_at) AS last_post, SUM(created_at > ?2) AS n7 FROM post WHERE person_id = ?1 AND hidden = 0 GROUP BY node_id),
               seats AS (SELECT node_id, joined_at FROM seat WHERE person_id = ?1 AND left_at IS NULL),
               ids AS (SELECT node_id FROM mine WHERE n7 > 0 UNION SELECT node_id FROM seats UNION SELECT id FROM node WHERE author_id = ?1)
-         SELECT n.id, n.path, n.kind, n.title, n.state, n.in_review, n.lobby_size, n.created_at, ${UP_TITLE}, ${SEATS}, ${WAITING('?4')},
+         SELECT n.id, n.path, n.kind, n.title, n.state, n.in_review, n.created_at, ${UP_TITLE}, ${WAITING('?4')},
                 m.last_post, COALESCE(m.n7, 0) AS n7, s.joined_at, st.posts, st.upvotes
          FROM ids JOIN node n ON n.id = ids.node_id ${UP}
          LEFT JOIN mine m ON m.node_id = n.id
@@ -101,7 +100,7 @@ export async function readProfile(db: D1Database, personId: number, o: { owner: 
       .all<NodeBits & { waiting: number; created_at: string; last_post: string | null; n7: number; joined_at: string | null; posts: number | null; upvotes: number | null }>(),
     db
       .prepare(
-        `SELECT n.id, n.path, n.kind, n.title, n.done_when, n.state, n.in_review, n.lobby_size, n.triage, ${UP_TITLE}, ${SEATS},
+        `SELECT n.id, n.path, n.kind, n.title, n.done_when, n.state, n.in_review, n.triage, ${UP_TITLE},
                 ${PUBLIC_NODE('n')} AS public, ${WAITING('?2')}
          FROM node n ${UP}
          WHERE n.author_id = ?1 AND n.hidden = 0 AND (?2 OR ${PUBLIC_NODE('n')})
@@ -124,7 +123,7 @@ export async function readProfile(db: D1Database, personId: number, o: { owner: 
   const w = working.results
   const rows: WorkingRow[] = w.slice(0, LIST_MAX).map(({ created_at, n7, posts, upvotes, ...r }) => ({
     ...r,
-    // No figures until the stats job has counted their posts here (a seat alone, or posts in the last few minutes).
+    // No figures until the stats job has counted their posts here (a join alone, or posts in the last few minutes).
     figures: posts ? figuresOf({ posts, upvotes: upvotes ?? 0, posts7: n7, nodeCreatedAt: created_at }, o.now) : null,
   }))
   const h = head ?? { week: 0, ups: 0, posts: 0, site_ups: 0, site_posts: 0 }

@@ -1,4 +1,5 @@
-// Race tests (go-live 2.3 and 5.6 "done when"): parallel requests at kickoff (the last seat), the final check,
+// Race tests (go-live 2.3 and 5.6 "done when"): parallel joins (each person twice at once; there is no lobby or kickoff
+// since Oct 9), the final check,
 // simultaneous submissions, a final check racing a new submission and the sign-off, repros racing to reopen, and a
 // final check racing a dead end, 100 times each, with zero double results. The control runs the same races
 // without the tree's queue and shows the invariants catch the double results it produces.
@@ -41,23 +42,20 @@ async function fire(w: World, mode: Mode, cmds: Command[]) {
   }
 }
 
-/** The last seat: lobby of 3 with 2 seated, then 5 people join at once. Returns what's wrong, if anything. */
-async function kickoffRace(mode: Mode): Promise<string[]> {
+/** Joins: 5 people each join twice at once (a double click). Each is down once, with no error. Returns what's wrong. */
+async function joinRace(mode: Mode): Promise<string[]> {
   const w = new World()
   const [myra, kestrel, ...racers] = await people(w, 2 + RACERS)
-  await w.shwarm(site(myra), { lobby: 3 })
+  await w.shwarm(site(myra))
   await w.join(site(kestrel), MID)
-  const r = await fire(w, mode, racers.map(p => ({ type: 'join', actor: site(p), input: { node: MID } })))
+  const r = await fire(w, mode, shuffled([...racers, ...racers].map(p => ({ type: 'join', actor: site(p), input: { node: MID } }))))
   const problems: string[] = []
   if (r.errors.length) problems.push(`${r.errors.length} joins failed`)
-  const filled = w.events(MID, 'lobby_filled').length
-  if (filled !== 1) problems.push(`${filled} lobby_filled events`)
-  if (r.ok.filter(x => x.kickoff).length !== 1) problems.push(`${r.ok.filter(x => x.kickoff).length} kickoffs reported`)
+  if (r.ok.filter(x => x.joined).length !== RACERS) problems.push(`${r.ok.filter(x => x.joined).length} joins reported`)
   const seats = w.all('SELECT number FROM seat ORDER BY number').map(s => s.number)
   if (seats.join() !== '1,2,3,4,5,6,7') problems.push(`seats ${seats.join()}`)
   if (w.node(MID).state !== 'live') problems.push(`state ${w.node(MID).state}`)
-  const notices = w.all("SELECT COUNT(*) AS n FROM inbox_item WHERE kind = 'system'")[0].n
-  if (notices !== 3) problems.push(`${notices} kickoff notices`)
+  if (w.events(MID).length) problems.push(`${w.events(MID).length} events`)
   return problems
 }
 
@@ -181,7 +179,7 @@ async function deadEndRace(mode: Mode): Promise<string[]> {
 }
 
 const RACES = {
-  'kickoff (the last seat)': kickoffRace,
+  'joins (each person twice at once)': joinRace,
   'the final check': finalCheckRace,
   'two simultaneous submissions': submissionRace,
   'mixed finish (final checks, a new submission, the sign-off)': mixedFinishRace,
@@ -191,7 +189,7 @@ const RACES = {
 
 // What each race does without the queue: every racer reads before anyone writes.
 const DOUBLED: Record<keyof typeof RACES, RegExp> = {
-  'kickoff (the last seat)': /^[2-5] lobby_filled events$/,
+  'joins (each person twice at once)': /^[1-5] joins failed$/, // both of a pair read "not joined"; the second insert hits the key
   'the final check': /^[2-5] passed events$/,
   'two simultaneous submissions': /^[1-4] submissions failed$/, // every racer took #1; the unique index refused the rest
   'mixed finish (final checks, a new submission, the sign-off)': /^[2-5] sign-off notices/, // each final check saw itself as the last
@@ -257,7 +255,7 @@ describe('across trees', () => {
       const [myra] = await people(w, 1)
       const seed = { ...site(myra), via: 'seed' as const }
       const send = engines(w)
-      for (const root of ['alpha', 'beta', 'gamma', 'delta']) await send(create(seed, { kind: 'shwarm', title: root, tags: ['x'], lobby: 1 }))
+      for (const root of ['alpha', 'beta', 'gamma', 'delta']) await send(create(seed, { kind: 'shwarm', title: root, tags: ['x'] }))
       await send(create(site(myra), { kind: 'branch', parent: 'delta', title: 'one' }))
       await send(create(site(myra), { kind: 'branch', parent: 'delta', title: 'two' }))
       const r = await Promise.allSettled([

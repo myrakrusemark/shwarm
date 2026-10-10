@@ -5,12 +5,10 @@ import {
   RANKING,
   byScore,
   firstLine,
-  hotMix,
   impact,
   impactBar,
   isHot,
   liveScore,
-  lobbyScore,
   people,
   postsPerDay,
   rankingFrom,
@@ -37,12 +35,6 @@ describe('formulas', () => {
     expect(liveScore({ upvotes: [], submissions: [T0], passes: [T0 - 12 * HOUR] }, T0)).toBeCloseTo(5 + 10, 10)
   })
 
-  it('lobby score: joins in 24h over seats left', () => {
-    expect(lobbyScore(2, 2)).toBe(1)
-    expect(lobbyScore(1, 8)).toBe(0.125)
-    expect(lobbyScore(3, 0)).toBe(3) // never divides by zero
-  })
-
   it('hot: at the floor and twice the 7-day daily average', () => {
     expect(isHot(20, 20)).toBe(true) // a first-day breakthrough
     expect(isHot(19, 19)).toBe(false) // under the floor of 20
@@ -67,21 +59,20 @@ describe('formulas', () => {
 
   it('reads the knobs from settings, keeping defaults for anything broken', () => {
     expect(rankingFrom({})).toEqual(RANKING)
+    // hot_mix went with the lobby (decided Oct 9): its settings row is no longer read
     expect(rankingFrom({ hot_floor: 10, hot_mix: 4, ranking: { pass: 30, half_life_hours: 0, window_hours: 'x' } })).toEqual({
       ...RANKING,
       hot_floor: 10,
-      hot_mix: 4,
       pass: 30,
     })
+    expect(RANKING).not.toHaveProperty('hot_mix')
   })
 
   const st = (o: Partial<StatusInput>): string =>
-    statusLine({ state: 'live', pinned: null, seatsLeft: 0, deadEndNote: null, submissions: [], branches: { live: 0, closed: 0 }, ...o })
+    statusLine({ state: 'live', pinned: null, deadEndNote: null, submissions: [], branches: { live: 0, closed: 0 }, ...o })
 
   it('status line: the pinned post first, else recorded state, never the latest post', () => {
     expect(st({ pinned: '\n  where we are: renderer at 61 fps.  \nmore below' })).toBe('where we are: renderer at 61 fps.')
-    expect(st({ state: 'lobby', seatsLeft: 29 })).toBe('29 seats from kickoff.')
-    expect(st({ state: 'lobby', seatsLeft: 1 })).toBe('1 seat from kickoff.')
     expect(st({})).toBe('no submission yet.')
     expect(st({ branches: { live: 2, closed: 2 } })).toBe('no submission yet · 2 branches closed, 2 live.')
     expect(st({ branches: { live: 1, closed: 0 } })).toBe('no submission yet · 1 branch live.')
@@ -95,25 +86,19 @@ describe('formulas', () => {
 
   it("status line: the launch seed's pinned sources post never counts (table B #40, A18)", () => {
     const sources = 'where this pitch comes from:\nhttps://example.org/a\n\nbuilds on: gzdoom'
-    expect(st({ state: 'lobby', seatsLeft: 1, pinned: sources })).toBe('1 seat from kickoff.')
-    expect(st({ state: 'lobby', seatsLeft: 1, pinned: '  Where this pitch comes from:  \nx' })).toBe('1 seat from kickoff.')
-    // posted by the seed, whatever its first line (a builds-on line only)
-    expect(st({ state: 'lobby', seatsLeft: 1, pinned: 'builds on: gzdoom', pinnedBySeed: true })).toBe('1 seat from kickoff.')
     expect(st({ pinned: sources })).toBe('no submission yet.')
+    expect(st({ pinned: '  Where this pitch comes from:  \nx' })).toBe('no submission yet.')
+    // posted by the seed, whatever its first line (a builds-on line only)
+    expect(st({ pinned: 'builds on: gzdoom', pinnedBySeed: true })).toBe('no submission yet.')
     // the author's own pin still leads
-    expect(st({ state: 'lobby', seatsLeft: 1, pinned: 'kickoff friday.\nwhere this pitch comes from: below' })).toBe('kickoff friday.')
+    expect(st({ pinned: 'demo friday.\nwhere this pitch comes from: below' })).toBe('demo friday.')
     expect(isSeedSourcesPost('where this pitch comes from:\nx')).toBe(true)
     expect(isSeedSourcesPost('where we are: 61 fps')).toBe(false)
   })
 
-  it('hot mix: each list by its own rank, about 3 live to 1 lobby', () => {
+  it('hot order: by score; ties go to the newer node, then the higher id', () => {
     const n = (id: number, score: number, created_at = iso(T0)) => ({ id, score, created_at })
-    const live = [n(1, 5), n(2, 9), n(3, 1), n(4, 7), n(5, 0)]
-    const lobbies = [n(10, 0.5), n(11, 2), n(12, 0.1)]
-    expect(hotMix(live, lobbies).map(x => x.id)).toEqual([2, 4, 1, 11, 3, 5, 10, 12])
-    expect(hotMix([], lobbies).map(x => x.id)).toEqual([11, 10, 12])
-    expect(hotMix(live, [], 2).map(x => x.id)).toEqual([2, 4, 1, 3, 5])
-    // ties go to the newer node, then the higher id
+    expect([n(1, 5), n(2, 9), n(3, 1), n(4, 7), n(5, 0)].sort(byScore).map(x => x.id)).toEqual([2, 4, 1, 3, 5])
     expect([n(1, 1, iso(T0)), n(2, 1, iso(T0 + 1)), n(3, 1, iso(T0 + 1))].sort(byScore).map(x => x.id)).toEqual([3, 2, 1])
   })
 })
@@ -160,11 +145,11 @@ async function fixture() {
 
   w.now = T0 - 8 * DAY
   for (const title of ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta']) {
-    await w.shwarm(seed(myra), { title, lobby: 2 })
+    await w.shwarm(seed(myra), { title })
     await w.join(site(bob), title)
   }
-  await w.shwarm(seed(myra), { title: 'lobby a', lobby: 5 })
-  await w.shwarm(seed(myra), { title: 'lobby b', lobby: 10 })
+  await w.shwarm(seed(myra), { title: 'quiet a' })
+  await w.shwarm(seed(myra), { title: 'quiet b' })
   await w.branch(seed(myra), 'epsilon')
 
   w.now = T0 - 6 * DAY
@@ -179,9 +164,9 @@ async function fixture() {
   const pin = (await w.post(site(myra), 'gamma', 'where we are: renderer at 61 fps.\nplacement is next.')).id
   w.db.raw.prepare("UPDATE node SET pinned_post_id = ? WHERE path = 'gamma'").run(pin)
   const deltaPosts = await posts(w, site(bob), 'delta', 5)
-  await w.join(site(dave), 'lobby-a')
-  await w.join(site(erin), 'lobby-a')
-  await w.join(site(dave), 'lobby-b')
+  await w.join(site(dave), 'quiet-a')
+  await w.join(site(erin), 'quiet-a')
+  await w.join(site(dave), 'quiet-b')
   await w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: 'zeta', note: "menus can't nest.\nnotes published." } })
 
   w.now = T0 - HOUR
@@ -207,9 +192,9 @@ const stats = (w: World) => {
 const hotTab = (w: World) => {
   const rows = w.all(
     `SELECT n.id, n.path, n.state, n.created_at, s.score FROM node n JOIN node_stats s ON s.node_id = n.id
-     WHERE n.kind IN ('shwarm', 'variant') AND n.state IN ('live', 'lobby')`,
+     WHERE n.kind IN ('shwarm', 'variant') AND n.state = 'live'`,
   )
-  return hotMix(rows.filter(r => r.state === 'live'), rows.filter(r => r.state === 'lobby')).map(r => r.path)
+  return rows.sort(byScore).map(r => r.path)
 }
 
 describe('stats rollup', () => {
@@ -241,14 +226,15 @@ describe('stats rollup', () => {
     expect(s['epsilon/block-placement'].status_line).toBe('submission #1 in review.')
 
     expect(s.zeta).toMatchObject({ score: 0, hot: 0, status_line: "menus can't nest." })
-    expect(s['lobby-a']).toMatchObject({ score: 1, people: 3, status_line: '2 seats from kickoff.' })
-    expect(s['lobby-b']).toMatchObject({ score: 0.125, people: 2, status_line: '8 seats from kickoff.' })
+    // live from the start, with no lobby score: joins count only as people (decided Oct 9)
+    expect(s['quiet-a']).toMatchObject({ score: 0, people: 3, status_line: 'no submission yet.' })
+    expect(s['quiet-b']).toMatchObject({ score: 0, people: 2, status_line: 'no submission yet.' })
   })
 
-  it('ranks the hot tab: live by score and lobbies by closeness, 3 to 1, no dead ends', async () => {
+  it('ranks the hot tab: live by score, no dead ends', async () => {
     const { w } = await fixture()
     await rollupStats(w.db, T0)
-    expect(hotTab(w)).toEqual(['alpha', 'beta', 'gamma', 'lobby-a', 'epsilon', 'delta', 'lobby-b'])
+    expect(hotTab(w)).toEqual(['alpha', 'beta', 'gamma', 'epsilon', 'quiet-b', 'quiet-a', 'delta'])
   })
 
   it('rolls agents up to their human and counts only established upvotes per person', async () => {
@@ -331,7 +317,7 @@ describe('stats rollup', () => {
     // nodes made straight in SQL, all changed at the same moment
     const insert = w.db.raw.prepare(
       `INSERT INTO node (path, slug, kind, title, what, done_when, checks, lobby_size, license, author_id, posted_by, state, created_at, changed_at)
-       VALUES (?, ?, 'shwarm', ?, 'w', 'd', '{"author":true}', 2, 'MIT + CC-BY-4.0', ?, '@myra', 'lobby', ?, ?)`,
+       VALUES (?, ?, 'shwarm', ?, 'w', 'd', '{"author":true}', 1, 'MIT + CC-BY-4.0', ?, '@myra', 'live', ?, ?)`,
     )
     for (let i = 0; i < total; i++) insert.run(`n${i}`, `n${i}`, `n${i}`, myra.id, iso(T0), iso(T0))
     expect(await rollupStats(w.db, T0 + MIN)).toMatchObject({ nodes: MAX_NODES })
@@ -359,7 +345,7 @@ describe('header counters', () => {
     const carol = await person(w.db, 'carol')
     const dave = await person(w.db, 'dave')
     w.now = T0 - 2 * DAY
-    await w.shwarm(seed(myra), { title: 'alpha', lobby: 3 })
+    await w.shwarm(seed(myra), { title: 'alpha' })
     await w.post(site(myra), 'alpha', 'two days ago.')
     w.now = T0 - 20 * HOUR // yesterday, but inside the last 24h
     await w.post(site(bob), 'alpha', 'last night.')
@@ -504,7 +490,7 @@ describe('stats rollup cost and freshness', () => {
     const myra = await person(w.db, 'myra')
     const bob = await person(w.db, 'bob')
     w.now = T0 - 8 * DAY
-    await w.shwarm(seed(myra), { title: 'busy', lobby: 2 })
+    await w.shwarm(seed(myra), { title: 'busy' })
     await w.join(site(bob), 'busy')
     w.now = T0 - 7 * DAY + HOUR
     const ids = await posts(w, site(bob), 'busy', 4)
@@ -534,7 +520,7 @@ describe('stats rollup cost and freshness', () => {
     const total = MAX_NODES + 20
     const insert = w.db.raw.prepare(
       `INSERT INTO node (path, slug, kind, title, what, done_when, checks, lobby_size, license, author_id, posted_by, state, created_at, changed_at)
-       VALUES (?, ?, 'shwarm', ?, 'w', 'd', '{"author":true}', 2, 'MIT + CC-BY-4.0', ?, '@myra', 'lobby', ?, ?)`,
+       VALUES (?, ?, 'shwarm', ?, 'w', 'd', '{"author":true}', 1, 'MIT + CC-BY-4.0', ?, '@myra', 'live', ?, ?)`,
     )
     for (let i = 0; i < total; i++) insert.run(`n${i}`, `n${i}`, `n${i}`, myra.id, iso(T0), iso(T0 + i))
     const cut = watched(w.db, { failBatch: 2 })
@@ -562,7 +548,7 @@ describe('stats rollup cost and freshness', () => {
     for (let i = 0; i < 25; i++) voters.push(await person(w.db, `voter${String(i).padStart(2, '0')}`))
     w.now = T0 - 2 * DAY
     for (const title of ['a', 'b']) {
-      await w.shwarm(seed(myra), { title, lobby: 2 })
+      await w.shwarm(seed(myra), { title })
       await w.join(site(bob), title)
     }
     w.now = T0 - 23.5 * HOUR
@@ -588,7 +574,7 @@ describe('stats rollup cost and freshness', () => {
   it('ranks scores computed at different times as of now', async () => {
     const at = (h: number) => iso(T0 + h * HOUR)
     expect(scoreNow({ state: 'live', score: 10, updated_at: at(0) }, T0 + 12 * HOUR)).toBeCloseTo(5, 10)
-    expect(scoreNow({ state: 'lobby', score: 0.5, updated_at: at(0) }, T0 + 12 * HOUR)).toBe(0.5) // lobbies step, they don't decay
+    expect(scoreNow({ state: 'closed', score: 0.5, updated_at: at(0) }, T0 + 12 * HOUR)).toBe(0.5) // only a live score decays
     // x was rolled up an hour before y: stored 10 beats 9.6, but as of now x is 9.44
     const rows = [
       { id: 1, score: 10, updated_at: at(0), state: 'live', created_at: at(-48) },
@@ -604,7 +590,7 @@ describe('header counters catch up', () => {
     const w = new World()
     const myra = await person(w.db, 'myra')
     w.now = Date.parse('2026-10-08T09:00:00Z')
-    await w.shwarm(seed(myra), { title: 'alpha', lobby: 3 })
+    await w.shwarm(seed(myra), { title: 'alpha' })
     await w.post(site(myra), 'alpha', 'morning.')
     w.now = Date.parse('2026-10-08T23:30:00Z')
     await w.post(site(myra), 'alpha', 'late.')

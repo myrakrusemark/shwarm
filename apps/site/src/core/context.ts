@@ -24,8 +24,9 @@ export type PersonRow = {
   is_admin: number // the operator (table B "author gone")
 }
 
+// 'variant': rows made before variants were dropped (decided Oct 9); they read as plain shwarms. No row is a lobby now (0016).
 export type NodeKind = 'shwarm' | 'branch' | 'variant'
-export type NodeState = 'lobby' | 'live' | 'closed' | 'dead_end'
+export type NodeState = 'live' | 'closed' | 'dead_end'
 
 export type NodeRow = {
   id: number
@@ -34,11 +35,9 @@ export type NodeRow = {
   kind: NodeKind
   parent_id: number | null
   root_id: number | null
-  variant_of_id: number | null
   title: string
   what: string
   checks: string
-  lobby_size: number | null
   license: string
   builds_on: string | null
   author_id: number
@@ -122,15 +121,16 @@ export const rootOf = (path: string) => path.split('/')[0]
 
 const WEEK_MS = 7 * 86_400_000
 
-export type Audience = 'seats' | 'involved'
+// 'seats' (seat holders only) went with the lobby's kickoff notice (decided Oct 9, "No lobby").
+export type Audience = 'involved'
 
 /**
- * Who hears about a node (table B): 'seats' = seat holders; 'involved' = seat holders, the author and everyone who
- * posted in the last 7 days (table B #44). A SELECT of person ids as `pid`, with plain placeholders and their binds.
+ * Who hears about a node (table B): 'involved' = everyone who joined (said they're working on it), the author and
+ * everyone who posted in the last 7 days (table B #44). A SELECT of person ids as `pid`, with plain placeholders and
+ * their binds.
  */
-function audience(ctx: Ctx, nodeId: number, who: Audience): { sql: string; args: unknown[] } {
+function audience(ctx: Ctx, nodeId: number, _who: Audience): { sql: string; args: unknown[] } {
   const seats = 'SELECT person_id AS pid FROM seat WHERE node_id = ? AND left_at IS NULL'
-  if (who === 'seats') return { sql: seats, args: [nodeId] }
   return {
     sql: `${seats} UNION SELECT author_id FROM node WHERE id = ? UNION SELECT person_id FROM post WHERE node_id = ? AND created_at > ?`,
     args: [nodeId, nodeId, nodeId, new Date(ctx.now - WEEK_MS).toISOString()],

@@ -6,7 +6,7 @@ import { buildsOnFromForm, checkFromForm, parseTagField } from '../src/web/creat
 import { resetReadLimit } from '../src/web/read-limit'
 import { addPerson, T0 } from './d1'
 import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv } from './browser'
-import { LOBBY, stagingWorld } from './node-fixture'
+import { PLAIN, stagingWorld } from './node-fixture'
 
 beforeEach(() => {
   vi.stubGlobal('fetch', fakeFetch())
@@ -34,7 +34,7 @@ async function member(env: ReturnType<typeof testEnv>, handle: string, o: { veri
   return { b, pid }
 }
 
-const HELLO = { title: 'hello world', what: 'two test accounts say hello.', done_when: 'both accounts have posted hello world.', c_author: 'on', tags: '#test #hello', lobby: '2', license: 'MIT+CC-BY-4.0' }
+const HELLO = { title: 'hello world', what: 'two test accounts say hello.', done_when: 'both accounts have posted hello world.', c_author: 'on', tags: '#test #hello', license: 'MIT+CC-BY-4.0' }
 
 async function create(b: Browser, fields: Record<string, string>) {
   const token = formTokenIn(await (await b.get('/new')).text())
@@ -49,16 +49,22 @@ describe('create form (4.2)', () => {
     expect(res.headers.get('location')).toBe('/signin?next=%2Fnew')
   })
 
-  it('a new shwarm opens as a lobby with the author in seat 1', async () => {
+  it('a new shwarm is live at once, with the author working on it: no lobby field, no seats (decided Oct 9)', async () => {
     const { env, q, myraId: _ } = await world()
     const { b, pid } = await member(env, 'ana')
     const page = await body(await b.get('/new'))
-    expect(page).toContain('start shwarm + open lobby')
-    const res = await create(b, HELLO)
+    expect(page).toContain('>start shwarm</button>')
+    expect(page).toContain('a goal worth a crowd. it goes live as soon as you start it.')
+    expect(page).toContain('it locks once you post it, and branches inherit it.')
+    expect(page).toContain("then it's live, and anyone can work on it.")
+    expect(page).toContain('changing it means <b>starting a new shwarm</b>, not editing this one.')
+    expect(page).not.toMatch(/lobby|seat|variant/)
+    // a lobby field sent anyway (an old tab) changes nothing
+    const res = await create(b, { ...HELLO, lobby: '7' })
     expect(res.status).toBe(303)
     expect(res.headers.get('location')).toBe('/w/hello-world')
-    const n = q("SELECT id, state, lobby_size, license, checks, triage FROM node WHERE path = 'hello-world'") as any
-    expect(n).toMatchObject({ state: 'lobby', lobby_size: 2, license: 'MIT+CC-BY-4.0' })
+    const n = q("SELECT id, state, live_at, license, checks, triage FROM node WHERE path = 'hello-world'") as any
+    expect(n).toMatchObject({ state: 'live', live_at: new Date(T0).toISOString(), license: 'MIT+CC-BY-4.0' })
     expect(JSON.parse(n.checks)).toEqual({ author: true })
     expect(q('SELECT number FROM seat WHERE node_id = ? AND person_id = ?', n.id, pid)).toEqual({ number: 1 })
     expect(await body(await b.req('/w/hello-world', { headers: { accept: 'text/html' } }))).toContain('hello world')
@@ -85,7 +91,6 @@ describe('create form (4.2)', () => {
     const html = await body(noCheck)
     expect(html).toContain('a done test names at least one check.')
     expect(html).toContain('>two test accounts say hello.</textarea>')
-    expect((await body(await create(b, { ...HELLO, lobby: '1' })))).toContain('a lobby is at least 2 people.')
     expect((await body(await create(b, { ...HELLO, tags: '' })))).toContain('a shwarm needs at least one tag.')
   })
 
@@ -107,37 +112,36 @@ describe('create form (4.2)', () => {
   })
 })
 
-describe('branch and variant modes (4.3)', () => {
+describe('branch mode (4.3); no variants (decided Oct 9)', () => {
   const BRANCH = { title: 'monster collision', what: 'imps walk through placed blocks.', done_when: "monsters can't walk through placed blocks.", c_author: 'on' }
-  const VARIANT = { done_when: 'the same mod, with hunger and a day/night cycle.', c_author: 'on', lobby: '3', license: 'MIT' }
   const html = (b: Browser, path: string) => b.req(path, { headers: { accept: 'text/html' } })
 
-  /** GET the form at `at`, then post `fields` with every field the page carries (its hidden parent or variant too). */
+  /** GET the form at `at`, then post `fields` with every field the page carries (its hidden parent too). */
   async function send(b: Browser, at: string, fields: Record<string, string>) {
     const page = await (await b.get(at)).text()
-    const hidden = Object.fromEntries([...page.matchAll(/<input type="hidden" name="(parent|variant)" value="([^"]+)"/g)].map(m => [m[1], m[2]]))
+    const hidden = Object.fromEntries([...page.matchAll(/<input type="hidden" name="(parent)" value="([^"]+)"/g)].map(m => [m[1], m[2]]))
     return b.req('/new', { form: { form_token: formTokenIn(page), ...hidden, ...fields } })
   }
 
-  it('signed out, ?parent= and ?variant= come back to the same form after sign-in', async () => {
+  it('signed out, ?parent= comes back to the same form after sign-in', async () => {
     const { env } = await world()
     const res = await new Browser(env).get('/new?parent=minecraft-in-doom')
     expect(res.headers.get('location')).toBe('/signin?next=%2Fnew%3Fparent%3Dminecraft-in-doom')
   })
 
-  it('?parent= shows what the branch helps reach, with no tags, lobby or builds-on', async () => {
+  it('?parent= shows what the branch helps reach, with no tags or builds-on', async () => {
     const { env } = await world()
     const { b } = await member(env, 'ana')
     const page = await body(await b.get('/new?parent=minecraft-in-doom/block-placement'))
     expect(page).toContain('<h1 class="title" id="heading">new branch</h1>')
-    expect(page).toContain('goes live as soon as you start it. no lobby: the crew is already here.')
+    expect(page).toContain('goes live as soon as you start it. the crew is already here.')
     expect(page).toMatch(/<nav class="crumbs"[^>]*><a href="\/w\/minecraft-in-doom">minecraft in doom<\/a><span>\/<\/span><a href="\/w\/minecraft-in-doom\/block-placement">block placement<\/a><span>\/<\/span>new branch<\/nav>/)
     expect(page).toContain('helping reach')
     expect(page).toContain('block placement is done when')
     expect(page).toContain('one done test per branch')
     expect(page).toContain('name="parent" value="minecraft-in-doom/block-placement"')
     expect(page).not.toContain('name="tags"')
-    expect(page).not.toContain('name="lobby"')
+    expect(page).not.toMatch(/lobby/)
     expect(page).not.toContain('name="builds_on"')
     expect(page).not.toContain('name="license"')
     expect(page).toContain("a branch inherits its shwarm's license.")
@@ -179,24 +183,28 @@ describe('branch and variant modes (4.3)', () => {
     expect(page).toContain('value="monster collision"')
   })
 
-  it('a lobby takes no branches yet: the page says so instead of the form', async () => {
-    const { env, q } = await world()
+  it('a shwarm takes branches the minute it is posted; an ended one says so instead of the form', async () => {
+    const { env, q, db } = await world()
     const { b } = await member(env, 'ana')
-    const page = await body(await b.get(`/new?parent=${LOBBY}`))
-    expect(page).toContain(`${LOBBY} is still a lobby. branches open at kickoff.`)
-    expect(page).not.toContain('name="title"')
+    const page = await body(await b.get(`/new?parent=${PLAIN}`))
+    expect(page).toContain('name="title"')
+    expect(page).not.toContain('is still a lobby')
+    const token = formTokenIn(page)
+    db.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'x' WHERE path = ?").run(PLAIN)
+    const ended = await body(await b.get(`/new?parent=${PLAIN}`))
+    expect(ended).toContain(`${PLAIN} is dead end.`)
+    expect(ended).not.toContain('name="title"')
     // A form sent anyway (an old tab) is refused the same way.
-    const res = await b.req('/new', { form: { form_token: formTokenIn(await (await b.get('/new')).text()), parent: LOBBY, ...BRANCH } })
+    const res = await b.req('/new', { form: { form_token: token, parent: PLAIN, ...BRANCH } })
     expect(res.status).toBe(400)
-    expect(await body(res)).toContain('is still a lobby')
-    expect((q("SELECT COUNT(*) AS n FROM node WHERE kind = 'branch' AND path LIKE ?", `${LOBBY}/%`) as { n: number }).n).toBe(0)
+    expect(await body(res)).toContain(`${PLAIN} is dead end.`)
+    expect((q("SELECT COUNT(*) AS n FROM node WHERE kind = 'branch' AND path LIKE ?", `${PLAIN}/%`) as { n: number }).n).toBe(0)
   })
 
-  it("a parent or original the viewer can't see is a 404", async () => {
+  it("a parent the viewer can't see is a 404", async () => {
     const { env, db } = await world()
     const { b } = await member(env, 'ana')
     expect((await b.get('/new?parent=no-such-thing')).status).toBe(404)
-    expect((await b.get('/new?variant=no-such-thing')).status).toBe(404)
     expect((await b.get('/new?parent=../etc')).status).toBe(404)
     // Still being checked: only its author sees it, so only its author can branch it.
     db.raw.prepare("UPDATE node SET triage = 'pending' WHERE path = 'minecraft-in-doom/block-placement'").run()
@@ -205,50 +213,18 @@ describe('branch and variant modes (4.3)', () => {
     expect(res.status).toBe(404)
   })
 
-  it('?variant= is prefilled from the original and opens its own lobby, linked both ways', async () => {
-    const { env, q, db } = await world()
-    const { b, pid } = await member(env, 'ana')
-    const page = await body(await b.get('/new?variant=minecraft-in-doom'))
-    expect(page).toContain('<h1 class="title" id="heading">new variant</h1>')
-    expect(page).toContain('same goal, your own finish line. a variant is a shwarm of its own, with its own lobby.')
-    expect(page).toContain('the original is done when')
-    expect(page).toContain('minecraft in doom (@myra)')
-    expect(page).toContain('value="minecraft in doom: "')
-    expect(page).toMatch(/name="tags"[^>]*value="#[a-z]/)
-    expect(page).toContain('a variant picks its own license.')
-    expect(page).toContain('name="variant" value="minecraft-in-doom"')
-    expect(page).toContain('name="lobby"')
-    // Sent with the prefilled title, what and tags as they are, plus a new finish line.
-    const form = (name: string) => new RegExp(`name="${name}"[^>]*value="([^"]*)"`).exec(page)![1]
-    const res = await send(b, '/new?variant=minecraft-in-doom', { ...VARIANT, title: 'minecraft in doom: survival', what: 'the same goal, harder.', tags: form('tags') })
-    expect(res.status).toBe(303)
-    expect(res.headers.get('location')).toBe('/w/minecraft-in-doom-survival')
-    const v = q("SELECT id, kind, state, lobby_size, license, variant_of_id FROM node WHERE path = 'minecraft-in-doom-survival'") as any
-    const orig = q("SELECT id FROM node WHERE path = 'minecraft-in-doom'") as any
-    expect(v).toMatchObject({ kind: 'variant', state: 'lobby', lobby_size: 3, license: 'MIT', variant_of_id: orig.id })
-    expect(q('SELECT person_id, number FROM seat WHERE node_id = ?', v.id)).toEqual({ person_id: pid, number: 1 })
-    // Linked both ways, once triage clears it.
-    db.raw.prepare("UPDATE node SET triage = 'clear' WHERE id = ?").run(v.id)
-    expect(await body(await html(b, '/w/minecraft-in-doom-survival'))).toContain('variant of <a href="/w/minecraft-in-doom">minecraft in doom</a>')
-    expect(await body(await html(b, '/w/minecraft-in-doom'))).toContain('<a href="/w/minecraft-in-doom-survival">minecraft in doom: survival</a>')
-  })
-
-  it('a variant of a closed shwarm is refused, and offers building on it', async () => {
-    const { env, q, db } = await world()
+  it('?variant= is gone: the plain new shwarm form, and a variant field sent anyway makes a plain shwarm', async () => {
+    const { env, q } = await world()
     const { b } = await member(env, 'ana')
-    const token = formTokenIn(await (await b.get('/new?variant=minecraft-in-doom')).text())
-    db.raw.prepare("UPDATE node SET state = 'closed', closed_at = ? WHERE path = 'minecraft-in-doom'").run(new Date(T0).toISOString())
     const page = await body(await b.get('/new?variant=minecraft-in-doom'))
-    expect(page).toContain('minecraft-in-doom is closed. variants are only for open shwarms; build on it instead.')
-    expect(page).not.toContain('name="title"')
-    expect(page).toContain('<a class="btn" href="/new?builds_on=minecraft-in-doom">build on this</a>')
-    // The form from before it closed is refused too.
-    const res = await b.req('/new', { form: { form_token: token, variant: 'minecraft-in-doom', ...VARIANT, title: 'minecraft in doom: late', what: 'too late.', tags: '#games' } })
-    expect(res.status).toBe(400)
-    expect(await body(res)).toContain('variants are only for open shwarms')
-    expect(q("SELECT COUNT(*) AS n FROM node WHERE kind = 'variant'")).toEqual({ n: 0 })
-    // A branch isn't varied: it gets a sibling branch.
-    expect(await body(await b.get('/new?variant=minecraft-in-doom/block-placement'))).toContain('variants are of shwarms only. disagree with a branch? open a sibling branch.')
+    expect(page).toContain('<h1 class="title" id="heading">new shwarm</h1>')
+    expect(page).not.toMatch(/variant|the original is done when/)
+    expect(page).toContain('value=""') // nothing prefilled
+    const res = await b.req('/new', { form: { form_token: formTokenIn(page), variant: 'minecraft-in-doom', ...HELLO, title: 'minecraft in doom: survival' } })
+    expect(res.status).toBe(303)
+    expect(q("SELECT kind, state, variant_of_id FROM node WHERE path = 'minecraft-in-doom-survival'")).toEqual({ kind: 'shwarm', state: 'live', variant_of_id: null })
+    // no page links to a variant form
+    expect(await body(await html(b, '/w/minecraft-in-doom'))).not.toMatch(/variant/)
   })
 
   it('?builds_on= fills the builds-on field and names a closed shwarm, whose license the new one takes', async () => {

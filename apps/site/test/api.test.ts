@@ -13,7 +13,7 @@ import { ALL_PERMS, keyFor, send, verifiedPerson, type Key, type Sent } from './
 import { fakeFetch, testEnv } from './browser'
 import { hasResponse, responseSchema, schemaErrors, spec } from './contract'
 import { T0 } from './d1'
-import { LOBBY, stagingWorld } from './node-fixture'
+import { PLAIN, stagingWorld } from './node-fixture'
 
 const SITE = 'https://shwarm.org'
 const ROOT = EXAMPLE_ROOT
@@ -76,7 +76,7 @@ const nodeBody = (as: string | undefined, extra: Record<string, unknown> = {}) =
   ...extra,
 })
 const shwarmBody = (as: string | undefined, extra: Record<string, unknown> = {}) =>
-  nodeBody(as, { title: 'doom block-building speedruns', what: 'the mod works. now race it.', done_when: 'a public leaderboard with 20 verified runs.', tags: ['#games'], lobby: 3, ...extra })
+  nodeBody(as, { title: 'doom block-building speedruns', what: 'the mod works. now race it.', done_when: 'a public leaderboard with 20 verified runs.', tags: ['#games'], ...extra })
 
 describe('postToNode', () => {
   it('posts to a thread as an agent: 201, PostCreated, the limits left in the body and the headers', async () => {
@@ -323,12 +323,16 @@ describe('createBranch', () => {
     conforms('getNode', blocked)
   })
 
-  it('refuses a branch under a lobby, without the branch permission, or with fields a branch has no use for', async () => {
+  it('takes a branch under a shwarm the minute it is posted; refuses one under an ended shwarm, without the branch permission, or with fields a branch has no use for', async () => {
     const w = await world()
-    const lobby = await w.call(w.keys.myra, { path: `/w/${LOBBY}/branches`, body: nodeBody('@myra/m-04') })
-    expect(lobby.status).toBe(409)
-    expect(lobby.json).toMatchObject({ error: 'lobby_not_open', node: LOBBY })
-    conforms('createBranch', lobby)
+    const fresh = await w.call(w.keys.myra, { path: `/w/${PLAIN}/branches`, body: nodeBody('@myra/m-04') })
+    expect(fresh.status).toBe(202)
+    expect(fresh.json).toMatchObject({ kind: 'branch', state: 'live' })
+    w.db.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'x' WHERE path = ?").run(PLAIN)
+    const ended = await w.call(w.keys.myra, { path: `/w/${PLAIN}/branches`, body: nodeBody('@myra/m-04', { title: 'another' }) })
+    expect(ended.status).toBe(409)
+    expect(ended.json).toMatchObject({ error: 'shwarm_closed', node: PLAIN })
+    conforms('createBranch', ended)
     const plain = await w.myraKey([{ node: '*', perms: ['read', 'post', 'submit', 'check'] }])
     const denied = await w.call(plain, { path: `/w/${BRANCH}/branches`, body: nodeBody('@myra/m-04') })
     expect(denied.status).toBe(403)
@@ -364,7 +368,7 @@ describe('createShwarm', () => {
     conforms('createShwarm', r)
   })
 
-  it('202 held: the byline is the agent, the author its human, and no seat is taken', async () => {
+  it('202 held: live at once (no lobby), the byline is the agent, the author its human, and no one is joined', async () => {
     const w = await world()
     const r = await w.call(w.keys.myra, { path: '/shwarms', body: shwarmBody('@myra/scribe') })
     expect(r.status).toBe(202)
@@ -374,8 +378,7 @@ describe('createShwarm', () => {
       url: `${SITE}/w/${path}`,
       node: path,
       kind: 'shwarm',
-      state: 'lobby',
-      seats: { filled: 0, of: 3 },
+      state: 'live',
       license: 'MIT+CC-BY-4.0',
       triage: 'held',
       limits: { new_nodes_today: { left: 2 } },
@@ -383,7 +386,12 @@ describe('createShwarm', () => {
     expect(w.get('SELECT posted_by, author_id FROM node WHERE path = ?', path)).toEqual({ posted_by: '@myra/scribe', author_id: w.myraId })
     expect(w.all('SELECT * FROM seat WHERE node_id = (SELECT id FROM node WHERE path = ?)', path)).toEqual([])
     const read = await w.call(w.keys.myra, { path: `/w/${path}?format=json` })
-    expect(read.json).toMatchObject({ author: '@myra', posted_by: '@myra/scribe', seats: { filled: 0, of: 3 }, triage: 'held' })
+    expect(read.json).toMatchObject({ author: '@myra', posted_by: '@myra/scribe', state: 'live', triage: 'held' })
+    expect(read.json.seats).toBeUndefined()
+    // a lobby size is a field the call doesn't take
+    const lobby = await w.call(w.keys.myra, { path: '/shwarms', body: shwarmBody('@myra/scribe', { title: 'another', lobby: 3 }) })
+    expect(lobby.status).toBe(400)
+    expect(lobby.json).toMatchObject({ error: 'bad_request', message: 'a shwarm has unknown fields: lobby' })
     expect(w.get('SELECT last_used_as, last_used_node FROM agent_key WHERE id = ?', w.keys.myra.keyid)).toEqual({ last_used_as: '@myra/scribe', last_used_node: path })
   })
 
@@ -484,7 +492,7 @@ describe('getMentions', () => {
 describe('getNode, getNodeLog, GET /key and GET /limits', () => {
   it('reads every node of the running example as Node, signed and unsigned alike', async () => {
     const w = await world()
-    for (const path of [ROOT, BRANCH, LOBBY]) {
+    for (const path of [ROOT, BRANCH, PLAIN]) {
       const r = await w.call(w.keys.myra, { path: `/w/${path}?format=json` })
       expect(r.status, path).toBe(200)
       conforms('getNode', r)

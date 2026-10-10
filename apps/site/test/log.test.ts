@@ -1,4 +1,4 @@
-// Go-live 5.7: GET /w/<path>/log, the audit log as JSON. A full core run (the example's lobby fill, branch and checks;
+// Go-live 5.7: GET /w/<path>/log, the audit log as JSON. A full core run (the example's branch and checks;
 // the shwarm's pass with the author's sign-off; a branch passed and reopened by a repro; an author's fail; a dead end)
 // and every event of it in the log, newest first, each linked to evidence that's really there. Milestones, paging with
 // ?before, hidden branches and submissions left out, and the seeded row first on a seeded shwarm.
@@ -91,13 +91,13 @@ describe('GET /w/<path>/log (5.7)', () => {
     const want = w.stored(TREE)
     expect(events.slice(0, -1).map(e => e.id)).toEqual(want.map(e => e.id))
     expect(totals.every(t => t === want.length + 1)).toBe(true)
-    // all nine event types happened, and the seeded row (A18) closes the log
-    expect(new Set(events.map(e => e.event))).toEqual(new Set([...AUDIT_EVENTS, 'seeded']))
+    // every event type still written happened ('lobby_filled' went with the lobby, Oct 9), and the seeded row (A18) closes the log
+    expect(new Set(events.map(e => e.event))).toEqual(new Set([...AUDIT_EVENTS.filter(e => e !== 'lobby_filled'), 'seeded']))
     expect(events.at(-1)).toEqual({ id: null, at: expect.any(String), event: 'seeded', node: EXAMPLE_ROOT, by: '@myra', detail: 'seeded by @myra at launch', evidence: `${ORIGIN}/w/${EXAMPLE_ROOT}`, milestone: true })
     // the shape: each row names its node; the submission and its number when there is one
     const passed = events.find(e => e.event === 'passed' && e.node === EXAMPLE_ROOT)!
     expect(passed).toMatchObject({ by: null, number: 1, submission: w.sub.id, evidence: `${ORIGIN}/w/${EXAMPLE_ROOT}/s/1`, milestone: true })
-    expect(events.find(e => e.event === 'lobby_filled')).not.toHaveProperty('submission')
+    expect(events.find(e => e.event === 'branch_opened')).not.toHaveProperty('submission')
     // every row links to its evidence, and the page it links to has the anchor
     for (const e of events) {
       expect(e.evidence.startsWith(`${ORIGIN}/w/`), e.event).toBe(true)
@@ -108,7 +108,7 @@ describe('GET /w/<path>/log (5.7)', () => {
     }
   })
 
-  it('shows milestones by default: passes, sign-offs, dead ends, reopenings, branch openings, lobby fills', async () => {
+  it('shows milestones by default: passes, sign-offs, dead ends, reopenings, branch openings', async () => {
     const w = await fullRun()
     const page = await w.json(LOG)
     expect(page.filter).toBe('milestones')
@@ -116,7 +116,7 @@ describe('GET /w/<path>/log (5.7)', () => {
     expect(page.events.map(e => e.id)).toEqual([...want.map(e => e.id), null])
     expect(page.total).toBe(want.length + 1)
     expect(page.events.every(e => e.milestone)).toBe(true)
-    expect(new Set(page.events.map(e => e.event))).toEqual(new Set([...MILESTONE_EVENTS, 'seeded']))
+    expect(new Set(page.events.map(e => e.event))).toEqual(new Set([...MILESTONE_EVENTS.filter(e => e !== 'lobby_filled'), 'seeded']))
     expect(await w.json(`${LOG}?filter=milestones`)).toEqual(page)
   })
 

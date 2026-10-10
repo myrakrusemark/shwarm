@@ -1,6 +1,6 @@
 import { OPEN_NODE } from './visibility'
 // Reads for the node pages and the agent URLs (go-live 3.3, 3.4, 3.6): one node at /w/<path>, its ancestors,
-// branches, variants, seats, contributors, submissions with their checks, and its thread. SQL lives here, not in
+// branches, who joined, contributors, submissions with their checks, and its thread. SQL lives here, not in
 // the JSX. Each read is a fixed handful of indexed queries, run side by side where they don't depend on each
 // other, so a page costs a few round trips whatever the thread's size (Workers Free: 10 ms of CPU).
 import { isId } from '../core/ids'
@@ -27,7 +27,7 @@ export const PUBLIC_SQL = OPEN_NODE // one rule for every page (src/read/visibil
 /**
  * PUBLIC_SQL for the node and every node above it: a branch of a hidden or held shwarm is hidden too. Its ancestors'
  * paths are the prefixes of its own, so this walks them on the path index, one lookup per level. Use it wherever a
- * node is reached sideways (built on, builds on, variant of), not through readChain, which checks the whole chain.
+ * node is reached sideways (built on, builds on), not through readChain, which checks the whole chain.
  */
 export const VISIBLE_SQL = (n: string) => `NOT EXISTS (
   WITH RECURSIVE pre(p, rest) AS (
@@ -86,12 +86,10 @@ export type NodeHead = {
   path: string
   kind: NodeKind
   parent_id: number | null
-  variant_of_id: number | null
   title: string
   what: string
   done_when: string
   spec: CheckSpec
-  lobby_size: number | null
   license: string
   builds_on: BuildsOn | null
   author_id: number
@@ -113,13 +111,12 @@ export type NodeHead = {
   changed_at: string | null
   tags: string[]
   stats: NodeStatsRow | null
-  variant_of: { path: string; title: string } | null
   visibility: Visibility
   /** A blocked node's category and Myra's reason (her latest triage decision), for its author's banner. */
   blocked: { category: Category; reason: string } | null
 }
 
-type HeadRow = Omit<NodeHead, 'spec' | 'builds_on' | 'tags' | 'stats' | 'variant_of' | 'visibility' | 'author' | 'blocked'> & {
+type HeadRow = Omit<NodeHead, 'spec' | 'builds_on' | 'tags' | 'stats' | 'visibility' | 'author' | 'blocked'> & {
   block_reason: string | null
   checks: string
   builds_on: string | null
@@ -133,9 +130,6 @@ type HeadRow = Omit<NodeHead, 'spec' | 'builds_on' | 'tags' | 'stats' | 'variant
   s_posts: number
   s_status_line: string
   s_updated_at: string | null
-  v_path: string | null
-  v_title: string | null
-  v_public: number | null
   bo_title: string | null
   moderated: string | null
 }
@@ -159,12 +153,10 @@ function toHead(r: HeadRow, viewerId: number | null): NodeHead {
     path: r.path,
     kind: r.kind,
     parent_id: r.parent_id,
-    variant_of_id: r.variant_of_id,
     title: r.title,
     what: r.what,
     done_when: r.done_when,
     spec: parseJson<CheckSpec>(r.checks, { author: false }),
-    lobby_size: r.lobby_size,
     license: r.license,
     builds_on,
     author_id: r.author_id,
@@ -198,7 +190,6 @@ function toHead(r: HeadRow, viewerId: number | null): NodeHead {
             status_line: r.s_status_line,
             updated_at: r.s_updated_at,
           },
-    variant_of: r.v_path && r.v_public ? { path: r.v_path, title: r.v_title ?? '' } : null,
     visibility: visibility(r, viewerId),
     blocked: r.triage === 'blocked' ? parseBlockReason(r.block_reason) : null,
   }
@@ -215,19 +206,18 @@ export async function readChain(db: D1Database, path: string, viewerId: number |
   const want = prefixes(path)
   const { results } = await db
     .prepare(
-      `SELECT n.id, n.path, n.kind, n.parent_id, n.variant_of_id, n.title, n.what, n.done_when, n.checks, n.lobby_size, n.license,
+      `SELECT n.id, n.path, n.kind, n.parent_id, n.title, n.what, n.done_when, n.checks, n.license,
               n.builds_on, n.author_id, p.handle AS author_handle, p.status AS author_status, ${NAME_SHOWN('n.posted_by')} AS posted_by, n.state, n.in_review, n.triage, n.hidden, n.seeded,
               n.paused, n.dead_end_note, n.pinned_post_id, n.last_event_id, n.created_at, n.live_at, n.closed_at, n.changed_at,
               (SELECT group_concat(tag, ' ') FROM (SELECT t.tag FROM node_tag t WHERE t.node_id = n.id ORDER BY t.rowid)) AS tags,
               s.impact AS s_impact, s.posts_per_day AS s_posts_per_day, s.people AS s_people, s.hot AS s_hot, s.upvotes AS s_upvotes,
               s.posts AS s_posts, s.status_line AS s_status_line, s.updated_at AS s_updated_at,
-              v.path AS v_path, v.title AS v_title, ${VISIBLE_SQL('v')} AS v_public, bo.title AS bo_title,
+              bo.title AS bo_title,
               (SELECT value FROM setting WHERE key = 'moderated_at') AS moderated,
               CASE WHEN n.triage = 'blocked' THEN (SELECT d.reason FROM triage_decision d WHERE d.node_id = n.id AND d.model = '${HAND_MODEL}' ORDER BY d.id DESC LIMIT 1) END AS block_reason
        FROM node n
        JOIN person p ON p.id = n.author_id
        LEFT JOIN node_stats s ON s.node_id = n.id
-       LEFT JOIN node v ON v.id = n.variant_of_id
        LEFT JOIN node bo ON bo.path = json_extract(n.builds_on, '$.node') AND ${VISIBLE_SQL('bo')}
        WHERE n.path IN (SELECT value FROM json_each(?))`,
     )
@@ -240,7 +230,7 @@ export async function readChain(db: D1Database, path: string, viewerId: number |
   return { node: chain[chain.length - 1], ancestors: chain.slice(0, -1), moderated: String(parseJson<unknown>(results[0].moderated, '') || '') || null }
 }
 
-// ---------- branches and variants ----------
+// ---------- branches ----------
 
 export type Child = {
   path: string
@@ -248,12 +238,10 @@ export type Child = {
   kind: NodeKind
   state: NodeState
   in_review: number
-  lobby_size: number | null
   dead_end_note: string | null
   done_when: string
   posted_by: string
   author: string
-  seats: number
   impact: number | null
   posts_per_day: number | null
   people: number | null
@@ -261,23 +249,22 @@ export type Child = {
   created_at: string
 }
 
-const STATE_RANK: Record<NodeState, number> = { live: 0, lobby: 0, closed: 1, dead_end: 2 }
+const STATE_RANK: Record<NodeState, number> = { live: 0, closed: 1, dead_end: 2 }
 
 /**
- * Branches (parent_id) and variants (variant_of_id) of a node, as the sidebar lists them. PUBLIC_SQL on the child
- * alone is enough: a branch's ancestors are the chain readChain already checked, and a variant is top-level.
+ * A node's branches (parent_id), as the sidebar lists them. PUBLIC_SQL on the child alone is enough: a branch's
+ * ancestors are the chain readChain already checked. (Variants are dropped, decided Oct 9: none are listed.)
  */
-export async function readChildren(db: D1Database, nodeId: number): Promise<{ branches: Child[]; variants: Child[] }> {
-  // OPEN: no cap on how many branches a sidebar lists is decided; 100 each.
+export async function readChildren(db: D1Database, nodeId: number): Promise<{ branches: Child[] }> {
+  // OPEN: no cap on how many branches a sidebar lists is decided; 100.
   const { results } = await db
     .prepare(
-      `SELECT c.path, c.title, c.kind, c.state, c.in_review, c.lobby_size, c.dead_end_note, c.done_when, ${NAME_SHOWN('c.posted_by')} AS posted_by,
-              c.created_at, ${HANDLE_SHOWN('p')} AS author, s.impact, s.posts_per_day, s.people, s.status_line,
-              CASE WHEN c.kind = 'branch' THEN 0 ELSE (SELECT COUNT(*) FROM seat st WHERE st.node_id = c.id AND st.left_at IS NULL) END AS seats
+      `SELECT c.path, c.title, c.kind, c.state, c.in_review, c.dead_end_note, c.done_when, ${NAME_SHOWN('c.posted_by')} AS posted_by,
+              c.created_at, ${HANDLE_SHOWN('p')} AS author, s.impact, s.posts_per_day, s.people, s.status_line
        FROM node c
        JOIN person p ON p.id = c.author_id
        LEFT JOIN node_stats s ON s.node_id = c.id
-       WHERE (c.parent_id = ?1 OR c.variant_of_id = ?1) AND ${PUBLIC_SQL('c')}
+       WHERE c.parent_id = ?1 AND ${PUBLIC_SQL('c')}
        LIMIT 200`,
     )
     .bind(nodeId)
@@ -285,30 +272,12 @@ export async function readChildren(db: D1Database, nodeId: number): Promise<{ br
   // Branch order as mocked (table B #41): live first, then closed, then dead ends; busiest first within each.
   const order = (a: Child, b: Child) =>
     STATE_RANK[a.state] - STATE_RANK[b.state] || (b.posts_per_day ?? 0) - (a.posts_per_day ?? 0) || (a.created_at < b.created_at ? -1 : 1)
-  return {
-    branches: results.filter(c => c.kind === 'branch').sort(order).slice(0, 100),
-    variants: results.filter(c => c.kind === 'variant').sort(order).slice(0, 100),
-  }
+  return { branches: results.sort(order).slice(0, 100) }
 }
 
-// ---------- seats ----------
+// ---------- who joined ----------
 
-export type Seat = { number: number; person_id: number; handle: string; joined_at: string }
-export const SEAT_LIST_MAX = 60 // OPEN: how many seats a lobby lists isn't decided; the rest show as "+ N more"
-
-export async function readSeats(db: D1Database, nodeId: number): Promise<{ filled: number; list: Seat[] }> {
-  const { results } = await db
-    .prepare(
-      `SELECT s.number, s.person_id, ${HANDLE_SHOWN('p')} AS handle, s.joined_at, COUNT(*) OVER () AS filled
-       FROM seat s JOIN person p ON p.id = s.person_id
-       WHERE s.node_id = ? AND s.left_at IS NULL ORDER BY s.number LIMIT ?`,
-    )
-    .bind(nodeId, SEAT_LIST_MAX)
-    .all<Seat & { filled: number }>()
-  return { filled: results[0]?.filled ?? 0, list: results.map(({ filled: _, ...s }) => s) }
-}
-
-/** The viewer's seat number on this node, or null when they hold none. */
+/** The viewer's join on this node (a seat row's number: "join" says you're working on it), or null when they haven't. */
 export async function readMySeat(db: D1Database, nodeId: number, personId: number): Promise<number | null> {
   const r = await db.prepare('SELECT number FROM seat WHERE node_id = ? AND person_id = ? AND left_at IS NULL').bind(nodeId, personId).first<{ number: number }>()
   return r?.number ?? null
@@ -321,15 +290,12 @@ export const CONTRIBUTORS_SHOWN = 7
 
 /**
  * People who posted here (person_node_stats, filled by the stats job; agents rolled up into their human), most
- * counted upvotes first (table B #65), and the author always (3.4: "author included"). Once a shwarm is past its lobby,
- * the people holding a seat who haven't posted yet follow, in the order they joined: a late joiner shows as working on it
- * (go-live 4.4; they count among its people, table B #44). A lobby lists its seats in their own box instead.
+ * counted upvotes first (table B #65), and the author always (3.4: "author included"). The people who joined (said
+ * they're working on it) but haven't posted yet follow, in the order they joined (go-live 4.4; they count among its
+ * people, table B #44).
  */
 export async function readContributors(db: D1Database, n: NodeHead): Promise<{ rows: Contributor[]; total: number }> {
-  const seats =
-    n.state === 'lobby'
-      ? ''
-      : `UNION ALL SELECT s.person_id, 0, 0, s.joined_at FROM seat s WHERE s.node_id = ?1 AND s.left_at IS NULL
+  const seats = `UNION ALL SELECT s.person_id, 0, 0, s.joined_at FROM seat s WHERE s.node_id = ?1 AND s.left_at IS NULL
            AND NOT EXISTS (SELECT 1 FROM person_node_stats y WHERE y.node_id = ?1 AND y.person_id = s.person_id AND y.posts > 0)`
   const { results } = await db
     .prepare(
@@ -620,7 +586,7 @@ export async function readEdits(db: D1Database, ids: string[]): Promise<Map<stri
 }
 
 /**
- * An earlier title and pitch of a lobby: what a re-pitch replaced, by whom and when, and when it was written (the
+ * An earlier title and pitch of a shwarm: what a re-pitch replaced, by whom and when, and when it was written (the
  * re-pitch before it, or null when it's the one the node started with) (core/nodes.ts repitch).
  */
 export type PitchEdit = { title: string; what: string; by_name: string; edited_at: string; written_at: string | null }

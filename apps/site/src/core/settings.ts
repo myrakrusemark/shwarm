@@ -36,7 +36,7 @@ export async function setting<T>(db: D1Database, key: string, fallback: T): Prom
   }
 }
 
-/** read_only stops every write; pause_new_nodes stops new shwarms, branches and variants. */
+/** read_only stops every write; pause_new_nodes stops new shwarms and branches. */
 export function checkWritable(s: Settings, newNode = false): void {
   // OPEN: no error code names these switches yet; not_permitted with a reason is the closest in protocol §14.
   if (s.read_only === true) throw new ShwarmError('not_permitted', 'shwarm is read-only for a moment. try again soon', { reason: 'read_only' })

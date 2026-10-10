@@ -66,8 +66,8 @@ describe('closing an account (6.4)', () => {
     const kestrel = await signIn(env, 'kestrel')
     addKey(env, 'kestrel')
     const kid = get("SELECT id FROM person WHERE handle = 'kestrel'").id
-    // a shwarm of kestrel's own, for the feed's "started by"
-    const own = await w.run<{ path: string }>({ type: 'createNode', actor: site(w.p('kestrel')), input: { kind: 'shwarm', title: 'doom speedruns', what: 'a speedrun category for the mod.', doneWhen: 'a leaderboard with ten verified runs.', check: { author: true }, tags: ['games'], lobby: 2 } })
+    // a shwarm of kestrel's own, for its page's "started by"
+    const own = await w.run<{ path: string }>({ type: 'createNode', actor: site(w.p('kestrel')), input: { kind: 'shwarm', title: 'doom speedruns', what: 'a speedrun category for the mod.', doneWhen: 'a leaderboard with ten verified runs.', check: { author: true }, tags: ['games'] } })
     w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = ?").run(own.path)
     await w.run({ type: 'post', actor: agent(w.p('kestrel'), 'bot'), input: { node: own.path, text: 'agent here' } })
 
@@ -110,7 +110,7 @@ describe('closing an account (6.4)', () => {
     }
     const result = await read('/w/minecraft-in-doom')
     expect(result).toContain('<div class="src">from <a href="/w/minecraft-in-doom/s/1">submission #1</a>, by former member</div>')
-    expect(await read('/?tab=new')).toContain('started by former member')
+    expect(await read(`/w/${own.path}`)).toContain('started by former member') // the feed's live card names no one
     // the author's tag stays off their agent's posts: "former member" no longer tells the two apart
     const ownPage = await read(`/w/${own.path}?thread=1`)
     expect(ownPage).toContain('agent here')
@@ -148,16 +148,16 @@ describe('closing an account (6.4)', () => {
     expect(get("SELECT COUNT(*) AS n FROM person WHERE email_norm = 'kestrel@example.org'").n).toBe(0)
   })
 
-  it('asks for the password when the window has closed; gives up a seat in a lobby that is filling', async () => {
+  it("asks for the password when the window has closed; stops working on others' shwarms (decided Oct 9: no lobby)", async () => {
     const w = await closedWorld()
     const env = testEnv(w.db)
     const get = (sql: string, ...args: unknown[]): any => w.db.raw.prepare(sql).get(...args)
     const b = await signIn(env, 'gunter')
     const gid = get("SELECT id FROM person WHERE handle = 'gunter'").id
-    // gunter sits in someone else's lobby, and in one of their own
-    const lobby = await w.run<{ path: string }>({ type: 'createNode', actor: site(w.p('lumpy')), input: { kind: 'shwarm', title: 'doom co-op', what: 'two players dig together.', doneWhen: 'two players build one bunker over the network.', check: { author: true }, tags: ['games'], lobby: 4 } })
+    // gunter joined someone else's shwarm, and started one of their own
+    const lobby = await w.run<{ path: string }>({ type: 'createNode', actor: site(w.p('lumpy')), input: { kind: 'shwarm', title: 'doom co-op', what: 'two players dig together.', doneWhen: 'two players build one bunker over the network.', check: { author: true }, tags: ['games'] } })
     await w.run({ type: 'join', actor: site(w.p('gunter')), input: { node: lobby.path } })
-    const mine = await w.run<{ path: string }>({ type: 'createNode', actor: site(w.p('gunter')), input: { kind: 'shwarm', title: 'doom music', what: 'a soundtrack.', doneWhen: 'ten tracks under an open license.', check: { author: true }, tags: ['music'], lobby: 4 } })
+    const mine = await w.run<{ path: string }>({ type: 'createNode', actor: site(w.p('gunter')), input: { kind: 'shwarm', title: 'doom music', what: 'a soundtrack.', doneWhen: 'ten tracks under an open license.', check: { author: true }, tags: ['music'] } })
     vi.setSystemTime(T0 + 3_600_000 + 11 * MIN)
     let res = await acct(b, 'gunter', { do: 'close', confirm: 'gunter' })
     expect(res.status).toBe(400)
@@ -171,7 +171,7 @@ describe('closing an account (6.4)', () => {
     expect(get('SELECT status FROM person WHERE id = ?', gid).status).toBe('closed')
     const seat = (path: string) => get('SELECT s.left_at FROM seat s JOIN node n ON n.id = s.node_id WHERE n.path = ? AND s.person_id = ?', path, gid)
     expect(seat(lobby.path).left_at).toBeTruthy()
-    expect(seat(mine.path).left_at).toBeNull() // their own lobby keeps its author's seat
+    expect(seat(mine.path).left_at).toBeNull() // their own shwarm keeps its author's join
   })
 
   it("an author's waiting sign-off goes to the operator, who can sign it off", async () => {
@@ -180,7 +180,7 @@ describe('closing an account (6.4)', () => {
     const ops = await person(w.db, 'ops')
     const ana = await person(w.db, 'ana')
     w.db.raw.prepare('UPDATE person SET is_admin = 1 WHERE id = ?').run(ops.id)
-    const { path } = await w.shwarm(site(myra), { lobby: 1 })
+    const { path } = await w.shwarm(site(myra))
     const sub = await w.submit(site(ana), path)
     expect(w.all("SELECT person_id FROM inbox_item WHERE kind = 'sign_off'").map(r => r.person_id)).toEqual([myra.id])
     await closeAccount(w.db, myra.id, w.now)
@@ -199,7 +199,7 @@ describe('closing an account (6.4)', () => {
     const ops = await person(w.db, 'ops')
     const ana = await person(w.db, 'ana')
     w.db.raw.prepare('UPDATE person SET is_admin = 1 WHERE id = ?').run(ops.id)
-    const { path } = await w.shwarm(site(myra), { lobby: 1 })
+    const { path } = await w.shwarm(site(myra))
     const sub = await w.submit(site(ana), path)
     const signOffs = () => w.all("SELECT person_id, post_id FROM inbox_item WHERE kind = 'sign_off'")
     const mailed = () => w.all("SELECT person_id, payload FROM email_outbox WHERE template = 'sign_off_ready'").map(r => ({ person_id: r.person_id, ...JSON.parse(r.payload) }))
@@ -234,7 +234,7 @@ describe('closing an account (6.4)', () => {
     const myra = await person(w.db, 'myra')
     const ana = await person(w.db, 'ana')
     w.db.raw.prepare('UPDATE person SET is_admin = 1 WHERE id = ?').run(myra.id)
-    const { path } = await w.shwarm(site(myra), { lobby: 1 })
+    const { path } = await w.shwarm(site(myra))
     await w.submit(site(ana), path)
     await closeAccount(w.db, myra.id, w.now)
     expect(w.all("SELECT person_id FROM inbox_item WHERE kind = 'sign_off'")).toEqual([])

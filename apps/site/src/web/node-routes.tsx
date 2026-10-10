@@ -58,7 +58,7 @@ type C = Context<Env>
 const TYPES: Record<Format, string> = { html: 'text/html', text: 'text/plain', json: 'application/json' }
 
 /** Bump to change every ETag when the rendering changes. */
-const RENDER_VERSION = '1'
+const RENDER_VERSION = '2' // 2: no lobby or variants (Oct 9)
 
 /**
  * OPEN: production keeps the holding page until go-live 3.10, so its reading pages stay closed while SITE_MODE is
@@ -102,7 +102,7 @@ export function etagOf(chain: Chain, f: Format, view = '', tree?: string): strin
 }
 
 /**
- * Whether this node's page is its result page (go-live 5.7): a closed shwarm or variant, unless its thread was asked for
+ * Whether this node's page is its result page (go-live 5.7): a closed shwarm, unless its thread was asked for
  * (?thread=1). A passed branch keeps the live template (OPEN #81). The page falls back to the live template when the
  * passing submission can't be shown (read/result.ts readResult).
  */
@@ -361,8 +361,8 @@ async function submissionPost(c: C, path: string, number: number, session: Sessi
 // POST /w/<path> (go-live 4.4–4.8, 5.1, 5.6): the page's forms, picked by the `do` field. post: a thread post or reply
 // as the bare handle, pinned as "where we are" when the author ticks it. edit, delete: one of your own plain posts.
 // upvote: the ▲ on a post, either way. submit: the compose box's submit mode, which lands on the new submission's page.
-// join, leave: a lobby seat, or a late joiner's on a live shwarm. repitch (a lobby's title and what), dead_end (with a
-// note), reopen: the author's own box, behind the password. Each runs in the shwarm's tree (do/shwarm-tree.ts), then
+// join, leave: say you're working on a live shwarm, or stop. repitch (a shwarm's title and what, until its first
+// submission), dead_end (with a note), reopen: the author's own box, behind the password. Each runs in the shwarm's tree (do/shwarm-tree.ts), then
 // goes back to the page (303). A refusal re-renders the page with the reason next to the form and the draft kept.
 // Signed out, it goes to sign-in and back.
 // POST /w/<path>/s/<n> (5.3, 5.5): check (a people check or a repro) and signoff (the author's, behind the password).
