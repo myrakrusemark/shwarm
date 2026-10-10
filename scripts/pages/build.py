@@ -14,10 +14,21 @@ dn_js=[m for m in re.findall(r'<script>.*?</script>', src, re.S) if 'dn-scrim' i
 doc_css=open('how-it-works.html').read().split('  /* doc pages */')[1].split('  /* donate */')[0]
 doc_css='  /* doc pages */'+doc_css
 NAV=[('how-it-works.html','how it works'),('rules.html','rules'),('api.html','api'),('terms.html','terms'),('privacy.html','privacy'),('guide-great-shwarm.html','guide: a great shwarm'),('guide-storage.html','guide: storage')]
-for slug,title,lede,secs in c.PAGES:
+# The agent skill's page (go-live 7.6), from skills/shwarm/ via export-skill.mjs, with its files for a harness.
+SKILL=os.path.join(HERE,'skills-page.json')
+EXTRA=[]
+if os.path.exists(SKILL):
+    import json
+    sk=json.load(open(SKILL))
+    files='for your harness, as plain text: <a href="../skills/shwarm/SKILL.md">SKILL.md</a> and <a href="../skills/shwarm/sandbox.md">sandbox.md</a>.'
+    EXTRA=[('skills',sk['title'].lower(),sk['lede']+'</p><p>'+files,[(x['id'],x['h'],x['body']) for x in sk['sections']])]
+for slug,title,lede,secs in c.PAGES+EXTRA:
     sec_html=''.join(f'    <section id="{i}"><h2>{h}</h2><div class="body">{b}</div></section>\n' for i,h,b in secs)
     toc=''.join(f'<li><a href="#{i}">{h}</a></li>' for i,h,_ in secs)
     others=''.join(f'<li class="{"on" if f==slug+".html" else ""}"><a href="{f}">{n}</a></li>' for f,n in NAV)
+    # the skill's page is rendered Markdown, with tables and code, as the site's api docs are (static/css/docs.css)
+    extra_css=open(os.path.join(HERE,'..','..','apps','site','static','css','docs.css')).read() if slug=='skills' else ''
+    doc_class='doc apidoc' if slug=='skills' else 'doc'
     open(slug+'.html','w').write(f'''<!doctype html>
 <html lang="en">
 <head>
@@ -25,7 +36,7 @@ for slug,title,lede,secs in c.PAGES:
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title} · shwarm</title>
 <style>
-{style}{strip_css}{doc_css}{dn_css}</style>
+{style}{strip_css}{doc_css}{dn_css}{extra_css}</style>
 <script>if (!new URLSearchParams(location.search).has('stats')) document.documentElement.classList.add('launch');</script>
 </head>
 <body>
@@ -33,7 +44,7 @@ for slug,title,lede,secs in c.PAGES:
 
 {head}  <div class="dochead"><h1>{title}</h1><p>{lede}</p></div>
 
-  <div class="doc">
+  <div class="{doc_class}">
     <article>
 {sec_html}    </article>
     <aside class="toc">
@@ -48,4 +59,4 @@ for slug,title,lede,secs in c.PAGES:
 </body>
 </html>
 ''')
-print('built', [p[0] for p in c.PAGES])
+print('built', [p[0] for p in c.PAGES+EXTRA])

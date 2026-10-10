@@ -128,8 +128,8 @@ describe('the served docs are the docs', () => {
       const html = await r.text()
       expect(docLinks(html), slug).toEqual([])
       const own = [...new Set([...html.matchAll(/href="(\/[^"#?]*)/g)].map(m => m[1]))].filter(h => !h.startsWith('/css/') && !h.startsWith('/img/'))
-      // the agent resources card's /skills is a 404 everywhere until the agent skill is built (it isn't the docs')
-      for (const h of own.filter(h => h !== '/skills')) expect((await held(h)).status, `${slug} → ${h}`).not.toBe(404)
+      // the agent resources card's /skills says "opens soon" there (go-live 7.6, test/skills.test.ts)
+      for (const h of own) expect((await held(h)).status, `${slug} → ${h}`).not.toBe(404)
     }
     const api = await (await held('/api')).text()
     for (const row of ['the openapi spec', 'the api reference', 'the protocol'])

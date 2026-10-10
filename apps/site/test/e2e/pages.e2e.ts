@@ -55,6 +55,8 @@ const CASES: Case[] = [
   { path: '/keys', status: 200, only: 'in' },
   // footer pages and guides
   ...DOCS.map(d => ({ path: `/${d.slug}`, status: 200 })),
+  // the agent skill (go-live 7.6)
+  { path: '/skills', status: 200 },
   // account pages
   { path: '/join', status: 200 },
   { path: '/signin', status: 200 },

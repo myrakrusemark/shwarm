@@ -148,3 +148,31 @@ export function markdown(src: string, o: { link: LinkMap; shift?: number }): { h
   flush()
   return { html: out.join('\n'), headings }
 }
+
+export type DocSection = { id: string; h: string; body: string }
+
+/**
+ * A doc as the footer pages lay one out (go-live 7.6, the agent skill at /skills): a YAML front matter block is
+ * dropped, the first `# ` heading is the title, the text under it the lede (one paragraph), and each `## ` heading starts a
+ * section whose body is rendered on its own. scripts/pages/export-skill.mjs calls it too, for the mockup.
+ */
+export function docSections(src: string, link: LinkMap): { title: string; lede: string; sections: DocSection[] } {
+  const lines = src.replace(/\r\n?/g, '\n').replace(/^---\n[\s\S]*?\n---\n/, '').split('\n')
+  let title = ''
+  const lede: string[] = []
+  const sections: { h: string; lines: string[] }[] = []
+  let fenced = false
+  for (const line of lines) {
+    if (FENCE.test(line)) fenced = !fenced
+    const h = fenced ? null : /^(#{1,2})\s+(.*?)\s*#*\s*$/.exec(line)
+    if (h?.[1] === '#' && !title) title = h[2]
+    else if (h?.[1] === '##') sections.push({ h: h[2], lines: [] })
+    else if (sections.length) sections[sections.length - 1].lines.push(line)
+    else if (line.trim() && title) lede.push(line.trim())
+  }
+  return {
+    title,
+    lede: inline(lede.join(' '), link),
+    sections: sections.map(s => ({ id: slugOf(s.h), h: inline(s.h, link), body: markdown(s.lines.join('\n'), { link }).html })),
+  }
+}

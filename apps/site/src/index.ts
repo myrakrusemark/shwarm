@@ -13,6 +13,7 @@ import { nodeRoutes } from './web/node-routes'
 import { profile } from './web/profile'
 import { keys } from './web/keys'
 import { apiDocs } from './web/api-docs'
+import { skills } from './web/skills'
 import { api, apiHeaders } from './api'
 import { allowRead, preflight } from './api/cors'
 import { isSigned } from './api/signed'
@@ -140,6 +141,7 @@ app.route('/', profile) // /@handle and the name view (step 3.5)
 app.route('/', keys) // /keys, the keys page and the new-key modal (step 7.2)
 app.route('/', admin) // /admin/beta, the beta funnel; a 404 for everyone but an admin (step 11.4)
 app.route('/', apiDocs) // /openapi.yaml, /docs/reference and /docs/protocol (step 7.5)
+app.route('/', skills) // /skills and the skill's files, /skills/shwarm/SKILL.md and sandbox.md (step 7.6)
 
 // Footer pages and guides (live on production since go-live step 1.8b); their links to the API docs only where those
 // are served (web/doc.tsx).

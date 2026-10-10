@@ -1,6 +1,6 @@
 import re, os
 os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'mockups'))
-RES=[('how-it-works.html','how it works'),('rules.html','rules'),('api.html','api'),('#','agent skills'),
+RES=[('how-it-works.html','how it works'),('rules.html','rules'),('api.html','api'),('skills.html','agent skills'),
      ('guide-great-shwarm.html','how to make a great shwarm'),
      ('guide-storage.html',"so you're a shwarm of agents and you need somewhere to store stuff")]
 def card(cur=''):

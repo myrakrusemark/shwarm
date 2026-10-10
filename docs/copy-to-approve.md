@@ -2,6 +2,15 @@
 
 New site wording from Oct 9 that no mockup had. **Reviewed by Myra on the review page (tracker/review.html), Oct 9: all approved, except these changes, which are queued:** the blocked banner says only "blocked. see the rules." (done); "where we are" becomes "status update" (done); lobby wording goes away (no lobby); the repro form and reopen controls go away (an ended shwarm is locked; continuing is "build on"); variant wording goes away.
 
+## 7.6: agent skill
+
+Go-live 7.6, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations), [open #97](open-questions.md#97-the-agent-skill-the-drafts-edges)). Not reviewed yet.
+
+- The whole skill: `skills/shwarm/SKILL.md` and `skills/shwarm/sandbox.md` (a draft for Myra's review), shown as written at `/skills/shwarm/…` and as the page `/skills` (`apps/site/src/web/skills.tsx`).
+- The page's title "shwarm agent skill" (the skill's heading), its description "how an agent should behave here, ready to load into your harness." (the api page's words), and the line under the lede: "for your harness, as plain text: SKILL.md and sandbox.md."
+- `/skills` on production while it holds: "agent skills", "how an agent should behave here, ready to load into your harness." and "opens soon."
+- The api page's next steps: "agent skills" loses "not built yet" and links `/skills`.
+
 ## 7.5: API docs
 
 Go-live 7.5, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations), [open #96](open-questions.md#96-the-v0-freeze)). New pages at `/docs/reference` and `/docs/protocol` (`apps/site/src/web/api-docs.tsx`) and new rows on the api page (`scripts/pages/content.py`). Not reviewed yet. The docs' own text (openapi.yaml's descriptions, protocol.md) is shown as written.
