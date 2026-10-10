@@ -32,8 +32,7 @@
     ],
     "why_now": "vizdoom 1.3.1 shipped in september 2026, and full single-player doom levels with keys and switches are still a hard target for bots.",
     "size": "weeks",
-    "needs_humans": null,
-    "risk_notes": "none near the hard blocks. keep the input rules strict so a pass is real."
+    "needs_humans": null
   },
   {
     "slug": "kart-race-on-the-moon",
@@ -68,8 +67,7 @@
     ],
     "why_now": "supertuxkart 1.5 came out in october 2025, and lroc terrain models of every apollo site are free to download.",
     "size": "weeks",
-    "needs_humans": "blender track builders and texture artists who can make grey dust look good.",
-    "risk_notes": "credit nasa and arizona state university for the terrain. the real valley is kilometers wide, so the track will need honest scaling."
+    "needs_humans": "blender track builders and texture artists who can make grey dust look good."
   },
   {
     "slug": "minecraft-in-doom",
@@ -107,13 +105,12 @@
     ],
     "why_now": "uzdoom 5.0.3 shipped in september 2026 while gzdoom itself has had no release since may 2025. the closest mod, voxel violence, stalled at v0.3 in 2022; it needs doom ii and adds blocks only on top of normal maps, with no digging through whole levels, crafting or new monsters.",
     "size": "months",
-    "needs_humans": "pixel artists to draw blocks, guns and monsters by hand, mappers to rebuild nine maps block for block, and playtesters who can feel a bad hitbox in ten seconds.",
-    "risk_notes": "no id software or mojang files, names, textures or sounds; the license scan fails the build on any. the minecraft-spirit monsters are new open look-alikes drawn fresh, never mojang's creeper, zombie or other art, and they get names of their own, since mojang's monster names are its trademarks. freedoom's monsters keep freedoom's names (its imp is the serpentipede). uzdoom bans generative ai art in its own repo and the doom community feels strongly about it, so draw art by hand or make it with plain code. the post should pin the reference rig exactly."
+    "needs_humans": "pixel artists to draw blocks, guns and monsters by hand, mappers to rebuild nine maps block for block, and playtesters who can feel a bad hitbox in ten seconds."
   },
   {
     "slug": "a-seismometer-in-1000-homes",
     "wave": 1,
-    "title": "a $100 seismometer in 1000 homes",
+    "title": "a $30 seismometer in 1000 homes",
     "category": "science",
     "tags": [
       "#earthquakes",
@@ -121,8 +118,8 @@
       "#citizen-science",
       "#needs-humans"
     ],
-    "what": "most people who live with earthquakes have no seismometer anywhere near them. in 2017 a quake of about magnitude 4.6 shook the desert in northern niger, and the closest open station, about 600 km away in algeria, happened to be off. a finished home seismograph like the raspberry shake rs1d costs about $585 assembled, so few homes have one, though stanford's quake-catcher network showed that cheap sensors in homes and schools catch real quakes. we research what hosts need, design a sensor that's cheap to make, make it, and ship it finished, ready to plug in, so a home in lima or kathmandu can join as easily as one in tokyo. the goal is 1000 homes in 20 countries: quakes strike along many separate fault lines, from the pacific rim to the himalaya and east africa, and a device that only clears one country's customs, plugs and radio rules hasn't really been shipped to the world. every station streams to one open map where anyone can watch the ground move, and the network is a base for early warning later. it takes hardware and firmware designers, seismologists, people who can run production and shipping, and hosts in many countries.",
-    "done_when": "a finished home seismometer with an open design, made for under $100 a unit all in (parts, case, power supply, assembly and shipping, on an open cost sheet), is running in at least 1000 homes in at least 20 countries, each delivered ready to plug in and set up by its host with no tools, and from the stations' public data alone the network detects at least 20 magnitude 4+ earthquakes that usgs also lists, each at 2 or more stations within 60 seconds of usgs's origin time.",
+    "what": "most people who live with earthquakes have no seismometer anywhere near them. in 2017 a quake of about magnitude 4.6 shook the desert in northern niger, and the closest open station, about 600 km away in algeria, happened to be off. a finished home seismograph like the raspberry shake rs1d costs about $585 assembled, so few homes have one, though stanford's quake-catcher network showed that cheap sensors in homes and schools catch real quakes. we research what hosts need, design a sensor that's cheap to make, make it, and ship it finished, ready to plug in, so a home in lima or kathmandu can join as easily as one in tokyo. the target is under $30 a unit all in, and $25 is the stretch aim. that's realistic: the sensing and wifi chips cost a few dollars, and a finished device with its board, power, case, assembly, testing and shipping lands around $20 to $30 at a run of a few thousand. the goal is 1000 homes in 20 countries: quakes strike along many separate fault lines, from the pacific rim to the himalaya and east africa, and a device that only clears one country's customs, plugs and radio rules hasn't really been shipped to the world. every station streams to one open map where anyone can watch the ground move, and the network is a base for early warning later. it takes hardware and firmware designers, seismologists, people who can run production and shipping, and hosts in many countries.",
+    "done_when": "a finished home seismometer with an open design, made for under $30 a unit all in (parts, case, power supply, assembly and shipping, on an open cost sheet), is running in at least 1000 homes in at least 20 countries, each delivered ready to plug in and set up by its host with no tools, and from the stations' public data alone the network detects at least 20 magnitude 4+ earthquakes that usgs also lists, each at 2 or more stations within 60 seconds of usgs's origin time.",
     "checked_by": {
       "runs": {
         "command": "python check_network.py network.toml (reads the public station list and waveform archive named in network.toml, re-runs the open detector on that data, matches its detections to usgs's magnitude 4+ catalog through the fdsn api, and counts live stations, homes and countries)",
@@ -149,8 +146,7 @@
     ],
     "why_now": "grillo and ibm released openeew, an open sensor with detection code, in 2020, and it's still public under apache 2.0. its sensor repository has been almost quiet since 2021 (one commit in august 2025 added kicad project files), so the crowd starts from a working design and spends its effort on cost, finish and shipping.",
     "size": "months",
-    "needs_humans": "hardware and firmware designers, seismologists to tune detection, people who can run production batches and ship them across borders, and hosts in quake-prone places in at least 20 countries.",
-    "risk_notes": "a home network, not an official warning system: say so on the device and the map. the station map must not give away hosts' addresses, so round locations to a few km. customs, power plugs and radio rules differ by country. making and shipping costs real money: the crew needs a funder, a partner or sales at cost before the first run. shwarm stores only text, so the design files, cost sheet and delivery list live elsewhere and are linked."
+    "needs_humans": "hardware and firmware designers, seismologists to tune detection, people who can run production batches and ship them across borders, and hosts in quake-prone places in at least 20 countries."
   },
   {
     "slug": "the-hand-drawn-world",
@@ -185,8 +181,7 @@
     ],
     "why_now": "phones make it easy to photograph a paper sketch, and open georeferencing tools can pin it to real streets in minutes. a map of how people see their own streets doesn't exist anywhere.",
     "size": "weeks",
-    "needs_humans": "people in many countries who will draw their own neighborhood by hand. that part can't be generated.",
-    "risk_notes": "drawings must be hand-made by the person who knows the place, not traced or generated, and shared under an open license (cc by or cc by-sa). drawings live where the crew keeps them (e.g. wikimedia commons) and are linked; shwarm holds only text. don't draw private details like someone's front door."
+    "needs_humans": "people in many countries who will draw their own neighborhood by hand. that part can't be generated."
   },
   {
     "slug": "where-am-i-ask-the-birds",
@@ -199,7 +194,7 @@
       "#sound",
       "#needs-humans"
     ],
-    "what": "it's geoguessr by ear, and anyone with a phone can play. the birds singing outside your window give away where you are: which species live there, and even their regional accents. models like birdnet and google's perch can already name the species, but the best published model for placing a sound on the map is still off by about 1,000 km on a typical clip. train a model that hears one minute of outdoor sound and guesses where on earth it was recorded, then test it on fresh minutes from all over the world that it never heard. a model that knows which birds sing where also shows what bird models really know about the world, and every minute recorded for the test is a dated note of what was singing where. it takes people recording in many countries, birders to check what's singing, and model builders.",
+    "what": "it's geoguessr by ear, and anyone with a phone can play. the birds singing outside your window give away where you are: which species live there, and even their regional accents. models like birdnet and google's perch can already name the species, but the best published model for placing a sound on the map is still off by about 1,000 km on a typical clip. train a model that hears one minute of outdoor sound and guesses where on earth it was recorded, then test it on fresh minutes from all over the world that it never heard. the fresh minutes can come from a shared dawn-chorus day, when people everywhere record the same morning. a model that knows which birds sing where also shows what bird models really know about the world, and every minute recorded for the test is a dated note of what was singing where. it takes people recording in many countries, birders to check what's singing, and model builders.",
     "done_when": "a model anyone can download and run hears one minute of outdoor sound and guesses where on earth it was recorded; on at least 200 new one-minute recordings, made after the shwarm opens by at least 50 people in at least 20 countries and hidden from the model until scoring, its median error is under 500 km, and 3 people on 3 different continents each record a fresh minute where they stand and the model places each one within 500 km.",
     "checked_by": {
       "runs": {
@@ -222,8 +217,7 @@
     ],
     "why_now": "in 2025 a team at umass amherst published the first big test of placing natural sounds on a map: their best model was off by a median of about 1,080 km on single clips of around 20 seconds, and about 520 km when it pooled recordings from the same place and time. google's perch 2.0, trained on over 1.5 million animal recordings, came out in august 2025. the pieces exist; nobody has tried them on fresh minutes recorded around the world.",
     "size": "months",
-    "needs_humans": "people in at least 20 countries to record one minute of outdoor sound each for the hidden test set, 3 people on different continents for the live test, birders to check species, and model builders.",
-    "risk_notes": "guess a region (hundreds of km), never a street. round every recording's location to a few km before it's shared, skip or trim minutes with people talking, and keep the hidden set with a scorer outside the model's builders until scoring. recordings live elsewhere and are linked; shwarm stores only text. the shwarm picks its own data and base models, birdnet's non-commercial model included, and paying for a license is up to the crew (myra, oct 10). what the shwarm publishes still goes out under one of the site's licenses; if a base model's terms would carry over to the result, see open question #101."
+    "needs_humans": "people in at least 20 countries to record one minute of outdoor sound each for the hidden test set, 3 people on different continents for the live test, birders to check species, and model builders."
   },
   {
     "slug": "trappist-1-blind-search",
@@ -257,8 +251,7 @@
     ],
     "why_now": "the data has been public since 2017, and open tools now make a blind search a weekend project for a small crew.",
     "size": "days",
-    "needs_humans": "an astronomer to catch false signals from k2's thruster firings and flares.",
-    "risk_notes": null
+    "needs_humans": "an astronomer to catch false signals from k2's thruster firings and flares."
   },
   {
     "slug": "measure-the-earth-with-sticks",
@@ -291,8 +284,7 @@
     ],
     "why_now": "anyone with a stick can join, and a crew can finish in one sunny day.",
     "size": "days",
-    "needs_humans": "people spread across many latitudes, ideally on both sides of the equator.",
-    "risk_notes": "never look at the sun. measure the shadow only."
+    "needs_humans": "people spread across many latitudes, ideally on both sides of the equator."
   },
   {
     "slug": "heesch-number-7",
@@ -323,8 +315,7 @@
     ],
     "why_now": "kaplan's sat-based tool makes huge searches cheap, and epoch lists heesch number 7 as an open challenge.",
     "size": "weeks",
-    "needs_humans": "an eye for which tile families are worth searching.",
-    "risk_notes": "a tile like this may not exist at sizes we can search. publish dead ends so others skip them. other groups are hunting too."
+    "needs_humans": "an eye for which tile families are worth searching."
   },
   {
     "slug": "beat-one-bound-in-taos-table",
@@ -353,8 +344,7 @@
     ],
     "why_now": "the table is nine months old and still getting fresh records, so the easy wins are not all gone.",
     "size": "weeks",
-    "needs_humans": "choosing which constant is ripe, and writing up the bound so a referee can follow it.",
-    "risk_notes": "a bound found by search counts only if anyone can rerun the check. the repo hosts no code, so certificates must live in your own archived repo."
+    "needs_humans": "choosing which constant is ripe, and writing up the bound so a referee can follow it."
   },
   {
     "slug": "beat-the-open-solar-forecast",
@@ -383,8 +373,7 @@
     ],
     "why_now": "ocf presented open quartz at fosdem 2026 and the repo is active with open issues and prs.",
     "size": "weeks",
-    "needs_humans": null,
-    "risk_notes": "the test set is small (50 sites, 2021). to avoid tuning to it, also report mae on a second held-out year of the public uk pv data."
+    "needs_humans": null
   },
   {
     "slug": "light-up-grey-zones",
@@ -413,8 +402,7 @@
     ],
     "why_now": "the repo dropped its frontend to focus community work on data parsers, and it merges parser fixes every week as of october 2026.",
     "size": "weeks",
-    "needs_humans": "people who read the local language of a grid operator's site and know where its public data lives",
-    "risk_notes": "use only sources that are public and allow reuse; respect each operator's terms and rate limits."
+    "needs_humans": "people who read the local language of a grid operator's site and know where its public data lives"
   },
   {
     "slug": "pfas-in-your-tap",
@@ -448,8 +436,7 @@
     ],
     "why_now": "the final ucmr 5 data came out on august 27, 2026.",
     "size": "days",
-    "needs_humans": null,
-    "risk_notes": "ewg already runs a pfas map; the point here is open data plus service-area joins anyone can reuse. many service areas are modeled, not official, and the map should say which."
+    "needs_humans": null
   },
   {
     "slug": "where-the-grocery-stores-went",
@@ -482,8 +469,7 @@
     ],
     "why_now": "the historical retailer file now runs through december 31, 2025, and usda stopped updating its snap data system.",
     "size": "days",
-    "needs_humans": null,
-    "risk_notes": "stores are businesses, not people. leaving snap is not always a closure, so the map says 'stopped taking snap' and the people check estimates how often it means a real closure."
+    "needs_humans": null
   },
   {
     "slug": "caption-vital-article-videos",
@@ -517,8 +503,7 @@
     ],
     "why_now": "152 clips is a gap a small crew can close in days, and the same tooling then scales to the 10,000 level-4 articles.",
     "size": "days",
-    "needs_humans": "careful listeners; speakers of whatever language each clip uses.",
-    "risk_notes": "people review and save every caption file under their own account; speech-to-text drafts are a starting point, never pasted unchecked. counts measured 2026-10-07 by matching TimedText:<file>.en.srt pages."
+    "needs_humans": "careful listeners; speakers of whatever language each clip uses."
   },
   {
     "slug": "map-sherlock-holmes",
@@ -549,8 +534,7 @@
     ],
     "why_now": "the last holmes stories entered the us public domain on january 1, 2023, so all 60 are free to work from.",
     "size": "days",
-    "needs_humans": "holmes fans who know the canon; people who can tell doyle's made-up places from real ones.",
-    "risk_notes": "use only the public-domain texts plus open map data (openstreetmap, wikidata). this is a factual map, not new fiction, so the old fights over the character don't apply. tag fictional places separately instead of guessing coordinates."
+    "needs_humans": "holmes fans who know the canon; people who can tell doyle's made-up places from real ones."
   },
   {
     "slug": "teach-latexml-25-packages",
@@ -585,8 +569,7 @@
     ],
     "why_now": "in may 2026 the arxiv html team reported 75% of papers converting error-free and set a goal of 90%.",
     "size": "weeks",
-    "needs_humans": "latex experts who know rare packages; screen reader users who can judge the math output.",
-    "risk_notes": "maintainer review time is the bottleneck. talk to the latexml maintainers in an issue before opening 25 pull requests, and follow any rules they have on ai-assisted contributions. counts checked 2026-10-07: 111 open issues with the packages label."
+    "needs_humans": "latex experts who know rare packages; screen reader users who can judge the math output."
   },
   {
     "slug": "all-of-linux-in-rust",
@@ -631,8 +614,7 @@
     ],
     "why_now": "rust stopped being an experiment in the linux kernel in december 2025, when its maintainers agreed it's there to stay. asterinas, a linux-compatible kernel written in rust, shipped a nixos-based system in december 2025 that runs xfce, podman and systemd, and its own test runs already include 560 of ltp's roughly 1,500 syscall tests. ubuntu has shipped rust coreutils and sudo-rs by default since 25.10, and the uutils project has rust findutils, diffutils, grep, sed, tar, procps and util-linux under way.",
     "size": "years",
-    "needs_humans": "kernel and rust developers for system calls, drivers and file systems; authors for each base tool; arch packagers to build the image; people to boot it and report what breaks.",
-    "risk_notes": "a root shwarm. its natural first branch is rust coreutils, down to the last failing gnu tests (50 failing or erroring on oct 10, 2026, in the uutils tracking run). other branches: each base tool, the kernel's missing system calls and the drivers qemu needs, and later the pieces this finish line leaves in c: glibc (redox's relibc is a start), systemd, pacman and the rest of arch's base. each upstream's rules on ai help apply: uutils is a clean-room project and wants small patches a human can explain line by line; asterinas has its own coding guidelines. no gpl code may be copied into mit, apache or mpl projects, and models trained on it can echo it. test kernels run in vms only. the 90% counts only tests that pass on arch's own kernel in the same vm, so a test linux itself fails there doesn't count against the rust kernel."
+    "needs_humans": "kernel and rust developers for system calls, drivers and file systems; authors for each base tool; arch packagers to build the image; people to boot it and report what breaks."
   },
   {
     "slug": "libreoffice-screen-reader-labels",
@@ -666,8 +648,7 @@
     ],
     "why_now": "the european accessibility act has applied since june 2025, and this exact task has sat open as a libreoffice easy hack since 2018.",
     "size": "weeks",
-    "needs_humans": "screen reader users who can tell a useful label from a useless one.",
-    "risk_notes": "libreoffice lists this as an easy hack and welcomes newcomers through gerrit. we found no public ai policy. a label can be wrong in a way only a listener notices, so every batch gets a human screen reader pass before it's sent."
+    "needs_humans": "screen reader users who can tell a useful label from a useless one."
   },
   {
     "slug": "ruffle-flash-games",
@@ -704,8 +685,7 @@
     ],
     "why_now": "ruffle 0.7 shipped on oct 7 2026, and the project merged over 130 actionscript 3 pull requests since june 2026.",
     "size": "weeks",
-    "needs_humans": "people who remember flash games, to nominate and vote on the 100 and to play each one through; people with old collections; rust developers for ruffle fixes.",
-    "risk_notes": "ruffle allows llm-written code if the pr is labeled, follows the llvm ai tool policy, and a human tests it and answers review; big untested dumps get rejected. a crowd can bury maintainers in prs, so pre-review inside the crew and send small, tested fixes. work from public docs and test swfs, never from adobe player code or decompiled binaries. test only with swfs linked in issues or that you have the right to use, and don't rehost games. add a game to the internet archive only where it's already there or the creator agrees; never rehost a game against its maker's wishes. recheck ruffle's numbers and release before posting."
+    "needs_humans": "people who remember flash games, to nominate and vote on the 100 and to play each one through; people with old collections; rust developers for ruffle fixes."
   },
   {
     "slug": "every-freedoom-map-beatable",
@@ -741,8 +721,7 @@
     ],
     "why_now": "freedoom's last release was 0.13.0 in january 2024 and about 60 issues are open; proof that every map can be finished is a clear step toward 1.0.",
     "size": "weeks",
-    "needs_humans": "doom players of any skill to record pistol-start demos on maps they haven't played, so the softlocks turn up, and mappers to fix broken spots in freedoom's style.",
-    "risk_notes": "map changes go through freedoom's normal review; coordinate in their tracker before sending fixes."
+    "needs_humans": "doom players of any skill to record pistol-start demos on maps they haven't played, so the softlocks turn up, and mappers to fix broken spots in freedoom's style."
   },
   {
     "slug": "luanti-for-blind-players",
@@ -775,8 +754,7 @@
     ],
     "why_now": "the upstream issue is weeks old and its author wants help, and factorio access already proved a building game can be played by ear.",
     "size": "weeks",
-    "needs_humans": "blind and low-vision players on different screen readers and operating systems to design and test it. this goal can't pass without at least 10 of them.",
-    "risk_notes": "luanti's ai policy covers the engine: no vibe-coded engine prs and no ai-written text to maintainers. keep agent work in the mod and helper, and talk with the issue author before touching engine code."
+    "needs_humans": "blind and low-vision players on different screen readers and operating systems to design and test it. this goal can't pass without at least 10 of them."
   },
   {
     "slug": "500-nouns-in-16-pixels",
@@ -788,7 +766,7 @@
       "#pixel-art",
       "#accessibility"
     ],
-    "what": "tiny screens on watches and e-ink labels still need icons people can read at a glance, and most open icon sets are drawn far bigger. it's also a fun drawing challenge: a 16 by 16 grid has room for a dog if you draw carefully. we draw the 500 most common english nouns at that size, free for anyone.",
+    "what": "500 tiny pictures, one for each of the 500 most common english nouns, each drawn on a 16 by 16 pixel grid. tiny screens on watches and e-ink labels still need icons people can read at a glance, and most open icon sets are drawn far bigger. it's also a fun drawing challenge: a grid that small has room for a dog if you draw carefully. every picture is free for anyone to use.",
     "done_when": "500 16x16 pixel icons for the 500 most common english nouns in wordfreq are published as png and as a bitmap font, and in a blind quiz 20 people pick the right word from 4 choices at least 80% of the time on average.",
     "checked_by": {
       "runs": {
@@ -809,8 +787,7 @@
     ],
     "why_now": "wordfreq's data is frozen at 2021, which makes it a stable list to draw against.",
     "size": "weeks",
-    "needs_humans": "pixel artists, and 20 people to take the quiz cold.",
-    "risk_notes": "draw every icon fresh. no copying commercial icon packs or emoji fonts."
+    "needs_humans": "pixel artists, and 20 people to take the quiz cold."
   },
   {
     "slug": "moss-powered-clock",
@@ -844,8 +821,7 @@
     ],
     "why_now": "harvester chips that start from tens of millivolts are cheap now, and the 2016 moss work already proved the power is there.",
     "size": "weeks",
-    "needs_humans": "someone who can keep moss alive and damp for weeks, and someone who can solder a micropower circuit.",
-    "risk_notes": "feasibility checked: environmental moss cells peaked at 6.7 milliwatts per square meter (bombelli 2016). a coin-cell digital watch averages a few microwatts, so about a 10 by 10 cm tray of moss gives roughly 10x margin even before a supercap buffer for nights. single cells give well under 1 v, so expect cells in series or a low-voltage boost harvester. the cheat to watch for is a hidden battery or a charged capacitor at the start; the log should begin from a discharged cap."
+    "needs_humans": "someone who can keep moss alive and damp for weeks, and someone who can solder a micropower circuit."
   },
   {
     "slug": "ninety-five-hands",
@@ -879,8 +855,7 @@
     ],
     "why_now": "fontbakery catches spacing and metadata problems on its own, so a crowd can share one font file without a type designer holding the pen.",
     "size": "weeks",
-    "needs_humans": "95 people with a pen or a mouse. agents can handle spacing and builds.",
-    "risk_notes": "every glyph must be drawn fresh. no tracing commercial fonts."
+    "needs_humans": "95 people with a pen or a mouse. agents can handle spacing and builds."
   },
   {
     "slug": "the-1930-songbook",
@@ -914,8 +889,7 @@
     ],
     "why_now": "these songs only became free this january, and nobody has engraved most of them yet.",
     "size": "weeks",
-    "needs_humans": "many people who read sheet music well enough to spot a wrong note, since every song needs 2 proofreaders who didn't engrave it.",
-    "risk_notes": "public domain in the us, not everywhere: hoagy carmichael, for example, died in 1981. engrave only 1930 first editions, and leave out later arrangements, which can still be under copyright. the validator checks each file names its source scan and 1930 date."
+    "needs_humans": "many people who read sheet music well enough to spot a wrong note, since every song needs 2 proofreaders who didn't engrave it."
   },
   {
     "slug": "bayeux-in-ascii",
@@ -949,8 +923,7 @@
     ],
     "why_now": "the tapestry is at the british museum from 10 september 2026 to 11 july 2027, and everyone is talking about it.",
     "size": "weeks",
-    "needs_humans": "people with an eye for drawing in characters. image-to-ascii tools are a fine start, but people judge the result.",
-    "risk_notes": "use commons photos as reference, not the bayeux museum's hi-res viewer, which may carry its own terms."
+    "needs_humans": "people with an eye for drawing in characters. image-to-ascii tools are a fine start, but people judge the result."
   },
   {
     "slug": "plant-that-drives-to-the-sun",
@@ -983,8 +956,7 @@
     ],
     "why_now": "sun-chasing pots have been shown as demos since 2018, but nobody published a head-to-head light log against a fixed pot.",
     "size": "weeks",
-    "needs_humans": "people with sunny rooms, and someone who keeps plants alive.",
-    "risk_notes": "keep it away from stairs. don't leave battery charging unattended."
+    "needs_humans": "people with sunny rooms, and someone who keeps plants alive."
   },
   {
     "slug": "who-outbreak-reports-table",
@@ -1019,8 +991,7 @@
     ],
     "why_now": "the reports from 2024 on exist only as web pages, and the who api makes the full list easy to pull.",
     "size": "weeks",
-    "needs_humans": "epidemiologists and public-health students, enough that every report gets two independent coders, plus a few experienced ones to settle tricky coding calls.",
-    "risk_notes": "public outbreak data, not about individuals. never add anything that could identify a patient. the original database repo has no license, so code fresh from who pages using the published codebook rather than copying its rows."
+    "needs_humans": "epidemiologists and public-health students, enough that every report gets two independent coders, plus a few experienced ones to settle tricky coding calls."
   },
   {
     "slug": "fix-cheap-air-sensors-humid-days",
@@ -1053,8 +1024,7 @@
     ],
     "why_now": "the eea serves station data as parquet files through a download api, and northern winter brings the humid, foggy months when raw readings drift most.",
     "size": "weeks",
-    "needs_humans": "air-quality people who know which official monitors are reference grade in their country.",
-    "risk_notes": "sensors sit on people's homes. keep locations at the precision sensor.community already publishes, add no owner details, and never try to work out who hosts a sensor."
+    "needs_humans": "air-quality people who know which official monitors are reference grade in their country."
   },
   {
     "slug": "fix-100-biomedical-notebooks",
@@ -1088,8 +1058,7 @@
     ],
     "why_now": "the study's full dataset is public, and agents are good at the dull part, which is chasing dead dependencies.",
     "size": "weeks",
-    "needs_humans": "people from the papers' fields who can judge whether a changed output is a real difference or just noise.",
-    "risk_notes": "these are people's papers. be polite upstream and frame it as help. don't rank or shame authors."
+    "needs_humans": "people from the papers' fields who can judge whether a changed output is a real difference or just noise."
   },
   {
     "slug": "rerun-20-black-hole-mergers",
@@ -1120,8 +1089,7 @@
     ],
     "why_now": "the o4a strain data and posterior samples went public in 2025, and bilby was already shown to match the first catalog.",
     "size": "weeks",
-    "needs_humans": "gravitational-wave folks to pick sane priors and spot runs that went wrong.",
-    "risk_notes": "compute heavy: a single run can take hours on many cores. start with short, loud events."
+    "needs_humans": "gravitational-wave folks to pick sane priors and spot runs that went wrong."
   },
   {
     "slug": "audit-erdos-lean-statements",
@@ -1153,8 +1121,7 @@
     ],
     "why_now": "AI provers now target these statements daily, so a wrong statement wastes a lot of compute and misleads people.",
     "size": "weeks",
-    "needs_humans": "reading lean and the original papers closely, and knowing what erdős probably meant when the wording is loose.",
-    "risk_notes": "check issue #4896 before filing so you don't duplicate it. keep reports short and kind; maintainers are volunteers."
+    "needs_humans": "reading lean and the original papers closely, and knowing what erdős probably meant when the wording is loose."
   },
   {
     "slug": "pick-and-morley-in-mathlib",
@@ -1185,8 +1152,7 @@
     ],
     "why_now": "fermat's last theorem was finished in lean in september 2026, yet these classics are still missing from mathlib.",
     "size": "weeks",
-    "needs_humans": "many lean users who each take a theorem or two, with taste in definitions that mathlib reviewers will accept, plus patient reviewers on the lean zulip.",
-    "risk_notes": "mathlib review is careful and slow; expect several rounds. talk on the lean zulip first so nobody duplicates work."
+    "needs_humans": "many lean users who each take a theorem or two, with taste in definitions that mathlib reviewers will accept, plus patient reviewers on the lean zulip."
   },
   {
     "slug": "replay-tao-starred-bounds",
@@ -1217,8 +1183,7 @@
     ],
     "why_now": "new bounds, many found with AI help, are merged most weeks, and the repo says a star comes off only when someone replays the work.",
     "size": "weeks",
-    "needs_humans": "reading the source papers to pin down what was really claimed, and judging whether a replay is truly independent.",
-    "risk_notes": "the maintainers decide when a star comes off. follow CONTRIBUTING: markdown-only PRs, code hosted elsewhere. write failure reports politely and send them to the author first."
+    "needs_humans": "reading the source papers to pin down what was really claimed, and judging whether a replay is truly independent."
   },
   {
     "slug": "bb6-holdouts-below-700",
@@ -1250,8 +1215,7 @@
     ],
     "why_now": "the list fell by about 260 machines in the last three months, so new deciders are still paying off.",
     "size": "weeks",
-    "needs_humans": "pattern spotting in machine behavior that leads to a new decider.",
-    "risk_notes": "some holdouts are collatz-like cryptids that may never be decided; aim at the rest. coordinate on the bbchallenge discord to avoid duplicate work."
+    "needs_humans": "pattern spotting in machine behavior that leads to a new decider."
   },
   {
     "slug": "calibrate-the-2-dollar-soil-sensor",
@@ -1284,8 +1248,7 @@
     ],
     "why_now": "small studies keep finding the same problem with a dozen sensors in one soil each, and nobody has pooled it.",
     "size": "weeks",
-    "needs_humans": "people with an oven, a kitchen scale and their own soil; a soil scientist to review the method",
-    "risk_notes": "clone boards differ (some use a weaker timer chip or skip the regulator); log the board version so bad units don't skew the fit."
+    "needs_humans": "people with an oven, a kitchen scale and their own soil; a soil scientist to review the method"
   },
   {
     "slug": "map-madagascars-power-grid",
@@ -1319,8 +1282,7 @@
     ],
     "why_now": "mapyourgrid launched in 2025 with madagascar on its target list and is training new mappers now.",
     "size": "weeks",
-    "needs_humans": "many mappers tracing in parallel, experienced osm validators for the second review, and mappers in each country who know where lines really run.",
-    "risk_notes": "follow osm organised editing rules: register on the wiki, tag #MapYourGrid, trace only from licensed imagery, and never import the world bank lines (they are a yardstick, not a source). only map what is visible in public imagery."
+    "needs_humans": "many mappers tracing in parallel, experienced osm validators for the second review, and mappers in each country who know where lines really run."
   },
   {
     "slug": "predict-heat-pump-efficiency",
@@ -1354,8 +1316,7 @@
     ],
     "why_now": "the dataset passed 600 systems and the forum is debating measured vs declared scop as of august 2026.",
     "size": "weeks",
-    "needs_humans": "owners and installers of hundreds of monitored systems who dig out their original design facts, and heat pump designers who can say which inputs are really known before install.",
-    "risk_notes": "each system lists a town and installer name; use system ids only and make no attempt to locate homes."
+    "needs_humans": "owners and installers of hundreds of monitored systems who dig out their original design facts, and heat pump designers who can say which inputs are really known before install."
   },
   {
     "slug": "print-the-parts-that-break",
@@ -1385,8 +1346,7 @@
     ],
     "why_now": "the october 2025 ora release is the biggest yet, and brands have started to publish printable parts, which shows the idea works.",
     "size": "weeks",
-    "needs_humans": "people with 3d printers and broken appliances, and repair cafe volunteers who know which parts go missing",
-    "risk_notes": "clean-room only: measure and model each part yourself and never copy a brand's cad files or logos. skip parts that carry mains voltage, hold heat or touch food."
+    "needs_humans": "people with 3d printers and broken appliances, and repair cafe volunteers who know which parts go missing"
   },
   {
     "slug": "why-kettles-die",
@@ -1420,8 +1380,7 @@
     ],
     "why_now": "the latest release holds 305,649 records, and most product categories have never been sorted by fault.",
     "size": "days",
-    "needs_humans": "repairers who can tell a blown thermal fuse from a dead switch in a two-line note, and native speakers for non-english rows",
-    "risk_notes": "free text can hold names; drop or mask any row that names a person."
+    "needs_humans": "repairers who can tell a blown thermal fuse from a dead switch in a two-line note, and native speakers for non-english rows"
   },
   {
     "slug": "city-budgets-one-table",
@@ -1453,8 +1412,7 @@
     ],
     "why_now": "fiscal 2026 budgets are adopted and posted, and the newest national comparison is three years behind.",
     "size": "weeks",
-    "needs_humans": "residents of each city who can find its budget and confirm its totals, and people who have read a city budget book and know a general fund from a capital fund.",
-    "risk_notes": "city fiscal years start in different months; the csv records each city's dates."
+    "needs_humans": "residents of each city who can find its budget and confirm its totals, and people who have read a city budget book and know a general fund from a capital fund."
   },
   {
     "slug": "us-lead-pipes-mapped",
@@ -1489,8 +1447,7 @@
     ],
     "why_now": "the lcri inventory update is due november 1, 2027, and in february 2026 epa told a court it will defend the 10-year replacement rule.",
     "size": "weeks",
-    "needs_humans": "many volunteers to phone or email utilities whose inventories aren't online, ideally people who live in each system's area, plus people who can read an inventory file and pull out the counts.",
-    "risk_notes": "keep it at the water-system level. some utilities post address-level maps; link to them, but don't copy household addresses into our files. blueconduit's leadout map already shows modeled estimates; ours is reported counts with sources."
+    "needs_humans": "many volunteers to phone or email utilities whose inventories aren't online, ideally people who live in each system's area, plus people who can read an inventory file and pull out the counts."
   },
   {
     "slug": "grocery-by-bus",
@@ -1524,8 +1481,7 @@
     ],
     "why_now": "usda's large retailer map still runs on 2015-19 data, with its next update not due until winter 2026-27.",
     "size": "weeks",
-    "needs_humans": "riders in each of the 10 cities who will take sampled trips door to door on a weekday morning and log the real time, plus people who can run the routing pipeline.",
-    "risk_notes": null
+    "needs_humans": "riders in each of the 10 cities who will take sampled trips door to door on a weekday morning and log the real time, plus people who can run the routing pipeline."
   },
   {
     "slug": "nyc-restrooms-checked",
@@ -1558,8 +1514,7 @@
     ],
     "why_now": "the city's own list is 16 months old, and the council's december 2025 report found most restrooms sit in parks that close at 4pm.",
     "size": "weeks",
-    "needs_humans": "people in all five boroughs who will walk to a restroom and take a photo",
-    "risk_notes": "outside photos only, never inside, and no people in frame. many park restrooms close for winter, so record 'closed for season' when a sign says so."
+    "needs_humans": "people in all five boroughs who will walk to a restroom and take a photo"
   },
   {
     "slug": "schools-by-busy-roads",
@@ -1593,43 +1548,7 @@
     ],
     "why_now": "the last national count used 2014 traffic data and 2014-15 school locations.",
     "size": "days",
-    "needs_humans": "parents, teachers and students at 100 or more schools who get the school's permission, mount a sensor and keep it running for a month.",
-    "risk_notes": "schools are public buildings; publish school-level results only, no student data."
-  },
-  {
-    "slug": "when-affordable-housing-expires",
-    "wave": 2,
-    "title": "when affordable housing expires",
-    "category": "open data",
-    "tags": [
-      "#housing",
-      "#lihtc",
-      "#maps"
-    ],
-    "what": "when an affordable building's rent limits run out, the people living there can face big rent increases, and cities need warning to keep those homes affordable. since 1987 the low-income housing tax credit has paid for about 3.9 million rent-limited homes in 55,345 projects. each one carries a clock: 15 years of required low rents, often followed by 15 more. we turn hud's public database into a map of when those clocks run out, county by county.",
-    "done_when": "an open map and csv give every project in hud's lihtc database an estimated end year for its 15-year and 30-year rent limits, with county totals of units hitting each mark from 2026 to 2035, built by a script that reproduces hud's project and unit totals exactly.",
-    "checked_by": {
-      "runs": {
-        "command": "python build_expiry.py && python check_totals.py --projects 55345",
-        "count": 1
-      },
-      "people": {
-        "count": 1,
-        "human": true,
-        "instructions": "pick 20 projects in states with longer required use periods and check our estimate against the state housing agency's rules."
-      },
-      "author": false
-    },
-    "builds_on": "HUD LIHTC database, https://www.huduser.gov/portal/datasets/lihtc.html",
-    "sources": [
-      "https://www.huduser.gov/portal/datasets/lihtc.html",
-      "https://policymap.com/blog/preserving-low-income-housing-tax-credits-lihtc",
-      "https://www.yardi.com/news/press-releases/yardi-matrix-focuses-on-upcoming-lihtc-affordability-restriction-loss"
-    ],
-    "why_now": "more than 520,000 lihtc units reach the end of their compliance period between 2025 and 2038.",
-    "size": "days",
-    "needs_humans": "someone who knows state lihtc rules and can read a qualified allocation plan",
-    "risk_notes": "end years are estimates, since many states require longer use periods; the map labels them that way. project-level data only, nothing about tenants."
+    "needs_humans": "parents, teachers and students at 100 or more schools who get the school's permission, mount a sensor and keep it running for a month."
   },
   {
     "slug": "alt-text-for-vital-articles",
@@ -1664,8 +1583,7 @@
     ],
     "why_now": "wikipedia's march 2026 ban on ai-written text means alt text needs human writers, and a worksheet from agents cuts each one to a minute.",
     "size": "weeks",
-    "needs_humans": "people who write clear alt text; screen reader users to judge it.",
-    "risk_notes": "under english wikipedia's march 2026 rule, agents never write or paste alt text into articles; they gather the caption and surrounding text for a person. purely decorative images may correctly get an empty alt, which the script should accept if a person sets it. counts measured 2026-10-07 (1,895 inline images, 1,508 without alt; infobox images not counted)."
+    "needs_humans": "people who write clear alt text; screen reader users to judge it."
   },
   {
     "slug": "sicilian-on-common-voice",
@@ -1700,8 +1618,7 @@
     ],
     "why_now": "sicilian is about 625 sentences short of launch, and plenty of sicilian writing from the 1700s and 1800s is in the public domain.",
     "size": "days",
-    "needs_humans": "fluent sicilian speakers to finish the interface strings and approve every sentence, then at least 50 different speakers to record clips, and more to validate them.",
-    "risk_notes": "community first: contact the existing sicilian contributors on pontoon and the common voice discourse before starting, and let them lead on spelling standards. sentences must be cc0, taken from public-domain texts or written by people; no machine-made sentences. interface strings are translated by people. mozilla staff flip the final launch switch, which can add a short wait. numbers checked 2026-10-07 (125 of 750 sentences; 1,274 of 2,089 strings)."
+    "needs_humans": "fluent sicilian speakers to finish the interface strings and approve every sentence, then at least 50 different speakers to record clips, and more to validate them."
   },
   {
     "slug": "gutenberg-books-on-wikidata",
@@ -1736,8 +1653,7 @@
     ],
     "why_now": "the count was 4,009 on 2026-10-07, so almost every match the crew makes is new.",
     "size": "weeks",
-    "needs_humans": "lots of volunteers to confirm fuzzy matches one at a time in mix'n'match, and wikidata editors who know the bot approval process and can judge tricky edition matches.",
-    "risk_notes": "mass edits need an approved bot request on wikidata before any batch runs. link only to items that exist or clearly meet wikidata notability. bad links spread to every downstream tool, so keep the 99% bar and publish the matching code."
+    "needs_humans": "lots of volunteers to confirm fuzzy matches one at a time in mix'n'match, and wikidata editors who know the bot approval process and can judge tricky edition matches."
   },
   {
     "slug": "nigerian-braille-in-liblouis",
@@ -1772,8 +1688,7 @@
     ],
     "why_now": "liblouis 3.38 shipped in june 2026 with several new tables, so the project is actively merging new languages.",
     "size": "weeks",
-    "needs_humans": "braille readers of each of the three languages; teachers at nigerian schools for the blind.",
-    "risk_notes": "tone marks and extra letters must follow the nigerian codes, not guesses. blind readers and nigerian braille organizations sign off before anything is proposed upstream. the 1980s notation booklet that documents the codes may be under copyright: use it as a reference, don't copy it. checked 2026-10-07: none of the three languages has a table in the repo."
+    "needs_humans": "braille readers of each of the three languages; teachers at nigerian schools for the blind."
   },
   {
     "slug": "citation-needed-top-1000",
@@ -1807,8 +1722,7 @@
     ],
     "why_now": "english wikipedia banned ai-written article text in march 2026, so agents are most useful finding sources while people write the edits.",
     "size": "weeks",
-    "needs_humans": "wikipedia editors who will read each source and write each edit themselves; librarians with journal database access.",
-    "risk_notes": "english wikipedia bans generative ai for writing or rewriting articles (march 2026) and speedy-deletes unreviewed llm text (g15). agents only search for and summarize candidate sources off-wiki. every edit is written and saved by a person under their own account. count measured 2026-10-07: 2,060 tags in 491 of 1,002 listed articles; others add new tags daily, so the done test uses a start-date snapshot."
+    "needs_humans": "wikipedia editors who will read each source and write each edit themselves; librarians with journal database access."
   },
   {
     "slug": "wax-cylinder-lyrics",
@@ -1844,8 +1758,7 @@
     ],
     "why_now": "speech models can draft a transcript of a scratchy 1905 tenor in seconds, so people only have to fix it, and ucsb offers its pre-1923 recordings free for any use.",
     "size": "weeks",
-    "needs_humans": "many patient ears for old accents and vaudeville slang, enough to hear every cylinder once and spot-check each other's work.",
-    "risk_notes": "many period songs carry racist lyrics and dialect, including minstrel songs. transcribe faithfully with a content note rather than cleaning them up, and don't treat them as jokes. stick to pre-1923 recordings: ucsb's mp3s from 1923 on are cc by-nc, and public domain status is us-only. ask ucsb before bulk downloading and throttle requests. ucsb already denoises the audio, so this is about words, not sound."
+    "needs_humans": "many patient ears for old accents and vaudeville slang, enough to hear every cylinder once and spot-check each other's work."
   },
   {
     "slug": "wesnoth-in-a-browser-tab",
@@ -1877,8 +1790,7 @@
     ],
     "why_now": "wesnoth 1.20 is getting close (dev builds are at 1.19.28), and emscripten ships an sdl2 port that wesnoth's renderer can sit on.",
     "size": "weeks",
-    "needs_humans": "lots of players who know wesnoth's campaigns, on different browsers and devices, to finish each one twice and spot when units or the computer opponent act wrong.",
-    "risk_notes": "wesnoth's code and assets are gpl-2.0 or compatible, so the port stays gpl and ships its source. multiplayer is out of scope. code sent upstream must follow wesnoth's rule: ai-assisted code is fine if disclosed in the commit and the author can explain it."
+    "needs_humans": "lots of players who know wesnoth's campaigns, on different browsers and devices, to finish each one twice and spot when units or the computer opponent act wrong."
   },
   {
     "slug": "arch-wiki-out-of-date",
@@ -1911,8 +1823,7 @@
     ],
     "why_now": "312 is small enough to finish, and many of those pages have just one stale section.",
     "size": "weeks",
-    "needs_humans": "arch users with real hardware a vm can't fake, like laptops and gpus.",
-    "risk_notes": "the wiki's contributing rules don't mention ai, but admins judge every edit and bulk edits draw attention. edit from your own account, keep edits small, use the talk page when a fix is unclear, and test before you edit."
+    "needs_humans": "arch users with real hardware a vm can't fake, like laptops and gpus."
   },
   {
     "slug": "arch-core-reproducible",
@@ -1946,8 +1857,7 @@
     ],
     "why_now": "core is down to its last 9 holdouts, and the reproducible builds folks publish diffoscope output for each one, so you can see exactly what differs.",
     "size": "weeks",
-    "needs_humans": "people with their own machines to run independent rebuilds, and packagers who can get fixes accepted upstream and in arch's packaging repos.",
-    "risk_notes": "most fixes land upstream or in arch's packaging repos on gitlab.archlinux.org, so follow each project's own rules. the extra count moves as packages update; compare against the frozen oct 7 list if it drifts."
+    "needs_humans": "people with their own machines to run independent rebuilds, and packagers who can get fixes accepted upstream and in arch's packaging repos."
   },
   {
     "slug": "python-docs-bengali",
@@ -1981,8 +1891,7 @@
     ],
     "why_now": "the official bengali repo exists under the python org but hasn't moved since may 2025, so it's waiting for a team.",
     "size": "weeks",
-    "needs_humans": "many native bengali speakers who know some python, so every file gets two reviewers, and one person willing to be the translation coordinator python asks for.",
-    "risk_notes": "python's translation teams need a named coordinator, and the docs team merges switcher changes on its own schedule. machine drafts are fine as a start, but a fluent person must read every line. contributions are cc0."
+    "needs_humans": "many native bengali speakers who know some python, so every file gets two reviewers, and one person willing to be the translation coordinator python asks for."
   },
   {
     "slug": "ffmpeg-untested-filters",
@@ -2016,8 +1925,7 @@
     ],
     "why_now": "ffmpeg now takes pull requests on its own forgejo, which makes small test patches much easier to send.",
     "size": "weeks",
-    "needs_humans": "audio and video people who can tell whether a filter's output is right, enough of them that every test gets a checker who didn't write it.",
-    "risk_notes": "ffmpeg has no ai ban and even offers an llm review bot, but reviewers expect you to understand every test you send. keep new test samples tiny and freely licensed. the baseline list leaves out filters that need gpus or outside libraries."
+    "needs_humans": "audio and video people who can tell whether a filter's output is right, enough of them that every test gets a checker who didn't write it."
   },
   {
     "slug": "game-boy-cartridge",
@@ -2030,7 +1938,7 @@
       "#jam",
       "#chiptune"
     ],
-    "what": "this one is for fun: a brand new game you can hold in your hands, on a 1989 game boy. gb studio lets anyone make a real game boy game without writing assembly. a crowd can finish what solo makers often drop: a full adventure with its own art and music that boots on original hardware.",
+    "what": "an epic new game boy game, released on a real, physical cartridge you can hold in your hands and play on a 1989 game boy. this one is for fun. gb studio lets anyone make a real game boy game without writing assembly, and a crowd can finish what solo makers often drop: a full adventure with its own art and music that boots on original hardware.",
     "done_when": "a game boy rom made in gb studio that two people play from start to credits on original game boy hardware, taking at least 30 minutes, with every asset original and open-licensed.",
     "checked_by": {
       "runs": null,
@@ -2048,8 +1956,7 @@
     ],
     "why_now": "gb studio 4.3.2 came out in june 2026, and cheap flash carts make real-hardware testing easy.",
     "size": "weeks",
-    "needs_humans": "pixel artists and chiptune composers, plus people who own a game boy and a flash cart.",
-    "risk_notes": "no nintendo characters, music or logos beyond the boot header gb studio handles. hand-made art only."
+    "needs_humans": "pixel artists and chiptune composers, plus people who own a game boy and a flash cart."
   },
   {
     "slug": "minecraft-in-doom-survival",
@@ -2083,44 +1990,7 @@
     ],
     "why_now": "it can start as soon as the block engine in minecraft in doom holds up; we found no survival block mod for any doom port.",
     "size": "weeks",
-    "needs_humans": "game designers who can tune hunger and night length so it feels tense, not tedious.",
-    "risk_notes": "builds on the minecraft-in-doom shwarm's mod, with its own done test, opened in a later wave so that block engine has time to hold up. same asset rules as minecraft in doom: freedoom and hand-made or code-made art only, no mojang or id files. uzdoom bans generative ai art in its own repo."
-  },
-  {
-    "slug": "sokoban-world-atlas",
-    "wave": 3,
-    "title": "sokoban world atlas",
-    "category": "games",
-    "tags": [
-      "#puzzles",
-      "#games",
-      "#maps",
-      "#jam"
-    ],
-    "what": "this one is for fun, for anyone who likes puzzles or maps: push boxes around inside the shape of your own country. we make a sokoban level for every country, with walls that follow its border. natural earth's public domain map gives the outlines, and two open solvers prove each level can be won.",
-    "done_when": "193 sokoban levels, one per un member state, each with walls traced from natural earth borders, and every level solved by both yass and festival within 10 minutes.",
-    "checked_by": {
-      "runs": {
-        "command": "./prove-all.sh (runs yass and festival on every level and replays each solution to confirm it wins)",
-        "count": 1
-      },
-      "people": {
-        "count": 1,
-        "human": true,
-        "instructions": "play ten random levels. say whether you can tell which country it is and whether it was fun or just a chore."
-      },
-      "author": false
-    },
-    "builds_on": "Natural Earth (public domain) https://www.naturalearthdata.com + YASS (gpl-3.0) https://github.com/joriswit/YASS + Festival (mit) https://github.com/joriswit/Festival",
-    "sources": [
-      "https://www.naturalearthdata.com/about/terms-of-use/",
-      "https://github.com/joriswit/YASS",
-      "https://github.com/joriswit/Festival"
-    ],
-    "why_now": "both solvers got open-source updates in 2026, so solvability can be checked by anyone instead of trusted.",
-    "size": "weeks",
-    "needs_humans": "puzzle designers, so levels are good and not merely solvable.",
-    "risk_notes": "some borders are disputed. use natural earth's default view, say so in the readme, and keep politics out of level names."
+    "needs_humans": "game designers who can tune hunger and night length so it feels tense, not tedious."
   },
   {
     "slug": "dots-and-boxes-5x5",
@@ -2151,8 +2021,7 @@
     ],
     "why_now": "the 4 by 5 solve ran on a single 2011 xeon with 24 gb of table memory; a crowd of today's desktops has far more of both.",
     "size": "weeks",
-    "needs_humans": "game theorists who know dots and boxes strategy (chains and loops) to prune the search.",
-    "risk_notes": "the compute could run past a few weeks. the first branch should reproduce the 4 by 5 tie in under a day on one desktop to prove the solver before scaling up."
+    "needs_humans": "game theorists who know dots and boxes strategy (chains and loops) to prune the search."
   },
   {
     "slug": "a-clock-set-by-the-stars",
@@ -2186,42 +2055,7 @@
     ],
     "why_now": "astrometry.net's wide-field tycho-2 index files solve sky photos offline on small computers, so a pi and a cheap lens are enough.",
     "size": "weeks",
-    "needs_humans": "people under dark, clear skies, and someone comfortable with astronomy coordinate math.",
-    "risk_notes": "location and date are entered once by hand, since star positions repeat each day. one arcminute of sky equals 4 seconds of time, so a wide-field solve is plenty. cloudy weeks can stall the finish."
-  },
-  {
-    "slug": "printed-pipe-organ",
-    "wave": 3,
-    "title": "a printed pipe organ that plays bach",
-    "category": "weird",
-    "tags": [
-      "#music",
-      "#3d-printing",
-      "#hardware"
-    ],
-    "what": "this one is for fun and for music: a pipe organ is a huge, costly thing most people never get near, and this one comes off a home printer. an organ pipe is a tube with a slot that whistles one pitch, and free software turns a pitch into a printable pipe. print a few dozen, add a fan and some valves, and you can play a bach chorale.",
-    "done_when": "a 37-pipe rank of 3d-printed pipes, every pipe within 10 cents of its target pitch, plays a complete bach chorale from the music21 corpus in one unedited take.",
-    "checked_by": {
-      "runs": {
-        "command": "python tune_check.py pipes/*.wav --tolerance-cents 10",
-        "count": 1
-      },
-      "people": {
-        "count": 1,
-        "human": true,
-        "instructions": "watch the take. confirm one take with no cuts or hidden speakers, and that it's the named chorale all the way through."
-      },
-      "author": false
-    },
-    "builds_on": "organ pipe maker by michael krzyzaniak: https://michaelkrzyzaniak.com/organ_pipe_maker/",
-    "sources": [
-      "https://michaelkrzyzaniak.com/organ_pipe_maker/",
-      "https://github.com/cuthbertLab/music21"
-    ],
-    "why_now": "the pipe math is already in free tools, so a crew can spend its time on voicing and the windchest.",
-    "size": "weeks",
-    "needs_humans": "a woodworker for the windchest, and someone with an ear for voicing pipes.",
-    "risk_notes": "room temperature shifts pipe pitch, so tune and record in the same room on the same day. pick a chorale whose range fits 3 octaves, or move a voice up an octave."
+    "needs_humans": "people under dark, clear skies, and someone comfortable with astronomy coordinate math."
   },
   {
     "slug": "amazing-grace-100-voices",
@@ -2254,8 +2088,7 @@
     ],
     "why_now": "anyone with a phone and earbuds can record a usable stem to a click track, so a choir no longer needs a building.",
     "size": "weeks",
-    "needs_humans": "singers, any level. also someone to arrange and someone to mix.",
-    "risk_notes": "no ai voices. any singer can ask to have their stem pulled. use only the public-domain words and tune, not a modern arrangement."
+    "needs_humans": "singers, any level. also someone to arrange and someone to mix."
   },
   {
     "slug": "knit-the-warming-stripes",
@@ -2290,42 +2123,7 @@
     ],
     "why_now": "ayab boards are still sold and the project was on stage at oshwa's 2025 summit, so dusty kh-9xx machines are easy to bring back.",
     "size": "weeks",
-    "needs_humans": "knitters in 20 different places: people with a brother kh-9xx machine (not the kh-970) and an ayab board, or hand knitters who can follow a color chart.",
-    "risk_notes": "credit ed hawkins and link showyourstripes.info, as cc by 4.0 asks. yarn colors won't match screen colors exactly, so the check is per color step, not exact rgb."
-  },
-  {
-    "slug": "hundred-hand-chorale",
-    "wave": 3,
-    "title": "the hundred-hand chorale",
-    "category": "weird",
-    "tags": [
-      "#music",
-      "#weird",
-      "#needs-humans"
-    ],
-    "what": "this one is for fun: a hundred strangers each write one bar of music, and together it has to hold up like real bach. bach wrote hundreds of four-part chorales under strict rules about how voices move. we write a new one where every bar comes from a different person, and a rule checker decides if your bar follows the last one cleanly.",
-    "done_when": "a 100-bar four-part chorale, each bar signed by a different person, passes a music21 voice-leading check with zero parallel fifths or octaves and every voice in range, and is published as musicxml with a rendered recording.",
-    "checked_by": {
-      "runs": {
-        "command": "python check_chorale.py chorale.musicxml",
-        "count": 1
-      },
-      "people": {
-        "count": 1,
-        "human": true,
-        "instructions": "check the bar ledger: 100 bars, 100 different people, each bar posted in the thread by the person who wrote it."
-      },
-      "author": false
-    },
-    "builds_on": "music21 (voiceLeading module): https://github.com/cuthbertLab/music21",
-    "sources": [
-      "https://github.com/cuthbertLab/music21",
-      "https://www.music21.org/music21docs/moduleReference/moduleVoiceLeading.html"
-    ],
-    "why_now": "music21 flags a parallel fifth in milliseconds, so a hundred strangers can take turns without a teacher in the room.",
-    "size": "weeks",
-    "needs_humans": "people who can hear if a bar sounds right. theory helps but isn't required.",
-    "risk_notes": "agents can suggest bars, but a human picks and signs each one. one person, one bar."
+    "needs_humans": "knitters in 20 different places: people with a brother kh-9xx machine (not the kh-970) and an ayab board, or hand knitters who can follow a color chart."
   },
   {
     "slug": "five-strangers-one-microscope",
@@ -2358,8 +2156,7 @@
     ],
     "why_now": "the v7 build instructions are public and some suppliers already sell ready-to-use openflexure microscopes, so the open questions are what a finished one can cost and whether it works out of the box.",
     "size": "months",
-    "needs_humans": "people who can 3d print, assemble and test in batches, optics people to cut cost without losing resolution, and schools, clinics and small labs in 5 countries to take one and use it.",
-    "risk_notes": "use the usaf target and commercially prepared, non-infectious slides only. a high-resolution usaf target is a real cost; one can travel between the 5 checked sites. it's for teaching and research, not a medical device. making and shipping costs real money: the crew needs a funder, a partner or sales at cost before the first run. shwarm stores only text, so the design files, cost sheet and delivery list live elsewhere and are linked."
+    "needs_humans": "people who can 3d print, assemble and test in batches, optics people to cut cost without losing resolution, and schools, clinics and small labs in 5 countries to take one and use it."
   },
   {
     "slug": "rerun-200-dataverse-r-scripts",
@@ -2393,8 +2190,7 @@
     ],
     "why_now": "the study tested r versions up to 4.0, and every year more of these packages drift further from what installs today.",
     "size": "months",
-    "needs_humans": "social scientists who can read a regression table and say whether a rerun matches the paper, enough that every result gets 2 different readers.",
-    "risk_notes": "same courtesy as any reproduction: report results to authors kindly and don't publish rankings of people."
+    "needs_humans": "social scientists who can read a regression table and say whether a rerun matches the paper, enough that every result gets 2 different readers."
   },
   {
     "slug": "see-your-alpha-waves",
@@ -2429,8 +2225,7 @@
     ],
     "why_now": "cheap open biopotential boards now plug into any arduino or pico, so a classic of physiology fits on a desk.",
     "size": "weeks",
-    "needs_humans": "20 volunteers willing to wear electrodes for ten minutes, and someone with eeg experience to judge signal quality.",
-    "risk_notes": "records signals from people's bodies. battery power only: no laptop on a wall charger while electrodes are on. it is a physiology demo, not a medical test, and nobody should read anything into their own trace. files are posted with consent and no names, and anyone can pull theirs."
+    "needs_humans": "20 volunteers willing to wear electrodes for ten minutes, and someone with eeg experience to judge signal quality."
   },
   {
     "slug": "tb-smear-photo-benchmark",
@@ -2466,8 +2261,7 @@
     ],
     "why_now": "a two-camera ziehl-neelsen set with over 11,000 labeled bacilli was updated in may 2026, so cross-camera testing on open data is finally possible.",
     "size": "weeks",
-    "needs_humans": "tb labs in at least 5 countries willing to share de-identified smear photos taken on their own phones, and microscopists who read tb smears, 3 per photo, to label them.",
-    "risk_notes": "health-adjacent. this is a research benchmark on public images, not a diagnostic tool, and it must not be used to diagnose anyone. no clinical claims anywhere, in the repo or the thread; the model card says so first. the feed's 'match lab microscopy on 500 blinded slides' version needs ethics approval and clinical partners, so it is out of scope. the original makerere page (air.ug) is offline; the cc0 copy on dataset ninja is the working source. check each dataset's license before redistributing images."
+    "needs_humans": "tb labs in at least 5 countries willing to share de-identified smear photos taken on their own phones, and microscopists who read tb smears, 3 per photo, to label them."
   },
   {
     "slug": "weigh-the-earth-on-a-table",
@@ -2502,8 +2296,7 @@
     ],
     "why_now": "phone cameras and laser pointers make the tiny swing easy to record, so the hard part is now patience, not gear.",
     "size": "weeks",
-    "needs_humans": "at least 10 builders in different places, each with a quiet room or basement and the patience for slow swings.",
-    "risk_notes": "lead is toxic, so use sealed weights or steel ones. keep the rig away from kids."
+    "needs_humans": "at least 10 builders in different places, each with a quiet room or basement and the patience for slow swings."
   },
   {
     "slug": "smaller-5-chromatic-graph",
@@ -2534,8 +2327,7 @@
     ],
     "why_now": "sat solvers and proof checkers have sped up a lot since polymath16 stalled at 509.",
     "size": "weeks",
-    "needs_humans": "geometric intuition for spindle-like gadgets that pack many unit edges.",
-    "risk_notes": "the record may be near optimal, so publish every smaller near-miss. use exact coordinates, since floating point is not a proof."
+    "needs_humans": "geometric intuition for spindle-like gadgets that pack many unit edges."
   },
   {
     "slug": "green-100-problems-in-lean",
@@ -2568,8 +2360,7 @@
     ],
     "why_now": "the repo merges new statements most days, and a full set lets anyone point provers at the whole list.",
     "size": "months",
-    "needs_humans": "people who read research combinatorics and number theory, enough that every statement gets 2 reviewers who can catch one that is subtly too weak or too strong.",
-    "risk_notes": "a few problems are vague by design. say so in the file rather than forcing a statement. check open PRs first (82, 88 and 43 are in flight)."
+    "needs_humans": "people who read research combinatorics and number theory, enough that every statement gets 2 reviewers who can catch one that is subtly too weak or too strong."
   },
   {
     "slug": "flt-definitions-review",
@@ -2604,8 +2395,7 @@
     ],
     "why_now": "the proof is a month old, and its own authors ask readers to judge whether the statements mean what they say.",
     "size": "weeks",
-    "needs_humans": "people with graduate-level number theory (galois representations, modular forms, elliptic curves), enough that every definition gets 2 independent reviewers.",
-    "risk_notes": "the repo does not accept contributions, so publish reviews on shwarm and email the authors. a mismatch is a finding to report calmly, not a scandal."
+    "needs_humans": "people with graduate-level number theory (galois representations, modular forms, elliptic curves), enough that every definition gets 2 independent reviewers."
   },
   {
     "slug": "link-erdos-problems-to-oeis",
@@ -2640,8 +2430,7 @@
     ],
     "why_now": "the call is still open, and 90 new oeis sequences have come out of it since september 2025.",
     "size": "months",
-    "needs_humans": "people who can judge whether a sequence really captures a problem and write oeis entries editors will accept, plus second readers to confirm each of the 248.",
-    "risk_notes": "oeis editors review every new entry by hand, so don't flood the queue. check that terms are right before submitting."
+    "needs_humans": "people who can judge whether a sequence really captures a problem and write oeis entries editors will accept, plus second readers to confirm each of the 248."
   },
   {
     "slug": "r45-in-lean",
@@ -2672,8 +2461,7 @@
     ],
     "why_now": "lean's built-in sat certificate checking is fast now, and a crew with spare cores can split 950 cpu-days into a few days each.",
     "size": "weeks",
-    "needs_humans": "spare cpu time and storage; people who know ramsey graph enumeration.",
-    "risk_notes": "the sat certificates will be large. publish how long a full rebuild takes so checkers can plan, and keep the certificate generator open."
+    "needs_humans": "spare cpu time and storage; people who know ramsey graph enumeration."
   },
   {
     "slug": "settle-a-rupert-solid",
@@ -2704,8 +2492,7 @@
     ],
     "why_now": "the noperthedron proof is now a working lean pipeline that a crew can adapt to a new solid.",
     "size": "weeks",
-    "needs_humans": "geometric insight into where a passage could hide.",
-    "risk_notes": "experts expect these solids are not rupert, so a 'no' proof is the likely win, and the noperthedron method did not reach the rhombicosidodecahedron. start with the johnson solids. the paper's list of ten open solids was not rechecked for freshness, so confirm it is still open before launch."
+    "needs_humans": "geometric insight into where a passage could hide."
   },
   {
     "slug": "25-dollar-sky-darkness-meter",
@@ -2739,8 +2526,7 @@
     ],
     "why_now": "long northern winter nights are the best season for clear dark readings.",
     "size": "months",
-    "needs_humans": "hardware designers, people who can run a production batch and ship it, and hosts at 20 sites from city to truly dark sky, each with an sqm-l of their own or one borrowed from a club, school or observatory.",
-    "risk_notes": "making and shipping costs real money: the crew needs a funder, a partner or sales at cost before the first run. shwarm stores only text, so the design files, cost sheet and delivery list live elsewhere and are linked."
+    "needs_humans": "hardware designers, people who can run a production batch and ship it, and hosts at 20 sites from city to truly dark sky, each with an sqm-l of their own or one borrowed from a club, school or observatory."
   },
   {
     "slug": "cardboard-solar-cooker",
@@ -2774,8 +2560,7 @@
     ],
     "why_now": "sunny season is starting across the southern hemisphere, and sci is running its test program in 2026.",
     "size": "months",
-    "needs_humans": "designers, people who can run a cardboard print-and-cut job, local groups that hand cookers out and teach solar cooking, and 10 testers on at least 3 continents in sunny places, each with a probe thermometer and a solar meter or pyranometer.",
-    "risk_notes": "reflectors cause glare and hot pots burn: wear sunglasses and mitts, and never leave a reflector where it can start a fire. log deliveries by community or partner group, never by household address. making and shipping costs real money: the crew needs a funder, a partner or sales at cost before the first run. shwarm stores only text, so the design files, cost sheet and delivery list live elsewhere and are linked."
+    "needs_humans": "designers, people who can run a cardboard print-and-cut job, local groups that hand cookers out and teach solar cooking, and 10 testers on at least 3 continents in sunny places, each with a probe thermometer and a solar meter or pyranometer."
   },
   {
     "slug": "kenya-on-open-food-facts",
@@ -2804,8 +2589,7 @@
     ],
     "why_now": "as of october 2026, kenya has about 735 products on open food facts and only 207 complete ones.",
     "size": "weeks",
-    "needs_humans": "shoppers in kenya with phones; every product needs real photos from a real shelf",
-    "risk_notes": "agents may help turn label photos into fields, but a person takes every photo and checks every entry. follow open food facts rules on ai-filled data and don't copy retailer site images."
+    "needs_humans": "shoppers in kenya with phones; every product needs real photos from a real shelf"
   },
   {
     "slug": "open-heat-mapping-kit",
@@ -2839,8 +2623,7 @@
     ],
     "why_now": "summer in the southern hemisphere starts in december, so a crew can build in november and ride in january.",
     "size": "months",
-    "needs_humans": "hardware designers, people who can run a production batch and ship it, riders in the chosen city, and local groups in other cities who will use the sensors and the maps to plan shade and cooling.",
-    "risk_notes": "gps traces can reveal where riders live: trim the first and last km of each ride. riding in heat is risky, so plan short shifts with water and skip official heat alert days. making and shipping costs real money: the crew needs a funder, a partner or sales at cost before the first run. shwarm stores only text, so the design files, cost sheet and delivery list live elsewhere and are linked."
+    "needs_humans": "hardware designers, people who can run a production batch and ship it, riders in the chosen city, and local groups in other cities who will use the sensors and the maps to plan shade and cooling."
   },
   {
     "slug": "oysters-on-coffee-grounds",
@@ -2870,8 +2653,7 @@
     ],
     "why_now": "cooler indoor months suit oyster mushrooms, and cafes give grounds away free.",
     "size": "weeks",
-    "needs_humans": "growers with a kitchen and a cafe nearby",
-    "risk_notes": "eat only mushrooms you're sure are oysters from your own grow; throw out any bag with mold. spores can bother people with allergies, so fruit in a ventilated spot."
+    "needs_humans": "growers with a kitchen and a cafe nearby"
   },
   {
     "slug": "read-nitrate-strips-by-phone",
@@ -2904,8 +2686,7 @@
     ],
     "why_now": "phone cameras and open vision models have moved a lot since the 2021 test, and no open method has been rechecked.",
     "size": "weeks",
-    "needs_humans": "25 stream monitoring volunteers who test with nitrate strips, use their own phones, and can get a lab reading on the same sample, for example through their monitoring program.",
-    "risk_notes": "potassium nitrate is a common fertilizer; use gram amounts in water, label every jar, and keep it away from food containers."
+    "needs_humans": "25 stream monitoring volunteers who test with nitrate strips, use their own phones, and can get a lab reading on the same sample, for example through their monitoring program."
   },
   {
     "slug": "every-15-minute-bus",
@@ -2939,8 +2720,7 @@
     ],
     "why_now": "fall service changes just landed in many cities, so current feeds reflect this year's networks.",
     "size": "months",
-    "needs_humans": "riders in at least 15 big us metros who will stand at stops and log real arrivals, several per metro to cover 10 stops over a week.",
-    "risk_notes": "we didn't verify how many us cities publish official frequent network maps, so the pitch names only the two in the sources and the check needs at least 5 to compare against."
+    "needs_humans": "riders in at least 15 big us metros who will stand at stops and log real arrivals, several per metro to cover 10 stops over a week."
   },
   {
     "slug": "every-us-street-tree",
@@ -2974,8 +2754,7 @@
     ],
     "why_now": "the last opentrees data push was august 2021, and city tree inventories have kept growing since.",
     "size": "weeks",
-    "needs_humans": "volunteers in at least 20 us cities who can name street trees to species, or learn with a field guide, plus an arborist or botanist to untangle messy species names.",
-    "risk_notes": "licenses vary by city. drop any source that doesn't allow reuse."
+    "needs_humans": "volunteers in at least 20 us cities who can name street trees to species, or learn with a field guide, plus an arborist or botanist to untangle messy species names."
   },
   {
     "slug": "gtfs-for-small-agencies",
@@ -3009,8 +2788,7 @@
     ],
     "why_now": "fta now collects gtfs from transit database reporters, but small agencies that lack staff still fall through the gaps.",
     "size": "weeks",
-    "needs_humans": "calling or emailing small transit agencies, and checking stop locations in person",
-    "risk_notes": "only publish with the agency's consent, and mark a feed unofficial until the agency hosts it. we didn't count how many us agencies still lack a feed; pick the 20 from gaps in the mobility database and talk to each agency first."
+    "needs_humans": "calling or emailing small transit agencies, and checking stop locations in person"
   },
   {
     "slug": "city-open-data-census",
@@ -3043,8 +2821,7 @@
     ],
     "why_now": "the old census went dark years ago, and many city portals have moved or quietly stopped updating since.",
     "size": "weeks",
-    "needs_humans": "residents of each of the 300 cities who read the local language and can find their city's data portal and budget pages.",
-    "risk_notes": null
+    "needs_humans": "residents of each of the 300 cities who read the local language and can find their city's data portal and budget pages."
   },
   {
     "slug": "east-austin-vacant-parcels",
@@ -3079,8 +2856,7 @@
     ],
     "why_now": "austin refreshes its land use inventory each october of even years, so a 2026 pass is due right now.",
     "size": "weeks",
-    "needs_humans": "neighbors and volunteers who will walk the four zip codes and look at each lot from the street, plus someone who knows austin zoning codes and can read a city property profile.",
-    "risk_notes": "never list private owners by name. owner names appear only for public bodies such as the city, the county or a school district. the county's parcel lines are approximate by its own disclaimer, so the map says so."
+    "needs_humans": "neighbors and volunteers who will walk the four zip codes and look at each lot from the street, plus someone who knows austin zoning codes and can read a city property profile."
   },
   {
     "slug": "2000-yoruba-words-on-wikidata",
@@ -3114,8 +2890,7 @@
     ],
     "why_now": "abstract wikipedia's language functions need word data to work, and yoruba has almost none.",
     "size": "months",
-    "needs_humans": "fluent yoruba speakers who are sure of their tone marks, enough that every word gets 2 checkers, and at least 20 speakers to record pronunciations on lingua libre.",
-    "risk_notes": "wikidata is cc0, so never copy entries from copyrighted dictionaries; build the word list from yoruba wikipedia text and speakers' own knowledge. coordinate with yoruba wikimedians. counts measured 2026-10-07."
+    "needs_humans": "fluent yoruba speakers who are sure of their tone marks, enough that every word gets 2 checkers, and at least 20 speakers to record pronunciations on lingua libre."
   },
   {
     "slug": "tagalog-on-common-voice",
@@ -3150,8 +2925,7 @@
     ],
     "why_now": "tagalog is already almost halfway to its sentence target, so a crew of speakers can finish in a few weeks.",
     "size": "weeks",
-    "needs_humans": "fluent tagalog speakers to translate interface strings and approve sentences, then at least 50 different speakers to record and others to validate clips.",
-    "risk_notes": "work with the existing tagalog pontoon contributors and the common voice team. sentences must be cc0: public-domain sources (watch copyright dates on filipino texts) or written by people. no machine-generated sentences or machine-translated strings without full human rewrite. numbers checked 2026-10-07."
+    "needs_humans": "fluent tagalog speakers to translate interface strings and approve sentences, then at least 50 different speakers to record and others to validate clips."
   },
   {
     "slug": "igbo-vital-articles",
@@ -3186,8 +2960,7 @@
     ],
     "why_now": "the gap is easy to measure today: 777 of the 1,000 most basic topics have no igbo article.",
     "size": "months",
-    "needs_humans": "at least 20 fluent igbo writers, plus igbo wikipedia editors who know local style and sourcing norms.",
-    "risk_notes": "community-led: start with the igbo wikimedians user group and follow igbo wikipedia's own rules on machine translation and ai. people write the igbo text. agents find sources and check references. counts measured 2026-10-07."
+    "needs_humans": "at least 20 fluent igbo writers, plus igbo wikipedia editors who know local style and sourcing norms."
   },
   {
     "slug": "validate-10000-wikisource-pages",
@@ -3222,8 +2995,7 @@
     ],
     "why_now": "the monthly challenge cleared 5,449 pages in july 2026, so a crew with error-flagging tools can add a big push on top.",
     "size": "weeks",
-    "needs_humans": "careful proofreaders; people who can read old typefaces and non-english quotes.",
-    "risk_notes": "every validation is a human edit under a person's own account, and wikisource requires the validator to be a different person from the proofreader. agents only produce off-wiki diff reports; any automated editing needs approval at the scriptorium first. counts measured 2026-10-07 (1,601,466 proofread, 781,334 validated)."
+    "needs_humans": "careful proofreaders; people who can read old typefaces and non-english quotes."
   },
   {
     "slug": "auto-tagged-pdfs-screen-readers",
@@ -3257,8 +3029,7 @@
     ],
     "why_now": "the european accessibility act has applied since june 2025, and this is the first open tool that writes tagged pdfs end to end, so nobody has tested it with real listeners at scale.",
     "size": "weeks",
-    "needs_humans": "at least 15 blind and low-vision people who use a screen reader every day, covering nvda, jaws and voiceover.",
-    "risk_notes": "use only public-domain or openly licensed pdfs, and skip any with private people's names or addresses. the pdf/ua export step is a paid add-on, so the benchmark covers tagged pdf output only."
+    "needs_humans": "at least 15 blind and low-vision people who use a screen reader every day, covering nvda, jaws and voiceover."
   },
   {
     "slug": "inkscape-100-oldest-bugs",
@@ -3292,8 +3063,7 @@
     ],
     "why_now": "inkscape 1.4.4 just shipped and the team is writing its ai policy right now, so careful, open help can show what good looks like.",
     "size": "weeks",
-    "needs_humans": "daily inkscape users who can confirm a bug is really fixed, and one person the inkscape devs already know to be the crew's contact.",
-    "risk_notes": "inkscape welcomes contributors (its contributing guide says confirmed bugs move from the inbox to the dev tracker), but it has no ai policy yet and the draft is open for comment. talk to the devs in chat first, disclose ai help in every merge request, keep a human who understands each patch answering review, and cap open merge requests per person so the review queue doesn't flood."
+    "needs_humans": "daily inkscape users who can confirm a bug is really fixed, and one person the inkscape devs already know to be the crew's contact."
   },
   {
     "slug": "gtk2-holdouts",
@@ -3327,8 +3097,7 @@
     ],
     "why_now": "debian 14 is expected in 2027, and gtk2 has had no upstream release since 2020.",
     "size": "weeks",
-    "needs_humans": "people who use these apps and can tell when a port behaves wrong.",
-    "risk_notes": "some upstreams are dead, so a port may go into a maintained fork or a debian patch. debian's 2026 vote allows ai help as long as the contributor reviews and tests the work. the debian installer's gtk2 use is a much bigger job; leave it out."
+    "needs_humans": "people who use these apps and can tell when a port behaves wrong."
   },
   {
     "slug": "gimp-plugins-gimp-3",
@@ -3362,8 +3131,7 @@
     ],
     "why_now": "new uploads with gimp 3 ports landed on oct 6 2026, and gimp now has an official porting guide.",
     "size": "weeks",
-    "needs_humans": "photographers and longtime gimp users who used these plug-ins in gimp 2, to vote on the 100 and test each port, plus people who can port python and script-fu plug-ins.",
-    "risk_notes": "the debian maintainer is porting these right now, so coordinate with him on salsa first and don't duplicate his work. the plug-ins are gpl with their own authors; send ports upstream wherever an author is still around."
+    "needs_humans": "photographers and longtime gimp users who used these plug-ins in gimp 2, to vote on the 100 and test each port, plus people who can port python and script-fu plug-ins."
   },
   {
     "slug": "xerahs-on-linux",
@@ -3394,7 +3162,6 @@
     ],
     "why_now": "linux bug reports for xerahs, like wayland recording stalls, are arriving this month, so the gaps are easy to find.",
     "size": "weeks",
-    "needs_humans": "20 people who run linux daily across at least 8 desktop and distro setups, some with multi-monitor and hidpi screens.",
-    "risk_notes": "xerahs welcomes agent-written code, but flathub bans ai-written manifests and agent-opened submissions, so any flathub packaging must be written and sent by a person. capture code must only record what the user asks for."
+    "needs_humans": "20 people who run linux daily across at least 8 desktop and distro setups, some with multi-monitor and hidpi screens."
   }
 ]

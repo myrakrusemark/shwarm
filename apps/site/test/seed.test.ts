@@ -9,7 +9,7 @@ import { seededLogRow } from '../src/core/audit'
 import { rollupStats } from '../src/jobs/stats'
 import { parseCheckSpec } from '../src/core/checks'
 import { EXAMPLE_BRANCH, EXAMPLE_PEOPLE, EXAMPLE_ROOT } from '../src/seed/example'
-import { findLicenses, mapLaunchShwarm, parseBuildsOn, splitRunCommand } from '../src/seed/launch'
+import { findLicenses, mapLaunchShwarm, NOT_IMPORTED, parseBuildsOn, splitRunCommand } from '../src/seed/launch'
 import { checkTarget, formatReport, planSeed, type TargetState } from '../src/seed/plan'
 import { renderStatement, SENTINEL_MIN, sqlLiteral, sqlString } from '../src/seed/sql'
 import { person, refused, site, World } from './core-fixtures'
@@ -41,8 +41,8 @@ async function stagingLike() {
 }
 
 describe('mapping the launch list', () => {
-  test('all 98 map with no parse failures, and the offline dry run plans all of them', async () => {
-    expect(LIST).toHaveLength(98)
+  test('all 94 map with no parse failures, and the offline dry run plans all of them', async () => {
+    expect(LIST).toHaveLength(94)
     for (const e of LIST) {
       const m = mapLaunchShwarm(e)
       expect(m.notes.filter(n => n.kind === 'failed'), e.slug).toEqual([])
@@ -61,8 +61,19 @@ describe('mapping the launch list', () => {
     }
     const plan = await planSeed(testDb(), LIST, EMPTY, { target: 'offline', now: NOW, example: false })
     expect(plan.report.failures).toBe(0)
-    expect(plan.report.shwarms.filter(s => s.status === 'new')).toHaveLength(98)
-    expect(formatReport(plan.report)).toContain('98 new, 0 already there, 0 failed')
+    expect(plan.report.shwarms.filter(s => s.status === 'new')).toHaveLength(94)
+    expect(formatReport(plan.report)).toContain('94 new, 0 already there, 0 failed')
+  })
+
+  test('risk notes stay private: none in the list, and one that comes back is never imported', () => {
+    // Go-live 1.10: the private risk notes (A18) moved to the git-ignored docs/launch-risk-notes.json, which nothing
+    // here reads, so the import and these tests work without it.
+    for (const e of LIST) expect(e, e.slug).not.toHaveProperty('risk_notes')
+    const secret = 'private risk note: ask upstream before sending agent prs'
+    const m = mapLaunchShwarm({ ...LIST[0], risk_notes: secret })
+    expect(m.notes.filter(n => n.kind === 'failed' || n.kind === 'warning')).toEqual([])
+    expect(JSON.stringify({ input: m.input, pinned: m.pinned })).not.toContain(secret)
+    expect(NOT_IMPORTED).toContain('risk_notes')
   })
 
   test('snapshots of a few mapped entries', () => {
@@ -262,17 +273,17 @@ describe('rendering statements', () => {
 })
 
 describe('the plan end to end', () => {
-  test('applied to a staging-like database: 98 seeded shwarms, live at once (plus the example), @myra working on each, pinned sources', async () => {
+  test('applied to a staging-like database: 94 seeded shwarms, live at once (plus the example), @myra working on each, pinned sources', async () => {
     const { db, myraId } = await stagingLike()
     const copy = testDb()
     const plan = await planSeed(copy, LIST, stateOf(db), { target: 'staging', now: NOW, example: true })
     expect(plan.report.failures).toBe(0)
     expect(plan.report.example.status).toBe('new')
-    expect(plan.newPaths).toHaveLength(99)
+    expect(plan.newPaths).toHaveLength(95)
     db.raw.exec(plan.sql)
 
     const nodes = db.raw.prepare("SELECT n.*, s.person_id AS seat1 FROM node n LEFT JOIN seat s ON s.node_id = n.id AND s.number = 1 WHERE n.kind <> 'branch'").all()
-    expect(nodes).toHaveLength(98)
+    expect(nodes).toHaveLength(94)
     for (const n of nodes) {
       expect(n.seeded, n.path).toBe(1)
       expect(n.seat1, n.path).toBe(myraId)
@@ -348,7 +359,7 @@ describe('the plan end to end', () => {
     expect(again.report.shwarms.every(s => s.status === 'exists')).toBe(true)
     expect(again.report.example.status).toBe('exists')
     expect(again.newPaths).toEqual([])
-    expect(formatReport(again.report)).toContain('0 new, 98 already there')
+    expect(formatReport(again.report)).toContain('0 new, 94 already there')
   })
 
   test('a partial import, then the rest', async () => {
@@ -358,7 +369,7 @@ describe('the plan end to end', () => {
     const rest = await planSeed(testDb(), LIST, stateOf(db), { target: 'staging', now: NOW, example: false })
     expect(rest.report.shwarms.filter(s => s.status === 'exists').map(s => s.slug)).toEqual(['bot-beats-freedoom', 'kart-race-on-the-moon'])
     db.raw.exec(rest.sql)
-    expect(db.raw.prepare('SELECT count(*) AS n FROM node WHERE seeded = 1').get().n).toBe(98)
+    expect(db.raw.prepare('SELECT count(*) AS n FROM node WHERE seeded = 1').get().n).toBe(94)
   })
 
   test('the guards stop a stale file at its first statement', async () => {
@@ -394,7 +405,7 @@ describe('the plan end to end', () => {
     expect((await planSeed(testDb(), LIST, stateOf(db), { target: 'staging', now: NOW, example: false })).report.failures).toBe(0)
     db.raw.prepare("UPDATE setting SET value = 'true' WHERE key = 'read_only'").run()
     const ro = await planSeed(testDb(), LIST, stateOf(db), { target: 'staging', now: NOW, example: false })
-    expect(ro.report.failures).toBe(98)
+    expect(ro.report.failures).toBe(94)
     expect(ro.sql).toBe('')
   })
 })

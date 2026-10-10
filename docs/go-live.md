@@ -368,6 +368,7 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - **done when:** a mail from Gmail to support@ arrives and Myra's reply comes back; the domain shows verified in Resend; a test send scores 9/10 or better on mail-tester with SPF, DKIM and DMARC passing.
 
 **1.10 Make the repo public**
+- *(Oct 10: the launch shwarms' risk notes left the tree. They live in `docs/launch-risk-notes.json` ({slug: risk_notes}), which is git-ignored and read by nothing; launch-shwarms.json and its .md mirror no longer hold them, and a seed test fails if one comes back. shwarm-ideas.json's working copy is clean too, but its committed copy keeps the ideas' notes until that file's pending edits are committed. They are still in earlier commits, so the history check below decides whether that history is rewritten or accepted. `tracker/replies.json` and `tracker/proof.json` were already untracked.)*
 - **what:** README, CONTRIBUTING, SECURITY.md, code licenses per A14, the A2 license on docs and content. Before flipping to public: move the launch shwarms' private risk notes (A18) and `tracker/replies.json` out of the repo, and check git history for anything private (`git grep` plus a gitleaks scan of all commits).
 - **who:** Claude; Myra approves · **needs:** 0.3, A2, A14, 1.2
 - **done when:** the repo is public.

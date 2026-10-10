@@ -22,3 +22,5 @@ __pycache__/
 # Myra's tracker replies and card verdicts stay local (go-live 1.10)
 tracker/replies.json
 tracker/proof.json
+# the launch shwarms' private risk notes ({slug: risk_notes}; A18, go-live 1.10): local only
+docs/launch-risk-notes.json

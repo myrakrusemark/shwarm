@@ -24,7 +24,7 @@ export type LaunchShwarm = {
   why_now?: string | null
   size?: string
   needs_humans?: string | null
-  risk_notes?: string | null
+  risk_notes?: string | null // no longer in the list: the private risk notes live in the git-ignored docs/launch-risk-notes.json (go-live 1.10). Still known, so one that comes back is never imported
   variant_of?: string // no longer read: variants are dropped (decided Oct 9); the entry goes in as a plain shwarm
 }
 
@@ -45,7 +45,10 @@ const KNOWN_CHECK = new Set(['runs', 'people', 'author'])
 const KNOWN_RUNS = new Set(['command', 'count', 'description'])
 const KNOWN_PEOPLE = new Set(['count', 'human', 'instructions'])
 
-/** Fields the import never copies: risk notes stay private (table B); the rest has no place on a node yet. */
+/**
+ * Fields the import never copies: risk notes stay private (table B; they now live outside the list, in the git-ignored
+ * docs/launch-risk-notes.json, which nothing here reads); the rest has no place on a node yet.
+ */
 export const NOT_IMPORTED = ['wave', 'category', 'size', 'needs_humans', 'risk_notes', 'lobby', 'variant_of'] as const
 
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/

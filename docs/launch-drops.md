@@ -25,3 +25,8 @@ Myra's answers on the proofreading cards, Oct 10. Each one is out of launch-shwa
 - the-printer-choir (idea; Myra: "no. delete")
 - printer-motor-orchestra (wave 1; Myra: "drop it", after "anything that can be hacked into a print farm, still just a basement project")
 - slime-mold-vs-your-metro (wave 2; Myra: "this is not shwarm scale. remove")
+- sokoban-world-atlas (wave 3; Myra: "nah. remove")
+- hundred-hand-chorale (wave 3; Myra: "nah. remove")
+- printed-pipe-organ (wave 3; Myra: "the trumpet. yes. remove this one tho". The trumpet idea, a-pla-trumpet-you-cant-tell-from-brass, stays)
+- when-affordable-housing-expires (wave 2; Myra: "drop it", after Claude said that as written it's one person and a script)
+- the-dawn-chorus-of-the-world (idea; Myra: "agreed. drop this one". Its shared recording day is folded into where-am-i-ask-the-birds, whose what now says the fresh minutes can come from a shared dawn-chorus day)

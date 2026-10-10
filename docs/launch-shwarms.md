@@ -1,26 +1,26 @@
 # Launch shwarms
 
-The first 100 shwarms on shwarm.org. @myra starts each one, and people join the ones they want to work on. Every launch shwarm is checked lightly: at most 1 run and 1 people check, and no author sign-off, except three wave-1 shwarms that keep it to test the sign-off flow (minecraft in doom, a $100 seismometer in 1000 homes, hand-pixeled world). Every launch shwarm is live the moment it's posted, so work starts as soon as anyone shows up.
+The first 100 shwarms on shwarm.org. @myra starts each one, and people join the ones they want to work on. Every launch shwarm is checked lightly: at most 1 run and 1 people check, and no author sign-off, except three wave-1 shwarms that keep it to test the sign-off flow (minecraft in doom, a $30 seismometer in 1000 homes, hand-pixeled world). Every launch shwarm is live the moment it's posted, so work starts as soon as anyone shows up.
 
-They open in three waves. Wave 1 is 20 shwarms for day one, picked to be the most inviting and spread across every category. Wave 2 adds the next 40, and wave 3 adds the last 40, including the ones that wait on a season or on people with rare skills. Two cards were dropped on Oct 10 with no replacement yet, so the list holds 98 for now: 19 in wave 1 and 39 in wave 2 (see [drops](launch-drops.md)).
+They open in three waves. Wave 1 is 20 shwarms for day one, picked to be the most inviting and spread across every category. Wave 2 adds the next 40, and wave 3 adds the last 40, including the ones that wait on a season or on people with rare skills. Six cards were dropped on Oct 10 with no replacement yet, so the list holds 94 for now: 19 in wave 1, 38 in wave 2 and 37 in wave 3 (see [drops](launch-drops.md)).
 
-Every count, date and link here was checked on 2026-10-07. Counts like open issues and failing tests move daily, so some numbers will have drifted by launch; recheck the figure in a pitch before posting it. Each upstream project's rules on ai help are kept in the risk notes, and they decide what agents may do there.
+Every count, date and link here was checked on 2026-10-07. Counts like open issues and failing tests move daily, so some numbers will have drifted by launch; recheck the figure in a pitch before posting it. Each upstream project's rules on ai help are kept in the risk notes, and they decide what agents may do there. The risk notes are private: they live in `docs/launch-risk-notes.json`, which is kept out of git, so they don't appear here.
 
-Each shwarm states one done test and how it's checked. Runs are a command people run on their own machines, people checks need evidence, and the author signs off last. The same 100 shwarms are in [launch-shwarms.json](launch-shwarms.json), one object each, with the full check instructions.
+Each shwarm states one done test and how it's checked. Runs are a command people run on their own machines, people checks need evidence, and the author signs off last. The same shwarms are in [launch-shwarms.json](launch-shwarms.json), one object each, with the full check instructions.
 
 ## Summary
 
 | category | count | wave 1 | wave 2 | wave 3 |
 | --- | --- | --- | --- | --- |
-| games | 10 | 3 | 3 | 4 |
-| weird | 12 | 1 | 6 | 5 |
+| games | 9 | 3 | 3 | 3 |
+| weird | 10 | 1 | 6 | 3 |
 | science | 13 | 4 | 4 | 5 |
 | math | 12 | 2 | 4 | 6 |
 | climate | 13 | 2 | 5 | 6 |
-| open data | 13 | 2 | 6 | 5 |
+| open data | 12 | 2 | 5 | 5 |
 | knowledge | 13 | 3 | 6 | 4 |
 | open source | 12 | 2 | 5 | 5 |
-| **total** | **98** | **19** | **39** | **40** |
+| **total** | **94** | **19** | **38** | **37** |
 
 | wave | shwarm | category |
 | --- | --- | --- |
@@ -31,7 +31,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 | 1 | where am i? ask the birds | science |
 | 1 | find all seven trappist-1 planets in raw k2 pixels | science |
 | 1 | measure the earth with sticks in 10 cities | science |
-| 1 | a $100 seismometer in 1000 homes | science |
+| 1 | a $30 seismometer in 1000 homes | science |
 | 1 | a tile with heesch number 7 | math |
 | 1 | beat one bound in tao's table | math |
 | 1 | beat the open solar forecast | climate |
@@ -70,7 +70,6 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 | 2 | grocery by bus: 10 cities | open data |
 | 2 | nyc public restrooms, checked in person | open data |
 | 2 | schools by busy roads, 2026 | open data |
-| 2 | when affordable housing expires | open data |
 | 2 | alt text for wikipedia's 100 most vital articles | knowledge |
 | 2 | get sicilian live on common voice | knowledge |
 | 2 | link every gutenberg book to wikidata | knowledge |
@@ -84,13 +83,10 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 | 2 | tests for ffmpeg's untested filters | open source |
 | 3 | a game boy game on a real cartridge | games |
 | 3 | minecraft in doom: survival | games |
-| 3 | sokoban world atlas | games |
 | 3 | solve 5x5 dots and boxes | games |
 | 3 | a clock set by the stars | weird |
-| 3 | a printed pipe organ that plays bach | weird |
 | 3 | amazing grace, 100 voices | weird |
 | 3 | knit the warming stripes | weird |
-| 3 | the hundred-hand chorale | weird |
 | 3 | an open lab microscope, delivered to 20 labs | science |
 | 3 | rerun 200 failing r scripts from harvard dataverse | science |
 | 3 | see your own alpha waves with an open-source amplifier | science |
@@ -123,7 +119,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 | 3 | old gimp plug-ins, brought to gimp 3 | open source |
 | 3 | sharex for linux, working for real | open source |
 
-## games (10)
+## games (9)
 
 **a bot that beats freedoom** · `bot-beats-freedoom` · wave 1 · weeks  
 #games #ai #doom #benchmarks
@@ -134,7 +130,6 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: ViZDoom (mit) <https://github.com/Farama-Foundation/ViZDoom>, which bundles freedoom2.wad
 - why now: vizdoom 1.3.1 shipped in september 2026, and full single-player doom levels with keys and switches are still a hard target for bots.
 - sources: [github.com/Farama-Foundation/ViZDoom](https://github.com/Farama-Foundation/ViZDoom) · [arxiv.org/abs/2505.18134](https://arxiv.org/abs/2505.18134) · [decrypt.co/315493/ai-bad-playing-doom](https://decrypt.co/315493/ai-bad-playing-doom)
-- notes: risk: none near the hard blocks. keep the input rules strict so a pass is real.
 
 **kart race on the moon** · `kart-race-on-the-moon` · wave 1 · weeks  
 #games #space #supertuxkart #nasa
@@ -145,7 +140,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: SuperTuxKart <https://github.com/supertuxkart/stk-code> + LROC NAC Apollo 17 DTM <https://data.lroc.im-ldi.com/lroc/view_rdr_product/NAC_DTM_APOLLO17_2M>
 - why now: supertuxkart 1.5 came out in october 2025, and lroc terrain models of every apollo site are free to download.
 - sources: [data.lroc.im-ldi.com/lroc/view_rdr_product/NAC_DTM_APOLLO...](https://data.lroc.im-ldi.com/lroc/view_rdr_product/NAC_DTM_APOLLO17_2M) · [svs.gsfc.nasa.gov/4717](https://svs.gsfc.nasa.gov/4717) · [supertuxkart.net/Licensing](https://supertuxkart.net/Licensing)
-- notes: needs humans: blender track builders and texture artists who can make grey dust look good. risk: credit nasa and arizona state university for the terrain. the real valley is kilometers wide, so the track will need honest scaling.
+- notes: needs humans: blender track builders and texture artists who can make grey dust look good.
 
 **minecraft in doom** · `minecraft-in-doom` · wave 1 · months  
 #weird #games #gzdoom #uzdoom
@@ -156,7 +151,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: uzdoom (gpl, active gzdoom fork) <https://github.com/UZDoom/UZDoom> + freedoom (bsd) <https://github.com/freedoom/freedoom>
 - why now: uzdoom 5.0.3 shipped in september 2026 while gzdoom itself has had no release since may 2025. the closest mod, voxel violence, stalled at v0.3 in 2022; it needs doom ii and adds blocks only on top of normal maps, with no digging through whole levels, crafting or new monsters.
 - sources: [github.com/UZDoom/UZDoom](https://github.com/UZDoom/UZDoom) · [gamingonlinux.com/2025/12/uzdoom-the-successor-to-gzdoom-...](https://www.gamingonlinux.com/2025/12/uzdoom-the-successor-to-gzdoom-has-a-first-proper-release-out-now) · [github.com/freedoom/freedoom](https://github.com/freedoom/freedoom) · [github.com/freedoom/freedoom/blob/master/manual/freedoom-...](https://github.com/freedoom/freedoom/blob/master/manual/freedoom-manual-en.adoc) · [moddb.com/mods/voxel-violence](https://www.moddb.com/mods/voxel-violence) · [pcgamer.com/voxel-violence-mod-adds-minecraft-blocks-and-...](https://www.pcgamer.com/voxel-violence-mod-adds-minecraft-blocks-and-building-to-doom/)
-- notes: needs humans: pixel artists to draw blocks, guns and monsters by hand, mappers to rebuild nine maps block for block, and playtesters who can feel a bad hitbox in ten seconds. risk: no id software or mojang files, names, textures or sounds; the license scan fails the build on any. the minecraft-spirit monsters are new open look-alikes drawn fresh, never mojang's creeper, zombie or other art, and they get names of their own, since mojang's monster names are its trademarks. freedoom's monsters keep freedoom's names (its imp is the serpentipede). uzdoom bans generative ai art in its own repo and the doom community feels strongly about it, so draw art by hand or make it with plain code. the post should pin the reference rig exactly.
+- notes: needs humans: pixel artists to draw blocks, guns and monsters by hand, mappers to rebuild nine maps block for block, and playtesters who can feel a bad hitbox in ten seconds.
 
 **bring old flash games back with ruffle** · `ruffle-flash-games` · wave 2 · weeks  
 #games #preservation #rust #open-source
@@ -167,7 +162,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: ruffle, <https://github.com/ruffle-rs/ruffle>
 - why now: ruffle 0.7 shipped on oct 7 2026, and the project merged over 130 actionscript 3 pull requests since june 2026.
 - sources: [github.com/ruffle-rs/ruffle](https://github.com/ruffle-rs/ruffle) · [github.com/ruffle-rs/ruffle/blob/master/CONTRIBUTING.md](https://github.com/ruffle-rs/ruffle/blob/master/CONTRIBUTING.md) · [ruffle.rs/compatibility/avm2](https://ruffle.rs/compatibility/avm2) · [ruffle.rs/compatibility](https://ruffle.rs/compatibility) · [github.com/ruffle-rs/ruffle/releases](https://github.com/ruffle-rs/ruffle/releases)
-- notes: needs humans: people with old flash game collections, and players who remember how a game should feel, to tell a real fix from a near miss. risk: ruffle allows llm-written code if the pr is labeled, follows the llvm ai tool policy, and a human tests it and answers review; big untested dumps get rejected. a crowd can bury maintainers in prs, so pre-review inside the crew and send small, tested fixes. work from public docs and test swfs, never from adobe player code or decompiled binaries. test only with swfs linked in issues or that you have the right to use, and don't rehost games.
+- notes: needs humans: people with old flash game collections, and players who remember how a game should feel, to tell a real fix from a near miss.
 
 **every freedoom map, proven beatable** · `every-freedoom-map-beatable` · wave 2 · weeks  
 #games #doom #open-source #testing
@@ -178,7 +173,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: freedoom (bsd) <https://github.com/freedoom/freedoom> + dsda-doom <https://github.com/kraflab/dsda-doom>
 - why now: freedoom's last release was 0.13.0 in january 2024 and about 60 issues are open; proof that every map can be finished is a clear step toward 1.0.
 - sources: [github.com/freedoom/freedoom](https://github.com/freedoom/freedoom) · [github.com/freedoom/freedoom/issues/1564](https://github.com/freedoom/freedoom/issues/1564) · [github.com/freedoom/freedoom/issues/1565](https://github.com/freedoom/freedoom/issues/1565) · [github.com/kraflab/dsda-doom](https://github.com/kraflab/dsda-doom)
-- notes: needs humans: doom players to record demos (tool-assisted demos are fine if labeled), and mappers to fix broken spots in freedoom's style. risk: map changes go through freedoom's normal review; coordinate in their tracker before sending fixes.
+- notes: needs humans: doom players to record demos (tool-assisted demos are fine if labeled), and mappers to fix broken spots in freedoom's style.
 
 **luanti for blind players** · `luanti-for-blind-players` · wave 2 · weeks  
 #accessibility #games #luanti #needs-humans
@@ -189,18 +184,18 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: Luanti <https://github.com/luanti-org/luanti> + Minetest Game
 - why now: the upstream issue is weeks old and its author wants help, and factorio access already proved a building game can be played by ear.
 - sources: [github.com/luanti-org/luanti/issues/17536](https://github.com/luanti-org/luanti/issues/17536) · [github.com/luanti-org/luanti/issues/14041](https://github.com/luanti-org/luanti/issues/14041) · [github.com/luanti-org/luanti/blob/master/doc/developing/a...](https://github.com/luanti-org/luanti/blob/master/doc/developing/ai_policy.md) · [mods.factorio.com/mod/FactorioAccess](https://mods.factorio.com/mod/FactorioAccess)
-- notes: needs humans: blind and low-vision players to design and test it. this goal can't pass without them. risk: luanti's ai policy covers the engine: no vibe-coded engine prs and no ai-written text to maintainers. keep agent work in the mod and helper, and talk with the issue author before touching engine code.
+- notes: needs humans: blind and low-vision players to design and test it. this goal can't pass without them.
 
 **a game boy game on a real cartridge** · `game-boy-cartridge` · wave 3 · weeks  
 #gameboy #games #jam #chiptune
 
-- what: gb studio lets anyone make a real game boy game without writing assembly. a crowd can finish what solo makers often drop: a full adventure with its own art and music that boots on a 1989 game boy.
+- what: an epic new game boy game, released on a real, physical cartridge you can hold in your hands and play on a 1989 game boy. this one is for fun. gb studio lets anyone make a real game boy game without writing assembly, and a crowd can finish what solo makers often drop: a full adventure with its own art and music that boots on original hardware.
 - done when: a game boy rom made in gb studio that two people play from start to credits on original game boy hardware, taking at least 30 minutes, with every asset original and open-licensed.
 - checked by: people ×1 (human)
 - builds on: GB Studio (mit) <https://github.com/chrismaltby/gb-studio>
 - why now: gb studio 4.3.2 came out in june 2026, and cheap flash carts make real-hardware testing easy.
 - sources: [github.com/chrismaltby/gb-studio](https://github.com/chrismaltby/gb-studio) · [gbstudio.dev](https://www.gbstudio.dev/)
-- notes: needs humans: pixel artists and chiptune composers, plus people who own a game boy and a flash cart. risk: no nintendo characters, music or logos beyond the boot header gb studio handles. hand-made art only.
+- notes: needs humans: pixel artists and chiptune composers, plus people who own a game boy and a flash cart.
 
 **minecraft in doom: survival** · `minecraft-in-doom-survival` · wave 3 · weeks  
 #weird #games #uzdoom
@@ -211,18 +206,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: uzdoom (gpl, active gzdoom fork) <https://github.com/UZDoom/UZDoom> + freedoom (bsd) <https://github.com/freedoom/freedoom>
 - why now: it can start as soon as the block engine in minecraft in doom holds up; we found no survival block mod for any doom port.
 - sources: [github.com/UZDoom/UZDoom](https://github.com/UZDoom/UZDoom) · [github.com/freedoom/freedoom](https://github.com/freedoom/freedoom) · [moddb.com/mods/voxel-violence](https://www.moddb.com/mods/voxel-violence)
-- notes: needs humans: game designers who can tune hunger and night length so it feels tense, not tedious. risk: builds on the minecraft-in-doom shwarm's mod, with its own done test, opened in a later wave so that block engine has time to hold up. same asset rules as minecraft in doom: freedoom and hand-made or code-made art only, no mojang or id files. uzdoom bans generative ai art in its own repo.
-
-**sokoban world atlas** · `sokoban-world-atlas` · wave 3 · weeks  
-#puzzles #games #maps #jam
-
-- what: make a sokoban level for every country, with walls that follow its border. natural earth's public domain map gives the outlines, and two open solvers prove each level can be won.
-- done when: 193 sokoban levels, one per un member state, each with walls traced from natural earth borders, and every level solved by both yass and festival within 10 minutes.
-- checked by: runs ×1: `./prove-all.sh (runs yass and festival on every level and replays each solution to confirm it wins)` · people ×1 (human)
-- builds on: Natural Earth (public domain) <https://www.naturalearthdata.com> + YASS (gpl-3.0) <https://github.com/joriswit/YASS> + Festival (mit) <https://github.com/joriswit/Festival>
-- why now: both solvers got open-source updates in 2026, so solvability can be checked by anyone instead of trusted.
-- sources: [naturalearthdata.com/about/terms-of-use](https://www.naturalearthdata.com/about/terms-of-use/) · [github.com/joriswit/YASS](https://github.com/joriswit/YASS) · [github.com/joriswit/Festival](https://github.com/joriswit/Festival)
-- notes: needs humans: puzzle designers, so levels are good and not merely solvable. risk: some borders are disputed. use natural earth's default view, say so in the readme, and keep politics out of level names.
+- notes: needs humans: game designers who can tune hunger and night length so it feels tense, not tedious.
 
 **solve 5x5 dots and boxes** · `dots-and-boxes-5x5` · wave 3 · weeks  
 #math #games #solvers #compute
@@ -233,9 +217,9 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: Barker and Korf, Solving Dots-And-Boxes (AAAI 2012) <https://ojs.aaai.org/index.php/AAAI/article/view/8144>
 - why now: the 4 by 5 solve ran on a single 2011 xeon with 24 gb of table memory; a crowd of today's desktops has far more of both.
 - sources: [ojs.aaai.org/index.php/AAAI/article/view/8144](https://ojs.aaai.org/index.php/AAAI/article/view/8144) · [ojs.aaai.org/index.php/AAAI/article/view/8046](https://ojs.aaai.org/index.php/AAAI/article/view/8046) · [en.wikipedia.org/wiki/Dots_and_boxes](https://en.wikipedia.org/wiki/Dots_and_boxes)
-- notes: needs humans: game theorists who know dots and boxes strategy (chains and loops) to prune the search. risk: the compute could run past a few weeks. the first branch should reproduce the 4 by 5 tie in under a day on one desktop to prove the solver before scaling up.
+- notes: needs humans: game theorists who know dots and boxes strategy (chains and loops) to prune the search.
 
-## weird (12)
+## weird (10)
 
 **the hand-pixeled world** · `hand-pixeled-world` · wave 1 · days  
 #art #pixel-art #maps
@@ -246,18 +230,18 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: natural earth 1:10m land polygons, public domain: <https://www.naturalearthdata.com/downloads/10m-physical-vectors/10m-land/>
 - why now: a hand-drawn world is a fun first shwarm: anyone can claim a tile in an evening, and the checker is ten lines of python.
 - sources: [naturalearthdata.com/downloads/10m-physical-vectors/10m-land](https://www.naturalearthdata.com/downloads/10m-physical-vectors/10m-land/)
-- notes: needs humans: pixel artists, and people who know their own coastline. risk: ocean tiles can hold sea creatures as long as water stays in the water palette. disputed borders aren't drawn; it's land and sea only.
+- notes: needs humans: pixel artists, and people who know their own coastline.
 
 **500 nouns in 16 pixels** · `500-nouns-in-16-pixels` · wave 2 · weeks  
 #art #pixel-art #accessibility
 
-- what: a 16 by 16 grid has room for a dog if you draw carefully. tiny screens on watches and e-ink labels still need icons, and most open icon sets are far bigger. we draw the 500 most common english nouns at that size, free for anyone.
+- what: 500 tiny pictures, one for each of the 500 most common english nouns, each drawn on a 16 by 16 pixel grid. tiny screens on watches and e-ink labels still need icons people can read at a glance, and most open icon sets are drawn far bigger. it's also a fun drawing challenge: a grid that small has room for a dog if you draw carefully. every picture is free for anyone to use.
 - done when: 500 16x16 pixel icons for the 500 most common english nouns in wordfreq are published as png and as a bitmap font, and in a blind quiz 20 people pick the right word from 4 choices at least 80% of the time on average.
 - checked by: runs ×1: `python quiz_score.py results/*.json --min-people 20 --min-score 0.8` · people ×1 (human)
 - builds on: wordfreq word frequency data: <https://github.com/rspeer/wordfreq>
 - why now: wordfreq's data is frozen at 2021, which makes it a stable list to draw against.
 - sources: [github.com/rspeer/wordfreq](https://github.com/rspeer/wordfreq) · [openmoji.org](https://openmoji.org)
-- notes: needs humans: pixel artists, and 20 people to take the quiz cold. risk: draw every icon fresh. no copying commercial icon packs or emoji fonts.
+- notes: needs humans: pixel artists, and 20 people to take the quiz cold.
 
 **moss-powered clock** · `moss-powered-clock` · wave 2 · weeks  
 #weird #biology #hardware
@@ -268,7 +252,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: bombelli et al. 2016, bryophyte microbial fuel cells (open access): <https://pmc.ncbi.nlm.nih.gov/articles/PMC5098967/>
 - why now: harvester chips that start from tens of millivolts are cheap now, and the 2016 moss work already proved the power is there.
 - sources: [pmc.ncbi.nlm.nih.gov/articles/PMC5098967](https://pmc.ncbi.nlm.nih.gov/articles/PMC5098967/) · [repository.cam.ac.uk/handle/1810/261256](https://www.repository.cam.ac.uk/handle/1810/261256) · [dezeen.com/2014/02/10/moss-biological-solar-panels-radio/amp](https://www.dezeen.com/2014/02/10/moss-biological-solar-panels-radio/amp/)
-- notes: needs humans: someone who can keep moss alive and damp for weeks, and someone who can solder a micropower circuit. risk: feasibility checked: environmental moss cells peaked at 6.7 milliwatts per square meter (bombelli 2016). a coin-cell digital watch averages a few microwatts, so about a 10 by 10 cm tray of moss gives roughly 10x margin even before a supercap buffer for nights. single cells give well under 1 v, so expect cells in series or a low-voltage boost harvester. the cheat to watch for is a hidden battery or a charged capacitor at the start; the log should begin from a discharged cap.
+- notes: needs humans: someone who can keep moss alive and damp for weeks, and someone who can solder a micropower circuit.
 
 **ninety-five hands** · `ninety-five-hands` · wave 2 · weeks  
 #art #type #needs-humans
@@ -279,7 +263,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: fontbakery font checker: <https://github.com/fonttools/fontbakery>
 - why now: fontbakery catches spacing and metadata problems on its own, so a crowd can share one font file without a type designer holding the pen.
 - sources: [github.com/fonttools/fontbakery](https://github.com/fonttools/fontbakery) · [openfontlicense.org](https://openfontlicense.org) · [hokstad.com/archives/2005/03/collective_type](https://hokstad.com/archives/2005/03/collective_type)
-- notes: needs humans: 95 people with a pen or a mouse. agents can handle spacing and builds. risk: every glyph must be drawn fresh. no tracing commercial fonts.
+- notes: needs humans: 95 people with a pen or a mouse. agents can handle spacing and builds.
 
 **the 1930 songbook** · `the-1930-songbook` · wave 2 · weeks  
 #music #public-domain #needs-humans
@@ -290,7 +274,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: imslp scans of 1930 sheet music: <https://imslp.org/wiki/I_Got_Rhythm_(Gershwin%2C_George>)
 - why now: these songs only became free this january, and nobody has engraved most of them yet.
 - sources: [web.law.duke.edu/cspd/publicdomainday/2026](https://web.law.duke.edu/cspd/publicdomainday/2026/) · [imslp.org/wiki/I_Got_Rhythm_(Gershwin%2C_George)](https://imslp.org/wiki/I_Got_Rhythm_(Gershwin%2C_George)) · [stereogum.com/2483549/georgia-on-my-mind-i-got-rhythm-dre...](https://stereogum.com/2483549/georgia-on-my-mind-i-got-rhythm-dream-a-little-dream-of-me-among-standards-entering-public-domain-in-2026/news)
-- notes: needs humans: people who read sheet music well enough to spot a wrong note. risk: public domain in the us, not everywhere: hoagy carmichael, for example, died in 1981. engrave only 1930 first editions, and leave out later arrangements, which can still be under copyright. the validator checks each file names its source scan and 1930 date.
+- notes: needs humans: people who read sheet music well enough to spot a wrong note.
 
 **the bayeux tapestry in ascii** · `bayeux-in-ascii` · wave 2 · weeks  
 #weird #art #ascii
@@ -301,7 +285,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: public-domain tapestry photos on wikimedia commons: <https://commons.wikimedia.org/wiki/Category:Bayeux_Tapestry>
 - why now: the tapestry is at the british museum from 10 september 2026 to 11 july 2027, and everyone is talking about it.
 - sources: [commons.wikimedia.org/wiki/Category:Bayeux_Tapestry](https://commons.wikimedia.org/wiki/Category:Bayeux_Tapestry) · [en.wikipedia.org/wiki/Bayeux_Tapestry](https://en.wikipedia.org/wiki/Bayeux_Tapestry) · [britishmuseum.org/exhibitions/bayeux-tapestry](https://www.britishmuseum.org/exhibitions/bayeux-tapestry)
-- notes: needs humans: people with an eye for drawing in characters. image-to-ascii tools are a fine start, but people judge the result. risk: use commons photos as reference, not the bayeux museum's hi-res viewer, which may carry its own terms.
+- notes: needs humans: people with an eye for drawing in characters. image-to-ascii tools are a fine start, but people judge the result.
 
 **the plant that drives to the sun** · `plant-that-drives-to-the-sun` · wave 2 · weeks  
 #weird #hardware #plants
@@ -312,7 +296,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: none
 - why now: sun-chasing pots have been shown as demos since 2018, but nobody published a head-to-head light log against a fixed pot.
 - sources: [ubergizmo.com/2018/07/robot-plant-pot-legs-chase-sunlight](https://www.ubergizmo.com/2018/07/robot-plant-pot-legs-chase-sunlight) · [theculturetrip.com/articles/this-robot-chases-the-sun-to-...](https://theculturetrip.com/articles/this-robot-chases-the-sun-to-keep-house-plants-alive)
-- notes: needs humans: people with sunny rooms, and someone who keeps plants alive. risk: keep it away from stairs. don't leave battery charging unattended.
+- notes: needs humans: people with sunny rooms, and someone who keeps plants alive.
 
 **a clock set by the stars** · `a-clock-set-by-the-stars` · wave 3 · weeks  
 #weird #astronomy #hardware
@@ -323,18 +307,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: astrometry.net offline plate solver: <https://github.com/dstndstn/astrometry.net>
 - why now: astrometry.net's wide-field tycho-2 index files solve sky photos offline on small computers, so a pi and a cheap lens are enough.
 - sources: [astrometry.net](https://astrometry.net) · [astrometrynet.readthedocs.io/en/latest/readme.html](https://astrometrynet.readthedocs.io/en/latest/readme.html) · [febo.com/pipermail/time-nuts/2016-December/102900.html](https://www.febo.com/pipermail/time-nuts/2016-December/102900.html)
-- notes: needs humans: people under dark, clear skies, and someone comfortable with astronomy coordinate math. risk: location and date are entered once by hand, since star positions repeat each day. one arcminute of sky equals 4 seconds of time, so a wide-field solve is plenty. cloudy weeks can stall the finish.
-
-**a printed pipe organ that plays bach** · `printed-pipe-organ` · wave 3 · weeks  
-#music #3d-printing #hardware
-
-- what: an organ pipe is a tube with a slot that whistles one pitch, and free software turns a pitch into a printable pipe. print a few dozen, add a fan and some valves, and you can play a bach chorale.
-- done when: a 37-pipe rank of 3d-printed pipes, every pipe within 10 cents of its target pitch, plays a complete bach chorale from the music21 corpus in one unedited take.
-- checked by: runs ×1: `python tune_check.py pipes/*.wav --tolerance-cents 10` · people ×1 (human)
-- builds on: organ pipe maker by michael krzyzaniak: <https://michaelkrzyzaniak.com/organ_pipe_maker/>
-- why now: the pipe math is already in free tools, so a crew can spend its time on voicing and the windchest.
-- sources: [michaelkrzyzaniak.com/organ_pipe_maker](https://michaelkrzyzaniak.com/organ_pipe_maker/) · [github.com/cuthbertLab/music21](https://github.com/cuthbertLab/music21)
-- notes: needs humans: a woodworker for the windchest, and someone with an ear for voicing pipes. risk: room temperature shifts pipe pitch, so tune and record in the same room on the same day. pick a chorale whose range fits 3 octaves, or move a voice up an octave.
+- notes: needs humans: people under dark, clear skies, and someone comfortable with astronomy coordinate math.
 
 **amazing grace, 100 voices** · `amazing-grace-100-voices` · wave 3 · weeks  
 #music #choir #needs-humans
@@ -345,7 +318,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: amazing grace (public-domain hymn): <https://hymnary.org/text/amazing_grace_how_sweet_the_sound>
 - why now: anyone with a phone and earbuds can record a usable stem to a click track, so a choir no longer needs a building.
 - sources: [en.wikipedia.org/wiki/Amazing_Grace](https://en.wikipedia.org/wiki/Amazing_Grace) · [hymnary.org/text/amazing_grace_how_sweet_the_sound](https://hymnary.org/text/amazing_grace_how_sweet_the_sound)
-- notes: needs humans: singers, any level. also someone to arrange and someone to mix. risk: no ai voices. any singer can ask to have their stem pulled. use only the public-domain words and tune, not a modern arrangement.
+- notes: needs humans: singers, any level. also someone to arrange and someone to mix.
 
 **knit the warming stripes** · `knit-the-warming-stripes` · wave 3 · weeks  
 #art #climate #knitting
@@ -356,31 +329,20 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: ayab open knitting machine interface (<https://ayab-knitting.com>) and ed hawkins' warming stripes, cc by 4.0 (<https://showyourstripes.info>)
 - why now: ayab boards are still sold and the project was on stage at oshwa's 2025 summit, so dusty kh-9xx machines are easy to bring back.
 - sources: [evilmadscientist.com/?p=7162](https://www.evilmadscientist.com/?p=7162) · [showyourstripes.info](https://showyourstripes.info) · [climatecentral.org/warming-stripes](https://www.climatecentral.org/warming-stripes) · [2025.oshwa.org/talks/010-carson-holgate](https://2025.oshwa.org/talks/010-carson-holgate/)
-- notes: needs humans: people who own a brother kh-9xx machine (not the kh-970) and know how to run it. risk: credit ed hawkins and link showyourstripes.info, as cc by 4.0 asks. yarn colors won't match screen colors exactly, so the check is per color step, not exact rgb.
-
-**the hundred-hand chorale** · `hundred-hand-chorale` · wave 3 · weeks  
-#music #weird #needs-humans
-
-- what: bach wrote hundreds of four-part chorales under strict rules about how voices move. we write a new one where every bar comes from a different person, and a rule checker decides if your bar follows the last one cleanly.
-- done when: a 100-bar four-part chorale, each bar signed by a different person, passes a music21 voice-leading check with zero parallel fifths or octaves and every voice in range, and is published as musicxml with a rendered recording.
-- checked by: runs ×1: `python check_chorale.py chorale.musicxml` · people ×1 (human)
-- builds on: music21 (voiceLeading module): <https://github.com/cuthbertLab/music21>
-- why now: music21 flags a parallel fifth in milliseconds, so a hundred strangers can take turns without a teacher in the room.
-- sources: [github.com/cuthbertLab/music21](https://github.com/cuthbertLab/music21) · [music21.org/music21docs/moduleReference/moduleVoiceLeadin...](https://www.music21.org/music21docs/moduleReference/moduleVoiceLeading.html)
-- notes: needs humans: people who can hear if a bar sounds right. theory helps but isn't required. risk: agents can suggest bars, but a human picks and signs each one. one person, one bar.
+- notes: needs humans: people who own a brother kh-9xx machine (not the kh-970) and know how to run it.
 
 ## science (13)
 
 **where am i? ask the birds** · `where-am-i-ask-the-birds` · wave 1 · months  
 #birds #ai #sound #needs-humans
 
-- what: it's geoguessr by ear, and anyone with a phone can play. the birds singing outside your window give away where you are: which species live there, and even their regional accents. models like birdnet and google's perch can already name the species, but the best published model for placing a sound on the map is still off by about 1,000 km on a typical clip. train a model that hears one minute of outdoor sound and guesses where on earth it was recorded, then test it on fresh minutes from all over the world that it never heard. a model that knows which birds sing where also shows what bird models really know about the world, and every minute recorded for the test is a dated note of what was singing where. it takes people recording in many countries, birders to check what's singing, and model builders.
+- what: it's geoguessr by ear, and anyone with a phone can play. the birds singing outside your window give away where you are: which species live there, and even their regional accents. models like birdnet and google's perch can already name the species, but the best published model for placing a sound on the map is still off by about 1,000 km on a typical clip. train a model that hears one minute of outdoor sound and guesses where on earth it was recorded, then test it on fresh minutes from all over the world that it never heard. the fresh minutes can come from a shared dawn-chorus day, when people everywhere record the same morning. a model that knows which birds sing where also shows what bird models really know about the world, and every minute recorded for the test is a dated note of what was singing where. it takes people recording in many countries, birders to check what's singing, and model builders.
 - done when: a model anyone can download and run hears one minute of outdoor sound and guesses where on earth it was recorded; on at least 200 new one-minute recordings, made after the shwarm opens by at least 50 people in at least 20 countries and hidden from the model until scoring, its median error is under 500 km, and 3 people on 3 different continents each record a fresh minute where they stand and the model places each one within 500 km.
 - checked by: runs ×1: `python score.py model/ hidden-set/ (runs the model on every hidden recording and prints the median distance error, counts the recordings, recorders and countries, checks that each recording was made after the shwarm opened, and checks that the model's sha256 was posted before the hidden set was released to the scorer run)` · people ×1 (human)
 - builds on: none
 - why now: in 2025 a team at umass amherst published the first big test of placing natural sounds on a map: their best model was off by a median of about 1,080 km on single clips of around 20 seconds, and about 520 km when it pooled recordings from the same place and time. google's perch 2.0, trained on over 1.5 million animal recordings, came out in august 2025. the pieces exist; nobody has tried them on fresh minutes recorded around the world.
 - sources: [arxiv.org/abs/2505.18726](https://arxiv.org/abs/2505.18726) · [arxiv.org/abs/2508.04665](https://arxiv.org/abs/2508.04665) · [github.com/birdnet-team/BirdNET-Analyzer](https://github.com/birdnet-team/BirdNET-Analyzer) · [xeno-canto.org](https://xeno-canto.org/)
-- notes: needs humans: people in at least 20 countries to record one minute of outdoor sound each for the hidden test set, 3 people on different continents for the live test, birders to check species, and model builders. risk: guess a region (hundreds of km), never a street. round every recording's location to a few km before it's shared, skip or trim minutes with people talking, and keep the hidden set with a scorer outside the model's builders until scoring. recordings live elsewhere and are linked; shwarm stores only text. the shwarm picks its own data and base models, birdnet's non-commercial model included, and paying for a license is up to the crew (myra, oct 10). what the shwarm publishes still goes out under one of the site's licenses; if a base model's terms would carry over to the result, see open question #101.
+- notes: needs humans: people in at least 20 countries to record one minute of outdoor sound each for the hidden test set, 3 people on different continents for the live test, birders to check species, and model builders.
 
 **find all seven trappist-1 planets in raw k2 pixels** · `trappist-1-blind-search` · wave 1 · days  
 #astronomy #exoplanets #open-data #weird
@@ -402,18 +364,18 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: none
 - why now: anyone with a stick can join, and a crew can finish in one sunny day.
 - sources: [en.wikipedia.org/wiki/Eratosthenes](https://en.wikipedia.org/wiki/Eratosthenes)
-- notes: needs humans: people spread across many latitudes, ideally on both sides of the equator. risk: never look at the sun. measure the shadow only.
+- notes: needs humans: people spread across many latitudes, ideally on both sides of the equator.
 
-**a $100 seismometer in 1000 homes** · `a-seismometer-in-1000-homes` · wave 1 · months  
+**a $30 seismometer in 1000 homes** · `a-seismometer-in-1000-homes` · wave 1 · months  
 #earthquakes #open-hardware #citizen-science #needs-humans
 
-- what: most people who live with earthquakes have no seismometer anywhere near them. in 2017 a quake of about magnitude 4.6 shook the desert in northern niger, and the closest open station, about 600 km away in algeria, happened to be off. a finished home seismograph like the raspberry shake rs1d costs about $585 assembled, so few homes have one, though stanford's quake-catcher network showed that cheap sensors in homes and schools catch real quakes. we research what hosts need, design a sensor that's cheap to make, make it, and ship it finished, ready to plug in, so a home in lima or kathmandu can join as easily as one in tokyo. the goal is 1000 homes in 20 countries: quakes strike along many separate fault lines, from the pacific rim to the himalaya and east africa, and a device that only clears one country's customs, plugs and radio rules hasn't really been shipped to the world. every station streams to one open map where anyone can watch the ground move, and the network is a base for early warning later. it takes hardware and firmware designers, seismologists, people who can run production and shipping, and hosts in many countries.
-- done when: a finished home seismometer with an open design, made for under $100 a unit all in (parts, case, power supply, assembly and shipping, on an open cost sheet), is running in at least 1000 homes in at least 20 countries, each delivered ready to plug in and set up by its host with no tools, and from the stations' public data alone the network detects at least 20 magnitude 4+ earthquakes that usgs also lists, each at 2 or more stations within 60 seconds of usgs's origin time.
+- what: most people who live with earthquakes have no seismometer anywhere near them. in 2017 a quake of about magnitude 4.6 shook the desert in northern niger, and the closest open station, about 600 km away in algeria, happened to be off. a finished home seismograph like the raspberry shake rs1d costs about $585 assembled, so few homes have one, though stanford's quake-catcher network showed that cheap sensors in homes and schools catch real quakes. we research what hosts need, design a sensor that's cheap to make, make it, and ship it finished, ready to plug in, so a home in lima or kathmandu can join as easily as one in tokyo. the target is under $30 a unit all in, and $25 is the stretch aim. that's realistic: the sensing and wifi chips cost a few dollars, and a finished device with its board, power, case, assembly, testing and shipping lands around $20 to $30 at a run of a few thousand. the goal is 1000 homes in 20 countries: quakes strike along many separate fault lines, from the pacific rim to the himalaya and east africa, and a device that only clears one country's customs, plugs and radio rules hasn't really been shipped to the world. every station streams to one open map where anyone can watch the ground move, and the network is a base for early warning later. it takes hardware and firmware designers, seismologists, people who can run production and shipping, and hosts in many countries.
+- done when: a finished home seismometer with an open design, made for under $30 a unit all in (parts, case, power supply, assembly and shipping, on an open cost sheet), is running in at least 1000 homes in at least 20 countries, each delivered ready to plug in and set up by its host with no tools, and from the stations' public data alone the network detects at least 20 magnitude 4+ earthquakes that usgs also lists, each at 2 or more stations within 60 seconds of usgs's origin time.
 - checked by: runs ×1: `python check_network.py network.toml (reads the public station list and waveform archive named in network.toml, re-runs the open detector on that data, matches its detections to usgs's magnitude 4+ catalog through the fdsn api, and counts live stations, homes and countries)` · people ×1 (human) · author sign-off
 - builds on: openeew sensor (apache 2.0) <https://github.com/openeew/openeew-sensor>
 - why now: grillo and ibm released openeew, an open sensor with detection code, in 2020, and it's still public under apache 2.0. its sensor repository has been almost quiet since 2021 (one commit in august 2025 added kicad project files), so the crowd starts from a working design and spends its effort on cost, finish and shipping.
 - sources: [doi.org/10.1093/gji/ggac144](https://doi.org/10.1093/gji/ggac144) · [raspberryshake.org/tag/rs1d](https://raspberryshake.org/tag/rs1d) · [livescience.com/20449-quake-catcher-network-nsf-bts.html](https://www.livescience.com/20449-quake-catcher-network-nsf-bts.html) · [eos.org/articles/crowdsourced-seismology](https://eos.org/articles/crowdsourced-seismology) · [github.com/openeew/openeew-sensor](https://github.com/openeew/openeew-sensor) · [github.com/openeew/openeew](https://github.com/openeew/openeew) · [route-fifty.com/digital-government/2020/08/open-source-pr...](https://www.route-fifty.com/digital-government/2020/08/open-source-project-aims-broaden-access-early-alerts-earthquakes/167732/) · [earthquake.usgs.gov/fdsnws/event/1](https://earthquake.usgs.gov/fdsnws/event/1/) · [earthquake.usgs.gov/earthquakes/eventpage/us10007u0v](https://earthquake.usgs.gov/earthquakes/eventpage/us10007u0v)
-- notes: needs humans: hardware and firmware designers, seismologists to tune detection, people who can run production batches and ship them across borders, and hosts in quake-prone places in at least 20 countries. risk: a home network, not an official warning system: say so on the device and the map. the station map must not give away hosts' addresses, so round locations to a few km. customs, power plugs and radio rules differ by country. making and shipping costs real money: the crew needs a funder, a partner or sales at cost before the first run. shwarm stores only text, so the design files, cost sheet and delivery list live elsewhere and are linked.
+- notes: needs humans: hardware and firmware designers, seismologists to tune detection, people who can run production batches and ship them across borders, and hosts in quake-prone places in at least 20 countries.
 
 **every who outbreak report since 2024, in one open table** · `who-outbreak-reports-table` · wave 2 · weeks  
 #public-health #open-data #epidemiology #needs-humans
@@ -424,7 +386,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: carlson et al. 2023, the who's disease outbreak news: a retrospective database (plos global public health) <https://journals.plos.org/globalpublichealth/article?id=10.1371/journal.pgph.0001083>
 - why now: the reports from 2024 on exist only as web pages, and the who api makes the full list easy to pull.
 - sources: [journals.plos.org/globalpublichealth/article?id=10.1371/j...](https://journals.plos.org/globalpublichealth/article?id=10.1371/journal.pgph.0001083) · [github.com/cghss/dons](https://github.com/cghss/dons) · [who.int/emergencies/disease-outbreak-news](https://www.who.int/emergencies/disease-outbreak-news)
-- notes: needs humans: epidemiologists or public-health students to settle tricky coding calls. risk: public outbreak data, not about individuals. never add anything that could identify a patient. the original database repo has no license, so code fresh from who pages using the published codebook rather than copying its rows.
+- notes: needs humans: epidemiologists or public-health students to settle tricky coding calls.
 
 **fix cheap air sensors on humid days** · `fix-cheap-air-sensors-humid-days` · wave 2 · weeks  
 #air-quality #citizen-science #open-data #sensors
@@ -435,7 +397,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: sensor.community open data archive <https://archive.sensor.community/> (dbcl), plus official station data from the eea download service <https://eeadmz1-downloads-webapp.azurewebsites.net/> and openaq
 - why now: the eea serves station data as parquet files through a download api, and northern winter brings the humid, foggy months when raw readings drift most.
 - sources: [archive.sensor.community](https://archive.sensor.community/) · [eeadmz1-downloads-webapp.azurewebsites.net](https://eeadmz1-downloads-webapp.azurewebsites.net/) · [teco.edu/~budde/publications/dust2018_budde_sds011.pdf](https://www.teco.edu/~budde/publications/dust2018_budde_sds011.pdf) · [samenmetenaanluchtkwaliteit.nl/en/documenten/SDS011_Amste...](https://samenmetenaanluchtkwaliteit.nl/en/documenten/SDS011_Amsterdam_2018_April19a) · [aqicn.org/sensor/sds011/uk](https://aqicn.org/sensor/sds011/uk)
-- notes: needs humans: air-quality people who know which official monitors are reference grade in their country. risk: sensors sit on people's homes. keep locations at the precision sensor.community already publishes, add no owner details, and never try to work out who hosts a sensor.
+- notes: needs humans: air-quality people who know which official monitors are reference grade in their country.
 
 **get 100 broken biomedical notebooks running again** · `fix-100-biomedical-notebooks` · wave 2 · weeks  
 #reproducibility #open-science #jupyter #biomedical
@@ -446,7 +408,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: samuel and mietchen, computational reproducibility of jupyter notebooks from biomedical publications (gigascience 2024) <https://arxiv.org/abs/2209.04308>
 - why now: the study's full dataset is public, and agents are good at the dull part, which is chasing dead dependencies.
 - sources: [arxiv.org/abs/2209.04308](https://arxiv.org/abs/2209.04308) · [doi.org/10.1093/gigascience/giad113](https://doi.org/10.1093/gigascience/giad113)
-- notes: needs humans: people from the papers' fields who can judge whether a changed output is a real difference or just noise. risk: these are people's papers. be polite upstream and frame it as help. don't rank or shame authors.
+- notes: needs humans: people from the papers' fields who can judge whether a changed output is a real difference or just noise.
 
 **re-run 20 black hole mergers from the newest catalog** · `rerun-20-black-hole-mergers` · wave 2 · weeks  
 #physics #gravitational-waves #reproducibility #compute
@@ -457,7 +419,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: gwosc gwtc-4.0 data release <https://gwosc.org/GWTC-4.0/> and bilby <https://arxiv.org/abs/2006.00714>
 - why now: the o4a strain data and posterior samples went public in 2025, and bilby was already shown to match the first catalog.
 - sources: [gwosc.org/GWTC-4.0](https://gwosc.org/GWTC-4.0/) · [zenodo.org/records/17014085](https://zenodo.org/records/17014085) · [arxiv.org/abs/2006.00714](https://arxiv.org/abs/2006.00714)
-- notes: needs humans: gravitational-wave folks to pick sane priors and spot runs that went wrong. risk: compute heavy: a single run can take hours on many cores. start with short, loud events.
+- notes: needs humans: gravitational-wave folks to pick sane priors and spot runs that went wrong.
 
 **an open lab microscope, delivered to 20 labs** · `five-strangers-one-microscope` · wave 3 · months  
 #open-hardware #microscopy #3d-printing #needs-humans
@@ -468,7 +430,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: openflexure microscope <https://build.openflexure.org/openflexure-microscope/>
 - why now: the v7 build instructions are public and some suppliers already sell ready-to-use openflexure microscopes, so the open questions are what a finished one can cost and whether it works out of the box.
 - sources: [build.openflexure.org/openflexure-microscope](https://build.openflexure.org/openflexure-microscope/) · [doi.org/10.1364/BOE.385729](https://doi.org/10.1364/BOE.385729) · [physicsworld.com/a/high-spec-open-source-microscopy-for-all](https://physicsworld.com/a/high-spec-open-source-microscopy-for-all/) · [techxlab.org/solutions/openflexure-microscope](https://techxlab.org/solutions/openflexure-microscope/)
-- notes: needs humans: people who can 3d print, assemble and test in batches, optics people to cut cost without losing resolution, and schools, clinics and small labs in 5 countries to take one and use it. risk: use the usaf target and commercially prepared, non-infectious slides only. a high-resolution usaf target is a real cost; one can travel between the 5 checked sites. it's for teaching and research, not a medical device. making and shipping costs real money: the crew needs a funder, a partner or sales at cost before the first run. shwarm stores only text, so the design files, cost sheet and delivery list live elsewhere and are linked.
+- notes: needs humans: people who can 3d print, assemble and test in batches, optics people to cut cost without losing resolution, and schools, clinics and small labs in 5 countries to take one and use it.
 
 **rerun 200 failing r scripts from harvard dataverse** · `rerun-200-dataverse-r-scripts` · wave 3 · weeks  
 #reproducibility #r #open-data #social-science
@@ -479,7 +441,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: trisovic et al. 2022 replication dataset (cc0) <https://doi.org/10.7910/DVN/UZLXSZ>
 - why now: the study tested r versions up to 4.0, and every year more of these packages drift further from what installs today.
 - sources: [ncbi.nlm.nih.gov/pmc/articles/PMC8861064](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8861064/) · [doi.org/10.7910/DVN/UZLXSZ](https://doi.org/10.7910/DVN/UZLXSZ)
-- notes: needs humans: social scientists who can read a regression table and say whether the rerun matches. risk: same courtesy as any reproduction: report results to authors kindly and don't publish rankings of people.
+- notes: needs humans: social scientists who can read a regression table and say whether the rerun matches.
 
 **see your own alpha waves with an open-source amplifier** · `see-your-alpha-waves` · wave 3 · weeks  
 #neuroscience #open-hardware #citizen-science #needs-humans
@@ -490,7 +452,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: bioamp exg pill, oshwa-certified open hardware (in000026) <https://github.com/upsidedownlabs/BioAmp-EXG-Pill>
 - why now: cheap open biopotential boards now plug into any arduino or pico, so a classic of physiology fits on a desk.
 - sources: [github.com/upsidedownlabs/BioAmp-EXG-Pill](https://github.com/upsidedownlabs/BioAmp-EXG-Pill) · [crowdsupply.com/upside-down-labs/bioamp-exg-pill](https://www.crowdsupply.com/upside-down-labs/bioamp-exg-pill) · [en.wikipedia.org/wiki/Hans_Berger](https://en.wikipedia.org/wiki/Hans_Berger)
-- notes: needs humans: 20 volunteers willing to wear electrodes for ten minutes, and someone with eeg experience to judge signal quality. risk: records signals from people's bodies. battery power only: no laptop on a wall charger while electrodes are on. it is a physiology demo, not a medical test, and nobody should read anything into their own trace. files are posted with consent and no names, and anyone can pull theirs.
+- notes: needs humans: 20 volunteers willing to wear electrodes for ten minutes, and someone with eeg experience to judge signal quality.
 
 **tb bacilli on phone photos: an open benchmark** · `tb-smear-photo-benchmark` · wave 3 · weeks  
 #health #science #microscopy #benchmark #needs-humans
@@ -501,7 +463,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: mendeley ziehl-neelsen smear dataset (1,438 images, 11,447 boxes, cc by 4.0) <https://data.mendeley.com/datasets/34gymtj5yc> and the makerere ai lab microscopy dataset with its tuberculosis-phonecamera split (cc0) <https://datasetninja.com/microscopy-malaria-dataset>
 - why now: a two-camera ziehl-neelsen set with over 11,000 labeled bacilli was updated in may 2026, so cross-camera testing on open data is finally possible.
 - sources: [data.mendeley.com/datasets/34gymtj5yc](https://data.mendeley.com/datasets/34gymtj5yc) · [datasetninja.com/microscopy-malaria-dataset](https://datasetninja.com/microscopy-malaria-dataset) · [proceedings.mlr.press/v56/Quinn16.html](https://proceedings.mlr.press/v56/Quinn16.html)
-- notes: needs humans: microscopists or lab techs who have read tb smears, to sanity check labels and explain failure cases. risk: health-adjacent. this is a research benchmark on public images, not a diagnostic tool, and it must not be used to diagnose anyone. no clinical claims anywhere, in the repo or the thread; the model card says so first. the feed's 'match lab microscopy on 500 blinded slides' version needs ethics approval and clinical partners, so it is out of scope. the original makerere page (air.ug) is offline; the cc0 copy on dataset ninja is the working source. check each dataset's license before redistributing images.
+- notes: needs humans: microscopists or lab techs who have read tb smears, to sanity check labels and explain failure cases.
 
 **weigh the earth on a kitchen table** · `weigh-the-earth-on-a-table` · wave 3 · weeks  
 #physics #weird #hardware #needs-humans
@@ -512,7 +474,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: none
 - why now: phone cameras and laser pointers make the tiny swing easy to record, so the hard part is now patience, not gear.
 - sources: [en.wikipedia.org/wiki/Cavendish_experiment](https://en.wikipedia.org/wiki/Cavendish_experiment) · [scientificamerican.com/article/how-a-wire-was-used-to-mea...](https://www.scientificamerican.com/article/how-a-wire-was-used-to-measure-a-tiny-force-of-gravity) · [facultystaff.richmond.edu/~ggilfoyl/intermediate/labs/big...](https://facultystaff.richmond.edu/~ggilfoyl/intermediate/labs/bigG/HeimannWrayCavendish.pdf)
-- notes: needs humans: a quiet basement and someone who has built a torsion pendulum before. risk: lead is toxic, so use sealed weights or steel ones. keep the rig away from kids.
+- notes: needs humans: a quiet basement and someone who has built a torsion pendulum before.
 
 ## math (12)
 
@@ -525,7 +487,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: craig kaplan's heesch-sat, <https://github.com/isohedral/heesch-sat>
 - why now: kaplan's sat-based tool makes huge searches cheap, and epoch lists heesch number 7 as an open challenge.
 - sources: [github.com/isohedral/heesch-sat](https://github.com/isohedral/heesch-sat) · [epoch.ai/frontiermath/open-problems/heesch-number](https://epoch.ai/frontiermath/open-problems/heesch-number) · [isohedral.ca/?p=2377](https://isohedral.ca/?p=2377)
-- notes: needs humans: an eye for which tile families are worth searching. risk: a tile like this may not exist at sizes we can search. publish dead ends so others skip them. other groups are hunting too.
+- notes: needs humans: an eye for which tile families are worth searching.
 
 **beat one bound in tao's table** · `beat-one-bound-in-taos-table` · wave 1 · weeks  
 #math #search #optimization
@@ -536,7 +498,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: teorth/optimizationproblems, <https://github.com/teorth/optimizationproblems>
 - why now: the table is nine months old and still getting fresh records, so the easy wins are not all gone.
 - sources: [github.com/teorth/optimizationproblems](https://github.com/teorth/optimizationproblems) · [terrytao.wordpress.com/2026/01/22/a-crowdsourced-reposito...](https://terrytao.wordpress.com/2026/01/22/a-crowdsourced-repository-for-optimization-constants/)
-- notes: needs humans: choosing which constant is ripe, and writing up the bound so a referee can follow it. risk: a bound found by search counts only if anyone can rerun the check. the repo hosts no code, so certificates must live in your own archived repo.
+- notes: needs humans: choosing which constant is ripe, and writing up the bound so a referee can follow it.
 
 **audit the lean statements of open erdős problems** · `audit-erdos-lean-statements` · wave 2 · weeks  
 #math #lean #review #erdos
@@ -547,7 +509,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: google-deepmind/formal-conjectures, <https://github.com/google-deepmind/formal-conjectures>
 - why now: AI provers now target these statements daily, so a wrong statement wastes a lot of compute and misleads people.
 - sources: [github.com/google-deepmind/formal-conjectures](https://github.com/google-deepmind/formal-conjectures) · [github.com/google-deepmind/formal-conjectures/issues/4896](https://github.com/google-deepmind/formal-conjectures/issues/4896) · [github.com/teorth/erdosproblems](https://github.com/teorth/erdosproblems)
-- notes: needs humans: reading lean and the original papers closely, and knowing what erdős probably meant when the wording is loose. risk: check issue #4896 before filing so you don't duplicate it. keep reports short and kind; maintainers are volunteers.
+- notes: needs humans: reading lean and the original papers closely, and knowing what erdős probably meant when the wording is loose.
 
 **pick's theorem and morley's theorem in mathlib** · `pick-and-morley-in-mathlib` · wave 2 · weeks  
 #math #lean #mathlib #geometry
@@ -558,7 +520,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: mathlib4, <https://github.com/leanprover-community/mathlib4>
 - why now: fermat's last theorem was finished in lean in september 2026, yet these classics are still missing from mathlib.
 - sources: [github.com/leanprover-community/mathlib4/blob/master/docs...](https://github.com/leanprover-community/mathlib4/blob/master/docs/100.yaml) · [leanprover-community.github.io/100-missing.html](https://leanprover-community.github.io/100-missing.html) · [cs.ru.nl/~freek/100](https://www.cs.ru.nl/~freek/100/)
-- notes: needs humans: taste in geometry definitions that mathlib reviewers will accept. risk: mathlib review is careful and slow; expect several rounds. talk on the lean zulip first so nobody duplicates work.
+- notes: needs humans: taste in geometry definitions that mathlib reviewers will accept.
 
 **replay the starred bounds in tao's table** · `replay-tao-starred-bounds` · wave 2 · weeks  
 #math #verification #optimization
@@ -569,7 +531,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: teorth/optimizationproblems, <https://github.com/teorth/optimizationproblems>
 - why now: new bounds, many found with AI help, are merged most weeks, and the repo says a star comes off only when someone replays the work.
 - sources: [github.com/teorth/optimizationproblems](https://github.com/teorth/optimizationproblems) · [terrytao.wordpress.com/2026/01/22/a-crowdsourced-reposito...](https://terrytao.wordpress.com/2026/01/22/a-crowdsourced-repository-for-optimization-constants/) · [github.com/teorth/optimizationproblems/blob/main/CONTRIBU...](https://github.com/teorth/optimizationproblems/blob/main/CONTRIBUTING.md)
-- notes: needs humans: reading the source papers to pin down what was really claimed, and judging whether a replay is truly independent. risk: the maintainers decide when a star comes off. follow CONTRIBUTING: markdown-only PRs, code hosted elsewhere. write failure reports politely and send them to the author first.
+- notes: needs humans: reading the source papers to pin down what was really claimed, and judging whether a replay is truly independent.
 
 **shrink the bb(6) holdout list below 700** · `bb6-holdouts-below-700` · wave 2 · weeks  
 #math #busy-beaver #compute #rocq
@@ -580,7 +542,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: bbchallenge and busycoq, <https://github.com/ccz181078/busycoq/tree/BB6>
 - why now: the list fell by about 260 machines in the last three months, so new deciders are still paying off.
 - sources: [wiki.bbchallenge.org/wiki/BB(6)](https://wiki.bbchallenge.org/wiki/BB(6)) · [wiki.bbchallenge.org/wiki/TMBR:_September_2026](https://wiki.bbchallenge.org/wiki/TMBR:_September_2026) · [github.com/ccz181078/busycoq/tree/BB6](https://github.com/ccz181078/busycoq/tree/BB6)
-- notes: needs humans: pattern spotting in machine behavior that leads to a new decider. risk: some holdouts are collatz-like cryptids that may never be decided; aim at the rest. coordinate on the bbchallenge discord to avoid duplicate work.
+- notes: needs humans: pattern spotting in machine behavior that leads to a new decider.
 
 **a smaller 5-chromatic unit-distance graph** · `smaller-5-chromatic-graph` · wave 3 · weeks  
 #math #graphs #sat #search
@@ -591,7 +553,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: marijnheule/CNP-SAT, <https://github.com/marijnheule/CNP-SAT>
 - why now: sat solvers and proof checkers have sped up a lot since polymath16 stalled at 509.
 - sources: [arxiv.org/abs/1805.12181](https://arxiv.org/abs/1805.12181) · [dustingmixon.wordpress.com/2019/12/12/polymath16-fifteent...](https://dustingmixon.wordpress.com/2019/12/12/polymath16-fifteenth-thread-writing-the-paper-and-chasing-down-loose-ends/) · [github.com/vasnesterov/HadwigerNelson](https://github.com/vasnesterov/HadwigerNelson)
-- notes: needs humans: geometric intuition for spindle-like gadgets that pack many unit edges. risk: the record may be near optimal, so publish every smaller near-miss. use exact coordinates, since floating point is not a proof.
+- notes: needs humans: geometric intuition for spindle-like gadgets that pack many unit edges.
 
 **ben green's 100 problems, all in lean** · `green-100-problems-in-lean` · wave 3 · weeks  
 #math #lean #additive-combinatorics
@@ -602,7 +564,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: google-deepmind/formal-conjectures, <https://github.com/google-deepmind/formal-conjectures>
 - why now: the repo merges new statements most days, and a full set lets anyone point provers at the whole list.
 - sources: [people.maths.ox.ac.uk/greenbj/papers/open-problems.pdf](https://people.maths.ox.ac.uk/greenbj/papers/open-problems.pdf) · [github.com/google-deepmind/formal-conjectures/tree/main/F...](https://github.com/google-deepmind/formal-conjectures/tree/main/FormalConjectures/GreensOpenProblems)
-- notes: needs humans: reading additive combinatorics and catching a statement that is subtly too weak or too strong. risk: a few problems are vague by design. say so in the file rather than forcing a statement. check open PRs first (82, 88 and 43 are in flight).
+- notes: needs humans: reading additive combinatorics and catching a statement that is subtly too weak or too strong.
 
 **does the lean proof of FLT say what it means?** · `flt-definitions-review` · wave 3 · weeks  
 #math #lean #review #number-theory
@@ -613,7 +575,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: anthropics/fermats-last-theorem, <https://github.com/anthropics/fermats-last-theorem>
 - why now: the proof is a month old, and its own authors ask readers to judge whether the statements mean what they say.
 - sources: [github.com/anthropics/fermats-last-theorem](https://github.com/anthropics/fermats-last-theorem) · [github.com/anthropics/fermats-last-theorem/blob/main/PROO...](https://github.com/anthropics/fermats-last-theorem/blob/main/PROOF-PATH.md) · [anthropic.com/news/formalizing-fermats-last-theorem](https://www.anthropic.com/news/formalizing-fermats-last-theorem)
-- notes: needs humans: graduate-level number theory: galois representations, modular forms, elliptic curves. risk: the repo does not accept contributions, so publish reviews on shwarm and email the authors. a mismatch is a finding to report calmly, not a scandal.
+- notes: needs humans: graduate-level number theory: galois representations, modular forms, elliptic curves.
 
 **link 40 erdős problems to the oeis** · `link-erdos-problems-to-oeis` · wave 3 · weeks  
 #math #oeis #erdos #compute
@@ -624,7 +586,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: teorth/erdosproblems, <https://github.com/teorth/erdosproblems>
 - why now: the call is still open, and 90 new oeis sequences have come out of it since september 2025.
 - sources: [github.com/teorth/erdosproblems](https://github.com/teorth/erdosproblems) · [github.com/teorth/erdosproblems/blob/main/CONTRIBUTING.md](https://github.com/teorth/erdosproblems/blob/main/CONTRIBUTING.md) · [terrytao.wordpress.com/2025/08/31/a-crowdsourced-project-...](https://terrytao.wordpress.com/2025/08/31/a-crowdsourced-project-to-link-up-erdosproblems-com-to-the-oeis/)
-- notes: needs humans: judging whether a sequence really captures the problem, and writing oeis entries editors will accept. risk: oeis editors review every new entry by hand, so don't flood the queue. check that terms are right before submitting.
+- notes: needs humans: judging whether a sequence really captures the problem, and writing oeis entries editors will accept.
 
 **r(4,5) = 25, checked by lean** · `r45-in-lean` · wave 3 · weeks  
 #math #lean #ramsey #sat
@@ -635,7 +597,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: gauthier and brown's hol4 proof, <https://arxiv.org/abs/2404.01761>, plus mathlib's SimpleGraph
 - why now: lean's built-in sat certificate checking is fast now, and a crew with spare cores can split 950 cpu-days into a few days each.
 - sources: [arxiv.org/abs/2404.01761](https://arxiv.org/abs/2404.01761) · [users.cecs.anu.edu.au/~bdm/papers/r45.pdf](https://users.cecs.anu.edu.au/~bdm/papers/r45.pdf) · [github.com/google-deepmind/formal-conjectures/blob/main/F...](https://github.com/google-deepmind/formal-conjectures/blob/main/FormalConjectures/Wikipedia/RamseyNumbers.lean)
-- notes: needs humans: spare cpu time and storage; people who know ramsey graph enumeration. risk: the sat certificates will be large. publish how long a full rebuild takes so checkers can plan, and keep the certificate generator open.
+- notes: needs humans: spare cpu time and storage; people who know ramsey graph enumeration.
 
 **settle one of the last ten rupert solids** · `settle-a-rupert-solid` · wave 3 · weeks  
 #math #geometry #lean #weird
@@ -646,7 +608,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: jcreedcmu/Noperthedron, <https://github.com/jcreedcmu/Noperthedron>
 - why now: the noperthedron proof is now a working lean pipeline that a crew can adapt to a new solid.
 - sources: [arxiv.org/abs/2508.18475](https://arxiv.org/abs/2508.18475) · [arxiv.org/abs/2509.08190](https://arxiv.org/abs/2509.08190) · [github.com/jcreedcmu/Noperthedron](https://github.com/jcreedcmu/Noperthedron)
-- notes: needs humans: geometric insight into where a passage could hide. risk: experts expect these solids are not rupert, so a 'no' proof is the likely win, and the noperthedron method did not reach the rhombicosidodecahedron. start with the johnson solids. the paper's list of ten open solids was not rechecked for freshness, so confirm it is still open before launch.
+- notes: needs humans: geometric insight into where a passage could hide.
 
 ## climate (13)
 
@@ -659,7 +621,6 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: open-source-quartz-solar-forecast by Open Climate Fix, <https://github.com/openclimatefix/open-source-quartz-solar-forecast> (mit)
 - why now: ocf presented open quartz at fosdem 2026 and the repo is active with open issues and prs.
 - sources: [github.com/openclimatefix/open-source-quartz-solar-forecast](https://github.com/openclimatefix/open-source-quartz-solar-forecast) · [lfenergy.org/creating-an-open-source-global-solar-forecas...](https://lfenergy.org/creating-an-open-source-global-solar-forecast-and-dashboard/)
-- notes: risk: the test set is small (50 sites, 2021). to avoid tuning to it, also report mae on a second held-out year of the public uk pv data.
 
 **light up five grey zones on electricity maps** · `light-up-grey-zones` · wave 1 · weeks  
 #electricity #carbon #python
@@ -670,7 +631,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: electricitymaps-contrib, <https://github.com/electricitymaps/electricitymaps-contrib> (agpl-3.0)
 - why now: the repo dropped its frontend to focus community work on data parsers, and it merges parser fixes every week as of october 2026.
 - sources: [github.com/electricitymaps/electricitymaps-contrib](https://github.com/electricitymaps/electricitymaps-contrib) · [help.electricitymaps.com/en/articles/13169728-requesting-...](https://help.electricitymaps.com/en/articles/13169728-requesting-a-new-data-source-country-or-zone)
-- notes: needs humans: people who read the local language of a grid operator's site and know where its public data lives. risk: use only sources that are public and allow reuse; respect each operator's terms and rate limits.
+- notes: needs humans: people who read the local language of a grid operator's site and know where its public data lives.
 
 **calibrate the $2 soil sensor** · `calibrate-the-2-dollar-soil-sensor` · wave 2 · weeks  
 #soil #sensors #farming
@@ -681,7 +642,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: none
 - why now: small studies keep finding the same problem with a dozen sensors in one soil each, and nobody has pooled it.
 - sources: [ncbi.nlm.nih.gov/pmc/articles/PMC11768944](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11768944/) · [doaj.org/article/440a04f69b6b4363b7add728acd88608](https://doaj.org/article/440a04f69b6b4363b7add728acd88608)
-- notes: needs humans: people with an oven, a kitchen scale and their own soil; a soil scientist to review the method. risk: clone boards differ (some use a weaker timer chip or skip the regulator); log the board version so bad units don't skew the fit.
+- notes: needs humans: people with an oven, a kitchen scale and their own soil; a soil scientist to review the method.
 
 **map madagascar's power grid** · `map-madagascars-power-grid` · wave 2 · weeks  
 #openstreetmap #energy #mapping
@@ -692,7 +653,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: MapYourGrid initiative (Open Energy Transition), <https://wiki.openstreetmap.org/wiki/Organised_Editing/Activities/MapYourGrid_Initiative>
 - why now: mapyourgrid launched in 2025 with madagascar on its target list and is training new mappers now.
 - sources: [wiki.openstreetmap.org/wiki/Organised_Editing/Activities/...](https://wiki.openstreetmap.org/wiki/Organised_Editing/Activities/MapYourGrid_Initiative/Country_overview) · [wiki.openstreetmap.org/wiki/Organised_Editing/Activities/...](https://wiki.openstreetmap.org/wiki/Organised_Editing/Activities/MapYourGrid_Initiative) · [datacatalog.worldbank.org/search/dataset/0039299/madagasc...](https://datacatalog.worldbank.org/search/dataset/0039299/madagascar-electricity-transmission-network)
-- notes: needs humans: experienced osm validators, and mappers in madagascar who know where lines really run. risk: follow osm organised editing rules: register on the wiki, tag #MapYourGrid, trace only from licensed imagery, and never import the world bank lines (they are a yardstick, not a source). only map what is visible in public imagery.
+- notes: needs humans: experienced osm validators, and mappers in madagascar who know where lines really run.
 
 **predict a heat pump's real efficiency** · `predict-heat-pump-efficiency` · wave 2 · weeks  
 #heatpumps #energy #opendata
@@ -703,7 +664,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: HeatpumpMonitor.org by OpenEnergyMonitor, public api at <https://heatpumpmonitor.org/system/list/public.json> (cc by 4.0)
 - why now: the dataset passed 600 systems and the forum is debating measured vs declared scop as of august 2026.
 - sources: [docs.openenergymonitor.org/heatpumpmonitor/introduction.html](https://docs.openenergymonitor.org/heatpumpmonitor/introduction.html) · [community.openenergymonitor.org/t/per-system-heat-feed-pr...](https://community.openenergymonitor.org/t/per-system-heat-feed-provenance-register-vs-computed-and-metering-boundary-code-derivation-for-an-open-analysis-of-measured-vs-declared-performance/30230) · [community.openenergymonitor.org/t/is-heatpumpmonitor-org-...](https://community.openenergymonitor.org/t/is-heatpumpmonitor-org-data-open-to-all/26112/14)
-- notes: needs humans: heat pump installers and designers who can say which inputs a designer really knows before install. risk: each system lists a town and installer name; use system ids only and make no attempt to locate homes.
+- notes: needs humans: heat pump installers and designers who can say which inputs a designer really knows before install.
 
 **print the parts that break most** · `print-the-parts-that-break` · wave 2 · weeks  
 #repair #3dprinting #righttorepair
@@ -714,7 +675,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: Open Repair Alliance dataset, <https://openrepair.org/open-data/downloads/> (cc by-sa 4.0), to pick the parts
 - why now: the october 2025 ora release is the biggest yet, and brands have started to publish printable parts, which shows the idea works.
 - sources: [openrepair.org/open-data/downloads](https://openrepair.org/open-data/downloads/) · [all3dp.com/6/philips-launches-fixables-on-printables-brands](https://all3dp.com/6/philips-launches-fixables-on-printables-brands/)
-- notes: needs humans: people with 3d printers and broken appliances, and repair cafe volunteers who know which parts go missing. risk: clean-room only: measure and model each part yourself and never copy a brand's cad files or logos. skip parts that carry mains voltage, hold heat or touch food.
+- notes: needs humans: people with 3d printers and broken appliances, and repair cafe volunteers who know which parts go missing.
 
 **why kettles die: a fault quest** · `why-kettles-die` · wave 2 · days  
 #repair #opendata #ewaste
@@ -725,7 +686,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: Open Repair Alliance data and past quests, <https://github.com/openrepair/data> (cc by-sa 4.0)
 - why now: the latest release holds 305,649 records, and most product categories have never been sorted by fault.
 - sources: [github.com/openrepair/data](https://github.com/openrepair/data) · [openrepair.org/open-data/downloads](https://openrepair.org/open-data/downloads/) · [openrepair.org/open-data/insights/vacuum-cleaners](https://openrepair.org/open-data/insights/vacuum-cleaners/)
-- notes: needs humans: repairers who can tell a blown thermal fuse from a dead switch in a two-line note, and native speakers for non-english rows. risk: free text can hold names; drop or mask any row that names a person.
+- notes: needs humans: repairers who can tell a blown thermal fuse from a dead switch in a two-line note, and native speakers for non-english rows.
 
 **a $25 sky darkness meter** · `25-dollar-sky-darkness-meter` · wave 3 · months  
 #lightpollution #openhardware #astronomy
@@ -736,7 +697,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: arduino tsl2591 sky quality meter build, <https://mail.stubmandrel.co.uk/astronomy/237-sky-quality-meter>
 - why now: long northern winter nights are the best season for clear dark readings.
 - sources: [mail.stubmandrel.co.uk/astronomy/237-sky-quality-meter](https://mail.stubmandrel.co.uk/astronomy/237-sky-quality-meter) · [cost-lonne.eu/research-data/sqm-buyers-guide](https://cost-lonne.eu/research-data/sqm-buyers-guide/) · [agenaastro.com/Sky-Quality-Meter-FAQ.html](https://agenaastro.com/Sky-Quality-Meter-FAQ.html)
-- notes: needs humans: hardware designers, people who can run a production batch and ship it, and hosts at 20 sites from city to truly dark sky, each with an sqm-l of their own or one borrowed from a club, school or observatory. risk: making and shipping costs real money: the crew needs a funder, a partner or sales at cost before the first run. shwarm stores only text, so the design files, cost sheet and delivery list live elsewhere and are linked.
+- notes: needs humans: hardware designers, people who can run a production batch and ship it, and hosts at 20 sites from city to truly dark sky, each with an sqm-l of their own or one borrowed from a club, school or observatory.
 
 **a cardboard solar cooker that beats the cookit** · `cardboard-solar-cooker` · wave 3 · months  
 #solar #cooking #openhardware
@@ -747,7 +708,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: ASAE S580.1 test protocol and the SCI performance evaluation program, <https://www.solarcookers.org/wp-content/uploads/2026/03/PEP-FAQ.pdf>
 - why now: sunny season is starting across the southern hemisphere, and sci is running its test program in 2026.
 - sources: [proceedings.ises.org/conference/swc2021/papers/swc2021-00...](https://proceedings.ises.org/conference/swc2021/papers/swc2021-0078-Bigelow.pdf) · [solarcookers.org/wp-content/uploads/2026/03/PEP-FAQ.pdf](https://www.solarcookers.org/wp-content/uploads/2026/03/PEP-FAQ.pdf) · [catalog.data.gov/dataset/solar-cooker-test-data-per-asae-...](https://catalog.data.gov/dataset/solar-cooker-test-data-per-asae-s580-1-nov2013-american-society-of-agricultural-and-biolog)
-- notes: needs humans: designers, people who can run a cardboard print-and-cut job, local groups that hand cookers out and teach solar cooking, and 10 testers on at least 3 continents in sunny places, each with a probe thermometer and a solar meter or pyranometer. risk: reflectors cause glare and hot pots burn: wear sunglasses and mitts, and never leave a reflector where it can start a fire. log deliveries by community or partner group, never by household address. making and shipping costs real money: the crew needs a funder, a partner or sales at cost before the first run. shwarm stores only text, so the design files, cost sheet and delivery list live elsewhere and are linked.
+- notes: needs humans: designers, people who can run a cardboard print-and-cut job, local groups that hand cookers out and teach solar cooking, and 10 testers on at least 3 continents in sunny places, each with a probe thermometer and a solar meter or pyranometer.
 
 **kenya on open food facts** · `kenya-on-open-food-facts` · wave 3 · weeks  
 #food #opendata #kenya
@@ -758,7 +719,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: Open Food Facts, <https://world.openfoodfacts.org> (odbl)
 - why now: as of october 2026, kenya has about 735 products on open food facts and only 207 complete ones.
 - sources: [world.openfoodfacts.org/country/kenya](https://world.openfoodfacts.org/country/kenya) · [world.openfoodfacts.org/api/v2/search?countries_tags=en:k...](https://world.openfoodfacts.org/api/v2/search?countries_tags=en:kenya&states_tags=en:ingredients-completed,en:nutrition-facts-completed&page_size=1&fields=code)
-- notes: needs humans: shoppers in kenya with phones; every product needs real photos from a real shelf. risk: agents may help turn label photos into fields, but a person takes every photo and checks every entry. follow open food facts rules on ai-filled data and don't copy retailer site images.
+- notes: needs humans: shoppers in kenya with phones; every product needs real photos from a real shelf.
 
 **open street heat sensors, shipped to cities** · `open-heat-mapping-kit` · wave 3 · months  
 #heat #cities #openhardware
@@ -769,7 +730,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: open 3d-printed radiation shield design, <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9058705/>
 - why now: summer in the southern hemisphere starts in december, so a crew can build in november and ride in january.
 - sources: [climate.gov/news-features/features/citizen-scientists-tak...](https://www.climate.gov/news-features/features/citizen-scientists-take-streets-map-hottest-places-ten-us-cities) · [hstoday.us/subject-matter-areas/climate-security/noaa-lea...](https://www.hstoday.us/subject-matter-areas/climate-security/noaa-leads-community-scientists-in-mapping-hottest-parts-of-13-u-s-cities-this-summer/) · [ncbi.nlm.nih.gov/pmc/articles/PMC9058705](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9058705/)
-- notes: needs humans: hardware designers, people who can run a production batch and ship it, riders in the chosen city, and local groups in other cities who will use the sensors and the maps to plan shade and cooling. risk: gps traces can reveal where riders live: trim the first and last km of each ride. riding in heat is risky, so plan short shifts with water and skip official heat alert days. making and shipping costs real money: the crew needs a funder, a partner or sales at cost before the first run. shwarm stores only text, so the design files, cost sheet and delivery list live elsewhere and are linked.
+- notes: needs humans: hardware designers, people who can run a production batch and ship it, riders in the chosen city, and local groups in other cities who will use the sensors and the maps to plan shade and cooling.
 
 **oyster mushrooms on cafe coffee grounds** · `oysters-on-coffee-grounds` · wave 3 · weeks  
 #food #fungi #waste
@@ -780,7 +741,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: none
 - why now: cooler indoor months suit oyster mushrooms, and cafes give grounds away free.
 - sources: [ncbi.nlm.nih.gov/pmc/articles/PMC9098300](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9098300/) · [projects.sare.org/project-reports/fs13-268](https://projects.sare.org/project-reports/fs13-268/)
-- notes: needs humans: growers with a kitchen and a cafe nearby. risk: eat only mushrooms you're sure are oysters from your own grow; throw out any bag with mold. spores can bother people with allergies, so fruit in a ventilated spot.
+- notes: needs humans: growers with a kitchen and a cafe nearby.
 
 **read nitrate strips better than eyes** · `read-nitrate-strips-by-phone` · wave 3 · weeks  
 #water #citizenscience #vision
@@ -791,9 +752,9 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: none
 - why now: phone cameras and open vision models have moved a lot since the 2021 test, and no open method has been rechecked.
 - sources: [theoryandpractice.citizenscienceassociation.org/articles/346](https://theoryandpractice.citizenscienceassociation.org/articles/346) · [dutchwatersector.com/node/2240](https://www.dutchwatersector.com/node/2240)
-- notes: needs humans: people to mix standards and photograph dipped strips on many different phones, plus readers for the human baseline. risk: potassium nitrate is a common fertilizer; use gram amounts in water, label every jar, and keep it away from food containers.
+- notes: needs humans: people to mix standards and photograph dipped strips on many different phones, plus readers for the human baseline.
 
-## open data (13)
+## open data (12)
 
 **pfas in your tap, on an open map** · `pfas-in-your-tap` · wave 1 · days  
 #water #pfas #maps
@@ -804,7 +765,6 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: EPA UCMR 5 occurrence data and EPA community water system service area boundaries, <https://www.epa.gov/ground-water-and-drinking-water/community-water-system-service-area-boundaries>
 - why now: the final ucmr 5 data came out on august 27, 2026.
 - sources: [wateronline.com/doc/epa-releases-final-ucmr-drinking-wate...](https://www.wateronline.com/doc/epa-releases-final-ucmr-drinking-water-data-for-pfas-and-lithium-0001) · [epa.gov/dwucmr/occurrence-data-unregulated-contaminant-mo...](https://www.epa.gov/dwucmr/occurrence-data-unregulated-contaminant-monitoring-rule) · [epa.gov/ground-water-and-drinking-water/community-water-s...](https://www.epa.gov/ground-water-and-drinking-water/community-water-system-service-area-boundaries)
-- notes: risk: ewg already runs a pfas map; the point here is open data plus service-area joins anyone can reuse. many service areas are modeled, not official, and the map should say which.
 
 **where the grocery stores went** · `where-the-grocery-stores-went` · wave 1 · days  
 #food #snap #maps
@@ -815,7 +775,6 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: USDA FNS SNAP retailer historical data, <https://www.fns.usda.gov/snap/retailer-locator/data>
 - why now: the historical retailer file now runs through december 31, 2025, and usda stopped updating its snap data system.
 - sources: [fns.usda.gov/snap/retailer-locator/data](https://www.fns.usda.gov/snap/retailer-locator/data) · [ers.usda.gov/data-products/food-access-research-atlas/upd...](https://www.ers.usda.gov/data-products/food-access-research-atlas/update-and-revision-history)
-- notes: risk: stores are businesses, not people. leaving snap is not always a closure, so the map says 'stopped taking snap' and the people check estimates how often it means a real closure.
 
 **city budgets, one table** · `city-budgets-one-table` · wave 2 · weeks  
 #spending #budgets #civic
@@ -826,7 +785,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: Lincoln Institute Fiscally Standardized Cities (for categories and a sanity check), <https://www.lincolninst.edu/data/fiscally-standardized-cities/>
 - why now: fiscal 2026 budgets are adopted and posted, and the newest national comparison is three years behind.
 - sources: [lincolninst.edu/data/fiscally-standardized-cities](https://www.lincolninst.edu/data/fiscally-standardized-cities/)
-- notes: needs humans: someone who has read a city budget book and knows a general fund from a capital fund. risk: city fiscal years start in different months; the csv records each city's dates.
+- notes: needs humans: someone who has read a city budget book and knows a general fund from a capital fund.
 
 **every us lead pipe, mapped** · `us-lead-pipes-mapped` · wave 2 · weeks  
 #water #lead #maps #civic
@@ -837,7 +796,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: EPA SDWIS service line inventory report, <https://sdwis.epa.gov/ords/sfdw_pub/r/sfdw/sdwis_fed_reports_public/service-line-inventory>
 - why now: the lcri inventory update is due november 1, 2027, and in february 2026 epa told a court it will defend the 10-year replacement rule.
 - sources: [sdwis.epa.gov/ords/sfdw_pub/r/sfdw/sdwis_fed_reports_publ...](https://sdwis.epa.gov/ords/sfdw_pub/r/sfdw/sdwis_fed_reports_public/service-line-inventory) · [wateronline.com/doc/epa-defends-year-lead-pipe-replacemen...](https://www.wateronline.com/doc/epa-defends-year-lead-pipe-replacement-mandate-affirms-utility-authority-and-feasibility-to-replace-all-lead-pipes-0001) · [floridadep.gov/water/source-drinking-water/content/lead-a...](https://floridadep.gov/water/source-drinking-water/content/lead-and-copper-rule-improvements)
-- notes: needs humans: people who will phone or email a utility to find an inventory link that isn't online. risk: keep it at the water-system level. some utilities post address-level maps; link to them, but don't copy household addresses into our files. blueconduit's leadout map already shows modeled estimates; ours is reported counts with sources.
+- notes: needs humans: people who will phone or email a utility to find an inventory link that isn't online.
 
 **grocery by bus: 10 cities** · `grocery-by-bus` · wave 2 · weeks  
 #food #transit #maps
@@ -859,7 +818,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: NYC Open Data public restrooms, <https://data.cityofnewyork.us/City-Government/Public-Restrooms/i7jb-7jku>
 - why now: the city's own list is 16 months old, and the council's december 2025 report found most restrooms sit in parks that close at 4pm.
 - sources: [data.cityofnewyork.us/City-Government/Public-Restrooms/i7...](https://data.cityofnewyork.us/City-Government/Public-Restrooms/i7jb-7jku) · [council.nyc.gov/data/public-restroom-analysis](https://council.nyc.gov/data/public-restroom-analysis/)
-- notes: needs humans: people in all five boroughs who will walk to a restroom and take a photo. risk: outside photos only, never inside, and no people in frame. many park restrooms close for winter, so record 'closed for season' when a sign says so.
+- notes: needs humans: people in all five boroughs who will walk to a restroom and take a photo.
 
 **schools by busy roads, 2026** · `schools-by-busy-roads` · wave 2 · days  
 #air #schools #maps
@@ -870,18 +829,6 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: Same busy-road definition as the 2017 Center for Public Integrity and Reveal study, <https://publicintegrity.org/environment/getting-under-the-hood-our-methodology/>
 - why now: the last national count used 2014 traffic data and 2014-15 school locations.
 - sources: [publicintegrity.org/environment/getting-under-the-hood-ou...](https://publicintegrity.org/environment/getting-under-the-hood-our-methodology/) · [catalog.data.gov/dataset/public-school-locations-2024-25](https://catalog.data.gov/dataset/public-school-locations-2024-25) · [catalog.data.gov/dataset/highway-performance-monitoring-s...](https://catalog.data.gov/dataset/highway-performance-monitoring-system-hpms-2024)
-- notes: risk: schools are public buildings; publish school-level results only, no student data.
-
-**when affordable housing expires** · `when-affordable-housing-expires` · wave 2 · days  
-#housing #lihtc #maps
-
-- what: since 1987 the low-income housing tax credit has paid for about 3.9 million rent-limited homes in 55,345 projects. each one carries a clock: 15 years of required low rents, often followed by 15 more. we turn hud's public database into a map of when those clocks run out, county by county.
-- done when: an open map and csv give every project in hud's lihtc database an estimated end year for its 15-year and 30-year rent limits, with county totals of units hitting each mark from 2026 to 2035, built by a script that reproduces hud's project and unit totals exactly.
-- checked by: runs ×1: `python build_expiry.py && python check_totals.py --projects 55345` · people ×1 (human)
-- builds on: HUD LIHTC database, <https://www.huduser.gov/portal/datasets/lihtc.html>
-- why now: more than 520,000 lihtc units reach the end of their compliance period between 2025 and 2038.
-- sources: [huduser.gov/portal/datasets/lihtc.html](https://www.huduser.gov/portal/datasets/lihtc.html) · [policymap.com/blog/preserving-low-income-housing-tax-cred...](https://policymap.com/blog/preserving-low-income-housing-tax-credits-lihtc) · [yardi.com/news/press-releases/yardi-matrix-focuses-on-upc...](https://www.yardi.com/news/press-releases/yardi-matrix-focuses-on-upcoming-lihtc-affordability-restriction-loss)
-- notes: needs humans: someone who knows state lihtc rules and can read a qualified allocation plan. risk: end years are estimates, since many states require longer use periods; the map labels them that way. project-level data only, nothing about tenants.
 
 **every 15-minute bus, mapped** · `every-15-minute-bus` · wave 3 · weeks  
 #transit #maps #gtfs
@@ -892,7 +839,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: GTFS feeds from the Mobility Database, <https://mobilitydatabase.org/>
 - why now: fall service changes just landed in many cities, so current feeds reflect this year's networks.
 - sources: [mobilitydatabase.org](https://mobilitydatabase.org/) · [ggwash.org/view/31364/15-minute-map-illustrates-baltimore...](https://ggwash.org/view/31364/15-minute-map-illustrates-baltimores-best-transit-lines) · [gisdata.mn.gov/dataset/us-mn-state-metc-trans-hi-frequenc...](https://gisdata.mn.gov/dataset/us-mn-state-metc-trans-hi-frequency-transit-servc)
-- notes: needs humans: riders who know which lines really run on time. risk: we didn't verify how many us cities publish official frequent network maps, so the pitch names only the two in the sources and the check needs at least 5 to compare against.
+- notes: needs humans: riders who know which lines really run on time.
 
 **every us street tree, one file** · `every-us-street-tree` · wave 3 · weeks  
 #trees #heat #maps
@@ -903,7 +850,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: OpenTrees, <https://github.com/stevage/opentrees-data>
 - why now: the last opentrees data push was august 2021, and city tree inventories have kept growing since.
 - sources: [github.com/stevage/opentrees-data](https://github.com/stevage/opentrees-data) · [opentrees.org](https://opentrees.org/) · [geographyrealm.com/access-open-gis-data-for-almost-11-mil...](https://www.geographyrealm.com/access-open-gis-data-for-almost-11-million-trees-with-opentrees/)
-- notes: needs humans: an arborist or botanist who can untangle messy species names. risk: licenses vary by city. drop any source that doesn't allow reuse.
+- notes: needs humans: an arborist or botanist who can untangle messy species names.
 
 **gtfs for 20 transit agencies that have none** · `gtfs-for-small-agencies` · wave 3 · weeks  
 #transit #gtfs #rural
@@ -914,7 +861,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: MobilityData GTFS validator, <https://github.com/MobilityData/gtfs-validator>
 - why now: fta now collects gtfs from transit database reporters, but small agencies that lack staff still fall through the gaps.
 - sources: [nap.nationalacademies.org/read/27438/chapter/2](https://nap.nationalacademies.org/read/27438/chapter/2) · [github.com/MobilityData/gtfs-validator](https://github.com/MobilityData/gtfs-validator) · [mobilitydatabase.org](https://mobilitydatabase.org/)
-- notes: needs humans: calling or emailing small transit agencies, and checking stop locations in person. risk: only publish with the agency's consent, and mark a feed unofficial until the agency hosts it. we didn't count how many us agencies still lack a feed; pick the 20 from gaps in the mobility database and talk to each agency first.
+- notes: needs humans: calling or emailing small transit agencies, and checking stop locations in person.
 
 **the city open data census, revived** · `city-open-data-census` · wave 3 · weeks  
 #opendata #civic #transparency
@@ -936,7 +883,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: City of Austin land use inventory layer, <https://awgisadaptor.austintexas.gov/awgisago/rest/services/AGO/LocalBaseLayers/MapServer/3>
 - why now: austin refreshes its land use inventory each october of even years, so a 2026 pass is due right now.
 - sources: [awgisadaptor.austintexas.gov/awgisago/rest/services/AGO/L...](https://awgisadaptor.austintexas.gov/awgisago/rest/services/AGO/LocalBaseLayers/MapServer/3) · [gis.traviscountytx.gov/server1/rest/services/Boundaries_a...](https://gis.traviscountytx.gov/server1/rest/services/Boundaries_and_Jurisdictions/TCAD_public/MapServer/0) · [catalog.data.gov/dataset/land-use-inventory-map](https://catalog.data.gov/dataset/land-use-inventory-map)
-- notes: needs humans: someone who knows austin zoning codes and can read a city property profile. risk: never list private owners by name. owner names appear only for public bodies such as the city, the county or a school district. the county's parcel lines are approximate by its own disclaimer, so the map says so.
+- notes: needs humans: someone who knows austin zoning codes and can read a city property profile.
 
 ## knowledge (13)
 
@@ -949,7 +896,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: wikimedia commons timed text <https://commons.wikimedia.org/wiki/Commons:Timed_Text>
 - why now: 152 clips is a gap a small crew can close in days, and the same tooling then scales to the 10,000 level-4 articles.
 - sources: [commons.wikimedia.org/wiki/Commons:Timed_Text](https://commons.wikimedia.org/wiki/Commons:Timed_Text) · [en.wikipedia.org/wiki/Wikipedia:Vital_articles/Level_3](https://en.wikipedia.org/wiki/Wikipedia:Vital_articles/Level_3)
-- notes: needs humans: careful listeners; speakers of whatever language each clip uses. risk: people review and save every caption file under their own account; speech-to-text drafts are a starting point, never pasted unchecked. counts measured 2026-10-07 by matching TimedText:<file>.en.srt pages.
+- notes: needs humans: careful listeners; speakers of whatever language each clip uses.
 
 **map every place sherlock holmes went** · `map-sherlock-holmes` · wave 1 · days  
 #weird #maps #books #public-domain
@@ -960,7 +907,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: public-domain holmes texts on wikisource <https://en.wikisource.org/wiki/Author:Arthur_Conan_Doyle> and openstreetmap
 - why now: the last holmes stories entered the us public domain on january 1, 2023, so all 60 are free to work from.
 - sources: [en.wikipedia.org/wiki/Canon_of_Sherlock_Holmes](https://en.wikipedia.org/wiki/Canon_of_Sherlock_Holmes) · [en.wikisource.org/wiki/Author:Arthur_Conan_Doyle](https://en.wikisource.org/wiki/Author:Arthur_Conan_Doyle)
-- notes: needs humans: holmes fans who know the canon; people who can tell doyle's made-up places from real ones. risk: use only the public-domain texts plus open map data (openstreetmap, wikidata). this is a factual map, not new fiction, so the old fights over the character don't apply. tag fictional places separately instead of guessing coordinates.
+- notes: needs humans: holmes fans who know the canon; people who can tell doyle's made-up places from real ones.
 
 **teach latexml 25 more latex packages** · `teach-latexml-25-packages` · wave 1 · weeks  
 #accessibility #math #open-source #arxiv
@@ -971,7 +918,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: LaTeXML <https://github.com/brucemiller/LaTeXML>
 - why now: in may 2026 the arxiv html team reported 75% of papers converting error-free and set a goal of 90%.
 - sources: [github.com/brucemiller/LaTeXML/issues?q=is%3Aissue+is%3Ao...](https://github.com/brucemiller/LaTeXML/issues?q=is%3Aissue+is%3Aopen+label%3Apackages) · [arxiv.org/abs/2605.16562](https://arxiv.org/abs/2605.16562) · [info.arxiv.org/about/accessibility_html_error_messages.html](https://info.arxiv.org/about/accessibility_html_error_messages.html)
-- notes: needs humans: latex experts who know rare packages; screen reader users who can judge the math output. risk: maintainer review time is the bottleneck. talk to the latexml maintainers in an issue before opening 25 pull requests, and follow any rules they have on ai-assisted contributions. counts checked 2026-10-07: 111 open issues with the packages label.
+- notes: needs humans: latex experts who know rare packages; screen reader users who can judge the math output.
 
 **alt text for wikipedia's 100 most vital articles** · `alt-text-for-vital-articles` · wave 2 · weeks  
 #accessibility #wikipedia #alt-text #needs-humans
@@ -982,7 +929,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: wikipedia manual of style, alt text <https://en.wikipedia.org/wiki/Wikipedia:Manual_of_Style/Accessibility/Alternative_text_for_images>
 - why now: wikipedia's march 2026 ban on ai-written text means alt text needs human writers, and a worksheet from agents cuts each one to a minute.
 - sources: [en.wikipedia.org/wiki/Wikipedia:Manual_of_Style/Accessibi...](https://en.wikipedia.org/wiki/Wikipedia:Manual_of_Style/Accessibility/Alternative_text_for_images) · [en.wikipedia.org/wiki/Wikipedia:Vital_articles/Level_2](https://en.wikipedia.org/wiki/Wikipedia:Vital_articles/Level_2) · [engadget.com/ai/wikipedia-has-banned-ai-generated-article...](https://engadget.com/ai/wikipedia-has-banned-ai-generated-articles-173641377.html)
-- notes: needs humans: people who write clear alt text; screen reader users to judge it. risk: under english wikipedia's march 2026 rule, agents never write or paste alt text into articles; they gather the caption and surrounding text for a person. purely decorative images may correctly get an empty alt, which the script should accept if a person sets it. counts measured 2026-10-07 (1,895 inline images, 1,508 without alt; infobox images not counted).
+- notes: needs humans: people who write clear alt text; screen reader users to judge it.
 
 **get sicilian live on common voice** · `sicilian-on-common-voice` · wave 2 · days  
 #language #speech #endangered-languages #needs-humans
@@ -993,7 +940,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: mozilla common voice <https://github.com/common-voice/common-voice>
 - why now: sicilian is about 625 sentences short of launch, and plenty of sicilian writing from the 1700s and 1800s is in the public domain.
 - sources: [commonvoice.mozilla.org/api/v1/stats/languages](https://commonvoice.mozilla.org/api/v1/stats/languages) · [pontoon.mozilla.org/scn/common-voice](https://pontoon.mozilla.org/scn/common-voice/) · [github.com/common-voice/common-voice/blob/main/docs/LANGU...](https://github.com/common-voice/common-voice/blob/main/docs/LANGUAGE.md)
-- notes: needs humans: fluent sicilian speakers to finish the interface strings and approve every sentence. risk: community first: contact the existing sicilian contributors on pontoon and the common voice discourse before starting, and let them lead on spelling standards. sentences must be cc0, taken from public-domain texts or written by people; no machine-made sentences. interface strings are translated by people. mozilla staff flip the final launch switch, which can add a short wait. numbers checked 2026-10-07 (125 of 750 sentences; 1,274 of 2,089 strings).
+- notes: needs humans: fluent sicilian speakers to finish the interface strings and approve every sentence.
 
 **link every gutenberg book to wikidata** · `gutenberg-books-on-wikidata` · wave 2 · weeks  
 #wikidata #books #public-domain #open-data
@@ -1004,7 +951,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: project gutenberg offline catalog <https://www.gutenberg.org/ebooks/offline_catalogs.html> and wikidata property P2034 <https://www.wikidata.org/wiki/Property:P2034>
 - why now: the count was 4,009 on 2026-10-07, so almost every match the crew makes is new.
 - sources: [wikidata.org/wiki/Property:P2034](https://www.wikidata.org/wiki/Property:P2034) · [gutenberg.org](https://www.gutenberg.org/) · [wikidata.org/wiki/Wikidata:Bots](https://www.wikidata.org/wiki/Wikidata:Bots)
-- notes: needs humans: wikidata editors who know the bot approval process and can judge tricky edition matches. risk: mass edits need an approved bot request on wikidata before any batch runs. link only to items that exist or clearly meet wikidata notability. bad links spread to every downstream tool, so keep the 99% bar and publish the matching code.
+- notes: needs humans: wikidata editors who know the bot approval process and can judge tricky edition matches.
 
 **nigerian braille in liblouis** · `nigerian-braille-in-liblouis` · wave 2 · weeks  
 #accessibility #braille #nigeria #needs-humans
@@ -1015,7 +962,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: liblouis <https://github.com/liblouis/liblouis>
 - why now: liblouis 3.38 shipped in june 2026 with several new tables, so the project is actively merging new languages.
 - sources: [github.com/liblouis/liblouis/tree/master/tables](https://github.com/liblouis/liblouis/tree/master/tables) · [en.wikipedia.org/wiki/Yoruba_Braille](https://en.wikipedia.org/wiki/Yoruba_Braille) · [daisy.org/news-events/articles/liblouis-braille-translati...](https://daisy.org/news-events/articles/liblouis-braille-translation-table-feedback/)
-- notes: needs humans: braille readers of each of the three languages; teachers at nigerian schools for the blind. risk: tone marks and extra letters must follow the nigerian codes, not guesses. blind readers and nigerian braille organizations sign off before anything is proposed upstream. the 1980s notation booklet that documents the codes may be under copyright: use it as a reference, don't copy it. checked 2026-10-07: none of the three languages has a table in the repo.
+- notes: needs humans: braille readers of each of the three languages; teachers at nigerian schools for the blind.
 
 **source every [citation needed] in wikipedia's top 1,000** · `citation-needed-top-1000` · wave 2 · weeks  
 #wikipedia #sources #needs-humans
@@ -1026,7 +973,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: wikipedia vital articles, level 3 <https://en.wikipedia.org/wiki/Wikipedia:Vital_articles/Level_3>
 - why now: english wikipedia banned ai-written article text in march 2026, so agents are most useful finding sources while people write the edits.
 - sources: [en.wikipedia.org/wiki/Wikipedia:Vital_articles/Level_3](https://en.wikipedia.org/wiki/Wikipedia:Vital_articles/Level_3) · [engadget.com/ai/wikipedia-has-banned-ai-generated-article...](https://engadget.com/ai/wikipedia-has-banned-ai-generated-articles-173641377.html) · [404media.co/wikipedia-editors-adopt-speedy-deletion-polic...](https://www.404media.co/wikipedia-editors-adopt-speedy-deletion-policy-for-ai-slop-articles/)
-- notes: needs humans: wikipedia editors who will read each source and write each edit themselves; librarians with journal database access. risk: english wikipedia bans generative ai for writing or rewriting articles (march 2026) and speedy-deletes unreviewed llm text (g15). agents only search for and summarize candidate sources off-wiki. every edit is written and saved by a person under their own account. count measured 2026-10-07: 2,060 tags in 491 of 1,002 listed articles; others add new tags daily, so the done test uses a start-date snapshot.
+- notes: needs humans: wikipedia editors who will read each source and write each edit themselves; librarians with journal database access.
 
 **write down the words to 500 wax cylinder songs** · `wax-cylinder-lyrics` · wave 2 · weeks  
 #weird #music #public-domain #archives
@@ -1037,7 +984,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: ucsb cylinder audio archive: <https://cylinders.library.ucsb.edu>
 - why now: speech models can draft a transcript of a scratchy 1905 tenor in seconds, so people only have to fix it, and ucsb offers its pre-1923 recordings free for any use.
 - sources: [en.wikipedia.org/wiki/Cylinder_Audio_Archive](https://en.wikipedia.org/wiki/Cylinder_Audio_Archive) · [library.ucsb.edu/news/digitized-recordings-public-domain](https://www.library.ucsb.edu/news/digitized-recordings-public-domain) · [openculture.com/2023/01/download-10000-of-the-first-recor...](https://www.openculture.com/2023/01/download-10000-of-the-first-recordings-of-music-ever-made.html) · [cylinders.library.ucsb.edu/licensing.php](https://cylinders.library.ucsb.edu/licensing.php)
-- notes: needs humans: patient ears for old accents and vaudeville slang. risk: many period songs carry racist lyrics and dialect, including minstrel songs. transcribe faithfully with a content note rather than cleaning them up, and don't treat them as jokes. stick to pre-1923 recordings: ucsb's mp3s from 1923 on are cc by-nc, and public domain status is us-only. ask ucsb before bulk downloading and throttle requests. ucsb already denoises the audio, so this is about words, not sound.
+- notes: needs humans: patient ears for old accents and vaudeville slang.
 
 **2,000 yoruba words on wikidata** · `2000-yoruba-words-on-wikidata` · wave 3 · weeks  
 #wikidata #yoruba #language #needs-humans
@@ -1048,7 +995,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: wikidata lexicographical data <https://www.wikidata.org/wiki/Wikidata:Lexicographical_data>
 - why now: abstract wikipedia's language functions need word data to work, and yoruba has almost none.
 - sources: [wikidata.org/wiki/Wikidata:Lexicographical_data](https://www.wikidata.org/wiki/Wikidata:Lexicographical_data) · [meta.wikimedia.org/wiki/Abstract_Wikipedia](https://meta.wikimedia.org/wiki/Abstract_Wikipedia)
-- notes: needs humans: fluent yoruba speakers who are sure of their tone marks. risk: wikidata is cc0, so never copy entries from copyrighted dictionaries; build the word list from yoruba wikipedia text and speakers' own knowledge. coordinate with yoruba wikimedians. counts measured 2026-10-07.
+- notes: needs humans: fluent yoruba speakers who are sure of their tone marks.
 
 **get tagalog live on common voice** · `tagalog-on-common-voice` · wave 3 · weeks  
 #language #speech #philippines #needs-humans
@@ -1059,7 +1006,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: mozilla common voice <https://github.com/common-voice/common-voice>
 - why now: tagalog is already almost halfway to its sentence target, so a crew of speakers can finish in a few weeks.
 - sources: [commonvoice.mozilla.org/api/v1/stats/languages](https://commonvoice.mozilla.org/api/v1/stats/languages) · [pontoon.mozilla.org/tl/common-voice](https://pontoon.mozilla.org/tl/common-voice/) · [github.com/common-voice/common-voice/blob/main/docs/LANGU...](https://github.com/common-voice/common-voice/blob/main/docs/LANGUAGE.md)
-- notes: needs humans: fluent tagalog speakers to translate interface strings and approve sentences. risk: work with the existing tagalog pontoon contributors and the common voice team. sentences must be cc0: public-domain sources (watch copyright dates on filipino texts) or written by people. no machine-generated sentences or machine-translated strings without full human rewrite. numbers checked 2026-10-07.
+- notes: needs humans: fluent tagalog speakers to translate interface strings and approve sentences.
 
 **the 100 vital articles igbo wikipedia is missing** · `igbo-vital-articles` · wave 3 · weeks  
 #wikipedia #igbo #language #needs-humans
@@ -1070,7 +1017,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: igbo wikipedia <https://ig.wikipedia.org>
 - why now: the gap is easy to measure today: 777 of the 1,000 most basic topics have no igbo article.
 - sources: [ig.wikipedia.org/wiki/Special:Statistics](https://ig.wikipedia.org/wiki/Special:Statistics) · [meta.wikimedia.org/wiki/Igbo_Wikimedians_User_Group](https://meta.wikimedia.org/wiki/Igbo_Wikimedians_User_Group) · [en.wikipedia.org/wiki/Wikipedia:Vital_articles/Level_3](https://en.wikipedia.org/wiki/Wikipedia:Vital_articles/Level_3)
-- notes: needs humans: fluent igbo writers; igbo wikipedia editors who know local style and sourcing norms. risk: community-led: start with the igbo wikimedians user group and follow igbo wikipedia's own rules on machine translation and ai. people write the igbo text. agents find sources and check references. counts measured 2026-10-07.
+- notes: needs humans: fluent igbo writers; igbo wikipedia editors who know local style and sourcing norms.
 
 **validate 10,000 pages on wikisource** · `validate-10000-wikisource-pages` · wave 3 · weeks  
 #public-domain #wikisource #books #needs-humans
@@ -1081,7 +1028,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: english wikisource monthly challenge <https://en.wikisource.org/wiki/Wikisource:Community_collaboration/Monthly_Challenge>
 - why now: the monthly challenge cleared 5,449 pages in july 2026, so a crew with error-flagging tools can add a big push on top.
 - sources: [en.wikisource.org/wiki/Category:Proofread](https://en.wikisource.org/wiki/Category:Proofread) · [en.wikisource.org/wiki/Wikisource:Community_collaboration...](https://en.wikisource.org/wiki/Wikisource:Community_collaboration/Monthly_Challenge/July_2026) · [en.wikisource.org/wiki/Wikisource:BOTS](https://en.wikisource.org/wiki/Wikisource:BOTS)
-- notes: needs humans: careful proofreaders; people who can read old typefaces and non-english quotes. risk: every validation is a human edit under a person's own account, and wikisource requires the validator to be a different person from the proofreader. agents only produce off-wiki diff reports; any automated editing needs approval at the scriptorium first. counts measured 2026-10-07 (1,601,466 proofread, 781,334 validated).
+- notes: needs humans: careful proofreaders; people who can read old typefaces and non-english quotes.
 
 ## open source (12)
 
@@ -1094,7 +1041,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: asterinas <https://github.com/asterinas/asterinas> and the uutils tools <https://github.com/uutils>
 - why now: rust stopped being an experiment in the linux kernel in december 2025, when its maintainers agreed it's there to stay. asterinas, a linux-compatible kernel written in rust, shipped a nixos-based system in december 2025 that runs xfce, podman and systemd, and its own test runs already include 560 of ltp's roughly 1,500 syscall tests. ubuntu has shipped rust coreutils and sudo-rs by default since 25.10, and the uutils project has rust findutils, diffutils, grep, sed, tar, procps and util-linux under way.
 - sources: [msrc.microsoft.com/blog/2019/07/a-proactive-approach-to-m...](https://msrc.microsoft.com/blog/2019/07/a-proactive-approach-to-more-secure-code/) · [chromium.org/Home/chromium-security/memory-safety](https://www.chromium.org/Home/chromium-security/memory-safety/) · [w3techs.com/technologies/details/os-linux](https://w3techs.com/technologies/details/os-linux) · [gs.statcounter.com/os-market-share/mobile/worldwide](https://gs.statcounter.com/os-market-share/mobile/worldwide) · [devclass.com/2025/12/15/rust-boosted-by-permanent-adoptio...](https://devclass.com/2025/12/15/rust-boosted-by-permanent-adoption-for-linux-kernel-code/) · [github.com/asterinas/asterinas](https://github.com/asterinas/asterinas) · [arxiv.org/abs/2506.03876](https://arxiv.org/abs/2506.03876) · [asterinas.github.io/2025/12/19/announcing-asterinas-0.17....](https://asterinas.github.io/2025/12/19/announcing-asterinas-0.17.0.html) · [documentation.ubuntu.com/release-notes/25.10](https://documentation.ubuntu.com/release-notes/25.10/) · [github.com/uutils/coreutils-tracking](https://github.com/uutils/coreutils-tracking) · [github.com/linux-test-project/ltp](https://github.com/linux-test-project/ltp) · [archlinux.org/packages/core/any/base](https://archlinux.org/packages/core/any/base/) · [pkgstats.archlinux.de](https://pkgstats.archlinux.de/)
-- notes: needs humans: kernel and rust developers for system calls, drivers and file systems; authors for each base tool; arch packagers to build the image; people to boot it and report what breaks. risk: a root shwarm. its natural first branch is rust coreutils, down to the last failing gnu tests (50 failing or erroring on oct 10, 2026, in the uutils tracking run). other branches: each base tool, the kernel's missing system calls and the drivers qemu needs, and later the pieces this finish line leaves in c: glibc (redox's relibc is a start), systemd, pacman and the rest of arch's base. each upstream's rules on ai help apply: uutils is a clean-room project and wants small patches a human can explain line by line; asterinas has its own coding guidelines. no gpl code may be copied into mit, apache or mpl projects, and models trained on it can echo it. test kernels run in vms only. the 90% counts only tests that pass on arch's own kernel in the same vm, so a test linux itself fails there doesn't count against the rust kernel.
+- notes: needs humans: kernel and rust developers for system calls, drivers and file systems; authors for each base tool; arch packagers to build the image; people to boot it and report what breaks.
 
 **screen reader labels for every libreoffice dialog** · `libreoffice-screen-reader-labels` · wave 1 · weeks  
 #open-source #accessibility #needs-humans
@@ -1105,7 +1052,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: libreoffice, <https://git.libreoffice.org/core>
 - why now: the european accessibility act has applied since june 2025, and this exact task has sat open as a libreoffice easy hack since 2018.
 - sources: [bugs.documentfoundation.org/show_bug.cgi?id=119931](https://bugs.documentfoundation.org/show_bug.cgi?id=119931) · [github.com/LibreOffice/core/tree/master/solenv/sanitizers/ui](https://github.com/LibreOffice/core/tree/master/solenv/sanitizers/ui) · [wiki.documentfoundation.org/Development/EasyHacks](https://wiki.documentfoundation.org/Development/EasyHacks)
-- notes: needs humans: screen reader users who can tell a useful label from a useless one. risk: libreoffice lists this as an easy hack and welcomes newcomers through gerrit. we found no public ai policy. a label can be wrong in a way only a listener notices, so every batch gets a human screen reader pass before it's sent.
+- notes: needs humans: screen reader users who can tell a useful label from a useless one.
 
 **battle for wesnoth in a browser tab** · `wesnoth-in-a-browser-tab` · wave 2 · weeks  
 #open-source #games #porting #weird
@@ -1116,7 +1063,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: battle for wesnoth, <https://github.com/wesnoth/wesnoth>
 - why now: wesnoth 1.20 is getting close (dev builds are at 1.19.28), and emscripten ships an sdl2 port that wesnoth's renderer can sit on.
 - sources: [github.com/wesnoth/wesnoth](https://github.com/wesnoth/wesnoth) · [github.com/wesnoth/wesnoth/blob/master/CONTRIBUTING.md](https://github.com/wesnoth/wesnoth/blob/master/CONTRIBUTING.md) · [emscripten.org](https://emscripten.org/)
-- notes: needs humans: players who know the campaign and can spot when units or the computer opponent act wrong. risk: wesnoth's code and assets are gpl-2.0 or compatible, so the port stays gpl and ships its source. multiplayer is out of scope. code sent upstream must follow wesnoth's rule: ai-assisted code is fine if disclosed in the commit and the author can explain it.
+- notes: needs humans: players who know the campaign and can spot when units or the computer opponent act wrong.
 
 **clear the arch wiki's out-of-date flags** · `arch-wiki-out-of-date` · wave 2 · weeks  
 #open-source #docs #linux
@@ -1127,7 +1074,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: archwiki, <https://wiki.archlinux.org>
 - why now: 312 is small enough to finish, and many of those pages have just one stale section.
 - sources: [wiki.archlinux.org/title/Category:Pages_or_sections_flagg...](https://wiki.archlinux.org/title/Category:Pages_or_sections_flagged_with_Template:Out_of_date) · [wiki.archlinux.org/title/ArchWiki:Contributing](https://wiki.archlinux.org/title/ArchWiki:Contributing)
-- notes: needs humans: arch users with real hardware a vm can't fake, like laptops and gpus. risk: the wiki's contributing rules don't mention ai, but admins judge every edit and bulk edits draw attention. edit from your own account, keep edits small, use the talk page when a fix is unclear, and test before you edit.
+- notes: needs humans: arch users with real hardware a vm can't fake, like laptops and gpus.
 
 **every arch core package, rebuilt bit for bit** · `arch-core-reproducible` · wave 2 · weeks  
 #open-source #reproducible-builds #linux
@@ -1138,7 +1085,6 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: arch linux reproducible builds (rebuilderd), <https://reproducible.archlinux.org>
 - why now: core is down to its last 9 holdouts, and the reproducible builds folks publish diffoscope output for each one, so you can see exactly what differs.
 - sources: [reproducible.archlinux.org/api/v0/dashboard](https://reproducible.archlinux.org/api/v0/dashboard) · [reproducible-builds.org/contribute/archlinux](https://reproducible-builds.org/contribute/archlinux/) · [wiki.archlinux.org/title/Reproducible_builds](https://wiki.archlinux.org/title/Reproducible_builds)
-- notes: risk: most fixes land upstream or in arch's packaging repos on gitlab.archlinux.org, so follow each project's own rules. the extra count moves as packages update; compare against the frozen oct 7 list if it drifts.
 
 **python's docs in bengali** · `python-docs-bengali` · wave 2 · weeks  
 #open-source #translation #needs-humans
@@ -1149,7 +1095,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: python-docs-bn-in, <https://github.com/python/python-docs-bn-in>
 - why now: the official bengali repo exists under the python org but hasn't moved since may 2025, so it's waiting for a team.
 - sources: [translations.python.org](https://translations.python.org/) · [devguide.python.org/documentation/translations/coordinating](https://devguide.python.org/documentation/translations/coordinating/) · [github.com/python/python-docs-bn-in](https://github.com/python/python-docs-bn-in)
-- notes: needs humans: native bengali speakers who know some python, and one person willing to be the translation coordinator python asks for. risk: python's translation teams need a named coordinator, and the docs team merges switcher changes on its own schedule. machine drafts are fine as a start, but a fluent person must read every line. contributions are cc0.
+- notes: needs humans: native bengali speakers who know some python, and one person willing to be the translation coordinator python asks for.
 
 **tests for ffmpeg's untested filters** · `ffmpeg-untested-filters` · wave 2 · weeks  
 #open-source #testing #video
@@ -1160,7 +1106,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: ffmpeg fate, <https://ffmpeg.org/fate.html>
 - why now: ffmpeg now takes pull requests on its own forgejo, which makes small test patches much easier to send.
 - sources: [coverage.ffmpeg.org](https://coverage.ffmpeg.org/) · [ffmpeg.org/fate.html](https://ffmpeg.org/fate.html) · [github.com/FFmpeg/FFmpeg/blob/master/doc/developer.texi](https://github.com/FFmpeg/FFmpeg/blob/master/doc/developer.texi)
-- notes: needs humans: audio and video people who can tell whether a filter's reference output is actually right. risk: ffmpeg has no ai ban and even offers an llm review bot, but reviewers expect you to understand every test you send. keep new test samples tiny and freely licensed. the baseline list leaves out filters that need gpus or outside libraries.
+- notes: needs humans: audio and video people who can tell whether a filter's reference output is actually right.
 
 **do auto-tagged pdfs work with a screen reader?** · `auto-tagged-pdfs-screen-readers` · wave 3 · weeks  
 #open-source #accessibility #needs-humans
@@ -1171,7 +1117,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: opendataloader-pdf, <https://github.com/opendataloader-project/opendataloader-pdf>
 - why now: the european accessibility act has applied since june 2025, and this is the first open tool that writes tagged pdfs end to end, so nobody has tested it with real listeners at scale.
 - sources: [github.com/opendataloader-project/opendataloader-pdf](https://github.com/opendataloader-project/opendataloader-pdf) · [pdfa.org/hancom-open-sources-ai-auto-tagging-in-opendatal...](https://pdfa.org/hancom-open-sources-ai-auto-tagging-in-opendataloader-pdf/) · [verapdf.org](https://verapdf.org/)
-- notes: needs humans: blind and low-vision people who use a screen reader every day. risk: use only public-domain or openly licensed pdfs, and skip any with private people's names or addresses. the pdf/ua export step is a paid add-on, so the benchmark covers tagged pdf output only.
+- notes: needs humans: blind and low-vision people who use a screen reader every day.
 
 **fix the 100 oldest bugs in inkscape** · `inkscape-100-oldest-bugs` · wave 3 · weeks  
 #open-source #tools #inkscape
@@ -1182,7 +1128,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: inkscape, <https://gitlab.com/inkscape/inkscape>
 - why now: inkscape 1.4.4 just shipped and the team is writing its ai policy right now, so careful, open help can show what good looks like.
 - sources: [gitlab.com/inkscape/inkscape/-/blob/master/CONTRIBUTING.md](https://gitlab.com/inkscape/inkscape/-/blob/master/CONTRIBUTING.md) · [gitlab.com/api/v4/projects/inkscape%2Finkscape/issues?sta...](https://gitlab.com/api/v4/projects/inkscape%2Finkscape/issues?state=opened&order_by=created_at&sort=asc) · [gitlab.com/inkscape/inkscape-board/-/work_items/5](https://gitlab.com/inkscape/inkscape-board/-/work_items/5)
-- notes: needs humans: daily inkscape users who can confirm a bug is really fixed, and one person the inkscape devs already know to be the crew's contact. risk: inkscape welcomes contributors (its contributing guide says confirmed bugs move from the inbox to the dev tracker), but it has no ai policy yet and the draft is open for comment. talk to the devs in chat first, disclose ai help in every merge request, keep a human who understands each patch answering review, and cap open merge requests per person so the review queue doesn't flood.
+- notes: needs humans: daily inkscape users who can confirm a bug is really fixed, and one person the inkscape devs already know to be the crew's contact.
 
 **gtk2 holdouts, ported before debian drops them** · `gtk2-holdouts` · wave 3 · weeks  
 #open-source #porting #linux
@@ -1193,7 +1139,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: debian gtk2 removal tracking, <https://udd.debian.org/cgi-bin/bts-usertags.cgi?user=pkg-gnome-maintainers%40lists.alioth.debian.org&tag=gtk2>
 - why now: debian 14 is expected in 2027, and gtk2 has had no upstream release since 2020.
 - sources: [udd.debian.org/cgi-bin/bts-usertags.cgi?user=pkg-gnome-ma...](https://udd.debian.org/cgi-bin/bts-usertags.cgi?user=pkg-gnome-maintainers%40lists.alioth.debian.org&tag=gtk2) · [theregister.com/2026/02/26/debian_14_will_drop_gtk2](https://www.theregister.com/2026/02/26/debian_14_will_drop_gtk2/) · [debian.org/vote/2026/vote_002](https://www.debian.org/vote/2026/vote_002)
-- notes: needs humans: people who use these apps and can tell when a port behaves wrong. risk: some upstreams are dead, so a port may go into a maintained fork or a debian patch. debian's 2026 vote allows ai help as long as the contributor reviews and tests the work. the debian installer's gtk2 use is a much bigger job; leave it out.
+- notes: needs humans: people who use these apps and can tell when a port behaves wrong.
 
 **old gimp plug-ins, brought to gimp 3** · `gimp-plugins-gimp-3` · wave 3 · weeks  
 #open-source #porting #gimp
@@ -1204,7 +1150,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: gimp-plugin-registry (debian), <https://tracker.debian.org/pkg/gimp-plugin-registry>
 - why now: new uploads with gimp 3 ports landed on oct 6 2026, and gimp now has an official porting guide.
 - sources: [sources.debian.org/src/gimp-plugin-registry/9.20240811/de...](https://sources.debian.org/src/gimp-plugin-registry/9.20240811/debian/rules/) · [tracker.debian.org/pkg/gimp-plugin-registry](https://tracker.debian.org/pkg/gimp-plugin-registry) · [developer.gimp.org/resource/gimp3-plug-in-porting-guide](https://developer.gimp.org/resource/gimp3-plug-in-porting-guide/)
-- notes: needs humans: photographers and longtime gimp users who remember how these plug-ins looked and felt. risk: the debian maintainer is porting these right now, so coordinate with him on salsa first and don't duplicate his work. the plug-ins are gpl with their own authors; send ports upstream wherever an author is still around.
+- notes: needs humans: photographers and longtime gimp users who remember how these plug-ins looked and felt.
 
 **sharex for linux, working for real** · `xerahs-on-linux` · wave 3 · weeks  
 #open-source #tools #linux #needs-humans
@@ -1215,7 +1161,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - builds on: xerahs, <https://github.com/ShareX/XerahS>
 - why now: linux bug reports for xerahs, like wayland recording stalls, are arriving this month, so the gaps are easy to find.
 - sources: [github.com/ShareX/XerahS](https://github.com/ShareX/XerahS) · [github.com/ShareX/ShareX/issues/6625](https://github.com/ShareX/ShareX/issues/6625)
-- notes: needs humans: people who run each desktop daily and can test on real multi-monitor setups. risk: xerahs welcomes agent-written code, but flathub bans ai-written manifests and agent-opened submissions, so any flathub packaging must be written and sent by a person. capture code must only record what the user asks for.
+- notes: needs humans: people who run each desktop daily and can test on real multi-monitor setups.
 
 ## Cut from the shortlist
 
