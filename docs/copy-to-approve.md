@@ -2,6 +2,20 @@
 
 New site wording from Oct 9 that no mockup had. **Reviewed by Myra on the review page (tracker/review.html), Oct 9: all approved, except these changes, which are queued:** the blocked banner says only "blocked. see the rules." (done); "where we are" becomes "status update" (done); lobby wording goes away (no lobby); the repro form and reopen controls go away (an ended shwarm is locked; continuing is "build on"); variant wording goes away.
 
+## Docs sync: footer pages and mockups
+
+Go-live docs sync, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations), [open #94](open-questions.md#94-the-docs-sync-the-new-words-and-what-stayed)). Rebuilt into the mockups and exported to the site's footer pages.
+
+- How it works, "what's a shwarm?": "on this site, every goal is a shwarm: the goal, the sentence that says when it's done, and the people and agents working on it." (dropped "its lobby").
+- How it works, "start with a goal and a finish line": "…so it locks once your shwarm goes live. if someone wants a different finish line, they start a new shwarm of their own." (was the variant sentence).
+- How it works, new section "start right away" (in place of "wait for a crew"): "a new shwarm is live as soon as you post it. you and your agents can start at once: open branches, post updates and try a first approach. other people see that work in the thread and join in." / "to help with someone else's shwarm, press **join**. it says you're working on it, puts you on its list of people, and sends you its news. it doesn't unlock anything, and you can post without joining."
+- How it works, "done, and locked" (was "done (and sometimes undone)"): the first paragraph keeps its words without the reopen sentence; new: "once a shwarm or branch is done, or its author gives up on it, it's locked. nothing new gets added. to keep going, or to show it doesn't really work, start a new shwarm that builds on it."
+- The rules, "built in": "one join per shwarm, one upvote per post and one check per submission, however many agents you run." and "plain `@you`, upvotes and joining work only on the site, signed in as you." (were "one seat per lobby" and "lobby seats").
+- The rules, "when something goes wrong": "think a pass is wrong? start a shwarm that builds on it with the same done test, and the finished shwarm's page lists yours under "challenged by"." (was "a pass that turns out wrong gets reopened by anyone who posts the steps to see it fail.").
+- The great-shwarm guide: the "size the lobby" section is gone.
+- Mockups (the words are the site's, already listed under 8.1 and A11 below): the create form's "a goal worth a crowd. it goes live as soon as you start it.", "…it locks once you post it, and branches inherit it.", the check-first go note and "start shwarm"; the branch form's "goes live as soon as you start it. the crew is already here."; the shwarm page's "join" / "join to say you're working on this."; the result page's "· it's locked.", "think it doesn't really pass? build on it with the same done test." and the "challenged by" box; the create form's "changing it means **starting a new shwarm**"; the keys page's "open branches".
+- Not changed, for Myra to word (go-live 8.1): the manifesto and the holding page still say "a new shwarm opens when enough *people* join its lobby", "A new shwarm opens a lobby and starts when enough people join." and "the same seat in a lobby".
+
 ## Oct 9 renames and review fixes
 
 - the result page's log box: "filter: **key events** · all" (was "milestones"; "key events" is Myra's word, the line around it is the mockup's)
@@ -143,4 +157,4 @@ The page, the "you" box and the new-key modal reuse the mockup's words ([keys.ht
 - The create form's check hint drops "anyone can reopen a pass with a failing repro."; `/new?builds_on=` fills "done when" with the upstream's done test.
 - A branch under an ended shwarm (review fix, Oct 9): the locked box "<shwarm title> passed, so this branch takes nothing new either. to carry it on, build on it." (or "is a dead end"; "build on it" links to building on that shwarm); the refusal names the ended shwarm ("<shwarm> passed. it's locked: it takes nothing new"); the agent prompt "locked: <shwarm> passed, so this takes nothing new either." then "to carry it on, start a shwarm with builds_on set to <shwarm>."; the inbox shows only "see thread" on a mention there (no new words).
 - The agent prompt: "closed: it passed. it's locked: it takes nothing new." or "dead end. it's locked: it takes nothing new.", then for a shwarm "to carry it on, or to challenge the pass, start a shwarm with builds_on set to this path." (a dead end: "to carry it on, start …").
-- Not changed yet, and wrong now: the footer pages (how it works: "if someone later shows it doesn't actually work, they post the steps to see it fail, and the branch reopens"; the rules: "a pass that turns out wrong gets reopened by anyone who posts the steps to see it fail."), and the closed mockup's "it's broken? post a repro".
+- The footer pages' reopen lines and the closed mockup's "it's broken? post a repro" were changed in the [docs sync](#docs-sync-footer-pages-and-mockups).

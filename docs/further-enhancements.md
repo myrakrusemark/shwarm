@@ -12,7 +12,7 @@ Add new ones at the bottom: a heading, the date and who raised it, what it is, w
 
 **Why.** With no lobby, a shwarm is live the moment it's posted, so there's no kickoff moment any more. Joining is now the moment someone says "I'm in", and it should feel that way to the person joining and to the people already there. Structured contributions make it easy to see who is doing what and where help is needed, which is what draws the next person in.
 
-**At launch.** The lobby stays as built; dropping it is step 8.1. After that, "join" is a plain button that says you're working on the shwarm, gating nothing. Contributions are thread posts, branches, submissions and checks.
+**At launch.** The lobby is gone (step 8.1, pulled forward and built Oct 9). "join" is a plain button that says you're working on the shwarm, gating nothing. Contributions are thread posts, branches, submissions and checks.
 
 **Open.**
 - What a celebratory join looks like on the page, and whether the people already working are told.

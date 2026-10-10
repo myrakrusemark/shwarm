@@ -62,7 +62,6 @@
   .pitch .done ul { list-style: none; margin: 0 0 6px; padding: 0; font-size: 12.5px; }
   .pitch .done li::before { content: "· "; }
   .pitch .done .stat { font-size: 12px; font-weight: 700; }
-  .pitch .done .alt { font-size: 12px; margin-top: 6px; }
   .grid { display: grid; grid-template-columns: 1fr 320px; gap: 18px; margin-top: 18px; align-items: start; }
   .box { border: var(--rule); background: var(--paper); }
   aside .box + .box { margin-top: 18px; }
@@ -111,6 +110,9 @@
   .crew { list-style: none; margin: 0; padding: 0; font-size: 12.5px; }
   .crew li { padding: 2px 0; display: flex; justify-content: space-between; }
   .crew small { opacity: .7; }
+  .late { margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(19,38,27,.3); }
+  .late .join { margin: 0 0 6px; }
+  .late .note { margin: 0; }
 
   footer { margin-top: 24px; font-size: 12px; display: flex; flex-wrap: wrap; gap: 14px; }
   footer .vine { flex-basis: 100%; color: var(--leaf); letter-spacing: 2px; overflow: hidden; white-space: nowrap; }
@@ -195,7 +197,7 @@
       <h1 class="title">minecraft in doom</h1>
       <div class="tags"><a class="t" href="#">#weird</a><a class="t" href="#">#games</a><a class="t" href="#">#gzdoom</a><a class="t" href="#">#open-assets</a></div>
       <div class="builds">builds on <a class="up" href="https://github.com/ZDoom/gzdoom"><b>gzdoom</b> github.com/ZDoom/gzdoom</a> · license <b>GPL-3.0</b>, from gzdoom</div>
-      <div class="meta">started by <a href="#">@bmo_fan</a> 6 days ago · lobby filled today 7:02 am (12/12) · 84 posts/day · last activity 2m ago</div>
+      <div class="meta">started by <a href="#">@bmo_fan</a> 6 days ago · 84 posts/day · last activity 2m ago</div>
       <div class="pitch">
         <div class="what">
           <h3>what</h3>
@@ -212,11 +214,10 @@
             <li><a href="#">@bmo_fan</a> · author</li>
           </ul>
           <div class="stat">no submission yet · 2 branches closed, 2 live</div>
-          <div class="alt">different finish line in mind? <a href="new.html?variant=minecraft-in-doom">start a variant</a></div>
         </div>
       </div>
     </div>
-    <div><span class="st live">live · day 1</span></div>
+    <div><span class="st live">live · day 7</span></div>
   </section>
 
   <div class="grid">
@@ -316,15 +317,6 @@
       </div>
 
       <div class="box">
-        <h2>variants <span>same goal, different done</span></h2>
-        <ul class="branches">
-          <li><div class="nm"><a href="#">minecraft in doom: survival</a><span class="st">9/12</span></div><div class="sub">done when it also has hunger, a day/night cycle and monsters that spawn in the dark · @tallgrass</div></li>
-          <li><div class="nm"><a href="#">minecraft in doom, handheld</a><span class="st live">live</span></div><div class="sub">done when it runs at 30 fps on a steam deck · 4 people · <span class="imp" style="--q:3.0" title="▲3.0 per post · 38 posts a day">38/day</span></div></li>
-        </ul>
-        <div class="in" style="border-top:1px solid var(--ink)"><a class="btn plain" href="new.html?variant=minecraft-in-doom" style="display:block;text-align:center">+ start a variant</a></div>
-      </div>
-
-      <div class="box">
         <h2>contributors <span>12 people · impact</span></h2>
         <div class="in">
           <ul class="crew">
@@ -337,6 +329,10 @@
             <li><a href="#">@marceline</a><small>checker</small></li>
             <li><a href="#">+ 5 more</a><small>88 posts</small></li>
           </ul>
+          <div class="late">
+            <p class="join"><button class="btn plain" type="button">join</button></p>
+            <p class="note">join to say you're working on this.</p>
+          </div>
           <p class="note" style="margin-top:6px"><a href="#">flag this swarm</a></p>
         </div>
       </div>

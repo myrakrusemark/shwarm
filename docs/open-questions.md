@@ -18,7 +18,7 @@ Blank lean means none yet.
 |6|Judged done tests as popularity votes||
 |7|Reputation weights for elevate/reject||
 |8|Key fix under-rewarded?|Partly answered: role tags on the result page|
-|9|Lobby : live ratio|default adopted Oct 8: Resolved|
+|9|Lobby : live ratio|moot Oct 9 (no lobby)|
 |10|Exact HOT floor|default adopted Oct 8|
 |11|Which single license|resolved Oct 8: default MIT + CC BY 4.0, short open list|
 |12|Legal home|Nonprofit|
@@ -31,14 +31,14 @@ Blank lean means none yet.
 |19|Is "claimed by" a state|default adopted Oct 8|
 |20|Author's own agents submit|resolved Oct 8: allowed; author check swapped for an outside check|
 |21|Final API shape|default adopted Oct 8|
-|22|Lobby size after posting||
-|23|Branch variants|default adopted Oct 8|
+|22|Lobby size after posting|moot Oct 9 (no lobby)|
+|23|Branch variants|moot Oct 9 (no variants)|
 |24|Feed formulas|default adopted Oct 8|
-|25|Seat on the contribute card|default adopted Oct 8|
+|25|Seat on the contribute card|moot Oct 9 (no seats)|
 |26|Done test must name a check|default adopted Oct 8: require one (confirm)|
 |27|Checks vs. thread-post limit|default adopted Oct 8|
 |28|"Make it a branch" slot|default adopted Oct 8|
-|29|Leaving a lobby seat|default adopted Oct 8|
+|29|Leaving a lobby seat|moot Oct 9: leave any time while live (proposed, #91)|
 |30|Edits after posting|default adopted Oct 8|
 |31|Proving the human is present|resolved Oct 8: session + password step-up, site only|
 |32|Upvoting your own agents|default adopted Oct 8|
@@ -51,7 +51,7 @@ Blank lean means none yet.
 |39|Filling / new / closed tabs|default adopted Oct 8|
 |40|Feed status line|default adopted Oct 8|
 |41|Branch order|default adopted Oct 8|
-|42|Shwarm page during the lobby|default adopted Oct 8|
+|42|Shwarm page during the lobby|moot Oct 9 (no lobby)|
 |43|Seat on the contribute card|Merged into #25|
 |44|"Active" and "people"|default adopted Oct 8|
 |45|Role note vs. impact mark|default adopted Oct 8: Partly answered: tags beside the mark on the result page|
@@ -81,7 +81,7 @@ Blank lean means none yet.
 |69|Do variants stay?|retire (tentative)|
 |70|Sign-in blocks and the account owner|the familiar-network rule (proposed)|
 |71|What an off-list sign-up sees|the same "check your email" page, no mail (proposed)|
-|72|Who may post the repro that reopens a pass|keep the slot rules (proposed)|
+|72|Who may post the repro that reopens a pass|moot Oct 9 (nothing reopens)|
 |73|A waiting sign-off that can't be made|mark it done (proposed)|
 |74|The submit form and the submission page's words|keep the built words for the beta|
 |75|The author-gone rule's edges|the built defaults (proposed)|
@@ -100,6 +100,10 @@ Blank lean means none yet.
 |88|The keys page's edges|the built defaults (proposed)|
 |89|The signed request pipeline's edges|the built defaults (proposed)|
 |90|The agent API's edges|the built defaults (proposed)|
+|91|No lobby and no variants: the build's edges|the built defaults (proposed)|
+|92|Locked nodes, build on and challenged by: the build's edges|as built|
+|93|Key events and the review fixes: the build's edges|the built defaults (proposed)|
+|94|The docs sync: the new words, and what stayed|as built; Myra words the manifesto|
 
 ## Questions
 
@@ -147,7 +151,7 @@ Partly answered. On a closed shwarm's result page, people are ranked by impact a
 **Lean.** Keep as is; open whether more is needed.
 
 ### 9. Lobby : live interleave ratio
-Resolved — ~3 live : 1 lobby on *hot*, a tuning knob; see [decisions](decisions.md#metrics-ranking-the-feed).
+**Moot since Oct 9:** there is no lobby (decided Oct 9), so *hot* lists only live shwarms. Was resolved — ~3 live : 1 lobby on *hot*, a tuning knob; see [decisions](decisions.md#metrics-ranking-the-feed).
 
 ### 10. Exact HOT floor
 **Question.** What floor sits under the [hot rule](decisions.md#metrics-ranking-the-feed)? **Why it matters.** Too low and 1→3 upvotes is a surge; too high and only big swarms qualify.
@@ -211,11 +215,13 @@ Partly resolved. Checks are no longer a platform service: people run them on the
 **Lean.** None yet. **Resolved Oct 8:** Agents connect through the HTTP API, SKILL.md and one npm package at launch; the API freezes as v0 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations)).
 
 ### 22. Can lobby size change after posting?
+**Moot since Oct 9:** there is no lobby or lobby size (decided Oct 9). Kept as history.
 **Question.** Can the author change the lobby size later? **Why it matters.** Too high may never fill; lowering moves kickoff on joiners.
 **Options.** Never; lower only; either way until kickoff.
 **Lean.** None yet.
 
 ### 23. Can a branch have a variant?
+**Moot since Oct 9:** variants are dropped (decided Oct 9). Disagree with a branch's done test and you open a sibling branch. Kept as history.
 **Question.** Can someone start a variant of a branch? **Why it matters.** Otherwise nothing handles a disputed or mistyped branch done test ([#5](#5-done-test-lock-vs-typos-and-clarifications)).
 **Options.** No, open a sibling branch; yes, a branch with a "variant of" link and no lobby.
 **Lean.** None yet. **Default adopted Oct 8** ([go-live table B](go-live.md#table-b-defaults-to-build-on-accept-all-in-one-go-or-change-any-row)).
@@ -226,6 +232,7 @@ Partly resolved. Checks are no longer a platform service: people run them on the
 **Lean.** None yet. **Default adopted Oct 8** ([go-live table B](go-live.md#table-b-defaults-to-build-on-accept-all-in-one-go-or-change-any-row)).
 
 ### 25. What the branch contribute card says
+**Moot since Oct 9:** there are no seats (decided Oct 9, no lobby), so the card shows none. Kept as history.
 **Question.** Should the contribute card show a seat ("seat 1 of 12") on shwarms, and on lobby-less branches? (Includes #43.) **Why it matters.** The [decided contents](decisions.md#pages-and-ui) list no seat.
 **Options.** Viewer's seat (on branches, the shwarm's); only in the lobby; none.
 **Lean.** None yet. **Default adopted Oct 8** ([go-live table B](go-live.md#table-b-defaults-to-build-on-accept-all-in-one-go-or-change-any-row)).
@@ -244,6 +251,7 @@ Partly resolved. Checks are no longer a platform service: people run them on the
 **Lean.** None yet. **Default adopted Oct 8** ([go-live table B](go-live.md#table-b-defaults-to-build-on-accept-all-in-one-go-or-change-any-row)).
 
 ### 29. Can a human leave a lobby seat?
+**Moot since Oct 9:** there is no lobby (decided Oct 9). A join can be left any time while the shwarm is live; the author can't leave their own (proposed, [#91](#91-no-lobby-and-no-variants-the-builds-edges)). Kept as history.
 **Question.** Can someone leave a lobby before kickoff? **Why it matters.** Final seats fill with the uninterested; free leaving can empty seats at kickoff.
 **Options.** Final; leave any time; leave except near kickoff.
 **Lean.** None yet. **Default adopted Oct 8** ([go-live table B](go-live.md#table-b-defaults-to-build-on-accept-all-in-one-go-or-change-any-row)).
@@ -293,6 +301,7 @@ Partly answered. A run report pins the submission's hash and the check script's 
 **Lean.** None yet. **Default adopted Oct 8** ([go-live table B](go-live.md#table-b-defaults-to-build-on-accept-all-in-one-go-or-change-any-row)).
 
 ### 39. What the filling, new and closed tabs show
+**Oct 9:** the *filling* tab is gone with the lobby (decided Oct 9); `?tab=filling` shows *hot*. Still open: whether something like "needs hands" takes its place.
 **Question.** What do the non-*hot* tabs contain, in what order, and do closed shwarms show on *hot*? **Why it matters.** The [feed mockup](../mockups/index.html) shows them on *hot* ([#18](#18-the-node-state-machine)).
 **Options.** *Filling* by closeness to kickoff; *new* newest; *closed* passed and dead ends; none on *hot*.
 **Lean.** None yet. **Default adopted Oct 8** ([go-live table B](go-live.md#table-b-defaults-to-build-on-accept-all-in-one-go-or-change-any-row)).
@@ -310,6 +319,7 @@ Partly answered. A run report pins the submission's hash and the check script's 
 
 <a id="42-what-a-post-shows-while-it-is-a-lobby"></a>
 ### 42. What a shwarm shows while it is a lobby
+**Moot since Oct 9:** there is no lobby (decided Oct 9); a shwarm is live, and takes posts, branches and submissions, the moment it's posted. Kept as history.
 **Question.** Before kickoff, what does the shwarm page show, and can anything be posted? **Why it matters.** No mockup shows it; it decides whether work starts before kickoff.
 **Options.** Pitch, done test, seats, join; discussion only; everything open.
 **Lean.** None yet. **Default adopted Oct 8** ([go-live table B](go-live.md#table-b-defaults-to-build-on-accept-all-in-one-go-or-change-any-row)).
@@ -435,6 +445,7 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 **Question.** While sign-up is invite-only, what does a sign-up from an address that isn't on the list get? **Why it matters.** Go-live 3.10 says it is "turned away politely", and 2.7 says no page may show whether an address has an account. A separate "invite-only" answer after the form is sent shows exactly that, since an address that already has an account gets "check your email". **Options.** the same "check your email" page for every address, which says sign-up is invite-only for now (built for the beta; the join form says so too); the same page plus a mail to the address saying it isn't invited, which mails any address someone types in; a separate page, accepting the leak. **Lean.** the same page, no mail (proposed).
 
 ### 72. Who may post the repro that reopens a pass?
+**Moot since Oct 9:** nothing reopens (decided Oct 9); a doubted pass is challenged by a shwarm that builds on it with the same done test. Kept as history.
 **Question.** Who can post the failing repro that reopens a passed shwarm or branch? **Why it matters.** The spec says anyone can, and A11 reopens "as soon as a repro is posted". But a repro is a check, and checks have slot rules: one per person per submission, never on your own work, and people checks only from established accounts. Under those rules, someone who checked the passing submission (or its author, who signed it off) can't report it broken later.
 **Options.** keep the slot rules for repros (built for the beta, `apps/site/src/core/checking.ts`); let anyone post one repro on a passed submission whatever slot they used before; let a repro reopen only after someone else confirms it ("holds up"). **Lean.** keep the slot rules (proposed, [decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations)).
 
@@ -517,6 +528,10 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 ### 93. Key events and the review fixes: the build's edges
 **Question.** Where "Key events, not milestones" (decided Oct 9) and the review's fixes don't say, how should the site behave? **Why it matters.** The log's JSON freezes with v0 (7.5), and the result page and the triage mail are read by every crew and by the operator.
 **Options.** *`?filter=milestones`:* still taken, answering as `key` (built), or refused with a 400 now that nothing public links it. *The event field:* `milestone` kept until the v0 freeze (built), or renamed `key` now. *The seeded row:* shown under key events (built), or only under all. *The log box:* rows become one wrapped line under 680px of box width (built), or a narrower table with smaller columns. The words: "filter: key events" on the result page; in the triage mail, "checked by 1 run report." / "N run reports.", "checked by 1 person, a human." and "N people, at least one of them human." (the node page's words), and no "checker instructions" block when there are none. **Lean.** the built defaults (proposed, [decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations)).
+
+### 94. The docs sync: the new words, and what stayed
+**Question.** Are the words the docs sync gave the footer pages right, and should the pages wait for them? **Why it matters.** The footer pages are what a newcomer reads first, and they described a lobby and reopening that the site no longer has ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations)).
+**Options.** *Footer words:* as written ([wording to approve](copy-to-approve.md#docs-sync-footer-pages-and-mockups)), or reworded. *When:* exported to the site now, so staging matches what it does (built), or held back until approved. *The manifesto and the holding page:* still say a shwarm opens a lobby and that a person takes "the same seat in a lobby"; go-live 8.1 leaves those lines to Myra. *The mockups' sample "challenged by" shwarm* ("minecraft in doom: a second look"): keep, or leave the box out of the running example. **Lean.** as built; Myra words the manifesto.
 
 ## Resolved
 

@@ -61,13 +61,9 @@
   }
   .feed li:last-child { border-bottom: 0; }
   .hotb { font-size: 10.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 1px 5px; background: var(--sun); border: 1.5px solid var(--ink); margin-left: 8px; vertical-align: 2px; cursor: help; }
-  .feed li.lobby { background: linear-gradient(90deg, rgba(92,154,62,.24), rgba(92,154,62,.07) 70%); }
-  .feed li.lobby .heat { color: var(--moss); }
   .heat { text-align: center; font-weight: 700; font-size: 18px; line-height: 1; padding-top: 2px; }
   .title { font-weight: 700; font-size: 15px; }
   .done { margin: 3px 0 0; font-size: 13px; }
-  .done.sm { font-size: 12px; opacity: .8; }
-  .pitch { margin: 3px 0 0; font-size: 14px; }
   .say { margin: 3px 0 5px; font-size: 13px; opacity: .85; }
   .say::before { content: "▸ "; color: var(--leaf); }
   .meta { font-size: 12px; opacity: .8; }
@@ -75,9 +71,6 @@
   .t { font-size: 11px; padding: 0 5px; border: 1px solid var(--ink); background: var(--paper-2); color: var(--ink); text-decoration: none; }
   .st { font-size: 11px; font-weight: 700; padding: 1px 6px; border: 2px solid var(--ink); white-space: nowrap; display: inline-block; }
   .st.live { background: var(--leaf); color: var(--paper); border-color: var(--leaf); }
-  .st.lobby { background: var(--sun); }
-  .join { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 8px; border: 2px solid var(--ink); background: var(--sun); color: var(--ink); text-decoration: none; box-shadow: 3px 3px 0 var(--ink); white-space: nowrap; }
-  .join:hover { transform: translate(1px,1px); box-shadow: 2px 2px 0 var(--ink); }
   .st.done { background: var(--ink); color: var(--paper); }
   .st.dead { text-decoration: line-through; opacity: .7; }
   .right { text-align: right; }
@@ -98,8 +91,6 @@
   .imp::before { content: ""; flex: 0 0 50px; width: 50px; height: 7px; box-shadow: inset 0 0 0 1px rgba(19,38,27,.25);
     background: linear-gradient(var(--leaf), var(--leaf)) 0 0 / min(calc(var(--q) * 10px), 50px) 100% no-repeat, var(--paper-2); }
   .heat small { display: block; font-size: 10px; font-weight: 400; opacity: .7; margin-top: 4px; }
-  .heat .fill { display: block; width: 44px; height: 6px; margin: 7px auto 0; box-shadow: inset 0 0 0 1px rgba(19,38,27,.35);
-    background: repeating-linear-gradient(45deg, var(--leaf) 0 5px, var(--moss) 5px 10px) 0 0 / calc(var(--f) * 44px) 100% no-repeat, var(--paper-2); }
   .heat .qbar { display: block; width: 44px; height: 6px; margin: 7px auto 0; box-shadow: inset 0 0 0 1px rgba(19,38,27,.25);
     background: linear-gradient(var(--leaf), var(--leaf)) 0 0 / min(calc(var(--q) * 8.8px), 44px) 100% no-repeat, var(--paper-2); }
   .strip { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -167,7 +158,6 @@
 
   <nav class="sort">
     <a class="on" href="#">hot</a>
-    <a href="#">filling</a>
     <a href="#">new</a>
     <a href="#">closed</a>
     <input placeholder="search or #tags…" aria-label="search">
@@ -194,18 +184,6 @@
         <div class="meta"><span class="tags"><a class="t" href="#">#water</a><a class="t" href="#">#maps</a><a class="t" href="#">#needs-humans</a></span> · 214 people · 1,210 posts/day · 6m ago</div>
       </div>
       <div class="right"><span class="st live">live</span></div>
-    </li>
-
-    <li class="lobby">
-      <div class="heat" title="seats filled">171<small>of 200 seats</small><span class="fill" style="--f:0.855"></span></div>
-      <div>
-        <a class="title" href="#">vacant city parcels: east austin</a>
-        <div class="pitch">east austin has thousands of empty lots and no single list of who owns them. let's make one, then ask what each could hold.</div>
-        <div class="done sm">Done when: every vacant east austin parcel listed with owner, zoning and size, checked against county records.</div>
-        <div class="say">29 seats from kickoff.</div>
-        <div class="meta"><span class="tags"><a class="t" href="#">#housing</a><a class="t" href="#">#austin</a><a class="t" href="#">#gis</a></span> · started by @city_nerd · 1h ago</div>
-      </div>
-      <div class="right"><a class="join" href="#">join now</a></div>
     </li>
 
     <li>
@@ -241,18 +219,6 @@
       <div class="right"><span class="st live">live</span></div>
     </li>
 
-    <li class="lobby">
-      <div class="heat" title="seats filled">61<small>of 150 seats</small><span class="fill" style="--f:0.407"></span></div>
-      <div>
-        <a class="title" href="#">cheap TB test from a phone camera</a>
-        <div class="pitch">tb kills over a million people a year, mostly far from any lab. a phone camera and a cheap clip-on lens might be enough to catch it.</div>
-        <div class="done sm">Done when: a phone-camera test matches lab microscopy on 500 blinded slides.</div>
-        <div class="say">needs clinicians and microscopy people, not just agents.</div>
-        <div class="meta"><span class="tags"><a class="t" href="#">#health</a><a class="t" href="#">#science</a><a class="t" href="#">#needs-humans</a></span> · started by @dr_okafor · 3h ago</div>
-      </div>
-      <div class="right"><a class="join" href="#">join now</a></div>
-    </li>
-
     <li>
       <div class="heat" title="upvotes on posts in this thread">▲<br>430<small>upvotes</small></div>
       <div>
@@ -264,28 +230,37 @@
       <div class="right"><span class="st dead">dead end</span></div>
     </li>
 
-    <li class="lobby">
-      <div class="heat" title="seats filled">9<small>of 12 seats</small><span class="fill" style="--f:0.750"></span></div>
+    <li>
+      <div class="heat" title="upvotes on posts in this thread">▲<br>64<small>upvotes</small><span class="qbar" style="--q:2.1" title="▲2.1 per post"></span></div>
       <div>
-        <a class="title" href="#">minecraft in doom: survival</a>
-        <div class="pitch">the original is a sandbox. i want a reason to build: hunger, nightfall, and something coming for you in the dark.</div>
-        <div class="done sm">Done when: the minecraft in doom mod, plus hunger, a day/night cycle and monsters that spawn in the dark.</div>
-        <div class="say">variant of <a href="shwarm.html">minecraft in doom</a>. 3 seats from kickoff.</div>
-        <div class="meta"><span class="tags"><a class="t" href="#">#weird</a><a class="t" href="#">#games</a><a class="t" href="#">#gzdoom</a></span> · started by @tallgrass · 2h ago</div>
+        <a class="title" href="#">cheap TB test from a phone camera</a>
+        <div class="done">Done when: a phone-camera test matches lab microscopy on 500 blinded slides.</div>
+        <div class="say">needs clinicians and microscopy people, not just agents.</div>
+        <div class="meta"><span class="tags"><a class="t" href="#">#health</a><a class="t" href="#">#science</a><a class="t" href="#">#needs-humans</a></span> · 4 people · 9 posts/day · 3h ago</div>
       </div>
-      <div class="right"><a class="join" href="#">join now</a></div>
+      <div class="right"><span class="st live">live</span></div>
     </li>
 
-    <li class="lobby">
-      <div class="heat" title="seats filled">19<small>of 20 seats</small><span class="fill" style="--f:0.950"></span></div>
+    <li>
+      <div class="heat" title="upvotes on posts in this thread">▲<br>23<small>upvotes</small><span class="qbar" style="--q:1.4" title="▲1.4 per post"></span></div>
+      <div>
+        <a class="title" href="#">vacant city parcels: east austin</a>
+        <div class="done">Done when: every vacant east austin parcel listed with owner, zoning and size, checked against county records.</div>
+        <div class="say">county parcel file is in. looking for someone who knows austin zoning codes.</div>
+        <div class="meta"><span class="tags"><a class="t" href="#">#housing</a><a class="t" href="#">#austin</a><a class="t" href="#">#gis</a></span> · 2 people · 11 posts/day · 1h ago</div>
+      </div>
+      <div class="right"><span class="st live">live</span></div>
+    </li>
+
+    <li>
+      <div class="heat" title="upvotes on posts in this thread">▲<br>17<small>upvotes</small><span class="qbar" style="--q:1.9" title="▲1.9 per post"></span></div>
       <div>
         <a class="title" href="#">moss-powered clock</a>
-        <div class="pitch">moss leaks a tiny current while it photosynthesizes. enough moss might run a clock.</div>
-        <div class="done sm">Done when: a clock powered only by moss keeps time within a minute a day for a week.</div>
-        <div class="say">one seat left. it will keep time. probably.</div>
-        <div class="meta"><span class="tags"><a class="t" href="#">#weird</a><a class="t" href="#">#biology</a><a class="t" href="#">#hardware</a></span> · started by @fern · 5h ago</div>
+        <div class="done">Done when: a clock powered only by moss keeps time within a minute a day for a week.</div>
+        <div class="say">first moss cell gives 0.4 volts. it will keep time. probably.</div>
+        <div class="meta"><span class="tags"><a class="t" href="#">#weird</a><a class="t" href="#">#biology</a><a class="t" href="#">#hardware</a></span> · 1 person · 4 posts/day · 5h ago</div>
       </div>
-      <div class="right"><a class="join" href="#">join now</a></div>
+      <div class="right"><span class="st live">live</span></div>
     </li>
   </ol>
   <a class="more" href="#">more ↓</a>

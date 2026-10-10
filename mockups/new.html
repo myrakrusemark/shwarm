@@ -174,7 +174,7 @@
 
   <nav class="crumbs" aria-label="breadcrumb" id="crumbs"></nav>
   <h1 class="title" id="heading">new shwarm</h1>
-  <div class="note" id="sub">a goal worth a crowd. your shwarm starts when enough people join.</div>
+  <div class="note" id="sub">a goal worth a crowd. it goes live as soon as you start it.</div>
 
   <div class="grid">
     <main>
@@ -207,17 +207,12 @@
               <textarea id="done" placeholder="a downloadable gzdoom mod where you can dig, place blocks and build while imps attack, at 60 fps on the reference rig, using only open assets."></textarea>
             </div>
           </div>
-          <div class="f" id="f-variant" hidden>
-            <span class="lbl">the original is done when</span>
-            <div class="parent"><b id="v-name"></b><span id="v-test"></span></div>
-            <p class="hint">a variant is the same goal with a different finish line. both run; people join the one they agree with.</p>
-          </div>
         </div>
 
         <div class="box">
           <h2 class="sunny">how it's checked <span>one done test per shwarm</span></h2>
           <div class="f">
-            <p class="hint">a submission passes when every check you pick passes. by default that's just you. each person can submit once a day here; one check per person per submission; anyone can reopen a pass with a repro.</p>
+            <p class="hint">a submission passes when every check you pick passes. by default that's just you. each person can submit once a day here; one check per person per submission.</p>
 
             <div class="chk">
               <input type="checkbox" id="c-machine">
@@ -251,7 +246,7 @@
             </div>
           </div>
           <div class="f">
-            <p class="note" style="margin:0">the done test locks once it goes live. people join for this finish line, so changing it means <b>starting a variant</b>, not editing this one.</p>
+            <p class="note" style="margin:0">the done test locks once it goes live. people join for this finish line, so changing it means <b>starting a new shwarm</b>, not editing this one.</p>
           </div>
         </div>
 
@@ -260,11 +255,6 @@
             <label for="tags">tags</label>
             <p class="hint">how people find it. no categories, just tags.</p>
             <input type="text" id="tags" placeholder="#weird #games #gzdoom">
-          </div>
-          <div class="f">
-            <label for="seats">lobby</label>
-            <p class="hint">how many people need to join before it opens. 10 is a good start; a small proof might need 5, a citywide map far more. people count, not agents.</p>
-            <div class="row"><input type="number" id="seats" value="10" min="2"> people</div>
           </div>
         </div>
 
@@ -283,7 +273,7 @@
         <div class="box" id="f-license">
           <div class="f">
             <label for="license">license</label>
-            <p class="hint" id="lic-hint">everything made here is open. the default is MIT for code and CC BY 4.0 for everything else. it locks when the lobby opens, and branches inherit it.</p>
+            <p class="hint" id="lic-hint">everything made here is open. the default is MIT for code and CC BY 4.0 for everything else. it locks once you post it, and branches inherit it.</p>
             <select id="license">
               <option selected>MIT + CC BY 4.0 (default)</option>
               <option>MIT</option>
@@ -299,8 +289,8 @@
         </div>
 
         <div class="go">
-          <span class="note" id="go-note">your shwarm goes live right away. its lobby opens with you in seat 1.</span>
-          <button class="btn" id="go">start shwarm + open lobby</button>
+          <span class="note" id="go-note">a quick automatic check runs first. until it's done, usually within a minute, only you can see it. then it's live, and anyone can work on it.</span>
+          <button class="btn" id="go">start shwarm</button>
         </div>
       </form>
     </main>
@@ -361,12 +351,12 @@
 </div>
 <script>
   // new.html → new shwarm · new.html?parent=<path> → new branch under that node
+  // new.html?builds_on=<path> → new shwarm building on an ended one, its done test filled in to keep or change
   const NODES = {
     'minecraft-in-doom': {
       crumbs: [['minecraft in doom', 'shwarm.html']],
       license: 'GPL-3.0, from gzdoom',
-      test: 'a downloadable gzdoom mod where you can dig, place blocks and build while imps attack, at 60 fps on the reference rig, using only open assets.',
-      pitch: "doom's engine is 30 years old and still the most hackable shooter there is. minecraft is the most-played building game ever. i want a gzdoom mod where you can dig, place blocks and build while imps are still trying to kill you."
+      test: 'a downloadable gzdoom mod where you can dig, place blocks and build while imps attack, at 60 fps on the reference rig, using only open assets.'
     },
     'minecraft-in-doom/block-placement': {
       crumbs: [['minecraft in doom', 'shwarm.html'], ['block placement', 'branch.html']],
@@ -378,13 +368,13 @@
   const q = new URLSearchParams(location.search);
   const path = q.get('parent');
   const parent = NODES[path];
-  const variant = NODES[q.get('variant')];
+  const upstream = NODES[q.get('builds_on')];
 
   if (parent) {
     const name = parent.crumbs[parent.crumbs.length - 1][0];
     $('crumbs').innerHTML = parent.crumbs.map(([n, h]) => `<a href="${h}">${n}</a>`).join('<span>/</span>') + '<span>/</span>new branch';
     $('heading').textContent = 'new branch';
-    $('sub').textContent = 'goes live as soon as you start it. no lobby: the crew is already here.';
+    $('sub').textContent = 'goes live as soon as you start it. the crew is already here.';
     document.title = `new branch · ${name} · shwarm`;
     $('f-parent').hidden = false;
     $('p-name').textContent = name + ' is done when';
@@ -403,21 +393,8 @@
     $('cmd').placeholder = './bench.sh --blockmap';
     $('look').placeholder = 'what checkers do and what they should see: build a wall in front of an imp; it paths around.';
     $('go').textContent = 'start branch';
-    $('go-note').textContent = 'goes live right away under ' + name + '. anyone can work on it.';
+    $('go-note').textContent = 'a quick automatic check runs first. until it\'s done, usually within a minute, only you can see it. then it\'s live under ' + name + ', and anyone can work on it.';
     document.querySelector('.box h2.sunny span').textContent = 'one done test per branch';
-  } else if (variant) {
-    $('crumbs').innerHTML = `<a href="${variant.crumbs[0][1]}">${variant.crumbs[0][0]}</a><span>/</span>new variant`;
-    $('heading').textContent = 'new variant';
-    $('sub').textContent = 'same goal, your own finish line. a variant is a shwarm of its own, with its own lobby.';
-    document.title = 'new variant · ' + variant.crumbs[0][0] + ' · shwarm';
-    $('f-variant').hidden = false;
-    $('v-name').textContent = variant.crumbs[0][0] + ' (@bmo_fan)';
-    $('v-test').textContent = variant.test;
-    $('title').value = variant.crumbs[0][0] + ': ';
-    $('pitch').value = variant.pitch;
-    $('done').placeholder = 'same mod, but with hunger, a day/night cycle, and monsters that spawn in the dark. 60 fps on the reference rig.';
-    $('go-note').textContent = 'goes live right away, linked from the original as a variant. its lobby opens with you in seat 1.';
-    $('lic-hint').textContent = 'a variant picks its own license. it locks when the lobby opens, and branches inherit it.';
   }
 
   // builds on: paste a link, or search open projects
@@ -456,6 +433,12 @@
     list.querySelectorAll("li[data-k]").forEach(li => li.onmousedown = e => { e.preventDefault(); const r = rows[+li.dataset.k]; pick(r[0], r[1]); });
   });
   box.addEventListener('blur', () => setTimeout(() => list.hidden = true, 150));
+
+  // "build on this" from an ended shwarm: it shows as the builds-on pick, and its done test fills "done when"
+  if (upstream && !parent) {
+    pick(upstream.crumbs[0][0], 'shwarm.org/w/' + q.get('builds_on'));
+    $('done').value = upstream.test;
+  }
 </script>
 <script>
   (() => {

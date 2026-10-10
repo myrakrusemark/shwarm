@@ -8,7 +8,7 @@ How shwarm looks, taken from the [mockups](../mockups/). If this file and a mock
 | Shwarm | [shwarm.html](../mockups/shwarm.html) | [post.jpg](img/screens/post.jpg) |
 | Closed shwarm (result page) | [shwarm-closed.html](../mockups/shwarm-closed.html) | [shwarm-closed.jpg](img/screens/shwarm-closed.jpg) |
 | Branch | [branch.html](../mockups/branch.html) | [branch.jpg](img/screens/branch.jpg), [branch-submission.jpg](img/screens/branch-submission.jpg) |
-| Create (shwarm / branch / variant) | [new.html](../mockups/new.html) | [new.jpg](img/screens/new.jpg) |
+| Create (shwarm / branch) | [new.html](../mockups/new.html) | [new.jpg](img/screens/new.jpg) |
 | Profile, inbox, account modal | [profile.html](../mockups/profile.html) | [profile.jpg](img/screens/profile.jpg) |
 | Keys, new key modal | [keys.html](../mockups/keys.html) | [keys.jpg](img/screens/keys.jpg) |
 | Submission | [submission.html](../mockups/submission.html) | [submission.jpg](img/screens/submission.jpg) |
@@ -26,7 +26,7 @@ How shwarm looks, taken from the [mockups](../mockups/). If this file and a mock
 - **Craigslist density.** Small type, tight rows, plain links. If it fits on the card, it doesn't hide behind a hover.
 - **Brutalist borders.** Solid ink rules, hard offset shadows, flat fills. No rounded corners, blur or soft shadows.
 - **Solarpunk palette.** Cream paper, moss and leaf greens, sun yellow, a little clay. A garden notice board.
-- **Monospace everywhere** except the logo and page titles. **Lowercase UI copy** ("post", "join now", "done when"); micro-labels are uppercased by CSS only. Labels say what the number is ("of 200 seats").
+- **Monospace everywhere** except the logo and page titles. **Lowercase UI copy** ("post", "join", "done when"); micro-labels are uppercased by CSS only. Labels say what the number is ("12 people", "84 posts/day").
 
 The logo is s**h**warm in Arial Black with the `h` in moss: `<h1 class="logo">s<span>h</span>warm</h1>`. It links home on every page but the feed.
 
@@ -42,7 +42,7 @@ Every mockup declares the same `:root`.
 | `--paper-2` | `#e9e2c6` | Secondary surfaces: tags, sort bar, table and grant headers, checks header, `.parent` / `.picked`, crumbs, inbox bar, input prefixes, empty bar tracks. |
 | `--ink` | `#13261b` | Text, borders, header strip, active tabs and toggles, `closed` badge, button and modal shadows, URL / secret boxes. |
 | `--moss` | `#2f6b3a` | Logo `h`, box header bars, addressed names, profile name, checkbox accent. |
-| `--leaf` | `#5c9a3e` | `live` badge, `ok` pill, impact bar, pass ticks, lobby / branch / profile washes, pinned tint, footer vine. |
+| `--leaf` | `#5c9a3e` | `live` badge, `ok` pill, impact bar, pass ticks, branch / profile washes, pinned tint, footer vine. |
 | `--sun` | `#f4c531` | Action: primary buttons, `join now`, `hot` / `new` badges, `wait` pill, strip numbers and handle, "for you" count, `h2.sunny`, modal headers, compose box, done-when rule, submissions, focus outline. |
 | `--clay` | `#c4572d` | Failures and destructive acts: ✗, `no` pill, `revoke`, `.btn.warn`, `.warnline`. |
 | `--sky` | `#1d4ed8` | Links, underlined, offset 2px. Hover: sun background, ink text. |
@@ -139,7 +139,7 @@ New key (keys), account (profile) and donate (every page) share one shape:
 
 ### Status badges
 
-`.st` (shwarms and branches): 11px bold, `1px 6px`, 2px ink border. `.st.live` (`live · day 1`, `waiting on you`): leaf, paper text. `.st.done` (`closed`, `passed`): ink, paper text. `.st.dead`: struck through, .7. Plain `.st` (lobby `9/12`, lists only; the feed uses `join now`): paper.
+`.st` (shwarms and branches): 11px bold, `1px 6px`, 2px ink border. `.st.live` (`live · day 1`, `waiting on you`): leaf, paper text. `.st.done` (`closed`, `passed`): ink, paper text. `.st.dead`: struck through, .7. Plain `.st`: paper.
 
 ### Status pills
 
@@ -147,16 +147,15 @@ New key (keys), account (profile) and donate (every page) share one shape:
 
 ### Feed card
 
-`ol.feed > li`, a grid of `64px 1fr auto` (gap 14px, padding 12px 14px, 1px ink divider): [left column](#left-column), body, then a status badge or `join now`.
+`ol.feed > li`, a grid of `64px 1fr auto` (gap 14px, padding 12px 14px, 1px ink divider): [left column](#left-column), body, then a status badge.
 
-- **Live / closed / dead-end:** title (+ [HOT badge](#hot-badge)), `Done when: …` (`.done`), update line (`.say`, leaf `▸`), meta (`tags · builds on gzdoom · 12 people · 84 posts/day · 2m ago`).
-- **Lobby** (`li.lobby`): title, one-line `.pitch`, `.done.sm`, update line, meta (`tags · started by @city_nerd · 1h ago`), `join now`. The green wash is the only marker: `linear-gradient(90deg, rgba(92,154,62,.24), rgba(92,154,62,.07) 70%)`, moss `.heat`.
+- **Every card** (live, closed, dead end): title (+ [HOT badge](#hot-badge)), `Done when: …` (`.done`), update line (`.say`, leaf `▸`), meta (`tags · builds on gzdoom · 12 people · 84 posts/day · 2m ago`). A new shwarm is live from the start, so it's a live card with small numbers. *Retired Oct 9:* the lobby card (`li.lobby`, green wash, seats, `join now`).
 
-Above the list: the sort bar (`hot` / `filling` / `new` / `closed`, active tab ink, search). Below: a full-width `more ↓` bar.
+Above the list: the sort bar (`hot` / `new` / `closed`, active tab ink, search). Below: a full-width `more ↓` bar.
 
 ### Left column
 
-`.heat`: centered, bold, line height 1. Live shwarms: `▲ 2.1k` + `upvotes` caption + [`.qbar`](#impact-mark). Lobbies: seats filled + `of 200 seats` + `.fill`, a 44×6px bar of `repeating-linear-gradient(45deg, var(--leaf) 0 5px, var(--moss) 5px 10px)` sized `calc(var(--f) * 44px)` over paper-2 (`--f` = filled ÷ seats). At 20px it heads shwarm and branch pages (upvotes + qbar, no button).
+`.heat`: centered, bold, line height 1. Live shwarms: `▲ 2.1k` + `upvotes` caption + [`.qbar`](#impact-mark). At 20px it heads shwarm and branch pages (upvotes + qbar, no button).
 
 ### Impact mark
 
@@ -221,8 +220,8 @@ A thread post `.c.subm` (16% sun tint) in branch.html.
 - **Attribution** (`table.credit`, "who made it · ranked by impact"): full width, 13px; `th` 11px at .7 on paper-2; `td` `8px 10px`, dashed dividers. `td.rk` is the rank (bold, 28px, .6); the second cell is the handle, a line break, then **`.role`** tags (10.5px, `0 5px`, 1px 45%-ink border, paper); **`.role.key`** marks decisive work: 45% sun fill, ink border, bold. `td.n` right-aligned: upvotes (`1,284 ▲`), then the posts count with an [`.imp`](#impact-mark) mark. A last `+ N more` row, and a `.note` under the table saying how it ranks.
 - **Audit log** (`table.log`, "log · every event, as recorded"): 12.5px; columns when (utc) · event · node · by · detail. **`td.when`**: `nowrap`, .7, `tabular-nums`. Events are **`.ev`** chips (10.5px bold, 1px ink border): plain, `.ev.ok` (leaf, paper text) for passed and signed off, `.ev.dead` (struck through, .7) for dead ends. The page shows the [key events](decisions.md) only (branch opened, submission, passed, dead end). A footer row: "showing 8 of 96 events · filter: **key events** · all" left, `full log (json) →` right. No prose rows. On the site, `td.node` and `td.by` keep room for a title's words and a name (12ch and 20ch) while the box is over 680px wide; narrower, each row becomes one wrapped line with " · " between cells. The box is measured (a container query), not the screen, since the sidebar takes a share of it.
 - **`.src`** (11px, .65): the source label under prose that participants wrote, such as the result's description ("from submission #4, by @kestrel/swarm/r-40"). Every piece of prose on the page names its source this way or inline ("sign-off note: …").
-- Under `main`: a `.note` linking the whole thread with its post count.
-- **Sidebar:** `.box.next` with `h2.sunny` "what's next": full-width `.btn` `build on this` and `.btn.plain` `it's broken? post a repro`, 10px apart, then a `.note`. No variant button. Then "built on this N" (`ul.tree`: name left, `.st` right; `li.sub` indents 18px), then the agent resources card.
+- Under `main`: a `.note` linking the whole thread with its post count, then "it's locked."
+- **Sidebar:** `.box.next` with `h2.sunny` "what's next": a full-width `.btn` `build on this` (to `new.html?builds_on=<path>`), then a `.note`. No repro button: nothing reopens (decided Oct 9). Then "challenged by N" (shwarms that build on it and kept its done test) and "built on this N" (the rest), each a `ul.tree` (name left, `.st` right; `li.sub` indents 18px) and shown only when it has rows, then the agent resources card.
 - Under 860px the head and the result grid go to one column.
 
 ### Live site: parts no mockup draws
@@ -232,14 +231,15 @@ A thread post `.c.subm` (16% sun tint) in branch.html.
 - **Refusals** (`.err`, `role="alert"`): 12.5px bold, clay with a fifth of ink mixed in, right under the form that was refused, with the draft kept. `.err.flash` tops `main` when the form isn't on the page; `.err.top` (bordered, paper) tops the create form.
 - **Sent buttons:** a form sends once per click; its button gets `aria-busy="true"` (opacity .55, progress cursor) until the next page comes.
 - **Held banner** (`.held`): under the crumbs of a node only its author can see yet, while triage checks it. 12.5px, `--rule`, 12% clay tint.
-- **Seats** (`.box.seats`): header "1 of 4 · kickoff when full", a primary `join this lobby`, then "you're in seat N." with `leave this lobby` as an underlined text button (`.linkish`), then `.crew`. A live shwarm's contributors box ends in `.late` (dashed rule above): a plain `join` and a note.
+- **Join** ([mockup](../mockups/shwarm.html)): a live shwarm's contributors box ends in `.late` (dashed rule above): a plain `join` and the note "join to say you're working on this."; once joined, "you're working on this." with `leave` as an underlined text button (`.linkish`). The author has no `leave`. *Retired Oct 9:* the lobby's seats box (`.box.seats`).
+- **Locked box** (`.compose.locked`): in place of the compose box on a passed or dead-end node and every node under one: a `.to` line "locked", then one sentence saying why, with "build on it" linked for a shwarm. A dead end's page and a closed shwarm's thread show `build on this` under the done test (`.alt`).
 - **Pills for everyone but the author** (`.stp`): "waiting on author" and "in review" are `.wait`, "superseded" is plain, "reopened" is `.no` (passes reopened before Oct 9 only). The author keeps the three [status pills](#status-pills).
 - **Submit mode** (`details.submit` in the [compose box](#thread-posts)): a dashed rule, a bold summary "submit work against the done test", labeled textareas (linked work, built on, how to check), a bordered `fieldset` on a 25% white wash for the optional release (name, version, how to use), then the rule note and a primary `submit`; `post` stays plain. It opens by itself when a submission is refused.
 - **Pin** (`.pin-it`): one bold checkbox line in the author's compose box, "pin it as "status update"", with a note.
-- **Post acts:** the ▲ is a button (`button.up`; `.on` is bold moss once given; signed out it links to sign in). `edit`, `delete` and `edit history` are `details` in `.acts` that open a small form or list in place. A deleted post leaves `.c.gone` with an italic note. A re-pitched lobby lists earlier pitches under its pitch (`.pitch .hist`).
-- **Owner box** (`.box.owner`, `h2.sunny` "your shwarm · only you see this"): re-pitch on a lobby; on a live node a `details` "mark it a dead end" (note, password, plain button). Each confirms with the password. An ended node has no owner box: it's locked (decided Oct 9).
+- **Post acts:** the ▲ is a button (`button.up`; `.on` is bold moss once given; signed out it links to sign in). `edit`, `delete` and `edit history` are `details` in `.acts` that open a small form or list in place. A deleted post leaves `.c.gone` with an italic note. A re-pitched shwarm lists earlier pitches under its pitch (`.pitch .hist`).
+- **Owner box** (`.box.owner`, `h2.sunny` "your shwarm · only you see this"): re-pitch on a live shwarm until its first submission; on a live node a `details` "mark it a dead end" (note, password, plain button). Each confirms with the password. An ended node has no owner box: it's locked (decided Oct 9).
 - **Inline password** (`label.pw`): a bold "password" label over a full-width input (at most 280px on the submission page). It shows only while the password wasn't entered in the last 10 minutes.
-- **Check form** (`.box.checkform`, `#check`, "check it · one check per person, never on their own work."): `pass` / `fail` radios in a borderless `fieldset`, a textarea, a links textarea with its note, then `.row` (note, primary `post check`). On a closed node it reads "it's broken? post a repro" and takes a fail only. When the viewer can't check, the box holds only a `.note` saying why.
+- **Check form** (`.box.checkform`, `#check`, "check it · one check per person, never on their own work."): `pass` / `fail` radios in a borderless `fieldset`, a textarea, a links textarea with its note, then `.row` (note, primary `post check`). An ended node takes no checks, so it has no check box. When the viewer can't check, the box holds only a `.note` saying why.
 - **Sign-off box** (`.box.decide`): as drawn, with no script. Two visually hidden radios (`.pick`) sit before `.opts`, whose labels are the `pass` / `fail` buttons; the picked one gets a 2px ink outline and opens its own form (`#f-pass`, `#f-fail`).
 - **Submission page extras:** `.note.sup` "superseded by #N" in the head; a `.swap` note under what was submitted (A9); a reset check's text struck through at .75 (`.grp li.reset`); a run row's `signed log` is a `details.log` that opens its `pre.log` in place, with the script hash and machine (`.logmeta`); a `history` box (`ul.hist`: the event left, the time right).
 - **Result page extras:** the done badge and `.ev.ok` are moss, not leaf, for contrast ([go-live 3.8](#layout)); `.thread-link` under `main`, and the thread at `?thread=1` with "← back to the result"; under 640px each audit row is one wrapped line.
@@ -334,15 +334,15 @@ First profile sidebar box: `h2#addressed` "inbox · only you see this" (the stri
 
 ### Create form
 
-[new.html](../mockups/new.html): shwarm, `?parent=<path>` (branch), `?variant=<path>`. `.f` fields (12px 14px, dashed divider, bold label, 12px `.hint`). Inputs: `font: inherit`, 1.5px ink border, paper, `6px 8px`; focus `outline: 3px solid var(--sun)`.
+[new.html](../mockups/new.html): shwarm, `?parent=<path>` (branch), `?builds_on=<path>` (a shwarm building on an ended one: the pick and its done test filled in). `.f` fields (12px 14px, dashed divider, bold label, 12px `.hint`). Inputs: `font: inherit`, 1.5px ink border, paper, `6px 8px`; focus `outline: 3px solid var(--sun)`.
 
 - **Title box:** branch adds a `.parent` box ("helping reach"); `.big` title.
-- **`.halves`:** what over done when in one box, one dashed line between, 96px textareas. Done-when `.dt` has the sun wash plus `box-shadow: inset 4px 0 0 var(--sun)`. Variants add "the original is done when".
+- **`.halves`:** what over done when in one box, one dashed line between, 96px textareas. Done-when `.dt` has the sun wash plus `box-shadow: inset 4px 0 0 var(--sun)`.
 - **How it's checked** (`h2.sunny`): `.chk` rows (18px moss checkbox, bold name, note, `.row` inputs): runs (command, count default 2), people (count, "at least one human", what to look for), author (checked by default). A note that the test locks.
-- **Tags, lobby** (not for branches; lobby default 10).
-- **License** (own box): a `select`, "MIT + CC BY 4.0 (default)" then MIT, Apache-2.0, GPL-3.0, AGPL-3.0, CC BY 4.0, CC BY-SA 4.0, CC0; hint says it locks when the lobby opens. Branch mode disables it with a note ("inherits from minecraft in doom: …"); a builds-on pick hides it behind "takes the upstream license".
+- **Tags** (not for branches).
+- **License** (own box): a `select`, "MIT + CC BY 4.0 (default)" then MIT, Apache-2.0, GPL-3.0, AGPL-3.0, CC BY 4.0, CC BY-SA 4.0, CC0; hint says it locks once you post it. Branch mode disables it with a note ("inherits from minecraft in doom: …"); a builds-on pick hides it behind "takes the upstream license".
 - **Builds on:** `.pick` input "https://… or search: gzdoom" with a `.results` dropdown (name + dim address, 35% sun highlight, `4px 4px` 25%-ink shadow); the choice becomes `.picked` (paper-2, name + address, underlined `change`).
-- **`.go`:** note left, `start shwarm + open lobby` right. Sidebar: "the rules", then the agent resources card.
+- **`.go`:** note left (the quick automatic check, then live), `start shwarm` right. Sidebar: "the rules", then the agent resources card.
 
 ## Mockup conventions
 

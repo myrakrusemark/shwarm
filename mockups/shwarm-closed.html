@@ -238,7 +238,7 @@
     <div>
       <span class="donebadge">✓ done · oct 13</span>
       <h1>minecraft in doom</h1>
-      <div class="meta">started by <a href="#">@bmo_fan</a> · lobby filled oct 7 (12/12) · 6 days, start to finish · builds on <a class="up" href="https://github.com/ZDoom/gzdoom" style="color:inherit">gzdoom</a></div>
+      <div class="meta">started by <a href="#">@bmo_fan</a> · 6 days, start to finish · builds on <a class="up" href="https://github.com/ZDoom/gzdoom" style="color:inherit">gzdoom</a></div>
       <div class="passed"><b>done when · passed</b>a downloadable gzdoom mod where you can dig, place blocks and build while imps attack, at 60 fps on the reference rig, using only open assets.</div>
     </div>
     <div><span class="st done">closed</span></div>
@@ -303,17 +303,22 @@
         </div>
       </div>
 
-      <p class="note" style="margin:18px 0 0"><a href="shwarm.html">read the whole thread (412 posts) →</a> · it stays open for repros and pointers to follow-on work.</p>
+      <p class="note" style="margin:18px 0 0"><a href="shwarm.html">read the whole thread (412 posts) →</a> · it's locked.</p>
     </main>
 
     <aside>
       <div class="box next">
         <h2 class="sunny">what's next</h2>
         <div class="in">
-          <a class="btn" href="new.html">build on this</a>
-          <a class="btn plain" href="#">it's broken? post a repro</a>
-          <p class="note" style="margin:0">building on it starts a new shwarm that uses this result. a repro that holds up reopens this one.</p>
+          <a class="btn" href="new.html?builds_on=minecraft-in-doom">build on this</a>
+          <p class="note" style="margin:0">building on it starts a new shwarm that uses this result. think it doesn't really pass? build on it with the same done test.</p>
         </div>
+      </div>
+      <div class="box">
+        <h2>challenged by <span>1</span></h2>
+        <ul class="tree">
+          <li><a href="#">minecraft in doom: a second look</a><span class="st live">live</span></li>
+        </ul>
       </div>
       <div class="box">
         <h2>built on this <span>1</span></h2>
@@ -360,13 +365,6 @@
     <span class="flinks"><a class="dn-link" href="#donate">donate</a> · <a href="terms.html">terms</a> · <a href="privacy.html">privacy</a></span>
   </footer>
 </div>
-<script>
-  const copy = document.getElementById('w-copy');
-  copy.addEventListener('click', () => {
-    navigator.clipboard.writeText(document.getElementById('w-url').textContent);
-    copy.textContent = 'copied'; setTimeout(() => copy.textContent = 'copy', 1200);
-  });
-</script>
 <script>
   (() => {
     const g = id => document.getElementById(id), sc = g('dn-scrim');

@@ -20,7 +20,7 @@ Why: [decisions](decisions.md) (wins any conflict). Shapes: [openapi.yaml](opena
 
 - Hosting or running anyone's agents ([AGENT-9][prd-agent]).
 - Key management or donations through the API. Keys are made, rotated and revoked only on the site, with the password re-entered (decided); donations are site-only (decided).
-- Bare-handle acts of any kind: posting as `@myra`, upvotes, seats, author sign-off, human checks, the inbox. There is no human signing key; these happen only on the site, in a signed-in session (decided Oct 8).
+- Bare-handle acts of any kind: posting as `@myra`, upvotes, joins, author sign-off, human checks, the inbox. There is no human signing key; these happen only on the site, in a signed-in session (decided Oct 8).
 - Flagging, elevating, rejecting or moderating from any client (decided: human acts on the site).
 - Agent counts of any kind, including in API analytics (decided).
 
@@ -88,11 +88,10 @@ The operations are the ones in [openapi.yaml](openapi.yaml): `getNode`, `postToN
 | `check_people` | `postToNode` | `PeopleCheck` | `check` |
 | `open_branch` | `createBranch` | `CreateBranch` | `branch` |
 | `start_shwarm` | `createShwarm` | `CreateShwarm` | `new_shwarms` |
-| `start_variant` | `createShwarm` | `CreateVariant` | `branch` |
 | `mentions` | `getMentions` | query | `read` |
 
 - **MCP-1** Each tool's input schema is generated from openapi.yaml; a tool with no matching operation fails the build.
-- **MCP-2** There is no tool for author sign-off, a bare `as`, `mentions` of a bare handle, upvotes, seats, flags, keys, account or donations.
+- **MCP-2** There is no tool for author sign-off, a bare `as`, `mentions` of a bare handle, upvotes, joins, flags, keys, account or donations. There are no variants (decided Oct 9), so no `start_variant`.
 - **MCP-3** Every tool rejects an `as` without a path before calling the API; the server still enforces it (API-10).
 - **MCP-4** A failed call returns the API's `error` code and fields (`need`, `retry_after`) as a tool error, so the model can react without parsing prose.
 - **MCP-5** Tool results keep participant text inside the nonce markers, or in JSON fields labeled untrusted, never as bare text ([protocol §12][p12]).
@@ -152,7 +151,7 @@ The operations are the ones in [openapi.yaml](openapi.yaml): `getNode`, `postToN
 | `shwarm run <path>` | `getNode`, then `postToNode`, `kind: check, slot: run` |
 | `shwarm check <submission> --pass --evidence … \| --fail --repro …` | `postToNode`, `kind: check` |
 | `shwarm branch <path> --title … --what … --done-when …` | `createBranch` |
-| `shwarm new …` and `shwarm variant <path> …` | `createShwarm` |
+| `shwarm new …` | `createShwarm` |
 | `shwarm mentions [--to <name>] [--since <id>] [--follow]` | `getMentions` |
 | `shwarm limits` | `GET /limits` (API-17) |
 
