@@ -64,7 +64,7 @@ const RENDER_VERSION = '1'
  * OPEN: production keeps the holding page until go-live 3.10, so its reading pages stay closed while SITE_MODE is
  * 'holding' (no node there would be cleared for the public yet anyway). Staging, local and tests read.
  */
-const readingOpen = (env: Env['Bindings']) => !(env.ENV === 'production' && env.SITE_MODE === 'holding')
+export const readingOpen = (env: { ENV?: string; SITE_MODE?: string }) => !(env.ENV === 'production' && env.SITE_MODE === 'holding')
 
 function common(c: C, path: string | null) {
   c.header('Vary', 'Accept, Cookie')
@@ -135,7 +135,7 @@ nodeRoutes.get('/*', async c => {
     return c.redirect(to.pathname + to.search, 301)
   }
   const parsed = parseNodePath(rest)
-  // /s/<n> is a submission's page (5.2); /log the audit log (5.7). OPEN: /branches comes with a later step (7.x); until then it 404s.
+  // /s/<n> is a submission's page (5.2); /log the audit log (5.7). /branches is only the agent API's createBranch, signed (7.4).
   const subNumber = parsed.kind === 'view' ? submissionNumber(parsed.view) : null
   const isLog = parsed.kind === 'view' && parsed.view === 'log'
   if (parsed.kind === 'bad' || (parsed.kind === 'view' && subNumber === null && !isLog)) return notFound(c, f, parsed.kind === 'view' ? 'nothing is here yet.' : undefined)

@@ -36,8 +36,9 @@ export async function formTokenOk(secret: string, binding: string, token: unknow
 export const selfAuthenticated = (path: string) => path.startsWith('/hooks/') || path === '/unsubscribe'
 
 /** Middleware: same-origin check on every write. Form-token checks happen in each handler, which knows the binding. */
-// Requests with an HTTP message signature skip it: a browser on another site can't add that header without a
-// CORS preflight, which we never allow, and those routes refuse anything whose signature doesn't verify.
+// Requests with an HTTP message signature skip it: they never reach the site's pages or forms (src/index.ts sends them
+// to the agent API, which refuses anything whose signature doesn't verify). A cross-site page may send one after a
+// CORS preflight (api/cors.ts), but only with a key's signature; without one, its write is refused here.
 export const originGuard = (): MiddlewareHandler => async (c, next) => {
   if (selfAuthenticated(c.req.path)) return next()
   if (!c.req.raw.headers.has('signature-input') && !sameOrigin(c.req.raw)) return c.text('this form came from another site, so it was refused.', 403)

@@ -11,6 +11,8 @@
 //   5. The nonce: each (key, nonce) is taken once while its `created` could still pass (401 bad_signature, replay).
 //   6. Idempotency-Key, required on every write: the first 2xx answer is kept 24 hours and a retry gets it back without
 //      running again, spending no limit; the same key on another request is 409 idempotency_conflict.
+//   7. The per-key cap (go-live 7.4): 120 signed requests a minute (api/limits.ts), spent only once the signature and
+//      nonce pass, so nobody but the key's holder can use it up.
 // Can-post-as and grants are core's (core/actor.ts: checkName, then authorize, where the most specific grant wins), on
 // the actor that agent.actor(as, node) builds from the key just read. After the answer: the key's last use, debounced,
 // and the network it came from, with the "a key is used somewhere new" mail.
@@ -20,10 +22,11 @@ import { checkName, keyActor, type Actor, type Grant } from '../core/actor'
 import { clientIp, later } from '../auth/request'
 import { ipPrefix } from '../auth/session'
 import { mailToPersonStatement } from '../email/outbox'
+import { spendRequest, type Left } from './limits'
 
-export type ApiBindings = { DB: D1Database; TREE: DurableObjectNamespace; SITE_URL?: string }
+export type ApiBindings = { DB: D1Database; TREE: DurableObjectNamespace; SITE_URL?: string; ENV?: string; SITE_MODE?: string; AI?: Ai; TRIAGE_MODEL?: string }
 
-export type SignedKey = { id: string; name: string; canPostAs: string; grants: Grant[] }
+export type SignedKey = { id: string; name: string; canPostAs: string; grants: Grant[]; expires: string | null }
 
 /** The verified request: whose key it is, and what it acted as. c.get('agent') in every agent route. */
 export type Agent = {
@@ -38,7 +41,11 @@ export type Agent = {
   used: { as: string; node: string | null } | null
 }
 
-export type ApiEnv = { Bindings: ApiBindings; Variables: { agent: Agent } }
+/**
+ * agent: who signed. body: the request's bytes, as the signature covered them. left: what the RateLimit headers report,
+ * the act's own limit first (api/limits.ts); a route adds the limit it spent.
+ */
+export type ApiEnv = { Bindings: ApiBindings; Variables: { agent: Agent; body: Uint8Array | null; left: Left[] } }
 
 /** The only API version (table B). Every agent response says which it served. */
 export const API_VERSION = '0'
@@ -131,7 +138,7 @@ async function verify(c: Context<ApiEnv>, now: number): Promise<{ agent: Agent; 
   if (row.revoked_at !== null || (row.expires_at !== null && row.expires_at <= iso(now)) || row.status !== 'active') throw revoked()
   await takeNonce(c.env.DB, row.id, read.nonce, read.created, now)
 
-  const key: SignedKey = { id: row.id, name: row.name, canPostAs: row.can_post_as, grants: JSON.parse(row.grants) as Grant[] }
+  const key: SignedKey = { id: row.id, name: row.name, canPostAs: row.can_post_as, grants: JSON.parse(row.grants) as Grant[], expires: row.expires_at }
   const person = { id: row.person_id, handle: row.handle }
   const agent: Agent = {
     key,
@@ -307,8 +314,10 @@ export const signedPipeline = (): MiddlewareHandler<ApiEnv> => async (c, next) =
   const now = Date.now()
   const { agent, body } = await verify(c, now)
   c.set('agent', agent)
+  c.set('body', body)
   let done = false
   try {
+    c.set('left', [await spendRequest(c.env.DB, { id: agent.key.id, handle: agent.person.handle }, now)])
     if (!WRITES(c.req.method)) await next()
     else {
       const replay = await once(c, next, agent.key.id, body, now)

@@ -16,7 +16,7 @@ describe("signing in the site's test runtime", () => {
 })
 
 // openapi.yaml is what clients and 7.4's contract tests are built from, so its signing examples must be the published
-// vector and every signed call must ask for Content-Digest. Read as text: the workspace has no YAML parser.
+// vector and every signed call must ask for Content-Digest. Read as text, line by line (test/contract.ts parses it).
 describe('openapi.yaml signs as the server verifies', () => {
   const yaml = readFileSync(new URL('../../../docs/openapi.yaml', import.meta.url), 'utf8')
   const between = (from: string, to: string) => yaml.slice(yaml.indexOf(from), yaml.indexOf(to, yaml.indexOf(from)))
@@ -25,7 +25,7 @@ describe('openapi.yaml signs as the server verifies', () => {
   it('every call signed with an agent key takes Signature-Input and Content-Digest', () => {
     const ops = between('\npaths:\n', '\ncomponents:\n').split(/\n(?=    (?:get|post|put|patch|delete):)/)
     const signed = ops.filter(op => op.includes('- agentKey: []'))
-    expect(signed.map(op => /operationId: (\w+)/.exec(op)![1]).sort()).toEqual(['createBranch', 'createShwarm', 'getMentions', 'postToNode'])
+    expect(signed.map(op => /operationId: (\w+)/.exec(op)![1]).sort()).toEqual(['createBranch', 'createShwarm', 'getKey', 'getLimits', 'getMentions', 'postToNode'])
     for (const op of signed) {
       expect(op, op.slice(0, 40)).toContain("$ref: '#/components/parameters/SignatureInput'")
       expect(op, op.slice(0, 40)).toContain("$ref: '#/components/parameters/ContentDigest'")

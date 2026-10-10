@@ -1,5 +1,6 @@
 // Rule tests for the domain core (go-live 2.3): every refusal, every state transition, the audit log.
 import { beforeEach, describe, expect, it } from 'vitest'
+import type { Actor } from '../src/core/actor'
 import { agent, DAY, HOUR, MIN, person, refused, site, SHA, stepped, World, WORK, type P } from './core-fixtures'
 
 let w: World
@@ -146,6 +147,9 @@ describe('creating nodes', () => {
     await refused(w.branch(site(myra), MID), 'lobby_not_open')
     await w.join(site(kestrel), MID)
     await refused(w.branch(site(kestrel), 'no-such-thing'), 'no_such_node')
+    // An agent key acts only on nodes its human can see (7.4): @myra's shwarm is still being checked.
+    await refused(w.branch(agent(kestrel, 'swarm/r-03'), MID), 'no_such_node')
+    w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = ?").run(MID)
     const b = await w.branch(agent(kestrel, 'swarm/r-03'), MID)
     expect(b).toMatchObject({ path: BP, kind: 'branch', state: 'live', license: 'GPL-3.0' })
     expect(b.seats).toBeUndefined()
@@ -155,6 +159,28 @@ describe('creating nodes', () => {
     expect(w.node(sub.path).root_id).toBe(w.node(MID).id)
     expect(w.events(BP)).toMatchObject([{ event: 'branch_opened', by_name: '@kestrel/swarm/r-03', milestone: 1 }])
     await refused(w.run({ type: 'createNode', actor: site(kestrel), input: { kind: 'branch', parent: MID, title: 'x', what: 'w', doneWhen: 'd', check: { author: true }, license: 'MIT' } }), 'bad_license')
+  })
+
+  it("refuses an agent key every node its human can't see, as not there: parent, original, builds on (7.4)", async () => {
+    await live()
+    const keyed = (p: P) => agent(p, 'm-04', ['read', 'branch', 'new_shwarms'])
+    const variant = (by: Actor, extra: Record<string, unknown> = {}) =>
+      w.run({ type: 'createNode', actor: by, input: { kind: 'variant', variantOf: MID, title: 'v', what: 'w', doneWhen: 'd', check: { author: true }, tags: ['x'], ...extra } })
+    // still being checked: only its author, and the author's own agents, can see it
+    await refused(variant(keyed(kestrel)), 'no_such_node')
+    expect(await variant(keyed(myra))).toMatchObject({ kind: 'variant', state: 'lobby' })
+    w.db.raw.prepare("UPDATE node SET triage = 'held' WHERE path = ?").run(MID)
+    await refused(w.branch(keyed(kestrel), MID), 'no_such_node')
+    // a closed shwarm held for Myra can't be built on by anyone else's key, and says so as for a path that isn't there
+    w.db.raw.prepare("UPDATE node SET state = 'closed' WHERE path = ?").run(MID)
+    const buildOn = (by: Actor) => w.shwarm(by, { title: 'speedruns', buildsOn: MID })
+    const e = await buildOn(keyed(kestrel)).catch(x => x)
+    expect(e).toMatchObject({ code: 'bad_request', message: 'builds_on names a shwarm on shwarm, or an outside project as {name, url, license}' })
+    w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = ?").run(MID)
+    expect(await buildOn(keyed(kestrel))).toMatchObject({ kind: 'shwarm', state: 'lobby', seats: { filled: 0, of: 2 } })
+    // the site reads the node before it calls core, so core doesn't ask again for a site actor
+    w.db.raw.prepare("UPDATE node SET triage = 'held' WHERE path = ?").run(MID)
+    expect(await w.shwarm(site(lumpy), { title: 'site build', buildsOn: MID })).toMatchObject({ kind: 'shwarm' })
   })
 
   it('opens variants of open shwarms only, each with its own lobby', async () => {

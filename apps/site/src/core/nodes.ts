@@ -10,7 +10,7 @@ import { ShwarmError } from '@shwarm/protocol'
 import { authorize, needHuman, needStepUp, type Actor } from './actor'
 import { auditStatement, nodeHref } from './audit'
 import { parseCheckSpec } from './checks'
-import { findNode, loadNode, loadPerson, MAX_PATH, moderatedStatement, noticeMailStatement, notifyStatement, postStatement, signOffDoneStatement, signOffReopenStatement, touchNode, type Ctx, type NodeKind, type NodeRow } from './context'
+import { findNode, loadNode, loadPerson, MAX_PATH, moderatedStatement, noticeMailStatement, notifyStatement, postStatement, seenBy, signOffDoneStatement, signOffReopenStatement, touchNode, type Ctx, type NodeKind, type NodeRow } from './context'
 import { newId } from './ids'
 import { checkNewNodes, newNodeGuard, takeThreadToken } from './limits'
 import { checkWritable, readSettings } from './settings'
@@ -87,12 +87,14 @@ export function needBranchable(n: NodeAt): void {
   if (n.state !== 'live') throw new ShwarmError('shwarm_closed', `${n.path} is ${n.state.replace('_', ' ')}`, { node: n.path })
 }
 
+const NO_UPSTREAM = 'builds_on names a shwarm on shwarm, or an outside project as {name, url, license}'
+
 /** builds_on: a closed shwarm's path, or an outside project {name, url?, license}. Either way its license carries over. */
-async function parseBuildsOn(ctx: Ctx, v: CreateNodeInput['buildsOn']): Promise<{ json: string; license: string; node?: NodeRow } | null> {
+async function parseBuildsOn(ctx: Ctx, a: Actor, v: CreateNodeInput['buildsOn']): Promise<{ json: string; license: string; node?: NodeRow } | null> {
   if (v === undefined || v === null || v === '') return null
   if (typeof v === 'string') {
     const n = await findNode(ctx, v)
-    if (!n) throw bad('builds_on names a shwarm on shwarm, or an outside project as {name, url, license}')
+    if (!n || !(await seenBy(ctx, a, n))) throw bad(NO_UPSTREAM)
     needClosed(n)
     return { json: JSON.stringify({ node: n.path }), license: n.license, node: n }
   }
@@ -147,7 +149,7 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
   let tags: string[] = []
   let lobby: number | null = null
   if (kind === 'branch') {
-    parent = await loadNode(ctx, inp.parent)
+    parent = await loadNode(ctx, inp.parent, a)
     needBranchable(parent)
     if (inp.license !== undefined && inp.license !== null && inp.license !== parent.license)
       throw new ShwarmError('bad_license', `branches take the parent's license (${parent.license})`)
@@ -158,13 +160,13 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
     buildsOn = parent.builds_on
   } else {
     if (kind === 'variant') {
-      original = await loadNode(ctx, inp.variantOf)
+      original = await loadNode(ctx, inp.variantOf, a)
       needVariantable(original)
     }
     tags = parseTags(inp.tags)
     lobby = inp.lobby === undefined || inp.lobby === null ? DEFAULT_LOBBY : (inp.lobby as number)
     if (!Number.isInteger(lobby) || lobby < 1 || lobby > MAX_LOBBY) throw bad(`lobby is a number of people from 1 to ${MAX_LOBBY}`)
-    const b = await parseBuildsOn(ctx, inp.buildsOn)
+    const b = await parseBuildsOn(ctx, a, inp.buildsOn)
     if (b) {
       buildsOn = b.json
       upstream = b.node ?? null
@@ -267,10 +269,10 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
   if (!res[0]?.meta?.changes) {
     // A guard failed: say which, from a fresh read.
     if (a.via !== 'seed') await checkNewNodes(ctx.db, { personId: person.id, handle: person.handle }, ctx.now)
-    if (original) needOpen(await loadNode(ctx, original.path))
+    if (original) needOpen(await loadNode(ctx, original.path, a))
     if (upstream) {
       const u = await findNode(ctx, upstream.path)
-      if (!u) throw bad('builds_on names a shwarm on shwarm, or an outside project as {name, url, license}')
+      if (!u || !(await seenBy(ctx, a, u))) throw bad(NO_UPSTREAM)
       needClosed(u)
     }
     throw bad('something changed while this was sent. try again')

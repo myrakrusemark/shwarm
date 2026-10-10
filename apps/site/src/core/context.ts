@@ -8,6 +8,7 @@ import { nodeHref, submissionHref } from './audit'
 import type { CheckSpec } from './checks'
 import { newId } from './ids'
 import { extractMentions } from './text'
+import { SEEN_NODE } from '../read/visibility'
 
 export type Ctx = { db: D1Database; now: number; at: string }
 
@@ -82,9 +83,26 @@ export async function findNode(ctx: Ctx, path: unknown): Promise<NodeRow | null>
   return n && !n.hidden ? n : null
 }
 
-export async function loadNode(ctx: Ctx, path: unknown): Promise<NodeRow> {
+/**
+ * Whether node `n` shows to the person behind an agent key (read/visibility.ts SEEN_NODE): open to everyone, or their
+ * own node still being checked, under nodes that show. Site actors pass: the site reads the node as its viewer sees it
+ * (readChain) before it calls core. createNode checks it for keys on every node it names (parent, original, builds on),
+ * since it resolves them itself (go-live 7.4); the API reads the node of a thread act with readChain first, as the site
+ * does. OPEN (#90): the thread acts aren't checked here because the staging example's agents (seed/example.ts) act on
+ * a branch still waiting for triage.
+ */
+export async function seenBy(ctx: Ctx, a: Actor, n: Pick<NodeRow, 'id'>): Promise<boolean> {
+  if (a.via !== 'key') return true
+  return !!(await ctx.db.prepare(`SELECT 1 FROM node n WHERE n.id = ?1 AND ${SEEN_NODE('n', '?2')}`).bind(n.id, a.personId).first())
+}
+
+/**
+ * The node at `path`, for an act. With `a`, an agent key's act: a node its human can't see (held, blocked, or someone
+ * else's still being checked) is refused as not there, so the refusal confirms nothing.
+ */
+export async function loadNode(ctx: Ctx, path: unknown, a?: Actor): Promise<NodeRow> {
   const n = await findNode(ctx, path)
-  if (!n) throw new ShwarmError('no_such_node', `no node at ${String(path)}`, { node: String(path) })
+  if (!n || (a && !(await seenBy(ctx, a, n)))) throw new ShwarmError('no_such_node', `no node at ${String(path)}`, { node: String(path) })
   // OPEN: what a paused node accepts is phase 8 (moderation); for now it takes no writes.
   if (n.paused) throw new ShwarmError('not_permitted', `${n.path} is paused`, { reason: 'paused', node: n.path })
   return n

@@ -12,7 +12,8 @@ import { page } from './web/viewer'
 import { nodeRoutes } from './web/node-routes'
 import { profile } from './web/profile'
 import { keys } from './web/keys'
-import { api } from './api'
+import { api, apiHeaders } from './api'
+import { allowRead, preflight } from './api/cors'
 import { isSigned } from './api/signed'
 import { errorHandler, notFoundHandler, sendError } from './web/errors'
 import { forgetVersions } from './web/version-memo'
@@ -35,9 +36,33 @@ app.use('*', async (c, next) => {
   c.header('Content-Security-Policy', "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com")
 })
 
-// Request bodies are capped at 256 KB (table B, technical caps), before anything parses them (4.9).
+// Request bodies are capped at 256 KB (table B, technical caps), before anything parses them (4.9). A signed request
+// gets the agent API's JSON refusal, payload_too_large.
 const MAX_BODY = 256 * 1024
-app.use('*', bodyLimit({ maxSize: MAX_BODY, onError: c => sendError(c, { status: 413 }) }))
+app.use(
+  '*',
+  bodyLimit({
+    maxSize: MAX_BODY,
+    onError: async c => {
+      if (!isSigned(c.req.raw)) return sendError(c, { status: 413 })
+      const res = await sendError(c, { status: 413 }, 'json')
+      apiHeaders(c)
+      return res
+    },
+  }),
+)
+
+// CORS (go-live 7.4, api/cors.ts): a preflight on an agent API path or a node URL is answered here, before the
+// staging lock, since a browser sends it with no credentials. Public reads of a node in text or JSON may be read from
+// other sites; pages and forms never.
+app.use('*', async (c, next) => {
+  const pre = preflight(c.req.raw)
+  if (pre) return pre
+  await next()
+  const m = c.req.method
+  if ((m === 'GET' || m === 'HEAD') && c.req.path.startsWith('/w/') && !isSigned(c.req.raw) && !c.res.headers.get('content-type')?.startsWith('text/html'))
+    allowRead(c.res.headers)
+})
 
 // Health check: proves the Worker runs and can read D1. After the security headers, so they cover it too. A failure
 // is a plain JSON 500 for the uptime check, not the site's error page.

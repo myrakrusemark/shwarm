@@ -1,8 +1,8 @@
 // Go-live 7.3: the signed request pipeline (api/signed.ts), through the site as an agent reaches it. Requests are signed
 // here with @shwarm/protocol, as the CLI signs them. The refusals go through the whole site (src/index.ts sends anything
 // signed to the agent API); the acts go through a probe API built the same way (agentApi) with one route that posts in
-// a thread through core, since the real agent routes are 7.4's. The done-when cases: replay, stale and future
-// `created`, wrong host, wrong digest, a bare `as`, a grant miss and an idempotent retry.
+// a thread through core, so these tests don't lean on 7.4's routes (test/api.test.ts covers those). The done-when
+// cases: replay, stale and future `created`, wrong host, wrong digest, a bare `as`, a grant miss and an idempotent retry.
 import { createHash } from 'node:crypto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { newSeed, publicKeyFromSeed, signRequest, toBase64url } from '@shwarm/protocol'
@@ -131,16 +131,16 @@ describe('reading the signature', () => {
     expect(all('SELECT as_name, key_id, text FROM post WHERE id = ?', id)).toEqual([
       { as_name: '@myra/m-04', key_id: 'test-key-shwarm', text: 'block placement works on e1m1: place, break, save, reload.' },
     ])
-    // The GET verifies too; the site has no /mentions route until 7.4, so it gets as far as not found.
+    // The GET verifies too, through the site's own /mentions (7.4)
     const get = await send(app, 1)
-    expect(get.status).toBe(404)
-    expect(await get.json()).toMatchObject({ error: 'not_found' })
+    expect(get.status).toBe(200)
+    expect(await get.json()).toEqual({ to: '@myra/fathom-lead', next: null, mentions: [] })
   })
 
   it('refuses a replay: the same signed request twice', async () => {
     const { env, key } = await world()
     const first = await signed(app, env, { path: '/mentions?to=@myra/m-04', key, nonce: 'once-only-1' })
-    expect(first.status).toBe(404)
+    expect(first.status).toBe(200)
     const again = await signed(app, env, { path: '/mentions?to=@myra/m-04', key, nonce: 'once-only-1' })
     expect(again.status).toBe(401)
     expect(again.json).toMatchObject({ error: 'bad_signature', reason: 'replay' })
@@ -161,7 +161,7 @@ describe('reading the signature', () => {
         server_time: new Date(T0).toISOString(),
       })
     }
-    for (const created of [now() - 300, now() + 60]) expect((await signed(app, env, { path: '/mentions', key, created })).status).toBe(404)
+    for (const created of [now() - 300, now() + 60]) expect((await signed(app, env, { path: '/key', key, created })).status).toBe(200)
   })
 
   it('refuses a request signed for another host, whether it is sent here or there', async () => {
