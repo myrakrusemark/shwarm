@@ -8,7 +8,7 @@ import { hashPassword } from '../src/auth/password'
 import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
 import { resetReadLimit } from '../src/web/read-limit'
 import { forgetVersions } from '../src/web/version-memo'
-import { agent, refused, site, stepped } from './core-fixtures'
+import { refused, site, stepped } from './core-fixtures'
 import { T0 } from './d1'
 import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv } from './browser'
 import { closedWorld, PK3, RECORDING, SOURCE } from './result-fixture'
@@ -28,12 +28,18 @@ afterEach(() => {
 const HTML = { accept: 'text/html' }
 const ROOT = `/w/${EXAMPLE_ROOT}`
 
-async function world() {
-  const w = await closedWorld()
+async function world(o?: Parameters<typeof closedWorld>[0]) {
+  const w = await closedWorld(o)
   const b = new Browser(testEnv(w.db))
   const get = (sql: string, ...args: unknown[]) => w.db.raw.prepare(sql).get(...args) as any
   const page = async (path = ROOT) => body(await b.req(path, { headers: HTML }))
   return { ...w, b, get, page }
+}
+
+/** Block placement passes on #2 (@myra's agent), with @bmo_fan's sign-off, before the shwarm does: after, it's locked with it (OPEN #92). */
+const branchPasses: NonNullable<Parameters<typeof closedWorld>[0]>['before'] = async ({ run, p, db }) => {
+  const sub2 = (db.raw.prepare('SELECT s.post_id FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ? AND s.number = 2').get(EXAMPLE_BRANCH) as { post_id: string }).post_id
+  await run({ type: 'check', actor: stepped(p('bmo_fan')), input: { node: EXAMPLE_BRANCH, on: sub2, slot: 'author', verdict: 'pass', text: 'every corner holds.' } })
 }
 
 /** The "who made it" rows: handle, role tags (a * marks a decisive one), upvotes, posts. */
@@ -113,11 +119,7 @@ describe('the result page (5.7)', () => {
   })
 
   it("names a passed branch's submitter, and shows a decisive tag below the cut", async () => {
-    const w = await world()
-    // block placement passes on #2 (@myra's agent), with @bmo_fan's sign-off
-    const sub2 = w.get("SELECT s.post_id FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ? AND s.number = 2", EXAMPLE_BRANCH).post_id
-    await w.run({ type: 'check', actor: stepped(w.p('bmo_fan')), input: { node: EXAMPLE_BRANCH, on: sub2, slot: 'author', verdict: 'pass', text: 'every corner holds.' } })
-    forgetVersions()
+    const w = await world({ before: branchPasses })
     let rows = credits(await w.page())
     expect(rows.find(r => r.who === '@myra')!.roles).toEqual(['*author', 'block placement passed'])
     // nine busier people push everyone else below the first eight: the decisive tags still show, the rest fold into "+ N more"
@@ -209,10 +211,43 @@ describe('the result page (5.7)', () => {
     expect(text).not.toContain('repro posted here')
   })
 
-  it("a passed branch keeps the live template, with the closed pill and its proof", async () => {
+  it('locks a branch still live under it: no compose box, sub-branch, check or reply forms, and a forged post is refused (OPEN #92)', async () => {
     const w = await world()
-    const sub2 = w.get("SELECT s.post_id FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ? AND s.number = 2", EXAMPLE_BRANCH).post_id
-    await w.run({ type: 'check', actor: stepped(w.p('bmo_fan')), input: { node: EXAMPLE_BRANCH, on: sub2, slot: 'author', verdict: 'pass', text: 'every corner holds.' } })
+    const hash = await hashPassword(GOOD_PASSWORD, pepper, 1000)
+    w.db.raw.prepare("UPDATE person SET password_hash = ?, email = 'gunter@example.org', email_norm = 'gunter@example.org' WHERE handle = 'gunter'").run(hash)
+    const g = new Browser(w.b.env)
+    expect((await g.post('/signin', { email: 'gunter@example.org', password: GOOD_PASSWORD })).status).toBe(303)
+    const BRANCH = `/w/${EXAMPLE_BRANCH}`
+    const html = await body(await g.req(BRANCH, { headers: HTML }))
+    expect(w.get('SELECT state FROM node WHERE path = ?', EXAMPLE_BRANCH).state).toBe('live')
+    expect(html).toContain(
+      '<div class="compose locked"><div class="to">locked</div><p><a href="/w/minecraft-in-doom">minecraft in doom</a> passed, so this branch takes nothing new either. to carry it on, <a href="/new?builds_on=minecraft-in-doom">build on it</a>.</p></div>',
+    )
+    expect(html).not.toContain('<form class="compose"')
+    expect(html).not.toContain('start a sub-branch')
+    expect(html).not.toContain('make it a branch')
+    expect(html).not.toContain('waiting on')
+    // its submission in review takes no checks
+    const sub = w.get("SELECT s.number FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ? AND s.status = 'in_review'", EXAMPLE_BRANCH).number
+    const subPage = await body(await g.req(`${BRANCH}/s/${sub}`, { headers: HTML }))
+    expect(subPage).not.toContain('name="verdict"')
+    expect(subPage).not.toContain('waiting on')
+    // the branch form under it is refused before anything is typed
+    expect(await body(await g.req(`/new?parent=${EXAMPLE_BRANCH}`, { headers: HTML }))).toContain(`${EXAMPLE_ROOT} passed. it's locked: it takes nothing new.`)
+    // agents are told
+    const text = await (await w.b.req(`${BRANCH}?format=text`)).text()
+    expect(text).toContain(`locked: ${EXAMPLE_ROOT} passed, so this takes nothing new either.\nto carry it on, start a shwarm with builds_on set to ${EXAMPLE_ROOT}.\n`)
+    // a forged post comes back with the refusal at the top
+    const token = formTokenIn(html)
+    const posts = w.get('SELECT COUNT(*) AS n FROM post').n
+    const res = await g.req(BRANCH, { form: { form_token: token, do: 'post', text: 'one more corner case.' } })
+    expect(res.status).toBe(400)
+    expect(await body(res)).toContain(`<p class="err flash" role="alert">${EXAMPLE_ROOT} passed. it's locked: it takes nothing new.</p>`)
+    expect(w.get('SELECT COUNT(*) AS n FROM post').n).toBe(posts)
+  })
+
+  it("a passed branch keeps the live template, with the closed pill and its proof", async () => {
+    const w = await world({ before: branchPasses })
     const html = await w.page(`/w/${EXAMPLE_BRANCH}`)
     expect(html).not.toContain('class="done-head"')
     expect(html).toContain('<link rel="stylesheet" href="/css/result.css"/>')
@@ -261,7 +296,9 @@ describe('the result page (5.7)', () => {
     expect(etag).toMatch(/\.html\..+"$/)
     expect((await w.b.req(ROOT, { headers: { ...HTML, 'if-none-match': etag } })).status).toBe(304)
     const before = w.get('SELECT last_event_id FROM node WHERE path = ?', EXAMPLE_ROOT).last_event_id
-    await w.run({ type: 'post', actor: agent(w.p('kestrel'), 'swarm/r-03'), input: { node: EXAMPLE_BRANCH, text: 'imps still clip one corner.' } })
+    // the tree is locked once the shwarm passed (OPEN #92), but an upvote on a branch's post still counts
+    const post = w.get("SELECT p.id FROM post p JOIN node n ON n.id = p.node_id WHERE n.path = ? AND p.as_name NOT LIKE '@lumpy%' AND p.deleted_at IS NULL LIMIT 1", EXAMPLE_BRANCH).id
+    await w.run({ type: 'upvote', actor: site(w.p('lumpy')), input: { node: EXAMPLE_BRANCH, post } })
     expect(w.get('SELECT last_event_id FROM node WHERE path = ?', EXAMPLE_ROOT).last_event_id).toBe(before)
     forgetVersions()
     const again = await w.b.req(ROOT, { headers: { ...HTML, 'if-none-match': etag } })

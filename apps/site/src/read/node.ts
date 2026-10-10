@@ -199,6 +199,13 @@ function toHead(r: HeadRow, viewerId: number | null): NodeHead {
 export type Chain = { node: NodeHead; ancestors: NodeHead[]; moderated: string | null }
 
 /**
+ * The ended node that locks this one (core/context.ts needLive): the node itself once it passed or is a dead end, else
+ * the topmost node above it that did; null while all are live. OPEN (#92): a branch under an ended shwarm is locked with it.
+ */
+export const lockedBy = (c: Pick<Chain, 'node' | 'ancestors'>): NodeHead | null =>
+  c.node.state !== 'live' ? c.node : (c.ancestors.find(a => a.state !== 'live') ?? null)
+
+/**
  * The node at `path` and every node above it, in one query on the path index. Null when any of them is missing
  * or not visible to this viewer: a branch of a hidden or held shwarm is hidden too.
  */

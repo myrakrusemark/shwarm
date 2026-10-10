@@ -58,7 +58,7 @@ export const SubmissionPage: FC<{ d: SubmissionPageData }> = ({ d }) => {
   const standing = d.checks.filter(c => !c.reset_at)
   const r = review(n.spec, n.author, sub, standing)
   // A dead end keeps its submission in review but takes no checks or sign-off, so nobody is waited on (isOpen).
-  const pill = pillOf(sub.status, isOpen(n, sub) && r.waitingOn === 'author', isAuthor || !!d.operator, reopened(d, sub))
+  const pill = pillOf(sub.status, isOpen(d.chain, sub) && r.waitingOn === 'author', isAuthor || !!d.operator, reopened(d, sub))
   const forms = whichForms(d, r)
   const lost = d.flash && !(d.flash.at === 'check' ? forms.check : forms.signOff)
   const what = cut(showHidden(sub.text), 200)
@@ -148,7 +148,7 @@ function whichForms(d: SubmissionPageData, r: Review): { signOff: boolean; check
   const n = d.chain.node
   const sub = d.sub
   const me = d.me
-  const open = isOpen(n, sub)
+  const open = isOpen(d.chain, sub)
   const mine = !!me && sub.person_id === me.personId
   const holds = !!me && d.checks.some(c => !c.reset_at && humanOf(c.as_name) === '@' + me.handle)
   const signer = !!me?.verified && open && r.need.author && (me.personId === n.author_id || !!d.operator)
@@ -236,7 +236,7 @@ function checksNote(d: SubmissionPageData, r: Review): string {
 const ChecksBox: FC<{ d: SubmissionPageData; r: Review; isAuthor: boolean }> = ({ d, r, isAuthor }) => {
   const n = d.chain.node
   const sub = d.sub
-  const open = isOpen(n, sub)
+  const open = isOpen(d.chain, sub)
   const reset: ReviewRow[] = d.checks.filter(c => c.reset_at).map(c => ({ verdict: c.verdict, slot: c.slot, as: c.as_name, check: c }))
   const days = open && r.waitingOn === 'author' ? waitingDays(sub.ready_at, d.now) : null
   const authorNote = (): string => {

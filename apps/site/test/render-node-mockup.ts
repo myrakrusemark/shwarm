@@ -304,7 +304,7 @@ const profile: Profile = {
   createdMore: false,
 }
 // The owner's inbox, as the mockup draws it: a sign-off waiting on her and two mentions, all new.
-const inboxItem = { read: false, post_id: 'p_x', text: '', number: null, status: null as InboxView['items'][number]['status'], waiting: false, reopened: false, others: false, operator: false, theirs: false, post_text: null }
+const inboxItem = { read: false, post_id: 'p_x', text: '', number: null, status: null as InboxView['items'][number]['status'], waiting: false, reopened: false, others: false, operator: false, theirs: false, locked: false, post_text: null }
 const inbox: InboxView = {
   items: [
     { ...inboxItem, id: 3, kind: 'sign_off', href: '/w/minecraft-in-doom/voxel-renderer/deep-chunk-fix/s/1', created_at: ago(5), node_id: 21, path: 'minecraft-in-doom/voxel-renderer/deep-chunk-fix', title: 'deep-chunk fix', as_name: '@kestrel/swarm/r-21', number: 1, status: 'in_review', waiting: true, others: true },

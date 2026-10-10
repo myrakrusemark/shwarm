@@ -26,9 +26,10 @@ import { siteActor } from '../core/actor'
 import { isId } from '../core/ids'
 import { DEFAULT_RUNS } from '../core/checks'
 import { ENDED, LICENSES, needBranchable, type CreateNodeInput } from '../core/nodes'
+import { lockedError } from '../core/context'
 import { MAX_TEXT, MAX_TITLE } from '../core/text'
 import { runInTree } from '../do/shwarm-tree'
-import { parseNodePath, readChain, type Chain, type NodeHead } from '../read/node'
+import { lockedBy, parseNodePath, readChain, type Chain, type NodeHead } from '../read/node'
 import { cut, licenseName } from '../render/format'
 import { showHidden } from '../render/hidden'
 import { Plain, Text } from '../render/text'
@@ -429,7 +430,16 @@ async function shownNode(db: D1Database, raw: string, viewerId: number): Promise
 async function modeOf(db: D1Database, q: { parent?: string; builds_on?: string }, viewerId: number, origin: string): Promise<{ mode: Mode; refused?: string } | null> {
   if (q.parent) {
     const chain = await shownNode(db, q.parent, viewerId)
-    return chain && { mode: { kind: 'branch', chain }, refused: refusal(() => needBranchable(chain.node)) }
+    return (
+      chain && {
+        mode: { kind: 'branch', chain },
+        refused: refusal(() => {
+          needBranchable(chain.node)
+          const by = lockedBy(chain) // a node above it ended: locked with it (core's needLive)
+          if (by) throw lockedError(chain.node, by)
+        }),
+      }
+    )
   }
   // ?builds_on= names an ended shwarm (the result page's or a dead end's "build on this"): the field shows its path and
   // the chip its name.

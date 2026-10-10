@@ -2,7 +2,7 @@
 // "waiting" row for every slot still open (spec "Kinds of check"; A9 swaps the author check for one more people check).
 import { needs, tally, type CheckSpec, type Need, type Tally } from '../core/checks'
 import { statusLine, type StatusInput } from '../core/stats'
-import type { Child, CheckReport, NodeHead, SubmissionRow } from './node'
+import { lockedBy, type Chain, type Child, type CheckReport, type NodeHead, type SubmissionRow } from './node'
 
 export type ReviewRow =
   | { verdict: 'pass' | 'fail'; slot: CheckReport['slot']; as: string; check: CheckReport }
@@ -71,12 +71,13 @@ export const inReview = (subs: SubmissionRow[]) => subs.find(s => s.status === '
 
 /**
  * The submission collecting checks now: in review on a live node. A dead end keeps its submission's in_review
- * status, but is locked and takes no checks (decided Oct 9), so it has no open review.
+ * status, but is locked and takes no checks (decided Oct 9), so it has no open review; nor has a branch under an
+ * ended shwarm (lockedBy).
  */
-export const openReview = (n: { state: NodeHead['state'] }, subs: SubmissionRow[]) => (n.state === 'live' ? inReview(subs) : null)
+export const openReview = (c: Pick<Chain, 'node' | 'ancestors'>, subs: SubmissionRow[]) => (lockedBy(c) ? null : inReview(subs))
 
 /** Whether this submission is the one collecting checks (see openReview). */
-export const isOpen = (n: { state: NodeHead['state'] }, sub: SubmissionRow) => n.state === 'live' && sub.status === 'in_review'
+export const isOpen = (c: Pick<Chain, 'node' | 'ancestors'>, sub: SubmissionRow) => !lockedBy(c) && sub.status === 'in_review'
 
 /** The status line from recorded state (table B #40, without the pinned post: the page shows that post itself). */
 export function recordedStatus(n: NodeHead, subs: SubmissionRow[], branches: Child[]): string {

@@ -141,6 +141,7 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
   if (kind === 'branch') {
     parent = await loadNode(ctx, inp.parent, a)
     needBranchable(parent)
+    await needLive(ctx, parent) // and nothing above it ended: an ended shwarm's tree takes no new branches (OPEN #92)
     if (inp.license !== undefined && inp.license !== null && inp.license !== parent.license)
       throw new ShwarmError('bad_license', `branches take the parent's license (${parent.license})`)
     if (inp.buildsOn !== undefined && inp.buildsOn !== null) throw bad("branches take the parent's builds on. send none")
@@ -272,7 +273,7 @@ export async function join(ctx: Ctx, a: Actor, inp: { node: string }): Promise<J
   const n = await loadNode(ctx, inp?.node)
   // OPEN: the words wait on Myra's yes.
   if (n.kind === 'branch') throw bad('a branch has nothing to join. just start working')
-  needLive(n)
+  await needLive(ctx, n)
   const mine = await ctx.db.prepare('SELECT left_at FROM seat WHERE node_id = ? AND person_id = ?').bind(n.id, person.id).first<{ left_at: string | null }>()
   if (mine && mine.left_at === null) return { node: n.path, joined: false }
   await ctx.db.batch([
@@ -294,7 +295,7 @@ export async function leave(ctx: Ctx, a: Actor, inp: { node: string }): Promise<
   const n = await loadNode(ctx, inp?.node)
   // OPEN: the words wait on Myra's yes.
   if (n.kind === 'branch') throw bad('a branch has nothing to leave')
-  needLive(n)
+  await needLive(ctx, n)
   if (n.author_id === person.id) throw bad("the author can't leave their own shwarm")
   await ctx.db.batch([
     ctx.db.prepare('UPDATE seat SET left_at = ? WHERE node_id = ? AND person_id = ? AND left_at IS NULL').bind(ctx.at, n.id, person.id),
@@ -381,6 +382,7 @@ export async function deadEnd(ctx: Ctx, a: Actor, inp: { node: string; note: str
   if (n.author_id !== person.id) throw new ShwarmError('not_permitted', 'only the author marks a dead end', { need: 'author', node: n.path })
   needStepUp(a, 'marking a dead end')
   if (n.state !== 'live') throw new ShwarmError('shwarm_closed', `${n.path} is ${n.state.replace('_', ' ')}`, { node: n.path })
+  await needLive(ctx, n) // a branch under an ended shwarm is locked with it (OPEN #92)
   const note = needText(inp.note, 'note')
   const postId = newId('p')
   const e = auditStatement(ctx.db, { event: 'dead_end', node: n.id, by: a.as, detail: note.slice(0, 280), evidence: `${nodeHref(n.path)}#${postId}` }, ctx.at)

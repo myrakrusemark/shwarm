@@ -297,6 +297,29 @@ describe('the inline reply (6.1)', () => {
     expect(sys).not.toContain('reply')
     expect((await inboxAct(myra, 'myra', { do: 'nothing' })).status).toBe(400)
   })
+
+  it('an ended thread, or one under an ended shwarm, is locked: no reply box (decided Oct 9)', async () => {
+    const { env, ana, myra, item, get } = await mentioned()
+    await post(ana, EXAMPLE_BRANCH, '@myra one on the branch too')
+    const onBranch = get("SELECT id FROM inbox_item WHERE kind = 'mention' AND id > ? ORDER BY id DESC LIMIT 1", item.id)
+    const before = await body(await myra.get('/@myra'))
+    for (const id of [item.id, onBranch.id]) expect(itemOf(before, id)).toContain('value="reply"')
+    for (const state of ['closed', 'dead_end']) {
+      env.DB.raw.prepare("UPDATE node SET state = ?, dead_end_note = 'x' WHERE path = ?").run(state, EXAMPLE_ROOT)
+      const html = await body(await myra.get('/@myra'))
+      for (const id of [item.id, onBranch.id]) {
+        const e = itemOf(html, id)!
+        expect(e, `${state} ${id}`).toContain('see thread')
+        expect(e, `${state} ${id}`).not.toContain('value="reply"')
+        expect(e, `${state} ${id}`).not.toContain('<textarea')
+      }
+    }
+    // a reply sent anyway (a stale page) is refused, and nothing is written
+    const res = await inboxAct(myra, 'myra', { do: 'reply', item: String(onBranch.id), text: 'late reply' })
+    expect(res.status).toBe(400)
+    expect(itemOf(await body(res), onBranch.id)).toContain(`${EXAMPLE_ROOT} is a dead end. it's locked: it takes nothing new.`)
+    expect(get("SELECT COUNT(*) AS n FROM post WHERE text = 'late reply'").n).toBe(0)
+  })
 })
 
 describe('sign-off items and "waiting on you" (6.1, PROF-9)', () => {

@@ -117,15 +117,35 @@ export async function loadNode(ctx: Ctx, path: unknown, a?: Actor): Promise<Node
 
 /**
  * An ended node is locked (decided Oct 9, "An ended shwarm is locked"): once it passed or was marked a dead end it takes
- * nothing new, no posts, replies, pins, edits, deletes, joins, submissions or checks, and nothing reopens it (decided
- * Oct 9, "Continuing an ended shwarm is always build on"). People carry on by building on it.
- * OPEN (#92): no code names a dead end, so both answer shwarm_closed (409) with the state beside it; upvotes on its
- * posts still count; the words wait on Myra's yes.
+ * nothing new, no posts, replies, pins, edits, deletes, joins, submissions, checks or branches, and nothing reopens it
+ * (decided Oct 9, "Continuing an ended shwarm is always build on"). People carry on by building on it.
+ * OPEN (#92): the branches still live under an ended node are locked with it (the result page's tree stops growing, and
+ * no branch passes after its shwarm ended); the refusal names the ended node as `locked_by`. No code names a dead end,
+ * so both answer shwarm_closed (409) with the state beside it; upvotes on its posts still count; the words wait on
+ * Myra's yes. Every node above `n` is in its tree, so the tree's queue keeps this read current through the act.
  */
-export function needLive(n: Pick<NodeRow, 'path' | 'state'>): void {
-  if (n.state === 'live') return
-  const was = n.state === 'closed' ? 'passed' : 'is a dead end'
-  throw new ShwarmError('shwarm_closed', `${n.path} ${was}. it's locked: it takes nothing new`, { node: n.path, state: n.state })
+export async function needLive(ctx: Ctx, n: Pick<NodeRow, 'path' | 'state'>): Promise<void> {
+  const above = n.path.split('/').slice(0, -1).map((_, i, a) => a.slice(0, i + 1).join('/'))
+  const ended =
+    n.state !== 'live'
+      ? n
+      : above.length
+        ? await ctx.db
+            .prepare("SELECT path, state FROM node WHERE path IN (SELECT value FROM json_each(?)) AND state <> 'live' ORDER BY length(path) LIMIT 1")
+            .bind(JSON.stringify(above))
+            .first<Pick<NodeRow, 'path' | 'state'>>()
+        : null
+  if (ended) throw lockedError(n, ended)
+}
+
+/** needLive's refusal: `n` is locked because `ended` (itself, or a node above it) passed or is a dead end. */
+export function lockedError(n: Pick<NodeRow, 'path'>, ended: Pick<NodeRow, 'path' | 'state'>): ShwarmError {
+  const was = ended.state === 'closed' ? 'passed' : 'is a dead end'
+  return new ShwarmError('shwarm_closed', `${ended.path} ${was}. it's locked: it takes nothing new`, {
+    node: n.path,
+    state: ended.state,
+    ...(ended.path === n.path ? {} : { locked_by: ended.path }),
+  })
 }
 
 export const specOf = (n: NodeRow) => JSON.parse(n.checks) as CheckSpec

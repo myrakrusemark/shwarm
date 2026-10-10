@@ -42,7 +42,12 @@ export type InboxItem = {
   others: boolean // its node has checks besides the author's, so "passed its other checks" is true
   operator: boolean // a sign-off its owner makes as the operator: the node's author is gone and the owner is an admin (table B)
   theirs: boolean // an operator's item whose author is back (or whose owner is no longer an admin): the author signs it, not the owner
+  locked: boolean // its node, or a node above it, passed or is a dead end: it takes no reply (core/context.ts needLive)
 }
+
+/** SQL: node alias `n` or a node above it (in its tree, on its path) passed or is a dead end, as core's needLive reads it. */
+const LOCKED = `(n.state <> 'live' OR EXISTS (SELECT 1 FROM node a WHERE (a.id = n.root_id OR a.root_id = n.root_id)
+  AND a.state <> 'live' AND substr(n.path, 1, length(a.path) + 1) = a.path || '/'))`
 
 /** Items the inbox shows before "show all". */
 export const INBOX_SHOWN = 25
@@ -60,7 +65,8 @@ export async function readInbox(db: D1Database, personId: number, o: { all: bool
               (SELECT status FROM person WHERE id = n.author_id) AS author_status, (SELECT is_admin FROM person WHERE id = ?1) AS admin,
               ${NAME_SHOWN('p.as_name')} AS as_name, p.text AS post_text, s.status,
               (s.status = 'passed' AND NOT (n.state = 'closed' AND s.number = (SELECT MAX(x.number) FROM submission x WHERE x.node_id = n.id AND x.status = 'passed'))) AS reopened,
-              (json_extract(n.checks, '$.runs') IS NOT NULL OR json_extract(n.checks, '$.people') IS NOT NULL) AS others
+              (json_extract(n.checks, '$.runs') IS NOT NULL OR json_extract(n.checks, '$.people') IS NOT NULL) AS others,
+              ${LOCKED} AS locked
        ${SHOWN}
        ORDER BY i.created_at DESC, i.id DESC LIMIT ?2`,
     )
@@ -85,6 +91,7 @@ export async function readInbox(db: D1Database, personId: number, o: { all: bool
       status: InboxItem['status']
       reopened: number | null
       others: number | null
+      locked: number | null
     }>()
   const items = results.slice(0, limit).map((r): InboxItem => {
     // Someone else's node: the item came to this admin while its author was gone (core signOffStatements). They sign it
@@ -112,6 +119,7 @@ export async function readInbox(db: D1Database, personId: number, o: { all: bool
       others: !!r.others,
       operator,
       theirs: other && !operator,
+      locked: !!r.locked,
     }
   })
   return { items, more: results.length > limit, upto: items.reduce((m, i) => Math.max(m, i.id), 0) }

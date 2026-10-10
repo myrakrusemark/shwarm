@@ -107,7 +107,7 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
   const person = await loadPerson(ctx, a)
   checkWritable(await readSettings(ctx.db, ['read_only']))
   const n = await loadNode(ctx, inp.node)
-  needLive(n)
+  await needLive(ctx, n)
   const sub =
     typeof inp.on === 'string'
       ? await ctx.db

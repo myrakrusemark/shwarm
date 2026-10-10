@@ -10,6 +10,7 @@ import type { Link } from '@shwarm/protocol'
 import { LICENSES } from '../core/nodes'
 import type { CheckSpec } from '../core/checks'
 import type { BuiltOnLink, Chain, CheckReport, Child, NodeHead, PromptPost, SubmissionDetail, SubmissionRow } from '../read/node'
+import { lockedBy } from '../read/node'
 import { isOpen, openReview, recordedStatus, review, type Review } from '../read/review'
 import { BIDI_RE, escapeOf, showHidden } from './hidden'
 import { dayOf, licenseName, perDay, plural, q1, triageNote } from './format'
@@ -150,9 +151,14 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
   line('or a check); never on your own work.')
   line('runs execute other people\'s code: use the sandbox recipe.')
   // An ended node is locked and nothing reopens it (decided Oct 9). OPEN (#92): the words wait on Myra's yes.
-  if (n.state !== 'live') {
+  // A branch under an ended node is locked with it (lockedBy).
+  const locked = lockedBy(v.chain)
+  if (locked === n) {
     line(`${n.state === 'closed' ? 'closed: it passed' : 'dead end'}. it's locked: it takes nothing new.`)
     if (n.kind !== 'branch') line(`to carry it on${n.state === 'closed' ? ', or to challenge the pass' : ''}, start a shwarm with builds_on set to this path.`)
+  } else if (locked) {
+    line(`locked: ${locked.path} ${locked.state === 'closed' ? 'passed' : 'is a dead end'}, so this takes nothing new either.`)
+    if (locked.kind !== 'branch') line(`to carry it on, start a shwarm with builds_on set to ${locked.path}.`)
   }
   line('limits, per person across all agents: here, a burst of 5 posts, then 1 every 5 minutes;')
   line('3 new nodes a day.')
@@ -197,7 +203,7 @@ function statusLines(v: AgentView, line: (s?: string) => void) {
     line(n.dead_end_note ? 'dead end: the author\'s note is quoted under DEAD END above.' : 'dead end.')
     return
   }
-  const sub = openReview(n, v.subs)
+  const sub = openReview(v.chain, v.subs)
   if (!sub) {
     line(flat(recordedStatus(n, v.subs, v.branches)))
     return
@@ -293,7 +299,7 @@ function postBody(p: PromptPost, v: AgentView): string {
 export function renderNodeJson(v: AgentView): Record<string, unknown> {
   const n = v.chain.node
   const parent = v.chain.ancestors[v.chain.ancestors.length - 1]
-  const sub = openReview(n, v.subs)
+  const sub = openReview(v.chain, v.subs)
   const r = sub ? review(n.spec, n.author, sub, v.checks.get(sub.post_id) ?? []) : null
   const s = n.stats
   const post = (p: PromptPost, pinned: boolean) => ({
@@ -368,7 +374,7 @@ export function renderSubmissionPrompt(v: SubmissionView, nonce = makeNonce()): 
   const s = v.sub
   const standing = v.checks.filter(c => !c.reset_at)
   const r = review(n.spec, n.author, s, standing)
-  const open = isOpen(n, s)
+  const open = isOpen(v.chain, s)
   const out: string[] = []
   const line = (x = '') => out.push(x)
   const block = (attrs: string, body: string) => {
@@ -428,7 +434,7 @@ export function renderSubmissionJson(v: SubmissionView): Record<string, unknown>
     how_to_check: s.how_to_check,
     built_on: v.builtOn.map(b => ({ post: b.post_id, by: b.as_name, ...(b.number !== null ? { number: b.number } : {}), ...(b.note ? { note: b.note } : {}) })),
     release: s.release_title || s.release_version || s.release_how_to_use ? { name: s.release_title, version: s.release_version, how_to_use: s.release_how_to_use } : null,
-    review: { done: r.done, total: r.total, waiting_on: isOpen(n, s) ? r.waitingOn : null, failed: r.failed },
+    review: { done: r.done, total: r.total, waiting_on: isOpen(v.chain, s) ? r.waitingOn : null, failed: r.failed },
     checks: v.checks.map(c => ({
       id: c.id,
       post: c.post_id,

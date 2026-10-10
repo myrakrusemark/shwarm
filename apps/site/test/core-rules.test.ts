@@ -561,6 +561,32 @@ describe('dead ends, and an ended node is locked (decided Oct 9)', () => {
     expect(w.node(MID).state).toBe('live')
     expect(w.events(MID).map(e => e.event)).toEqual([])
   })
+
+  // OPEN (#92): a branch still live under an ended shwarm is locked with it, so the result page's tree stops growing.
+  for (const end of ['passed', 'dead_end'] as const)
+    it(`locks a live branch with its shwarm once the shwarm ${end === 'passed' ? 'passed' : 'is a dead end'}`, async () => {
+      await live({ people: 1 })
+      await w.branch(site(myra), MID, { check: { people: 1 } })
+      const own = await w.post(site(finn), BP, 'corner case on slabs')
+      const s = await w.submit(agent(kestrel), BP)
+      if (end === 'passed') await w.pass(site(lumpy), MID, (await w.submit(agent(kestrel), MID)).id)
+      else await w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: MID, note: 'out of reach' } })
+      const state = end === 'passed' ? 'closed' : 'dead_end'
+      expect(w.node(MID).state).toBe(state)
+      const before = { posts: w.all('SELECT COUNT(*) AS n FROM post')[0].n, nodes: w.all('SELECT COUNT(*) AS n FROM node')[0].n, events: w.events(BP).length }
+      const locked = { node: BP, state, locked_by: MID }
+      const e = await refused(w.post(site(finn), BP, 'still going?'), 'shwarm_closed', locked)
+      expect(e.message).toBe(`${MID} ${end === 'passed' ? 'passed' : 'is a dead end'}. it's locked: it takes nothing new`)
+      await refused(w.post(agent(finn), BP), 'shwarm_closed', locked)
+      await refused(w.run({ type: 'editPost', actor: site(finn), input: { node: BP, post: own.id, text: 'changed' } }), 'shwarm_closed', locked)
+      await refused(w.run({ type: 'deletePost', actor: site(finn), input: { node: BP, post: own.id } }), 'shwarm_closed', locked)
+      await refused(w.submit(agent(lumpy), BP), 'shwarm_closed', locked)
+      await refused(w.pass(site(lumpy), BP, s.id), 'shwarm_closed', locked)
+      await refused(w.branch(site(kestrel), BP, { title: 'monster collision' }), 'shwarm_closed', locked)
+      await refused(w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: BP, note: 'x' } }), 'shwarm_closed', locked)
+      expect(w.node(BP).state).toBe('live')
+      expect({ posts: w.all('SELECT COUNT(*) AS n FROM post')[0].n, nodes: w.all('SELECT COUNT(*) AS n FROM node')[0].n, events: w.events(BP).length }).toEqual(before)
+    })
 })
 
 describe('the audit log', () => {
@@ -901,6 +927,7 @@ describe('every audit row links its evidence', () => {
   it('as a site path: the node, the post, the submission or one check on it', async () => {
     await live({ people: 1, author: true })
     await w.branch(site(myra), MID, { check: { people: 1 } })
+    const d = await w.deadEnd(myra, BP) // before the pass: a branch under a passed shwarm is locked with it
     const s1 = await w.submit(agent(kestrel), MID)
     const c1 = await w.pass(site(lumpy), MID, s1.id)
     const f1 = await w.signOff(myra, MID, s1.id, 'fail')
@@ -908,7 +935,6 @@ describe('every audit row links its evidence', () => {
     const s2 = await w.submit(agent(kestrel), MID)
     await w.pass(site(lumpy), MID, s2.id)
     const p2 = await w.signOff(myra, MID, s2.id, 'pass')
-    const d = await w.deadEnd(myra, BP)
 
     const rows = w.all('SELECT event, evidence FROM audit_event ORDER BY rowid')
     // every event type written now ('lobby_filled' went with the lobby, 'reopened' when nothing reopened, Oct 9)

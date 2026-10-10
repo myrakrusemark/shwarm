@@ -10,7 +10,7 @@ import type { Link } from '@shwarm/protocol'
 import { joinHref, signInHref } from '../auth/return-to'
 import type { CheckSpec } from '../core/checks'
 import type { BuiltOnBy, BuiltOnLink, Chain, CheckReport, Child, Contributor, NodeHead, PitchEdit, PostEdit, PostRow, Show, Sort, SubmissionRow, Thread } from '../read/node'
-import { EDITS_SHOWN, SHOWS, SORTS } from '../read/node'
+import { EDITS_SHOWN, lockedBy, SHOWS, SORTS } from '../read/node'
 import { FORMER } from '../read/names'
 import { groupBySlot, isOpen, openReview, recordedStatus, review, waitingDays, type ReviewRow } from '../read/review'
 import { ago, cut, dayOf, exact, licenseName, monthDay, perDay, plural, q1, shortNum, triageNote } from '../render/format'
@@ -99,7 +99,7 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
       <div class="grid">
         <main id="main" tabindex={-1}>
           {/* a refusal whose form isn't on the page (a forged or stale one) shows at the top */}
-          {((d.flash?.at === 'compose' && d.chain.node.state !== 'live') || (d.flash?.at === 'seats' && !hasSeatForm(d)) || (d.flash?.at === 'owner' && (!hasOwnerBox(d) || (!!d.flash.fields && !canRepitch(d)))) || (d.flash?.at === 'post' && !onPage(d.thread, d.flash.post))) && (
+          {((d.flash?.at === 'compose' && !!lockedBy(d.chain)) || (d.flash?.at === 'seats' && !hasSeatForm(d)) || (d.flash?.at === 'owner' && (!hasOwnerBox(d) || (!!d.flash.fields && !canRepitch(d)))) || (d.flash?.at === 'post' && !onPage(d.thread, d.flash.post))) && (
             <p class="err flash" role="alert">{d.flash.text}</p>
           )}
           {passed && <Proof n={n} sub={passed} checks={d.checks.get(passed.post_id) ?? []} />}
@@ -270,7 +270,7 @@ export const CheckedBy: FC<{ spec: CheckSpec; author: string }> = ({ spec, autho
 const StatusLine: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
   if (n.state === 'dead_end') return <>dead end{n.dead_end_note && <>: <Text inline text={n.dead_end_note} /></>}</>
-  const sub = openReview(n, d.subs)
+  const sub = openReview(d.chain, d.subs)
   if (sub) {
     const r = review(n.spec, n.author, sub, d.checks.get(sub.post_id) ?? [])
     // "waiting on you" to the author (SUB-24), and how long it has waited on them (table B #57).
@@ -297,7 +297,8 @@ export function limitLine(l: NodePageData['limit']): string {
 }
 
 const Compose: FC<{ d: NodePageData }> = ({ d }) => {
-  if (d.chain.node.state !== 'live') return <Locked n={d.chain.node} />
+  const locked = lockedBy(d.chain)
+  if (locked) return <Locked n={d.chain.node} by={locked} />
   if (!d.me)
     return (
       <div class="compose">
@@ -336,17 +337,24 @@ const Compose: FC<{ d: NodePageData }> = ({ d }) => {
 
 /**
  * In place of the compose box on an ended node (decided Oct 9, "An ended shwarm is locked"): it takes nothing new, and a
- * shwarm is carried on by building on it.
- * OPEN (#92): no mockup draws it; its words wait on Myra's yes.
+ * shwarm is carried on by building on it. `by` is the ended node that locks it (lockedBy): itself, or one above it.
+ * OPEN (#92): no mockup draws it; its words, and those for a branch under an ended node, wait on Myra's yes.
  */
-const Locked: FC<{ n: NodeHead }> = ({ n }) => {
+const Locked: FC<{ n: NodeHead; by: NodeHead }> = ({ n, by }) => {
   const word = n.kind === 'branch' ? 'branch' : 'shwarm'
+  const was = by.state === 'closed' ? 'passed' : 'is a dead end'
   return (
     <div class="compose locked">
       <div class="to">locked</div>
       <p>
-        this {word} {n.state === 'closed' ? 'passed' : 'is a dead end'}, so it takes nothing new.
-        {n.kind !== 'branch' && <> to carry it on, <a href={buildOnHref(n.path)}>build on it</a>.</>}
+        {by === n ? (
+          <>this {word} {was}, so it takes nothing new.</>
+        ) : (
+          <>
+            <a href={nodeHref(by.path)}><Plain text={by.title} /></a> {was}, so this {word} takes nothing new either.
+          </>
+        )}
+        {by.kind !== 'branch' && <> to carry it on, <a href={buildOnHref(by.path)}>build on it</a>.</>}
       </p>
     </div>
   )
@@ -542,7 +550,7 @@ const PostView: FC<{ p: PostRow; d: NodePageData; sub?: SubmissionRow; reply?: b
     )
   // A plain post of the viewer's own, under the same name (go-live 4.8; table B #30): edit and delete it, while the node
   // is live (an ended one is locked). Submissions, checks and dead-end notes never change.
-  const own = n.state === 'live' && !!d.me?.verified && p.person_id === d.me.personId && p.as_name === '@' + d.me.handle && p.kind === 'post'
+  const own = !lockedBy(d.chain) && !!d.me?.verified && p.person_id === d.me.personId && p.as_name === '@' + d.me.handle && p.kind === 'post'
   const editFlash = own && flash?.draft !== undefined ? flash : undefined // a refused edit shows in its form
   return (
     <div class={cls} id={p.id}>
@@ -559,7 +567,7 @@ const PostView: FC<{ p: PostRow; d: NodePageData; sub?: SubmissionRow; reply?: b
         {(!isSub || !shownInParts(sub)) && links.length > 0 && <> · linked: <Links links={links} /></>}
         {by.length > 0 && <> · <BuiltOnByView by={by} /></>}
         {/* shwarm.html: "make it a branch" on a post; the create form takes its text (go-live 4.8). Branches open only on a live node. */}
-        {p.kind === 'post' && n.state === 'live' && <> · <a href={makeBranchHref(n.path, p.id)}>make it a branch</a></>}
+        {p.kind === 'post' && !lockedBy(d.chain) && <> · <a href={makeBranchHref(n.path, p.id)}>make it a branch</a></>}
         {own && <> · <EditPost p={p} d={d} flash={editFlash} /></>}
         {own && <> · <DeletePost p={p} d={d} /></>}
         {p.edited_at && <> · <History p={p} edits={d.thread.edits.get(p.id) ?? []} label={pinned ? 'edit history' : 'edited'} now={d.now} /></>}
@@ -695,7 +703,7 @@ const SubmissionParts: FC<{ d: NodePageData; sub: SubmissionRow; links: Link[]; 
   const checks = d.checks.get(sub.post_id) ?? []
   const r = review(n.spec, n.author, sub, checks)
   // On a dead end a submission still in review takes no checks: its standing checks show, but no open slots and no link to check it.
-  const open = isOpen(n, sub)
+  const open = isOpen(d.chain, sub)
   const header = sub.status === 'in_review' ? `checks · ${r.done} of ${r.total}` : sub.status === 'superseded' ? (r.failed ? 'failed' : 'superseded') : sub.status
   const right =
     open ? `one per person · not ${humanOf(sub.as_name)}` : sub.status === 'in_review' ? '' : sub.status === 'superseded' ? `superseded by #${sub.superseded_number ?? '?'}` : sub.status === 'passed' ? `${r.done} of ${r.total} checks` : ''
@@ -865,7 +873,7 @@ export const StepUpField: FC<{ id: string; open?: boolean; form?: string }> = ({
  */
 const hasOwnerBox = (d: NodePageData) => {
   const n = d.chain.node
-  return !!d.me?.verified && d.me.personId === n.author_id && n.state === 'live'
+  return !!d.me?.verified && d.me.personId === n.author_id && !lockedBy(d.chain)
 }
 
 /** Whether the author may still re-pitch: a live shwarm with nothing submitted yet (decided Oct 9, "No lobby"). */
@@ -978,7 +986,7 @@ const Branches: FC<{ d: NodePageData }> = ({ d }) => {
       ) : (
         <div class="in note">no {word}es yet.</div>
       )}
-      {n.state === 'live' && (
+      {!lockedBy(d.chain) && (
         <div class="in" style="border-top:1px solid var(--ink)">
           <a class="btn plain" href={`/new?parent=${n.path}`} style="display:block;text-align:center">+ start a {word}</a>
         </div>

@@ -14,17 +14,24 @@ export const SOURCE = { repo: 'https://codeberg.org/kestrel/mcdoom', commit: 'e9
 export const RECORDING = { url: 'https://archive.org/download/mcdoom-checks/bunker.mp4', sha256: '7'.repeat(64), label: 'recording' }
 export const RELEASE = { name: 'minecraft in doom v1.0', version: 'v1.0', howToUse: 'uzdoom -iwad freedoom2.wad -file mcdoom-v1.pk3' }
 
-export async function closedWorld(o: { extra?: string[] } = {}) {
+type Run = <T = any>(cmd: Command) => Promise<T>
+
+/**
+ * `before` runs its acts on the tree before the shwarm passes: once it passed, its branches are locked with it
+ * (core/context.ts needLive, OPEN #92), so a branch's own run has to come first.
+ */
+export async function closedWorld(o: { extra?: string[]; before?: (x: { run: Run; p: (handle: string) => P; db: Awaited<ReturnType<typeof stagingWorld>>['db'] }) => Promise<void> } = {}) {
   const w = await stagingWorld(o)
   const { db } = w
   const p = (handle: string): P => ({ id: (db.raw.prepare('SELECT id FROM person WHERE handle = ?').get(handle) as { id: number }).id, handle })
   // The engine's clock moves a minute per command, from T0 on (the example's events are all before T0).
   const clock = { now: T0 }
   const engine = new TreeEngine(db, () => clock.now)
-  const run = <T = any>(cmd: Command): Promise<T> => {
+  const run: Run = <T = any>(cmd: Command): Promise<T> => {
     clock.now += MIN
     return engine.run(cmd) as Promise<T>
   }
+  await o.before?.({ run, p, db })
   const heads = (db.raw.prepare("SELECT p.id FROM post p JOIN node n ON n.id = p.node_id WHERE n.path = ? AND p.as_name = '@finn_irl'").get(EXAMPLE_ROOT) as { id: string }).id
   const sub = await run<{ id: string; number: number; hash: string }>({
     type: 'submit',

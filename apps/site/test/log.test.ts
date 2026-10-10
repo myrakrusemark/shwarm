@@ -36,26 +36,30 @@ type NodeLog = { node: string; filter: string; total: number; next: string | nul
 
 /** The closed world, plus the rest of a run: the branch passes, a sub-branch fails its author check, another is a dead end. */
 async function fullRun() {
-  const w = await closedWorld()
-  const { run, p } = w
-  const get = (sql: string, ...args: unknown[]) => w.db.raw.prepare(sql).get(...args) as any
-  const subOf = (path: string, n: number) => get('SELECT s.post_id FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ? AND s.number = ?', path, n).post_id as string
-  // two sub-branches: one fails its author check, one is a dead end; a third is still being checked
-  const branch = (who: string, title: string, check: unknown) =>
-    run({ type: 'createNode', actor: site(p(who)), input: { kind: 'branch', parent: EXAMPLE_BRANCH, title, what: `${title}.`, doneWhen: `${title} works.`, check } })
-  await branch('bmo_fan', 'break blocks', { author: true })
-  await branch('finn_irl', 'monster collision', { people: { count: 1 }, author: true })
-  await branch('lumpy', 'texture pack', { author: true })
-  w.db.raw.prepare('UPDATE node SET triage = ? WHERE path IN (?, ?)').run('clear', BREAK, MONSTERS)
-  const brk = await run<{ id: string }>({
-    type: 'submit',
-    actor: agent(p('kestrel'), 'swarm/r-11'),
-    input: { node: BREAK, text: 'breaking updates within one frame.', links: [{ url: 'https://codeberg.org/kestrel/mcdoom/break.diff', sha256: SHA('b1') }], howToCheck: 'break 100 blocks.' },
+  // All of it before the shwarm passes, which locks its branches with it (OPEN #92).
+  const w = await closedWorld({
+    before: async ({ run, p, db }) => {
+      const get = (sql: string, ...args: unknown[]) => db.raw.prepare(sql).get(...args) as any
+      const subOf = (path: string, n: number) => get('SELECT s.post_id FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ? AND s.number = ?', path, n).post_id as string
+      // two sub-branches: one fails its author check, one is a dead end; a third is still being checked
+      const branch = (who: string, title: string, check: unknown) =>
+        run({ type: 'createNode', actor: site(p(who)), input: { kind: 'branch', parent: EXAMPLE_BRANCH, title, what: `${title}.`, doneWhen: `${title} works.`, check } })
+      await branch('bmo_fan', 'break blocks', { author: true })
+      await branch('finn_irl', 'monster collision', { people: { count: 1 }, author: true })
+      await branch('lumpy', 'texture pack', { author: true })
+      db.raw.prepare('UPDATE node SET triage = ? WHERE path IN (?, ?)').run('clear', BREAK, MONSTERS)
+      const brk = await run<{ id: string }>({
+        type: 'submit',
+        actor: agent(p('kestrel'), 'swarm/r-11'),
+        input: { node: BREAK, text: 'breaking updates within one frame.', links: [{ url: 'https://codeberg.org/kestrel/mcdoom/break.diff', sha256: SHA('b1') }], howToCheck: 'break 100 blocks.' },
+      })
+      await run({ type: 'check', actor: stepped(p('bmo_fan')), input: { node: BREAK, on: brk.id, slot: 'author', verdict: 'fail', repro: 'broken blocks leave a ghost collision box.' } })
+      await run({ type: 'deadEnd', actor: stepped(p('finn_irl')), input: { node: MONSTERS, note: 'the blockmap is built once per level; an incremental update needs engine changes.' } })
+      // then block placement passes on #2 with @bmo_fan's sign-off, which locks it (decided Oct 9): its sub-branches came first
+      await run({ type: 'check', actor: stepped(p('bmo_fan')), input: { node: EXAMPLE_BRANCH, on: subOf(EXAMPLE_BRANCH, 2), slot: 'author', verdict: 'pass', text: 'every corner holds.' } })
+    },
   })
-  await run({ type: 'check', actor: stepped(p('bmo_fan')), input: { node: BREAK, on: brk.id, slot: 'author', verdict: 'fail', repro: 'broken blocks leave a ghost collision box.' } })
-  await run({ type: 'deadEnd', actor: stepped(p('finn_irl')), input: { node: MONSTERS, note: 'the blockmap is built once per level; an incremental update needs engine changes.' } })
-  // then block placement passes on #2 with @bmo_fan's sign-off, which locks it (decided Oct 9): its sub-branches came first
-  await run({ type: 'check', actor: stepped(p('bmo_fan')), input: { node: EXAMPLE_BRANCH, on: subOf(EXAMPLE_BRANCH, 2), slot: 'author', verdict: 'pass', text: 'every corner holds.' } })
+  const get = (sql: string, ...args: unknown[]) => w.db.raw.prepare(sql).get(...args) as any
   const env = testEnv(w.db)
   const b = new Browser(env)
   const json = async (path: string): Promise<NodeLog> => JSON.parse(await body(await b.req(path)))
@@ -190,7 +194,9 @@ describe('GET /w/<path>/log (5.7)', () => {
     expect((await w.b.req(LOG, { headers: { 'if-none-match': etag } })).status).toBe(304)
     // a different filter is a different response
     expect((await w.b.req(`${LOG}?filter=all`)).headers.get('etag')).not.toBe(etag)
-    await w.run({ type: 'post', actor: site(w.p('lumpy')), input: { node: BREAK, text: 'ghost boxes are back on the list.' } })
+    // the tree is locked once the shwarm passed (OPEN #92), but an upvote on a branch's post still counts
+    const brk = w.get('SELECT s.post_id FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ?', BREAK).post_id
+    await w.run({ type: 'upvote', actor: site(w.p('lumpy')), input: { node: BREAK, post: brk } })
     forgetVersions()
     expect((await w.b.req(LOG, { headers: { 'if-none-match': etag } })).status).toBe(200)
   })

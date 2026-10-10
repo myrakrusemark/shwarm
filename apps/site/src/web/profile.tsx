@@ -313,8 +313,12 @@ const InboxEntry: FC<{ i: InboxItem; inbox: InboxView; handle: string; action: s
         {/* OPEN (#83): a long post shows its first 400 characters here, on one line; "see thread" has the rest. */}
         <Text text={cut(i.post_text ?? '', 400)} addressed />
         <div class="acts">
-          <a href={i.href}>see thread</a> · <Reply i={i} handle={handle} action={action} token={token} limit={i.node_id === null ? undefined : inbox.limits.get(i.node_id)} flash={inbox.flash?.item === i.id ? inbox.flash : undefined} /> · {toggle}
+          {/* An ended thread is locked (decided Oct 9): no reply box on it, as on its page. */}
+          <a href={i.href}>see thread</a>
+          {!i.locked && <> · <Reply i={i} handle={handle} action={action} token={token} limit={i.node_id === null ? undefined : inbox.limits.get(i.node_id)} flash={inbox.flash?.item === i.id ? inbox.flash : undefined} /></>} · {toggle}
         </div>
+        {/* a reply sent from a page drawn before it ended: the refusal shows under the item */}
+        {i.locked && inbox.flash?.item === i.id && <p class="err" role="alert">{inbox.flash.text}</p>}
       </div>
     )
   // A system item (table B): core's words about a node they're in. No reply.
