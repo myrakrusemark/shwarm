@@ -31,6 +31,8 @@ export const LIMITS = {
   reportIp: { tripAt: 11, windowMs: HOUR, blockMs: HOUR },
   /** "report" on posts by one account: 30 an hour, since each mails the admins (9.3; OPEN #105) */
   reportPerson: { tripAt: 31, windowMs: HOUR, blockMs: HOUR },
+  /** "flag this shwarm" by one account: 10 an hour, since each mails the admins and one per node is all that counts (9.3; OPEN #106) */
+  flagPerson: { tripAt: 11, windowMs: HOUR, blockMs: HOUR },
 } satisfies Record<string, Limit>
 
 const iso = (ms: number) => new Date(ms).toISOString()

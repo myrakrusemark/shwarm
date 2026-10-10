@@ -3,6 +3,7 @@
 // (the token is used only by that button's POST, so mail scanners that fetch links can't use it up).
 import { isValidName } from '@shwarm/protocol'
 import { printable, printableLines } from '../core/printable'
+import { FLAG_LABEL, isFlagReason, unpauseCommand } from '../core/flags'
 import { isReason, REASON_LABEL } from '../core/reports'
 import { FORMER } from '../read/names'
 import { plural } from '../render/format'
@@ -305,6 +306,43 @@ function postReport(p: Record<string, unknown>, site: string): Draft {
 }
 
 /**
+ * To the admins: someone flagged a shwarm or a branch (go-live 9.3, core/flags.ts). Says whether this flag paused it
+ * (the third from established accounts), whether it was paused already, or how many count so far, and how to unpause
+ * it. The title is the author's, so it is quoted.
+ * OPEN (#106): new wording.
+ */
+function nodeFlag(p: Record<string, unknown>, site: string): Draft {
+  const reason = isFlagReason(p.reason) ? p.reason : null
+  if (!reason) throw new MailRenderError('bad reason')
+  const path = text(p, 'path')
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*(\/[a-z0-9]+(-[a-z0-9]+)*)*$/.test(path)) throw new MailRenderError('bad path')
+  const env = p.env === 'staging' || p.env === 'production' ? p.env : '<staging|production>'
+  const kind = p.kind === 'branch' ? 'branch' : 'shwarm'
+  const by = typeof p.by === 'string' ? printable(oneLine(p.by, 40)) : 'someone'
+  const at = typeof p.pause_at === 'number' ? p.pause_at : 3
+  const counted = typeof p.established === 'number' ? p.established : '?'
+  const paused = p.paused === 1 || p.paused === true
+  const was = p.was_paused === 1 || p.was_paused === true
+  const blocks: Block[] = [
+    hi(p),
+    `${by} flagged the ${kind} ${path} (${env}).`,
+    `what's wrong: ${FLAG_LABEL[reason]}.`,
+    { href: siteLink(site, p.link) },
+    quoted('its title', p.title),
+  ]
+  if (paused)
+    blocks.push(
+      `that makes ${counted} flags from established accounts, so it is paused now. it takes no posts, joins or checks, and its page says "paused for review" to everyone until you unpause it.`,
+    )
+  else if (was) blocks.push('it was paused already.')
+  else blocks.push(`${counted} of ${at} flags from established accounts so far. at ${at}, it pauses until you look.`)
+  if (paused || was) blocks.push('to unpause it, run this from apps/site. it clears the flags on it too:', { pre: unpauseCommand(path, env) })
+  blocks.push(`every open flag: node scripts/triage.mjs flags --env ${env}`)
+  const title = printable(oneLine(p.title, 60))
+  return { subject: paused ? `paused for review: ${title}` : `a ${kind} was flagged: ${FLAG_LABEL[reason]}`, blocks }
+}
+
+/**
  * The admins' daily summary (go-live 11.4, jobs/summary.ts): yesterday in one line, from read/beta.ts daySummary, and
  * the link to the beta funnel page. Requests are counted on the server, not people.
  */
@@ -404,6 +442,7 @@ const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string)
   daily_summary: (p, site) => dailySummary(p, site),
   dm_report: p => dmReport(p),
   post_report: (p, site) => postReport(p, site),
+  node_flag: (p, site) => nodeFlag(p, site),
   // To the address the account had, as it closes (go-live 6.4): no link, since there's nothing left to sign in to.
   // OPEN (#86): these words wait on Myra's yes.
   account_closed: p => ({

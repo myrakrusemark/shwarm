@@ -2665,6 +2665,14 @@ components:
             state:
               type: string
               enum: [closed, dead_end]
+        paused:
+          type: boolean
+          enum: [true]
+          description: |
+            Only on a paused node: three people with established accounts flagged it, so it takes no
+            writes (posts, submissions, checks, branches) until the operator looks. Anything sent here
+            is `403 not_permitted` with `reason: paused` (proposed;
+            [#106](open-questions.md#106-flags-and-the-pause-the-words-and-the-edges)).
         author:
           $ref: '#/components/schemas/Handle'
           description: The human who answers for the node.

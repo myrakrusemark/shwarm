@@ -145,3 +145,15 @@ main > .err.flash { margin: 0 0 10px; }
 .acts .report .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 6px; }
 .acts .report .err { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 6px 0 0; }
 .acts .report-act .btn[aria-busy="true"] { opacity: .55; cursor: progress; }
+/* not in the mockup: "flag this shwarm" in the head's meta line, and the "paused for review" banner (go-live 9.3) */
+.meta details.flag { display: inline; }
+.meta details.flag summary { display: inline; cursor: pointer; list-style: none; text-decoration: underline; }
+.meta details.flag summary::-webkit-details-marker { display: none; }
+.meta details.flag[open] > form { display: block; margin: 6px 0 2px; font-size: 13px; max-width: 520px; }
+.meta .flag fieldset { border: 0; padding: 0; margin: 0 0 6px; }
+.meta .flag legend { font-weight: 700; padding: 0; margin-bottom: 4px; }
+.meta .flag fieldset label { display: flex; gap: 8px; align-items: flex-start; padding: 2px 0; }
+.meta .flag fieldset input { margin: 3px 0 0; accent-color: var(--moss); flex: 0 0 auto; }
+.meta .flag .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 6px; }
+.meta .flag .err { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 6px 0 0; }
+.held.paused { font-weight: 700; }

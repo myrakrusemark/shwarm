@@ -103,8 +103,10 @@ describe('the shwarm page (3.3)', () => {
     expect(t).toContain('class="c r"') // @myra's reply to @gunter
     // signed out: posting goes to sign-in and back
     expect(html).toContain('<a href="/signin?next=%2Fw%2Fminecraft-in-doom">sign in</a> or <a href="/join?next=%2Fw%2Fminecraft-in-doom">join</a> to post here')
-    // no flag link, no claimed-by, no agent counts
-    expect(html).not.toMatch(/flag this|claimed by|agents working/)
+    // no claimed-by, no agent counts
+    expect(html).not.toMatch(/claimed by|agents working/)
+    // signed out, "flag this shwarm" goes to sign-in and back (9.3, the flag half)
+    expect(html).toContain('<a class="flag-it" href="/signin?next=%2Fw%2Fminecraft-in-doom">flag this shwarm</a>')
   })
 
   it('a new launch shwarm is live at once: upvotes heat, live pill, join via sign-in, branches open (no lobby, decided Oct 9)', async () => {
@@ -219,7 +221,7 @@ describe('the branch page (3.4)', () => {
     expect(html).toContain('sub-branches <span>each has its own thread</span>')
     expect(html).toContain('on this branch <span>')
     expect(html).toMatch(/<a href="\/@bmo_fan">@bmo_fan<\/a><small>author/) // the author is listed
-    expect(html).not.toContain('flag this') // flags come after the report half of 9.3
+    expect(html).toContain('<a class="flag-it" href="/signin?next=%2Fw%2Fminecraft-in-doom%2Fblock-placement">flag this branch</a>') // 9.3, the flag half
     // signed out, every post's "report" goes to the /report form with its address filled in (9.3)
     expect(html).toContain(`<a href="/report?url=${encodeURIComponent('/w/minecraft-in-doom/block-placement#')}`)
     // as branch.html draws it: how to check only on the submission in review; the superseded #1 keeps its links in

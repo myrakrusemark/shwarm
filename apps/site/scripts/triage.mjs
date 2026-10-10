@@ -5,6 +5,8 @@
 //   node scripts/triage.mjs list --env staging
 //   node scripts/triage.mjs clear <path> "<reason>" --env staging
 //   node scripts/triage.mjs block <path> "<category>" "<reason>" --env production
+//   node scripts/triage.mjs flags --env production
+//   node scripts/triage.mjs unpause <path> "<reason>" --env production
 //
 // list: held nodes, and launch shwarms the model flagged or couldn't check (they stay public), newest first.
 // clear: the node goes public. block: only its author sees it, with the category, the reason and how to appeal.
@@ -12,17 +14,22 @@
 // --as <handle> names who decided (default myra). Every SQL statement is printed before it runs. clear and block
 // go as one file (`wrangler d1 execute --remote --file`), which D1 applies whole or not at all; wrangler asks
 // before it applies, unless --yes is given.
+// flags (go-live 9.3): every node with open flags, or paused (three open flags from established accounts pause one,
+// core/flags.ts), paused first. unpause: the node takes writes again and its open flags are resolved, so the count
+// starts over; the reason goes in the public moderation log, as clear's and block's do. Same file, same asking.
 import { spawnSync } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { DecideError, decideStatements, describeNode, nodeSql, parseBlockReason, printable, queueSql, toSqlScript } from '../src/triage/decide.ts'
+import { DecideError, decideStatements, describeNode, flagsSql, nodeSql, parseBlockReason, pauseSql, printable, queueSql, toSqlScript, unpauseStatements } from '../src/triage/decide.ts'
 
 const SITE = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const USAGE = `usage:
   node scripts/triage.mjs list --env staging|production
   node scripts/triage.mjs clear <path> "<reason>" --env staging|production [--as <handle>] [--yes]
-  node scripts/triage.mjs block <path> "<category>" "<reason>" --env staging|production [--as <handle>] [--yes]`
+  node scripts/triage.mjs block <path> "<category>" "<reason>" --env staging|production [--as <handle>] [--yes]
+  node scripts/triage.mjs flags --env staging|production
+  node scripts/triage.mjs unpause <path> "<reason>" --env staging|production [--as <handle>] [--yes]`
 
 function fail(msg, code = 2) {
   console.error(msg)
@@ -112,9 +119,56 @@ function decide(env, d, yes) {
   console.log(`\n${d.path} is ${printable(after.triage)} now.`)
 }
 
+function flags(env) {
+  const rows = query(env, flagsSql())
+  if (!rows.length) return console.log('\nno open flags, and nothing is paused.')
+  // printable on every field: a title is the author's text, and a terminal acts on escape sequences.
+  const table = rows.map(r => [
+    printable(r.path),
+    printable(r.title.slice(0, 40)),
+    r.paused ? 'paused' : '-',
+    String(r.open),
+    String(r.established),
+    printable(r.reasons ?? '-'),
+    printable(r.by_handles ?? '-'),
+    r.last ? age(r.last) : '-',
+  ])
+  const head = ['path', 'title', 'state', 'open', 'established', 'reasons', 'by', 'last']
+  const w = head.map((h, i) => Math.max(h.length, ...table.map(t => String(t[i]).length)))
+  const line = t => t.map((c, i) => String(c).padEnd(w[i])).join('  ')
+  console.log('\n' + line(head))
+  for (const t of table) console.log(line(t))
+}
+
+function unpause(env, d, yes) {
+  let stmts
+  try {
+    stmts = unpauseStatements(d)
+  } catch (e) {
+    if (e instanceof DecideError) fail(e.message)
+    throw e
+  }
+  const [before] = query(env, pauseSql(d.path))
+  if (!before) fail(`no node at ${d.path} on ${env}`)
+  console.log(`\n${printable(before.path)} (${printable(before.kind)}): ${before.paused ? 'paused' : 'not paused'}, ${before.open} open flag${before.open === 1 ? '' : 's'}\n  title: ${printable(before.title)}\n`)
+  if (!before.paused && !before.open) fail(`${d.path} isn't paused and has no open flags: nothing to do.`)
+  const sql = toSqlScript(stmts)
+  const dir = join(SITE, '.wrangler/triage') // .wrangler/ is git-ignored
+  mkdirSync(dir, { recursive: true })
+  const file = join(dir, `${env}-unpause-${new Date().toISOString().replace(/[:.]/g, '-')}.sql`)
+  writeFileSync(file, sql)
+  console.log(`-- ${env}, ${file}\n${sql}`)
+  wrangler(env, ['--file', file, ...(yes ? ['--yes'] : [])], true)
+  const [after] = query(env, pauseSql(d.path))
+  if (after?.paused !== 0 || after?.open !== 0) fail(`${d.path} is ${after?.paused ? 'still paused' : 'gone'}${after ? `, ${after.open} open flags` : ''}: nothing was applied?`, 3)
+  console.log(`\n${d.path} is unpaused, and its flags are resolved.`)
+}
+
 const { pos, env, as, yes } = parse(process.argv.slice(2))
 const [cmd, ...rest] = pos
 if (cmd === 'list' && rest.length === 0) list(env)
 else if (cmd === 'clear' && rest.length === 2) decide(env, { action: 'clear', path: rest[0], reason: rest[1], by: as }, yes)
+else if (cmd === 'flags' && rest.length === 0) flags(env)
+else if (cmd === 'unpause' && rest.length === 2) unpause(env, { path: rest[0], reason: rest[1], by: as }, yes)
 else if (cmd === 'block' && rest.length === 3) decide(env, { action: 'block', path: rest[0], category: rest[1], reason: rest[2], by: as }, yes)
 else fail(USAGE)

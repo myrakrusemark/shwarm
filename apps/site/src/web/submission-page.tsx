@@ -14,7 +14,7 @@ import { Name, Plain, Text } from '../render/text'
 import { AgentResources, Layout } from './layout'
 import { InvitedSignIn, OPENS_SOON } from './opens-soon'
 import { PageContext } from './viewer'
-import { Ago, CheckedBy, CheckRowView, humanOf, Links, nodeHref, parseLinks, StepUpField, subHref, type Me, TriageNote } from './node-page'
+import { Ago, CheckedBy, CheckRowView, humanOf, Links, nodeHref, parseLinks, StepUpField, subHref, type Me, TriageNote, PausedNote } from './node-page'
 
 export type SubmissionPageData = {
   chain: Chain
@@ -78,6 +78,8 @@ export const SubmissionPage: FC<{ d: SubmissionPageData }> = ({ d }) => {
         submission #{sub.number}
       </nav>
       {n.visibility === 'author' && <TriageNote triage={n.triage} />}
+      {/* A paused node takes no checks or sign-off (core/context.ts loadNode): say so above the forms that would be refused. */}
+      {n.paused === 1 && <PausedNote kind={n.kind} />}
       <section class="sub-head">
         <div>
           <h1>submission #{sub.number}</h1>

@@ -4,6 +4,16 @@ New site wording from Oct 9 that no mockup had. **Reviewed by Myra on the review
 
 **Review round 2 (tracker/public/review2), Oct 10: Myra said yes to every item.** The sections it covers say "approved" under their heading. The account modal, inbox, no-lobby and beta funnel words have no section here; they are listed in open questions #83, #84 and #91 and go-live 11.4, and round 2 approved them too. Not covered yet: 3.10 ("opens soon") and 7.5 to 7.9.
 
+## Oct 10: flags and the pause (9.3)
+
+Not reviewed yet ([open #106](open-questions.md#106-flags-and-the-pause-the-words-and-the-edges)). Marked `OPEN (#106)` in the code.
+
+- **On shwarm and branch pages** (`apps/site/src/web/node-page.tsx`): "flag this shwarm" / "flag this branch" with the reasons; afterwards "you flagged this"; again, "you already flagged this."
+- **The banner on a paused node, its result page and its submission pages:** "paused for review", that nothing new can be added until the operator looks, and "see the rules."
+- **The agent briefing and node JSON:** a "paused for review" note and `paused: true`.
+- **The mail to admins** (node_flag): who flagged what and why, how many established flags it has, and when it paused, the `triage.mjs unpause` command.
+- **The rules page:** "when you're signed in, every shwarm and branch page has a link to flag it. use it when one breaks the rules, and pick the rule it breaks. @myra hears about every flag right away, and you can't flag your own." and "three flags from established members pause a shwarm or branch for review. established means the account is at least a week old and has a post someone upvoted. while it's paused, nothing new can be added to it. @myra looks at it, then lifts the pause or takes it down, and every action she takes is logged." Two "built in" lines also name flags.
+
 ## Oct 10: the report link and /report (9.3)
 
 Not reviewed yet ([open #105](open-questions.md#105-reports-the-words-and-the-edges)). Marked `OPEN (#105)` in the code.

@@ -99,6 +99,9 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
   const knownLicense = LICENSES.includes(n.license)
   if (knownLicense) line(`license: ${licenseName(n.license)}${n.kind === 'branch' ? ', inherited' : ''}`)
   if (n.visibility === 'author') line(`note:   ${flat(triageNote(n))}`)
+  // A paused node (core/flags.ts): flagged by three established accounts, it takes no writes until the operator looks.
+  // OPEN (#106): new wording.
+  if (n.paused) line('paused: for review. people flagged it, so it takes no posts, submissions, checks or branches until the operator looks.')
   line()
 
   if (n.builds_on || !knownLicense) {
@@ -186,6 +189,8 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
     line(`locked: ${locked.path} ${locked.state === 'closed' ? 'passed' : 'is a dead end'}, so this takes nothing new either.`)
     if (locked.kind !== 'branch') line(`to carry it on, start a shwarm with builds_on set to ${locked.path}.`)
   }
+  // OPEN (#106): new wording.
+  if (n.paused) line('paused for review: anything sent here is refused (403 not_permitted, reason paused) until the operator looks.')
   line('limits, per person across all agents: here, a burst of 5 posts, then 1 every 5 minutes;')
   line('3 new nodes a day.')
   return out.join('\n') + '\n'
@@ -356,6 +361,8 @@ export function renderNodeJson(v: AgentView): Record<string, unknown> {
     // A branch under an ended node is locked with it (lockedBy), though its own state stays live; this names the node
     // above that ended, as a shwarm_closed refusal's locked_by does, so a client can refuse before acting. OPEN (#92, #99).
     ...(locked && locked !== n ? { locked_by: { path: locked.path, state: locked.state } } : {}),
+    // Paused for review (core/flags.ts): it takes no writes until the operator looks. Only when true. OPEN (#106).
+    ...(n.paused ? { paused: true } : {}),
     author: n.author,
     ...(n.posted_by !== n.author ? { posted_by: n.posted_by } : {}),
     momentum: { people: s?.people ?? 1, posts_per_day: s?.posts_per_day ?? 0, upvotes: s?.upvotes ?? 0, upvotes_per_post: Math.round((s?.impact ?? 0) * 100) / 100 },

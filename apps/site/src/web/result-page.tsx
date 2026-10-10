@@ -14,7 +14,7 @@ import { showHidden } from '../render/hidden'
 import { LINK_REL, linkParts, Name, Plain, Text } from '../render/text'
 import { feedHref } from './feed'
 import { AgentResources, Layout } from './layout'
-import { buildOnHref, linkView, nodeHref, parseLinks, Pill, Proof, subHref, type Me, TriageNote } from './node-page'
+import { buildOnHref, linkView, nodeHref, parseLinks, Pill, Proof, subHref, type Me, TriageNote, PausedNote } from './node-page'
 
 export type ResultPageData = {
   chain: Chain
@@ -44,6 +44,8 @@ export const ResultPage: FC<{ d: ResultPageData }> = ({ d }) => {
       <link rel="stylesheet" href="/css/result.css" />
       <a class="back" href={feedHref('closed')}>← back to closed</a>
       {n.visibility === 'author' && <TriageNote triage={n.triage} />}
+      {/* A passed shwarm can be flagged from its thread (?thread=1) and paused (core/flags.ts): say so here too. */}
+      {n.paused === 1 && <PausedNote kind={n.kind} />}
       <DoneHead d={d} />
       <div class="grid">
         <main id="main" tabindex={-1}>

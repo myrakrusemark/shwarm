@@ -20,6 +20,7 @@ import { MAX_TEXT, MAX_TITLE } from '../core/text'
 import { Command, LINK_REL, linkParts, Log, Name, Plain, tagHref, Text } from '../render/text'
 import { RELEASE_CAPS } from '../core/posts'
 import { REASON_LABEL, REASONS, REPORT_TEXT_MAX } from '../core/reports'
+import { FLAG_LABEL, FLAG_REASONS, PAUSE_AT } from '../core/flags'
 import { AgentResources, Layout } from './layout'
 import { InvitedSignIn, OPENS_SOON } from './opens-soon'
 import { PageContext } from './viewer'
@@ -41,9 +42,10 @@ export type Me = { personId: number; handle: string; verified: boolean } | null
  * A refused form, shown next to it: the compose box, join or leave (`seats`), the author's own box (dead end), or one
  * post's upvote, edit, delete or report (`post` names it). `draft` keeps the text they wrote; a refused submission
  * (`mode: 'submit'`) keeps every field of the submit form in `fields` and opens it again; a refused edit opens its form
- * again, and so does a refused report (`report`, with its reason in `fields`).
+ * again, and so does a refused report (`report`, with its reason in `fields`). `flag`: "flag this shwarm" in the head,
+ * with its reason in `fields`.
  */
-export type Flash = { at: 'compose' | 'seats' | 'owner' | 'post'; text: string; draft?: string; mode?: 'submit'; fields?: Record<string, string>; post?: string; pin?: boolean; report?: boolean }
+export type Flash = { at: 'compose' | 'seats' | 'owner' | 'post' | 'flag'; text: string; draft?: string; mode?: 'submit'; fields?: Record<string, string>; post?: string; pin?: boolean; report?: boolean }
 
 export type NodePageData = {
   chain: Chain
@@ -54,6 +56,7 @@ export type NodePageData = {
   thread: Thread
   myUps?: Map<string, boolean> // the viewer's upvotes on the posts shown: post id → counted (A6)
   myReports?: Set<string> // the posts shown that the viewer reported (core/reports.ts)
+  myFlag?: boolean // the viewer flagged this node (core/flags.ts)
   mySeat?: number | null // the viewer's join on a shwarm (a seat row's number), if they're working on it
   nodeEdits?: NodeEdit[] // the shwarm's earlier versions, newest first (its author's edits; re-pitches before Oct 10)
   editable?: boolean // the viewer is its author and may still edit it: nobody else joined, nothing submitted (decided Oct 10)
@@ -104,11 +107,12 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
         <a class="back" href="/">← back to hot</a>
       )}
       {n.visibility === 'author' && <TriageNote triage={n.triage} />}
+      {n.paused === 1 && <PausedNote kind={n.kind} />}
       <Head d={d} />
       <div class="grid">
         <main id="main" tabindex={-1}>
           {/* a refusal whose form isn't on the page (a forged or stale one) shows at the top */}
-          {((d.flash?.at === 'compose' && !!lockedBy(d.chain)) || (d.flash?.at === 'seats' && !hasSeatForm(d)) || (d.flash?.at === 'owner' && !hasOwnerBox(d)) || (d.flash?.at === 'post' && !onPage(d.thread, d.flash.post))) && (
+          {((d.flash?.at === 'compose' && !!lockedBy(d.chain)) || (d.flash?.at === 'seats' && !hasSeatForm(d)) || (d.flash?.at === 'owner' && !hasOwnerBox(d)) || (d.flash?.at === 'post' && !onPage(d.thread, d.flash.post)) || (d.flash?.at === 'flag' && !hasFlagSpot(d))) && (
             <p class="err flash" role="alert">{d.flash.text}</p>
           )}
           {passed && <Proof n={n} sub={passed} checks={d.checks.get(passed.post_id) ?? []} />}
@@ -198,6 +202,7 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
           {isBranch && <> · license {licenseName(n.license)}, inherited</>}
           {/* OPEN: no mockup draws it; its place and word wait on Myra's yes. */}
           {d.editable && <> · <a class="edit-it" href={editHref(n.path)}>edit</a></>}
+          <FlagNode d={d} />
         </div>
         <div class="pitch">
           <div class="what">
@@ -327,6 +332,16 @@ export function limitLine(l: NodePageData['limit']): string {
 const Compose: FC<{ d: NodePageData }> = ({ d }) => {
   const locked = lockedBy(d.chain)
   if (locked) return <Locked n={d.chain.node} by={locked} />
+  // A paused node takes no writes (core/context.ts loadNode) until the operator looks (core/flags.ts).
+  if (d.chain.node.paused === 1)
+    return (
+      <div class="compose locked">
+        {/* OPEN (#106): new wording. */}
+        <div class="to">paused for review</div>
+        <p>nothing new can be posted here until the people who run shwarm look at it.</p>
+        {d.flash?.at === 'compose' && <p class="err" role="alert">{d.flash.text}</p>}
+      </div>
+    )
   // The beta (go-live 3.10): anyone who isn't invited reads only.
   if (useContext(PageContext).opensSoon)
     return (
@@ -369,6 +384,61 @@ const Compose: FC<{ d: NodePageData }> = ({ d }) => {
         <button class="btn plain" type="submit" name="do" value="post">post</button>
       </div>
     </form>
+  )
+}
+
+/**
+ * The banner on a paused node (go-live 9.3, core/flags.ts), for everyone: three people with established accounts flagged
+ * it, so it takes no writes until the operator unpauses it. Nobody is named.
+ * Also on a passed shwarm's result page and on submission pages (web/result-page.tsx, web/submission-page.tsx).
+ * OPEN (#106): new wording. No mockup draws it.
+ */
+export const PausedNote: FC<{ kind: string }> = ({ kind }) => (
+  <p class="held paused" role="status">
+    paused for review. people flagged this {kind === 'branch' ? 'branch' : 'shwarm'}, so it takes nothing new until the people who run shwarm look at it. see <a href="/rules">the rules</a>.
+  </p>
+)
+
+/** Where "flag this shwarm" shows its form or its note: for a signed-in, verified person who isn't the node's author. */
+const hasFlagSpot = (d: NodePageData) => !!d.me?.verified && d.me.personId !== d.chain.node.author_id
+
+/**
+ * "flag this shwarm" / "flag this branch" in the head's meta line (go-live 9.3, core/flags.ts): for a signed-in person
+ * with a verified email but the node's author, once per node, then "you flagged this". Not an act the beta limits, and
+ * not behind the password. Signed out, it goes to sign-in and back. Not shown before the email is verified: a flag
+ * there would only be refused. Rendered with its own " · " first.
+ * OPEN (#106): new wording. No mockup draws it.
+ */
+const FlagNode: FC<{ d: NodePageData }> = ({ d }) => {
+  const n = d.chain.node
+  const word = n.kind === 'branch' ? 'branch' : 'shwarm'
+  if (!d.me) return <> · <a class="flag-it" href={signInHref(d.here)}>flag this {word}</a></>
+  if (!hasFlagSpot(d)) return null
+  const flash = d.flash?.at === 'flag' ? d.flash : undefined
+  if (d.myFlag) return <> · <span class="note flag-it" role={flash ? 'status' : undefined}>{flash ? flash.text : 'you flagged this'}</span></>
+  const reason = flash?.fields?.reason
+  return (
+    <>
+      {' · '}
+      <details class="flag" open={flash ? true : undefined}>
+        <summary>flag this {word}</summary>
+        <form method="post" action={d.here} class="flag-act">
+          <input type="hidden" name="form_token" value={d.token} />
+          <input type="hidden" name="do" value="flag" />
+          <fieldset>
+            <legend>what's wrong with this {word}?</legend>
+            {FLAG_REASONS.map(r => (
+              <label><input type="radio" name="reason" value={r} required checked={reason === r || undefined} /> {FLAG_LABEL[r]}</label>
+            ))}
+          </fieldset>
+          {flash && <p class="err" role="alert">{flash.text}</p>}
+          <div class="row">
+            <span class="note">only the people who run shwarm see who flagged it. {PAUSE_AT} flags from established accounts pause it until they look.</span>
+            <button class="btn plain" type="submit">flag it</button>
+          </div>
+        </form>
+      </details>
+    </>
   )
 }
 

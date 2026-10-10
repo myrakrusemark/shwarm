@@ -182,3 +182,68 @@ export function queueSql(): string {
     [RUBRIC_VERSION, RUBRIC_VERSION, MAX_ERRORS],
   )
 }
+
+// ---------- flags and the pause (go-live 9.3, the flag half; core/flags.ts) ----------
+// Three open flags on a node from established accounts pause it (core/flags.ts flagNode); only the operator lifts it.
+
+export type Unpause = { path: string; reason: string; by?: string; at?: string }
+
+/**
+ * Lifting a pause: a moderation_action 'unpause' with the operator's reason (public, as clear and block are; the pause
+ * row itself is kept private, since it names the flagger whose flag made the third), every open flag on the node
+ * resolved (so the count starts over), the node unpaused, and its version and changed_at moved, as core/context.ts
+ * touchNode does, so no cached signed-out page keeps the banner. Every statement finds the node by its path, so a path
+ * that isn't there changes nothing (the script says so first); the moderation_action goes first, and its NOT NULL
+ * by_person refuses a handle that isn't there, so that typo stops the file before anything changes.
+ */
+export function unpauseStatements(d: Unpause): Stmt[] {
+  if (!PATH.test(d.path) || d.path.length > 600) throw new DecideError(`not a node path: ${d.path}`)
+  const by = d.by ?? 'myra'
+  if (!HANDLE.test(by)) throw new DecideError(`not a handle: ${by}`)
+  const reason = d.reason.replace(/\s+/g, ' ').trim()
+  if (!reason) throw new DecideError('say why: the reason goes in the public moderation log')
+  if (reason.length > MAX_REASON) throw new DecideError(`the reason is at most ${MAX_REASON} characters`)
+  const at = d.at ?? new Date().toISOString()
+  const node = '(SELECT id FROM node WHERE path = ?)'
+  return [
+    {
+      sql: `INSERT INTO moderation_action (by_person, action, node_id, reason, public, created_at) SELECT (SELECT id FROM person WHERE handle = ?), 'unpause', id, ?, 1, ? FROM node WHERE path = ? AND paused = 1`,
+      args: [by, reason, at, d.path],
+    },
+    { sql: `UPDATE flag SET resolved_at = ? WHERE node_id = ${node} AND post_id IS NULL AND resolved_at IS NULL`, args: [at, d.path] },
+    { sql: 'UPDATE node SET paused = 0, last_event_id = ?, changed_at = ? WHERE path = ?', args: [versionId(), at, d.path] },
+  ]
+}
+
+/**
+ * The flags queue: every node with open flags, or paused, paused first, then the newest flag first. `established`
+ * counts the open flags from accounts established when they flagged (the pause counts the same, core/flags.ts), `by` names everyone.
+ */
+export function flagsSql(): string {
+  return renderStatement(
+    `SELECT n.path, n.kind, n.title, n.paused,
+            COUNT(f.id) AS open,
+            COALESCE(SUM(CASE WHEN p.status = 'active' AND (p.founding = 1 OR (p.established_at IS NOT NULL AND p.established_at <= f.created_at)) THEN 1 ELSE 0 END), 0) AS established,
+            group_concat(DISTINCT f.reason) AS reasons,
+            group_concat('@' || p.handle, ' ') AS by_handles,
+            MAX(f.created_at) AS last
+     FROM node n
+     LEFT JOIN flag f ON f.node_id = n.id AND f.post_id IS NULL AND f.resolved_at IS NULL
+     LEFT JOIN person p ON p.id = f.person_id
+     WHERE n.paused = 1 OR f.id IS NOT NULL
+     GROUP BY n.id
+     ORDER BY n.paused DESC, last DESC, n.id DESC`,
+    [],
+  )
+}
+
+/** One node's pause state, for the script to show before and after unpause. */
+export const pauseSql = (path: string) => {
+  if (!PATH.test(path)) throw new DecideError(`not a node path: ${path}`)
+  return renderStatement(
+    `SELECT n.path, n.kind, n.title, n.paused,
+            (SELECT COUNT(*) FROM flag f WHERE f.node_id = n.id AND f.post_id IS NULL AND f.resolved_at IS NULL) AS open
+     FROM node n WHERE n.path = ?`,
+    [path],
+  )
+}

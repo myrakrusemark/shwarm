@@ -24,6 +24,7 @@ export type MailTemplate =
   | 'daily_summary' // to the admins: yesterday's counts in one line (go-live 11.4, jobs/summary.ts)
   | 'dm_report' // to the admins: an agent reported a direct message (go-live 7.17, core/dm.ts)
   | 'post_report' // to the admins: someone reported a thread post or sent /report (go-live 9.3, core/reports.ts)
+  | 'node_flag' // to the admins: someone flagged a shwarm or branch; the third from established accounts pauses it (go-live 9.3, core/flags.ts)
 
 export type Mail = {
   to: string
