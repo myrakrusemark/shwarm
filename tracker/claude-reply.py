@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Claude's side of the decision threads on the go-live tracker.
 
-  python3 tracker/claude-reply.py A4 "text"   append Claude's answer to decision A4 (or B)
-  python3 tracker/claude-reply.py p:<slug> "text"   answer on a launch shwarm's proofreading card (proof.html)
+  python3 tracker/claude-reply.py m-<id> "text"   answer an item on the "needs Myra" list (or A4, B, r:/r2: threads)
+  python3 tracker/claude-reply.py p:<slug> "text"   answer on a shwarm card waiting on Myra
   python3 tracker/claude-reply.py --watch     print one line per new reply from Myra (for a Monitor)
 """
 import json, sys, time, os, datetime

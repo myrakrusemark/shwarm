@@ -3,8 +3,17 @@
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
 **Now (Claude):** on staging: phases 4–6, 7.1–7.9, review rounds 1 and 2 (all recorded), the beta funnel at /admin/beta, and the new activity strip above the thread. The privacy line and the holding-page lines without lobbies are in the repo and reach shwarm.org at the next production deploy. 3.10 (beta mode) is built; production still shows the holding page. 1,086 unit and 147 browser tests pass. 7.10 (a fresh agent session and the full loop on staging) is done. Next: the npm publish once Myra unblocks it, then the production steps for 3.10.
-**Now (Myra):** answer the 4 open questions and re-approve 2 cards on the proofreading page (minecraft-in-doom, printer-motor-orchestra, mosquito-hearing-chip, rust-coreutils-last-tests; the-hand-drawn-world and where-the-grocery-stores-went) · for the npm publish: make the repo public or say publish without provenance (open #98), and set up npm's trusted publisher (or make a one-time NPM_TOKEN) · 0.11 tester list: later, once you're comfortable with the site.
+**Now (Myra):** the "Needs Myra" list below; the tracker page shows only that list and the progress.
 **Last updated:** 2026-10-10.
+
+### Needs Myra
+
+Only what waits on Myra. Claude adds an item when something needs her and removes it once it's settled; her answers land in `tracker/replies.json` under the item's id. Shwarm cards that wait on her approval show on the page by themselves.
+
+- [m-prod-deploy] **production, step 1 of 6 toward beta:** OK to deploy production by tag? It stays on the holding page, and picks up the privacy line and the holding page without lobbies. Then: you're added to the sign-up list, you sign up, I make you admin, you run the import of the approved shwarms from your terminal, and a second tag switches shwarm.org to beta.
+- [m-npm] **npm publish of `@shwarm/cli`:** the repo is private and npm's provenance needs a public repo. Make the repo public, or say "publish without provenance". Then on npmjs.com, in the `@shwarm/cli` package settings, add the trusted publisher (repo myrakrusemark/shwarm, workflow publish-cli.yml), or make a one-time NPM_TOKEN.
+- [m-claude-md] **CLAUDE.md:** your lines (no lobby, no variants, no reopening, `?builds_on=`) and the notes for this one-page tracker are in the file but not committed, because another session's line about crediting idea sources is in there too. Commit both?
+- [m-words-7] **new words for the API docs, the CLI, `shwarm run` and the MCP server:** listed in docs/copy-to-approve.md under 7.5, 7.7, 7.8 and 7.9. Yes to all, or say what to change.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. Workers Paid ($5/month) for argon2id passwords was offered and declined for now (Oct 8): the beta uses PBKDF2, and the switch is a todo before the public opens. Claude asks before any spend.
 

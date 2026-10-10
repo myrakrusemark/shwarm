@@ -16,5 +16,3 @@ tracker/*.tmp
 admin/
 __pycache__/
 .claude/worktrees/
-tracker/public/review/*.png
-tracker/public/review2/*.png

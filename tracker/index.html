@@ -21,349 +21,213 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--paper); color: var(--ink); }
   body {
-    font: 14px/1.5 ui-monospace, "JetBrains Mono", "IBM Plex Mono", Menlo, Consolas, monospace;
+    font: 14px/1.55 ui-monospace, "JetBrains Mono", "IBM Plex Mono", Menlo, Consolas, monospace;
     background-image: radial-gradient(circle at 1px 1px, rgba(19,38,27,.10) 1px, transparent 0);
     background-size: 14px 14px;
   }
-  .wrap { max-width: 1180px; margin: 0 auto; padding: 22px 16px 60px; }
-  a { color: var(--sky); }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 22px 16px 60px; }
+  a { color: var(--sky); overflow-wrap: anywhere; }
   code { background: var(--paper-2); padding: 0 3px; font-size: .95em; }
 
-  header { border: var(--rule-heavy); background: var(--paper); display: flex; align-items: center; gap: 14px; padding: 12px 16px; }
+  header { border: var(--rule-heavy); background: var(--paper); display: flex; align-items: center; gap: 14px; padding: 12px 16px; flex-wrap: wrap; }
   header .mark { width: 40px; height: 40px; background: var(--ink); -webkit-mask: url(/mark.png) center/contain no-repeat; mask: url(/mark.png) center/contain no-repeat; flex: 0 0 auto; }
-  header h1 { font: 900 30px/1 "Arial Black", Arial, sans-serif; margin: 0; letter-spacing: -1px; }
+  header h1 { font: 900 28px/1 "Arial Black", Arial, sans-serif; margin: 0; letter-spacing: -1px; }
   header h1 span { color: var(--moss); }
   header .sub { font-size: 12.5px; opacity: .8; }
-  header .live { margin-left: auto; font-size: 12px; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-  header .live i { width: 9px; height: 9px; border-radius: 50%; background: var(--leaf); display: inline-block; }
-  header .live.off i { background: var(--clay); }
-  .strip { background: var(--ink); color: #fff; padding: 8px 16px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; }
-  .strip b { color: var(--sun); }
-  .bar { flex: 1 1 260px; height: 12px; border: 1.5px solid var(--paper); position: relative; min-width: 160px; }
-  .bar > i { position: absolute; inset: 0 auto 0 0; background: var(--leaf); }
-  .bar > i.doing { background: var(--sun); }
+  #live { margin-left: auto; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  #live::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--leaf); }
+  #live.off::before { background: var(--clay); }
 
-  .now { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 18px 0; }
-  .box { border: var(--rule); background: var(--paper); }
-  .box h2 { margin: 0; padding: 4px 10px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; background: var(--moss); color: #fff; display: flex; justify-content: space-between; gap: 8px; }
-  .box h2 span { font-weight: 400; text-transform: none; letter-spacing: 0; opacity: .85; }
-  .box h2.sunny { background: var(--sun); color: var(--ink); }
-  .box .in { padding: 10px 12px; }
-  .now .in { font-size: 13.5px; }
-  .now ul { margin: 0; padding-left: 18px; }
-  .now li { margin: 3px 0; }
+  .progress { background: var(--ink); color: #fff; padding: 10px 16px 12px; }
+  .progress .line { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 13px; }
+  .progress b { color: var(--sun); }
+  .bar { height: 14px; border: 1.5px solid var(--paper); position: relative; margin-top: 8px; }
+  .bar i { position: absolute; top: 0; bottom: 0; left: 0; background: var(--leaf); }
+  .bar i.doing { background: var(--sun); }
+  .phases { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 14px; margin-top: 10px; font-size: 11.5px; }
+  .phases div { display: flex; gap: 6px; align-items: center; opacity: .9; }
+  .phases span.t { flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .phases span.p { flex: 0 0 46px; height: 6px; border: 1px solid var(--paper); position: relative; }
+  .phases span.p i { position: absolute; inset: 0 auto 0 0; background: var(--leaf); }
 
-  .test { margin: 0 0 18px; }
-  .test .in { font-size: 13px; }
-  details.test summary { cursor: pointer; padding: 4px 10px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; background: var(--ink); color: #fff; list-style: none; }
-  details.test summary::-webkit-details-marker { display: none; }
-  details.test summary::after { content: " ▾"; }
+  h2 { font: 900 22px/1.1 "Arial Black", Arial, sans-serif; letter-spacing: -.5px; margin: 26px 0 10px; display: flex; gap: 10px; align-items: baseline; }
+  h2 small { font: 13px ui-monospace, monospace; opacity: .7; letter-spacing: 0; }
+  .none { border: var(--rule); background: var(--paper); padding: 14px; box-shadow: 4px 4px 0 var(--leaf); }
 
-  .grid { display: grid; grid-template-columns: 1fr 330px; gap: 22px; align-items: start; }
-  .filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; font-size: 12.5px; align-items: center; }
-  .filters button { font: inherit; border: var(--rule); background: var(--paper); padding: 2px 9px; cursor: pointer; }
-  .filters button.on { background: var(--ink); color: #fff; }
-
-  .phase { margin-bottom: 14px; }
-  .phase > h3 { margin: 0; cursor: pointer; display: grid; grid-template-columns: 1fr 140px auto; gap: 12px; align-items: center; padding: 6px 10px; background: var(--paper-2); border: var(--rule); font-size: 13.5px; user-select: none; }
-  .phase > h3 .t { font-weight: 700; }
-  .phase > h3 .t small { font-weight: 400; opacity: .7; margin-left: 6px; }
-  .phase > h3 .n { font-size: 12px; white-space: nowrap; }
-  .phase .pbar { height: 9px; border: 1.5px solid var(--ink); position: relative; background: var(--paper); }
-  .phase .pbar i { position: absolute; inset: 0 auto 0 0; background: var(--leaf); }
-  .phase.cur > h3 { background: var(--sun); }
-  .phase.complete > h3 { background: rgba(92,154,62,.25); }
-  .steps { border: var(--rule); border-top: 0; }
-  .step { border-top: 1px dashed rgba(19,38,27,.3); }
-  .step:first-child { border-top: 0; }
-  .step .row { display: grid; grid-template-columns: 46px 1fr auto auto; gap: 10px; align-items: center; padding: 6px 10px; cursor: pointer; }
-  .step .id { font-weight: 700; font-size: 12.5px; }
-  .step .ti { font-size: 13.5px; }
-  .step .ti .should { font-size: 11px; opacity: .65; }
-  .who { font-size: 11px; padding: 0 5px; border: 1px solid var(--ink); white-space: nowrap; }
-  .who.myra { background: var(--sun); }
-  .who.both { background: linear-gradient(90deg, var(--sun) 50%, var(--paper) 50%); }
-  .step select { font: inherit; font-size: 11.5px; border: 1.5px solid var(--ink); padding: 0 2px; background: var(--paper); cursor: pointer; }
-  .step.s-doing { background: rgba(244,197,49,.35); }
-  .step.s-done .ti { text-decoration: line-through; opacity: .55; }
-  .step.s-done select { background: var(--leaf); color: #fff; }
-  .step.s-doing select { background: var(--sun); }
-  .step.s-blocked select { background: var(--clay); color: #fff; }
-  .step.s-blocked { background: rgba(196,87,45,.12); }
-  .step.s-parked .ti { opacity: .45; font-style: italic; }
-  .step .det { padding: 2px 12px 10px 66px; font-size: 13px; display: none; }
-  .step.open .det { display: block; }
-  .det p { margin: 4px 0; }
-  .det .k { font-weight: 700; }
-
-  .dec .row { padding: 7px 10px; border-top: 1px dashed rgba(19,38,27,.3); font-size: 12.5px; cursor: pointer; }
-  .dec .row:first-child { border-top: 0; }
-  .dec .row .h { display: flex; gap: 8px; align-items: baseline; }
-  .dec .row .h b { flex: 1; }
-  .pill { font-size: 10.5px; font-weight: 700; padding: 0 5px; white-space: nowrap; }
-  .pill.ok { background: var(--leaf); color: #fff; }
+  .item { border: var(--rule); background: var(--paper); box-shadow: 4px 4px 0 var(--ink); margin-bottom: 16px; }
+  .item.replied { box-shadow: 4px 4px 0 var(--leaf); }
+  .item > .head { display: flex; gap: 10px; align-items: baseline; padding: 10px 12px; cursor: pointer; }
+  .item > .head .txt { flex: 1 1 auto; }
+  .item > .head .pill { flex: 0 0 auto; }
+  .pill { font-size: 11px; border: 1px solid var(--ink); padding: 0 6px; white-space: nowrap; }
   .pill.wait { background: var(--sun); }
-  .dec .row .more { display: none; margin-top: 4px; opacity: .9; }
-  .dec .row.open .more { display: block; }
-  .dec .row .nb { font-size: 11px; opacity: .7; }
-  .pill.rep { background: var(--sky); color: #fff; }
-  .brows { margin: 8px 0 0; padding-left: 22px; max-height: 420px; overflow: auto; border: 1px solid rgba(19,38,27,.25); background: #fffdf3; padding-top: 6px; padding-bottom: 6px; }
-  .brows li { margin: 0 0 8px; padding-right: 8px; }
-  .reply { margin-top: 8px; border-top: 1px dashed rgba(19,38,27,.3); padding-top: 8px; cursor: default; }
-  .reply .btns { display: flex; gap: 6px; margin-bottom: 6px; }
-  .reply button { font: inherit; font-size: 12px; border: 1.5px solid var(--ink); background: var(--paper); padding: 1px 9px; cursor: pointer; }
-  .reply button.on { background: var(--ink); color: #fff; }
-  .reply button.save { background: var(--sun); font-weight: 700; margin-left: auto; box-shadow: 2px 2px 0 var(--ink); }
-  .reply textarea { width: 100%; font: inherit; font-size: 12.5px; border: 1.5px solid var(--ink); background: #fffdf3; padding: 5px 7px; min-height: 54px; resize: vertical; }
-  .said { margin-top: 6px; font-size: 12px; background: rgba(29,78,216,.08); border-left: 3px solid var(--sky); padding: 4px 8px; }
+  .pill.cl { background: var(--sun); }
+  .pill.ok { background: var(--leaf); color: #fff; border-color: var(--leaf); }
+  .item .body { display: none; border-top: var(--rule); padding: 10px 12px; }
+  .item.open .body { display: block; }
+  .said { font-size: 12.5px; margin: 0 0 8px; padding: 6px 8px; background: #fffdf3; border-left: 3px solid var(--ink); }
+  .said.claude { border-left-color: var(--moss); background: var(--paper-2); }
+  .said .by { font-weight: 700; margin-right: 6px; }
   .said .when { opacity: .6; font-size: 11px; }
-  .said .by { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-right: 6px; opacity: .7; }
-  .said.claude { background: rgba(47,107,58,.10); border-left-color: var(--moss); }
-  .pill.cl { background: var(--moss); color: #fff; }
-  aside .box + .box { margin-top: 18px; }
-  .park ul { margin: 0; padding: 8px 12px 8px 26px; font-size: 12.5px; }
-  .park li { margin: 4px 0; }
-  .err { background: var(--clay); color: #fff; padding: 8px 12px; margin: 12px 0; display: none; }
-  @media (max-width: 900px) { .grid, .now { grid-template-columns: 1fr; } .phase > h3 { grid-template-columns: 1fr auto; } .phase .pbar { display: none; } }
+  .reply .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+  .reply button { font: inherit; border: var(--rule); background: var(--paper); padding: 2px 10px; cursor: pointer; }
+  .reply button.on { background: var(--ink); color: #fff; }
+  .reply button.save { margin-left: auto; background: var(--moss); color: #fff; border-color: var(--moss); }
+  .reply textarea { width: 100%; min-height: 60px; font: inherit; border: var(--rule); background: #fffdf3; padding: 6px 8px; }
+
+  .card { border-top: 1px dashed rgba(19,38,27,.35); padding: 10px 0 4px; }
+  .card:first-child { border-top: 0; padding-top: 0; }
+  .card h3 { margin: 0 0 4px; font: 800 16px/1.25 Arial, sans-serif; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .card h3 .m { font: 11.5px ui-monospace, monospace; opacity: .7; }
+  .card p { margin: 4px 0; font-size: 13px; }
+  .card .k { font-weight: 700; }
+  #err { display: none; background: var(--clay); color: #fff; padding: 8px 12px; margin-top: 12px; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <i class="mark" aria-hidden="true"></i>
-    <div><h1>s<span>h</span>warm go-live</h1><div class="sub"><a href="/proof.html">proofread the launch shwarms →</a> · <a href="/review.html">review today's work →</a> ·reads <code>docs/go-live.md</code> live · change a status here or in the doc</div></div>
-    <span class="live" id="live"><i></i><span>watching the plan</span></span>
+    <div class="mark" aria-hidden="true"></div>
+    <div><h1>s<span>h</span>warm go-live</h1><div class="sub" id="updated"></div></div>
+    <div id="live"><span>live</span></div>
   </header>
-  <div class="strip"><span id="count"></span><div class="bar" id="bar"></div><span id="updated"></span></div>
-  <div class="err" id="err"></div>
-
-  <div class="now">
-    <div class="box"><h2>now · claude</h2><div class="in" id="nowC"></div></div>
-    <div class="box"><h2 class="sunny">now · myra</h2><div class="in" id="nowM"></div></div>
+  <div class="progress">
+    <div class="line"><span id="count"></span><span id="steps"></span></div>
+    <div class="bar" id="bar"></div>
+    <div class="phases" id="phases"></div>
   </div>
+  <div id="err"></div>
 
-  <details class="test box"><summary>the launch done test</summary><div class="in" id="test"></div></details>
-
-  <div class="grid">
-    <main>
-      <div class="filters" id="filters">
-        show:
-        <button data-f="all">all</button><button data-f="open">not done</button><button data-f="myra">myra's</button><button data-f="claude">claude's</button>
-      </div>
-      <div id="phases"></div>
-    </main>
-    <aside>
-      <div class="box dec"><h2>decisions to lock <span id="decN"></span></h2><div class="in" style="font-size:12px;padding:6px 10px;border-bottom:1px dashed rgba(19,38,27,.3)">open one, answer yes / change / question, save. claude reads <code>tracker/replies.json</code> and records it.</div><div id="dec"></div></div>
-      <div class="box park"><h2>further enhancements <span id="parkN"></span></h2><ul id="park"></ul></div>
-    </aside>
-  </div>
+  <h2>needs you <small id="needN"></small></h2>
+  <div id="needs"></div>
 </div>
 
 <script type="module">
 const $ = id => document.getElementById(id)
-const store = {
-  get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d } catch { return d } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)) } catch {} },
-}
-let filter = store.get('gl.filter', 'all')
-const openSteps = new Set(store.get('gl.steps', []))
-const openPhases = new Set(store.get('gl.phases', []))
-const closedPhases = new Set(store.get('gl.closed', []))
-let lastText = ''
-let replies = {}
-const openDecs = new Set(store.get('gl.decs', []))
-const drafts = {}
-
-const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 function md(s) {
   return esc(s)
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
     .replace(/\*([^*]+)\*/g, '<i>$1</i>')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, t, u) => /^https?:/.test(u) ? `<a href="${u}" target="_blank">${t}</a>` : `<u title="${u}">${t}</u>`)
+    .replace(/(^|[\s(])(https?:\/\/[^\s)<]+)/g, '$1<a href="$2" target="_blank">$2</a>')
 }
-const section = (src, title) => {
-  const i = src.search(new RegExp('^## ' + title, 'm'))
-  if (i < 0) return ''
-  const rest = src.slice(i)
-  const j = rest.slice(3).search(/^## /m)
-  return j < 0 ? rest : rest.slice(0, j + 3)
-}
+const open = new Set()
+const drafts = {}
+let lastText = ''
+let data = {}
 
-function parse(src) {
-  const line = re => (src.match(re) || [, ''])[1].trim()
-  const plan = {
-    nowC: line(/^\*\*Now \(Claude\):\*\*(.*)$/m),
-    nowM: line(/^\*\*Now \(Myra\):\*\*(.*)$/m),
-    updated: line(/^\*\*Last updated:\*\*(.*)$/m),
-    test: section(src, '1\\. ').split('\n').slice(1).join('\n').replace(/^---\s*$/m, '').trim(),
-    decisions: [], phases: [], parking: [],
-  }
-  // table A
-  const decSec = (src.split('### Table A')[1] || '').split('### Table B')[0]
-  for (const l of decSec.split('\n')) {
-    const c = l.split('|').map(x => x.trim())
-    if (c.length < 6 || !/^A\d+/.test(c[1])) continue
-    plan.decisions.push({ id: c[1], name: c[2].replace(/\*\*/g, ''), rec: c[3], q: c[4], by: c[5], decided: /^decided/i.test(c[3]) })
-  }
-  const bSec = (src.split('### Table B')[1] || '').split(/^---/m)[0]
-  const bRows = bSec.split('\n').map(l => l.split('|').map(x => x.trim())).filter(c => c.length >= 4 && c[1] && c[1] !== 'question' && !/^-+$/.test(c[1]))
-  plan.decisions.push({ id: 'B', name: `Table B: ${bRows.length} smaller defaults`, rec: 'Each is a setting or small piece of code, cheap to change later. Answer yes to accept all, or change and name the rows.', rows: bRows.map(c => ({ q: c[1], d: c[2] })), q: '', by: '0.1', decided: /^\*\*Table B accepted/m.test(src) })
-  // phases and steps
-  const parts = src.split(/^### Phase /m).slice(1)
-  for (const p of parts) {
-    const head = p.split('\n')[0]
-    const m = head.match(/^(\d+): (.+?)(?: \((.+)\))?$/)
+function parsePlan(src) {
+  const updated = (src.match(/^\*\*Last updated:\*\*(.*)$/m) || [, ''])[1].trim()
+  // Myra's list: "- [m-id] text" lines under "### Needs Myra"
+  const sec = (src.split(/^### Needs Myra[^\n]*\n/m)[1] || '').split(/^#{2,3} /m)[0]
+  const needs = [...sec.matchAll(/^- \[(m-[a-z0-9-]+)\] (.+)$/gm)].map(m => ({ id: m[1], text: m[2].trim() }))
+  const phases = []
+  for (const p of src.split(/^### Phase /m).slice(1)) {
+    const m = p.split('\n')[0].match(/^(\d+): (.+?)(?: \((.+)\))?$/)
     if (!m) continue
     const body = p.split(/^## /m)[0]
-    const steps = []
-    const re = /^\*\*(\d+\.\d+[ab]?) (.+?)\*\*(?: · (todo|doing|done|blocked|parked))?[ \t]*$/gm
-    let s
-    const heads = []
-    while ((s = re.exec(body))) heads.push({ id: s[1], title: s[2], status: s[3] || 'todo', at: s.index, end: re.lastIndex })
-    heads.forEach((h, i) => {
-      const chunk = body.slice(h.end, i + 1 < heads.length ? heads[i + 1].at : body.length)
-      const field = k => { const mm = chunk.match(new RegExp('\\*\\*' + k + ':\\*\\*\\s*(.*?)(?= · \\*\\*|$)', 'm')); return mm ? mm[1].trim() : '' }
-      const who = field('who')
-      const lane = /^myra/i.test(who) ? 'myra' : /^claude/i.test(who) ? 'claude' : /^both/i.test(who) ? 'both' : (/myra/i.test(who) ? 'myra' : 'claude')
-      steps.push({ ...h, should: /\(should\)/i.test(h.title), what: field('what'), who, lane, needs: field('needs'), due: field('due before'), done: field('done when') })
-    })
-    plan.phases.push({ n: m[1], name: m[2], size: m[3] || '', steps })
+    const st = [...body.matchAll(/^\*\*(\d+\.\d+[ab]?) (.+?)\*\*(?: · (todo|doing|done|blocked|parked))?[ \t]*$/gm)].map(s => s[3] || 'todo')
+    phases.push({ n: m[1], name: m[2], st })
   }
-  // further enhancements
-  const park = section(src, '8\\. Further enhancements')
-  plan.parking = park.split('\n').filter(l => l.startsWith('- ')).map(l => l.slice(2))
-  return plan
+  return { updated, needs, phases }
 }
 
-function render(plan) {
-  const all = plan.phases.flatMap(p => p.steps)
-  const counted = all.filter(s => s.status !== 'parked')
-  const done = counted.filter(s => s.status === 'done').length
-  const doing = counted.filter(s => s.status === 'doing').length
-  $('count').innerHTML = `<b>${done}</b> of ${counted.length} steps done · ${doing} doing · ${counted.filter(s => s.status === 'blocked').length} blocked`
-  $('bar').innerHTML = `<i style="width:${(done / counted.length) * 100}%"></i><i class="doing" style="left:${(done / counted.length) * 100}%;width:${(doing / counted.length) * 100}%"></i>`
+// Launch cards that wait on Myra: never reviewed, or Claude answered her last question. Dropped cards and
+// cards she asked to change (Claude's move) are left out.
+function cardsWaiting(cards, proof, drops) {
+  const dropped = new Set([...drops.matchAll(/^- ([a-z0-9-]+)/gm)].map(m => m[1]))
+  return cards.filter(s => {
+    if (dropped.has(s.slug)) return false
+    const t = proof[s.slug] || []
+    if (!t.length) return true
+    const last = t[t.length - 1]
+    const mine = t.filter(x => x.from !== 'claude')
+    return last.from === 'claude' && mine.at(-1)?.choice !== 'approve'
+  }).sort((a, b) => String(a.wave).localeCompare(String(b.wave)))
+}
+
+function thread(msgs) {
+  return msgs.map(m => `<div class="said ${m.from === 'claude' ? 'claude' : ''}"><span class="by">${m.from === 'claude' ? 'claude' : 'myra · ' + esc(m.choice)}</span>${md(m.text || '')} <span class="when">· ${new Date(m.at).toLocaleString()}</span></div>`).join('')
+}
+function replyBox(key, choices) {
+  const d = drafts[key] || { choice: '', text: '' }
+  return `<div class="reply" data-key="${esc(key)}"><div class="btns">${choices.map(([c, l]) => `<button data-c="${c}" class="${d.choice === c ? 'on' : ''}">${l}</button>`).join('')}<button class="save">save</button></div>
+    <textarea placeholder="anything to add (optional for yes)">${esc(d.text)}</textarea></div>`
+}
+
+function render() {
+  const { plan, replies, cards, proof, drops } = data
   $('updated').textContent = 'plan updated ' + plan.updated
-  $('nowC').innerHTML = md(plan.nowC)
-  $('nowM').innerHTML = '<ul>' + plan.nowM.split(' · ').map(x => `<li>${md(x)}</li>`).join('') + '</ul>'
-  $('test').innerHTML = plan.test.split(/\n\n+/).map(p => /^\d+\./.test(p) ? '<ol>' + p.split(/\n(?=\d+\.)/).map(x => `<li>${md(x.replace(/^\d+\.\s*/, ''))}</li>`).join('') + '</ol>' : `<p>${md(p)}</p>`).join('')
-
-  // which phase is current: first with a doing step, else first not complete
-  const cur = (plan.phases.find(p => p.steps.some(s => s.status === 'doing')) || plan.phases.find(p => p.steps.some(s => !['done', 'parked'].includes(s.status))) || {}).n
-  const show = s => filter === 'all' || (filter === 'open' && !['done', 'parked'].includes(s.status)) || (filter === 'myra' && s.lane !== 'claude') || (filter === 'claude' && s.lane !== 'myra')
+  const all = plan.phases.flatMap(p => p.st).filter(s => s !== 'parked')
+  const done = all.filter(s => s === 'done').length, doing = all.filter(s => s === 'doing').length
+  $('count').innerHTML = `<b>${done}</b> of ${all.length} steps done · ${doing} doing`
+  $('steps').textContent = `${Math.round((done / all.length) * 100)}%`
+  $('bar').innerHTML = `<i style="width:${(done / all.length) * 100}%"></i><i class="doing" style="left:${(done / all.length) * 100}%;width:${(doing / all.length) * 100}%"></i>`
   $('phases').innerHTML = plan.phases.map(p => {
-    const c = p.steps.filter(s => s.status !== 'parked')
-    const d = c.filter(s => s.status === 'done').length
-    const complete = c.length && d === c.length
-    const isOpen = openPhases.has(p.n) || (p.n === cur && !closedPhases.has(p.n))
-    const vis = p.steps.filter(show)
-    return `<section class="phase ${p.n === cur ? 'cur' : ''} ${complete ? 'complete' : ''}" data-p="${p.n}">
-      <h3><span class="t">${p.n}. ${esc(p.name)}<small>${esc(p.size)}</small></span><span class="pbar"><i style="width:${c.length ? (d / c.length) * 100 : 0}%"></i></span><span class="n">${d}/${c.length}</span></h3>
-      ${isOpen ? `<div class="steps">${vis.map(s => `
-        <div class="step s-${s.status} ${openSteps.has(s.id) ? 'open' : ''}" data-id="${s.id}">
-          <div class="row"><span class="id">${s.id}</span><span class="ti">${md(s.title.replace(/\s*\(should\)/i, ''))}${s.should ? ' <span class="should">(should)</span>' : ''}</span>
-            <span class="who ${s.lane}">${s.lane}</span>
-            <select aria-label="status of ${s.id}">${['todo', 'doing', 'done', 'blocked', 'parked'].map(o => `<option ${o === s.status ? 'selected' : ''}>${o}</option>`).join('')}</select></div>
-          <div class="det">
-            ${s.what ? `<p><span class="k">what:</span> ${md(s.what)}</p>` : ''}
-            ${s.who ? `<p><span class="k">who:</span> ${md(s.who)}${s.needs ? ` · <span class="k">needs:</span> ${md(s.needs)}` : ''}${s.due ? ` · <span class="k">due before:</span> ${md(s.due)}` : ''}</p>` : ''}
-            ${s.done ? `<p><span class="k">done when:</span> ${md(s.done)}</p>` : ''}
-          </div>
-        </div>`).join('') || '<div class="step"><div class="row"><span></span><span class="ti" style="opacity:.6">nothing here for this filter</span></div></div>'}</div>` : ''}
-    </section>`
+    const c = p.st.filter(s => s !== 'parked'), d = c.filter(s => s === 'done').length
+    return `<div title="${esc(p.name)}: ${d} of ${c.length} done"><span class="t">${p.n}. ${esc(p.name)}</span><span class="p"><i style="width:${c.length ? (d / c.length) * 100 : 0}%"></i></span></div>`
   }).join('')
 
-  const waiting = plan.decisions.filter(d => !d.decided).length
-  const lastOf = id => (replies[id] || []).slice(-1)[0]
-  const replied = plan.decisions.filter(d => !d.decided && lastOf(d.id)).length
-  $('decN').textContent = `${plan.decisions.length - waiting} decided · ${replied} in talk · ${waiting - replied} waiting`
-  $('dec').innerHTML = plan.decisions.map(d => {
-    const rs = replies[d.id] || []
-    const last = rs[rs.length - 1]
-    const fromClaude = last && last.from === 'claude'
-    const pill = d.decided ? '<span class="pill ok">decided</span>' : !last ? '<span class="pill wait">waiting</span>' : fromClaude ? '<span class="pill cl">claude answered</span>' : '<span class="pill rep">replied</span>'
-    const dr = drafts[d.id] || { choice: '', text: '' }
-    return `<div class="row ${openDecs.has(d.id) ? 'open' : ''}" data-d="${d.id}"><div class="h"><span>${d.id}</span><b>${esc(d.name)}</b>${pill}</div>
-    <div class="nb">needed by ${md(d.by)}</div>
-    ${rs.map((m, i) => `<div class="said ${m.from === 'claude' ? 'claude' : ''}"><span class="by">${m.from === 'claude' ? 'claude' : 'myra'}</span>${m.from === 'claude' ? '' : `<b>${m.choice}</b>${m.text ? ': ' : ''}`}${md(m.text || '')} <span class="when">· ${new Date(m.at).toLocaleString()}${i === rs.length - 1 && !d.decided && m.from !== 'claude' ? ' · claude is on it' : ''}</span></div>`).join('')}
-    <div class="more">${md(d.rec)}${d.rows ? `<ol class="brows">${d.rows.map(r => `<li><b>${md(r.q)}</b><br>${md(r.d)}</li>`).join('')}</ol>` : ''}
-      ${d.decided ? '' : `<div class="reply" data-r="${d.id}">
-        <div class="btns"><button data-c="yes" class="${dr.choice === 'yes' ? 'on' : ''}">yes</button><button data-c="change" class="${dr.choice === 'change' ? 'on' : ''}">change</button><button data-c="question" class="${dr.choice === 'question' ? 'on' : ''}">question</button><button class="save">save</button></div>
-        <textarea placeholder="anything to add or change (optional for yes)">${esc(dr.text)}</textarea>
-      </div>`}</div></div>`
-  }).join('')
-  $('parkN').textContent = plan.parking.length
-  $('park').innerHTML = plan.parking.map(x => `<li>${md(x)}</li>`).join('')
-  document.querySelectorAll('#filters button').forEach(b => b.classList.toggle('on', b.dataset.f === filter))
+  const items = plan.needs.map(n => {
+    const rs = replies[n.id] || []
+    const last = rs.at(-1)
+    const pill = !last ? '<span class="pill wait">waiting on you</span>' : last.from === 'claude' ? '<span class="pill cl">claude answered</span>' : '<span class="pill ok">you answered · claude is on it</span>'
+    return `<div class="item ${last && last.from !== 'claude' ? 'replied' : ''} ${open.has(n.id) ? 'open' : ''}" data-id="${n.id}">
+      <div class="head"><span class="txt">${md(n.text)}</span>${pill}</div>
+      <div class="body">${thread(rs)}${replyBox('r:' + n.id, [['yes', 'yes / done'], ['change', 'change'], ['question', 'question']])}</div></div>`
+  })
+  const waiting = cardsWaiting(cards, proof, drops)
+  if (waiting.length) items.push(`<div class="item ${open.has('cards') ? 'open' : ''}" data-id="cards">
+    <div class="head"><span class="txt"><b>${waiting.length} shwarm card${waiting.length === 1 ? '' : 's'} to approve</b> (new, rewritten, or claude answered your question)</span><span class="pill wait">waiting on you</span></div>
+    <div class="body">${waiting.map(s => `<div class="card"><h3>${esc(s.title)} <span class="m">${s.wave === 'idea' ? 'idea' : 'wave ' + esc(s.wave)} · ${esc(s.size || '')}</span></h3>
+      <p>${md(s.what)}</p>${s.why_now ? `<p><span class="k">why now:</span> ${md(s.why_now)}</p>` : ''}<p><span class="k">done when:</span> ${md(s.done_when)}</p>
+      ${s.needs_humans ? `<p><span class="k">the crowd:</span> ${md(s.needs_humans)}</p>` : ''}
+      ${thread(proof[s.slug] || [])}${replyBox('p:' + s.slug, [['approve', 'approve the card'], ['change', 'change'], ['question', 'question']])}</div>`).join('')}</div></div>`)
+  $('needN').textContent = items.length ? items.length + (items.length === 1 ? ' thing' : ' things') : ''
+  $('needs').innerHTML = items.join('') || '<div class="none">nothing needs you right now.</div>'
 }
 
 async function load() {
   try {
-    const r = await fetch('/plan.md', { cache: 'no-store' })
-    const rr = await fetch('/api/replies', { cache: 'no-store' })
-    const t = (await r.text()) + '\u0000' + (await rr.text())
-    $('live').classList.remove('off')
+    const rs = await Promise.all(['/plan.md', '/api/replies', '/launch.json', '/ideas.json', '/api/proof', '/drops.md'].map(u => fetch(u, { cache: 'no-store' })))
+    const texts = await Promise.all(rs.map(r => r.text()))
+    $('live').classList.remove('off'); $('live').lastChild.textContent = 'live'
+    const t = texts.join('\u0000')
     if (t === lastText) return
     if (document.activeElement && document.activeElement.closest('.reply')) return
     lastText = t
-    replies = JSON.parse(t.split('\u0000')[1] || '{}')
-    render(parse(t.split('\u0000')[0]))
-    $('err').style.display = 'none'
+    data = { plan: parsePlan(texts[0]), replies: JSON.parse(texts[1] || '{}'), cards: [...JSON.parse(texts[2]), ...JSON.parse(texts[3] || '[]')], proof: JSON.parse(texts[4] || '{}'), drops: texts[5] }
+    render()
   } catch (e) {
-    $('live').classList.add('off')
-    $('live').lastChild.textContent = 'not connected'
+    $('live').classList.add('off'); $('live').lastChild.textContent = 'not connected'
   }
 }
 
 document.addEventListener('click', e => {
-  if (e.target.closest('select')) return
-  const fb = e.target.closest('#filters button')
-  if (fb) { filter = fb.dataset.f; store.set('gl.filter', filter); lastText = ''; return load() }
-  const ph = e.target.closest('.phase > h3')
-  if (ph) {
-    const n = ph.parentElement.dataset.p
-    const isOpen = !!ph.parentElement.querySelector('.steps')
-    if (isOpen) { openPhases.delete(n); closedPhases.add(n) } else { openPhases.add(n); closedPhases.delete(n) }
-    store.set('gl.phases', [...openPhases]); store.set('gl.closed', [...closedPhases]); lastText = ''; return load()
-  }
-  const st = e.target.closest('.step .row')
-  if (st) {
-    const el = st.parentElement, id = el.dataset.id
-    el.classList.toggle('open')
-    el.classList.contains('open') ? openSteps.add(id) : openSteps.delete(id)
-    return store.set('gl.steps', [...openSteps])
-  }
-  const rb = e.target.closest('.reply button')
-  if (rb) {
-    const box = rb.closest('.reply'), id = box.dataset.r
-    const d = (drafts[id] ||= { choice: '', text: '' })
+  const b = e.target.closest('.reply button')
+  if (b) {
+    const box = b.closest('.reply'), key = box.dataset.key
+    const d = (drafts[key] ||= { choice: '', text: '' })
     d.text = box.querySelector('textarea').value
-    if (!rb.classList.contains('save')) { d.choice = rb.dataset.c; box.querySelectorAll('button[data-c]').forEach(b => b.classList.toggle('on', b === rb)); return }
-    if (!d.choice) d.choice = d.text ? 'change' : 'yes'
-    fetch('/api/replies', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, choice: d.choice, text: d.text }) })
-      .then(async r => { if (!r.ok) throw new Error(await r.text()); delete drafts[id]; document.activeElement.blur(); lastText = ''; load() })
-      .catch(err => { $('err').textContent = `couldn't save ${id}: ${err.message}`; $('err').style.display = 'block' })
+    if (!b.classList.contains('save')) { d.choice = b.dataset.c; box.querySelectorAll('button[data-c]').forEach(x => x.classList.toggle('on', x === b)); return }
+    if (!d.choice) d.choice = d.text ? 'change' : key.startsWith('p:') ? 'approve' : 'yes'
+    const [url, body] = key.startsWith('p:')
+      ? ['/api/proof', { slug: key.slice(2), choice: d.choice, text: d.text }]
+      : ['/api/replies', { id: key.slice(2), choice: d.choice, text: d.text }]
+    fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(async r => { if (!r.ok) throw new Error(await r.text()); delete drafts[key]; document.activeElement.blur(); lastText = ''; load() })
+      .catch(err => { $('err').textContent = `couldn't save: ${err.message}`; $('err').style.display = 'block' })
     return
   }
-  if (e.target.closest('.reply')) return
-  const dr = e.target.closest('.dec .row')
-  if (dr && !e.target.closest('a')) {
-    dr.classList.toggle('open')
-    dr.classList.contains('open') ? openDecs.add(dr.dataset.d) : openDecs.delete(dr.dataset.d)
-    store.set('gl.decs', [...openDecs])
-  }
+  if (e.target.closest('.reply, a')) return
+  const h = e.target.closest('.item > .head')
+  if (h) { const it = h.parentElement; it.classList.toggle('open'); it.classList.contains('open') ? open.add(it.dataset.id) : open.delete(it.dataset.id) }
 })
 document.addEventListener('input', e => {
   const ta = e.target.closest('.reply textarea')
-  if (ta) (drafts[ta.closest('.reply').dataset.r] ||= { choice: '', text: '' }).text = ta.value
-})
-document.addEventListener('change', async e => {
-  const sel = e.target.closest('.step select')
-  if (!sel) return
-  const id = sel.closest('.step').dataset.id
-  const r = await fetch('/api/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, status: sel.value }) })
-  if (!r.ok) { $('err').textContent = `couldn't save ${id}: ${await r.text()}`; $('err').style.display = 'block' }
-  load()
+  if (ta) (drafts[ta.closest('.reply').dataset.key] ||= { choice: '', text: '' }).text = ta.value
 })
 
 if (import.meta.hot) import.meta.hot.on('plan-changed', load)

@@ -1,4 +1,4 @@
-// Go-live tracker: serves docs/go-live.md live and lets the page set a step's status.
+// Go-live tracker: one page with the progress of docs/go-live.md and only what needs Myra.
 // Run: npx vite --config tracker/vite.config.js   (from the project root) → http://localhost:5174/
 import fs from 'node:fs'
 import path from 'node:path'
@@ -10,7 +10,6 @@ const REPLIES = path.resolve(here, 'replies.json') // Myra's answers to the deci
 const LAUNCH = path.resolve(here, '../docs/launch-shwarms.json')
 const IDEAS = path.resolve(here, '../docs/shwarm-ideas.json') // new shwarm ideas, reviewed on the same page
 const PROOF = path.resolve(here, 'proof.json') // Myra's proofreading verdicts on the launch shwarms (step 12.1)
-const WAVES = path.resolve(here, 'waves.json') // Myra's order of the shwarms into waves 1–3 (waves.html)
 const DROPS = path.resolve(here, '../docs/launch-drops.md')
 const STATUSES =['todo', 'doing', 'done', 'blocked', 'parked']
 
@@ -22,7 +21,7 @@ function planApi() {
       server.watcher.on('change', f => {
         if ([PLAN, REPLIES, LAUNCH, PROOF, IDEAS].includes(path.resolve(f))) server.ws.send({ type: 'custom', event: 'plan-changed' })
       })
-      // Proofreading page (proof.html): the launch shwarms, and Myra's verdict on each.
+      // Launch shwarm cards and Myra's verdict on each (shown on the page when a card waits on her).
       server.watcher.add([LAUNCH, PROOF, IDEAS])
       server.middlewares.use('/launch.json', (req, res) => {
         res.setHeader('Content-Type', 'application/json')
@@ -58,34 +57,7 @@ function planApi() {
           }
         })
       })
-      // Wave order page (waves.html): GET /api/waves → {waves: {"1": [slug], "2": [...], "3": [...], "none": [...], "out": [...]}, at};
-      // POST the same shape to save Myra's order. Unknown slugs are refused.
-      server.middlewares.use('/api/waves', (req, res) => {
-        const read = () => { try { return JSON.parse(fs.readFileSync(WAVES, 'utf8')) } catch { return { waves: null } } }
-        res.setHeader('Cache-Control', 'no-store')
-        if (req.method === 'GET') { res.setHeader('Content-Type', 'application/json'); return res.end(JSON.stringify(read())) }
-        if (req.method !== 'POST') { res.statusCode = 405; return res.end() }
-        let body = ''
-        req.on('data', c => (body += c))
-        req.on('end', () => {
-          try {
-            const { waves } = JSON.parse(body)
-            const ideas = fs.existsSync(IDEAS) ? JSON.parse(fs.readFileSync(IDEAS, 'utf8')) : []
-            const known = new Set([...JSON.parse(fs.readFileSync(LAUNCH, 'utf8')), ...ideas].map(x => x.slug))
-            const keys = ['1', '2', '3', 'none', 'out']
-            if (!waves || Object.keys(waves).some(k => !keys.includes(k))) throw new Error('bad input')
-            for (const k of keys) {
-              if (!Array.isArray(waves[k] ||= [])) throw new Error('bad input')
-              waves[k] = waves[k].filter(s => typeof s === 'string' && known.has(s))
-            }
-            fs.writeFileSync(WAVES, JSON.stringify({ waves, at: new Date().toISOString() }, null, 2) + '\n')
-            res.end('ok')
-          } catch (e) {
-            res.statusCode = 400
-            res.end(String(e.message))
-          }
-        })
-      })
+      // The dropped cards list, so the page can leave them out.
       server.middlewares.use('/drops.md', (req, res) => {
         res.setHeader('Content-Type', 'text/markdown; charset=utf-8')
         res.setHeader('Cache-Control', 'no-store')
@@ -108,7 +80,7 @@ function planApi() {
         req.on('end', () => {
           try {
             const { id, choice, text } = JSON.parse(body)
-            if (!/^(A\d+|B|r2?:[a-z0-9-]{1,60})$/.test(id) || !['yes', 'change', 'question'].includes(choice) || String(text || '').length > 4000) throw new Error('bad input')
+            if (!/^(A\d+|B|r2?:[a-z0-9-]{1,60}|m-[a-z0-9-]{1,60})$/.test(id) || !['yes', 'change', 'question'].includes(choice) || String(text || '').length > 4000) throw new Error('bad input')
             const all = read()
             ;(all[id] ||= []).push({ from: 'myra', choice, text: String(text || '').trim(), at: new Date().toISOString() })
             fs.writeFileSync(REPLIES, JSON.stringify(all, null, 2) + '\n')
