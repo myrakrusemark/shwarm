@@ -43,12 +43,12 @@ function planApi() {
         req.on('data', c => (body += c))
         req.on('end', () => {
           try {
-            const { slug, choice, text } = JSON.parse(body)
+            const { slug, choice, text, locked } = JSON.parse(body)
             const ideas = fs.existsSync(IDEAS) ? JSON.parse(fs.readFileSync(IDEAS, 'utf8')) : []
             const slugs = [...JSON.parse(fs.readFileSync(LAUNCH, 'utf8')), ...ideas].map(x => x.slug).concat('_suggest') // _suggest: Myra's own new ideas
             if (!slugs.includes(slug) || !['approve', 'change', 'question', 'idea'].includes(choice) || String(text || '').length > 4000) throw new Error('bad input')
             const all = read()
-            ;(all[slug] ||= []).push({ from: 'myra', choice, text: String(text || '').trim(), at: new Date().toISOString() })
+            ;(all[slug] ||= []).push({ from: 'myra', choice, text: String(text || '').trim(), at: new Date().toISOString(), ...(typeof locked === 'string' && locked.length < 20000 ? { locked } : {}) }) // locked: the done test she approved, so a later change shows the card again
             fs.writeFileSync(PROOF, JSON.stringify(all, null, 2) + '\n')
             res.end('ok')
           } catch (e) {

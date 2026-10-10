@@ -134,8 +134,11 @@ function parsePlan(src) {
   return { updated, needs, phases }
 }
 
-// Launch cards that wait on Myra: never reviewed, or Claude answered her last question. Dropped cards and
-// cards she asked to change (Claude's move) are left out.
+// Launch cards that wait on Myra: never reviewed; Claude has the last word (answered her, or asked her to approve a
+// changed card again); or the done test changed after her approval (the approval carries a fingerprint of the locked
+// fields, as apps/site/src/seed/approved.ts counts them). Dropped cards are left out.
+const LOCKED = ['slug', 'done_when', 'checked_by', 'builds_on']
+const lockedOf = s => JSON.stringify(LOCKED.map(k => s[k] ?? null))
 function cardsWaiting(cards, proof, drops) {
   const dropped = new Set([...drops.matchAll(/^- ([a-z0-9-]+)/gm)].map(m => m[1]))
   return cards.filter(s => {
@@ -143,8 +146,8 @@ function cardsWaiting(cards, proof, drops) {
     const t = proof[s.slug] || []
     if (!t.length) return true
     const last = t[t.length - 1]
-    const mine = t.filter(x => x.from !== 'claude')
-    return last.from === 'claude' && mine.at(-1)?.choice !== 'approve'
+    if (last.from === 'claude') return true
+    return last.choice === 'approve' && last.locked != null && last.locked !== lockedOf(s)
   }).sort((a, b) => String(a.wave).localeCompare(String(b.wave)))
 }
 
@@ -214,7 +217,7 @@ document.addEventListener('click', e => {
     if (!b.classList.contains('save')) { d.choice = b.dataset.c; box.querySelectorAll('button[data-c]').forEach(x => x.classList.toggle('on', x === b)); return }
     if (!d.choice) d.choice = d.text ? 'change' : key.startsWith('p:') ? 'approve' : 'yes'
     const [url, body] = key.startsWith('p:')
-      ? ['/api/proof', { slug: key.slice(2), choice: d.choice, text: d.text }]
+      ? ['/api/proof', { slug: key.slice(2), choice: d.choice, text: d.text, locked: d.choice === 'approve' ? lockedOf(data.cards.find(c => c.slug === key.slice(2)) || {}) : undefined }]
       : ['/api/replies', { id: key.slice(2), choice: d.choice, text: d.text }]
     fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       .then(async r => { if (!r.ok) throw new Error(await r.text()); delete drafts[key]; document.activeElement.blur(); lastText = ''; load() })
