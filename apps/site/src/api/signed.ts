@@ -31,7 +31,8 @@ export type Agent = {
   person: { id: number; handle: string }
   /**
    * The key's actor, acting as `as` on `node` (a path, when the call has one). Core checks the name and the grant.
-   * A name the key may use becomes the key's last use, which the keys page shows ("as @myra/m-07 on block placement").
+   * A name the key may use becomes the key's last use once the call succeeds, which the keys page shows ("as @myra/m-07
+   * on block placement").
    */
   actor(as: string, node?: string | null): Actor
   used: { as: string; node: string | null } | null
@@ -49,6 +50,8 @@ export const IDEMPOTENCY_STALE = 120_000
 export const TOUCH_EVERY = 60_000
 /** At most one "used somewhere new" mail per key in this long. OPEN (#89). */
 export const ALERT_EVERY = 3600_000
+/** At most this many networks named in one "used somewhere new" mail; the rest wait for the next. OPEN (#89). */
+export const MAIL_NETWORKS = 20
 /** OPEN (#89): 1 to 255 visible ASCII characters; clients send a UUID. */
 const IDEMPOTENCY_KEY_RE = /^[\x21-\x7e]{1,255}$/
 
@@ -223,7 +226,9 @@ async function once(c: Context<ApiEnv>, next: () => Promise<void>, keyId: string
  * After the answer: the key's last use (when, as what, where) and the network it came from, each written at most once
  * a TOUCH_EVERY unless what it shows changed. A network new to the key mails its human ("a key is used somewhere
  * new", always on), except the key's very first network when the human has signed in from it (they made the key and
- * are trying it), and at most once per key an hour (ALERT_EVERY); every network is still recorded. OPEN (#89).
+ * are trying it). At most one such mail goes per key an hour (ALERT_EVERY): a network new inside the hour is held
+ * back (held_at), not forgotten, and the key's next request after the hour mails every network held back since, up to
+ * MAIL_NETWORKS at a time. OPEN (#89).
  */
 export async function recordUse(db: D1Database, agent: Agent, ip: string | null, now: number): Promise<void> {
   const at = iso(now)
@@ -246,31 +251,51 @@ export async function recordUse(db: D1Database, agent: Agent, ip: string | null,
         `SELECT (SELECT last_seen FROM key_network WHERE key_id = ?1 AND ip_prefix = ?2) AS seen,
                 EXISTS (SELECT 1 FROM key_network WHERE key_id = ?1) AS known,
                 EXISTS (SELECT 1 FROM key_network WHERE key_id = ?1 AND alerted_at > ?3) AS alerted,
-                EXISTS (SELECT 1 FROM session WHERE person_id = ?4 AND ip_prefix = ?2) AS signed_in_here`,
+                EXISTS (SELECT 1 FROM session WHERE person_id = ?4 AND ip_prefix = ?2) AS signed_in_here,
+                (SELECT json_group_array(json_array(ip_prefix, first_seen)) FROM (SELECT ip_prefix, first_seen FROM key_network
+                  WHERE key_id = ?1 AND held_at IS NOT NULL ORDER BY first_seen, ip_prefix LIMIT ?5)) AS held`,
       )
-      .bind(key.id, net, iso(now - ALERT_EVERY), person.id)
-      .first<{ seen: string | null; known: number; alerted: number; signed_in_here: number }>()
-    if (s?.seen) {
-      if (s.seen <= since)
+      .bind(key.id, net, iso(now - ALERT_EVERY), person.id, MAIL_NETWORKS)
+      .first<{ seen: string | null; known: number; alerted: number; signed_in_here: number; held: string }>()
+    const fresh = !s?.seen
+    // Owed a mail: the networks held back, then this one if it's new (and not the first, where the human signed in).
+    const owed = (JSON.parse(s?.held ?? '[]') as [string, string][]).map(([prefix, first]) => ({ prefix, first }))
+    if (fresh && !(!s?.known && s?.signed_in_here)) owed.push({ prefix: net, first: at })
+    const mailed = s?.alerted ? [] : owed.slice(0, MAIL_NETWORKS).map(o => o.prefix)
+    // The mail first, written only while none of the networks it names is settled as the batch commits (mailed, or
+    // recorded without one being owed), so two requests at once send one mail.
+    if (mailed.length) {
+      const one = mailed.length === 1
+      stmts.push(
+        mailToPersonStatement(
+          db,
+          {
+            template: 'key_new_network',
+            stream: 'security',
+            personId: person.id,
+            payload: { key: key.name, ...(one ? { network: mailed[0] } : { networks: mailed }), at: owed[0].first, link: '/keys' },
+          },
+          at,
+          'NOT EXISTS (SELECT 1 FROM key_network WHERE key_id = ? AND ip_prefix IN (SELECT value FROM json_each(?)) AND held_at IS NULL)',
+          [key.id, JSON.stringify(mailed)],
+        ),
+        db
+          .prepare('UPDATE key_network SET alerted_at = ?, held_at = NULL WHERE key_id = ? AND held_at IS NOT NULL AND ip_prefix IN (SELECT value FROM json_each(?))')
+          .bind(at, key.id, JSON.stringify(mailed)),
+      )
+    }
+    if (!fresh) {
+      if (s!.seen! <= since)
         stmts.push(db.prepare('UPDATE key_network SET last_seen = ? WHERE key_id = ? AND ip_prefix = ? AND last_seen <= ?').bind(at, key.id, net, since))
     } else {
-      const mail = !s?.alerted && !(!s?.known && s?.signed_in_here)
-      // The mail first, written only while the network is still new as the batch commits, so two requests from it at
-      // once send one mail.
-      if (mail)
-        stmts.push(
-          mailToPersonStatement(
-            db,
-            { template: 'key_new_network', stream: 'security', personId: person.id, payload: { key: key.name, network: net, at, link: '/keys' } },
-            at,
-            'NOT EXISTS (SELECT 1 FROM key_network WHERE key_id = ? AND ip_prefix = ?)',
-            [key.id, net],
-          ),
-        )
+      const owes = owed.some(o => o.prefix === net)
+      const sent = mailed.includes(net)
       stmts.push(
         db
-          .prepare('INSERT INTO key_network (key_id, ip_prefix, first_seen, last_seen, alerted_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT (key_id, ip_prefix) DO NOTHING')
-          .bind(key.id, net, at, at, mail ? at : null),
+          .prepare(
+            'INSERT INTO key_network (key_id, ip_prefix, first_seen, last_seen, alerted_at, held_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (key_id, ip_prefix) DO NOTHING',
+          )
+          .bind(key.id, net, at, at, sent ? at : null, owes && !sent ? at : null),
       )
     }
   }
@@ -282,11 +307,18 @@ export const signedPipeline = (): MiddlewareHandler<ApiEnv> => async (c, next) =
   const now = Date.now()
   const { agent, body } = await verify(c, now)
   c.set('agent', agent)
+  let done = false
   try {
-    if (!WRITES(c.req.method)) return await next()
-    const replay = await once(c, next, agent.key.id, body, now)
-    if (replay) return replay
+    if (!WRITES(c.req.method)) await next()
+    else {
+      const replay = await once(c, next, agent.key.id, body, now)
+      if (replay) return replay
+    }
+    done = c.res.status >= 200 && c.res.status <= 299
   } finally {
+    // Only an act that went through is the key's last use: a refusal (a grant miss, a limit) still counts as a use,
+    // but isn't shown as acting on a node the key may not touch.
+    if (!done) agent.used = null
     // A failed write of the last use must not fail the request it follows.
     await later(c, () => recordUse(c.env.DB, agent, clientIp(c), now)).catch(e => console.error('recording a key use failed', e))
   }

@@ -235,8 +235,10 @@ function nodeNews(p: Record<string, unknown>, site: string): Draft {
  */
 function keyNewNetwork(p: Record<string, unknown>, site: string): Draft {
   const name = printable(oneLine(text(p, 'key'), 60))
-  const net = text(p, 'network')
-  if (!/^[0-9a-f.:]+\/(24|48)$/.test(net)) throw new MailRenderError('bad network')
+  // One network, or several held back by the hourly pace (api/signed.ts), each a /24 or /48.
+  const nets = Array.isArray(p.networks) ? (p.networks as unknown[]) : [text(p, 'network')]
+  if (!nets.length || nets.length > 20 || !nets.every(n => typeof n === 'string' && /^[0-9a-f.:]+\/(24|48)$/.test(n)))
+    throw new MailRenderError('bad network')
   const at = Date.parse(text(p, 'at'))
   if (!Number.isFinite(at)) throw new MailRenderError('bad time')
   const when = new Date(at).toISOString().slice(0, 16).replace('T', ' ')
@@ -244,7 +246,10 @@ function keyNewNetwork(p: Record<string, unknown>, site: string): Draft {
     subject: 'your agent key was used somewhere new',
     blocks: [
       hi(p),
-      `your agent key "${name}" signed a request from a network it hasn't used before: ${net}, at ${when} utc.`,
+      // OPEN (#89): the words for several networks wait on Myra's yes.
+      nets.length === 1
+        ? `your agent key "${name}" signed a request from a network it hasn't used before: ${nets[0]}, at ${when} utc.`
+        : `your agent key "${name}" signed requests from ${nets.length} networks it hasn't used before: ${nets.join(', ')}, the first at ${when} utc.`,
       "if that was your agent, there's nothing to do. if it wasn't, revoke the key now. it stops working at once:",
       { href: siteLink(site, p.link) },
     ],

@@ -191,6 +191,15 @@ describe('schema', () => {
     expect(get("SELECT alerted_at FROM key_network WHERE key_id = 'k1'").alerted_at).toBe(T)
   })
 
+  it('keeps when a key network\'s mail was held back, empty when none is owed (0015)', () => {
+    const myra = person('myra')
+    run("INSERT INTO agent_key (id, person_id, name, public_key, can_post_as, created_at) VALUES ('k1', ?, 'laptop', 'pk', '@myra/*', ?)", myra, T)
+    run("INSERT INTO key_network (key_id, ip_prefix, first_seen, last_seen) VALUES ('k1', '198.51.100.0/24', ?, ?)", T, T)
+    expect(get("SELECT held_at FROM key_network WHERE key_id = 'k1'").held_at).toBeNull()
+    run("UPDATE key_network SET held_at = ? WHERE key_id = 'k1'", T)
+    expect(get("SELECT held_at FROM key_network WHERE key_id = 'k1'").held_at).toBe(T)
+  })
+
   it('never stores a bare handle as a key pattern', () => {
     const myra = person('myra')
     const key = (pattern: string) => run("INSERT INTO agent_key (id, person_id, name, public_key, can_post_as, created_at) VALUES ('k1', ?, 'laptop', 'pk', ?, ?)", myra, pattern, T)

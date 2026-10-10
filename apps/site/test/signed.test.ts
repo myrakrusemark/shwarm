@@ -9,7 +9,7 @@ import { newSeed, publicKeyFromSeed, signRequest, toBase64url } from '@shwarm/pr
 import { SHWARM_V0, signedVectorRequest } from '@shwarm/protocol/vectors'
 import app from '../src/index'
 import { agentApi } from '../src/api'
-import { ALERT_EVERY, IDEMPOTENCY_STALE, IDEMPOTENCY_TTL, isSigned, TOUCH_EVERY } from '../src/api/signed'
+import { ALERT_EVERY, IDEMPOTENCY_STALE, IDEMPOTENCY_TTL, isSigned, MAIL_NETWORKS, TOUCH_EVERY } from '../src/api/signed'
 import type { Grant } from '../src/core/actor'
 import { makeKey, revokeKey } from '../src/auth/keys'
 import { runInTree } from '../src/do/shwarm-tree'
@@ -362,10 +362,21 @@ describe('last use and networks', () => {
     expect(lastUse(w).last_used_as).toBe('@myra/m-07')
   })
 
+  it("doesn't show a node the key was refused on as its last use", async () => {
+    const w = await world([{ node: BRANCH, perms: ['read', 'post'] }])
+    expect((await signed(probe, w.env, post(w.key, BRANCH, '@myra/m-04'))).status).toBe(201)
+    vi.setSystemTime(T0 + 2 * TOUCH_EVERY)
+    const miss = await signed(probe, w.env, post(w.key, SHWARM, '@myra/m-07'))
+    expect(miss.status).toBe(403)
+    expect(miss.json).toMatchObject({ error: 'not_permitted' })
+    // the refused call still counts as a use, but not as acting on minecraft in doom
+    expect(lastUse(w)).toEqual({ last_used_at: at(T0 + 2 * TOUCH_EVERY), last_used_as: '@myra/m-04', last_used_node: BRANCH })
+  })
+
   it('records each network and mails the human when the key is used somewhere new, at most once an hour', async () => {
     const w = await world()
     const mails = () => w.all("SELECT to_email, stream, payload FROM email_outbox WHERE template = 'key_new_network' ORDER BY id")
-    const nets = () => w.all('SELECT ip_prefix, first_seen, last_seen, alerted_at FROM key_network WHERE key_id = ? ORDER BY first_seen, ip_prefix', w.key.keyid)
+    const nets = () => w.all('SELECT ip_prefix, first_seen, last_seen, alerted_at, held_at FROM key_network WHERE key_id = ? ORDER BY first_seen, ip_prefix', w.key.keyid)
 
     await signed(probe, w.env, { path: '/whoami', key: w.key, ip: '198.51.100.7' })
     expect(mails()).toEqual([
@@ -375,7 +386,7 @@ describe('last use and networks', () => {
         payload: JSON.stringify({ key: 'claude code · laptop', network: '198.51.100.0/24', at: at(T0), link: '/keys', handle: 'myra' }),
       },
     ])
-    expect(nets()).toEqual([{ ip_prefix: '198.51.100.0/24', first_seen: at(T0), last_seen: at(T0), alerted_at: at(T0) }])
+    expect(nets()).toEqual([{ ip_prefix: '198.51.100.0/24', first_seen: at(T0), last_seen: at(T0), alerted_at: at(T0), held_at: null }])
 
     // the same network again: no mail; its last sighting at most once a minute
     vi.setSystemTime(T0 + 30_000)
@@ -386,17 +397,81 @@ describe('last use and networks', () => {
     expect(nets()[0].last_seen).toBe(at(T0 + TOUCH_EVERY + 1_000))
     expect(mails()).toHaveLength(1)
 
-    // another new network within the hour is recorded, not mailed
+    // another new network within the hour is recorded and held back, not mailed yet
     vi.setSystemTime(T0 + 10 * 60_000)
     await signed(probe, w.env, { path: '/whoami', key: w.key, ip: '2001:db8:5:1::7' })
-    expect(nets()[1]).toEqual({ ip_prefix: '2001:db8:5::/48', first_seen: at(T0 + 10 * 60_000), last_seen: at(T0 + 10 * 60_000), alerted_at: null })
+    const t10 = at(T0 + 10 * 60_000)
+    expect(nets()[1]).toEqual({ ip_prefix: '2001:db8:5::/48', first_seen: t10, last_seen: t10, alerted_at: null, held_at: t10 })
     expect(mails()).toHaveLength(1)
 
-    // an hour after the last mail, the next new network mails again
+    // an hour after the last mail, the next new network mails, naming the one held back too, from its first sighting
     vi.setSystemTime(T0 + ALERT_EVERY + 1_000)
     await signed(probe, w.env, { path: '/whoami', key: w.key, ip: '192.0.2.44' })
     expect(mails()).toHaveLength(2)
-    expect(JSON.parse(mails()[1].payload)).toMatchObject({ network: '192.0.2.0/24' })
+    expect(JSON.parse(mails()[1].payload)).toEqual({ key: 'claude code · laptop', networks: ['2001:db8:5::/48', '192.0.2.0/24'], at: t10, link: '/keys', handle: 'myra' })
+    expect(nets().map(n => [n.ip_prefix, n.alerted_at, n.held_at])).toEqual([
+      ['198.51.100.0/24', at(T0), null],
+      ['2001:db8:5::/48', at(T0 + ALERT_EVERY + 1_000), null],
+      ['192.0.2.0/24', at(T0 + ALERT_EVERY + 1_000), null],
+    ])
+  })
+
+  it('mails a network held back by the pace once the hour is up, whichever network the next request comes from', async () => {
+    const w = await world()
+    const mails = () => w.all("SELECT payload FROM email_outbox WHERE template = 'key_new_network' ORDER BY id").map(m => JSON.parse(m.payload))
+    await signed(probe, w.env, { path: '/whoami', key: w.key, ip: '198.51.100.7' })
+    // a stolen copy, used within the hour of the owner's own mail: held back
+    vi.setSystemTime(T0 + 10 * 60_000)
+    await signed(probe, w.env, { path: '/whoami', key: w.key, ip: '192.0.2.44' })
+    expect(mails()).toHaveLength(1)
+    // still inside the hour: the thief's network again, and the owner's, send nothing yet
+    vi.setSystemTime(T0 + 50 * 60_000)
+    await signed(probe, w.env, { path: '/whoami', key: w.key, ip: '192.0.2.44' })
+    await signed(probe, w.env, { path: '/whoami', key: w.key, ip: '198.51.100.7' })
+    expect(mails()).toHaveLength(1)
+    // after the hour, the owner's next request from their own network mails it, once
+    vi.setSystemTime(T0 + ALERT_EVERY + 1_000)
+    await signed(probe, w.env, { path: '/whoami', key: w.key, ip: '198.51.100.7' })
+    await signed(probe, w.env, { path: '/whoami', key: w.key, ip: '192.0.2.44' })
+    expect(mails()).toHaveLength(2)
+    expect(mails()[1]).toMatchObject({ network: '192.0.2.0/24', at: at(T0 + 10 * 60_000) })
+    expect(renderMail('key_new_network', mails()[1], { siteUrl: SITE, stream: 'security' }).text).toContain(
+      `signed a request from a network it hasn't used before: 192.0.2.0/24, at 2026-10-08 12:10 utc.`,
+    )
+
+    // the same from the held network itself, used again hours later
+    const w2 = await world()
+    vi.setSystemTime(T0)
+    await signed(probe, w2.env, { path: '/whoami', key: w2.key, ip: '198.51.100.7' })
+    vi.setSystemTime(T0 + 10 * 60_000)
+    await signed(probe, w2.env, { path: '/whoami', key: w2.key, ip: '192.0.2.44' })
+    vi.setSystemTime(T0 + 5 * ALERT_EVERY)
+    await signed(probe, w2.env, { path: '/whoami', key: w2.key, ip: '192.0.2.44' })
+    expect(w2.all("SELECT payload FROM email_outbox WHERE template = 'key_new_network' ORDER BY id").map(m => JSON.parse(m.payload).network)).toEqual([
+      '198.51.100.0/24',
+      '192.0.2.0/24',
+    ])
+  })
+
+  it(`names at most ${MAIL_NETWORKS} networks in a mail, and the rest in the next`, async () => {
+    const w = await world()
+    const mails = () => w.all("SELECT payload FROM email_outbox WHERE template = 'key_new_network' ORDER BY id").map(m => JSON.parse(m.payload))
+    await signed(probe, w.env, { path: '/whoami', key: w.key, ip: '198.51.100.7' })
+    for (let i = 1; i <= MAIL_NETWORKS + 2; i++) {
+      vi.setSystemTime(T0 + i * 1_000)
+      await signed(probe, w.env, { path: '/whoami', key: w.key, ip: `10.0.${i}.1` })
+    }
+    expect(mails()).toHaveLength(1)
+    vi.setSystemTime(T0 + ALERT_EVERY + 1_000)
+    await signed(probe, w.env, { path: '/whoami', key: w.key, ip: '198.51.100.7' })
+    expect(mails()[1].networks).toEqual(Array.from({ length: MAIL_NETWORKS }, (_, i) => `10.0.${i + 1}.0/24`))
+    expect(renderMail('key_new_network', mails()[1], { siteUrl: SITE, stream: 'security' }).text).toContain(
+      `signed requests from ${MAIL_NETWORKS} networks it hasn't used before: 10.0.1.0/24, 10.0.2.0/24,`,
+    )
+    vi.setSystemTime(T0 + 2 * ALERT_EVERY + 2_000)
+    await signed(probe, w.env, { path: '/whoami', key: w.key, ip: '198.51.100.7' })
+    expect(mails()[2].networks).toEqual([`10.0.${MAIL_NETWORKS + 1}.0/24`, `10.0.${MAIL_NETWORKS + 2}.0/24`])
+    expect(w.all('SELECT ip_prefix FROM key_network WHERE held_at IS NOT NULL')).toEqual([])
   })
 
   it("doesn't mail for a key's first network when the human signed in from it, and does for the next", async () => {
@@ -410,6 +485,12 @@ describe('last use and networks', () => {
     expect(w.all("SELECT id FROM email_outbox WHERE template = 'key_new_network'")).toEqual([])
     await signed(probe, w.env, { path: '/whoami', key: w.key, ip: '198.51.100.7' })
     expect(w.all("SELECT id FROM email_outbox WHERE template = 'key_new_network'")).toHaveLength(1)
+    // nothing is owed for the first network, so it never mails later either
+    expect(w.all('SELECT ip_prefix FROM key_network WHERE held_at IS NOT NULL')).toEqual([])
+    vi.setSystemTime(T0 + 2 * ALERT_EVERY)
+    await signed(probe, w.env, { path: '/whoami', key: w.key, ip: '203.0.113.20' })
+    expect(w.all("SELECT id FROM email_outbox WHERE template = 'key_new_network'")).toHaveLength(1)
+    vi.setSystemTime(T0)
     // another person signing in from a network doesn't make it familiar to this key
     const w2 = await world()
     w2.db.raw.prepare("INSERT INTO session (id, person_id, created_at, last_seen_at, expires_at, ip_prefix) VALUES ('s2', ?, ?, ?, ?, '192.0.2.0/24')").run(await addPerson(w2.db, 'ana'), t, t, t)
