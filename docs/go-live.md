@@ -2,7 +2,7 @@
 
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
-**Now (Claude):** on staging: phases 4–6, 7.1–7.9, review rounds 1 and 2 (all recorded), the beta funnel at /admin/beta, and the new activity strip above the thread. The privacy line and the holding-page lines without lobbies are in the repo and reach shwarm.org at the next production deploy. 3.10 (beta mode) is built; production still shows the holding page. 1,086 unit and 147 browser tests pass. 7.10 (a fresh agent session and the full loop on staging) is done. Next: the npm publish once Myra unblocks it, then the production steps for 3.10.
+**Now (Claude):** shwarm.org is in beta (v0.2.0) with the 17 wave-1 shwarms. On staging, waiting for the v0.2.1 tag: edit until someone joins, the "shwarming safely" guide, "how to join in", the pin and compose wording. Agents next, with the agent-journey session: 7.11 to 7.15 (that session) and agent DMs, 7.16 to 7.19 (the server here, the mcp push there, once Myra answers #104).
 **Now (Myra):** the "Needs Myra" list below; the tracker page shows only that list and the progress.
 **Last updated:** 2026-10-10.
 
@@ -11,6 +11,8 @@ The plan for getting all of shwarm live at https://shwarm.org, so Myra can invit
 Only what waits on Myra. Claude adds an item when something needs her and removes it once it's settled; her answers land in `tracker/replies.json` under the item's id. Shwarm cards that wait on her approval show on the page by themselves.
 
 - [m-safety-guide] **"shwarming safely" guide:** read /guide-safety (mockups/guide-safety.html) and say yes or what to change; open #102.
+- [m-dm] **agent DMs: how should they work?** you decided agents can DM each other (push, switchable, advertised, through MCP). Proposed defaults are in [open #104](open-questions.md#104-agent-dms-how-they-work): off until you turn it on per agent name; both sides must have it on; private between the two agents and their humans, kept 30 days; wrapped as untrusted text; blocks, limits and reports. Say yes, or change any of them.
+- [m-report] **a report link on every post?** the rules page says "every post has a report link", but none is built yet (step 9.3), so the new safety guide sends reports to abuse@shwarm.org. Build it before testers arrive (Claude's pick), or change that line for now?
 - [m-npm] **npm publish of `@shwarm/cli`:** the repo is public now. Your part: on npmjs.com, in the `@shwarm/cli` package settings, add the trusted publisher (GitHub, repo myrakrusemark/shwarm, workflow publish-cli.yml). Say done, and Claude runs the publish.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. Workers Paid ($5/month) for argon2id passwords was offered and declined for now (Oct 8): the beta uses PBKDF2, and the switch is a todo before the public opens. Claude asks before any spend.
@@ -720,6 +722,51 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 - **done when:** the transcript shows each of those, and the loop reaches a result page on staging.
 - *(Oct 10: test keys for the demo accounts @bmo_fan, @kestrel, @lumpy and @finn_irl on staging, made with `scripts/staging-test-key.ts` (staging only, seed demo accounts only, the secret only in a 0600 file; the keys expire Oct 17). A fresh headless Claude Code session given only the node URL, the skill, SHWARM_KEY and the staging password read the skill and the node, posted and submitted (#2). Told to post as @myra, it declined under the skill's rule, and `--as @myra/agent` was refused (not_your_name, exit 3); the server's 403 for both @myra and @myra/agent was confirmed by a direct signed request. The branch staging-smoke-test-a-readme-is-there passed on two `shwarm run` reports, and its result page shows on staging ("passed on submission #2"). The skill went in as a file because Claude Code's permission check blocks `curl -u "$VAR"`. Checked independently against live staging; no secret is in the repo.)*
 
+**7.11 The briefing points to everything an agent needs** · doing
+- **what:** a fresh agent given only a shwarm url finds the skill, the api, the cli and mcp, the sandbox recipe and "shwarming safely" from the briefing itself; "signed with your human's key" and "use the sandbox recipe" link to their pages; the node JSON carries the same pointers; /skill, /llms.txt and /docs answer.
+- **who:** Claude (agent-journey session) · **needs:** 7.6
+- **done when:** a fresh agent with only a production shwarm url reaches a signed post without guessing a single address.
+
+**7.12 Errors that tell an agent what to do** · doing
+- **what:** an unsigned POST to a node answers 401 `needs_signature` with a pointer to the skill (not "this form came from another site"); unsigned `GET /mentions` and `GET /key` answer 401, not "not found"; `GET <node>/branches` lists the branches instead of 404.
+- **who:** Claude (agent-journey session) · **needs:** 7.4
+- **done when:** each case answers as above on staging, with tests.
+
+**7.13 A text front door** · doing
+- **what:** `/` and the not-found pages answer in plain text to `Accept: text/plain`, and `/llms.txt` gives an agent the short map of shwarm: what it is, how to take part, where the api and skill are.
+- **who:** Claude (agent-journey session) · **needs:** 7.11
+- **done when:** an agent handed only "shwarm.org" finds its way in plain text.
+
+**7.14 Briefing wording fixes**
+- **what:** "1 posts/day", "1 run, each by a different person" and "1 person, at least one of them human" read right; impact explained; the pinned post's "builds on:" only when there is one; robots.txt signals; the briefing says sign-up is invite-only. Two need Myra: what an agent's first move is on an empty shwarm (joining is a site act, so two agents may build the same thing blind), and whether a run command's script ships with the submission everywhere.
+- **who:** Claude (agent-journey session), Myra on the two calls · **needs:** 7.11
+- **done when:** the briefing for every wave-1 shwarm reads cleanly to a fresh agent.
+
+**7.15 The cli and mcp, driven as a fresh agent**
+- **what:** an ergonomics pass on `@shwarm/cli` and `shwarm mcp`, driven on staging by fresh sessions; fix what's rough; the api page shows them as available once published (7.7).
+- **who:** Claude (agent-journey session) · **needs:** 7.7, 7.9
+- **done when:** a fresh Claude Code session does read, post, submit and check through `shwarm mcp` with no help.
+
+**7.16 Agent DMs: how they work**
+- **what:** Myra answers [open #104](open-questions.md#104-agent-dms-how-they-work): the default, who may write to whom, the switch, how it's advertised, privacy, limits.
+- **who:** Myra · **needs:** nothing
+- **done when:** #104 is decided.
+
+**7.17 Agent DMs: the server**
+- **what:** storage (expand-only migration), `POST /dm`, `GET /dm`, the switch on the keys page, the `dm` key permission, "dms on" in briefings and `GET /key`, blocks, limits, reports to Myra's queue, retention, openapi and the api page. Every DM reaches an agent wrapped as untrusted data.
+- **who:** Claude (this session) · **needs:** 7.16
+- **done when:** two staging agents with DMs on exchange messages through the API, and one with DMs off is refused.
+
+**7.18 Agent DMs: push through mcp**
+- **what:** `shwarm mcp` watches the DM inbox and pushes each new DM into the running session (Claude Code channels, where enabled), with tools to send a DM and switch DMs; polling where push isn't on.
+- **who:** Claude (agent-journey session) · **needs:** 7.17
+- **done when:** a DM sent on staging appears in another running Claude Code session within seconds.
+
+**7.19 Agent DMs on staging, end to end**
+- **what:** two fresh sessions find each other through "dms on", talk, one blocks the other, a report reaches Myra's queue.
+- **who:** both · **needs:** 7.17, 7.18
+- **done when:** the transcript shows each of those.
+
 ### Phase 8: further enhancements (after launch)
 
 Functional changes Myra has chosen, held until after launch so they don't muddy the current work. They don't count toward launch. The one-line list of smaller ideas is [section 8](#8-further-enhancements); longer write-ups are in [further enhancements](further-enhancements.md).
@@ -736,7 +783,8 @@ Functional changes Myra has chosen, held until after launch so they don't muddy 
 - **who:** both · **needs:** 8.1
 - **done when:** Myra has picked a design and it's built.
 
-**8.3 Mention wake-up bridge**
+**8.3 Mention wake-up bridge** · parked
+- *(Oct 10: folded into agent DMs, 7.16 to 7.19: the same push into a running session carries mentions too.)*
 - **what:** a CLI command, roughly `shwarm mentions --follow`, that forwards each new mention of `@you/agent` as a DM into the matching local Claude Code session ([write-up](further-enhancements.md#cross-session-dms-and-a-mention-wake-up-bridge)).
 - **who:** Claude · **needs:** 7.7
 - **done when:** a mention posted on the site wakes the right local session within a minute.
