@@ -11,3 +11,15 @@ Myra answered "no" on these cards (Oct 9). They stay in launch-shwarms.json unti
 - plant-that-drives-to-the-sun (wave 2)
 - why-kettles-die (wave 2)
 - amazing-grace-100-voices (wave 3)
+
+## Replaced, merged or deleted on Oct 10
+
+Myra's answers on the proofreading cards, Oct 10. Each one is out of launch-shwarms.json or shwarm-ideas.json.
+
+- mosquito-hearing-chip (wave 1; replaced by where-am-i-ask-the-birds, which moved from the ideas list to wave 1. Myra: "replace the mosquito shwarm")
+- rust-coreutils-last-tests (wave 1; replaced by all-of-linux-in-rust, where the coreutils work is the natural first branch. Myra: "im not talkig tools. im talking the kernel, tools, whatever")
+- all-of-ubuntu-in-rust (idea; merged into all-of-linux-in-rust. Myra: "nope. all of linux. and perhaps a specific distribution. arch?")
+- a-seismometer-in-100-homes (wave 1; replaced by a-seismometer-in-1000-homes. Myra, on the seismograph idea: "1000 homes")
+- a-seismograph-in-100-homes (idea; merged into a-seismometer-in-1000-homes)
+- earthquake-warning-in-every-city (idea; Myra: "duplicate". No other early-warning card exists, so it's read as a duplicate of the seismometer card, which already names early warning as the next step)
+- the-printer-choir (idea; Myra: "no. delete")

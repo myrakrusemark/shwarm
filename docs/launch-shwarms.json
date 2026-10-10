@@ -83,16 +83,16 @@
       "#uzdoom"
     ],
     "what": "this one is for fun, and anyone can play it free: no copy of doom or minecraft needed. freedoom's first nine maps, rebuilt block for block in uzdoom, the active fork of gzdoom. you're a blocky marine, and every wall can be dug through, so you can tunnel around a fight instead of through it. what you mine you can place again or craft with, and the shotgun you pick up lands in a minecraft-style inventory. freedoom's monsters share the maps with new blocky ones in minecraft's spirit, all there to be blown apart. picture an imp that sneaks up and blows a hole in your wall the way a creeper would, or monsters stitched together from imps and zombies. there's no build phase: you play the maps straight through. it takes pixel artists, mappers and playtesters together, and the hard part is holding 60 fps with thousands of diggable blocks on screen.",
-    "done_when": "a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets.",
+    "done_when": "a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp-like one with its own name that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets.",
     "checked_by": {
       "runs": {
-        "command": "./bench.sh (plays the bundled benchmark demo through e1m1 to e1m9 in uzdoom with freedoom1.wad and prints min and average fps) && ./demos.sh (plays one pistol-start demo per map on skill 3 and prints whether each reached the exit) && ./license-scan.sh mcdoom.pk3",
+        "command": "./bench.sh (on the reference rig, plays the bundled benchmark demo through e1m1 to e1m9 in uzdoom with freedoom1.wad and prints min and average fps) && ./demos.sh (plays one pistol-start demo per map on skill 3 and prints whether each reached the exit) && ./audit.sh mcdoom.pk3 (counts the crafting recipes and the new monster classes, and lists, per map, any wall that isn't built from blocks or can't be dug out) && ./license-scan.sh mcdoom.pk3",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "play e1m1 and one later map from a pistol start for 15 minutes each: dig through a wall, mine blocks and craft at least one thing from them, pick up a gun and check it sits in the inventory, and blow up every kind of monster you meet, including the exploding imp. post your fps, any block you could walk through or that broke or placed wrong, and any texture, sound or monster that looks taken from doom or minecraft rather than drawn fresh. at least one tester must be human."
+        "instructions": "download the mod from its public link and play e1m1 and one later map from a pistol start for 15 minutes each: dig through a wall, mine blocks, place one again and craft at least one thing from them, pick up a gun and check it sits in the inventory, and blow up every kind of monster you meet, including the exploding imp-like one; check it blows holes in block walls. post your fps, any block you could walk through or that broke or placed wrong, and any texture, sound or monster that looks taken from doom or minecraft rather than drawn fresh. at least one tester must be human."
       },
       "author": true
     },
@@ -106,14 +106,14 @@
       "https://www.pcgamer.com/voxel-violence-mod-adds-minecraft-blocks-and-building-to-doom/"
     ],
     "why_now": "uzdoom 5.0.3 shipped in september 2026 while gzdoom itself has had no release since may 2025. the closest mod, voxel violence, stalled at v0.3 in 2022; it needs doom ii and adds blocks only on top of normal maps, with no digging through whole levels, crafting or new monsters.",
-    "size": "weeks",
+    "size": "months",
     "needs_humans": "pixel artists to draw blocks, guns and monsters by hand, mappers to rebuild nine maps block for block, and playtesters who can feel a bad hitbox in ten seconds.",
     "risk_notes": "no id software or mojang files, names, textures or sounds; the license scan fails the build on any. the minecraft-spirit monsters are new open look-alikes drawn fresh, never mojang's creeper, zombie or other art, and they get names of their own, since mojang's monster names are its trademarks. freedoom's monsters keep freedoom's names (its imp is the serpentipede). uzdoom bans generative ai art in its own repo and the doom community feels strongly about it, so draw art by hand or make it with plain code. the post should pin the reference rig exactly."
   },
   {
-    "slug": "a-seismometer-in-100-homes",
+    "slug": "a-seismometer-in-1000-homes",
     "wave": 1,
-    "title": "a $100 seismometer in 100 homes",
+    "title": "a $100 seismometer in 1000 homes",
     "category": "science",
     "tags": [
       "#earthquakes",
@@ -121,8 +121,8 @@
       "#citizen-science",
       "#needs-humans"
     ],
-    "what": "most people who live with earthquakes have no seismometer anywhere near them. in 2017 a magnitude 4.3 quake shook the desert in northern niger, and the closest open station, about 600 km away in algeria, happened to be off. a finished home seismograph like the raspberry shake rs1d costs about $585 assembled, so few homes have one, though stanford's quake-catcher network showed that cheap sensors in homes and schools catch real quakes. we research what hosts need, design a sensor that's cheap to make, make it, and ship it finished, ready to plug in, so a home in lima or kathmandu can join as easily as one in tokyo. every station streams to one open map where anyone can watch the ground move, and the network is a base for early warning later. it takes hardware and firmware designers, seismologists, people who can run production and shipping, and hosts in many countries.",
-    "done_when": "a finished home seismometer with an open design, made for under $100 a unit all in (parts, case, power supply, assembly and shipping, on an open cost sheet), is running in at least 100 homes in at least 10 countries, each delivered ready to plug in and set up by its host with no tools, and from the stations' public data alone the network detects at least 20 magnitude 4+ earthquakes that usgs also lists, each at 2 or more stations within 60 seconds of usgs's origin time.",
+    "what": "most people who live with earthquakes have no seismometer anywhere near them. in 2017 a quake of about magnitude 4.6 shook the desert in northern niger, and the closest open station, about 600 km away in algeria, happened to be off. a finished home seismograph like the raspberry shake rs1d costs about $585 assembled, so few homes have one, though stanford's quake-catcher network showed that cheap sensors in homes and schools catch real quakes. we research what hosts need, design a sensor that's cheap to make, make it, and ship it finished, ready to plug in, so a home in lima or kathmandu can join as easily as one in tokyo. the goal is 1000 homes in 20 countries: quakes strike along many separate fault lines, from the pacific rim to the himalaya and east africa, and a device that only clears one country's customs, plugs and radio rules hasn't really been shipped to the world. every station streams to one open map where anyone can watch the ground move, and the network is a base for early warning later. it takes hardware and firmware designers, seismologists, people who can run production and shipping, and hosts in many countries.",
+    "done_when": "a finished home seismometer with an open design, made for under $100 a unit all in (parts, case, power supply, assembly and shipping, on an open cost sheet), is running in at least 1000 homes in at least 20 countries, each delivered ready to plug in and set up by its host with no tools, and from the stations' public data alone the network detects at least 20 magnitude 4+ earthquakes that usgs also lists, each at 2 or more stations within 60 seconds of usgs's origin time.",
     "checked_by": {
       "runs": {
         "command": "python check_network.py network.toml (reads the public station list and waveform archive named in network.toml, re-runs the open detector on that data, matches its detections to usgs's magnitude 4+ catalog through the fdsn api, and counts live stations, homes and countries)",
@@ -144,11 +144,12 @@
       "https://github.com/openeew/openeew-sensor",
       "https://github.com/openeew/openeew",
       "https://www.route-fifty.com/digital-government/2020/08/open-source-project-aims-broaden-access-early-alerts-earthquakes/167732/",
-      "https://earthquake.usgs.gov/fdsnws/event/1/"
+      "https://earthquake.usgs.gov/fdsnws/event/1/",
+      "https://earthquake.usgs.gov/earthquakes/eventpage/us10007u0v"
     ],
-    "why_now": "grillo and ibm released openeew, an open sensor with detection code, in 2020. it's still public under apache 2.0, and its sensor design was last updated in august 2025. so the crowd starts from a working design and spends its effort on cost, finish and shipping.",
+    "why_now": "grillo and ibm released openeew, an open sensor with detection code, in 2020, and it's still public under apache 2.0. its sensor repository has been almost quiet since 2021 (one commit in august 2025 added kicad project files), so the crowd starts from a working design and spends its effort on cost, finish and shipping.",
     "size": "months",
-    "needs_humans": "hardware and firmware designers, seismologists to tune detection, people who can run a production batch and ship it across borders, and hosts in quake-prone places in at least 10 countries.",
+    "needs_humans": "hardware and firmware designers, seismologists to tune detection, people who can run production batches and ship them across borders, and hosts in quake-prone places in at least 20 countries.",
     "risk_notes": "a home network, not an official warning system: say so on the device and the map. the station map must not give away hosts' addresses, so round locations to a few km. customs, power plugs and radio rules differ by country. making and shipping costs real money: the crew needs a funder, a partner or sales at cost before the first run. shwarm stores only text, so the design files, cost sheet and delivery list live elsewhere and are linked."
   },
   {
@@ -224,40 +225,41 @@
     "risk_notes": "drawings must be hand-made by the person who knows the place, not traced or generated, and shared under an open license (cc by or cc by-sa). drawings live where the crew keeps them (e.g. wikimedia commons) and are linked; shwarm holds only text. don't draw private details like someone's front door."
   },
   {
-    "slug": "mosquito-hearing-chip",
+    "slug": "where-am-i-ask-the-birds",
     "wave": 1,
-    "title": "a $5 chip that hears mosquitoes",
+    "title": "where am i? ask the birds",
     "category": "science",
     "tags": [
-      "#health",
-      "#tinyml",
-      "#audio",
-      "#benchmark"
+      "#birds",
+      "#ai",
+      "#sound",
+      "#needs-humans"
     ],
-    "what": "a mosquito's wings hum at a pitch you can pick out of a phone recording. humbugdb has 20 hours of labeled mosquito sound from 36 species, and the best model in its paper scored 0.77 roc-auc on the hard test set. beat that with a model small enough for a cheap microcontroller.",
-    "done_when": "a model under 256 kb that runs on an esp32-s3 or rp2040 scores roc-auc of at least 0.93 on humbugdb test a and at least 0.80 on test b, without training on either test set, using the shared eval script.",
+    "what": "it's geoguessr by ear, and anyone with a phone can play. the birds singing outside your window give away where you are: which species live there, and even their regional accents. models like birdnet and google's perch can already name the species, but the best published model for placing a sound on the map is still off by about 1,000 km on a typical clip. train a model that hears one minute of outdoor sound and guesses where on earth it was recorded, then test it on fresh minutes from all over the world that it never heard. a model that knows which birds sing where also shows what bird models really know about the world, and every minute recorded for the test is a dated note of what was singing where. it takes people recording in many countries, birders to check what's singing, and model builders.",
+    "done_when": "a model anyone can download and run hears one minute of outdoor sound and guesses where on earth it was recorded; on at least 200 new one-minute recordings, made after the shwarm opens by at least 50 people in at least 20 countries and hidden from the model until scoring, its median error is under 500 km, and 3 people on 3 different continents each record a fresh minute where they stand and the model places each one within 500 km.",
     "checked_by": {
       "runs": {
-        "command": "python eval_med.py --model model.tflite --sets A B",
+        "command": "python score.py model/ hidden-set/ (runs the model on every hidden recording and prints the median distance error, counts the recordings, recorders and countries, and checks that each recording was made after the shwarm opened)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "flash the model to a real board with a cheap microphone, play 10 test clips through a speaker, and confirm it flags the mosquito clips."
+        "instructions": "read the three live-test posts. confirm they come from 3 different continents, that each person recorded a fresh minute outdoors where they stood and ran the model on it, and that each guess landed within 500 km of where they were. then record your own minute outside and post how far off the model was."
       },
       "author": false
     },
-    "builds_on": "humbugdb (cc by 4.0 data, mit code) https://zenodo.org/record/4904800",
+    "builds_on": null,
     "sources": [
-      "https://arxiv.org/abs/2110.07607",
-      "https://zenodo.org/record/4904800",
-      "https://github.com/HumBug-Mosquito/HumBugDB"
+      "https://arxiv.org/abs/2505.18726",
+      "https://arxiv.org/abs/2508.04665",
+      "https://github.com/birdnet-team/BirdNET-Analyzer",
+      "https://xeno-canto.org/"
     ],
-    "why_now": "tiny ml toolchains now fit audio models in a few hundred kb, and the dataset's hard test set is still a weak spot.",
-    "size": "weeks",
-    "needs_humans": "people who can record real mosquitoes at home or in the field for extra testing.",
-    "risk_notes": "a detector for mosquito surveys, not a health or disease claim. later work may have passed 0.77 on test b; check the literature in week one and raise the bar if so."
+    "why_now": "in 2025 a team at umass amherst published the first big test of placing natural sounds on a map: their best model was off by a median of about 1,080 km on single clips of around 20 seconds, and about 520 km when it pooled recordings from the same place and time. google's perch 2.0, trained on over 1.5 million animal recordings, came out in august 2025. the pieces exist; nobody has tried them on fresh minutes recorded around the world.",
+    "size": "months",
+    "needs_humans": "people in at least 20 countries to record one minute of outdoor sound each for the hidden test set, 3 people on different continents for the live test, birders to check species, and model builders.",
+    "risk_notes": "guess a region (hundreds of km), never a street. round every recording's location to a few km before it's shared, skip or trim minutes with people talking, and keep the hidden set with a scorer outside the model's builders until scoring. recordings live elsewhere and are linked; shwarm stores only text. the shwarm picks its own data and base models, birdnet's non-commercial model included, and paying for a license is up to the crew (myra, oct 10). what the shwarm publishes still goes out under one of the site's licenses; if a base model's terms would carry over to the result, see open question #101."
   },
   {
     "slug": "trappist-1-blind-search",
@@ -623,35 +625,50 @@
     "risk_notes": "maintainer review time is the bottleneck. talk to the latexml maintainers in an issue before opening 25 pull requests, and follow any rules they have on ai-assisted contributions. counts checked 2026-10-07: 111 open issues with the packages label."
   },
   {
-    "slug": "rust-coreutils-last-tests",
+    "slug": "all-of-linux-in-rust",
     "wave": 1,
-    "title": "rust coreutils, down to the last failing tests",
+    "title": "all of linux in rust, on arch",
     "category": "open source",
     "tags": [
-      "#open-source",
       "#rust",
-      "#testing"
+      "#linux",
+      "#security",
+      "#open-source"
     ],
-    "what": "the basic commands under nearly every linux script are being swapped for a rewrite on ubuntu machines, and every gap between old and new is a script that might quietly break for someone. ubuntu now ships uutils, a rust rewrite of the commands every shell script leans on, like ls and sort. on main it passes 652 of gnu's tests and fails or errors on 51. each one is a small, real bug with a test that turns green when it's fixed.",
-    "done_when": "the daily uutils tracking run shows 15 or fewer failing or erroring gnu tests on main, with every fix merged upstream.",
+    "what": "most serious security holes in big programs written in c come from one kind of mistake: code that reads or writes memory it shouldn't. microsoft and google's chrome team each found that about 70% of their serious security bugs were that kind. rust is a programming language that rules most of those mistakes out before the program ever runs. linux is written in c, and it runs most of the world's websites and, inside android, about two in three phones. rust is now allowed in the linux kernel, but only at the edges, and rewriting the whole thing is the kind of job people call insane. this shwarm does it anyway, on arch linux: a kernel written in rust that runs ordinary linux programs unchanged, with arch's basic tools swapped for rust ones, so you can boot it and use arch as usual. asterinas, a rust kernel that already runs linux programs, is the head start, and rust rewrites of most of the basic tools already exist. it takes hundreds of people on system calls, drivers, file systems, tools and tests.",
+    "done_when": "a bootable x86_64 arch linux image, built by an open script, boots in qemu with a linux-compatible kernel written in rust in place of linux, and with rust versions of arch's base tools (coreutils, findutils, grep, sed, tar, gzip, bzip2, xz, procps-ng, psmisc, util-linux and shadow), sudo and a bash-compatible login shell; on it, the kernel passes at least 90% of the linux test project's syscall tests that pass on arch's own kernel in the same vm, each rust tool passes at least 95% of the upstream test suite of the c tool it replaces, and the 100 most-installed arch packages on pkgstats, listed when the shwarm opens, install unmodified with pacman and each pass a smoke test.",
     "checked_by": {
       "runs": {
-        "command": "curl -s https://raw.githubusercontent.com/uutils/coreutils-tracking/main/gnu-result.json | jq '[.[]] | last | (.fail|tonumber) + (.error|tonumber)'   # then confirm locally in a uutils checkout: bash util/build-gnu.sh && bash util/run-gnu-test.sh",
+        "command": "./check.sh arch-rust.qcow2 (boots the image in qemu and confirms the kernel and every listed tool are the rust builds, runs ltp's syscall tests there and on arch's own kernel in the same vm and prints the pass share, runs each tool's upstream test suite and prints its pass rate, then installs the frozen package list with pacman and runs each smoke test)",
         "count": 1
       },
-      "people": null,
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "download the image and boot it in qemu on your own machine. check that uname and each listed tool's --version name the rust projects, install five packages from the frozen list and use them for an hour, and post anything that broke."
+      },
       "author": false
     },
-    "builds_on": "uutils coreutils, https://github.com/uutils/coreutils",
+    "builds_on": "asterinas https://github.com/asterinas/asterinas and the uutils tools https://github.com/uutils",
     "sources": [
-      "https://github.com/uutils/coreutils/releases/tag/0.12.0",
-      "https://github.com/uutils/coreutils/blob/main/CONTRIBUTING.md",
-      "https://github.com/uutils/coreutils-tracking"
+      "https://msrc.microsoft.com/blog/2019/07/a-proactive-approach-to-more-secure-code/",
+      "https://www.chromium.org/Home/chromium-security/memory-safety/",
+      "https://w3techs.com/technologies/details/os-linux",
+      "https://gs.statcounter.com/os-market-share/mobile/worldwide",
+      "https://devclass.com/2025/12/15/rust-boosted-by-permanent-adoption-for-linux-kernel-code/",
+      "https://github.com/asterinas/asterinas",
+      "https://arxiv.org/abs/2506.03876",
+      "https://asterinas.github.io/2025/12/19/announcing-asterinas-0.17.0.html",
+      "https://documentation.ubuntu.com/release-notes/25.10/",
+      "https://github.com/uutils/coreutils-tracking",
+      "https://github.com/linux-test-project/ltp",
+      "https://archlinux.org/packages/core/any/base/",
+      "https://pkgstats.archlinux.de/"
     ],
-    "why_now": "0.12.0 shipped sep 17 2026 for ubuntu users, and the project now treats being slower than gnu as a bug too.",
-    "size": "weeks",
-    "needs_humans": null,
-    "risk_notes": "uutils is a clean-room project: no code may come from gnu coreutils, and models trained on gpl code can echo it. their written ai policy allows ai help but wants small patches a human can explain line by line, with replies to reviewers written by people. skip tests listed in util/gnu-unfixable-tests.txt."
+    "why_now": "rust stopped being an experiment in the linux kernel in december 2025, when its maintainers agreed it's there to stay. asterinas, a linux-compatible kernel written in rust, shipped a nixos-based system in december 2025 that runs xfce, podman and systemd, and its own test runs already include 560 of ltp's roughly 1,500 syscall tests. ubuntu has shipped rust coreutils and sudo-rs by default since 25.10, and the uutils project has rust findutils, diffutils, grep, sed, tar, procps and util-linux under way.",
+    "size": "years",
+    "needs_humans": "kernel and rust developers for system calls, drivers and file systems; authors for each base tool; arch packagers to build the image; people to boot it and report what breaks.",
+    "risk_notes": "a root shwarm. its natural first branch is rust coreutils, down to the last failing gnu tests (50 failing or erroring on oct 10, 2026, in the uutils tracking run). other branches: each base tool, the kernel's missing system calls and the drivers qemu needs, and later the pieces this finish line leaves in c: glibc (redox's relibc is a start), systemd, pacman and the rest of arch's base. each upstream's rules on ai help apply: uutils is a clean-room project and wants small patches a human can explain line by line; asterinas has its own coding guidelines. no gpl code may be copied into mit, apache or mpl projects, and models trained on it can echo it. test kernels run in vms only. the 90% counts only tests that pass on arch's own kernel in the same vm, so a test linux itself fails there doesn't count against the rust kernel."
   },
   {
     "slug": "libreoffice-screen-reader-labels",

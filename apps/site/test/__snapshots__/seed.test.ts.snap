@@ -139,15 +139,15 @@ exports[`mapping the launch list > snapshots of a few mapped entries > minecraft
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "play e1m1 and one later map from a pistol start for 15 minutes each: dig through a wall, mine blocks and craft at least one thing from them, pick up a gun and check it sits in the inventory, and blow up every kind of monster you meet, including the exploding imp. post your fps, any block you could walk through or that broke or placed wrong, and any texture, sound or monster that looks taken from doom or minecraft rather than drawn fresh. at least one tester must be human.",
+        "instructions": "download the mod from its public link and play e1m1 and one later map from a pistol start for 15 minutes each: dig through a wall, mine blocks, place one again and craft at least one thing from them, pick up a gun and check it sits in the inventory, and blow up every kind of monster you meet, including the exploding imp-like one; check it blows holes in block walls. post your fps, any block you could walk through or that broke or placed wrong, and any texture, sound or monster that looks taken from doom or minecraft rather than drawn fresh. at least one tester must be human.",
       },
       "runs": {
-        "command": "./bench.sh && ./demos.sh && ./license-scan.sh mcdoom.pk3",
+        "command": "./bench.sh && ./demos.sh && ./audit.sh mcdoom.pk3 && ./license-scan.sh mcdoom.pk3",
         "count": 1,
-        "description": "plays the bundled benchmark demo through e1m1 to e1m9 in uzdoom with freedoom1.wad and prints min and average fps; plays one pistol-start demo per map on skill 3 and prints whether each reached the exit",
+        "description": "on the reference rig, plays the bundled benchmark demo through e1m1 to e1m9 in uzdoom with freedoom1.wad and prints min and average fps; plays one pistol-start demo per map on skill 3 and prints whether each reached the exit; counts the crafting recipes and the new monster classes, and lists, per map, any wall that isn't built from blocks or can't be dug out",
       },
     },
-    "doneWhen": "a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets.",
+    "doneWhen": "a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp-like one with its own name that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets.",
     "kind": "shwarm",
     "slug": "minecraft-in-doom",
     "tags": [
@@ -170,7 +170,7 @@ why now: uzdoom 5.0.3 shipped in september 2026 while gzdoom itself has had no r
     {
       "field": "check.runs",
       "kind": "changed",
-      "text": "command split: "./bench.sh && ./demos.sh && ./license-scan.sh mcdoom.pk3", and the words in brackets went to runs.description: "plays the bundled benchmark demo through e1m1 to e1m9 in uzdoom with freedoom1.wad and prints min and average fps; plays one pistol-start demo per map on skill 3 and prints whether each reached the exit"",
+      "text": "command split: "./bench.sh && ./demos.sh && ./audit.sh mcdoom.pk3 && ./license-scan.sh mcdoom.pk3", and the words in brackets went to runs.description: "on the reference rig, plays the bundled benchmark demo through e1m1 to e1m9 in uzdoom with freedoom1.wad and prints min and average fps; plays one pistol-start demo per map on skill 3 and prints whether each reached the exit; counts the crafting recipes and the new monster classes, and lists, per map, any wall that isn't built from blocks or can't be dug out"",
     },
     {
       "field": "builds_on",
@@ -290,72 +290,57 @@ builds on: uzdoom (gpl, active gzdoom fork) https://github.com/UZDoom/UZDoom + f
 }
 `;
 
-exports[`mapping the launch list > snapshots of a few mapped entries > mosquito-hearing-chip 1`] = `
+exports[`mapping the launch list > snapshots of a few mapped entries > where-am-i-ask-the-birds 1`] = `
 {
   "input": {
-    "buildsOn": {
-      "license": "MIT+CC-BY-4.0",
-      "name": "humbugdb",
-      "url": "https://zenodo.org/record/4904800",
-    },
     "check": {
       "author": false,
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "flash the model to a real board with a cheap microphone, play 10 test clips through a speaker, and confirm it flags the mosquito clips.",
+        "instructions": "read the three live-test posts. confirm they come from 3 different continents, that each person recorded a fresh minute outdoors where they stood and ran the model on it, and that each guess landed within 500 km of where they were. then record your own minute outside and post how far off the model was.",
       },
       "runs": {
-        "command": "python eval_med.py --model model.tflite --sets A B",
+        "command": "python score.py model/ hidden-set/",
         "count": 1,
+        "description": "runs the model on every hidden recording and prints the median distance error, counts the recordings, recorders and countries, and checks that each recording was made after the shwarm opened",
       },
     },
-    "doneWhen": "a model under 256 kb that runs on an esp32-s3 or rp2040 scores roc-auc of at least 0.93 on humbugdb test a and at least 0.80 on test b, without training on either test set, using the shared eval script.",
+    "doneWhen": "a model anyone can download and run hears one minute of outdoor sound and guesses where on earth it was recorded; on at least 200 new one-minute recordings, made after the shwarm opens by at least 50 people in at least 20 countries and hidden from the model until scoring, its median error is under 500 km, and 3 people on 3 different continents each record a fresh minute where they stand and the model places each one within 500 km.",
     "kind": "shwarm",
-    "slug": "mosquito-hearing-chip",
+    "slug": "where-am-i-ask-the-birds",
     "tags": [
-      "health",
-      "tinyml",
-      "audio",
-      "benchmark",
+      "birds",
+      "ai",
+      "sound",
+      "needs-humans",
     ],
-    "title": "a $5 chip that hears mosquitoes",
-    "what": "a mosquito's wings hum at a pitch you can pick out of a phone recording. humbugdb has 20 hours of labeled mosquito sound from 36 species, and the best model in its paper scored 0.77 roc-auc on the hard test set. beat that with a model small enough for a cheap microcontroller.
+    "title": "where am i? ask the birds",
+    "what": "it's geoguessr by ear, and anyone with a phone can play. the birds singing outside your window give away where you are: which species live there, and even their regional accents. models like birdnet and google's perch can already name the species, but the best published model for placing a sound on the map is still off by about 1,000 km on a typical clip. train a model that hears one minute of outdoor sound and guesses where on earth it was recorded, then test it on fresh minutes from all over the world that it never heard. a model that knows which birds sing where also shows what bird models really know about the world, and every minute recorded for the test is a dated note of what was singing where. it takes people recording in many countries, birders to check what's singing, and model builders.
 
-why now: tiny ml toolchains now fit audio models in a few hundred kb, and the dataset's hard test set is still a weak spot.",
+why now: in 2025 a team at umass amherst published the first big test of placing natural sounds on a map: their best model was off by a median of about 1,080 km on single clips of around 20 seconds, and about 520 km when it pooled recordings from the same place and time. google's perch 2.0, trained on over 1.5 million animal recordings, came out in august 2025. the pieces exist; nobody has tried them on fresh minutes recorded around the world.",
   },
   "notes": [
     {
       "field": "what",
       "kind": "changed",
-      "text": "why_now appended as a last paragraph, "why now: tiny ml toolchains now fit audio models…"",
+      "text": "why_now appended as a last paragraph, "why now: in 2025 a team at umass amherst publish…"",
     },
     {
-      "field": "builds_on",
-      "kind": "normalized",
-      "text": "license "cc by 4.0 + mit" → MIT+CC-BY-4.0",
-    },
-    {
-      "field": "license",
+      "field": "check.runs",
       "kind": "changed",
-      "text": "MIT+CC-BY-4.0, taken from humbugdb (builds on takes the upstream license)",
-    },
-    {
-      "field": "builds_on",
-      "kind": "dropped",
-      "text": "words not in {name, url, license}: "data code"",
+      "text": "command split: "python score.py model/ hidden-set/", and the words in brackets went to runs.description: "runs the model on every hidden recording and prints the median distance error, counts the recordings, recorders and countries, and checks that each recording was made after the shwarm opened"",
     },
     {
       "field": "pinned post",
       "kind": "changed",
-      "text": "3 sources, plus the builds-on text as written",
+      "text": "4 sources",
     },
   ],
   "pinned": "where this pitch comes from:
-https://arxiv.org/abs/2110.07607
-https://zenodo.org/record/4904800
-https://github.com/HumBug-Mosquito/HumBugDB
-
-builds on: humbugdb (cc by 4.0 data, mit code) https://zenodo.org/record/4904800",
+https://arxiv.org/abs/2505.18726
+https://arxiv.org/abs/2508.04665
+https://github.com/birdnet-team/BirdNET-Analyzer
+https://xeno-canto.org/",
 }
 `;

@@ -70,7 +70,7 @@ describe('mapping the launch list', () => {
       const m = mapLaunchShwarm(LIST.find(e => e.slug === slug))
       return { input: m.input, pinned: m.pinned, notes: m.notes }
     }
-    for (const slug of ['bot-beats-freedoom', 'minecraft-in-doom', 'mosquito-hearing-chip', 'map-sherlock-holmes', 'minecraft-in-doom-survival']) expect(pick(slug)).toMatchSnapshot(slug)
+    for (const slug of ['bot-beats-freedoom', 'minecraft-in-doom', 'where-am-i-ask-the-birds', 'map-sherlock-holmes', 'minecraft-in-doom-survival']) expect(pick(slug)).toMatchSnapshot(slug)
   })
 
   test('why_now goes in as the last paragraph of what', () => {

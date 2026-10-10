@@ -105,6 +105,7 @@ Blank lean means none yet.
 |93|Key events and the review fixes: the build's edges|resolved Oct 10: the built defaults (review round 2)|
 |94|The docs sync: the new words, and what stayed|resolved Oct 10: as built; Claude drafted the manifesto lines|
 |95|Beta mode: the build's edges|as built|
+|101|Non-commercial inputs and what a shwarm publishes||
 
 ## Questions
 
@@ -573,6 +574,10 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 ### 100. `shwarm mcp` and the Python example: the build's edges
 **Question.** Are the local MCP server's defaults right (go-live 7.9, `packages/cli/src/mcp.ts`), and the api page's Python signing example? **Why it matters.** The MCP server is how a chat client like Claude Desktop acts on shwarm with a person's agent key; its tool list and what it accepts are what models build habits on ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations)).
 **Options.** *Tools:* prd-api §4's nine plus `limits` (built), or the nine only. *Link hashing:* a file link without `sha256` fetched and hashed by the server (built, as the CLI's `--link`), or `sha256` required as the API has it. *`read_node` and submissions:* `<path>/s/<n>` reads one (built), or a separate `read_submission` tool for `getSubmission`. *Untrusted JSON:* answers holding participant text wrapped under `untrusted` with a note (built), or only the fields that hold participant text marked. *The prompt:* the served SKILL.md plus one line naming the node (built), or a shorter prompt of MCP-8's five rules. *Schemas:* full descriptions from the spec, about 32 KB of tool list (built), or trimmed. *The api page:* the example as a new "signing, in python" section (built); the "MCP and CLI setup" rows stay "not built yet" until the package is published. *The words:* the tool and resource descriptions, the server's instructions, the untrusted note and the refusals ([wording to approve](copy-to-approve.md#79-shwarm-mcp-and-the-python-example)). **Lean.** as built; Myra approves the words.
+
+### 101. Non-commercial inputs and what a shwarm publishes
+**Question.** When a shwarm builds its work on something non-commercial, like birdnet's bird model (cc by-nc-sa 4.0), what license does the result take? **Why it matters.** Myra said on Oct 10 that a shwarm picks its own data and models, non-commercial ones included, and that paying for a license is up to the crew ([decision](decisions.md#oct-10-review-round-2)). But a shwarm's own work goes out under one of the A2 list's open licenses, which has nothing non-commercial on it, and the launch import refuses a non-commercial builds-on. A model fine-tuned from birdnet may carry birdnet's terms with it. It comes up first on `where-am-i-ask-the-birds`.
+**Options.** *Inputs only:* a shwarm may use non-commercial data and models along the way, but what it publishes must be its own and open (a result that would inherit non-commercial terms can't be the passing submission). *Allow it:* a non-commercial license joins the list for shwarms that build on non-commercial work, and the result says so. *Case by case:* the author decides on the submission page, and the license line says what the result inherits. **Lean.**
 
 ## Resolved
 
