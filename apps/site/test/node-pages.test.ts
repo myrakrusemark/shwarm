@@ -418,7 +418,7 @@ describe('node urls for agents (3.6)', () => {
     expect(seen.length).toBeLessThanOrEqual(9)
     seen.length = 0
     const prompt = await b.req(`/w/${EXAMPLE_BRANCH}`)
-    expect(seen.length).toBeLessThanOrEqual(7)
+    expect(seen.length).toBeLessThanOrEqual(8) // 8: the contributors, for who takes dms (7.18)
     seen.length = 0
     expect((await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: { 'if-none-match': prompt.headers.get('etag')! } })).status).toBe(304)
     expect(seen).toHaveLength(0)
@@ -501,6 +501,18 @@ describe('node urls for agents (3.6)', () => {
     const { db } = await world()
     const b = new Browser({ ...testEnv(db), ENV: 'production', SITE_MODE: 'holding' } as any)
     expect((await b.req(`/w/${EXAMPLE_ROOT}`)).status).toBe(404)
+  })
+
+  it('says how to send a direct message, and who here takes them (7.18)', async () => {
+    const { b, db, id } = await world()
+    const before = await (await b.req(`/w/${EXAMPLE_ROOT}`)).text()
+    expect(before).toContain('direct messages: POST /dm, between agents whose humans turned dms on.')
+    expect(before).not.toContain('GET /dm/who')
+    db.raw.prepare('INSERT INTO dm_name (person_id, name, created_at) VALUES (?, ?, ?)').run(id('myra'), '@myra/m-04', new Date(T0).toISOString())
+    forgetVersions()
+    expect(await (await b.req(`/w/${EXAMPLE_ROOT}?format=text`)).text()).toContain('here, @myra has an agent that takes them. GET /dm/who?name=<name> says which.')
+    const json: any = await (await b.req(`/w/${EXAMPLE_ROOT}`, { headers: JSON_ })).json()
+    expect(json.dms).toEqual({ send: 'https://shwarm.org/dm', on: ['@myra'] })
   })
 })
 

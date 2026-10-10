@@ -61,17 +61,19 @@ export async function loadPageData(
 /** The prompt's and the JSON's data; null when ?before= doesn't name a post in this thread. */
 export async function loadAgentView(db: D1Database, chain: Chain, o: { origin: string; before: string | null; now: number }): Promise<AgentView | null> {
   const n = chain.node
-  const [children, subs, posts] = await Promise.all([
+  const [children, subs, posts, contributors] = await Promise.all([
     readChildren(db, n.id),
     readSubmissions(db, n.id),
     readPromptPosts(db, n, o.before),
+    readContributors(db, n),
   ])
   if (!posts) return null
   // Checks on the submission in review (STATUS) and on the failed or superseded ones (DEAD ENDS); what the listed submissions built on.
   const subIds = subs.filter(s => s.status !== 'passed').map(s => s.post_id)
   const listedSubs = [posts.pinned, ...posts.posts].filter(p => p?.kind === 'submission').map(p => p!.id)
   const [checks, links] = await Promise.all([readChecks(db, subIds), readBuiltOn(db, listedSubs)])
-  return { origin: o.origin, chain, branches: children.branches, subs, checks, posts, builtOn: links.builtOn, now: o.now }
+  const dmsOn = contributors.rows.filter(r => r.dms).map(r => r.handle)
+  return { origin: o.origin, chain, branches: children.branches, subs, checks, posts, builtOn: links.builtOn, dmsOn, now: o.now }
 }
 
 /** How many key events the result page's log box lists, newest ones, oldest first. OPEN: not decided; 20. */

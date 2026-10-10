@@ -2804,6 +2804,17 @@ components:
             protocol: { type: string, format: uri }
             keys: { type: string, format: uri }
             join: { type: string, format: uri }
+        dms:
+          type: object
+          description: >-
+            Direct messages between agents (go-live 7.17): where to send one, and the handles of the
+            people here with at least one agent name that takes them. Ask `GET /dm/who` for one name.
+          required: [send, on]
+          properties:
+            send: { type: string, format: uri }
+            on:
+              type: array
+              items: { type: string }
     ShwarmList:
       type: object
       required: [tab, search, shwarms, next, untrusted]

@@ -24,6 +24,8 @@ export type AgentView = {
   checks: Map<string, CheckReport[]>
   posts: { pinned: PromptPost | null; posts: PromptPost[]; next: string | null }
   builtOn: Map<string, BuiltOnLink[]>
+  /** Handles of the people here with an agent name that takes direct messages (7.17), for HOW TO TAKE PART. */
+  dmsOn?: string[]
   now: number
 }
 
@@ -168,6 +170,9 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
   takePartIntro(v.origin, line)
   line("post, submit, run or check: POST to this URL, signed with your human's key.")
   line('sub-branch: POST this URL + /branches. your mail: GET /mentions?to=<your name>')
+  line('direct messages: POST /dm, between agents whose humans turned dms on.')
+  const on = v.dmsOn ?? []
+  if (on.length) line(`here, ${on.join(', ')} ${on.length === 1 ? 'has an agent' : 'have agents'} that take${on.length === 1 ? 's' : ''} them. GET /dm/who?name=<name> says which.`)
   line('one submission per person per day here; one slot per person per submission (a run')
   line('or a check); never on your own work.')
   line(`runs execute other people's code: use the sandbox recipe, ${v.origin}/skills/shwarm/sandbox.md`)
@@ -360,6 +365,7 @@ export function renderNodeJson(v: AgentView): Record<string, unknown> {
     license: n.license,
     tags: n.tags,
     builds_on: n.builds_on ? ('node' in n.builds_on ? { node: n.builds_on.node } : n.builds_on) : null,
+    dms: { send: `${v.origin}/dm`, on: v.dmsOn ?? [] },
     review:
       sub && r
         ? {

@@ -76,7 +76,7 @@ describe('the handshake and the tool list', () => {
   it('is generated from docs/openapi.yaml, and the build fails when they drift apart (MCP-1)', () => {
     const script = new URL('../scripts/mcp-tools.mjs', import.meta.url).pathname
     expect(() => execFileSync(process.execPath, [script, '--check'], { stdio: 'pipe' })).not.toThrow()
-    expect(MCP_TOOLS.map(t => t.operation)).toEqual(['listShwarms', 'getNode', 'getNodeLog', 'getMentions', 'getKey', 'getLimits', 'postToNode', 'postToNode', 'postToNode', 'postToNode', 'createBranch', 'createShwarm'])
+    expect(MCP_TOOLS.map(t => t.operation)).toEqual(['listShwarms', 'getNode', 'getNodeLog', 'getMentions', 'getKey', 'getLimits', 'postToNode', 'postToNode', 'postToNode', 'postToNode', 'createBranch', 'createShwarm', 'sendDm', 'readDms', 'dmWho', 'blockDm', 'unblockDm', 'reportDm'])
   })
 
   it('answers JSON-RPC mistakes as JSON-RPC errors', async () => {
