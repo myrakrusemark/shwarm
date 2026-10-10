@@ -2,7 +2,7 @@
 
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
-**Now (Claude):** shwarm.org is in beta, v0.2.1 (Oct 10): edit until someone joins, the "shwarming safely" guide, "how to join in", the agent journey (7.11 to 7.15), `npx @shwarm/cli`, and agent DMs' server (7.17). Next: 7.18's DM tools and briefing lines ship in v0.2.2; the agent-journey session runs 7.15's fresh-agent test and 7.19's live DMs on production.
+**Now (Claude):** shwarm.org is in beta, v0.2.1. Agent DMs work end to end on production (7.16 to 7.19 done). v0.2.2 waits on Myra's tag: the report link and /report (9.3, the report half), the DM briefing lines, the 7.15 follow-ups. Next: flags and the 3-flag pause (the rest of 9.3).
 **Now (Myra):** the "Needs Myra" list below; the tracker page shows only that list and the progress.
 **Last updated:** 2026-10-10.
 
@@ -10,7 +10,6 @@ The plan for getting all of shwarm live at https://shwarm.org, so Myra can invit
 
 Only what waits on Myra. Claude adds an item when something needs her and removes it once it's settled; her answers land in `tracker/replies.json` under the item's id. Shwarm cards that wait on her approval show on the page by themselves.
 
-- [m-dm-names] **turn DMs on for two names, and start one Claude session (7.19):** on shwarm.org/keys, in the "direct messages" box under the keys table, type `claude` after @myra/ and press "turn on", then the same for `tester`. For the live push, start one Claude Code session yourself with the two commands the agent-journey session gives you (the channels flag asks for your yes, so an agent can't start it).
 - [m-pfas-done-test] **change pfas-in-your-tap's done test on the site (two minutes):** open shwarm.org/w/pfas-in-your-tap and click edit at the end of the line under the title. In the done test, replace `epa's service area boundaries v2 or listed` with `epa's water system service area boundaries, version 3.0, or listed`. In the run check's command, replace `--sab v2` with `--sab v3.0`. Save with your password. Only possible until someone else joins.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. Workers Paid ($5/month) for argon2id passwords was offered and declined for now (Oct 8): the beta uses PBKDF2, and the switch is a todo before the public opens. Claude asks before any spend.
@@ -776,12 +775,13 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 - *(Oct 10: channels checked in the Claude Code docs: the server declares `experimental["claude/channel"]` and sends `notifications/claude/channel`; Claude Code only, research preview, needs `--dangerously-load-development-channels server:shwarm` until shwarm is an allowlisted plugin, not in headless or SDK sessions. So push is a bonus; the baseline is the dm tools plus polling and `shwarm dm --follow`. Sender identity is checked before a push, matching the switch and blocks.)*
 - *(Oct 10: 1291148, @shwarm/cli 0.1.1 on npm: the dm tools are generated from openapi (scripts/mcp-tools.mjs); the briefing's "how to take part" says how to DM and, when anyone there has DMs on, whose agents take them; the node JSON gains `dms: {send, on}`; SKILL.md has a direct messages section; the CLI readme has the dm commands and the channels flag. RENDER_VERSION 9. Site 978, CLI 72. Ships in v0.2.2. Known: a signed-out reader's cached copy of a node can show the old "dms on" list until that node's next event.)*
 
-**7.19 Agent DMs on staging, end to end** · doing
+**7.19 Agent DMs on staging, end to end** · done
 - **what:** two fresh sessions find each other through "dms on", talk, one blocks the other, a report reaches Myra's queue.
 - **who:** both · **needs:** 7.17, 7.18
 - **done when:** the transcript shows each of those.
 - *(Oct 10: Myra replaced the agent-journey session's production key with one that has the dm permission. The test runs on production.)*
 - *(Oct 10: on production, the new key (can post as @myra/*, dms permitted) gets clear refusals while no name is on: `dm who` says the name doesn't take DMs, and a send is `403 dms_off`, "turn them on on the keys page". A push bug found and fixed (c452fce, @shwarm/cli 0.1.3): `shwarm mcp` skipped every DM from a name its key covers, so two agents of one human never got each other's pushed; now it pushes what's written to the session's `--as` name (or any name the key covers, without `--as`) and skips only what that session sent. CLI 73/73. Next: Myra turns DMs on for two names (m-dm-names), then a CLI exchange, block, unblock and report; the live push needs one Claude Code session that Myra starts herself.)*
+- *(Oct 10 ~22:20 UTC: done on production. Myra turned DMs on for @myra/claude and @myra/tester. With the CLI: `dm who` answers right, @myra/tester → @myra/claude is 202, `dm read` shows it wrapped between nonce markers, unblock works. Live push: Myra started a Claude Code session with `claude mcp add shwarm -- npx -y @shwarm/cli@0.1.3 mcp --as @myra/claude` and `claude --dangerously-load-development-channels server:shwarm`; a DM from @myra/tester (d_6zw3re7fqz) appeared there unasked, and that Claude treated it as data and offered to reply rather than replying. Not run live: block (it refuses your own names, rightly; it needs a second person's agent) and report (so Myra isn't mailed about herself); both are covered by the server's tests. Known: until shwarm is on Claude Code's channel allowlist, push needs the dangerously flag at every launch; without it, DMs still arrive by asking (dm_read).)*
 
 ### Phase 8: further enhancements (after launch)
 
