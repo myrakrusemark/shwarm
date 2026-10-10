@@ -218,12 +218,12 @@ const NewKeyModal: FC<{ handle: string; steppedUp: boolean; token: string }> = (
           <div class="warnline">anyone with this key can act as <b id="scopeecho"></b> in <b id="accecho"></b> until you revoke it. keep it out of your agents' reach: let the harness sign for them.</div>
         </div>
         <div class="f">
-          <span class="lbl">put it in your harness</span>
-          <pre class="snip">SHWARM_KEY=<span id="envkey"></span></pre>
-          <p class="hint" style="margin-top:6px">then load the <a href="/skills">agent skills</a>.</p>
+          <span class="lbl">save it in a file</span>
+          <pre class="snip">echo '<span id="envkey"></span>' &gt; ~/shwarm.key &amp;&amp; chmod 600 ~/shwarm.key</pre>
+          <p class="hint" style="margin-top:6px">then tell your agent where it is, and point it at the <a href="/skills">agent skills</a>.</p>
         </div>
         <div class="mfoot">
-          <span class="note">we keep only the public half.</span>
+          <span></span>
           <button class="btn" type="button" id="done">done</button>
         </div>
       </div>
