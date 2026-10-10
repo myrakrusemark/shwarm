@@ -1,7 +1,7 @@
 // A closed shwarm's result page, /w/<path> (go-live 5.7), ported from mockups/shwarm-closed.html: what passed, at the
 // hash its checks ran against, with its links ("these links leave shwarm"); the proof; who made it, ranked by counted
 // upvotes with role tags from recorded events; what's next (build on it); the shwarms challenging it and the rest built
-// on it; and the log's milestones. A passed shwarm stays passed and is locked (decided Oct 9): no repro reopens it, and
+// on it; and the log's key events. A passed shwarm stays passed and is locked (decided Oct 9): no repro reopens it, and
 // doubts become a shwarm that builds on it with the same done test, listed here as "challenged by". Its thread stays at ?thread=1 (the live template). Participant text goes through render/text.tsx.
 import type { FC } from 'hono/jsx'
 import { shortHash } from '@shwarm/protocol'
@@ -21,7 +21,7 @@ export type ResultPageData = {
   result: Result
   credits: Credits
   builtOnThis: BuiltOnThis[]
-  log: LogPage // the newest milestones, newest first
+  log: LogPage // the newest key events, newest first
   me: Me
   now: number
 }
@@ -220,12 +220,15 @@ const WhoMadeIt: FC<{ credits: Credits }> = ({ credits }) => {
 
 const EV_CLASS: Record<string, string> = { passed: 'ev ok', signed_off: 'ev ok', dead_end: 'ev dead' }
 
-/** The log's milestones, oldest first, each linked to its evidence; the JSON has every event (read/log.ts). */
+/**
+ * The log's key events, oldest first, each linked to its evidence; the JSON has every event (read/log.ts). The node and
+ * by cells are classed so the table keeps room for a title's words and a name (result.css).
+ */
 const LogBox: FC<{ d: ResultPageData }> = ({ d }) => {
   const n = d.chain.node
   const rows: LogRow[] = [...d.log.rows].reverse()
   return (
-    <div class="box">
+    <div class="box log-box">
       <h2>log <span>every event, as recorded</span></h2>
       <table class="log">
         <thead><tr><th>when (utc)</th><th>event</th><th>node</th><th>by</th><th>detail</th></tr></thead>
@@ -234,8 +237,8 @@ const LogBox: FC<{ d: ResultPageData }> = ({ d }) => {
             <tr>
               <td class="when">{monthDay(e.at, true)}</td>
               <td><span class={EV_CLASS[e.event] ?? 'ev'}>{e.event.replace('_', ' ')}</span></td>
-              <td><Plain text={e.title} /></td>
-              <td>{e.by ? <Name name={e.by} link /> : e.number !== null ? `submission #${e.number}` : '—'}</td>
+              <td class="node"><Plain text={e.title} /></td>
+              <td class="by">{e.by ? <Name name={e.by} link /> : e.number !== null ? `submission #${e.number}` : '—'}</td>
               <td><a href={e.evidence}><Plain text={e.detail} /></a></td>
             </tr>
           ))}
@@ -243,7 +246,7 @@ const LogBox: FC<{ d: ResultPageData }> = ({ d }) => {
       </table>
       <div class="in rule foot">
         {/* OPEN (#81): "all" goes to the JSON; an HTML view of every event isn't decided. */}
-        <span class="note">showing {rows.length} of {plural(d.log.all, 'event', 'events')} · filter: <b>milestones</b> · <a href={logHref(n.path, 'all')}>all</a></span>
+        <span class="note">showing {rows.length} of {plural(d.log.all, 'event', 'events')} · filter: <b>key events</b> · <a href={logHref(n.path, 'all')}>all</a></span>
         <a href={logHref(n.path, 'all')}>full log (json) →</a>
       </div>
     </div>

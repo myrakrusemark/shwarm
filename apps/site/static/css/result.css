@@ -65,8 +65,17 @@ body .src { opacity: .92; }
 .grp li code.cmd { background: none; padding: 0; } /* the mockup prints the command plain */
 .done-head h1 { overflow-wrap: anywhere; }
 
-/* narrow screens (go-live 3.8): five log columns don't fit at 390 px, so each row becomes one wrapped line */
-@media (max-width: 640px) {
+/* The log's width (go-live 3.8; review fix, Oct 9). "anywhere" wrapping lets a cell shrink to one letter, so a squeezed
+   table broke handles mid-word and split "submission #2". Where the box has room, the node and by columns keep enough
+   width for a title's words and a name; where it hasn't (phones, and beside the sidebar on mid-size screens), each row
+   becomes one wrapped line. The box is measured, not the screen, since the sidebar takes a share of it. OPEN (#93): the
+   680 px line is the builder's. */
+.log-box { container-type: inline-size; }
+@container (min-width: 681px) {
+  table.log td.node { min-width: 12ch; }
+  table.log td.by { min-width: 20ch; }
+}
+@container (max-width: 680px) {
   table.log thead { display: none; }
   table.log tr { display: block; padding: 6px 10px; border-bottom: 1px dashed rgba(19,38,27,.3); }
   table.log td { display: inline; padding: 0; border: 0; }

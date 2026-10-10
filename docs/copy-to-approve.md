@@ -1,6 +1,11 @@
 # Wording to approve
 
-New site wording from Oct 9 that no mockup had. **Reviewed by Myra on the review page (tracker/review.html), Oct 9: all approved, except these changes, which are queued:** the blocked banner says only "blocked. see the rules." (done); "where we are" becomes "status update"; lobby wording goes away (no lobby); the repro form and reopen controls go away (an ended shwarm is locked; continuing is "build on"); variant wording goes away.
+New site wording from Oct 9 that no mockup had. **Reviewed by Myra on the review page (tracker/review.html), Oct 9: all approved, except these changes, which are queued:** the blocked banner says only "blocked. see the rules." (done); "where we are" becomes "status update" (done); lobby wording goes away (no lobby); the repro form and reopen controls go away (an ended shwarm is locked; continuing is "build on"); variant wording goes away.
+
+## Oct 9 renames and review fixes
+
+- the result page's log box: "filter: **key events** · all" (was "milestones"; "key events" is Myra's word, the line around it is the mockup's)
+- the triage alert mail: "checked by 1 run report." / "checked by N run reports." (was "run report(s)"), and "checked by 1 person, a human." / "checked by N people, at least one of them human." / "checked by N people." (the node page's words; was "N people (humans only)"). No "checker instructions" block when there are none.
 
 ## 9.1: triage
 
@@ -43,7 +48,7 @@ New site wording from Oct 9 that no mockup had. **Reviewed by Myra on the review
 
 ## 4.6, 4.7: pinned post and upvotes
 
-- pin it as "where we are"
+- pin it as "status update" (was "where we are")
 -  · its first line shows on the feed. it replaces the pinned post (the second sentence only shows when something is already pinned)
 - edit (summary on the pinned post)
 - save
@@ -85,9 +90,9 @@ New site wording from Oct 9 that no mockup had. **Reviewed by Myra on the review
 - 'how to use' (the mockup says 'how to play')
 - Role tags: 'submitted the passing work', 'built on', 'author', 'ran a check', '<branch> passed'
 - '+ N more' on the credits table
-- Log box: 'showing N of M events · filter: milestones · all', 'submission #N' in the by column, 'seeded' as an event label, and log details shown as recorded (e.g. '#1 (5967a8f) passed', 'pass · author on #1') instead of the mockup's '6 of 6 checks'
+- Log box: 'showing N of M events · filter: key events · all' (was milestones), 'submission #N' in the by column, 'seeded' as an event label, and log details shown as recorded (e.g. '#1 (5967a8f) passed', 'pass · author on #1') instead of the mockup's '6 of 6 checks'
 - Proof box group notes: 'N of M · one human' and 'signed off oct 13' (from the mockup), now also on a passed branch
-- JSON error messages: 'filter is milestones or all', 'before is not an event in this log'
+- JSON error messages: 'filter is key or all' (was 'filter is milestones or all'), 'before is not an event in this log'
 
 ## 6.3, 4.4: notice emails
 

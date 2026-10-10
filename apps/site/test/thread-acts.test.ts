@@ -1,4 +1,4 @@
-// Go-live 4.6 and 4.7: the author's pinned "where we are" post (pin, edit, history, the feed's status line) and upvotes
+// Go-live 4.6 and 4.7: the author's pinned "status update" post (pin, edit, history, the feed's status line) and upvotes
 // on thread posts (the toggle, humans only, never your own or your agents' posts, counted per A6, tallies and impact).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { hashPassword } from '../src/auth/password'
@@ -175,9 +175,9 @@ describe('the pinned post and edits (4.6): the rules', () => {
   })
 
   it('the author pins a post as the bare handle; a new pin replaces it; a reply is never pinned', async () => {
-    const one = await w.post(site(myra), MID, 'where we are: just started.', { pin: true })
+    const one = await w.post(site(myra), MID, 'status update: just started.', { pin: true })
     expect(w.node(MID).pinned_post_id).toBe(one.id)
-    const two = await w.post(site(myra), MID, 'where we are: renderer closed.', { pin: true })
+    const two = await w.post(site(myra), MID, 'status update: renderer closed.', { pin: true })
     expect(w.node(MID).pinned_post_id).toBe(two.id)
     await refused(w.post(site(myra), MID, 'pinned reply?', { pin: true, replyTo: one.id }), 'bad_request')
     await refused(w.post(site(kestrel), MID, 'mine now', { pin: true }), 'not_permitted', { need: 'author' })
@@ -186,21 +186,21 @@ describe('the pinned post and edits (4.6): the rules', () => {
   })
 
   it('the poster edits: the version it replaces goes to the history; the same text again changes nothing', async () => {
-    const p = await w.post(site(myra), MID, 'where we are: just started.', { pin: true })
+    const p = await w.post(site(myra), MID, 'status update: just started.', { pin: true })
     w.tick(HOUR)
-    expect(await edit(site(myra), p.id, 'where we are: renderer closed.')).toMatchObject({ id: p.id, edited: true, at: iso(w.now) })
-    expect(w.get('SELECT text, edited_at FROM post WHERE id = ?', p.id)).toEqual({ text: 'where we are: renderer closed.', edited_at: iso(w.now) })
-    expect(w.all('SELECT text, links, edited_at FROM post_edit WHERE post_id = ?', p.id)).toEqual([{ text: 'where we are: just started.', links: '[]', edited_at: iso(w.now) }])
+    expect(await edit(site(myra), p.id, 'status update: renderer closed.')).toMatchObject({ id: p.id, edited: true, at: iso(w.now) })
+    expect(w.get('SELECT text, edited_at FROM post WHERE id = ?', p.id)).toEqual({ text: 'status update: renderer closed.', edited_at: iso(w.now) })
+    expect(w.all('SELECT text, links, edited_at FROM post_edit WHERE post_id = ?', p.id)).toEqual([{ text: 'status update: just started.', links: '[]', edited_at: iso(w.now) }])
     const v = w.node(MID).last_event_id
     w.tick(HOUR)
-    expect(await edit(site(myra), p.id, 'where we are: renderer closed.')).toMatchObject({ edited: false })
+    expect(await edit(site(myra), p.id, 'status update: renderer closed.')).toMatchObject({ edited: false })
     expect(w.node(MID).last_event_id).toBe(v)
     expect(w.all('SELECT 1 FROM post_edit')).toHaveLength(1)
     await refused(edit(site(myra), p.id, '   '), 'bad_request')
   })
 
   it('only the poster edits, under the same name, and only plain posts', async () => {
-    const p = await w.post(site(myra), MID, 'where we are: just started.', { pin: true })
+    const p = await w.post(site(myra), MID, 'status update: just started.', { pin: true })
     await refused(edit(site(kestrel), p.id, 'mine now'), 'not_permitted', { need: 'poster' })
     const byAgent = await w.post(agent(myra), MID, 'from m-04')
     await refused(edit(site(myra), byAgent.id, 'the human rewrites it'), 'not_permitted', { need: 'poster' })
@@ -215,15 +215,15 @@ describe('the pinned post and edits (4.6): the rules', () => {
     const line = () => w.get<{ status_line: string }>('SELECT status_line FROM node_stats WHERE node_id = ?', id).status_line
     await rollupStats(w.db, w.now)
     expect(line()).toBe('no submission yet.')
-    const p = await w.post(site(myra), MID, 'where we are: just started.\n\nmore detail below the first line.', { pin: true })
+    const p = await w.post(site(myra), MID, 'status update: just started.\n\nmore detail below the first line.', { pin: true })
     w.tick(10 * 60_000)
     await rollupStats(w.db, w.now)
-    expect(line()).toBe('where we are: just started.')
+    expect(line()).toBe('status update: just started.')
     w.tick(10 * 60_000)
-    await edit(site(myra), p.id, 'where we are: renderer closed (61 fps).')
+    await edit(site(myra), p.id, 'status update: renderer closed (61 fps).')
     w.tick(10 * 60_000)
     await rollupStats(w.db, w.now)
-    expect(line()).toBe('where we are: renderer closed (61 fps).')
+    expect(line()).toBe('status update: renderer closed (61 fps).')
   })
 })
 
@@ -344,46 +344,46 @@ describe('on the page', () => {
     })
   })
 
-  describe('the pinned "where we are" post (4.6)', () => {
+  describe('the pinned "status update" post (4.6)', () => {
     it("the author pins a post from the compose box, and the feed card shows its first line", async () => {
       const { env, q, db } = await world()
       const b = await signIn(env, 'myra', { make: false })
       const html = await page(b)
-      expect(html).toContain('<input type="checkbox" name="pin" value="1"/> pin it as "where we are"')
+      expect(html).toContain('<input type="checkbox" name="pin" value="1"/> pin it as "status update"')
       expect(html).toContain('its first line shows on the feed. it replaces the pinned post') // the seed pinned the sources
-      const res = await act(b, { do: 'post', text: 'where we are: renderer is closed (61 fps). placement is the last real blocker.\n\nmore below.', pin: '1' })
+      const res = await act(b, { do: 'post', text: 'status update: renderer is closed (61 fps). placement is the last real blocker.\n\nmore below.', pin: '1' })
       expect(res.status).toBe(303)
       const pinned = q<{ pinned_post_id: string }>('SELECT pinned_post_id FROM node WHERE path = ?', EXAMPLE_ROOT).pinned_post_id
       expect(res.headers.get('location')).toBe(`/w/${EXAMPLE_ROOT}#${pinned}`)
-      expect(q<{ text: string }>('SELECT text FROM post WHERE id = ?', pinned).text).toMatch(/^where we are: renderer/)
+      expect(q<{ text: string }>('SELECT text FROM post WHERE id = ?', pinned).text).toMatch(/^status update: renderer/)
       const after = await page(b)
       expect(after.indexOf(`id="${pinned}"`)).toBeLessThan(after.indexOf('where this pitch comes from:')) // leads the thread
       expect(after).toContain(`<div class="c pin" id="${pinned}">`)
       await rollupStats(db, T0 + 60_000)
       const feed = await body(await new Browser(env).req('/', { headers: HTML }))
-      expect(feed).toContain('where we are: renderer is closed (61 fps). placement is the last real blocker.')
+      expect(feed).toContain('status update: renderer is closed (61 fps). placement is the last real blocker.')
       expect(feed).not.toContain('more below.')
     })
 
     it('the author edits the pinned post in place; the history lists the old version; the feed follows', async () => {
       const { env, q, db } = await world()
       const b = await signIn(env, 'myra', { make: false })
-      await act(b, { do: 'post', text: 'where we are: just started.', pin: '1' })
+      await act(b, { do: 'post', text: 'status update: just started.', pin: '1' })
       const pinned = q<{ pinned_post_id: string }>('SELECT pinned_post_id FROM node WHERE path = ?', EXAMPLE_ROOT).pinned_post_id
       let block = postIn(await page(b), pinned)
       expect(block).toContain('<summary>edit</summary>')
-      expect(block).toContain('>where we are: just started.</textarea>')
+      expect(block).toContain('>status update: just started.</textarea>')
       expect(block).not.toContain('<summary>edit history')
       vi.setSystemTime(T0 + HOUR)
-      const res = await act(b, { do: 'edit', post: pinned, text: 'where we are: renderer closed.' })
+      const res = await act(b, { do: 'edit', post: pinned, text: 'status update: renderer closed.' })
       expect(res.status).toBe(303)
       expect(res.headers.get('location')).toBe(`/w/${EXAMPLE_ROOT}#${pinned}`)
       block = postIn(await page(b), pinned)
       expect(block).toContain('pinned · updated <span title=')
       expect(block).toContain('<summary>edit history</summary>')
-      expect(block).toMatch(/<li><span class="note">posted <span title="[^"]+">1h ago<\/span><\/span><div class="txt"><p>where we are: just started\.<\/p><\/div><\/li>/)
+      expect(block).toMatch(/<li><span class="note">posted <span title="[^"]+">1h ago<\/span><\/span><div class="txt"><p>status update: just started\.<\/p><\/div><\/li>/)
       await rollupStats(db, T0 + HOUR + 60_000)
-      expect(await body(await new Browser(env).req('/', { headers: HTML }))).toContain('where we are: renderer closed.')
+      expect(await body(await new Browser(env).req('/', { headers: HTML }))).toContain('status update: renderer closed.')
       // an empty edit comes back to the form
       const empty = await act(b, { do: 'edit', post: pinned, text: '  ' })
       expect(empty.status).toBe(400)
@@ -393,7 +393,7 @@ describe('on the page', () => {
     it('the same text again with the pin ticked is pinned, not taken for a double click; a double click still posts once', async () => {
       const { env, q } = await world()
       const b = await signIn(env, 'myra', { make: false })
-      const text = 'where we are: placement is the last blocker.'
+      const text = 'status update: placement is the last blocker.'
       await act(b, { do: 'post', text })
       const first = q<{ id: string }>('SELECT id FROM post WHERE text = ?', text).id
       const res = await act(b, { do: 'post', text, pin: '1' })
@@ -412,24 +412,24 @@ describe('on the page', () => {
       const res = await act(b, {
         do: 'submit',
         pin: '1',
-        text: 'where we are: renderer done.',
+        text: 'status update: renderer done.',
         links: `https://codeberg.org/myra/doom-blocks/archive/v0.2.zip ${'5c'.repeat(32)}`,
         how_to_check: 'play it for 10 minutes.',
       })
       expect(res.status).toBe(400)
       const html = await body(res)
       expect(html).toMatch(/<details class="submit" open="">[\s\S]*a submission can't be pinned\. submit it without the pin, or post it to pin it\./)
-      expect(html).toContain('>where we are: renderer done.</textarea>')
+      expect(html).toContain('>status update: renderer done.</textarea>')
       expect(html).toContain('play it for 10 minutes.')
       expect(html).toContain('<input type="checkbox" name="pin" value="1"/> pin it')
-      expect(q<{ n: number }>("SELECT COUNT(*) AS n FROM post WHERE text = 'where we are: renderer done.'").n).toBe(0)
+      expect(q<{ n: number }>("SELECT COUNT(*) AS n FROM post WHERE text = 'status update: renderer done.'").n).toBe(0)
       expect(q<{ pinned_post_id: string }>('SELECT pinned_post_id FROM node WHERE path = ?', EXAMPLE_ROOT).pinned_post_id).toBe(before)
     })
 
     it("nobody else gets the pin box or the edit form; a forged edit is refused", async () => {
       const { env, q } = await world()
       const author = await signIn(env, 'myra', { make: false })
-      await act(author, { do: 'post', text: 'where we are: just started.', pin: '1' })
+      await act(author, { do: 'post', text: 'status update: just started.', pin: '1' })
       const pinned = q<{ pinned_post_id: string }>('SELECT pinned_post_id FROM node WHERE path = ?', EXAMPLE_ROOT).pinned_post_id
       const b = await signIn(env, 'ana')
       const html = await page(b)
@@ -438,7 +438,7 @@ describe('on the page', () => {
       const res = await act(b, { do: 'edit', post: pinned, text: 'mine now' })
       expect(res.status).toBe(400)
       expect(postIn(await body(res), pinned)).toContain('only @myra edits this post.')
-      expect(q<{ text: string }>('SELECT text FROM post WHERE id = ?', pinned).text).toBe('where we are: just started.')
+      expect(q<{ text: string }>('SELECT text FROM post WHERE id = ?', pinned).text).toBe('status update: just started.')
       // a pin sent by someone else is refused at the compose box, with the box's draft kept
       const pin = await act(b, { do: 'post', text: 'pin this', pin: '1' })
       expect(pin.status).toBe(400)

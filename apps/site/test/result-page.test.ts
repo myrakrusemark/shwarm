@@ -1,6 +1,6 @@
 // Go-live 5.7: a closed shwarm's result page at /w/<path>. The pass at the hash its checks ran, with its links and release
 // fields; the proof with evidence; who made it, ranked by counted upvotes with agents rolled up and only derived role tags;
-// the shwarms challenging it and the rest built on it; the milestones; its thread at ?thread=1, locked; a passed branch's
+// the shwarms challenging it and the rest built on it; the key events; its thread at ?thread=1, locked; a passed branch's
 // proof box; a node reopened before Oct 9 back on the live template with the pass on record; and an ETag that moves with
 // the tree. A passed shwarm stays passed (decided Oct 9): nothing on it offers a repro.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -165,18 +165,20 @@ describe('the result page (5.7)', () => {
     expect(html.indexOf('challenged by')).toBeLessThan(html.indexOf('built on this <span>'))
   })
 
-  it('shows the newest milestones oldest first, each linked to its evidence, with the full log in JSON', async () => {
+  it('shows the newest key events oldest first, each linked to its evidence, with the full log in JSON', async () => {
     const { page } = await world()
     const html = await page()
     const log = /<table class="log">([\s\S]*?)<\/table>/.exec(html)![1]
-    const rows = [...log.matchAll(/<tr><td class="when">([^<]+)<\/td><td><span class="([^"]+)">([^<]+)<\/span><\/td><td>([^<]+)<\/td><td>(.*?)<\/td><td><a href="([^"]+)">/g)].map(m => [m[1], m[2], m[3], m[4], m[5].replace(/<[^>]+>/g, ''), m[6]])
+    const rows = [...log.matchAll(/<tr><td class="when">([^<]+)<\/td><td><span class="([^"]+)">([^<]+)<\/span><\/td><td class="node">([^<]+)<\/td><td class="by">(.*?)<\/td><td><a href="([^"]+)">/g)].map(m => [m[1], m[2], m[3], m[4], m[5].replace(/<[^>]+>/g, ''), m[6]])
     expect(rows).toEqual([
       ['oct 5 11:59', 'ev', 'seeded', 'minecraft in doom', '@myra', '/w/minecraft-in-doom'],
       ['oct 6 11:59', 'ev', 'branch opened', 'block placement', '@bmo_fan', '/w/minecraft-in-doom/block-placement'],
-      expect.arrayContaining(['oct 8 12:04', 'ev ok', 'signed off', 'minecraft in doom', '@myra']),
+      ['oct 7 05:59', 'ev', 'submission', 'block placement', '@myra/m-04', '/w/minecraft-in-doom/block-placement/s/1'],
+      ['oct 8 11:47', 'ev', 'submission', 'block placement', '@myra/m-07', '/w/minecraft-in-doom/block-placement/s/2'],
+      ['oct 8 12:01', 'ev', 'submission', 'minecraft in doom', '@kestrel/swarm/r-40', '/w/minecraft-in-doom/s/1'],
       ['oct 8 12:04', 'ev ok', 'passed', 'minecraft in doom', 'submission #1', '/w/minecraft-in-doom/s/1'],
     ])
-    expect(html).toContain('<span class="note">showing 4 of 14 events · filter: <b>milestones</b> · <a href="/w/minecraft-in-doom/log?filter=all">all</a></span><a href="/w/minecraft-in-doom/log?filter=all">full log (json) →</a>')
+    expect(html).toContain('<span class="note">showing 6 of 14 events · filter: <b>key events</b> · <a href="/w/minecraft-in-doom/log?filter=all">all</a></span><a href="/w/minecraft-in-doom/log?filter=all">full log (json) →</a>')
     expect(html).toContain('<a href="/w/minecraft-in-doom?thread=1">read the whole thread (8 posts) →</a> · it\'s locked.')
   })
 

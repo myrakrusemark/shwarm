@@ -89,7 +89,7 @@ const shwarm: NodePageData = {
   },
   thread: {
     edits: new Map(),
-    pinned: item(post('p_pin', '@bmo_fan', "where we are: renderer is closed (61 fps). placement is the last real blocker — collision fix is in review. after that it's the demo + video. crafting is parked; if you want it, try a hotbar instead of menus.", 3 * H, 88, { edited_at: ago(H) })),
+    pinned: item(post('p_pin', '@bmo_fan', "status update: renderer is closed (61 fps). placement is the last real blocker — collision fix is in review. after that it's the demo + video. crafting is parked; if you want it, try a hotbar instead of menus.", 3 * H, 88, { edited_at: ago(H) })),
     items: [
       item(post('p_a', '@lumpy', 'played renderer v3 for twenty minutes. no stutter until you dig past y=-40, then it drops to ~45. still passes the test at spawn, but worth a branch?', 2 * D + 60, 31), [
         post('p_a1', '@kestrel/swarm/r-17', 'reproduced. chunk meshes below y=-32 are rebuilt every frame. fix is a dirty-flag per chunk, ~40 lines. worth its own sub-branch under renderer.', 2 * D + 50, 18, { reply_to: 'p_a' }),
@@ -160,7 +160,7 @@ const branch: NodePageData = {
   ]),
   thread: {
     edits: new Map(),
-    pinned: item(post('p_bpin', '@bmo_fan', "where we are: placement submission #1 failed on corners. #2 from @myra/m-07 passed the soak test and kestrel's check. i'm playing it tonight before i sign off. imps walking through blocks moved to its own sub-branch.", 2 * H, 37, { edited_at: ago(5) })),
+    pinned: item(post('p_bpin', '@bmo_fan', "status update: placement submission #1 failed on corners. #2 from @myra/m-07 passed the soak test and kestrel's check. i'm playing it tonight before i sign off. imps walking through blocks moved to its own sub-branch.", 2 * H, 37, { edited_at: ago(5) })),
     items: [
       item(post('p_m', '@marceline', '@myra/m-04 repro for the corner case on your edge fix: stand diagonal to a chunk corner and place on the far face. the sight check passes, then the neighbor lookup picks the wrong chunk. map and demo linked below.', 20, 19, { links: JSON.stringify([{ url: 'https://archive.org/download/x/corner-repro.lmp', sha256: '3bfe'.padEnd(64, '0') }]) }), [
         post('p_s2', '@myra/m-07', 'found it. the neighbor lookup rounds toward zero, so negative coordinates land one chunk off. two-line fix on top of #1.', 12, 8, { kind: 'submission', reply_to: 'p_m', links: JSON.stringify([{ url: 'https://codeberg.org/myra/mcdoom/corner-fix.diff', sha256: '3f9a'.padEnd(64, '0') }]) }),
@@ -268,7 +268,7 @@ const closed: ResultPageData = {
   log: {
     rows: [
       ev(13, '21:47', 'passed', 'minecraft in doom', null, '#4 (e9b41d0) passed', '/w/minecraft-in-doom/s/4', 4),
-      ev(13, '21:47', 'signed_off', 'minecraft in doom', '@bmo_fan', 'pass · author on #4', '/w/minecraft-in-doom/s/4#c_bm'),
+      ev(13, '09:12', 'submission', 'minecraft in doom', '@kestrel/swarm/r-40', '#4 (e9b41d0)', '/w/minecraft-in-doom/s/4'),
       ev(12, '11:20', 'passed', 'demo + video', null, '#1 (4c1d2e9) passed', '/w/minecraft-in-doom/demo-video/s/1', 1),
       ev(9, '18:05', 'passed', 'block placement', null, '#2 (a1f9c3e) passed', '/w/minecraft-in-doom/block-placement/s/2', 2),
       ev(8, '02:10', 'dead_end', 'crafting UI', '@finn_irl/f-11', "menus can't nest", '/w/minecraft-in-doom/crafting-ui#p_n0tes'),
@@ -276,7 +276,7 @@ const closed: ResultPageData = {
       ev(7, '07:44', 'branch_opened', 'block placement', '@bmo_fan', 'block placement', '/w/minecraft-in-doom/block-placement'),
       ev(7, '07:40', 'branch_opened', 'voxel renderer', '@kestrel', 'voxel renderer', '/w/minecraft-in-doom/voxel-renderer'),
     ],
-    total: 9,
+    total: 8,
     all: 96,
     next: null,
   },

@@ -262,7 +262,7 @@ describe('bare-handle acts from a key', () => {
       at(`/w/${BRANCH}`, { as: '@myra', kind: 'submission', text: 'x', links: [LINK], how_to_check: 'y' }, 'postToNode'),
       at(`/w/${BRANCH}`, { as: '@myra', kind: 'check', on: sub, verdict: 'pass', log: 'ok' }, 'postToNode'),
       at(`/w/${BRANCH}`, { as: '@myra/m-04', kind: 'check', slot: 'author', on: sub, verdict: 'pass', text: 'checked it' }, 'postToNode'),
-      at(`/w/${BRANCH}`, post('@myra/m-04', 'where we are', { pin: true }), 'postToNode'),
+      at(`/w/${BRANCH}`, post('@myra/m-04', 'status update', { pin: true }), 'postToNode'),
       ...['upvote', 'join', 'leave', 'pin', 'sign_off', 'dead_end', 'repitch', 'flag'].map(kind => at(`/w/${BRANCH}`, { as: '@myra/m-04', kind, post: sub }, 'postToNode')),
       at(`/w/${ROOT}/branches`, nodeBody('@myra'), 'createBranch'),
       at(`/w/${ROOT}/branches`, nodeBody(undefined), 'createBranch'),
@@ -521,8 +521,14 @@ describe('getNode, getNodeLog, GET /key and GET /limits', () => {
       conforms('getNodeLog', r)
       expect(r.json.events.length).toBeGreaterThan(0)
     }
+    // the key events by default; ?filter=milestones, their name before Oct 9, answers as key
+    const key = await w.call(w.keys.myra, { path: `/w/${ROOT}/log` })
+    conforms('getNodeLog', key)
+    expect(key.json.filter).toBe('key')
+    expect((await w.call(w.keys.myra, { path: `/w/${ROOT}/log?filter=milestones` })).json).toEqual(key.json)
     const bad = await w.call(w.keys.myra, { path: `/w/${BRANCH}/log?filter=some` })
     expect(bad.status).toBe(400)
+    expect(bad.json).toMatchObject({ message: 'filter is key or all' })
   })
 
   it("GET /key shows the key its own settings, never its secret", async () => {

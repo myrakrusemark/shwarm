@@ -35,7 +35,7 @@ export async function post(ctx: Ctx, a: Actor, inp: PostInput): Promise<PostResu
       throw bad('reply_to is not a post in this thread')
     replyTo = inp.replyTo
   }
-  // The author pins one "where we are" post (prd THREAD-4); a new pin replaces the old one.
+  // The author pins one "status update" post (prd THREAD-4); a new pin replaces the old one.
   // OPEN: who else may pin isn't decided; only the author, as the bare handle (site or seed), for now.
   const pin = inp.pin === true
   if (pin && (a.via === 'key' || !isBare(a) || person.id !== n.author_id))
@@ -151,7 +151,7 @@ export type EditResult = { id: string; node: string; edited: boolean; at: string
  * Edit a thread post's text (go-live 4.6; table B #30): only its poster, under the same name, and only plain posts.
  * Submissions, checks and dead-end notes never change. The version it replaces goes to post_edit with the time it
  * was replaced, so the page can show the history; links stay as posted. The same text again changes nothing.
- * The site offers it on every plain post of the viewer's own (go-live 4.8); on the author's pinned post ("where we are")
+ * The site offers it on every plain post of the viewer's own (go-live 4.8); on the author's pinned post ("status update")
  * it also moves the status line (table B #40).
  * OPEN (#78): an edit spends a thread post token (as a post does), so editing can't flood the history; mentions are read
  * from the text as first posted, so a name added in an edit gets no inbox item.

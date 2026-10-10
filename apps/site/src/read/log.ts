@@ -1,19 +1,21 @@
-// A node's audit log (go-live 5.7; spec "The audit log"; protocol §4): GET /w/<path>/log as JSON, and the milestones on a
-// closed shwarm's result page. Every row is a recorded act (core/audit.ts), newest first, never generated prose.
+// A node's audit log (go-live 5.7; spec "The audit log"; protocol §4): GET /w/<path>/log as JSON, and the key events on
+// a closed shwarm's result page. Every row is a recorded act (core/audit.ts), newest first, never generated prose.
 //   * a shwarm's log covers its branches (by root_id), a branch's covers itself and the branches under it; each row
 //     names its node
 //   * branches the public can't see are left out, and so are rows whose submission, check or post is hidden
-//   * ?filter=milestones (the default) or all; ?before=<event id> pages back from `next`; `total` counts the filter's
-//     rows across every page
+//   * ?filter=key (the default) or all; ?before=<event id> pages back from `next`; `total` counts the filter's rows
+//     across every page. ?filter=milestones, the name before Oct 9, still works and answers as key
 //   * a seeded launch shwarm's log starts with "seeded by @myra at launch" (A18), drawn from the node, not stored
 import { isId } from '../core/ids'
-import { MILESTONE_EVENTS, nodeHref, seededLogRow } from '../core/audit'
+import { KEY_EVENTS, nodeHref, seededLogRow } from '../core/audit'
 import type { Chain } from './node'
 import { NAME_SHOWN } from './names'
 import { PUBLIC_NODE } from './visibility'
 
-export type LogFilter = 'milestones' | 'all'
-export const LOG_FILTERS: LogFilter[] = ['milestones', 'all']
+export type LogFilter = 'key' | 'all'
+/** ?filter= as given (absent is key), or null when it's neither; 'milestones' is key's name from before Oct 9. */
+export const logFilter = (q: string | undefined): LogFilter | null => (q === undefined || q === 'key' || q === 'milestones' ? 'key' : q === 'all' ? 'all' : null)
+export const BAD_FILTER = 'filter is key or all'
 /** OPEN: no page size is decided for the JSON log; 50 rows a page. */
 export const LOG_PAGE = 50
 
@@ -28,12 +30,12 @@ export type LogRow = {
   number: number | null
   detail: string
   evidence: string // a site path
-  milestone: boolean
+  milestone: boolean // a key event; the JSON keeps the field's name from before Oct 9 (OPEN #93: renaming it is go-live 7.5's call)
 }
 
 export type LogPage = { rows: LogRow[]; total: number; all: number; next: string | null }
 
-const MILESTONE_SQL = `a.event IN (${MILESTONE_EVENTS.map(e => `'${e}'`).join(', ')})`
+const KEY_SQL = `a.event IN (${KEY_EVENTS.map(e => `'${e}'`).join(', ')})`
 
 /**
  * Rows of `n`'s log: its tree's nodes from `n` down (?1 the tree's root id, ?2 n's path, ?3 n's id), the node itself
@@ -64,24 +66,25 @@ export async function readLog(db: D1Database, chain: Chain, o: { filter: LogFilt
     cursor = await db.prepare(`SELECT a.at, a.rowid AS rid FROM ${LOG_FROM} AND a.id = ?4`).bind(...scope, o.before).first<{ at: string; rid: number }>()
     if (!cursor) return null
   }
-  const only = o.filter === 'milestones' ? `AND ${MILESTONE_SQL}` : ''
+  const only = o.filter === 'key' ? `AND ${KEY_SQL}` : ''
   const older = cursor ? 'AND (a.at < ?4 OR (a.at = ?4 AND a.rowid < ?5))' : ''
   const [{ results }, counts] = await Promise.all([
     db
       .prepare(
         `SELECT a.id, a.at, a.event, t.path AS node, t.title, ${NAME_SHOWN('a.by_name')} AS by, a.submission_id AS submission, a.number, a.detail, a.evidence,
-                (${MILESTONE_SQL}) AS milestone
+                (${KEY_SQL}) AS milestone
          FROM ${LOG_FROM} ${only} ${older} ORDER BY a.at DESC, a.rowid DESC LIMIT ${limit + 1}`,
       )
       .bind(...scope, ...(cursor ? [cursor.at, cursor.rid] : []))
       .all<Omit<LogRow, 'milestone' | 'evidence'> & { milestone: number; evidence: string | null }>(),
-    db.prepare(`SELECT COUNT(*) AS all_, COALESCE(SUM(${MILESTONE_SQL}), 0) AS ms FROM ${LOG_FROM}`).bind(...scope).first<{ all_: number; ms: number }>(),
+    db.prepare(`SELECT COUNT(*) AS all_, COALESCE(SUM(${KEY_SQL}), 0) AS ks FROM ${LOG_FROM}`).bind(...scope).first<{ all_: number; ks: number }>(),
   ])
   const rows: LogRow[] = results.map(r => ({ ...r, evidence: r.evidence ?? nodeHref(r.node), milestone: r.milestone === 1 }))
   // A18: the seeded node's first row, the oldest of all, so it closes the last page. It counts under both filters.
+  // OPEN (#93): it isn't one of the four key events, but it stands where a shwarm's opening would; kept under key.
   const seeded = seededLogRow(n)
   const extra = seeded ? 1 : 0
-  const total = (o.filter === 'all' ? counts?.all_ ?? 0 : counts?.ms ?? 0) + extra
+  const total = (o.filter === 'all' ? counts?.all_ ?? 0 : counts?.ks ?? 0) + extra
   const all = (counts?.all_ ?? 0) + extra
   if (rows.length > limit) return { rows: rows.slice(0, limit), total, all, next: rows[limit - 1].id }
   if (!seeded) return { rows, total, all, next: null }

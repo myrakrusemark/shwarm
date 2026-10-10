@@ -289,21 +289,21 @@ describe('deleting a post (4.8)', () => {
     await refused(w.run({ type: 'upvote', actor: site(myra), input: { node: MID, post: p.id } }), 'bad_request')
     await refused(w.post(site(myra), MID, 'replying to nothing', { replyTo: p.id }), 'bad_request')
     await refused(w.submit(site(myra), MID, 'built on it', { builtOn: [p.id] }), 'bad_request')
-    const pin = await w.post(site(myra), MID, 'where we are: started.', { pin: true })
+    const pin = await w.post(site(myra), MID, 'status update: started.', { pin: true })
     await del(site(myra), pin.id)
     expect(w.node(MID).pinned_post_id).toBeNull()
   })
 
   it("a deleted pinned post's first line leaves the feed's status line at once, not at the next stats run", async () => {
     const id = w.node(MID).id
-    const pin = await w.post(site(myra), MID, 'where we are: something to take back.', { pin: true })
+    const pin = await w.post(site(myra), MID, 'status update: something to take back.', { pin: true })
     await rollupStats(w.db, w.now)
     const line = () => w.get('SELECT status_line FROM node_stats WHERE node_id = ?', id).status_line
-    expect(line()).toBe('where we are: something to take back.')
+    expect(line()).toBe('status update: something to take back.')
     // deleting another post leaves it alone
     const other = await w.post(site(kes), MID, 'just a post.')
     await del(site(kes), other.id)
-    expect(line()).toBe('where we are: something to take back.')
+    expect(line()).toBe('status update: something to take back.')
     await del(site(myra), pin.id)
     expect(line()).toBe('')
     // the next run fills in the fallback

@@ -1,9 +1,9 @@
 // Go-live 5.7: GET /w/<path>/log, the audit log as JSON. A full core run (the example's branch and checks;
 // the shwarm's pass with the author's sign-off; a branch passed and reopened by a repro; an author's fail; a dead end)
-// and every event of it in the log, newest first, each linked to evidence that's really there. Milestones, paging with
+// and every event of it in the log, newest first, each linked to evidence that's really there. Key events, paging with
 // ?before, hidden branches and submissions left out, and the seeded row first on a seeded shwarm.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { AUDIT_EVENTS, MILESTONE_EVENTS } from '../src/core/audit'
+import { AUDIT_EVENTS, KEY_EVENTS } from '../src/core/audit'
 import { readChain } from '../src/read/node'
 import { readLog, type LogPage, type LogRow } from '../src/read/log'
 import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
@@ -111,16 +111,23 @@ describe('GET /w/<path>/log (5.7)', () => {
     }
   })
 
-  it('shows milestones by default: passes, sign-offs, dead ends, branch openings', async () => {
+  it('shows the key events by default: branch openings, submissions, passes, dead ends (decided Oct 9)', async () => {
     const w = await fullRun()
     const page = await w.json(LOG)
-    expect(page.filter).toBe('milestones')
-    const want = w.stored(TREE).filter(e => (MILESTONE_EVENTS as readonly string[]).includes(e.event))
+    expect(page.filter).toBe('key')
+    expect(KEY_EVENTS).toEqual(['branch_opened', 'submission', 'passed', 'dead_end'])
+    const want = w.stored(TREE).filter(e => (KEY_EVENTS as readonly string[]).includes(e.event))
     expect(page.events.map(e => e.id)).toEqual([...want.map(e => e.id), null])
     expect(page.total).toBe(want.length + 1)
     expect(page.events.every(e => e.milestone)).toBe(true)
-    // no lobby fills since Oct 9, and nothing reopens (decided Oct 9)
-    expect(new Set(page.events.map(e => e.event))).toEqual(new Set([...MILESTONE_EVENTS.filter(e => e !== 'lobby_filled' && e !== 'reopened'), 'seeded']))
+    // each of the four happened, and the seeded row (A18) still closes it (OPEN #66)
+    expect(new Set(page.events.map(e => e.event))).toEqual(new Set([...KEY_EVENTS, 'seeded']))
+    // checks, sign-offs and fails are in the full log only, marked as not key
+    const full = (await w.all(`${LOG}?filter=all`)).events
+    for (const ev of ['check', 'signed_off', 'failed']) expect(full.filter(e => e.event === ev).map(e => e.milestone), ev).toContain(false)
+    expect(full.filter(e => !e.milestone).every(e => !(KEY_EVENTS as readonly string[]).includes(e.event))).toBe(true)
+    // ?filter=key says so; ?filter=milestones, its name before Oct 9, still answers, as key
+    expect(await w.json(`${LOG}?filter=key`)).toEqual(page)
     expect(await w.json(`${LOG}?filter=milestones`)).toEqual(page)
   })
 
@@ -151,7 +158,9 @@ describe('GET /w/<path>/log (5.7)', () => {
       expect(res.status, bad).toBe(400)
       expect(JSON.parse(await body(res))).toMatchObject({ error: 'bad_request', message: 'before is not an event in this log' })
     }
-    expect((await w.b.req(`${LOG}?filter=everything`)).status).toBe(400)
+    const res = await w.b.req(`${LOG}?filter=everything`)
+    expect(res.status).toBe(400)
+    expect(JSON.parse(await body(res))).toMatchObject({ error: 'bad_request', message: 'filter is key or all' })
   })
 
   it('leaves out branches the public cannot see, and rows of a hidden submission', async () => {

@@ -361,14 +361,14 @@ const Locked: FC<{ n: NodeHead; by: NodeHead }> = ({ n, by }) => {
 }
 
 /**
- * The author's "where we are" post (go-live 4.6): a post sent with this box ticked is pinned at the top of the thread,
+ * The author's "status update" post (go-live 4.6): a post sent with this box ticked is pinned at the top of the thread,
  * in place of the one pinned before, and its first line is the feed card's status line (table B #40). The author
  * keeps it current with "edit" on the pinned post.
- * OPEN (#78): no mockup draws this box; its words wait on Myra's yes.
+ * No mockup draws this box. Myra approved its words on the Oct 9 review, with "status update" for "where we are".
  */
 const PinMode: FC<{ pinned: boolean; checked?: boolean }> = ({ pinned, checked }) => (
   <label class="pin-it">
-    <input type="checkbox" name="pin" value="1" checked={checked || undefined} /> pin it as "where we are"
+    <input type="checkbox" name="pin" value="1" checked={checked || undefined} /> pin it as "status update"
     <span class="note"> · its first line shows on the feed{pinned ? '. it replaces the pinned post' : ''}</span>
   </label>
 )

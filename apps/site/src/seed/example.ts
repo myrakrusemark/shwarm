@@ -128,7 +128,7 @@ export async function runExample(run: RunAt, p: { myra: P } & Record<ExampleHand
     input: {
       node: branch,
       pin: true,
-      text: "where we are: placement submission #1 failed on corners. #2 from @myra/m-07 passed the soak test and kestrel's check. i'm playing it tonight before i sign off.",
+      text: "status update: placement submission #1 failed on corners. #2 from @myra/m-07 passed the soak test and kestrel's check. i'm playing it tonight before i sign off.",
     },
   })
 }

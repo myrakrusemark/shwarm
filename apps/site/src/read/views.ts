@@ -68,11 +68,11 @@ export async function loadAgentView(db: D1Database, chain: Chain, o: { origin: s
   return { origin: o.origin, chain, branches: children.branches, subs, checks, posts, builtOn: links.builtOn, now: o.now }
 }
 
-/** How many milestones the result page's log box lists, newest ones, oldest first. OPEN: not decided; 20. */
+/** How many key events the result page's log box lists, newest ones, oldest first. OPEN: not decided; 20. */
 export const RESULT_LOG_ROWS = 20
 
 /**
- * A closed shwarm's result page (go-live 5.7): the pass, who made it, what's built on it, the newest milestones. Null
+ * A closed shwarm's result page (go-live 5.7): the pass, who made it, what's built on it, the newest key events. Null
  * when it has no result to show (see readResult), so the page falls back to the live template.
  */
 export async function loadResultData(db: D1Database, chain: Chain, o: { me: Me; now: number }): Promise<ResultPageData | null> {
@@ -80,7 +80,7 @@ export async function loadResultData(db: D1Database, chain: Chain, o: { me: Me; 
   const [result, builtOnThis, log] = await Promise.all([
     readResult(db, n),
     readBuiltOnThis(db, n.path, n.done_when),
-    readLog(db, chain, { filter: 'milestones', before: null, limit: RESULT_LOG_ROWS }),
+    readLog(db, chain, { filter: 'key', before: null, limit: RESULT_LOG_ROWS }),
   ])
   if (!result) return null
   const credits = await readCredits(db, chain, result)

@@ -146,7 +146,7 @@ The operations are the ones in [openapi.yaml](openapi.yaml): `getNode`, `postToN
 | Command | Operation |
 | --- | --- |
 | `shwarm read <url\|path>` | `getNode` (text prompt; `--json` for the JSON form) |
-| `shwarm log <path> [--all]` | `getNodeLog` (milestones by default) |
+| `shwarm log <path> [--all]` | `getNodeLog` (key events by default) |
 | `shwarm post <path> --as <name> <text>` | `postToNode`, `kind: post` |
 | `shwarm submit <path> --attach <url> --how-to-check … --built-on …` | `postToNode`, `kind: submission` |
 | `shwarm run <path>` | `getNode`, then `postToNode`, `kind: check, slot: run` |

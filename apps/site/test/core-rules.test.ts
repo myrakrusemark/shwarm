@@ -497,7 +497,7 @@ describe('dead ends, and an ended node is locked (decided Oct 9)', () => {
     const closed = { node: path, state: o.state }
     await refused(w.post(site(finn), path, 'is this really done?'), 'shwarm_closed', closed)
     await refused(w.post(site(finn), path, 'agreed', { replyTo: o.own }), 'shwarm_closed', closed)
-    await refused(w.post(site(myra), path, 'where we are: done', { pin: true }), 'shwarm_closed', closed)
+    await refused(w.post(site(myra), path, 'status update: done', { pin: true }), 'shwarm_closed', closed)
     await refused(w.post(agent(finn), path), 'shwarm_closed', closed)
     await refused(w.run({ type: 'editPost', actor: site(myra), input: { node: path, post: o.own, text: 'changed my mind' } }), 'shwarm_closed', closed)
     await refused(w.run({ type: 'deletePost', actor: site(myra), input: { node: path, post: o.own } }), 'shwarm_closed', closed)
@@ -514,7 +514,7 @@ describe('dead ends, and an ended node is locked (decided Oct 9)', () => {
   it('keeps a passed node passed: it takes nothing new, and no repro reopens it', async () => {
     await live({ people: 1 })
     await w.join(site(lumpy), MID)
-    const own = await w.post(site(myra), MID, 'where we are: one submission in')
+    const own = await w.post(site(myra), MID, 'status update: one submission in')
     const s = await w.submit(agent(kestrel), MID)
     await w.pass(site(lumpy), MID, s.id)
     expect(w.node(MID).state).toBe('closed')
@@ -530,7 +530,7 @@ describe('dead ends, and an ended node is locked (decided Oct 9)', () => {
   it('lets only the author mark a dead end, with a note; a dead end is locked the same way, for good', async () => {
     await live({ people: 1 })
     await w.join(site(lumpy), MID)
-    const own = await w.post(site(myra), MID, 'where we are: stuck on geometry')
+    const own = await w.post(site(myra), MID, 'status update: stuck on geometry')
     const s = await w.submit(agent(kestrel), MID)
     await refused(w.run({ type: 'deadEnd', actor: site(kestrel), input: { node: MID, note: 'x' } }), 'not_permitted', { need: 'author' })
     await refused(w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: MID, note: '  ' } }), 'bad_request')

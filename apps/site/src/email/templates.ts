@@ -4,6 +4,7 @@
 import { isValidName } from '@shwarm/protocol'
 import { printable, printableLines } from '../core/printable'
 import { FORMER } from '../read/names'
+import { plural } from '../render/format'
 import type { MailStream, MailTemplate } from './outbox'
 
 // A pre block keeps its line breaks in the HTML part too (quoted text people wrote).
@@ -45,7 +46,8 @@ const text = (p: Record<string, unknown>, k: string) => {
 /** An author's text as a quoted block: every line starts with '> ', so none of it can pass for the mail's own words. */
 const quoted = (label: string, v: unknown): Block => ({ pre: `${label}:\n` + printableLines(v).split('\n').map(l => `> ${l}`).join('\n') })
 
-const num0 = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? String(v) : '?')
+/** "1 run report", "2 run reports"; '?' when the payload's count isn't a number. */
+const count = (v: unknown, one: string, many: string) => (typeof v === 'number' && Number.isFinite(v) ? plural(v, one, many) : `? ${many}`)
 type ChecksShown = { runs?: { command?: unknown; count?: unknown; description?: unknown } | null; people?: { count?: unknown; human?: unknown; instructions?: unknown } | null; author?: unknown }
 
 /** Everything the model was given besides title, what and done-when (triage/model.ts stateOf). */
@@ -54,11 +56,17 @@ function moreOfIt(p: Record<string, unknown>): Block[] {
   if (typeof p.branch_of === 'string') out.push(quoted('branch of', p.branch_of))
   const c = (p.checked_by ?? {}) as ChecksShown
   if (c.runs) {
-    out.push(`checked by ${num0(c.runs.count)} run report(s).`)
+    out.push(`checked by ${count(c.runs.count, 'run report', 'run reports')}.`)
     out.push(quoted('run command', c.runs.command))
     if (c.runs.description) out.push(quoted('run description', c.runs.description))
   }
-  if (c.people) out.push(`checked by ${num0(c.people.count)} ${c.people.human === true ? 'people (humans only)' : 'people'}.`, quoted('checker instructions', c.people.instructions ?? ''))
+  // The people line in the node page's words (node-page.tsx CheckedBy); no instructions, no quoted block (an empty one is a
+  // bare "> "). OPEN (#93): these count lines wait on Myra's yes.
+  if (c.people) {
+    const human = c.people.human === true ? (c.people.count === 1 ? ', a human' : ', at least one of them human') : ''
+    out.push(`checked by ${count(c.people.count, 'person', 'people')}${human}.`)
+    if (typeof c.people.instructions === 'string' && c.people.instructions.trim()) out.push(quoted('checker instructions', c.people.instructions))
+  }
   if (c.author === true) out.push('checked by its author too.')
   if (Array.isArray(p.tags) && p.tags.length) out.push(quoted('tags', p.tags.join(' ')))
   if (p.builds_on != null) out.push(quoted('builds on', typeof p.builds_on === 'string' ? p.builds_on : JSON.stringify(p.builds_on)))

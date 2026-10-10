@@ -16,11 +16,11 @@ export const AUDIT_EVENTS = [
 ] as const
 export type AuditEvent = (typeof AUDIT_EVENTS)[number]
 
-// OPEN: which events are milestones is #66 (open-questions #81 for the set). Default: the ones that change a node's state
-// or open a branch, and the author's sign-off, which protocol §4's example marks as one. The log views (read/log.ts)
-// read the set from here, not from the stored milestone column, so changing it changes old rows too.
-export const MILESTONE_EVENTS: readonly AuditEvent[] = ['lobby_filled', 'branch_opened', 'passed', 'dead_end', 'reopened', 'signed_off']
-const MILESTONES = new Set<AuditEvent>(MILESTONE_EVENTS)
+// The key events (decided Oct 9, settles #66): a fixed set, the short log on a result page and ?filter=key. The full log
+// still lists every event. The log views (read/log.ts) read the set from here, not from the stored `milestone` column (its
+// name from before Oct 9), so the set applies to old rows too.
+export const KEY_EVENTS: readonly AuditEvent[] = ['branch_opened', 'submission', 'passed', 'dead_end']
+const KEY = new Set<AuditEvent>(KEY_EVENTS)
 
 export type AuditRow = {
   event: AuditEvent
@@ -40,7 +40,7 @@ export const submissionHref = (path: string, number: number, checkId?: string) =
 export function auditStatement(db: D1Database, r: AuditRow, at: string): { id: string; stmt: D1PreparedStatement } {
   const id = newId('e')
   const cols = 'INSERT INTO audit_event (id, at, event, node_id, by_name, submission_id, number, detail, evidence, milestone)'
-  const rest = [r.by ?? null, r.submissionId ?? null, r.number ?? null, r.detail ?? '', r.evidence, MILESTONES.has(r.event) ? 1 : 0]
+  const rest = [r.by ?? null, r.submissionId ?? null, r.number ?? null, r.detail ?? '', r.evidence, KEY.has(r.event) ? 1 : 0]
   // By path, the row is written only if the node is there: a create whose guarded INSERT wrote nothing writes no event either.
   const stmt =
     typeof r.node === 'number'

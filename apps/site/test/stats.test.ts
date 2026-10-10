@@ -72,7 +72,7 @@ describe('formulas', () => {
     statusLine({ state: 'live', pinned: null, deadEndNote: null, submissions: [], branches: { live: 0, closed: 0 }, ...o })
 
   it('status line: the pinned post first, else recorded state, never the latest post', () => {
-    expect(st({ pinned: '\n  where we are: renderer at 61 fps.  \nmore below' })).toBe('where we are: renderer at 61 fps.')
+    expect(st({ pinned: '\n  status update: renderer at 61 fps.  \nmore below' })).toBe('status update: renderer at 61 fps.')
     expect(st({})).toBe('no submission yet.')
     expect(st({ branches: { live: 2, closed: 2 } })).toBe('no submission yet · 2 branches closed, 2 live.')
     expect(st({ branches: { live: 1, closed: 0 } })).toBe('no submission yet · 1 branch live.')
@@ -93,7 +93,7 @@ describe('formulas', () => {
     // the author's own pin still leads
     expect(st({ pinned: 'demo friday.\nwhere this pitch comes from: below' })).toBe('demo friday.')
     expect(isSeedSourcesPost('where this pitch comes from:\nx')).toBe(true)
-    expect(isSeedSourcesPost('where we are: 61 fps')).toBe(false)
+    expect(isSeedSourcesPost('status update: 61 fps')).toBe(false)
   })
 
   it('hot order: by score; ties go to the newer node, then the higher id', () => {
@@ -161,7 +161,7 @@ async function fixture() {
 
   w.now = T0 - 2 * HOUR
   const gammaPosts = await posts(w, site(bob), 'gamma', 2)
-  const pin = (await w.post(site(myra), 'gamma', 'where we are: renderer at 61 fps.\nplacement is next.')).id
+  const pin = (await w.post(site(myra), 'gamma', 'status update: renderer at 61 fps.\nplacement is next.')).id
   w.db.raw.prepare("UPDATE node SET pinned_post_id = ? WHERE path = 'gamma'").run(pin)
   const deltaPosts = await posts(w, site(bob), 'delta', 5)
   await w.join(site(dave), 'quiet-a')
@@ -212,7 +212,7 @@ describe('stats rollup', () => {
     expect(s.beta.posts_per_day).toBeCloseTo(10 / 7, 2)
     expect(s.beta.score).toBeCloseTo(25 * half(0.5), 3) // the old upvotes are outside the window
 
-    expect(s.gamma).toMatchObject({ hot: 0, upvotes: 10, posts: 3, people: 2, status_line: 'where we are: renderer at 61 fps.' })
+    expect(s.gamma).toMatchObject({ hot: 0, upvotes: 10, posts: 3, people: 2, status_line: 'status update: renderer at 61 fps.' })
     expect(s.gamma.impact).toBeCloseTo(3.333, 3)
     expect(s.gamma.score).toBeCloseTo(10 * half(1), 3)
 

@@ -242,6 +242,23 @@ runIt('the whole loop, end to end (5.8)', () => {
       expect(await page.locator('.box.result .src').textContent()).toContain('@submitter')
       await pageChecks(page, `the result page, signed ${who === 'out' ? 'out' : 'in'}`)
     }
+    // The log box at 1280 px (review fix, Oct 9): its key events are the submission and the pass, and each name and
+    // "submission #1" sits on one line, not broken mid-word, even beside a long detail such as a dead end's note (one is
+    // put in the page here, since this run has no dead end).
+    const log = pages.out.locator('table.log')
+    expect(await log.locator('td:nth-child(2)').allTextContents()).toEqual(['submission', 'passed'])
+    expect(await pages.out.locator('.log-box .foot .note').textContent()).toContain('filter: key events')
+    await log.locator('td:last-child a').first().evaluate((a: any) => {
+      a.textContent = "uzdoom's savegame format can't hold per-block state without forking the engine. the mod keeps chunks in memory for now."
+    })
+    const lines = await log.locator('td.by').evaluateAll((tds: any[]) =>
+      tds.map(td => {
+        const r = td.ownerDocument.createRange()
+        r.selectNodeContents(td)
+        return [td.textContent, new Set([...r.getClientRects()].map((x: any) => Math.round(x.top))).size]
+      }),
+    )
+    expect(lines).toEqual([['@submitter', 1], ['submission #1', 1]])
   })
 
   it('8. /w/<path>/log lists every event of the run, each linked to its evidence', async () => {

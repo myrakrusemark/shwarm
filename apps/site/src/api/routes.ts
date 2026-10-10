@@ -22,7 +22,7 @@ import type { CreateNodeInput, CreateNodeResult } from '../core/nodes'
 import type { PostResult, SubmitResult } from '../core/posts'
 import { later } from '../auth/request'
 import { runInTree } from '../do/shwarm-tree'
-import { LOG_FILTERS, readLog, renderLogJson, type LogFilter } from '../read/log'
+import { BAD_FILTER, logFilter, readLog, renderLogJson } from '../read/log'
 import { NAME_SHOWN } from '../read/names'
 import { parseNodePath, readBuiltOn, readChain, readChecks, readSubmission, type Chain } from '../read/node'
 import { readTombstone } from '../read/tombstone'
@@ -302,13 +302,13 @@ async function readNode(c: C, rest: string): Promise<Response> {
 }
 
 async function readLogPage(c: C, chain: Chain, origin: string): Promise<Response> {
-  const filter = c.req.query('filter') ?? 'milestones'
-  if (!(LOG_FILTERS as string[]).includes(filter)) throw bad('filter is milestones or all')
+  const filter = logFilter(c.req.query('filter'))
+  if (!filter) throw bad(BAD_FILTER)
   const before = c.req.query('before') ?? null
   if (before !== null && !isId('e', before)) throw bad('before is not an event in this log')
-  const page = await readLog(c.env.DB, chain, { filter: filter as LogFilter, before })
+  const page = await readLog(c.env.DB, chain, { filter, before })
   if (!page) throw bad('before is not an event in this log')
-  return c.json(renderLogJson(chain.node.path, filter as LogFilter, page, origin))
+  return c.json(renderLogJson(chain.node.path, filter, page, origin))
 }
 
 async function readSubmissionView(c: C, chain: Chain, number: number, json: boolean, origin: string, now: number): Promise<Response> {

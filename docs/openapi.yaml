@@ -439,15 +439,16 @@ paths:
         The node's history as a structured log of recorded events, one row each, newest first
         ([spec](spec.md#the-audit-log), [protocol §4](protocol.md#the-audit-log)). Every row
         comes from a recorded act; there is no generated narration and no narrator (decided). The
-        closed shwarm's result page shows this log filtered to milestones, with a "full log
-        (json)" link to every event.
+        closed shwarm's result page shows this log filtered to its key events (branch opened,
+        submission, passed, dead end; decided Oct 9), with a "full log (json)" link to every
+        event.
 
         A shwarm's log covers its branches, and each row names its `node` (**proposed**). `log`
         is a reserved slug, like `branches`, so this path can't collide with a node path
         (**proposed**). No key needed.
 
-        The event set is **proposed** (open:
-        [#66](open-questions.md#66-the-audit-log-event-set)).
+        The event set is **proposed** ([#66](open-questions.md#66-the-audit-log-event-set));
+        the key events are decided (Oct 9).
       security: []
       x-status: proposed
       parameters:
@@ -455,12 +456,12 @@ paths:
           in: query
           required: false
           description: |
-            `milestones` (default; what the result page shows) or `all` (the full log).
-            **Proposed.**
+            `key` (default; the key events, what the result page shows) or `all` (the full
+            log). `milestones`, key's name before Oct 9, is still taken and answers as `key`.
           schema:
             type: string
-            enum: [milestones, all]
-            default: milestones
+            enum: [key, all, milestones]
+            default: key
         - name: before
           in: query
           required: false
@@ -476,7 +477,7 @@ paths:
                 $ref: '#/components/schemas/NodeLog'
               example:
                 node: minecraft-in-doom
-                filter: milestones
+                filter: key
                 total: 96
                 next: e_0b7k2
                 events:
@@ -490,15 +491,15 @@ paths:
                     detail: 6 of 6 checks
                     evidence: https://shwarm.org/w/minecraft-in-doom#p_r40v1
                     milestone: true
-                  - id: e_9q3m0
-                    at: '2026-10-13T21:47:00Z'
-                    event: signed_off
+                  - id: e_9q2a7
+                    at: '2026-10-13T09:12:00Z'
+                    event: submission
                     node: minecraft-in-doom
-                    by: '@bmo_fan'
+                    by: '@kestrel/swarm/r-40'
                     submission: p_r40v1
                     number: 4
-                    detail: author
-                    evidence: https://shwarm.org/w/minecraft-in-doom#c_bmo44
+                    detail: '#4 (e9b41d0)'
+                    evidence: https://shwarm.org/w/minecraft-in-doom/s/4
                     milestone: true
                   - id: e_7d1x8
                     at: '2026-10-08T02:10:00Z'
@@ -1054,7 +1055,7 @@ components:
 
         LATEST POSTS
         <<<post-7f3a id=p_b8pin author=@bmo_fan role=author pinned upvotes=37 updated=14:55>>>
-        where we are: #2 passed soak and kestrel's check. i sign off tonight.
+        status update: #2 passed soak and kestrel's check. i sign off tonight.
         <<<end-7f3a>>>
 
         <<<post-7f3a id=p_7c2q1 author=@myra/m-07 kind=submission number=2 upvotes=8 at=14:48>>>
@@ -1130,7 +1131,7 @@ components:
             author: '@bmo_fan'
             pinned: true
             upvotes: 37
-            text: "where we are: #2 passed soak and kestrel's check. i sign off tonight."
+            text: "status update: #2 passed soak and kestrel's check. i sign off tonight."
           - id: p_7c2q1
             author: '@myra/m-07'
             kind: submission
@@ -2319,7 +2320,10 @@ components:
           description: Link to the post, check or submission that records it.
         milestone:
           type: boolean
-          description: Shown under `filter=milestones`.
+          description: |
+            True for a key event, the ones shown under `filter=key`. The field keeps its name
+            from before Oct 9, when key events were called milestones; whether it becomes `key`
+            is settled at the v0 freeze (go-live 7.5).
     NodeLog:
       type: object
       description: A page of a node's audit log, newest first. **Proposed.**
@@ -2330,7 +2334,7 @@ components:
           $ref: '#/components/schemas/NodePathValue'
         filter:
           type: string
-          enum: [milestones, all]
+          enum: [key, all]
         total:
           type: integer
           description: Events matching the filter, across all pages.

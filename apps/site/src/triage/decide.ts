@@ -130,10 +130,18 @@ export function describeNode(n: NodeShown): string {
   if (n.what !== undefined) out.push(quote('what', n.what))
   if (n.done_when !== undefined) out.push(quote('done when', n.done_when))
   if (spec.runs) {
-    out.push(`  checked by ${Number(spec.runs.count) || 0} run report(s):`, quote('run command', spec.runs.command))
+    const runs = Number(spec.runs.count) || 0
+    out.push(`  checked by ${runs} run report${runs === 1 ? '' : 's'}:`, quote('run command', spec.runs.command))
     if (spec.runs.description) out.push(quote('run description', spec.runs.description))
   }
-  if (spec.people) out.push(`  checked by ${Number(spec.people.count) || 0} ${spec.people.human ? 'people (humans only)' : 'people'}:`, quote('checker instructions', spec.people.instructions ?? ''))
+  if (spec.people) {
+    // as the alert mail says it (email/templates.ts): the node page's words, and no empty instructions block
+    const people = Number(spec.people.count) || 0
+    const human = spec.people.human ? (people === 1 ? ', a human' : ', at least one of them human') : ''
+    const said = typeof spec.people.instructions === 'string' && spec.people.instructions.trim() !== ''
+    out.push(`  checked by ${people} ${people === 1 ? 'person' : 'people'}${human}${said ? ':' : '.'}`)
+    if (said) out.push(quote('checker instructions', spec.people.instructions))
+  }
   if (spec.author) out.push('  and by its author.')
   if (n.tags) out.push(quote('tags', n.tags))
   if (n.builds_on) out.push(quote('builds on', n.builds_on))

@@ -36,7 +36,7 @@ import type { RepitchResult } from '../core/nodes'
 import type { SubmitInput, SubmitResult } from '../core/posts'
 import { triageNew } from '../triage/run'
 import { loadAgentView, loadPageData, loadResultData } from '../read/views'
-import { LOG_FILTERS, readLog, renderLogJson, type LogFilter } from '../read/log'
+import { BAD_FILTER, logFilter, readLog, renderLogJson } from '../read/log'
 import { readTreeVersion } from '../read/result'
 import { readTombstone } from '../read/tombstone'
 import { sendError, waitText } from './errors'
@@ -191,13 +191,12 @@ const BAD_BEFORE = 'before is not an event in this log'
 
 /**
  * GET /w/<path>/log (go-live 5.7; protocol §4): one page of the audit log as NodeLog JSON, newest first, with ?filter=
- * milestones|all and ?before=<event id>. Visibility, tombstones, the read cap, the ETag and 304 work as on the node.
+ * key|all (milestones, key's old name, too) and ?before=<event id>. Visibility, tombstones, the read cap, the ETag and 304 work as on the node.
  * OPEN (#81): no text or page form of the log is decided, so every Accept and ?format= gets the JSON.
  */
 async function logView(c: C, path: string) {
-  const filterQ = c.req.query('filter') ?? 'milestones'
-  if (!(LOG_FILTERS as string[]).includes(filterQ)) return errorOut(c, 'json', 400, 'bad_request', 'filter is milestones or all')
-  const filter = filterQ as LogFilter
+  const filter = logFilter(c.req.query('filter'))
+  if (!filter) return errorOut(c, 'json', 400, 'bad_request', BAD_FILTER)
   const before = c.req.query('before') ?? null
   // Checked before it goes into the memo key and the ETag: a header can't carry a newline or a non-Latin-1 character.
   if (before !== null && !isId('e', before)) return errorOut(c, 'json', 400, 'bad_request', BAD_BEFORE)
@@ -359,7 +358,7 @@ async function submissionPost(c: C, path: string, number: number, session: Sessi
 }
 
 // POST /w/<path> (go-live 4.4–4.8, 5.1, 5.6): the page's forms, picked by the `do` field. post: a thread post or reply
-// as the bare handle, pinned as "where we are" when the author ticks it. edit, delete: one of your own plain posts.
+// as the bare handle, pinned as "status update" when the author ticks it. edit, delete: one of your own plain posts.
 // upvote: the ▲ on a post, either way. submit: the compose box's submit mode, which lands on the new submission's page.
 // join, leave: say you're working on a live shwarm, or stop. repitch (a shwarm's title and what, until its first
 // submission), dead_end (with a note): the author's own box, behind the password. Nothing reopens (decided Oct 9). Each runs in the shwarm's tree (do/shwarm-tree.ts), then

@@ -311,7 +311,7 @@ describe('the plan end to end', () => {
     expect(subs).toEqual([{ number: 1, status: 'superseded' }, { number: 2, status: 'in_review' }])
     const two = db.raw.prepare('SELECT post_id FROM submission WHERE node_id = ? AND number = 2').get(b.id).post_id
     expect(db.raw.prepare("SELECT count(*) AS n FROM check_report WHERE submission_id = ? AND verdict = 'pass'").get(two).n).toBe(3)
-    expect(db.raw.prepare('SELECT text FROM post WHERE id = ?').get(b.pinned_post_id).text).toMatch(/^where we are:/)
+    expect(db.raw.prepare('SELECT text FROM post WHERE id = ?').get(b.pinned_post_id).text).toMatch(/^status update:/)
     const bmo = db.raw.prepare("SELECT id FROM person WHERE handle = 'bmo_fan'").get().id
     expect(db.raw.prepare("SELECT count(*) AS n FROM inbox_item WHERE person_id = ? AND kind = 'sign_off'").get(bmo).n).toBe(1)
     // Demo accounts can't sign in.
@@ -335,7 +335,7 @@ describe('the plan end to end', () => {
     }
     expect(rows.find((r: any) => r.path === 'bot-beats-freedoom')).toMatchObject({ pinned: 'builds on: gzdoom', status_line: 'no submission yet.' })
     // The running example's branch keeps its author's pinned post.
-    expect(db.raw.prepare('SELECT s.status_line FROM node_stats s JOIN node n ON n.id = s.node_id WHERE n.path = ?').get(EXAMPLE_BRANCH).status_line).toMatch(/^where we are:/)
+    expect(db.raw.prepare('SELECT s.status_line FROM node_stats s JOIN node n ON n.id = s.node_id WHERE n.path = ?').get(EXAMPLE_BRANCH).status_line).toMatch(/^status update:/)
   })
 
   test('rerunning skips every slug already there and plans nothing', async () => {
@@ -463,9 +463,9 @@ describe('core additions for the seed', () => {
     const finn = await person(w.db, 'finn_irl')
     await w.shwarm(site(myra))
     await refused(w.post(site(finn), 'minecraft-in-doom', 'mine now', { pin: true }), 'not_permitted')
-    const p = await w.post(site(myra), 'minecraft-in-doom', 'where we are: nothing yet.', { pin: true })
+    const p = await w.post(site(myra), 'minecraft-in-doom', 'status update: nothing yet.', { pin: true })
     expect(w.node('minecraft-in-doom').pinned_post_id).toBe(p.id)
-    const q = await w.post(site(myra), 'minecraft-in-doom', 'where we are: renderer done.', { pin: true })
+    const q = await w.post(site(myra), 'minecraft-in-doom', 'status update: renderer done.', { pin: true })
     expect(w.node('minecraft-in-doom').pinned_post_id).toBe(q.id)
   })
 })
