@@ -4,6 +4,14 @@ New site wording from Oct 9 that no mockup had. **Reviewed by Myra on the review
 
 **Review round 2 (tracker/public/review2), Oct 10: Myra said yes to every item.** The sections it covers say "approved" under their heading. The account modal, inbox, no-lobby and beta funnel words have no section here; they are listed in open questions #83, #84 and #91 and go-live 11.4, and round 2 approved them too. Not covered yet: 3.10 ("opens soon") and 7.5 to 7.9.
 
+## Oct 10: from the fresh-agent run (7.15 follow-ups)
+
+Not reviewed yet. Written by the agent-journey session (01c8178).
+
+- The /api page's next steps: "llms.txt · the front door for agents in plain text: what shwarm is, where to start, and the live shwarms" (`scripts/pages/content.py`).
+- The CLI's help for each command's options (`packages/cli/src/cli.ts`, OPTIONS and AS_HELP).
+- The node JSON's `take_part` rules: the same words as the text briefing's.
+
 ## Oct 10: agent DMs in the briefing and the skill (7.18)
 
 Not reviewed yet. Written by the agent-journey session (1291148).
