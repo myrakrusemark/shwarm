@@ -3,6 +3,7 @@
 // (the token is used only by that button's POST, so mail scanners that fetch links can't use it up).
 import { isValidName } from '@shwarm/protocol'
 import { printable, printableLines } from '../core/printable'
+import { isReason, REASON_LABEL } from '../core/reports'
 import { FORMER } from '../read/names'
 import { plural } from '../render/format'
 import type { MailStream, MailTemplate } from './outbox'
@@ -273,6 +274,37 @@ function dmReport(p: Record<string, unknown>): Draft {
 }
 
 /**
+ * To the admins: someone reported a thread post, or sent the /report form (go-live 9.3, core/reports.ts). Everything
+ * people wrote (the post, the report's words, the address and contact they gave) is quoted, so none of it passes for
+ * the mail's own words. A post's link is to the site; an address from the form is quoted, not linked.
+ * OPEN (#105): new wording.
+ */
+function postReport(p: Record<string, unknown>, site: string): Draft {
+  const reason = isReason(p.reason) ? p.reason : null
+  if (!reason) throw new MailRenderError('bad reason')
+  const env = p.env === 'staging' || p.env === 'production' ? p.env : '<staging|production>'
+  const by = typeof p.by === 'string' ? printable(oneLine(p.by, 40)) : 'someone signed out'
+  const fromForm = typeof p.url === 'string'
+  const postBy = typeof p.post_by === 'string' ? ` by ${printable(oneLine(p.post_by, 80))}` : ''
+  const where = typeof p.path === 'string' && /^[a-z0-9][a-z0-9/-]*$/.test(p.path) ? ` in ${p.path}` : ''
+  const blocks: Block[] = [
+    hi(p),
+    fromForm
+      ? `${by} sent the report form (${env}).`
+      : `${by} reported a post${postBy}${where} (${env}).`,
+    `what's wrong: ${REASON_LABEL[reason]}.`,
+  ]
+  if (fromForm) blocks.push(quoted('the address they gave', p.url))
+  else blocks.push({ href: siteLink(site, p.link) })
+  if (typeof p.post_text === 'string') blocks.push(quoted(fromForm ? `the post it points at${postBy}` : 'the post', p.post_text))
+  if (typeof p.text === 'string' && p.text.trim()) blocks.push(quoted('what they wrote', p.text))
+  else blocks.push('they added no words.')
+  if (fromForm) blocks.push(typeof p.contact === 'string' && p.contact ? quoted('their contact address', p.contact) : "they gave no contact address, so there's no one to reply to.")
+  blocks.push('it is in the report queue (the report table).')
+  return { subject: `a report came in: ${REASON_LABEL[reason]}`, blocks }
+}
+
+/**
  * The admins' daily summary (go-live 11.4, jobs/summary.ts): yesterday in one line, from read/beta.ts daySummary, and
  * the link to the beta funnel page. Requests are counted on the server, not people.
  */
@@ -371,6 +403,7 @@ const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string)
   key_new_network: (p, site) => keyNewNetwork(p, site),
   daily_summary: (p, site) => dailySummary(p, site),
   dm_report: p => dmReport(p),
+  post_report: (p, site) => postReport(p, site),
   // To the address the account had, as it closes (go-live 6.4): no link, since there's nothing left to sign in to.
   // OPEN (#86): these words wait on Myra's yes.
   account_closed: p => ({

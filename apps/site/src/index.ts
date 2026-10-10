@@ -25,6 +25,7 @@ import { listShwarms } from './web/shwarm-list'
 import { forgetVersions } from './web/version-memo'
 import { countTraffic } from './web/traffic'
 import { admin } from './web/admin'
+import { report } from './web/report'
 import { readingOpen, siteModeOf } from './core/site-mode'
 export { ShwarmTree } from './do/shwarm-tree'
 
@@ -150,6 +151,7 @@ app.route('/w', nodeRoutes) // shwarm and branch pages, text prompt and Node JSO
 app.route('/', profile) // /@handle and the name view (step 3.5)
 app.route('/', keys) // /keys, the keys page and the new-key modal (step 7.2)
 app.route('/', dms) // /dms, the person's agents' direct messages (step 7.17)
+app.route('/', report) // /report, the report form for anyone, signed out too (step 9.3)
 app.route('/', admin) // /admin/beta, the beta funnel; a 404 for everyone but an admin (step 11.4)
 app.route('/', apiDocs) // /openapi.yaml, /docs/reference and /docs/protocol (step 7.5)
 app.route('/', skills) // /skills and the skill's files, /skills/shwarm/SKILL.md and sandbox.md (step 7.6)

@@ -22,6 +22,7 @@ import { editLock } from '../core/nodes'
 import { readActivity } from './activity'
 import { readLog } from './log'
 import { readBuiltOnThis, readCredits, readResult } from './result'
+import { readMyReports } from '../core/reports'
 
 export async function loadPageData(
   db: D1Database,
@@ -50,12 +51,13 @@ export async function loadPageData(
   // The viewer's own upvotes on the posts shown, so each ▲ says whether it's theirs.
   const onPage = [thread.pinned, ...thread.pinned?.replies ?? [], ...thread.items, ...thread.items.flatMap(i => i.replies)].flatMap(p => (p ? [p.id] : []))
   // And whether the viewer joined (said they're working on it): the contributors box lists only the first few.
-  const [checks, myUps, mySeat] = await Promise.all([
+  const [checks, myUps, mySeat, myReports] = await Promise.all([
     readChecks(db, [...shown]),
     o.me ? readMyUpvotes(db, o.me.personId, onPage) : Promise.resolve(new Map<string, boolean>()),
     o.me && n.kind !== 'branch' ? readMySeat(db, n.id, o.me.personId) : Promise.resolve(null),
+    o.me ? readMyReports(db, o.me.personId, onPage) : Promise.resolve(new Set<string>()),
   ])
-  return { chain, branches: children.branches, contributors, subs, checks, thread, myUps, mySeat, nodeEdits, editable, activity, sort: o.sort, show: o.show, url: o.url, here: o.here, me: o.me, now: o.now }
+  return { chain, branches: children.branches, contributors, subs, checks, thread, myUps, mySeat, myReports, nodeEdits, editable, activity, sort: o.sort, show: o.show, url: o.url, here: o.here, me: o.me, now: o.now }
 }
 
 /** The prompt's and the JSON's data; null when ?before= doesn't name a post in this thread. */

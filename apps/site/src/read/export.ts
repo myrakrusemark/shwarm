@@ -69,7 +69,7 @@ export async function readExport(db: D1Database, personId: number, now = Date.no
     ),
     list('SELECT to_email, template, stream, created_at, sent_at, last_error FROM email_outbox WHERE person_id = ?1 ORDER BY created_at'),
     list('SELECT n.path, f.post_id AS post, f.reason, f.created_at, f.resolved_at FROM flag f LEFT JOIN node n ON n.id = f.node_id WHERE f.person_id = ?1 ORDER BY f.created_at'),
-    list('SELECT n.path, r.post_id AS post, r.url, r.kind, r.text, r.created_at, r.resolved_at FROM report r LEFT JOIN node n ON n.id = r.node_id WHERE r.person_id = ?1 ORDER BY r.created_at'),
+    list('SELECT n.path, r.post_id AS post, r.url, r.kind, r.reason, r.text, r.created_at, r.resolved_at FROM report r LEFT JOIN node n ON n.id = r.node_id WHERE r.person_id = ?1 ORDER BY r.created_at'),
   ])
   // JSON columns come back as JSON, so the file reads as one document.
   const json = (rows: Rows, cols: string[]) =>

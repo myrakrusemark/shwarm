@@ -41,7 +41,8 @@ function stable(s: string): string {
     if (!seen.has(m)) seen.set(m, `${kind}${seen.size}`)
     return seen.get(m)!
   }
-  return s.replace(/\b[pcev]_[a-z0-9]{8,32}\b/g, as('id')).replace(/\b[0-9a-f]{40,64}\b/g, as('hex')).replace(/\b[0-9a-f]{7,8}\b/g, as('short'))
+  // An id after %23 (an encoded #, as in a post's /report?url= link) has no word boundary before it.
+  return s.replace(/(?:\b|(?<=%23))[pcev]_[a-z0-9]{8,32}\b/g, as('id')).replace(/\b[0-9a-f]{40,64}\b/g, as('hex')).replace(/\b[0-9a-f]{7,8}\b/g, as('short'))
 }
 
 async function fingerprint() {
@@ -64,7 +65,7 @@ describe('RENDER_VERSION', () => {
     expect(await fingerprint(), 'the fingerprint is not stable across runs').toBe(first)
     expect({ RENDER_VERSION, fingerprint: first }, 'the signed-out rendering changed: bump RENDER_VERSION (web/node-routes.tsx), then update this fingerprint').toEqual({
       RENDER_VERSION: '9',
-      fingerprint: '9a946601c45830a9', // also moves when the seeded launch entries in docs/launch-shwarms.json, the running example (seed/example.ts) or test/result-fixture.ts change (no bump then: the code renders the same)
+      fingerprint: 'fd607211ac872308', // also moves when the seeded launch entries in docs/launch-shwarms.json, the running example (seed/example.ts) or test/result-fixture.ts change (no bump then: the code renders the same)
     })
   })
 })

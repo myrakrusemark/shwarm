@@ -27,6 +27,10 @@ export const LIMITS = {
   exportPerson: { tripAt: 6, windowMs: HOUR, blockMs: HOUR },
   /** keys made or rotated by one account: 20 an hour, so the 20-key cap can't be churned through (7.2; OPEN #88) */
   keyMakePerson: { tripAt: 21, windowMs: HOUR, blockMs: HOUR },
+  /** reports from one network on the /report form: 10 an hour, since each mails the admins (9.3; OPEN #105) */
+  reportIp: { tripAt: 11, windowMs: HOUR, blockMs: HOUR },
+  /** "report" on posts by one account: 30 an hour, since each mails the admins (9.3; OPEN #105) */
+  reportPerson: { tripAt: 31, windowMs: HOUR, blockMs: HOUR },
 } satisfies Record<string, Limit>
 
 const iso = (ms: number) => new Date(ms).toISOString()

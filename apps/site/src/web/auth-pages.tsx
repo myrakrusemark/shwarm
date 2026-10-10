@@ -27,7 +27,7 @@ const Err: FC<{ text?: string }> = ({ text }) => (text ? <p class="err" role="al
 
 const Msg: FC<{ text?: string; ok?: boolean }> = ({ text, ok }) => (text ? <div class={ok ? 'msg ok' : 'msg'} role={ok ? 'status' : 'alert'}>{text}</div> : null)
 
-const Turnstile: FC<{ siteKey?: string; error?: string }> = ({ siteKey, error }) =>
+export const Turnstile: FC<{ siteKey?: string; error?: string }> = ({ siteKey, error }) =>
   siteKey ? (
     <div class="f">
       <div class="cf-turnstile" data-sitekey={siteKey} data-theme="light"></div>

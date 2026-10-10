@@ -13,10 +13,12 @@ import { clientIp, formOf, hasSessionCookie, postedTokenOk, sessionOf, who, type
 import { signInHref } from '../auth/return-to'
 import type { Session } from '../auth/session'
 import { inlineStepUp } from '../auth/signin'
+import { bump, LIMITS } from '../auth/throttle'
 import { stepUpOpen } from '../auth/stepup'
 import { siteActor, type Actor } from '../core/actor'
 import type { CheckInput, CheckResult } from '../core/checking'
 import { peekThreadTokens } from '../core/limits'
+import { reportPost } from '../core/reports'
 import { isId } from '../core/ids'
 import { runInTree } from '../do/shwarm-tree'
 import {
@@ -59,7 +61,7 @@ type C = Context<Env>
 const TYPES: Record<Format, string> = { html: 'text/html', text: 'text/plain', json: 'application/json' }
 
 /** Bump to change every ETag when the rendering changes (test/render-version.test.ts fails until you do). */
-export const RENDER_VERSION = '9' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9). 4: the log's `key` field (v0, Oct 9). 5: the activity strip (Oct 10). 6: edit until join, the safety guide link, how to join in (Oct 10). 7: links for agents under how to take part, count wording (Oct 10). 8: npx @shwarm/cli under how to take part (Oct 10). 9: direct messages and who takes them, under how to take part; take_part in the JSON (Oct 10)
+export const RENDER_VERSION = '9' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9). 4: the log's `key` field (v0, Oct 9). 5: the activity strip (Oct 10). 6: edit until join, the safety guide link, how to join in (Oct 10). 7: links for agents under how to take part, count wording (Oct 10). 8: npx @shwarm/cli under how to take part (Oct 10). 9: direct messages and who takes them, under how to take part; take_part in the JSON; "report" on every post (Oct 10)
 
 // Production's reading pages stay closed in holding mode and open in beta (go-live 3.10); core/site-mode.ts.
 import { readingOpen } from '../core/site-mode'
@@ -414,6 +416,7 @@ nodeRoutes.post('/*', async c => {
   // Re-pitch is retired (decided Oct 10, '"edit" replaces re-pitch'): a re-pitch form from an old tab goes to the edit
   // form, which says whether this viewer may still edit it.
   if (f.do === 'repitch') return c.redirect(editHref(parsed.path), 303)
+  if (f.do === 'report') return reportAct(c, parsed.path, w.session, f, url)
   const act = (ACTS as readonly string[]).includes(f.do) ? (f.do as Act) : null
   if (!act) return errorOut(c, 'html', 400, 'bad_request', 'that form asked for nothing we know.')
 
@@ -524,6 +527,40 @@ nodeRoutes.post('/*', async c => {
     return htmlPage(c, chain, parsed.path, session, now, { at, text: e.message.replace(/\.?$/, '.'), draft, ...kept }, 400)
   }
 })
+
+/**
+ * "report" on a thread post (go-live 9.3, core/reports.ts): into the operator's queue with a mail to the admins, then
+ * back to the post, whose control now says "reported". A second report of the same post says so under it. A refusal
+ * reopens the form with the reason and the words kept. On any node, live or ended: reporting isn't locked.
+ */
+async function reportAct(c: C, path: string, session: Session, f: Record<string, string>, url: URL) {
+  const db = c.env.DB
+  const chain = await readChain(db, path, session.personId)
+  if (!chain) return (await gone(c, 'html', path)) ?? notFound(c, 'html')
+  const now = Date.now()
+  const post = f.post ?? ''
+  const refuse = (text: string, o: { status?: 200 | 400 | 429; keep?: boolean } = {}) =>
+    htmlPage(c, chain, path, session, now, { at: 'post', post, text, ...(o.keep === false ? {} : { report: true, draft: f.text ?? '', fields: { reason: f.reason ?? '' } }) }, o.status ?? 400)
+  try {
+    const by = { personId: session.personId, handle: session.handle, verified: session.verified }
+    // Every try counts (30 an hour), so a run of reports can't flood the admins' mail.
+    const wait = by.verified ? await bump(db, `report:person:${session.personId}`, LIMITS.reportPerson, now) : 0
+    if (wait) {
+      c.header('Retry-After', String(wait))
+      // OPEN (#105): new wording.
+      return refuse(`slow down: you can report again in ${waitText(wait)}.`, { status: 429 })
+    }
+    const r = await reportPost(db, { by, nodeId: chain.node.id, path, post, reason: f.reason, text: f.text, env: c.env.ENV, now })
+    // OPEN (#105): new wording.
+    if (r === 'already') return refuse('you already reported this post.', { status: 200, keep: false })
+    return c.redirect(`/w/${path}${url.search}${isId('p', post) ? `#${post}` : ''}`, 303)
+  } catch (e) {
+    if (!(e instanceof ShwarmError)) throw e
+    // A post that isn't there, was deleted or is the viewer's own has no form to reopen.
+    const keep = e.details.field === 'reason' || e.details.field === 'text'
+    return refuse(e.message, { keep })
+  }
+}
 
 /** The submit form's fields besides the text, kept as typed when a submission is refused. */
 const SUBMIT_FIELDS = ['links', 'built_on', 'how_to_check', 'release_name', 'release_version', 'release_how_to_use'] as const

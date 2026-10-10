@@ -21,3 +21,11 @@
 .auth button.link { all: unset; color: var(--sky); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 .auth button.link:hover { background: var(--sun); color: var(--ink); }
 .auth form.inline { display: inline; margin: 0; }
+
+/* /report (go-live 9.3): the form for anyone, signed out too */
+.auth.report { max-width: 560px; }
+.auth.report .in { padding: 12px 14px 0; }
+.auth.report .in p { margin: 0; }
+.auth.report fieldset { border: 0; padding: 0; margin: 0; }
+.auth.report legend { padding: 0; }
+.auth.report textarea { font: inherit; width: 100%; min-height: 96px; border: 1.5px solid var(--ink); background: var(--paper); padding: 6px 8px; color: var(--ink); resize: vertical; }

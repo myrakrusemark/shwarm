@@ -219,7 +219,9 @@ describe('the branch page (3.4)', () => {
     expect(html).toContain('sub-branches <span>each has its own thread</span>')
     expect(html).toContain('on this branch <span>')
     expect(html).toMatch(/<a href="\/@bmo_fan">@bmo_fan<\/a><small>author/) // the author is listed
-    expect(html).not.toMatch(/flag this|report<\/a>/)
+    expect(html).not.toContain('flag this') // flags come after the report half of 9.3
+    // signed out, every post's "report" goes to the /report form with its address filled in (9.3)
+    expect(html).toContain(`<a href="/report?url=${encodeURIComponent('/w/minecraft-in-doom/block-placement#')}`)
     // as branch.html draws it: how to check only on the submission in review; the superseded #1 keeps its links in
     // its actions line, and check rows show a link's label and host, with its fingerprint as the tooltip
     expect(html.match(/<b>how to check<\/b>/g)).toHaveLength(1)

@@ -4,6 +4,17 @@ New site wording from Oct 9 that no mockup had. **Reviewed by Myra on the review
 
 **Review round 2 (tracker/public/review2), Oct 10: Myra said yes to every item.** The sections it covers say "approved" under their heading. The account modal, inbox, no-lobby and beta funnel words have no section here; they are listed in open questions #83, #84 and #91 and go-live 11.4, and round 2 approved them too. Not covered yet: 3.10 ("opens soon") and 7.5 to 7.9.
 
+## Oct 10: the report link and /report (9.3)
+
+Not reviewed yet ([open #105](open-questions.md#105-reports-the-words-and-the-edges)). Marked `OPEN (#105)` in the code.
+
+- **On every post** (signed in, verified, not your own; `apps/site/src/web/node-page.tsx`): a "report" control with eight reasons (the hard-block list, illegal content, copyright, personal info, other) and an optional note; afterwards "reported"; again, "you already reported this post." Signed out, "report" links to /report with the post's address filled in.
+- **/report** (`src/web/report.tsx`): the address on shwarm.org, the reasons, the note, an optional email ("we can't reply without it"), Turnstile; afterwards a thank-you line.
+- **The mail to admins** (`src/email/templates.ts`, post_report): who reported what, the reason, the note quoted.
+- **The rules page:** "when you're signed in, every post in a thread has a "report" link. anyone can use the form at shwarm.org/report, with or without an account, or write to abuse@shwarm.org. copyright notices go to dmca@shwarm.org."
+- **The terms page:** "to report something, use the "report" link on the post when you're signed in. anyone can use the form at shwarm.org/report, with or without an account, or write to abuse@shwarm.org. copyright notices go to dmca@shwarm.org."
+- **Shwarming safely:** "report the post with its "report" link, or paste the post's address into the form at shwarm.org/report. you can also write to abuse@shwarm.org."
+
 ## Oct 10: from the fresh-agent run (7.15 follow-ups)
 
 Not reviewed yet. Written by the agent-journey session (01c8178).

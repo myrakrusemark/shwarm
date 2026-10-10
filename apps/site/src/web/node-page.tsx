@@ -19,6 +19,7 @@ import { showHidden } from '../render/hidden'
 import { MAX_TEXT, MAX_TITLE } from '../core/text'
 import { Command, LINK_REL, linkParts, Log, Name, Plain, tagHref, Text } from '../render/text'
 import { RELEASE_CAPS } from '../core/posts'
+import { REASON_LABEL, REASONS, REPORT_TEXT_MAX } from '../core/reports'
 import { AgentResources, Layout } from './layout'
 import { InvitedSignIn, OPENS_SOON } from './opens-soon'
 import { PageContext } from './viewer'
@@ -38,11 +39,11 @@ export type Me = { personId: number; handle: string; verified: boolean } | null
 
 /**
  * A refused form, shown next to it: the compose box, join or leave (`seats`), the author's own box (dead end), or one
- * post's upvote, edit or delete (`post` names it). `draft` keeps the text they wrote; a refused submission
+ * post's upvote, edit, delete or report (`post` names it). `draft` keeps the text they wrote; a refused submission
  * (`mode: 'submit'`) keeps every field of the submit form in `fields` and opens it again; a refused edit opens its form
- * again.
+ * again, and so does a refused report (`report`, with its reason in `fields`).
  */
-export type Flash = { at: 'compose' | 'seats' | 'owner' | 'post'; text: string; draft?: string; mode?: 'submit'; fields?: Record<string, string>; post?: string; pin?: boolean }
+export type Flash = { at: 'compose' | 'seats' | 'owner' | 'post'; text: string; draft?: string; mode?: 'submit'; fields?: Record<string, string>; post?: string; pin?: boolean; report?: boolean }
 
 export type NodePageData = {
   chain: Chain
@@ -52,6 +53,7 @@ export type NodePageData = {
   checks: Map<string, CheckReport[]>
   thread: Thread
   myUps?: Map<string, boolean> // the viewer's upvotes on the posts shown: post id → counted (A6)
+  myReports?: Set<string> // the posts shown that the viewer reported (core/reports.ts)
   mySeat?: number | null // the viewer's join on a shwarm (a seat row's number), if they're working on it
   nodeEdits?: NodeEdit[] // the shwarm's earlier versions, newest first (its author's edits; re-pitches before Oct 10)
   editable?: boolean // the viewer is its author and may still edit it: nobody else joined, nothing submitted (decided Oct 10)
@@ -622,6 +624,7 @@ const PostView: FC<{ p: PostRow; d: NodePageData; sub?: SubmissionRow; reply?: b
   // is live (an ended one is locked). Submissions, checks and dead-end notes never change.
   const own = !lockedBy(d.chain) && !!d.me?.verified && p.person_id === d.me.personId && p.as_name === '@' + d.me.handle && p.kind === 'post'
   const editFlash = own && flash?.draft !== undefined ? flash : undefined // a refused edit shows in its form
+  const reportFlash = flash?.report ? flash : undefined // so does a refused report
   return (
     <div class={cls} id={p.id}>
       <div class="who">
@@ -641,8 +644,9 @@ const PostView: FC<{ p: PostRow; d: NodePageData; sub?: SubmissionRow; reply?: b
         {own && <> · <EditPost p={p} d={d} flash={editFlash} /></>}
         {own && <> · <DeletePost p={p} d={d} /></>}
         {p.edited_at && <> · <History p={p} edits={d.thread.edits.get(p.id) ?? []} label={pinned ? 'edit history' : 'edited'} now={d.now} /></>}
+        <Report p={p} d={d} flash={reportFlash} />
       </div>
-      {flash && !editFlash && <p class="err" role="alert">{flash.text}</p>}
+      {flash && !editFlash && !reportFlash && <p class="err" role="alert">{flash.text}</p>}
     </div>
   )
 }
@@ -724,6 +728,48 @@ const DeletePost: FC<{ p: PostRow; d: NodePageData }> = ({ p, d }) => (
     </form>
   </details>
 )
+
+/**
+ * "report" on a thread post (go-live 9.3, core/reports.ts): for any signed-in person with a verified email but the
+ * poster (never your own posts or your agents'), once per post, then "reported". Not an act the beta limits, and not
+ * behind the password. Signed out, or not verified yet, it goes to the /report form with this post's address filled in.
+ * Rendered with its own " · " first, so a post with nothing to report (your own) shows nothing.
+ * OPEN (#105): new wording. No mockup draws it.
+ */
+const Report: FC<{ p: PostRow; d: NodePageData; flash?: Flash }> = ({ p, d, flash }) => {
+  if (d.me && p.person_id === d.me.personId) return null
+  if (d.myReports?.has(p.id)) return <> · <span class="note">reported</span></>
+  if (!d.me?.verified) return <> · <a href={reportHref(`/w/${d.chain.node.path}#${p.id}`)}>report</a></>
+  const reason = flash?.fields?.reason
+  return (
+    <>
+      {' · '}
+      <details class="report" open={flash ? true : undefined}>
+        <summary>report</summary>
+        <form method="post" action={d.here} class="report-act">
+          <input type="hidden" name="form_token" value={d.token} />
+          <input type="hidden" name="do" value="report" />
+          <input type="hidden" name="post" value={p.id} />
+          <fieldset>
+            <legend>what's wrong?</legend>
+            {REASONS.map(r => (
+              <label><input type="radio" name="reason" value={r} required checked={reason === r || undefined} /> {REASON_LABEL[r]}</label>
+            ))}
+          </fieldset>
+          <textarea name="text" maxlength={REPORT_TEXT_MAX} aria-label="what's wrong, in your words (optional)" placeholder="in your words (optional)">{flash?.draft ?? ''}</textarea>
+          {flash && <p class="err" role="alert">{flash.text}</p>}
+          <div class="row">
+            <span class="note">only the people who run shwarm see it.</span>
+            <button class="btn plain" type="submit">send report</button>
+          </div>
+        </form>
+      </details>
+    </>
+  )
+}
+
+/** The /report form, with the address of what's wrong filled in (web/report.tsx). */
+export const reportHref = (url: string) => `/report?url=${encodeURIComponent(url)}`
 
 /**
  * A post's earlier versions, newest first, each with when it was written (the mockup's "edit history" on the pinned
