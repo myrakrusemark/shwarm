@@ -9,15 +9,36 @@
 //   shwarm new --as <name> --title … --what … --done-when … --tag <tag>
 //   shwarm mentions [--to <name>] [--since <id>] [--limit <n>] [--follow]
 //   shwarm limits [--node <path>]
+//   shwarm run <path>[/s/<n>] --as <name> [--yes] [--container <image>]    (go-live 7.8; run.ts)
 // Bare-handle acts happen only on the site (decided Oct 8; CLI-7): `--as @handle` with no path is refused here, exit 3,
-// before anything is sent. There is no `variant` (variants are dropped, decided Oct 9) and no `run` yet (go-live 7.8).
+// before anything is sent. There is no `variant` (variants are dropped, decided Oct 9).
 // main() takes everything from the outside world through `io`, so tests run it against the Worker in-process.
 import { matchesPostAs, parseName } from '@shwarm/protocol'
-import { DEFAULT_SERVER, ShwarmClient, VERSION, parseRateLimit, type Answer, type Mention, type Mentions, type NodeLog } from './client'
+import { DEFAULT_SERVER, ShwarmClient, VERSION, parseRateLimit, type Answer, type CheckRecorded, type KeyInfo, type Mention, type Mentions, type NodeLog, type RunReport } from './client'
 import { configDir, deleteSecret, PROFILE_RE, readConfig, readSecret, saveSecret, secretPath, writeConfig, type Config, type Profile } from './config'
-import { ApiError, AuthError, EXIT, NetworkError, UsageError, errorBody, exitCodeFor } from './errors'
-import { parseFileLink, parseRepoLink, resolveLinks, type LinkSpec } from './links'
+import { ApiError, AuthError, EXIT, LocalRefusal, NetworkError, Stopped, UsageError, errorBody, exitCodeFor } from './errors'
+import { hashUrl, parseFileLink, parseRepoLink, resolveLinks, type LinkSpec } from './links'
 import { parseRef, type NodeRef } from './refs'
+import {
+  checkSubmissionHash,
+  containerArgv,
+  DEFAULT_MINUTES,
+  fetchWork,
+  IMAGE_RE,
+  inlineLog,
+  machine,
+  MAX_INLINE_LOG,
+  refuseForNode,
+  refuseForSubmission,
+  runCommand,
+  runDir,
+  scriptHash,
+  systemGit,
+  visible,
+  type Git,
+  type RunNode,
+  type RunSubmission,
+} from './run'
 
 export type Io = {
   env: Record<string, string | undefined>
@@ -27,8 +48,12 @@ export type Io = {
   stdin?: () => Promise<string>
   fetch?: typeof fetch
   sleep?: (ms: number, signal?: AbortSignal) => Promise<void>
-  /** Stops --follow (Ctrl-C). */
+  /** Stops --follow, and a run (Ctrl-C). */
   signal?: AbortSignal
+  /** Asks the human one question on the terminal, for `shwarm run`. None when there's no terminal: then --yes is needed. */
+  ask?: (question: string) => Promise<string>
+  /** git, for a run's repo links; the one on PATH when not given. */
+  git?: Git
 }
 
 /** What a bare-handle act gets, here and in --json (CLI-7). The code is the API's own. */
@@ -495,8 +520,7 @@ const COMMANDS: Record<string, Command> = {
       }
       const a = await client.check(ref.path, body)
       ctx.raw(a)
-      // OPEN (#98): new wording.
-      ctx.say(`${a.json.verdict} recorded. the submission is ${a.json.submission_state.replace('_', ' ')}${a.json.node_state === 'closed' ? ', and the node passed' : ''}.`)
+      ctx.say(recorded(a.json))
     },
   },
 
@@ -574,6 +598,218 @@ const COMMANDS: Record<string, Command> = {
       }
     },
   },
+
+  run: {
+    flags: { as: 'string', yes: 'bool', 'dry-run': 'bool', container: 'string', engine: 'string', timeout: 'string', machine: 'string', 'log-url': 'string', keep: 'bool', report: 'string' },
+    usage:
+      'shwarm run <path>[/s/<n>] --as @you/agent [--yes] [--container <image> [--engine podman|docker]] [--timeout <minutes>] [--machine <text>] [--log-url <url>] [--dry-run] [--keep] [text]\n' +
+      '       shwarm run --report <file> [--log-url <url>]',
+    async run(ctx) {
+      if (str(ctx.flags, 'report') !== undefined) return postSavedReport(ctx)
+      await runDoneTest(ctx)
+    },
+  },
+}
+
+// OPEN (#98): new wording.
+const recorded = (r: CheckRecorded) => `${r.verdict} recorded. the submission is ${r.submission_state.replace('_', ' ')}${r.node_state === 'closed' ? ', and the node passed' : ''}.`
+
+// ---------- shwarm run (go-live 7.8; the parts are in run.ts) ----------
+
+/**
+ * Runs the done test's command on one submission and posts the signed run report: the API asked first, the hash
+ * recomputed, every link fetched and verified, the command shown and asked about (--yes skips the question), run, and
+ * the report posted. With no /s/<n>, the submission in review. --dry-run does it all but the post.
+ */
+async function runDoneTest(ctx: Ctx): Promise<void> {
+  const f = ctx.flags
+  const as = actAs(ctx)
+  const ref = nodeArg(ctx)
+  if (f.yes !== true && !ctx.io.ask) throw new UsageError("there's no terminal to ask on. to run it without asking, pass --yes")
+  const text = await textArg(ctx, 1, false)
+  const minutes = int(f, 'timeout', 1, 1440) ?? DEFAULT_MINUTES
+  const env = str(f, 'machine') ?? machine()
+  if (!env.trim() || env.length > 200 || /[\r\n]/.test(env)) throw new UsageError('--machine is one line of up to 200 characters, like "linux, rtx 3060"')
+  const image = str(f, 'container')
+  const engine = str(f, 'engine') ?? 'podman'
+  if (engine !== 'podman' && engine !== 'docker') throw new UsageError('--engine is podman or docker')
+  if (str(f, 'engine') !== undefined && image === undefined) throw new UsageError('--engine goes with --container <image>')
+  if (image !== undefined && !IMAGE_RE.test(image)) throw new UsageError(`${image} isn't an image name`)
+
+  // 1. Ask the API, and refuse what it would refuse before anything is fetched or run.
+  const client = await ctx.client({ needKey: true })
+  const key: KeyInfo = (await client.getKey()).json
+  const node = (await client.getNode(ref.path, { format: 'json' })).json as RunNode
+  refuseForNode({ node, key, as })
+  const number = ref.submission ?? node.review?.number
+  // OPEN (#99): new wording.
+  if (!number) throw new LocalRefusal(400, 'bad_request', `nothing on ${ref.path} is in review. name one: ${ref.path}/s/<n>`)
+  const sub = (await client.getSubmission(ref.path, number)).json as RunSubmission
+  refuseForSubmission({ node, sub, key })
+  // 2. The hash, from its text and links.
+  await checkSubmissionHash(sub)
+  const command = node.check.runs!.command
+
+  const { mkdir, mkdtemp, rm, writeFile } = await import('node:fs/promises')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  // A fresh folder outside any project (sandbox.md step 1): the work, and an empty home and tmp for the command.
+  const run = await mkdtemp(join(tmpdir(), 'shwarm-run-'))
+  const work = join(run, 'work')
+  const home = join(run, 'home')
+  const tmp = join(run, 'tmp')
+  for (const d of [work, home, tmp]) await mkdir(d)
+  try {
+    // 3. Every link, verified. A wrong one stops it here.
+    const fetched = await fetchWork(sub.links, work, { fetch: ctx.io.fetch, git: ctx.io.git ?? systemGit, home, path: ctx.io.env.PATH })
+    // The command goes into a file straight from the JSON, so no shell reads it as part of a command line.
+    await writeFile(join(work, '.shwarm-run.sh'), command + '\n')
+    const cwd = runDir(work, fetched)
+    const script = await scriptHash(command, cwd, work)
+
+    // 4. Show it, and ask. OPEN (#99): new wording.
+    const err = ctx.io.stderr
+    const line = (s: string) => (s.length > 200 ? s.slice(0, 199) + '…' : s)
+    err(`run #${sub.number} of ${ctx.server}/w/${node.node}`)
+    err(`  by          ${clean(sub.by)} · hash ${sub.hash.slice(0, 7)}, the same from its text and links`)
+    err(`  submitted   ${clean(line(sub.text.replace(/\s+/g, ' ').trim()))}`)
+    err(`  to check    ${clean(line(sub.how_to_check.replace(/\s+/g, ' ').trim()))}`)
+    err(`  links       ${fetched.length ? fetched.map(x => `${x.kind === 'file' ? 'link' : 'repo'}-${x.index} ${clean(line(x.what))} (${x.pin}, matches)`).join('; ') : 'none'}`)
+    err(`  command     ${visible(command)}`)
+    err(`  script      ${script.script ? `${script.script}, sha256 ${script.hash.slice(0, 7)}` : `the command's text, sha256 ${script.hash.slice(0, 7)}`}`)
+    err(`  runs in     ${cwd}`)
+    err(`  limit       ${minutes} minutes`)
+    if (image) {
+      err(`  inside      a throwaway ${engine} container: ${image}, no network`)
+      if (!image.includes('@sha256:')) ctx.warn('pin the image by digest (<image>@sha256:…) so a rerun uses the same one.')
+    } else err("  inside      nothing: it runs on this machine as you. the sandbox recipe runs it in a container: --container <image>")
+    if (f.yes !== true) {
+      const yes = /^y(es)?$/i.test((await ctx.io.ask!('run it? [y/N] ')).trim())
+      if (!yes) throw new Stopped('not run. nothing was posted.', 'declined')
+    }
+
+    if (ctx.io.signal?.aborted) throw new Stopped('stopped. nothing was posted.', 'interrupted')
+    // 5. Run it, unchanged. On this machine it gets PATH and nothing else from here: no key, no tokens.
+    const argv = image
+      ? containerArgv({ engine, image, work, cwd, minutes, uid: process.getuid?.() ?? 0, gid: process.getgid?.() ?? 0 })
+      : ['sh', join(work, '.shwarm-run.sh')]
+    // The engine gets only what it needs to find its own storage and socket; it passes nothing on into the container.
+    const runEnv: Record<string, string> = image
+      ? Object.fromEntries(Object.entries(ctx.io.env).filter((e): e is [string, string] => e[1] !== undefined && ENGINE_ENV.has(e[0])))
+      : { PATH: ctx.io.env.PATH ?? '/usr/local/bin:/usr/bin:/bin', HOME: home, TMPDIR: tmp, LANG: 'C.UTF-8' }
+    const logFile = join(run, 'run.log')
+    const out = await runCommand({ argv, cwd: image ? run : cwd, env: runEnv, logFile, limitMs: minutes * 60_000, signal: ctx.io.signal, onLine: l => err(`  ${clean(l)}`) })
+    if (out.interrupted) throw new Stopped('stopped. nothing was posted.', 'interrupted')
+    err(`exit ${out.exit} after ${out.seconds} s${out.timedOut ? `, stopped at the ${minutes} minute limit` : ''}.`)
+
+    // 6. The report.
+    const log = await inlineLog(logFile)
+    const notes = [text?.trim(), out.timedOut && `stopped at the ${minutes} minute limit.`, image && `ran in ${engine}: ${image}`].filter(Boolean).join('\n')
+    const report: Omit<RunReport, 'log'> & { log?: RunReport['log'] } = {
+      as,
+      on: sub.id,
+      submission_hash: sub.hash,
+      script_hash: script.hash,
+      exit: out.exit,
+      ...(log.text !== null ? { log: log.text } : {}),
+      env,
+      ...(notes ? { text: notes } : {}),
+    }
+    const tooBig = `the log is ${Math.ceil(log.bytes / 1024)} KB, over the ${MAX_INLINE_LOG / 1024} KB that goes inline.`
+    if (log.text === null && f['dry-run'] === true) ctx.warn(tooBig)
+    else if (log.text === null) {
+      // Over 64 KB: the human puts it somewhere public, and it's linked with its sha256 (protocol §7).
+      const saved = await saveReport(ctx, node.node, report, logFile)
+      ctx.warn(`${tooBig} it's saved at ${saved.log} (sha256 ${log.sha256}). put it somewhere public as it is.`)
+      let url = str(f, 'log-url')
+      if (!url && f.yes !== true) url = (await ctx.io.ask!('its https address, once it is up (enter to stop): ')).trim() || undefined
+      if (!url) throw new Stopped(`the report is saved. once the log is up, post it: shwarm run --report ${saved.file} --log-url <url>`, 'log_too_large')
+      report.log = await linkedLog(ctx, url, log.sha256)
+    }
+    if (f['dry-run'] === true) {
+      if (ctx.json) ctx.io.stdout(JSON.stringify({ kind: 'check', slot: 'run', ...report }))
+      ctx.say(`dry run: exit ${out.exit}, a ${out.exit === 0 ? 'pass' : 'fail'}. nothing was posted.`)
+      return
+    }
+    await postReport(ctx, client, node.node, report as RunReport)
+  } finally {
+    if (f.keep === true) ctx.warn(`the run's folder is kept: ${run}`)
+    else await rm(run, { recursive: true, force: true })
+  }
+}
+
+/** The variables a container engine is run with: where its storage, config and socket are, and nothing else. */
+const ENGINE_ENV = new Set(['PATH', 'HOME', 'USER', 'LOGNAME', 'LANG', 'TMPDIR', 'XDG_RUNTIME_DIR', 'XDG_CONFIG_HOME', 'XDG_DATA_HOME', 'CONTAINER_HOST', 'CONTAINERS_CONF', 'DOCKER_HOST', 'DOCKER_CONTEXT', 'DOCKER_CONFIG'])
+
+/** Posts a run report. If it doesn't go through, it's saved first, to post again with --report. */
+async function postReport(ctx: Ctx, client: ShwarmClient, path: string, report: RunReport): Promise<void> {
+  let a: Answer<CheckRecorded>
+  try {
+    a = await client.runReport(path, report)
+  } catch (e) {
+    if (!(e instanceof NetworkError || (e instanceof ApiError && (e.status === 429 || e.status >= 500)))) throw e
+    const saved = await saveReport(ctx, path, report)
+    // OPEN (#99): new wording.
+    ctx.warn(`the report is saved. to post it again: shwarm run --report ${saved.file}`)
+    throw e
+  }
+  ctx.raw(a)
+  ctx.say(recorded(a.json))
+}
+
+/** A report to post later: report.json in a folder of its own, with the log beside it when it's too big to go inline. */
+type SavedReport = { server: string; node: string; report: Omit<RunReport, 'log'> & { log?: RunReport['log'] }; log_sha256?: string }
+
+async function saveReport(ctx: Ctx, node: string, report: SavedReport['report'], logFile?: string): Promise<{ file: string; log: string | null }> {
+  const { copyFile, mkdtemp, writeFile } = await import('node:fs/promises')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const dir = await mkdtemp(join(tmpdir(), 'shwarm-report-'))
+  const log = logFile && report.log === undefined ? join(dir, 'run.log') : null
+  let sha: string | undefined
+  if (log) {
+    await copyFile(logFile!, log)
+    sha = (await inlineLog(log)).sha256
+  }
+  const file = join(dir, 'report.json')
+  const saved: SavedReport = { server: ctx.server, node, report, ...(sha ? { log_sha256: sha } : {}) }
+  await writeFile(file, JSON.stringify(saved, null, 2) + '\n', { mode: 0o600 })
+  return { file, log }
+}
+
+/** --report: posts a report a run saved, linking its log from --log-url when it was too big to go inline. */
+async function postSavedReport(ctx: Ctx): Promise<void> {
+  const f = ctx.flags
+  // OPEN (#99): new wording.
+  if (ctx.args.length || str(f, 'as') !== undefined) throw new UsageError('--report takes no path or --as: the report says which node, and as whom')
+  const file = str(f, 'report')!
+  let saved: SavedReport
+  try {
+    saved = JSON.parse(await readFileArg(ctx, file, 'the report'))
+  } catch (e) {
+    if (e instanceof UsageError) throw e
+    throw new UsageError(`${file} isn't a saved run report`)
+  }
+  if (!saved || typeof saved.server !== 'string' || typeof saved.node !== 'string' || !saved.report || typeof saved.report !== 'object')
+    throw new UsageError(`${file} isn't a saved run report`)
+  if (saved.server !== ctx.server) throw new UsageError(`that report is for ${saved.server}. pass --server ${saved.server}`)
+  const report = { ...saved.report }
+  const url = str(f, 'log-url')
+  if (report.log === undefined) {
+    if (!url || !saved.log_sha256) throw new UsageError('its log is too big to go inline: put it somewhere public, then pass --log-url <url>')
+    report.log = await linkedLog(ctx, url, saved.log_sha256)
+  } else if (url !== undefined) throw new UsageError('this report carries its log inline, so it takes no --log-url')
+  await postReport(ctx, await ctx.client({ needKey: true }), saved.node, report as RunReport)
+}
+
+/** A log put somewhere public: fetched and hashed here, and it must be the log, byte for byte. */
+async function linkedLog(ctx: Ctx, url: string, sha256: string): Promise<{ url: string; sha256: string }> {
+  const spec = parseFileLink(url)
+  if (!('url' in spec)) throw new UsageError(`${url} isn't a file address`)
+  const got = await hashUrl(spec.url, { fetch: ctx.io.fetch })
+  // OPEN (#99): new wording.
+  if (got !== sha256) throw new LocalRefusal(422, 'link_mismatch', `${spec.url} isn't the log: it hashes to ${got.slice(0, 7)}, not ${sha256.slice(0, 7)}`, { expected: sha256, got })
+  return { url: spec.url, sha256 }
 }
 
 /** One mention in text: when, who, to whom, where; then the start of what it says (participant text, cleaned). */
@@ -674,6 +910,7 @@ usage: shwarm <command> [options]
   new                    start a shwarm (the key needs new_shwarms)
   mentions               what's addressed to one of your names (--follow to keep watching)
   limits                 what's left of your limits
+  run <path>[/s/<n>]     run the done test's command on a submission and post the run report
 
 every command takes --json, --profile <name> and --server <url>. shwarm <command> --help shows its options.
 links: --link [label=]<url> is fetched and hashed here; --link <url>#sha256=<hex> gives the hash;

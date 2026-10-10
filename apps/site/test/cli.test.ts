@@ -3,15 +3,19 @@
 // login --key and whoami, reads signed and public, post (with a link fetched and hashed by the CLI), submit, check,
 // branch, new, mentions and --follow, limits and log; the exit codes (CLI-16) for each kind of refusal; --as with no
 // path refused before anything reaches the site; and a signed post through staging's password lock on its own host.
+// Go-live 7.8: `shwarm run` from fixture accounts, with a real repo and the real `sh`: a run report that counts, own
+// work and a taken slot refused before anything runs, and a link with a wrong hash refused before anything runs.
+import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { mkdtemp, writeFile } from 'node:fs/promises'
+import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { formatSecret } from '@shwarm/protocol'
 import app from '../src/index'
 import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
 import { BARE_HANDLE, main } from '../../../packages/cli/src'
+import { systemGit, type Git } from '../../../packages/cli/src/run'
 import { ALL_PERMS, keyFor, verifiedPerson, type Key } from './agent-client'
 import { fakeFetch, testEnv } from './browser'
 import { T0 } from './d1'
@@ -24,6 +28,26 @@ const BRANCH = EXAMPLE_BRANCH
 const LINK_URL = 'https://codeberg.org/ana/doom-blocks/raw/commit/9f2c4e1a/corner-fix.diff'
 const LINK_BYTES = '--- a/place.c\n+++ b/place.c\n@@ -1 +1 @@\n-round toward zero\n+round down\n'
 const LINK_SHA = createHash('sha256').update(LINK_BYTES).digest('hex')
+/** The repo a submission links, as a local repo: git clones it in place of the https address. */
+const REPO_URL = 'https://codeberg.org/ana/rehearsal'
+const repo = { dir: '', commit: '', marks: '', script: '' }
+const localGit: Git = (args, o) => systemGit(args.map(a => (a === REPO_URL ? repo.dir : a === 'protocol.allow=never' ? 'protocol.file.allow=always' : a)), o)
+
+beforeAll(async () => {
+  repo.dir = await mkdtemp(join(tmpdir(), 'shwarm-rehearsal-'))
+  repo.marks = await mkdtemp(join(tmpdir(), 'shwarm-marks-'))
+  // The rehearsal's check: says ok, and leaves a mark for each time it ran.
+  repo.script = `#!/bin/sh\necho ok\necho ran >> "${repo.marks}/ran"\n`
+  await writeFile(join(repo.dir, 'check.sh'), repo.script)
+  await chmod(join(repo.dir, 'check.sh'), 0o755)
+  const git = (...a: string[]) => execFileSync('git', ['-c', 'user.name=ana', '-c', 'user.email=ana@example.org', ...a], { cwd: repo.dir, encoding: 'utf8' }).trim()
+  git('init', '--quiet')
+  git('add', 'check.sh')
+  git('commit', '--quiet', '-m', 'check')
+  repo.commit = git('rev-parse', 'HEAD')
+})
+/** How many times the rehearsal's check ran. */
+const runs = async () => (await readFile(join(repo.marks, 'ran'), 'utf8').catch(() => '')).split('\n').filter(Boolean).length
 
 beforeEach(() => {
   vi.stubGlobal('fetch', fakeFetch())
@@ -77,6 +101,7 @@ async function world(site = SITE, more: Record<string, string> = {}) {
       stderr: s => void err.push(s),
       stdin: async () => o.stdin ?? '',
       fetch: route,
+      git: localGit,
       sleep: async () => {
         if (++sleeps >= (o.stopAfterSleeps ?? Infinity)) ac.abort()
       },
@@ -270,5 +295,84 @@ describe('exit codes and refusals against the Worker', () => {
     }
     expect(w.reached).toEqual([])
     expect(w.fetched).toEqual([])
+  })
+})
+
+describe('shwarm run (go-live 7.8)', () => {
+  /** A branch whose done test is two runs of ./check.sh, cleared by triage, and ana's submission on it linking the repo and a file. */
+  async function rehearsal(w: Awaited<ReturnType<typeof world>>, fileSha = LINK_SHA) {
+    await rm(join(repo.marks, 'ran'), { force: true })
+    const b = await w.shwarm(
+      ['branch', ROOT, '--as', '@myra/m-04', '--title', 'rehearsal check', '--what', 'a rehearsal of the run loop.', '--done-when', './check.sh in the rehearsal repo prints ok.', '--runs', './check.sh', '--runs-count', '2', '--no-author'],
+      { key: w.keys.myra },
+    )
+    expect(b.code).toBe(0)
+    const path = `${ROOT}/rehearsal-check`
+    w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = ?").run(path)
+    const s = await w.shwarm(
+      ['submit', path, '--as', '@ana/scout', '--repo', `${REPO_URL}@${repo.commit}`, '--link', `${LINK_URL}#sha256=${fileSha}`, '--how-to-check', 'run ./check.sh. it prints ok.', '--json', 'the rehearsal, ready to run.'],
+      { key: w.keys.ana },
+    )
+    expect(s.code).toBe(0)
+    return { path, sub: JSON.parse(s.out) as { id: string; number: number } }
+  }
+  const posts = (w: { reached: string[] }) => w.reached.filter(r => r.startsWith('POST')).length
+
+  it('posts a run report that counts, refuses own work and a taken slot before running, and the second run passes it', async () => {
+    const w = await world()
+    const { path, sub } = await rehearsal(w)
+    const kai = await verifiedPerson(w.db, 'kai')
+    const kaiKey = await keyFor(w.db, kai.id, { canPostAs: '@kai/*' })
+
+    const first = await w.shwarm(['run', `${path}/s/${sub.number}`, '--as', '@kai/runner', '--yes', '--machine', 'linux, rtx 3060'], { key: kaiKey })
+    expect(first).toMatchObject({ code: 0, out: 'pass recorded. the submission is in review.' })
+    expect(first.err).toContain('  command     ./check.sh')
+    expect(await runs()).toBe(1)
+    const row = w.get('SELECT slot, verdict, exit_code, script_hash, submission_hash, log_inline, machine FROM check_report WHERE submission_id = ?', sub.id)
+    expect(row).toEqual({
+      slot: 'run',
+      verdict: 'pass',
+      exit_code: 0,
+      script_hash: createHash('sha256').update(repo.script).digest('hex'),
+      submission_hash: w.get('SELECT hash FROM submission WHERE post_id = ?', sub.id).hash,
+      log_inline: 'ok\n',
+      machine: 'linux, rtx 3060',
+    })
+    // it counts: one of the two runs the done test asks for
+    const read = JSON.parse((await w.shwarm(['read', `${path}/s/${sub.number}`, '--json'])).out)
+    expect(read.review).toMatchObject({ done: 1, total: 2 })
+    expect(read.checks).toEqual([expect.objectContaining({ slot: 'run', as: '@kai/runner', verdict: 'pass', exit: 0, env: 'linux, rtx 3060', log: 'ok\n' })])
+
+    // a second run from another of kai's names, and one on ana's own work: refused, nothing run, nothing posted
+    const before = posts(w)
+    const again = await w.shwarm(['run', path, '--as', '@kai/other', '--yes', '--json'], { key: kaiKey })
+    expect(again.code).toBe(4)
+    expect(JSON.parse(again.out)).toMatchObject({ error: 'slot_taken' })
+    const own = await w.shwarm(['run', path, '--as', '@ana/runner', '--yes'], { key: w.keys.ana })
+    expect(own.code).toBe(3)
+    expect(own.err).toBe(`shwarm: #${sub.number} is work posted under @ana (own_work)`)
+    expect(await runs()).toBe(1)
+    expect(posts(w)).toBe(before)
+
+    // the second person's run is the last check the done test asks for: the submission passes and the node closes
+    const rowan = await verifiedPerson(w.db, 'rowan')
+    const second = await w.shwarm(['run', path, '--as', '@rowan/runner', '--yes'], { key: await keyFor(w.db, rowan.id, { canPostAs: '@rowan/*' }) })
+    expect(second).toMatchObject({ code: 0, out: 'pass recorded. the submission is passed, and the node passed.' })
+    expect(w.get('SELECT state FROM node WHERE path = ?', path)).toEqual({ state: 'closed' })
+    expect(await runs()).toBe(2)
+  })
+
+  it('refuses a link with a wrong hash before anything runs, and posts nothing', async () => {
+    const w = await world()
+    const { path, sub } = await rehearsal(w, createHash('sha256').update('not the diff').digest('hex'))
+    const kai = await verifiedPerson(w.db, 'kai')
+    const before = posts(w)
+    const r = await w.shwarm(['run', path, '--as', '@kai/runner', '--yes', '--json'], { key: await keyFor(w.db, kai.id, { canPostAs: '@kai/*' }) })
+    expect(r.code).toBe(4)
+    expect(JSON.parse(r.out)).toMatchObject({ error: 'link_mismatch', link: 0, expected: createHash('sha256').update('not the diff').digest('hex'), got: LINK_SHA })
+    expect(w.fetched).toContain(LINK_URL)
+    expect(await runs()).toBe(0)
+    expect(posts(w)).toBe(before)
+    expect(w.get('SELECT COUNT(*) AS n FROM check_report WHERE submission_id = ?', sub.id)).toEqual({ n: 0 })
   })
 })

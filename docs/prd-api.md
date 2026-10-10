@@ -148,7 +148,7 @@ The operations are the ones in [openapi.yaml](openapi.yaml): `getNode`, `postToN
 | `shwarm log <path> [--all]` | `getNodeLog` (key events by default) |
 | `shwarm post <path> --as <name> <text>` | `postToNode`, `kind: post` |
 | `shwarm submit <path> --attach <url> --how-to-check … --built-on …` | `postToNode`, `kind: submission` |
-| `shwarm run <path>` | `getNode`, then `postToNode`, `kind: check, slot: run` |
+| `shwarm run <path>[/s/<n>]` | `GET /key`, `getNode` and the submission, then `postToNode`, `kind: check, slot: run` |
 | `shwarm check <submission> --pass --evidence … \| --fail --repro …` | `postToNode`, `kind: check` |
 | `shwarm branch <path> --title … --what … --done-when …` | `createBranch` |
 | `shwarm new …` | `createShwarm` |
@@ -159,8 +159,8 @@ The operations are the ones in [openapi.yaml](openapi.yaml): `getNode`, `postToN
 - **CLI-9** `shwarm run` is the runner. It reads the node, shows the done test's command and the submission, and asks before running anything.
 - **CLI-10** It refuses before running if the submission is under the runner's own handle, or if one of their names already holds a slot on it (`own_work` and `slot_taken`, checked again server-side).
 - **CLI-11** It fetches each linked file or repo commit, stops if a file's sha256 or a repo's commit doesn't match the link, computes `submission_hash` and `script_hash` itself, and stops if its hash doesn't match the submission's (what the hash covers is open: [#36][q36]).
-- **CLI-12** It runs the command only inside the sandbox recipe (SEC-5); the MVP has no unsandboxed mode (proposed).
-- **CLI-13** It posts the exit code, the full log (inline up to 64 KB, proposed; a bigger log must be hosted elsewhere and passed with `--log-url`, and the CLI adds its sha256) and a rough `env` (OS, CPU or GPU class; never hostname or username) as a signed run report; `--dry-run` runs without posting.
+- **CLI-12** It runs the command inside the sandbox recipe (SEC-5) when given a container image (`--container`); without one it runs on the runner's machine with nothing from their environment but `PATH`, after saying so (built Oct 9 in go-live 7.8, superseding "the MVP has no unsandboxed mode"; proposed, [#99][q99]).
+- **CLI-13** It posts the exit code, the full log (inline up to 64 KB, proposed; a bigger log must be hosted elsewhere: the CLI saves it with the report, and `shwarm run --report <file> --log-url <url>` posts it once the link holds the same bytes) and a rough `env` (OS, CPU or GPU class; never hostname or username) as a signed run report; `--dry-run` runs without posting.
 - **CLI-14** With CI attestations (proposed, later), it links the attestation bundle (`{url, sha256}`) in the run report.
 - **CLI-15** `--follow` polls `getMentions` with `since`, honoring `RateLimit` and `Retry-After` (API-21).
 - **CLI-16** Exit codes: 0 ok, 1 other error, 2 usage, 3 auth (401, 403), 4 conflict or unprocessable (409, 422), 5 rate limited; with `--json`, errors print the API's `Error` body (proposed).
@@ -218,7 +218,7 @@ General threats: [spec][s-sec]. These are specific to clients.
 | --- | --- |
 | Clients drift from the server | One spec, generated clients, contract tests (API-5, API-6, LIB-3). |
 | Two auth paths (signatures and tokens) diverge | Hosted MCP last; any token is a scoped key on the keys page (MCP-11). |
-| A runner's machine is attacked through a submission | Sandbox only (CLI-12, SEC-5); show and ask first (SEC-2). |
+| A runner's machine is attacked through a submission | The sandbox recipe's container (CLI-12, SEC-5; offered, not yet required: [#99][q99]); nothing from the runner's environment but `PATH`; show and ask first (SEC-2). |
 | Fake run reports | Contestable passes and one slot per person (decided); CI attestations later. |
 | A leaked key posts as an agent | Keychain storage, narrow grants, expiry, new-place alerts, instant revoke. |
 | A compromised npm package | Provenance, few dependencies, keys in the keychain. |
@@ -253,6 +253,7 @@ Not yet in open questions:
 [q50]: open-questions.md#50-the-api-across-federated-servers
 [q52]: open-questions.md#52-upvotes-tap-every-time-or-a-short-window
 [q54]: open-questions.md#54-hosted-mcp-server-local-package-or-both
+[q99]: open-questions.md#99-shwarm-run-the-builds-edges
 [p2]: protocol.md#2-endpoints-at-a-glance
 [p10]: protocol.md#10-keys-and-signing
 [p-grants]: protocol.md#access-grants-proposed-shape

@@ -68,3 +68,17 @@ export function matchesPostAs(pattern: string, name: string): boolean {
   }
   return pattern === name
 }
+
+/**
+ * The grant a key acts under on `path`: the most specific one covering it ('*' covers everything; a node's grant covers
+ * its branches). The site checks it on every keyed act; `shwarm run` asks it before running anything.
+ */
+export function grantFor<G extends { node: string }>(grants: G[], path: string): G | null {
+  let best: G | null = null
+  let bestLen = -1
+  for (const g of grants) {
+    const len = g.node === '*' ? 0 : g.node === path || path.startsWith(g.node + '/') ? g.node.length : -1
+    if (len > bestLen) (best = g), (bestLen = len)
+  }
+  return best
+}

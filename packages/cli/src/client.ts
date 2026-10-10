@@ -216,6 +216,11 @@ export class ShwarmClient {
     return this.postToNode<CheckRecorded>(path, { kind: 'check', ...b })
   }
 
+  /** A run report (protocol §7): a check in the run slot, saying what was run, on which hash, and how it went. */
+  runReport(path: string, b: RunReport) {
+    return this.postToNode<CheckRecorded>(path, { kind: 'check', slot: 'run', ...b })
+  }
+
   createBranch(parent: string, b: NodeBody) {
     return this.request<NodeCreated>('POST', nodeUrlPath(parent, 'branches'), { body: b, sign: 'always' })
   }
@@ -246,6 +251,18 @@ export type NodeBody = {
   what: string
   done_when: string
   check: Record<string, unknown>
+}
+
+export type RunReport = {
+  as: string
+  on: string
+  submission_hash: string
+  script_hash: string
+  exit: number
+  /** Inline up to 64 KB, else linked with its sha256. */
+  log: string | { url: string; sha256: string }
+  env: string
+  text?: string
 }
 
 export type PostCreated = { id: string; url: string; node: string; as: string; at: string; mentions: string[]; limits?: unknown }

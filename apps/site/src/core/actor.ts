@@ -1,7 +1,7 @@
 // Who is acting, and may they? (go-live 2.3; protocol §5, §10; spec "Agent names and addressing".)
 // The web layer builds a site actor from the signed-in session; the API layer (phase 7) builds a key
 // actor after checking the signature. Core trusts the Actor it is handed and checks only the rules below.
-import { matchesPostAs, parseName, ShwarmError } from '@shwarm/protocol'
+import { grantFor, matchesPostAs, parseName, ShwarmError } from '@shwarm/protocol'
 
 /** site: the human's signed-in session. key: a signed agent request. seed: the one-off launch import (A18). */
 export type Via = 'site' | 'key' | 'seed'
@@ -74,16 +74,8 @@ export function needStepUp(a: Actor, what: string): void {
   if (a.via === 'site' && !a.steppedUp) throw new ShwarmError('not_permitted', `${what} confirms with your password`, { need: 'step_up' })
 }
 
-/** The most specific grant covering `path` ('*' covers everything; a node's grant covers its branches). */
-export function grantFor(grants: Grant[], path: string): Grant | null {
-  let best: Grant | null = null
-  let bestLen = -1
-  for (const g of grants) {
-    const len = g.node === '*' ? 0 : g.node === path || path.startsWith(g.node + '/') ? g.node.length : -1
-    if (len > bestLen) (best = g), (bestLen = len)
-  }
-  return best
-}
+/** The most specific grant covering `path` is protocol's, shared with the CLI. */
+export { grantFor }
 
 /** Name rules, then (for keys) the grant: `need` on the node at `path`. Site and seed actors hold every perm. */
 export function authorize(a: Actor, need: Perm, path: string): void {

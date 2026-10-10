@@ -2,6 +2,20 @@
 
 New site wording from Oct 9 that no mockup had. **Reviewed by Myra on the review page (tracker/review.html), Oct 9: all approved, except these changes, which are queued:** the blocked banner says only "blocked. see the rules." (done); "where we are" becomes "status update" (done); lobby wording goes away (no lobby); the repro form and reopen controls go away (an ended shwarm is locked; continuing is "build on"); variant wording goes away.
 
+## 7.8: shwarm run
+
+Go-live 7.8, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations), [open #99](open-questions.md#99-shwarm-run-the-builds-edges)). Not reviewed yet. People read these in a terminal; nothing here is on the site. Refusals that repeat the server's own words (own work, slot taken, sign-off, locked, no runs, superseded, passed, a key that can't check) aren't listed.
+
+- The README's new section "Running a done test" and its row "Runs the done test's command on a submission and posts the run report. See below."; the exit-code sentence about `shwarm run`.
+- The help line "run the done test's command on a submission and post the run report", and the usage line.
+- The summary before running: "run #<n> of <node url>", then the labels "by" ("<name> · hash <hash>, the same from its text and links"), "submitted", "to check", "links" ("link-0 <label> (sha256 <hash>, matches); repo-1 <repo> (commit <hash>, matches)", or "none"), "command", "script" ("<file>, sha256 <hash>" or "the command's text, sha256 <hash>"), "runs in", "limit" ("<n> minutes"), "inside" ("a throwaway <engine> container: <image>, no network", or "nothing: it runs on this machine as you. the sandbox recipe runs it in a container: --container <image>").
+- The question "run it? [y/N] "; after a no, "not run. nothing was posted."; after Ctrl-C, "stopped. nothing was posted."; after the run, "exit <n> after <s> s." (", stopped at the <n> minute limit").
+- In the report's text: "stopped at the <n> minute limit." and "ran in <engine>: <image>".
+- The big log: "the log is <n> KB, over the 64 KB that goes inline. it's saved at <file> (sha256 <hex>). put it somewhere public as it is.", the question "its https address, once it is up (enter to stop): ", and "the report is saved. once the log is up, post it: shwarm run --report <file> --log-url <url>".
+- A report the server couldn't take: "the report is saved. to post it again: shwarm run --report <file>".
+- Warnings: "pin the image by digest (<image>@sha256:…) so a rerun uses the same one.", "the run's folder is kept: <folder>".
+- Refusals made here: "there's no terminal to ask on. to run it without asking, pass --yes", "nothing on <path> is in review. name one: <path>/s/<n>", "this key can't post as <name>: it can post as <pattern>" (login's words), "#<n>'s text and links hash to <hash>, not <hash> as the server says. nothing was run", "link <i> (<label or address>) doesn't match its sha256: it hashes to <hash>, not <hash>. nothing was run", "… has no commit <hash>. nothing was run", "… checked out at <hash>, not <hash>. nothing was run", "… has no <path> at <hash>. nothing was run", "… isn't an https address; only https links are fetched. nothing was run", "couldn't clone <repo>: <reason>", "couldn't start <program>: <reason>", "<url> isn't the log: it hashes to <hash>, not <hash>", and the flag errors ("--machine is one line of up to 200 characters, like "linux, rtx 3060"", "--engine is podman or docker", "--engine goes with --container <image>", "<image> isn't an image name", "--report takes no path or --as: the report says which node, and as whom", "<file> isn't a saved run report", "that report is for <server>. pass --server <server>", "its log is too big to go inline: put it somewhere public, then pass --log-url <url>", "this report carries its log inline, so it takes no --log-url").
+
 ## 7.7: the shwarm command
 
 Go-live 7.7, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations), [open #98](open-questions.md#98-the-shwarm-command-the-builds-edges)). Not reviewed yet. People and agents read these in a terminal; nothing here is on the site.

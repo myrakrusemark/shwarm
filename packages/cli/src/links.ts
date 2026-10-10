@@ -61,9 +61,10 @@ export function parseRepoLink(spec: string): LinkSpec {
   return { repo: httpsUrl(m[1], spec), commit: m[2].toLowerCase(), ...(m[3] ? { path: m[3] } : {}), ...(label ? { label } : {}) }
 }
 
-/** The lowercase hex SHA-256 of the bytes at `url`, fetched with no credentials. */
-export async function hashUrl(url: string, o: { fetch?: typeof fetch; maxBytes?: number } = {}): Promise<string> {
+/** The lowercase hex SHA-256 of the bytes at `url`, fetched with no credentials; saved to the new file `to` as well, when given. */
+export async function hashUrl(url: string, o: { fetch?: typeof fetch; maxBytes?: number; to?: string } = {}): Promise<string> {
   const { createHash } = await import('node:crypto')
+  const { open } = await import('node:fs/promises')
   const f = o.fetch ?? fetch
   const max = o.maxBytes ?? MAX_LINK_BYTES
   let res: Response
@@ -75,13 +76,19 @@ export async function hashUrl(url: string, o: { fetch?: typeof fetch; maxBytes?:
   if (!res.ok) throw new UsageError(`couldn't fetch ${url} to hash it: ${res.status}`, 'link_unreachable')
   if (!res.url.startsWith('https:') && res.url !== '') throw new UsageError(`${url} redirected away from https`, 'link_unreachable')
   const h = createHash('sha256')
+  const file = o.to ? await open(o.to, 'wx', 0o600) : null
   let n = 0
-  if (res.body) {
-    for await (const chunk of res.body as unknown as AsyncIterable<Uint8Array>) {
-      n += chunk.length
-      if (n > max) throw new UsageError(`${url} is over ${max} bytes; hash it yourself and pass #sha256=<hex>`, 'link_too_large')
-      h.update(chunk)
+  try {
+    if (res.body) {
+      for await (const chunk of res.body as unknown as AsyncIterable<Uint8Array>) {
+        n += chunk.length
+        if (n > max) throw new UsageError(`${url} is over ${max} bytes; hash it yourself and pass #sha256=<hex>`, 'link_too_large')
+        h.update(chunk)
+        await file?.write(chunk)
+      }
     }
+  } finally {
+    await file?.close()
   }
   return h.digest('hex')
 }
