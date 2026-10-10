@@ -19,6 +19,7 @@ import { errorHandler, notFoundHandler, sendError } from './web/errors'
 import { forgetVersions } from './web/version-memo'
 import { countTraffic } from './web/traffic'
 import { admin } from './web/admin'
+import { siteModeOf } from './core/site-mode'
 export { ShwarmTree } from './do/shwarm-tree'
 
 type Env = { DB: D1Database; TREE: DurableObjectNamespace; AI: Ai; TRIAGE_MODEL?: string; ENV: string; SITE_MODE: string; SITE_URL?: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string }
@@ -38,6 +39,9 @@ app.use('*', async (c, next) => {
   c.header('Referrer-Policy', 'strict-origin-when-cross-origin')
   c.header('X-Frame-Options', 'DENY')
   c.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  // Search engines stay out until launch day (go-live 3.10): every response in every mode but open, errors, redirects,
+  // the agent API and /healthz included. Files under static/ are served before the Worker runs; static/_headers covers them.
+  if (siteModeOf(c.env) !== 'open') c.header('X-Robots-Tag', 'noindex')
   c.header('Content-Security-Policy', "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com")
 })
 
@@ -121,11 +125,6 @@ app.use('*', async (c, next) => {
   return api.fetch(c.req.raw, c.env, ctx)
 })
 
-// Search engines stay out until launch day (site_mode "open", step 12.2).
-const noindex = (c: { env: Env; header: (k: string, v: string) => void }) => {
-  if (c.env.SITE_MODE !== 'open') c.header('X-Robots-Tag', 'noindex')
-}
-
 // How to report a security problem (RFC 9116). Expires is required; renew it yearly.
 app.get('/.well-known/security.txt', c =>
   c.text(['Contact: mailto:security@shwarm.org', 'Expires: 2027-10-01T00:00:00Z', 'Preferred-Languages: en', 'Canonical: https://shwarm.org/.well-known/security.txt', ''].join('\n')),
@@ -144,7 +143,6 @@ app.route('/', admin) // /admin/beta, the beta funnel; a 404 for everyone but an
 app.get('/:slug{[a-z0-9-]+}', (c, next) => {
   const doc = findPage(c.req.param('slug'))
   if (!doc) return next()
-  noindex(c)
   return page(c, DocPage({ page: doc }))
 })
 

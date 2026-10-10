@@ -10,6 +10,14 @@
 //   npx vite-node scripts/seed-launch.ts -- --target staging --replace    restore the pre-seed bookmark, then seed again
 //   npx vite-node scripts/seed-launch.ts -- --target production --allow-production --slugs a,b   (3.10 / 11.1 only)
 //
+// --approved (go-live 3.10, 12.1) picks the slugs from proofreading instead: only wave-1 shwarms (--wave N or --wave all
+// for others) whose latest verdict in tracker/proof.json is approve, whose done test hasn't changed since (checked
+// against the git history of the list), and that aren't in docs/launch-drops.md. It prints what's ready, what isn't and
+// what's dropped. With --slugs too, every named slug must be ready. It never adds the running example.
+//
+//   npx vite-node scripts/seed-launch.ts -- --approved --offline          the list, and a dry run of it; no Cloudflare
+//   npx vite-node scripts/seed-launch.ts -- --target production --allow-production --approved            (from a terminal)
+//
 // How it reaches D1 without an admin endpoint: core runs against a local copy (node:sqlite, the test stand-in)
 // that holds what it needs to read from the target (@myra, settings, existing nodes). Each committed batch is
 // recorded and rendered as plain SQL with quoted literals (src/seed/sql.ts). Wrangler sends a --remote --file to
@@ -26,6 +34,7 @@ import { fileURLToPath } from 'node:url'
 import { EXAMPLE_BRANCH, EXAMPLE_PEOPLE } from '../apps/site/src/seed/example'
 import { formatReport, planSeed, type ExistingNode, type PersonState, type Target, type TargetState } from '../apps/site/src/seed/plan'
 import { sqlString } from '../apps/site/src/seed/sql'
+import { formatReadiness, parseDrops, readiness, type AtApproval, type LaunchEntry, type Readiness } from '../apps/site/src/seed/approved'
 import { testDb } from '../apps/site/test/d1'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -43,12 +52,14 @@ export type Args = {
   file: string
   out: string | null
   yes: boolean
+  approved: boolean // pick the slugs from proofreading (tracker/proof.json)
+  wave: number | null // with approved: which wave (default 1); null is every wave
 }
 
 export class Refused extends Error {}
 
 export function parseArgs(argv: string[]): Args {
-  const a: Args = { target: null, dryRun: false, offline: false, example: true, replace: false, allowProduction: false, slugs: null, file: join(ROOT, 'docs/launch-shwarms.json'), out: null, yes: false }
+  const a: Args = { target: null, dryRun: false, offline: false, example: true, replace: false, allowProduction: false, slugs: null, file: join(ROOT, 'docs/launch-shwarms.json'), out: null, yes: false, approved: false, wave: 1 }
   const rest = argv.filter(x => x !== '--')
   for (let i = 0; i < rest.length; i++) {
     const k = rest[i]
@@ -70,6 +81,13 @@ export function parseArgs(argv: string[]): Args {
     else if (k === '--file') a.file = resolve(val())
     else if (k === '--out') a.out = resolve(val())
     else if (k === '--yes') a.yes = true
+    else if (k === '--approved') a.approved = true
+    else if (k === '--wave') {
+      const v = val()
+      if (v === 'all') a.wave = null
+      else if (/^[1-9]$/.test(v)) a.wave = Number(v)
+      else throw new Refused(`--wave is a wave number or all, not "${v}"`)
+    }
     else throw new Refused(`unknown option ${k}`)
   }
   return a
@@ -80,6 +98,7 @@ export const interactive = () => Boolean(process.stdin.isTTY && process.stdout.i
 
 /** Every refusal, before anything is read or written. Production needs its own flag and named slugs, and never replaces. */
 export function checkArgs(a: Args, tty = interactive()): void {
+  if (a.approved) a.example = false
   if (a.offline) {
     if (a.target) throw new Refused('--offline plans against an empty database; leave out --target')
     if (a.replace || a.allowProduction) throw new Refused('--offline only plans')
@@ -88,13 +107,14 @@ export function checkArgs(a: Args, tty = interactive()): void {
   if (!a.target) throw new Refused('say where: --target local, --target staging or --target production (or --offline for a dry run)')
   if (a.target === 'production') {
     if (!a.allowProduction) throw new Refused('production is refused without --allow-production')
-    if (!a.slugs?.length) throw new Refused('production imports name their slugs (--slugs a,b): only shwarms Myra approved in 11.1')
+    if (!a.slugs?.length && !a.approved) throw new Refused('production imports name their slugs (--slugs a,b) or take the approved ones (--approved): only shwarms Myra approved in 12.1')
     if (a.replace) throw new Refused('--replace never runs on production')
     if (a.yes) throw new Refused("--yes isn't taken on production: wrangler asks before it applies")
     if (!a.dryRun && !tty) throw new Refused('production applies only from a terminal, where wrangler asks first. with no terminal (an agent, CI) it would apply without asking')
     a.example = false
   } else if (a.allowProduction) throw new Refused('--allow-production goes only with --target production')
   if (a.replace && a.dryRun) throw new Refused('--replace changes the database; dry-run without it')
+  if (a.approved && a.replace) throw new Refused('--approved adds to what is there; it never replaces')
 }
 
 // ---------- wrangler ----------
@@ -199,6 +219,48 @@ function verify(t: Target, paths: string[], hasPinned: Set<string>): string[] {
   return bad
 }
 
+// ---------- what's approved (3.10, 12.1) ----------
+
+const git = (args: string[]) => {
+  const r = spawnSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+  if (r.status !== 0) throw new Error(`git ${args[0]} failed`)
+  return r.stdout
+}
+
+/**
+ * The launch list as it stood when each verdict was given: the newest commit of docs/launch-shwarms.json at or before
+ * that time. An edit made before a verdict but committed after it reads as a change, so it asks for a second look,
+ * never the other way round. Undefined for every slug when the list isn't the repo's or git can't be read.
+ */
+export function gitAtApproval(file: string): AtApproval {
+  const rel = 'docs/launch-shwarms.json'
+  if (resolve(file) !== join(ROOT, rel)) return () => undefined
+  let commits: { sha: string; at: number }[]
+  try {
+    commits = git(['log', '--format=%H %cI', '--', rel])
+      .split('\n')
+      .filter(Boolean)
+      .map(l => ({ sha: l.slice(0, l.indexOf(' ')), at: Date.parse(l.slice(l.indexOf(' ') + 1)) }))
+  } catch {
+    return () => undefined
+  }
+  const lists = new Map<string, Map<string, LaunchEntry>>()
+  return (slug, at) => {
+    const t = Date.parse(at)
+    const c = commits.find(c => c.at <= t) // newest first
+    if (!c) return null
+    if (!lists.has(c.sha)) lists.set(c.sha, new Map((JSON.parse(git(['show', `${c.sha}:${rel}`])) as LaunchEntry[]).map(e => [e.slug, e])))
+    return lists.get(c.sha)!.get(slug) ?? null
+  }
+}
+
+/** The readiness of each launch shwarm in `a.wave`, from the proofreading files next to the list. */
+export function approvedFrom(entries: LaunchEntry[], a: Pick<Args, 'file' | 'wave'>, at: AtApproval = gitAtApproval(a.file)): Readiness[] {
+  const proof = JSON.parse(readFileSync(join(ROOT, 'tracker/proof.json'), 'utf8'))
+  const drops = existsSync(join(ROOT, 'docs/launch-drops.md')) ? parseDrops(readFileSync(join(ROOT, 'docs/launch-drops.md'), 'utf8')) : new Set<string>()
+  return readiness(entries, proof, { dropped: drops, atApproval: at, wave: a.wave })
+}
+
 // ---------- main ----------
 
 export async function main(argv: string[]): Promise<number> {
@@ -223,6 +285,18 @@ export async function main(argv: string[]): Promise<number> {
         return 1
       }
       reset(target)
+    }
+    if (a.approved) {
+      const rows = approvedFrom(entries, a)
+      console.log(`proofreading, ${a.wave === null ? 'every wave' : `wave ${a.wave}`}:\n${formatReadiness(rows)}\n`)
+      const ready = rows.filter(r => r.status === 'ready').map(r => r.slug)
+      const notReady = (a.slugs ?? []).filter(s => !ready.includes(s))
+      if (notReady.length) throw new Refused(`not approved and ready: ${notReady.join(', ')}. nothing written`)
+      a.slugs = a.slugs ?? ready
+      if (!a.slugs.length) {
+        console.log('nothing approved to import.')
+        return 0
+      }
     }
     const state: TargetState = target === 'offline' ? { myra: null, nodes: [], handles: [], settings: [] } : readTarget(target)
     const plan = await planSeed(testDb(), entries, state, { target, now: Date.now(), example: a.example, ...(a.slugs ? { only: a.slugs } : {}) })

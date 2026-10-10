@@ -433,11 +433,9 @@ export function lookUpName(raw: string, handle: string): { name: string } | { er
 
 // ---------- routes ----------
 
-/**
- * Reading pages are off on production while it shows the holding page (go-live 3.10 opens the beta).
- * OPEN: keyed on SITE_MODE, the same switch as the home page; staging and tests always read.
- */
-export const readingOpen = (env: { ENV: string; SITE_MODE: string }) => env.ENV !== 'production' || env.SITE_MODE !== 'holding'
+// Reading pages are off on production in holding mode and public in beta (go-live 3.10); core/site-mode.ts.
+import { readingOpen } from '../core/site-mode'
+export { readingOpen }
 
 export const profile = new Hono<{ Bindings: Env }>()
 

@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
-import type { FC } from 'hono/jsx'
+import { useContext, type FC } from 'hono/jsx'
+import { homeShowsFeed } from '../core/site-mode'
 import { impactBar } from '../core/stats'
 import { loadFeed, queryText, TABS, type Feed, type FeedCard, type FeedTab } from '../read/feed'
 import { ago, countNum, exactTime, perDay, shortNum } from '../render/numbers'
@@ -7,7 +8,7 @@ import { LINK_REL, linkParts, Name, Text } from '../render/text'
 import { HOLDING } from './holding'
 import { Layout } from './layout'
 import { overReadCap } from './read-limit'
-import { page } from './viewer'
+import { page, PageContext } from './viewer'
 
 // The feed (go-live 3.2), ported from mockups/index.html: the sort bar with search, one card per shwarm, "more ↓".
 // Every piece of user text goes through render/text.tsx: titles as <Name> (inside the title link, so nothing in
@@ -16,12 +17,9 @@ import { page } from './viewer'
 
 type Env = { DB: D1Database; ENV: string; SITE_MODE: string; CSRF_SECRET: string }
 
-/**
- * What '/' serves. Production keeps the holding page until go-live 3.10 turns on site_mode; staging and tests get
- * the feed. The one place this switch lives.
- * OPEN: 3.10 decides how site_mode (beta, open) brings the feed to production.
- */
-export const homeShowsFeed = (env: { ENV?: string }) => env.ENV === 'staging' || env.ENV === 'test'
+// What '/' serves: production shows the holding page in holding mode and the feed in beta and open (go-live 3.10);
+// staging and tests always get the feed. The switch lives in core/site-mode.ts.
+export { homeShowsFeed }
 
 export const home = new Hono<{ Bindings: Env }>()
 
@@ -85,21 +83,27 @@ export const FeedPage: FC<{ feed: Feed; now: number }> = ({ feed, now }) => {
   )
 }
 
-const Empty: FC<{ feed: Feed; q: string }> = ({ feed, q }) => (
-  <div class="feed empty">
-    {feed.paged ? (
-      <p>that's all of them. <a href={feedHref(feed.tab, q)}>back to the top</a></p>
-    ) : q ? (
-      <p>no shwarms match that search. <a href={feedHref(feed.tab)}>clear the search</a></p>
-    ) : feed.tab === 'closed' ? (
-      <p>nothing has closed yet. a shwarm shows up here when its done test passes, or when its author calls it a dead end.</p>
-    ) : feed.tab === 'hot' ? (
-      <p>nothing is live right now. <a href={feedHref('closed')}>see what closed</a> or <a href="/new">start a shwarm</a></p>
-    ) : (
-      <p>no shwarms yet. <a href="/new">start the first one</a></p>
-    )}
-  </div>
-)
+// In the beta (go-live 3.10) nobody but the invited gets a "start" link here.
+const Empty: FC<{ feed: Feed; q: string }> = ({ feed, q }) => {
+  const soon = useContext(PageContext).opensSoon
+  return (
+    <div class="feed empty">
+      {feed.paged ? (
+        <p>that's all of them. <a href={feedHref(feed.tab, q)}>back to the top</a></p>
+      ) : q ? (
+        <p>no shwarms match that search. <a href={feedHref(feed.tab)}>clear the search</a></p>
+      ) : feed.tab === 'closed' ? (
+        <p>nothing has closed yet. a shwarm shows up here when its done test passes, or when its author calls it a dead end.</p>
+      ) : feed.tab === 'hot' ? (
+        <p>nothing is live right now. <a href={feedHref('closed')}>see what closed</a>{soon ? '.' : <> or <a href="/new">start a shwarm</a></>}</p>
+      ) : soon ? (
+        <p>no shwarms yet.</p>
+      ) : (
+        <p>no shwarms yet. <a href="/new">start the first one</a></p>
+      )}
+    </div>
+  )
+}
 
 // ---------- cards ----------
 

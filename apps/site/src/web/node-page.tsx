@@ -4,7 +4,7 @@
 // (?thread=1). A passed branch keeps this template, with "proof it's done" above its thread. An ended node (passed or a
 // dead end) is locked (decided Oct 9): no compose box, pin, join, edit or delete, and the author's box is gone; a shwarm
 // offers "build on this" instead.
-import type { FC } from 'hono/jsx'
+import { useContext, type FC } from 'hono/jsx'
 import { shortHash } from '@shwarm/protocol'
 import type { Link } from '@shwarm/protocol'
 import { joinHref, signInHref } from '../auth/return-to'
@@ -19,6 +19,8 @@ import { MAX_TEXT, MAX_TITLE } from '../core/text'
 import { Command, LINK_REL, linkParts, Log, Name, Plain, tagHref, Text } from '../render/text'
 import { RELEASE_CAPS } from '../core/posts'
 import { AgentResources, Layout } from './layout'
+import { InvitedSignIn, OPENS_SOON } from './opens-soon'
+import { PageContext } from './viewer'
 
 
 /** The author's own-eyes note (render/format.ts triageNote), with "the rules" as a link when it's blocked. */
@@ -299,6 +301,15 @@ export function limitLine(l: NodePageData['limit']): string {
 const Compose: FC<{ d: NodePageData }> = ({ d }) => {
   const locked = lockedBy(d.chain)
   if (locked) return <Locked n={d.chain.node} by={locked} />
+  // The beta (go-live 3.10): anyone who isn't invited reads only.
+  if (useContext(PageContext).opensSoon)
+    return (
+      <div class="compose">
+        <div class="to">{OPENS_SOON.post}</div>
+        <p>{OPENS_SOON.why}<InvitedSignIn /></p>
+        {d.flash?.at === 'compose' && <p class="err" role="alert">{d.flash.text}</p>}
+      </div>
+    )
   if (!d.me)
     return (
       <div class="compose">
@@ -587,6 +598,7 @@ export const makeBranchHref = (path: string, post: string) => `/new?parent=${pat
  * OPEN (#78): the button's title and the "not counted yet" words wait on Myra's yes.
  */
 const Upvote: FC<{ p: PostRow; d: NodePageData }> = ({ p, d }) => {
+  if (useContext(PageContext).opensSoon) return <span class="up" title={OPENS_SOON.upvote}>▲ {p.ups}</span>
   if (!d.me) return <a class="up" href={signInHref(d.here)} title="sign in to upvote">▲ {p.ups}</a>
   if (!d.me.verified || p.person_id === d.me.personId) return <span class="up">▲ {p.ups}</span>
   const mine = d.myUps?.get(p.id)
@@ -991,7 +1003,11 @@ const Branches: FC<{ d: NodePageData }> = ({ d }) => {
       )}
       {!lockedBy(d.chain) && (
         <div class="in" style="border-top:1px solid var(--ink)">
-          <a class="btn plain" href={`/new?parent=${n.path}`} style="display:block;text-align:center">+ start a {word}</a>
+          {useContext(PageContext).opensSoon ? (
+            <p class="note" style="margin:0;text-align:center">{OPENS_SOON.branch}</p>
+          ) : (
+            <a class="btn plain" href={`/new?parent=${n.path}`} style="display:block;text-align:center">+ start a {word}</a>
+          )}
         </div>
       )}
     </div>
@@ -1039,7 +1055,9 @@ const Join: FC<{ d: NodePageData }> = ({ d }) => {
   const flash = d.flash?.at === 'seats' ? d.flash : undefined
   return (
     <div class="late">
-      {!d.me ? (
+      {useContext(PageContext).opensSoon && !d.mySeat ? (
+        <p class="note">{OPENS_SOON.join}</p>
+      ) : !d.me ? (
         <p class="join"><a class="btn plain" href={signInHref(d.here)}>join</a></p>
       ) : d.mySeat ? (
         <>

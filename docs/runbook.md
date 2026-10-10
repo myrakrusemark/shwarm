@@ -46,6 +46,14 @@ Seeded nodes can't be deleted row by row: audit rows are append-only and point a
 
 **Production** takes one approved shwarm at a time (3.10, 12.1) and refuses everything else: `--target production --allow-production --slugs <slug>[,<slug>]`. No example, no `--replace`, and wrangler asks before it applies. It applies only from a terminal: with no terminal (an agent's shell, CI) wrangler's confirm answers yes by itself, so the script refuses. `--dry-run` works anywhere.
 
+`--approved` picks the slugs from proofreading instead of `--slugs`: wave 1 (or `--wave N`, `--wave all`), only cards whose latest verdict in `tracker/proof.json` is approve, whose done test (done when, checked by, builds on) hasn't changed in git since the approval, and that aren't in `docs/launch-drops.md`. It prints three lists (ready, not ready with the reason, dropped) and imports only the ready ones. With `--slugs` too, each named slug must be ready. It needs the full git history; in a shallow clone every approval reads as not ready.
+
+```
+npx vite-node scripts/seed-launch.ts -- --approved --offline                                       # the lists, and a dry run; no Cloudflare
+npx vite-node scripts/seed-launch.ts -- --target production --allow-production --approved --dry-run  # against prod, writes nothing
+npx vite-node scripts/seed-launch.ts -- --target production --allow-production --approved            # from a terminal
+```
+
 ## Rehearsal log
 
 | date | where | what | result |

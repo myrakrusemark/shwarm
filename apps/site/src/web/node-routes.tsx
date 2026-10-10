@@ -60,11 +60,9 @@ const TYPES: Record<Format, string> = { html: 'text/html', text: 'text/plain', j
 /** Bump to change every ETag when the rendering changes (test/render-version.test.ts fails until you do). */
 export const RENDER_VERSION = '3' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9)
 
-/**
- * OPEN: production keeps the holding page until go-live 3.10, so its reading pages stay closed while SITE_MODE is
- * 'holding' (no node there would be cleared for the public yet anyway). Staging, local and tests read.
- */
-export const readingOpen = (env: { ENV?: string; SITE_MODE?: string }) => !(env.ENV === 'production' && env.SITE_MODE === 'holding')
+// Production's reading pages stay closed in holding mode and open in beta (go-live 3.10); core/site-mode.ts.
+import { readingOpen } from '../core/site-mode'
+export { readingOpen }
 
 function common(c: C, path: string | null) {
   c.header('Vary', 'Accept, Cookie')

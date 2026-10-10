@@ -2,7 +2,8 @@
 // it's checked (at least one check), tags, builds on, license. No lobby (decided Oct 9): it publishes a live shwarm
 // with the author down as working on it, through the shwarm tree (core/nodes.ts createNode), counted toward 3 new
 // nodes a day, and goes to the new page. New nodes start 'pending' and triage (8.1, triage/run.ts) runs right after the redirect;
-// production keeps creation paused (setting pause_new_nodes) until the seeds are checked.
+// production keeps creation paused (setting pause_new_nodes) until triage is seen running there; the form says so up front.
+// In the beta (go-live 3.10) anyone who isn't invited gets "opens soon" (web/opens-soon.tsx) instead of the form.
 //
 // Builds on: paste the link or path of a shwarm that passed or is a dead end, or any link. GitHub repo links get their name and SPDX license
 // from the GitHub API; any other link is stored as its URL and a name, with the license typed in. A builds-on
@@ -27,6 +28,7 @@ import { isId } from '../core/ids'
 import { DEFAULT_RUNS } from '../core/checks'
 import { ENDED, LICENSES, needBranchable, type CreateNodeInput } from '../core/nodes'
 import { lockedError } from '../core/context'
+import { readSettings } from '../core/settings'
 import { MAX_TEXT, MAX_TITLE } from '../core/text'
 import { runInTree } from '../do/shwarm-tree'
 import { lockedBy, parseNodePath, readChain, type Chain, type NodeHead } from '../read/node'
@@ -37,7 +39,8 @@ import { triageNew } from '../triage/run'
 import { sendError, waitText } from './errors'
 import { AgentResources, Layout } from './layout'
 import { nodeHref } from './node-page'
-import { page } from './viewer'
+import { OpensSoonPage } from './opens-soon'
+import { opensSoon, page } from './viewer'
 
 type Env = { Bindings: { DB: D1Database; TREE: DurableObjectNamespace; AI: Ai; TRIAGE_MODEL?: string; CSRF_SECRET: string; ENV: string; SITE_MODE: string } }
 type C = Context<Env>
@@ -451,16 +454,23 @@ async function modeOf(db: D1Database, q: { parent?: string; builds_on?: string }
 /** Where this form lives: /new, or /new in its branch mode. */
 const formHref = (mode: Mode) => (mode.kind === 'branch' ? `/new?parent=${encodeURIComponent(mode.chain.node.path)}` : '/new')
 
+const PAUSED = 'new shwarms and branches are paused for a moment. posting, joining and checking still work.'
+
 const noNode = (c: C) => sendError(c, { status: 404, code: 'no_such_node', text: 'there is no shwarm or branch at this address.' }, 'html')
 
 create.get('/new', async c => {
   c.header('Cache-Control', 'private, no-store')
+  // The beta (go-live 3.10): anyone who isn't invited, signed out too, gets "opens soon" instead of the form.
+  if (await opensSoon(c)) return page(c, <OpensSoonPage />)
   const w = await who(c as unknown as AuthContext)
   const url = new URL(c.req.url)
   if (!w.session) return c.redirect(signInHref(url.pathname + url.search), 303)
   const q = { parent: c.req.query('parent'), builds_on: c.req.query('builds_on') }
   const m = await modeOf(c.env.DB, q, w.session.personId, url.origin)
   if (!m) return noNode(c as C)
+  // Paused (setting pause_new_nodes, kept on in production until triage runs there): say so before the form is filled.
+  if (!m.refused && (await readSettings(c.env.DB, ['pause_new_nodes'])).pause_new_nodes === true)
+    return page(c, <NewPage refused={PAUSED} verified={w.session.verified} mode={m.mode} />)
   const token = await formToken(c.env.CSRF_SECRET, w.session.id)
   // Building on an ended shwarm starts from its done test (decided Oct 9): kept word for word, the new shwarm shows on the
   // result page as challenging the pass; changed, it's built on it. OPEN (#92): only "done when" is filled, not its checks.
@@ -475,6 +485,7 @@ create.get('/new', async c => {
 })
 
 create.post('/new', async (c: C) => {
+  if (await opensSoon(c)) return page(c, <OpensSoonPage />, 403)
   const w = await who(c as unknown as AuthContext)
   if (!w.session) return c.redirect(signInHref('/new'), 303)
   const raw = await formOf(c)

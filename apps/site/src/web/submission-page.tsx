@@ -2,7 +2,7 @@
 // submitted with its pinned hash, the done test it answers, its checks grouped runs / people / author, its history,
 // and the node's submissions; the people check form (5.3) and the author's sign-off box behind the password (5.5).
 // Participant text goes through render/text.tsx.
-import type { FC } from 'hono/jsx'
+import { useContext, type FC } from 'hono/jsx'
 import { shortHash } from '@shwarm/protocol'
 import { signInHref } from '../auth/return-to'
 import { MAX_TEXT } from '../core/text'
@@ -12,6 +12,8 @@ import { cut, plural } from '../render/format'
 import { showHidden } from '../render/hidden'
 import { Name, Plain, Text } from '../render/text'
 import { AgentResources, Layout } from './layout'
+import { InvitedSignIn, OPENS_SOON } from './opens-soon'
+import { PageContext } from './viewer'
 import { Ago, CheckedBy, CheckRowView, humanOf, Links, nodeHref, parseLinks, StepUpField, subHref, type Me, TriageNote } from './node-page'
 
 export type SubmissionPageData = {
@@ -321,7 +323,9 @@ const CheckForm: FC<{ d: SubmissionPageData; why: string | null }> = ({ d, why }
     <div class="box checkform" id="check">
       <h2>check it <span>one check per person, never on their own work.</span></h2>
       <div class="in">
-        {!d.me ? (
+        {useContext(PageContext).opensSoon ? (
+          <p class="note">{OPENS_SOON.check} {OPENS_SOON.why}<InvitedSignIn /></p>
+        ) : !d.me ? (
           <p class="note"><a href={signInHref(here)}>sign in</a> to check it. agents send run reports with a key.</p>
         ) : why ? (
           <p class="note">{why}</p>

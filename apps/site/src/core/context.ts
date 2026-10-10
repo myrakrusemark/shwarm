@@ -9,10 +9,12 @@ import type { CheckSpec } from './checks'
 import { newId } from './ids'
 import { extractMentions } from './text'
 import { SEEN_NODE } from '../read/visibility'
+import { actsInBeta, BETA_REFUSAL } from './site-mode'
 
-export type Ctx = { db: D1Database; now: number; at: string }
+/** `beta`: the site is in beta (core/site-mode.ts), so only invited accounts act. */
+export type Ctx = { db: D1Database; now: number; at: string; beta?: boolean }
 
-export const ctxAt = (db: D1Database, now: number): Ctx => ({ db, now, at: new Date(now).toISOString() })
+export const ctxAt = (db: D1Database, now: number, o: { beta?: boolean } = {}): Ctx => ({ db, now, at: new Date(now).toISOString(), ...(o.beta ? { beta: true } : {}) })
 
 export type PersonRow = {
   id: number
@@ -54,7 +56,10 @@ export type NodeRow = {
   closed_at: string | null
 }
 
-/** The acting person: must exist, match the actor's handle, be active and have a verified email (go-live 2.5). */
+/**
+ * The acting person: must exist, match the actor's handle, be active and have a verified email (go-live 2.5). During the
+ * beta (go-live 3.10) they must also be invited (a founding account) or the operator; the launch import passes.
+ */
 export async function loadPerson(ctx: Ctx, a: Actor): Promise<PersonRow> {
   const p = await ctx.db
     .prepare('SELECT id, handle, status, email_verified_at, founding, established_at, is_admin FROM person WHERE id = ?')
@@ -63,6 +68,8 @@ export async function loadPerson(ctx: Ctx, a: Actor): Promise<PersonRow> {
   if (!p || p.handle !== a.handle) throw new ShwarmError('not_your_name', `@${a.handle} is not this account`)
   if (p.status !== 'active') throw new ShwarmError('not_permitted', `@${p.handle} can't act right now`, { reason: p.status })
   if (!p.email_verified_at) throw new ShwarmError('not_permitted', 'verify your email first', { reason: 'unverified' })
+  // OPEN: no error code names the beta; not_permitted with a reason, as the read_only switch does.
+  if (ctx.beta && a.via !== 'seed' && !actsInBeta(p)) throw new ShwarmError('not_permitted', BETA_REFUSAL, { reason: 'opens_soon' })
   return p
 }
 

@@ -2,6 +2,19 @@
 
 New site wording from Oct 9 that no mockup had. **Reviewed by Myra on the review page (tracker/review.html), Oct 9: all approved, except these changes, which are queued:** the blocked banner says only "blocked. see the rules." (done); "where we are" becomes "status update" (done); lobby wording goes away (no lobby); the repro form and reopen controls go away (an ended shwarm is locked; continuing is "build on"); variant wording goes away.
 
+## 3.10: beta mode ("opens soon")
+
+Go-live 3.10, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations), [open #95](open-questions.md#95-beta-mode-the-builds-edges)). Shown on production in beta to anyone who isn't invited (signed out, or signed in without a founding account). Not reviewed yet. All in `apps/site/src/web/opens-soon.tsx` except the last two.
+
+- The compose box: "posting opens soon" over "shwarm is read-only for now, while a few invited testers try it out. it opens to everyone soon." Signed out it adds "invited? sign in." (a link back to the page).
+- The contributors box, in place of join: "joining opens soon."
+- The branches box, in place of "+ start a branch": "starting a branch opens soon."
+- The submission page's check box: "checking opens soon." and the read-only sentence (plus "invited? sign in." signed out).
+- The ▲ on a post: a plain count, with the hover title "upvotes open soon".
+- /new ("start a shwarm" in the header, "build on this", "make it a branch"): a page titled "opens soon": "starting a shwarm or a branch opens soon." and the read-only sentence, then "everything here is open to read in the meantime. see what's live".
+- An act sent anyway, from the site or a key: "shwarm opens soon. until then only invited testers can post, join or start shwarms" (core's refusal, `apps/site/src/core/site-mode.ts`).
+- /new while `pause_new_nodes` is on (invited people): "new shwarms and branches are paused for a moment. posting, joining and checking still work." (`apps/site/src/web/create.tsx`).
+
 ## Docs sync: footer pages and mockups
 
 Go-live docs sync, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations), [open #94](open-questions.md#94-the-docs-sync-the-new-words-and-what-stayed)). Rebuilt into the mockups and exported to the site's footer pages.

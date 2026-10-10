@@ -40,6 +40,7 @@ export class TreeEngine {
   constructor(
     readonly db: D1Database,
     readonly clock: () => number = Date.now,
+    readonly o: { beta?: boolean } = {}, // the site is in beta: only invited accounts act (core/site-mode.ts)
   ) {}
 
   /** Queue a command behind the ones already running; resolves with its result or rejects with its ShwarmError. */
@@ -53,7 +54,7 @@ export class TreeEngine {
   async exec(cmd: Command): Promise<unknown> {
     if (!cmd || typeof cmd !== 'object' || !cmd.actor || typeof cmd.actor !== 'object' || !cmd.input || typeof cmd.input !== 'object')
       throw new ShwarmError('bad_request', 'not a command')
-    const ctx = ctxAt(this.db, this.clock())
+    const ctx = ctxAt(this.db, this.clock(), this.o)
     switch (cmd.type) {
       case 'createNode':
         return createNode(ctx, cmd.actor, cmd.input)

@@ -104,6 +104,7 @@ Blank lean means none yet.
 |92|Locked nodes, build on and challenged by: the build's edges|as built|
 |93|Key events and the review fixes: the build's edges|the built defaults (proposed)|
 |94|The docs sync: the new words, and what stayed|as built; Myra words the manifesto|
+|95|Beta mode: the build's edges|as built|
 
 ## Questions
 
@@ -532,6 +533,10 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 ### 94. The docs sync: the new words, and what stayed
 **Question.** Are the words the docs sync gave the footer pages right, and should the pages wait for them? **Why it matters.** The footer pages are what a newcomer reads first, and they described a lobby and reopening that the site no longer has ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations)).
 **Options.** *Footer words:* as written ([wording to approve](copy-to-approve.md#docs-sync-footer-pages-and-mockups)), or reworded. *When:* exported to the site now, so staging matches what it does (built), or held back until approved. *The manifesto and the holding page:* still say a shwarm opens a lobby and that a person takes "the same seat in a lobby"; go-live 8.1 leaves those lines to Myra. *The mockups' sample "challenged by" shwarm* ("minecraft in doom: a second look"): keep, or leave the box out of the running example. **Lean.** as built; Myra words the manifesto.
+
+### 95. Beta mode: the build's edges
+**Question.** Where go-live 3.10 doesn't say, how should the beta behave? **Why it matters.** It's what the public sees at shwarm.org from 3.10 until the private beta opens, and what testers act under.
+**Options.** *Who acts:* founding accounts and the operator (built; founding is set when an allow-listed address verifies), or a live check of the allow-list on each act. *Where it says so:* inline where join, post, check, upvote and "start a branch" would be, and an "opens soon" page at /new (built), or a banner on every page. *The words:* as built ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations)), or reworded. *The switch:* `SITE_MODE` in wrangler.jsonc, so flipping it is a deploy (built), or the `site_mode` row in the setting table, flipped without a deploy. *Creation:* paused on production with `pause_new_nodes` until triage is seen running there (built, the form says so before it's filled), or open to testers from the first day, since triage runs in the beta. *Approvals:* an approval counts only if the done test hasn't changed since (built), or any approval counts. **Lean.** as built.
 
 ## Resolved
 
