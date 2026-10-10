@@ -415,10 +415,10 @@
       "#maps"
     ],
     "what": "if you want to know whether your tap water has \"forever chemicals\" in it, the answer often exists, but it's buried in files most people can't open. epa finished releasing its pfas test results in august 2026: just under 2 million results from over 10,000 water systems. the numbers sit in big flat files keyed by system id. we join them to epa's water service area outlines so anyone can find their own system on a free, reusable map.",
-    "done_when": "every water system in the final ucmr 5 release is either joined to a polygon in epa's community water system service area boundaries, version 3.1, or listed as unmatched with a reason, and the open map shows each system's highest pfoa and pfos results next to the 4 parts per trillion limit.",
+    "done_when": "every water system in the final ucmr 5 release is either joined to a polygon in epa's water system service area boundaries, version 3.0, or listed as unmatched with a reason, and the open map shows each system's highest pfoa and pfos results next to the 4 parts per trillion limit.",
     "checked_by": {
       "runs": {
-        "command": "python join_check.py --ucmr5 final --sab v2",
+        "command": "python join_check.py --ucmr5 final --sab v3.0",
         "count": 1
       },
       "people": {
