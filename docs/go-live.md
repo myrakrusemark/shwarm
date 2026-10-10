@@ -491,7 +491,8 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 - **who:** Myra · **needs:** 3.8
 - **done when:** her list is either fixed or parked, and the screenshots are refreshed.
 
-**3.10 Prod goes beta (read-only to the public)**
+**3.10 Prod goes beta (read-only to the public)** · doing
+- *(Oct 9: built and tested, waiting on Myra's OK for the "opens soon" copy and the deploy steps. Beta: production serves the feed and every reading page publicly; every response except in open mode sends noindex (static/_headers covers files the Worker doesn't serve); sign-up for allow-listed addresses only; only founding accounts and the operator act, everyone else sees "opens soon" and core refuses their acts, keys included. Production creation stays paused (pause_new_nodes) until triage is seen running there. `seed-launch.ts --approved` imports only wave-1 cards Myra approved whose done test hasn't changed since: 11 ready, 6 not ready, 3 dropped. Production still has migrations 0002–0017 pending and SITE_MODE holding. 858 unit and 145 browser tests pass; checked on staging in beta mode and set back.)*
 - **what:** a `site_mode` setting (holding, beta, open). In beta: the reading pages are public at shwarm.org; every response sends `X-Robots-Tag: noindex`; sign-up takes only allow-listed addresses; join, post and "start a shwarm" for everyone else say "opens soon"; creating new nodes stays paused until triage (9.1). Each wave-1 shwarm is imported to prod once Myra approves it in 12.1, never before, because done tests lock once posted.
 - **who:** Claude; Myra approves the "opens soon" copy · **needs:** 3.9, A2 (set before the first public post), 12.1 (per shwarm)
 - **done when:** shwarm.org shows the feed in beta mode with every wave-1 shwarm Myra has approved so far, `curl -I` shows noindex, and a sign-up from an address not on the allow-list is turned away politely.
