@@ -273,7 +273,7 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - **done when:** `npm view @shwarm/cli` shows Myra as owner.
 
 **0.7 support@shwarm.org (free forwarding)** · done
-- **what:** turn on Cloudflare Email Routing for shwarm.org (free) and forward support@, abuse@, security@ and dmca@ to shwarm-support@myrakrusemark.com. Done by Claude through the Cloudflare API on Oct 8: routing enabled (MX and SPF added by Cloudflare); the four rules are created as soon as Myra clicks the verification link sent to that address.
+- **what:** turn on Cloudflare Email Routing for shwarm.org (free) and forward support@, abuse@, security@ and dmca@ to a private inbox. Done by Claude through the Cloudflare API on Oct 8: routing enabled (MX and SPF added by Cloudflare); the four rules are created as soon as Myra clicks the verification link sent to that address.
 - **who:** Myra · **needs:** 0.4
 - **done when:** Email Routing shows the four addresses with Myra's inbox verified as the destination.
 

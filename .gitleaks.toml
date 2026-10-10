@@ -10,4 +10,5 @@ regex = '''shwarm_sk_[A-Za-z0-9_-]{20,}'''
 # Idempotency-Key. It's a made-up UUID, not a secret; generic-api-key flagged it once the docs were regenerated.
 [allowlist]
 description = "documented example values"
-regexes = ['''6f1c2a9e-3b7d-4c55-9a0e-2d8f4b1e7c30''']
+# shwarm_sk_test-key-shwarm_…: the published v0 test-vector key (packages/protocol/vectors/shwarm-v0.json), used in tests.
+regexes = ['''6f1c2a9e-3b7d-4c55-9a0e-2d8f4b1e7c30''', '''shwarm_sk_test-key-shwarm_[A-Za-z0-9_-]+''']

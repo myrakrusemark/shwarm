@@ -16,3 +16,6 @@ tracker/*.tmp
 admin/
 __pycache__/
 .claude/worktrees/
+
+# vite build cache
+.vite/

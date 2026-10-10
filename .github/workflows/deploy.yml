@@ -14,7 +14,9 @@ env:
 
 jobs:
   staging:
-    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+    # Only CI runs from a push to this repo deploy: a fork's PR from a branch named main also matches branches: [main],
+    # and must never run with the Cloudflare token.
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     concurrency: deploy-staging
     steps:

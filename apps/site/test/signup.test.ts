@@ -19,7 +19,7 @@ const person = (env: ReturnType<typeof testEnv>, handle: string) => env.DB.raw.p
 
 describe('email addresses', () => {
   it('normalizes plus tags everywhere and dots at gmail', () => {
-    expect(parseEmail('  My.Ra+shwarm@GoogleMail.com ')).toEqual({ email: 'my.ra+shwarm@googlemail.com', norm: 'myra@gmail.com', domain: 'googlemail.com' })
+    expect(parseEmail('  Ex.Ample+shwarm@GoogleMail.com ')).toEqual({ email: 'ex.ample+shwarm@googlemail.com', norm: 'example@gmail.com', domain: 'googlemail.com' })
     expect(parseEmail('first.last+x@example.org')?.norm).toBe('first.last@example.org')
     expect(parseEmail('not an email')).toBeNull()
     expect(parseEmail('+tag@example.org')).toBeNull()
@@ -40,16 +40,16 @@ describe('sign-up', () => {
     const env = testEnv()
     await setSignup(env.DB, 'open')
     const b = new Browser(env)
-    const res = await b.post('/join', joinForm('myra', 'Myra.K+shwarm@gmail.com', { display_name: 'myra k' }))
+    const res = await b.post('/join', joinForm('myra', 'Ex.Ample+shwarm@gmail.com', { display_name: 'myra k' }))
     expect(res.status).toBe(303)
     expect(res.headers.get('location')).toBe('/check-email')
     const p = person(env, 'myra')
-    expect(p).toMatchObject({ display_name: 'myra k', email: 'myra.k+shwarm@gmail.com', email_norm: 'myrak@gmail.com', email_verified_at: null, founding: 0, terms_version: '0.1' })
+    expect(p).toMatchObject({ display_name: 'myra k', email: 'ex.ample+shwarm@gmail.com', email_norm: 'example@gmail.com', email_verified_at: null, founding: 0, terms_version: '0.1' })
     expect(p.terms_accepted_at).toBeTruthy()
     expect(p.age_confirmed_at).toBeTruthy()
     expect(p.password_hash).toMatch(/^pbkdf2-sha256\$i=100000\$/)
     const [m] = mails(env.DB)
-    expect(m).toMatchObject({ to_email: 'myra.k+shwarm@gmail.com', template: 'verify', stream: 'account', person_id: p.id })
+    expect(m).toMatchObject({ to_email: 'ex.ample+shwarm@gmail.com', template: 'verify', stream: 'account', person_id: p.id })
     const link = linkIn(env.DB, 'verify')
     expect(link).toMatch(/^\/verify\?t=[A-Za-z0-9_-]{43}$/)
     const tok = env.DB.raw.prepare('SELECT * FROM email_token').get()
@@ -204,9 +204,9 @@ describe('sign-up', () => {
 
   it('makes an allow-listed address founding when it is verified, not before', async () => {
     const env = testEnv()
-    await allow(env.DB, 'myra@gmail.com')
+    await allow(env.DB, 'example@gmail.com')
     const b = new Browser(env)
-    expect((await b.post('/join', joinForm('myra', 'My.Ra@gmail.com'))).status).toBe(303)
+    expect((await b.post('/join', joinForm('myra', 'Ex.Ample@gmail.com'))).status).toBe(303)
     expect(person(env, 'myra')).toMatchObject({ founding: 0, established_at: null, email_verified_at: null })
     // the link opens a page; only its button verifies
     const v = new Browser(env, '192.0.2.50') // another device, signed out
