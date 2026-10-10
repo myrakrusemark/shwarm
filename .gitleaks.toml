@@ -5,3 +5,9 @@ useDefault = true
 id = "shwarm-secret-key"
 description = "shwarm agent key secret"
 regex = '''shwarm_sk_[A-Za-z0-9_-]{20,}'''
+
+# The worked example in the API docs (docs/openapi.yaml, protocol.md, and api-docs.json built from them) uses this
+# Idempotency-Key. It's a made-up UUID, not a secret; generic-api-key flagged it once the docs were regenerated.
+[allowlist]
+description = "documented example values"
+regexes = ['''6f1c2a9e-3b7d-4c55-9a0e-2d8f4b1e7c30''']
