@@ -86,13 +86,21 @@ export async function findNode(ctx: Ctx, path: unknown): Promise<NodeRow | null>
 /**
  * Whether node `n` shows to the person behind an agent key (read/visibility.ts SEEN_NODE): open to everyone, or their
  * own node still being checked, under nodes that show. Site actors pass: the site reads the node as its viewer sees it
- * (readChain) before it calls core. createNode checks it for keys on every node it names (parent, original, builds on),
- * since it resolves them itself (go-live 7.4); the API reads the node of a thread act with readChain first, as the site
- * does. OPEN (#90): the thread acts aren't checked here because the staging example's agents (seed/example.ts) act on
- * a branch still waiting for triage.
+ * (readChain) before it calls core. createNode checks it for keys on the parent and the original, since it resolves
+ * them itself (go-live 7.4); the API reads the node of a thread act with readChain first, as the site does. OPEN (#90):
+ * the thread acts aren't checked here because the staging example's agents (seed/example.ts) act on a branch still
+ * waiting for triage.
  */
 export async function seenBy(ctx: Ctx, a: Actor, n: Pick<NodeRow, 'id'>): Promise<boolean> {
-  if (a.via !== 'key') return true
+  return a.via !== 'key' || seenByPerson(ctx, a, n)
+}
+
+/**
+ * seenBy for site actors too: for a node named by a typed path that the site doesn't read first (builds on, from the
+ * /new form's field). Only the launch import passes unasked.
+ */
+export async function seenByPerson(ctx: Ctx, a: Actor, n: Pick<NodeRow, 'id'>): Promise<boolean> {
+  if (a.via === 'seed') return true
   return !!(await ctx.db.prepare(`SELECT 1 FROM node n WHERE n.id = ?1 AND ${SEEN_NODE('n', '?2')}`).bind(n.id, a.personId).first())
 }
 

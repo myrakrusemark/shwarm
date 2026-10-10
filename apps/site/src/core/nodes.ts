@@ -10,7 +10,7 @@ import { ShwarmError } from '@shwarm/protocol'
 import { authorize, needHuman, needStepUp, type Actor } from './actor'
 import { auditStatement, nodeHref } from './audit'
 import { parseCheckSpec } from './checks'
-import { findNode, loadNode, loadPerson, MAX_PATH, moderatedStatement, noticeMailStatement, notifyStatement, postStatement, seenBy, signOffDoneStatement, signOffReopenStatement, touchNode, type Ctx, type NodeKind, type NodeRow } from './context'
+import { findNode, loadNode, loadPerson, MAX_PATH, moderatedStatement, noticeMailStatement, notifyStatement, postStatement, seenByPerson, signOffDoneStatement, signOffReopenStatement, touchNode, type Ctx, type NodeKind, type NodeRow } from './context'
 import { newId } from './ids'
 import { checkNewNodes, newNodeGuard, takeThreadToken } from './limits'
 import { checkWritable, readSettings } from './settings'
@@ -89,12 +89,15 @@ export function needBranchable(n: NodeAt): void {
 
 const NO_UPSTREAM = 'builds_on names a shwarm on shwarm, or an outside project as {name, url, license}'
 
-/** builds_on: a closed shwarm's path, or an outside project {name, url?, license}. Either way its license carries over. */
+/**
+ * builds_on: a closed shwarm's path, or an outside project {name, url?, license}. Either way its license carries over.
+ * A path its actor's person can't see is refused as not there, for site actors too: the site passes the typed path on.
+ */
 async function parseBuildsOn(ctx: Ctx, a: Actor, v: CreateNodeInput['buildsOn']): Promise<{ json: string; license: string; node?: NodeRow } | null> {
   if (v === undefined || v === null || v === '') return null
   if (typeof v === 'string') {
     const n = await findNode(ctx, v)
-    if (!n || !(await seenBy(ctx, a, n))) throw bad(NO_UPSTREAM)
+    if (!n || !(await seenByPerson(ctx, a, n))) throw bad(NO_UPSTREAM)
     needClosed(n)
     return { json: JSON.stringify({ node: n.path }), license: n.license, node: n }
   }
@@ -272,7 +275,7 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
     if (original) needOpen(await loadNode(ctx, original.path, a))
     if (upstream) {
       const u = await findNode(ctx, upstream.path)
-      if (!u || !(await seenBy(ctx, a, u))) throw bad(NO_UPSTREAM)
+      if (!u || !(await seenByPerson(ctx, a, u))) throw bad(NO_UPSTREAM)
       needClosed(u)
     }
     throw bad('something changed while this was sent. try again')

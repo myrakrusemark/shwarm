@@ -287,6 +287,20 @@ describe('branch and variant modes (4.3)', () => {
     expect(n).toEqual({ license: 'GPL-3.0', builds_on: JSON.stringify({ node: 'minecraft-in-doom' }) })
   })
 
+  it("refuses to build on a passed shwarm the viewer can't see, as for one that isn't there (7.4 review)", async () => {
+    const { env, q, db } = await world()
+    const { b } = await member(env, 'ana')
+    db.raw.prepare("UPDATE node SET state = 'closed', closed_at = ?, triage = 'held' WHERE path = 'minecraft-in-doom'").run(new Date(T0).toISOString())
+    const unknown = await body(await create(b, { ...HELLO, builds_on: 'no-such-shwarm' }))
+    const res = await create(b, { ...HELLO, builds_on: 'minecraft-in-doom' })
+    expect(res.status).toBe(400)
+    const page = await body(res)
+    expect(page).toContain('builds_on names a shwarm on shwarm, or an outside project as {name, url, license}.')
+    expect(page).not.toContain('id="picked"')
+    expect(page.replace(/minecraft-in-doom|no-such-shwarm|name="token" value="[^"]*"/g, '')).toBe(unknown.replace(/minecraft-in-doom|no-such-shwarm|name="token" value="[^"]*"/g, ''))
+    expect(q("SELECT COUNT(*) AS n FROM node WHERE path = 'hello-world'")).toEqual({ n: 0 })
+  })
+
   it('branches count toward the 3 new nodes a day', async () => {
     const { env } = await world()
     const { b } = await member(env, 'ana')

@@ -53,10 +53,11 @@ app.use(
 )
 
 // CORS (go-live 7.4, api/cors.ts): a preflight on an agent API path or a node URL is answered here, before the
-// staging lock, since a browser sends it with no credentials. Public reads of a node in text or JSON may be read from
-// other sites; pages and forms never.
+// staging lock, since a browser sends it with no credentials. On staging it also lets the call itself carry the
+// staging password as an Authorization header, which the lock below needs. Public reads of a node in text or JSON may
+// be read from other sites; pages and forms never.
 app.use('*', async (c, next) => {
-  const pre = preflight(c.req.raw)
+  const pre = preflight(c.req.raw, c.env.ENV === 'staging')
   if (pre) return pre
   await next()
   const m = c.req.method

@@ -605,6 +605,26 @@ describe('CORS', () => {
     }
   })
 
+  it('on staging, lets a cross-site call carry the staging password through the lock (7.4 review)', async () => {
+    const w = await world()
+    const env = { ...w.env, ENV: 'staging', STAGING_PASSWORD: 'staging-pw' }
+    const ask = (e: typeof w.env) =>
+      app.fetch(
+        new Request(`${SITE}/key`, { method: 'OPTIONS', headers: { origin: 'https://harness.example', 'access-control-request-method': 'GET', 'access-control-request-headers': 'authorization, shwarm-version, signature, signature-input' } }),
+        e,
+      )
+    const pre = await ask(env)
+    expect(pre.status).toBe(204)
+    expect(pre.headers.get('access-control-allow-headers')).toContain('authorization')
+    // only staging has a lock to pass
+    expect((await ask(w.env)).headers.get('access-control-allow-headers')).not.toContain('authorization')
+    const harness = { origin: 'https://harness.example' }
+    expect((await send(app, env, w.keys.myra, { path: '/key', headers: harness })).status).toBe(401)
+    const r = await send(app, env, w.keys.myra, { path: '/key', headers: { ...harness, authorization: `Basic ${btoa('shwarm:staging-pw')}` } })
+    expect(r.status).toBe(200)
+    expect(r.res.headers.get('access-control-allow-origin')).toBe('*')
+  })
+
   it('lets other sites read signed answers and public node reads, never pages or form answers', async () => {
     const w = await world()
     const signed = await w.call(w.keys.myra, { path: '/key' })

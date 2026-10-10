@@ -9,6 +9,11 @@ export const corsPath = (path: string) => path === '/shwarms' || path === '/ment
 
 /** What a cross-site request may send: the signature's headers and the API's own. */
 const ALLOW_HEADERS = 'accept, content-type, content-digest, idempotency-key, shwarm-version, signature, signature-input'
+/**
+ * On staging also the staging password (index.ts's lock), which a browser harness sends itself as an Authorization
+ * header: a browser adds none to a cross-site call, and the lock answers anything without it with a 401.
+ */
+const STAGING_ALLOW_HEADERS = ALLOW_HEADERS + ', authorization'
 /** What a cross-site page may read back. */
 const EXPOSE_HEADERS = 'date, etag, link, retry-after, ratelimit, ratelimit-policy, shwarm-version, idempotent-replayed'
 
@@ -21,9 +26,9 @@ export function allowRead(h: Headers): void {
 /**
  * The answer to a CORS preflight on an API path, or null to answer it as any other request (no CORS headers, so the
  * browser stops there). A POST is allowed only when it says it will carry a signature: a site form posts to the same
- * node URL, and a cross-site write without one is never let through.
+ * node URL, and a cross-site write without one is never let through. `staging`: the site is behind the staging lock.
  */
-export function preflight(req: Request): Response | null {
+export function preflight(req: Request, staging = false): Response | null {
   const method = req.headers.get('access-control-request-method')?.toUpperCase()
   if (req.method !== 'OPTIONS' || !method || !corsPath(new URL(req.url).pathname)) return null
   if (method !== 'GET' && method !== 'HEAD' && method !== 'POST') return null
@@ -34,7 +39,7 @@ export function preflight(req: Request): Response | null {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, HEAD, POST',
-      'Access-Control-Allow-Headers': ALLOW_HEADERS,
+      'Access-Control-Allow-Headers': staging ? STAGING_ALLOW_HEADERS : ALLOW_HEADERS,
       'Access-Control-Max-Age': '86400',
     },
   })

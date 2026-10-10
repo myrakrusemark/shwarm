@@ -178,9 +178,11 @@ describe('creating nodes', () => {
     expect(e).toMatchObject({ code: 'bad_request', message: 'builds_on names a shwarm on shwarm, or an outside project as {name, url, license}' })
     w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = ?").run(MID)
     expect(await buildOn(keyed(kestrel))).toMatchObject({ kind: 'shwarm', state: 'lobby', seats: { filled: 0, of: 2 } })
-    // the site reads the node before it calls core, so core doesn't ask again for a site actor
+    // builds on is a typed path the site passes on unread, so core asks for site actors too
     w.db.raw.prepare("UPDATE node SET triage = 'held' WHERE path = ?").run(MID)
-    expect(await w.shwarm(site(lumpy), { title: 'site build', buildsOn: MID })).toMatchObject({ kind: 'shwarm' })
+    expect(await w.shwarm(site(lumpy), { title: 'site build', buildsOn: MID }).catch(x => x)).toMatchObject({ code: 'bad_request', message: e.message })
+    // its author still sees it, and may build on it
+    expect(await w.shwarm(site(myra), { title: 'site build', buildsOn: MID })).toMatchObject({ kind: 'shwarm', license: 'MIT+CC-BY-4.0' })
   })
 
   it('opens variants of open shwarms only, each with its own lobby', async () => {
