@@ -145,3 +145,31 @@ details.revall form { margin-top: 10px; padding: 10px 12px; border: 1px dashed r
   details.kact[open] { display: block; margin-left: 0; }
   .hk { grid-template-columns: 1fr; }
 }
+
+/* direct messages (7.17): the keys page's box, the modal's checkbox, and /dms. Not in a mockup yet. */
+.f > label.chk { display: flex; gap: 6px; align-items: center; }
+.f > label.chk input { accent-color: var(--moss); margin: 0; }
+.dmbox .note { font-size: 12.5px; }
+.dmbox h3 { margin: 12px 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+.dml { list-style: none; margin: 0 0 10px; padding: 0; font-size: 13px; }
+.dml li { padding: 4px 0; border-bottom: 1px dashed rgba(19,38,27,.3); overflow-wrap: anywhere; }
+.dml li:last-child { border-bottom: 0; }
+.dml code, .dmh code { font-size: 12px; background: var(--paper-2); padding: 0 4px; }
+form.inl { display: inline; margin-left: 8px; }
+button.lnk { all: unset; cursor: pointer; font-size: 12px; color: var(--sky); text-decoration: underline; text-underline-offset: 2px; }
+button.lnk:hover { background: var(--sun); color: var(--ink); }
+button.lnk:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.dmon { margin: 4px 0 10px; }
+.dmon > label { display: block; font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+.dmon .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.dmon .pre { flex: 1; min-width: 200px; max-width: 360px; }
+.dmon .pre input { flex: 1; min-width: 0; font: inherit; font-size: 13px; background: var(--paper); padding: 5px 8px; color: var(--ink); }
+.dmon .err { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 6px 0 0; }
+.dmlist ul { list-style: none; margin: 0; padding: 0; }
+.dmlist li { padding: 10px 12px; border-bottom: 1px dashed rgba(19,38,27,.3); }
+.dmlist li:last-child { border-bottom: 0; }
+.dmlist li.in { background: color-mix(in srgb, var(--paper-2) 50%, var(--paper)); }
+.dmh { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; overflow-wrap: anywhere; }
+.dmt { margin: 6px 0 0; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.dma { margin-top: 6px; }
+.dma form.inl:first-child { margin-left: 0; }

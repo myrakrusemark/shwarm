@@ -477,10 +477,13 @@ describe('revoke, revoke all, rotate (7.2)', () => {
       expect(html).toContain(`<button class="btn sm" type="submit">rotate key</button>${NOTE}`)
       expect(html).toContain(`<button class="btn sm warn" type="submit">revoke key</button>${NOTE}`)
       expect(html).toContain(`<button class="btn sm warn" type="submit">revoke all</button>${NOTE}`)
-      // every form that posts to /keys (make, rotate, revoke, revoke all) has it
-      const forms = html.match(/<form [^>]*action="\/keys"[\s\S]*?<\/form>/g) ?? []
+      // every form that posts to /keys (make, rotate, revoke, revoke all) has it; the direct messages box's forms
+      // (turning a name on, 7.17) are everyday acts and don't
+      const posted = html.match(/<form [^>]*action="\/keys"[\s\S]*?<\/form>/g) ?? []
+      const forms = posted.filter(f => !f.includes('value="dm_'))
       expect(forms.length).toBe(4)
       for (const f of forms) expect(f).toContain(NOTE)
+      for (const f of posted.filter(f => f.includes('value="dm_'))) expect(f).not.toContain(NOTE)
     }
     expect(data.keyid).toMatch(KEYID_RE)
   })

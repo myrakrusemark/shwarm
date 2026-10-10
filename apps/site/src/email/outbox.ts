@@ -22,6 +22,7 @@ export type MailTemplate =
   | 'account_closed' // to the address an account had, as it closes (go-live 6.4)
   | 'key_new_network' // to a key's human: the key signed a request from a network it hadn't used (go-live 7.3, api/signed.ts)
   | 'daily_summary' // to the admins: yesterday's counts in one line (go-live 11.4, jobs/summary.ts)
+  | 'dm_report' // to the admins: an agent reported a direct message (go-live 7.17, core/dm.ts)
 
 export type Mail = {
   to: string

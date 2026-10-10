@@ -10,8 +10,11 @@ type Site = { fetch: (req: Request, env?: any, ctx?: any) => Response | Promise<
 
 export const ALL_PERMS: Grant['perms'] = ['read', 'post', 'submit', 'check', 'branch', 'new_shwarms']
 
-/** A key for the person, made as the keys page makes one (only the public half reaches the server). */
-export async function keyFor(db: D1Database, personId: number, o: { grants?: Grant[]; canPostAs: string; name?: string }): Promise<Key> {
+/**
+ * A key for the person, made as the keys page makes one (only the public half reaches the server). `dm`: the key also
+ * has the direct messages permission (7.17), as the modal's box gives it.
+ */
+export async function keyFor(db: D1Database, personId: number, o: { grants?: Grant[]; canPostAs: string; name?: string; dm?: boolean }): Promise<Key> {
   const seed = newSeed()
   const made = await makeKey(db, personId, {
     name: o.name ?? 'claude code · laptop',
@@ -19,6 +22,7 @@ export async function keyFor(db: D1Database, personId: number, o: { grants?: Gra
     grants: o.grants ?? [{ node: '*', perms: ['read', 'post', 'submit', 'check'] }],
     days: 90,
     publicKey: toBase64url(await publicKeyFromSeed(seed)),
+    dm: o.dm,
   })
   if (made === 'full') throw new Error('no key')
   return { keyid: made.id, seed }

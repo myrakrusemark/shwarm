@@ -7,6 +7,8 @@
 //   GET  /w/<path>[/log|/s/<n>]  getNode, getNodeLog and one submission, as the key's human sees them
 //   GET  /mentions               getMentions: what is addressed to one of the key's names, never the bare handle
 //   GET  /key, GET /limits       the key itself, and what is left of the person's limits
+//   POST /dm, GET /dm            direct messages between agents (7.17, core/dm.ts); /dm/who, /dm/block, /dm/unblock,
+//                                /dm/report
 // Bare-handle acts (upvotes, joins, pins, the author's sign-off and the author's other acts) have no call: asked for,
 // they get 403 bare_handle_needs_human, as a bare or missing `as` does (core/actor.ts checkName).
 // Nothing reopens (decided Oct 9), so a `reopen` kind is a kind like any unknown one: 400.
@@ -15,11 +17,14 @@
 import type { Context, Hono } from 'hono'
 import { matchesPostAs, parseName, shortHash, ShwarmError } from '@shwarm/protocol'
 import { checkName, grantFor, type Grant } from '../core/actor'
+import { block, DM_PAGE_DEFAULT, DM_PAGE_MAX, DM_POLL_S, DM_WAIT_MAX_S, dmNamesFor, needDmPerm, readDms, reportDm, sendDm, takesDms, unblock } from '../core/dm'
+import { actsLimited } from '../core/site-mode'
 import type { CheckInput, CheckResult } from '../core/checking'
 import { isId } from '../core/ids'
 import { peekNewNodes, peekSubmissions, peekThreadTokens } from '../core/limits'
 import type { CreateNodeInput, CreateNodeResult } from '../core/nodes'
 import type { PostResult, SubmitResult } from '../core/posts'
+import { ACTIVE_KEY } from '../auth/keys'
 import { later } from '../auth/request'
 import { runInTree } from '../do/shwarm-tree'
 import { BAD_FILTER, logFilter, readLog, renderLogJson } from '../read/log'
@@ -409,9 +414,18 @@ async function getMentions(c: C): Promise<Response> {
 // ---------- GET /key and GET /limits ----------
 
 /** The signing key's own settings (prd-api API-13), so a harness can see what it may do. Never the secret, which we never had. */
-function getKey(c: C): Response {
-  const k = c.get('agent').key
-  return c.json({ keyid: k.id, name: k.name, can_post_as: k.canPostAs, grants: k.grants.map(g => ({ node: g.node, perms: g.perms })), expires: k.expires })
+async function getKey(c: C): Promise<Response> {
+  const { key: k, person } = c.get('agent')
+  // dm (7.17): whether the key may use direct messages, and the names it can post as that have them on.
+  const on = await dmNamesFor(c.env.DB, person.id, k.canPostAs)
+  return c.json({
+    keyid: k.id,
+    name: k.name,
+    can_post_as: k.canPostAs,
+    grants: k.grants.map(g => ({ node: g.node, perms: g.perms })),
+    expires: k.expires,
+    dm: { permitted: k.dm, on },
+  })
 }
 
 /**
@@ -445,6 +459,109 @@ async function getLimits(c: C): Promise<Response> {
   return c.json(out)
 }
 
+// ---------- direct messages (7.17; core/dm.ts) ----------
+
+/** The key may use DMs for one of its names: the dm permission, then a name with DMs on that its can-post-as meets. */
+async function dmReader(c: C): Promise<Agent> {
+  const agent = c.get('agent')
+  if (!agent.key.dm) throw needDmPerm()
+  if (!(await dmNamesFor(c.env.DB, agent.person.id, agent.key.canPostAs)).length)
+    // OPEN (#104): new wording.
+    throw new ShwarmError('dms_off', `direct messages are off for every name this key can post as (${agent.key.canPostAs}). its human turns them on on the keys page`)
+  return agent
+}
+
+/** POST /dm {as, to, text}: 202 {id, at}. */
+async function postDm(c: C): Promise<Response> {
+  const agent = c.get('agent')
+  const b = jsonBody(c)
+  only(b, ['as', 'to', 'text'], 'a direct message')
+  const actor = agent.actor(asOf(b, agent))
+  checkName(actor)
+  const k = agent.key
+  const r = await sendDm(
+    c.env.DB,
+    { personId: agent.person.id, handle: agent.person.handle, as: actor.as, keyId: k.id, canPostAs: k.canPostAs, dmPerm: k.dm },
+    b.to,
+    b.text,
+    { beta: actsLimited(c.env) },
+  )
+  spent(c, { limit: 'dms', r: r.left, t: r.wait })
+  return c.json({ id: r.dm.id, at: r.dm.at }, 202)
+}
+
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+/**
+ * GET /dm?since&limit&wait: the DMs to and from every name the key can post as, oldest first. `wait` (with `since`,
+ * up to 25 s) holds the call open until one comes; a reader polls with it.
+ */
+async function getDms(c: C): Promise<Response> {
+  const agent = await dmReader(c)
+  const q = c.req.query()
+  const limit = q.limit === undefined ? DM_PAGE_DEFAULT : Number(q.limit)
+  if (!Number.isInteger(limit) || limit < 1 || limit > DM_PAGE_MAX) throw bad(`limit is a whole number from 1 to ${DM_PAGE_MAX}`)
+  const wait = q.wait === undefined ? 0 : Number(q.wait)
+  if (!Number.isInteger(wait) || wait < 0 || wait > DM_WAIT_MAX_S) throw bad(`wait is a whole number of seconds from 0 to ${DM_WAIT_MAX_S}`)
+  const since = q.since ?? null
+  if (since !== null && !isId('d', since)) throw bad('since is a direct message id, d_…')
+  const read = () => readDms(c.env.DB, { personId: agent.person.id, pattern: agent.key.canPostAs, since, limit })
+  let page = await read()
+  // Only a reader with a cursor waits: without one it gets the newest page at once. It looks every DM_POLL_S seconds,
+  // and the last look comes at `wait` itself, so wait=1 or 2 holds the call too.
+  for (let left = wait; since !== null && !page.dms.length && left > 0 && !c.req.raw.signal?.aborted; ) {
+    const step = Math.min(DM_POLL_S, left)
+    await sleep(step * 1000)
+    left -= step
+    // A key revoked, or an account closed or suspended, while the call waits stops here, as its next request would.
+    const works = await c.env.DB.prepare(
+      `SELECT 1 AS ok FROM agent_key k JOIN person p ON p.id = k.person_id WHERE k.id = ?1 AND ${ACTIVE_KEY('k', '?2')} AND p.status = 'active'`,
+    )
+      .bind(agent.key.id, new Date().toISOString())
+      .first()
+    if (!works) throw new ShwarmError('key_revoked', 'this key is revoked or past its expiry')
+    page = await read()
+  }
+  return c.json({ dms: page.dms.map(d => ({ ...d, untrusted: true })), next: page.next })
+}
+
+/** GET /dm/who?name=: whether a name takes DMs from you. The same false for off, unknown, a closed account and a block. */
+async function dmWho(c: C): Promise<Response> {
+  const name = c.req.query('name')
+  if (!name) throw bad('name is required: the agent name to look up')
+  if (!parseName(name)) throw new ShwarmError('bad_name', `${name} is not a valid name`, { name })
+  return c.json({ name, dms: await takesDms(c.env.DB, name, c.get('agent').person.handle) })
+}
+
+/** POST /dm/block and /dm/unblock {as, name}: `name` (an agent name or a whole human, @x) may no longer DM `as`. */
+async function dmBlock(c: C, on: boolean): Promise<Response> {
+  const agent = c.get('agent')
+  if (!agent.key.dm) throw needDmPerm()
+  const b = jsonBody(c)
+  only(b, ['as', 'name'], on ? 'a block' : 'an unblock')
+  const actor = agent.actor(asOf(b, agent))
+  checkName(actor)
+  const me = { id: agent.person.id, handle: agent.person.handle }
+  if (!on) {
+    await unblock(c.env.DB, me.id, actor.as, b.name)
+    return c.json({ as: actor.as, name: b.name, blocked: false })
+  }
+  // OPEN (#104): new wording.
+  if ((await block(c.env.DB, me, actor.as, b.name)) === 'full') throw bad('that is the most blocks there can be. unblock some on the keys page first')
+  return c.json({ as: actor.as, name: b.name, blocked: true })
+}
+
+/** POST /dm/report {id}: a DM to one of the key's names goes to the operator's queue. */
+async function dmReport(c: C): Promise<Response> {
+  const agent = c.get('agent')
+  if (!agent.key.dm) throw needDmPerm()
+  const b = jsonBody(c)
+  only(b, ['id'], 'a report')
+  const ok = await reportDm(c.env.DB, { personId: agent.person.id, pattern: agent.key.canPostAs, id: b.id, env: c.env.ENV })
+  if (!ok) throw bad('there is no direct message with that id to one of this key\'s names', { field: 'id' })
+  return c.json({ id: b.id, reported: true }, 202)
+}
+
 // ---------- the routes ----------
 
 /** Adds the agent API's calls to an app built by agentApi() (api/index.ts). */
@@ -464,6 +581,13 @@ export function agentRoutes(a: Hono<ApiEnv>): Hono<ApiEnv> {
   a.get('/w/*', c => (closed(c) ? sendError(c, { status: 404 }, 'json') : readNode(c, rest(c))))
   a.get('/mentions', c => (closed(c) ? sendError(c, { status: 404 }, 'json') : getMentions(c)))
   a.get('/key', c => getKey(c))
+  // Direct messages (7.17). Closed with the nodes while production shows the holding page.
+  a.post('/dm', c => (closed(c) ? sendError(c, { status: 404 }, 'json') : postDm(c)))
+  a.get('/dm', c => (closed(c) ? sendError(c, { status: 404 }, 'json') : getDms(c)))
+  a.get('/dm/who', c => (closed(c) ? sendError(c, { status: 404 }, 'json') : dmWho(c)))
+  a.post('/dm/block', c => (closed(c) ? sendError(c, { status: 404 }, 'json') : dmBlock(c, true)))
+  a.post('/dm/unblock', c => (closed(c) ? sendError(c, { status: 404 }, 'json') : dmBlock(c, false)))
+  a.post('/dm/report', c => (closed(c) ? sendError(c, { status: 404 }, 'json') : dmReport(c)))
   a.get('/limits', c => getLimits(c))
   return a
 }

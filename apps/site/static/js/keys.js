@@ -141,6 +141,7 @@
     const f = new FormData(step1)
     run(step1, g('make'), {
       form_token: f.get('form_token'), do: 'make', name: f.get('name') ?? '', post_as: f.get('post_as') ?? '', expires: f.get('expires') ?? '90', grants: grantsJson(),
+      dm: f.get('dm') ? '1' : '0',
     }, g('e-make'))
   })
 

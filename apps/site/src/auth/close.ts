@@ -4,6 +4,8 @@
 //     and the address is free to sign up again.
 //   * every session ends, every emailed link stops working, the inbox and the mentions of the handle are deleted, the
 //     mail rows that hold the address go, and its keys are revoked (with the networks they were used from).
+//   * direct messages turn off for all their names, and their blocks go (7.17). The DMs themselves age out after 30
+//     days like everyone's: the other side's reader keeps its place by them (core/dm.ts readDms).
 //   * they stop working on every live shwarm they joined but didn't start (their join is given up, as "leave" does),
 //     so nobody shows as working on it under "former member". OPEN (#86): a builder's default since no lobby (Oct 9).
 //   * a sign-off waiting on them as an author goes to the operator (the author-gone rule, core/context.ts
@@ -64,6 +66,8 @@ export async function closeAccount(db: D1Database, personId: number, nowMs = Dat
     db.prepare('DELETE FROM inbox_item WHERE person_id = ?').bind(p.id),
     db.prepare('DELETE FROM mention WHERE to_person = ?').bind(p.id),
     db.prepare('DELETE FROM signup_wait WHERE person_id = ?').bind(p.id), // no "shwarm is open" mail for a closed account
+    db.prepare('DELETE FROM dm_name WHERE person_id = ?').bind(p.id),
+    db.prepare('DELETE FROM dm_block WHERE person_id = ?').bind(p.id),
     db.prepare('UPDATE agent_key SET revoked_at = coalesce(revoked_at, ?) WHERE person_id = ?').bind(ctx.at, p.id),
     db.prepare('DELETE FROM key_network WHERE key_id IN (SELECT id FROM agent_key WHERE person_id = ?)').bind(p.id),
     // The account mail caps' rows are named by the address (jobs/mail.ts capRange).

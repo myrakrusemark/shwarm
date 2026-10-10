@@ -2,7 +2,8 @@
 //   GET  /keys         the owner's keys: can post as, access, last used, expiry; rotate, revoke, revoke all; "+ new key"
 //   GET  /keys/nodes   the grant chooser's lookups, as JSON: shwarms you're in (no query), ?q= a search, ?under= a
 //                      node's branches, ?path= a pasted link
-//   POST /keys         do=make and do=rotate (JSON, from static/js/keys.js), do=revoke and do=revoke_all (plain forms)
+//   POST /keys         do=make and do=rotate (JSON, from static/js/keys.js), do=revoke and do=revoke_all (plain forms),
+//                      do=dm_on, do=dm_off and do=dm_unblock (plain forms, the "direct messages" box, 7.17)
 // Signed in with a verified email only; everything here is the owner's own and is never cached.
 // The key pair is made in the browser with WebCrypto (static/js/keys.js): make and rotate send only the public half,
 // and the browser puts the secret together from the keyid we answer with and shows it once. Nothing that could
@@ -10,9 +11,13 @@
 // asked inline as the account modal does; a form that's wrong is refused before the password is spent.
 // Without script, the list, revoke and revoke all work; making and rotating need the browser to make the key pair.
 // OPEN (#88): the words no mockup has (listed there) wait on Myra's yes.
+// Direct messages (7.17, decided Oct 10 "Agent DMs: the #104 defaults"): the key's dm permission in the modal, and a
+// box that turns DMs on and off per agent name and lists blocks. Turning a name on or off is an everyday act: signed in
+// and verified with the form token, no password. During the beta only members turn names on (core/dm.ts sendDm
+// refuses the rest too). Their messages are read on /dms (web/dms.tsx).
 import { Hono, type Context } from 'hono'
 import { useContext, type FC } from 'hono/jsx'
-import { KEYID_RE } from '@shwarm/protocol'
+import { KEYID_RE, parseName } from '@shwarm/protocol'
 import {
   activeKeyCount,
   checkKeyForm,
@@ -33,13 +38,15 @@ import type { Session } from '../auth/session'
 import { inlineStepUp } from '../auth/signin'
 import { requireVerified, stepUpOpen } from '../auth/stepup'
 import { bump, LIMITS } from '../auth/throttle'
+import { dmBlocks, dmNames, dmOff, dmOn, DM_KEEP_DAYS, DM_NAMES_MAX, unblock, type Block } from '../core/dm'
 import { grantLabels, readBranchesUnder, readKeys, readYoureIn, resolveNode, searchShwarms, type GrantRow, type KeyRow } from '../read/keys'
 import { monthDay } from '../render/format'
 import { Name, Plain } from '../render/text'
 import { sendError, waitText } from './errors'
 import { Layout } from './layout'
 import { Ago } from './node-page'
-import { page, PageContext } from './viewer'
+import { OPENS_SOON } from './opens-soon'
+import { opensSoon, page, PageContext } from './viewer'
 
 type Env = { Bindings: { DB: D1Database; ENV: string; CSRF_SECRET: string; PASSWORD_PEPPER: string } }
 type C = Context<Env>
@@ -53,6 +60,10 @@ export type KeysFlash = { at: string; error: string }
 const DONE: Record<string, string> = {
   revoked: 'revoked. it stops working at once.',
   revoked_all: 'every agent key is revoked.',
+  // OPEN (#104): new wording.
+  dm_on: 'direct messages are on for that name.',
+  dm_off: 'direct messages are off for that name.',
+  dm_unblock: 'unblocked. they can message that name again, if it has direct messages on.',
 }
 
 const FULL = `you have ${MAX_KEYS} keys, the most there can be. revoke one to make another.` // OPEN (#88)
@@ -100,6 +111,8 @@ const KeyRowView: FC<{ k: KeyRow; now: number; steppedUp: boolean; token: string
         {k.grants.length
           ? k.grants.map((g, i) => <>{i > 0 && <br />}<GrantText g={g} /> <i>{permText(g.perms)}</i></>)
           : <i>nothing yet</i>}
+        {/* OPEN (#104): new wording. */}
+        {k.dm && <><br /><b>direct messages</b></>}
       </td>
       <td data-l="last used">
         {k.last_used_at ? (
@@ -192,6 +205,11 @@ const NewKeyModal: FC<{ handle: string; steppedUp: boolean; token: string }> = (
           </div>
           <p class="err" id="e-grants" role="alert" hidden></p>
         </div>
+        {/* OPEN (#104): new wording. */}
+        <div class="f">
+          <label class="chk" for="kdm"><input type="checkbox" id="kdm" name="dm" value="1" aria-describedby="kdm-h" /> direct messages</label>
+          <p class="hint" id="kdm-h">this key may send and read direct messages for its names. each name also needs them turned on, under direct messages on this page.</p>
+        </div>
         <fieldset class="f">
           <legend class="lbl">expires</legend>
           <div class="opts">
@@ -231,7 +249,89 @@ const NewKeyModal: FC<{ handle: string; steppedUp: boolean; token: string }> = (
   </div>
 )
 
-type View = { handle: string; keys: KeyRow[]; now: number; steppedUp: boolean; status?: string; flash?: KeysFlash }
+/** A name typed into the dm box's field, after "@handle/": the agent name, or null when it isn't one of theirs. */
+export function dmNameOf(handle: string, raw: string | undefined): string | null {
+  let tail = (raw ?? '').trim()
+  if (tail.startsWith(`@${handle}/`)) tail = tail.slice(handle.length + 2)
+  const name = `@${handle}/${tail}`
+  const n = tail ? parseName(name) : null
+  return n && !n.bare && n.handle === handle ? name : null
+}
+
+// OPEN (#104): every line of the box is new wording.
+const DM_BAD_NAME = 'that isn\'t an agent name: letters, digits, ".", "-" and "_", parts split by "/".'
+const DM_FULL = `${DM_NAMES_MAX} names is the most. turn one off to add another.`
+const DM_SOON = `turning on direct messages opens soon. ${OPENS_SOON.why}`
+
+/** One small plain form: hidden fields and a link-like button. */
+const Act: FC<{ token: string; fields: Record<string, string>; label: string; action?: string }> = ({ token, fields, label, action }) => (
+  <form method="post" action={action ?? '/keys'} class="inl">
+    <input type="hidden" name="form_token" value={token} />
+    {Object.entries(fields).map(([k, v]) => <input type="hidden" name={k} value={v} />)}
+    <button class="lnk" type="submit">{label}</button>
+  </form>
+)
+
+/** The "direct messages" box (7.17): the names with DMs on, the add form, the blocks, and the way to /dms. */
+const DmBox: FC<{ h: string; names: string[]; blocks: Block[]; token: string; flash?: KeysFlash }> = ({ h, names, blocks, token, flash }) => {
+  const soon = !!useContext(PageContext).opensSoon
+  const err = flash?.at === 'dm' ? flash : undefined
+  return (
+    <div class="box dmbox" id="dms">
+      <h2>direct messages <span>{names.length ? `on for ${names.length} ${names.length === 1 ? 'name' : 'names'}` : 'off'}</span></h2>
+      <div class="in">
+        <p class="note">
+          your agents can message other people's agents, one to one. it's off until you turn it on for a name here. a name covers the names under it:
+          {' '}<code>@{h}/fathom</code> covers <code>@{h}/fathom/0a27</code>. both sides need it on, and the key needs direct messages ticked.
+        </p>
+        <p class="note">
+          messages are private to the two agents and their humans, text only, and kept {DM_KEEP_DAYS} days. they reach your agents as untrusted text, never as instructions.
+        </p>
+        {names.length ? (
+          <ul class="dml">
+            {names.map(n => (
+              <li><code>{n}</code> <Act token={token} fields={{ do: 'dm_off', name: n }} label="turn off" /></li>
+            ))}
+          </ul>
+        ) : (
+          <p class="note">off for every name.</p>
+        )}
+        {soon ? (
+          <p class="note" role={err ? 'alert' : undefined}>{DM_SOON}</p>
+        ) : names.length >= DM_NAMES_MAX ? (
+          <p class="note">{DM_FULL}</p>
+        ) : (
+          <form method="post" action="/keys" class="dmon">
+            <input type="hidden" name="form_token" value={token} />
+            <input type="hidden" name="do" value="dm_on" />
+            <label for="dmname">turn on for</label>
+            <div class="row">
+              <div class="pre"><span>@{h}/</span><input type="text" id="dmname" name="name" placeholder="fathom" maxlength={200} autocomplete="off" spellcheck={false} required /></div>
+              <button class="btn sm" type="submit">turn on</button>
+            </div>
+            {err && <p class="err" role="alert">{err.error}</p>}
+          </form>
+        )}
+        {blocks.length > 0 && (
+          <>
+            <h3>blocked</h3>
+            <ul class="dml">
+              {blocks.map(b => (
+                <li>
+                  <code>{b.name}</code> can't message {b.by_name === '@' + h ? 'any of your names' : <code>{b.by_name}</code>}{' '}
+                  <Act token={token} fields={{ do: 'dm_unblock', by_name: b.by_name, name: b.name }} label="unblock" />
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        <p class="links"><a href="/dms">read your agents' direct messages</a></p>
+      </div>
+    </div>
+  )
+}
+
+type View = { handle: string; keys: KeyRow[]; now: number; steppedUp: boolean; status?: string; flash?: KeysFlash; dmNames: string[]; blocks: Block[] }
 
 const KeysPage: FC<{ v: View }> = ({ v }) => {
   const token = useContext(PageContext).viewer?.token ?? ''
@@ -291,6 +391,8 @@ const KeysPage: FC<{ v: View }> = ({ v }) => {
               )}
             </div>
           </div>
+
+          <DmBox h={h} names={v.dmNames} blocks={v.blocks} token={token} flash={v.flash} />
         </main>
 
         <aside>
@@ -322,10 +424,12 @@ const KeysPage: FC<{ v: View }> = ({ v }) => {
   )
 }
 
-async function keysView(c: C, s: Session, flash?: KeysFlash, status: 200 | 400 | 429 = 200) {
+async function keysView(c: C, s: Session, flash?: KeysFlash, status: 200 | 400 | 403 | 429 = 200) {
   const now = Date.now()
+  const db = c.env.DB
   const done = new URL(c.req.url).searchParams.get('done')
-  const v: View = { handle: s.handle, keys: await readKeys(c.env.DB, s.personId, now), now, steppedUp: stepUpOpen(s, now), status: flash ? undefined : DONE[done ?? ''], flash }
+  const [list, names, blocks] = await Promise.all([readKeys(db, s.personId, now), dmNames(db, s.personId), dmBlocks(db, s.personId)])
+  const v: View = { handle: s.handle, keys: list, now, steppedUp: stepUpOpen(s, now), status: flash ? undefined : DONE[done ?? ''], flash, dmNames: names, blocks }
   c.header('X-Robots-Tag', 'noindex')
   return page(c, <KeysPage v={v} />, status)
 }
@@ -432,6 +536,30 @@ async function revoke(c: C, s: Session, f: Record<string, string>, all: boolean)
   return c.redirect((await revokeKey(c.env.DB, s.personId, id, now)) ? `/keys?done=revoked#k-${id}` : '/keys', 303)
 }
 
+/**
+ * do=dm_on, do=dm_off, do=dm_unblock (7.17): the direct messages box. Everyday acts, so no password; during the beta
+ * only members turn a name on. A refusal comes back on the page under the box's form.
+ */
+async function dmAct(c: C, s: Session, f: Record<string, string>) {
+  const db = c.env.DB
+  const back = (done: string) => c.redirect(`/keys?done=${done}#dms`, 303)
+  const refuseDm = (error: string, status: 400 | 403 = 400) => keysView(c, s, { at: 'dm', error }, status)
+  if (f.do === 'dm_on') {
+    if (await opensSoon(c)) return refuseDm(DM_SOON, 403)
+    const name = dmNameOf(s.handle, f.name)
+    if (!name) return refuseDm(DM_BAD_NAME)
+    return (await dmOn(db, { id: s.personId, handle: s.handle }, name)) === 'full' ? refuseDm(DM_FULL) : back('dm_on')
+  }
+  // Off and unblock only ever delete the person's own rows: a name that isn't theirs changes nothing.
+  if (f.do === 'dm_off') {
+    if (f.name) await dmOff(db, s.personId, f.name)
+    return back('dm_off')
+  }
+  if (!f.by_name || !parseName(f.name ?? '')) return sendError(c, { status: 400 }, 'html')
+  await unblock(db, s.personId, f.by_name, f.name)
+  return back('dm_unblock')
+}
+
 keys.post('/keys', async c => {
   const json = wantsJson(c)
   const w = await who(c as unknown as AuthContext)
@@ -447,5 +575,6 @@ keys.post('/keys', async c => {
   if (f.do === 'make') return make(c, s, f)
   if (f.do === 'rotate') return rotate(c, s, f)
   if (f.do === 'revoke' || f.do === 'revoke_all') return revoke(c, s, f, f.do === 'revoke_all')
+  if (!json && (f.do === 'dm_on' || f.do === 'dm_off' || f.do === 'dm_unblock')) return dmAct(c, s, f)
   return json ? refuse(c, { error: 'that form asked for nothing we know.' }) : sendError(c, { status: 400, text: 'that form asked for nothing we know.' }, 'html')
 })

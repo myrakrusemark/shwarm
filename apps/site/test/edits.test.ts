@@ -83,7 +83,7 @@ describe('join: working on it (4.4, decided Oct 9)', () => {
     const { rows } = await readContributors(w.db, chain.node)
     // posters first (none counted yet: the stats job hasn't run), then the author, then the others in the order they joined
     expect(rows.map(r => r.handle)).toEqual(expect.arrayContaining(['@myra', '@bmo_fan', '@ana']))
-    expect(rows.find(r => r.handle === '@ana')).toEqual({ person_id: ana.id, handle: '@ana', posts: 0, upvotes: 0 })
+    expect(rows.find(r => r.handle === '@ana')).toEqual({ person_id: ana.id, handle: '@ana', posts: 0, upvotes: 0, dms: false })
     const profile = await readProfile(w.db, ana.id, { owner: false, now: w.now })
     expect(profile.working.map(r => r.path)).toEqual([MID])
   })

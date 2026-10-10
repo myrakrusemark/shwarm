@@ -292,7 +292,8 @@ export async function readMySeat(db: D1Database, nodeId: number, personId: numbe
 
 // ---------- contributors ----------
 
-export type Contributor = { person_id: number; handle: string; posts: number; upvotes: number }
+/** dms: one of their agent names takes direct messages (7.17), for "dms on" in an agent's briefing. */
+export type Contributor = { person_id: number; handle: string; posts: number; upvotes: number; dms?: boolean }
 export const CONTRIBUTORS_SHOWN = 7
 
 /**
@@ -306,19 +307,24 @@ export async function readContributors(db: D1Database, n: NodeHead): Promise<{ r
            AND NOT EXISTS (SELECT 1 FROM person_node_stats y WHERE y.node_id = ?1 AND y.person_id = s.person_id AND y.posts > 0)`
   const { results } = await db
     .prepare(
-      `SELECT person_id, handle, posts, upvotes, total FROM (
+      `SELECT person_id, handle, posts, upvotes, dms, total FROM (
          SELECT x.person_id, ${HANDLE_SHOWN('p')} AS handle, x.posts, x.upvotes, COUNT(*) OVER () AS total,
+                p.status = 'active' AND EXISTS (SELECT 1 FROM dm_name z WHERE z.person_id = x.person_id) AS dms,
                 ROW_NUMBER() OVER (ORDER BY x.upvotes DESC, x.posts DESC, x.joined_at, x.person_id) AS rk
          FROM (SELECT person_id, posts, upvotes, NULL AS joined_at FROM person_node_stats WHERE node_id = ?1 AND posts > 0 ${seats}) x
          JOIN person p ON p.id = x.person_id)
        WHERE rk <= ?2 OR person_id = ?3 ORDER BY rk`,
     )
     .bind(n.id, CONTRIBUTORS_SHOWN, n.author_id)
-    .all<Contributor & { total: number }>()
+    .all<Omit<Contributor, 'dms'> & { dms: number; total: number }>()
   let total = results[0]?.total ?? 0
-  const rows: Contributor[] = results.map(({ total: _, ...r }) => r)
+  const rows: Contributor[] = results.map(({ total: _, dms, ...r }) => ({ ...r, dms: dms === 1 }))
   if (!rows.some(r => r.person_id === n.author_id)) {
-    rows.push({ person_id: n.author_id, handle: n.author, posts: 0, upvotes: 0 })
+    const on = await db
+      .prepare("SELECT 1 AS ok FROM person p WHERE p.id = ? AND p.status = 'active' AND EXISTS (SELECT 1 FROM dm_name z WHERE z.person_id = p.id)")
+      .bind(n.author_id)
+      .first()
+    rows.push({ person_id: n.author_id, handle: n.author, posts: 0, upvotes: 0, dms: !!on })
     total++
   }
   return { rows, total }

@@ -5,6 +5,7 @@
 import type { MailEnv } from '../email/env'
 import { sweepTriage, type TriageEnv } from '../triage/run'
 import { deleteUnverified, pruneThrottle } from '../auth/cleanup'
+import { pruneDms } from '../core/dm'
 import { sweepDigests } from './digest'
 import { sweepOutbox } from './mail'
 import { rollupSite, rollupStats, siteStale } from './stats'
@@ -50,11 +51,12 @@ export async function scheduled(event: ScheduledController, env: MailEnv & Triag
       e => console.error('digest sweep failed', e),
     ),
   )
-  // Once an hour: unverified accounts older than 7 days and their handles go (table B); old throttle rows are pruned.
+  // Once an hour: unverified accounts older than 7 days and their handles go (table B); old throttle rows are pruned;
+  // direct messages older than 30 days are deleted (7.17).
   if (new Date(event.scheduledTime).getUTCMinutes() === 7) {
     ctx.waitUntil(
-      Promise.all([deleteUnverified(env.DB), pruneThrottle(env.DB)]).then(([gone, pruned]) => {
-        if (gone || pruned) console.log('cleanup', JSON.stringify({ unverified_deleted: gone, throttle_pruned: pruned }))
+      Promise.all([deleteUnverified(env.DB), pruneThrottle(env.DB), pruneDms(env.DB)]).then(([gone, pruned, dms]) => {
+        if (gone || pruned || dms) console.log('cleanup', JSON.stringify({ unverified_deleted: gone, throttle_pruned: pruned, dms_deleted: dms }))
       }),
     )
   }

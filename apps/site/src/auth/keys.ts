@@ -29,7 +29,8 @@ export const ACTIVE_KEY = (k: string, at = '?') => `(${k}.revoked_at IS NULL AND
 
 export type KeyField = 'name' | 'post_as' | 'grants' | 'expires' | 'public_key'
 export type KeyRefusal = { field: KeyField; error: string }
-export type KeyDraft = { name: string; canPostAs: string; grants: Grant[]; days: number | null; publicKey: string }
+/** dm: the key may send and read direct messages for its names (7.17; agent_key.dm). Off unless the modal's box is ticked. */
+export type KeyDraft = { name: string; canPostAs: string; grants: Grant[]; days: number | null; publicKey: string; dm?: boolean }
 
 // OPEN (#88): every refusal below is new wording.
 const BAD_PUBLIC_KEY = "the key didn't come through. reload the page and try again."
@@ -120,7 +121,9 @@ export async function checkKeyForm(db: D1Database, me: { id: number; handle: str
   if (!(expires in EXPIRY)) return { field: 'expires', error: 'pick when it expires.' }
   const bad = await publicKeyProblem(f.public_key)
   if (bad) return { field: 'public_key', error: bad }
-  return { draft: { name, canPostAs, grants, days: EXPIRY[expires], publicKey: f.public_key! } }
+  // The dm box (7.17): ticked sends "1"; anything else, or nothing, leaves it off.
+  const dm = f.dm === '1' || f.dm === 'on'
+  return { draft: { name, canPostAs, grants, days: EXPIRY[expires], publicKey: f.public_key!, dm } }
 }
 
 const DAY = 86_400_000
@@ -140,10 +143,10 @@ export async function makeKey(db: D1Database, personId: number, d: KeyDraft, now
   const [made] = await db.batch([
     db
       .prepare(
-        `INSERT INTO agent_key (id, person_id, name, public_key, can_post_as, expires_at, created_at)
-         SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7 WHERE (SELECT COUNT(*) FROM agent_key k WHERE k.person_id = ?2 AND ${ACTIVE_KEY('k', '?7')}) < ?8`,
+        `INSERT INTO agent_key (id, person_id, name, public_key, can_post_as, expires_at, created_at, dm)
+         SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?9 WHERE (SELECT COUNT(*) FROM agent_key k WHERE k.person_id = ?2 AND ${ACTIVE_KEY('k', '?7')}) < ?8`,
       )
-      .bind(id, personId, d.name, d.publicKey, d.canPostAs, expires, at, MAX_KEYS),
+      .bind(id, personId, d.name, d.publicKey, d.canPostAs, expires, at, MAX_KEYS, d.dm ? 1 : 0),
     ...d.grants.map(g =>
       db
         .prepare('INSERT INTO key_grant (key_id, node, perms) SELECT ?1, ?2, ?3 WHERE EXISTS (SELECT 1 FROM agent_key WHERE id = ?1)')
@@ -155,8 +158,8 @@ export async function makeKey(db: D1Database, personId: number, d: KeyDraft, now
 }
 
 /**
- * Rotating (OPEN #88): a new key pair, made in the browser like a new key, takes over the old key's name, can post as
- * and grants, with a fresh expiry of the same length (7 days, 90 days or never); the old key is revoked in the same
+ * Rotating (OPEN #88): a new key pair, made in the browser like a new key, takes over the old key's name, can post as,
+ * grants and dm permission, with a fresh expiry of the same length (7 days, 90 days or never); the old key is revoked in the same
  * batch, so it stops at once. A new keyid, since the secret carries it. 'gone' when the old key isn't the person's or
  * no longer works.
  */
@@ -174,8 +177,8 @@ export async function rotateKey(db: D1Database, personId: number, oldId: string,
     // The old key must still work, and the person stays at or under the cap without it.
     db
       .prepare(
-        `INSERT INTO agent_key (id, person_id, name, public_key, can_post_as, expires_at, created_at)
-         SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7
+        `INSERT INTO agent_key (id, person_id, name, public_key, can_post_as, expires_at, created_at, dm)
+         SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, (SELECT dm FROM agent_key WHERE id = ?9)
          WHERE EXISTS (SELECT 1 FROM agent_key o WHERE o.id = ?9 AND o.person_id = ?2 AND ${ACTIVE_KEY('o', '?7')})
            AND (SELECT COUNT(*) FROM agent_key k WHERE k.person_id = ?2 AND k.id <> ?9 AND ${ACTIVE_KEY('k', '?7')}) < ?8`,
       )

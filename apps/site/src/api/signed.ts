@@ -26,7 +26,8 @@ import { spendRequest, type Left } from './limits'
 
 export type ApiBindings = { DB: D1Database; TREE: DurableObjectNamespace; SITE_URL?: string; ENV?: string; SITE_MODE?: string; AI?: Ai; TRIAGE_MODEL?: string }
 
-export type SignedKey = { id: string; name: string; canPostAs: string; grants: Grant[]; expires: string | null }
+/** dm: the key may send and read direct messages (7.17). */
+export type SignedKey = { id: string; name: string; canPostAs: string; grants: Grant[]; expires: string | null; dm: boolean }
 
 /** The verified request: whose key it is, and what it acted as. c.get('agent') in every agent route. */
 export type Agent = {
@@ -80,6 +81,7 @@ type KeyRow = {
   can_post_as: string
   expires_at: string | null
   revoked_at: string | null
+  dm: number
   handle: string
   status: string
   grants: string
@@ -89,7 +91,7 @@ type KeyRow = {
 function readKey(db: D1Database, id: string): Promise<KeyRow | null> {
   return db
     .prepare(
-      `SELECT k.id, k.person_id, k.name, k.public_key, k.can_post_as, k.expires_at, k.revoked_at, p.handle, p.status,
+      `SELECT k.id, k.person_id, k.name, k.public_key, k.can_post_as, k.expires_at, k.revoked_at, k.dm, p.handle, p.status,
               (SELECT json_group_array(json_object('node', g.node, 'perms', json(g.perms))) FROM key_grant g WHERE g.key_id = k.id) AS grants
        FROM agent_key k JOIN person p ON p.id = k.person_id WHERE k.id = ?`,
     )
@@ -138,7 +140,7 @@ async function verify(c: Context<ApiEnv>, now: number): Promise<{ agent: Agent; 
   if (row.revoked_at !== null || (row.expires_at !== null && row.expires_at <= iso(now)) || row.status !== 'active') throw revoked()
   await takeNonce(c.env.DB, row.id, read.nonce, read.created, now)
 
-  const key: SignedKey = { id: row.id, name: row.name, canPostAs: row.can_post_as, grants: JSON.parse(row.grants) as Grant[], expires: row.expires_at }
+  const key: SignedKey = { id: row.id, name: row.name, canPostAs: row.can_post_as, grants: JSON.parse(row.grants) as Grant[], expires: row.expires_at, dm: row.dm === 1 }
   const person = { id: row.person_id, handle: row.handle }
   const agent: Agent = {
     key,

@@ -253,6 +253,26 @@ function keyNewNetwork(p: Record<string, unknown>, site: string): Draft {
 }
 
 /**
+ * To the admins: an agent reported a direct message (go-live 7.17, core/dm.ts reportDm). The DM's words are quoted, as
+ * an author's are, so none of them pass for the mail's own; the same words are in the report table.
+ */
+function dmReport(p: Record<string, unknown>): Draft {
+  const id = text(p, 'id')
+  if (!/^d_[a-z0-9]{8,32}$/.test(id)) throw new MailRenderError('bad id')
+  const env = p.env === 'staging' || p.env === 'production' ? p.env : '<staging|production>'
+  // OPEN (#104): these words wait on Myra's yes.
+  return {
+    subject: `a direct message was reported: ${printable(oneLine(p.from, 80))}`,
+    blocks: [
+      hi(p),
+      `${printable(oneLine(p.to, 80))} reported a direct message from ${printable(oneLine(p.from, 80))}, sent ${printable(oneLine(p.at, 40))} (${id}, ${env}).`,
+      quoted('the message', p.text),
+      'it is kept in the report queue (the report table, url dm:' + id + ') after the message itself is deleted at 30 days.',
+    ],
+  }
+}
+
+/**
  * The admins' daily summary (go-live 11.4, jobs/summary.ts): yesterday in one line, from read/beta.ts daySummary, and
  * the link to the beta funnel page. Requests are counted on the server, not people.
  */
@@ -350,6 +370,7 @@ const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string)
   node_news: (p, site) => nodeNews(p, site),
   key_new_network: (p, site) => keyNewNetwork(p, site),
   daily_summary: (p, site) => dailySummary(p, site),
+  dm_report: p => dmReport(p),
   // To the address the account had, as it closes (go-live 6.4): no link, since there's nothing left to sign in to.
   // OPEN (#86): these words wait on Myra's yes.
   account_closed: p => ({

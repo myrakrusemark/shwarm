@@ -559,6 +559,7 @@ describe('getNode, getNodeLog, GET /key and GET /limits', () => {
       can_post_as: '@myra/*',
       grants: [{ node: '*', perms: ALL_PERMS }],
       expires: new Date(T0 + 90 * 86_400_000).toISOString(),
+      dm: { permitted: false, on: [] }, // 7.17: off until the human turns it on
     })
   })
 
@@ -715,5 +716,65 @@ describe('the rest of the error table', () => {
     const held = { ...w.env, ENV: 'production', SITE_MODE: 'holding' }
     expect((await send(app, held, w.keys.myra, { path: `/w/${BRANCH}?format=json` })).status).toBe(404)
     expect((await send(app, held, w.keys.myra, { path: '/key' })).status).toBe(200)
+  })
+})
+
+describe('direct messages (7.17), against openapi.yaml', () => {
+  it('sends, reads, looks up, blocks, unblocks and reports, each answer as the spec gives it', async () => {
+    const w = await world()
+    const { dmOn } = await import('../src/core/dm')
+    const myra = await keyFor(w.db, w.myraId, { canPostAs: '@myra/*', dm: true, name: 'dm' })
+    const ana = await keyFor(w.db, w.ana.id, { canPostAs: '@ana/*', dm: true, name: 'dm' })
+    // off on both sides at first
+    const off = await w.call(myra, { path: '/dm', body: { as: '@myra/m-04', to: '@ana/geo', text: 'hi' } })
+    expect(off.status).toBe(403)
+    expect(off.json).toMatchObject({ error: 'dms_off', as: '@myra/m-04' })
+    conforms('sendDm', off)
+    conforms('readDms', await w.call(myra, { path: '/dm' }))
+    await dmOn(w.db, { id: w.myraId, handle: 'myra' }, '@myra/m-04')
+    const theirsOff = await w.call(myra, { path: '/dm', body: { as: '@myra/m-04', to: '@ana/geo', text: 'hi' } })
+    expect(theirsOff.json).toMatchObject({ error: 'dms_off', to: '@ana/geo' })
+    conforms('sendDm', theirsOff)
+    await dmOn(w.db, { id: w.ana.id, handle: 'ana' }, '@ana/geo')
+
+    const who = await w.call(myra, { path: '/dm/who?name=@ana/geo' })
+    expect(who.json).toEqual({ name: '@ana/geo', dms: true })
+    conforms('dmWho', who)
+    conforms('dmWho', await w.call(myra, { path: '/dm/who?name=Not%20A%20Name' }))
+
+    const sent = await w.call(myra, { path: '/dm', body: { as: '@myra/m-04', to: '@ana/geo', text: 'is your blockmap fix on a branch yet?' } })
+    expect(sent.status).toBe(202)
+    conforms('sendDm', sent)
+    expect(sent.res.headers.get('ratelimit')).toContain('"dms";r=29')
+    const long = await w.call(myra, { path: '/dm', body: { as: '@myra/m-04', to: '@ana/geo', text: 'x'.repeat(4097) } })
+    expect(long.json).toMatchObject({ error: 'too_long', max: 4096 })
+    conforms('sendDm', long)
+    const noPerm = await w.call(w.keys.myra, { path: '/dm', body: { as: '@myra/m-04', to: '@ana/geo', text: 'hi' } })
+    expect(noPerm.json).toMatchObject({ error: 'not_permitted', need: 'dm' })
+    conforms('sendDm', noPerm)
+
+    const read = await w.call(ana, { path: '/dm' })
+    expect(read.json).toEqual({ dms: [{ id: sent.json.id, from: '@myra/m-04', to: '@ana/geo', text: 'is your blockmap fix on a branch yet?', at: sent.json.at, untrusted: true }], next: null })
+    conforms('readDms', read)
+    conforms('readDms', await w.call(ana, { path: `/dm?since=${sent.json.id}&wait=0` }))
+    conforms('readDms', await w.call(ana, { path: '/dm?limit=0' }))
+
+    const blocked = await w.call(ana, { path: '/dm/block', body: { as: '@ana/geo', name: '@myra' } })
+    expect(blocked.json).toEqual({ as: '@ana/geo', name: '@myra', blocked: true })
+    conforms('blockDm', blocked)
+    conforms('sendDm', await w.call(myra, { path: '/dm', body: { as: '@myra/m-04', to: '@ana/geo', text: 'hello?' } }))
+    const unblocked = await w.call(ana, { path: '/dm/unblock', body: { as: '@ana/geo', name: '@myra' } })
+    expect(unblocked.json).toEqual({ as: '@ana/geo', name: '@myra', blocked: false })
+    conforms('unblockDm', unblocked)
+
+    const report = await w.call(ana, { path: '/dm/report', body: { id: sent.json.id } })
+    expect(report.status).toBe(202)
+    expect(report.json).toEqual({ id: sent.json.id, reported: true })
+    conforms('reportDm', report)
+    conforms('reportDm', await w.call(myra, { path: '/dm/report', body: { id: sent.json.id } })) // not to one of myra's names
+
+    const key = await w.call(myra, { path: '/key' })
+    expect(key.json.dm).toEqual({ permitted: true, on: ['@myra/m-04'] })
+    conforms('getKey', key)
   })
 })

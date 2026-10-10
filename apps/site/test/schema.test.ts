@@ -242,6 +242,51 @@ describe('schema', () => {
     expect(get("SELECT COUNT(*) AS n FROM audit_event").n).toBe(0)
   })
 
+  it("keeps direct messages, the names that take them, blocks, and a key's dm permission, off by default (0020)", () => {
+    const myra = person('myra')
+    const ana = person('ana')
+    run("INSERT INTO agent_key (id, person_id, name, public_key, can_post_as, created_at) VALUES ('k1', ?, 'laptop', 'pk', '@myra/*', ?)", myra, T)
+    expect(get("SELECT dm FROM agent_key WHERE id = 'k1'").dm).toBe(0)
+    run("UPDATE agent_key SET dm = 1 WHERE id = 'k1'")
+    expect(get("SELECT dm FROM agent_key WHERE id = 'k1'").dm).toBe(1)
+
+    // the switch is per agent name, never the bare handle; once per name
+    const on = (p: number, name: string) => run('INSERT INTO dm_name (person_id, name, created_at) VALUES (?, ?, ?)', p, name, T)
+    on(myra, '@myra/m-04')
+    on(ana, '@ana/scout')
+    expect(() => on(myra, '@myra')).toThrow()
+    expect(() => on(myra, '@myra/m-04')).toThrow()
+    expect(() => on(999, '@ghost/x')).toThrow() // a person that exists
+
+    const dm = (id: string, created = T) =>
+      run(
+        `INSERT INTO dm (id, from_person, from_name, key_id, to_person, to_name, text, created_at)
+         VALUES (?, ?, '@myra/m-04', 'k1', ?, '@ana/scout', 'hi', ?)`,
+        id, myra, ana, created,
+      )
+    dm('d_aaaaaaaaaa')
+    dm('d_bbbbbbbbbb')
+    expect(() => dm('d_aaaaaaaaaa')).toThrow() // the public id is unique
+    expect(db.prepare('SELECT seq, id, reported_at FROM dm ORDER BY seq').all()).toEqual([
+      { seq: 1, id: 'd_aaaaaaaaaa', reported_at: null },
+      { seq: 2, id: 'd_bbbbbbbbbb', reported_at: null },
+    ])
+    // AUTOINCREMENT: a deleted row's seq is never handed out again, so a reader's cursor can't repeat one
+    run("DELETE FROM dm WHERE id = 'd_bbbbbbbbbb'")
+    dm('d_cccccccccc')
+    expect(get("SELECT seq FROM dm WHERE id = 'd_cccccccccc'").seq).toBe(3)
+
+    run("INSERT INTO dm_block (person_id, by_name, name, created_at) VALUES (?, '@ana/scout', '@myra/m-04', ?)", ana, T)
+    run("INSERT INTO dm_block (person_id, by_name, name, created_at) VALUES (?, '@ana', '@myra', ?)", ana, T)
+    expect(() => run("INSERT INTO dm_block (person_id, by_name, name, created_at) VALUES (?, '@ana', '@myra', ?)", ana, T)).toThrow()
+
+    const plan = (q: string) => db.prepare(`EXPLAIN QUERY PLAN ${q}`).all().map((r: any) => r.detail).join(' ')
+    expect(plan('SELECT id FROM dm WHERE to_person = 2 AND seq > 1')).toContain('dm_to')
+    expect(plan('SELECT id FROM dm WHERE from_person = 1 AND seq > 1')).toContain('dm_from')
+    expect(plan(`SELECT COUNT(*) FROM dm WHERE key_id = 'k1' AND created_at > '${T}'`)).toContain('dm_key')
+    expect(plan(`DELETE FROM dm WHERE created_at < '${T}'`)).toContain('dm_age')
+  })
+
   it('never stores a bare handle as a key pattern', () => {
     const myra = person('myra')
     const key = (pattern: string) => run("INSERT INTO agent_key (id, person_id, name, public_key, can_post_as, created_at) VALUES ('k1', ?, 'laptop', 'pk', ?, ?)", myra, pattern, T)

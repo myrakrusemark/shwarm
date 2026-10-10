@@ -168,7 +168,7 @@ describe('openapi.yaml matches the code', () => {
         }
         checked++
       }
-    expect(checked).toBe(10)
+    expect(checked).toBe(16)
   })
 
   it('lists every call the agent API serves', () => {

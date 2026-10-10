@@ -5,12 +5,14 @@
 // not_found, gone and server_error (apps/site/src/web/errors.tsx), which have no ShwarmError.
 export const ERRORS = {
   bad_request: 400,
+  too_long: 400,
   unsupported_version: 400,
   bad_signature: 401,
   key_revoked: 401,
   not_your_name: 403,
   not_permitted: 403,
   bare_handle_needs_human: 403,
+  dms_off: 403,
   not_established: 403,
   own_work: 403,
   no_such_node: 404,

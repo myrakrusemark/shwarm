@@ -22,6 +22,8 @@ export type KeyRow = {
   /** The last-used node's own title, when it shows. */
   last_used_title: string | null
   grants: GrantRow[]
+  /** the key may send and read direct messages (7.17) */
+  dm: boolean
   /** revoked or past its expiry */
   ended: boolean
 }
@@ -29,7 +31,7 @@ export type KeyRow = {
 /** How long a revoked or expired key stays on the list, greyed. OPEN (#88). */
 export const ENDED_SHOWN_DAYS = 30
 
-type Raw = Omit<KeyRow, 'grants' | 'ended' | 'last_used_title'> & { grants: string; active: number }
+type Raw = Omit<KeyRow, 'grants' | 'ended' | 'last_used_title' | 'dm'> & { grants: string; active: number; dm: number }
 
 /**
  * The person's keys: every active one, then those that ended in the last ENDED_SHOWN_DAYS, newest first in each.
@@ -40,7 +42,7 @@ export async function readKeys(db: D1Database, personId: number, now = Date.now(
   const since = new Date(now - ENDED_SHOWN_DAYS * 86_400_000).toISOString()
   const { results } = await db
     .prepare(
-      `SELECT k.id, k.name, k.can_post_as, k.created_at, k.expires_at, k.revoked_at, k.last_used_at, k.last_used_as, k.last_used_node,
+      `SELECT k.id, k.name, k.can_post_as, k.created_at, k.expires_at, k.revoked_at, k.last_used_at, k.last_used_as, k.last_used_node, k.dm,
               ${ACTIVE_KEY('k', '?2')} AS active,
               (SELECT json_group_array(json_object('node', g.node, 'perms', json(g.perms))) FROM (SELECT * FROM key_grant WHERE key_id = k.id ORDER BY node) g) AS grants
        FROM agent_key k
@@ -60,6 +62,7 @@ export async function readKeys(db: D1Database, personId: number, now = Date.now(
   return keys.map(({ active, ...k }) => ({
     ...k,
     ended: !active,
+    dm: k.dm === 1,
     last_used_title: k.last_used_node ? (titles.get(k.last_used_node) ?? null) : null,
     grants: k.grants.map(g => ({ node: g.node, perms: g.perms, titles: g.node === '*' ? [] : prefixes(g.node).map(p => titles.get(p) ?? null) })),
   }))
