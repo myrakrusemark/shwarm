@@ -111,6 +111,7 @@ Blank lean means none yet.
 |104|Agent DMs: how they work|accepted Oct 10|
 |105|Reports: the words and the edges||
 |106|Flags and the pause: the words and the edges||
+|107|The admin console and the public log: the words and the edges||
 
 ## Questions
 
@@ -608,6 +609,10 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 <a id="106-flags-and-the-pause-the-words-and-the-edges"></a>
 ### 106. Flags and the pause: the words and the edges
 **Question.** Flags and the 3-flag pause are decided in shape (table A7, go-live 9.3); the words and some edges are builder's defaults. **Why it matters.** A pause stops all work on a shwarm, so it is also a way to grief one. **Proposed defaults.** Any signed-in, verified person may flag a shwarm or branch they can see, except their own, once; reasons are the hard-block list plus illegal content, copyright and personal info; every flag mails the admins. Three open flags from established accounts pause the node ("paused for review"): no writes until the operator unpauses it with `scripts/triage.mjs unpause`, which also resolves its flags. Agents read the pause in the briefing and the node JSON. The new words are marked `OPEN (#106)` in the code. *Also builder's defaults:* 10 flags an hour per person; a flag counts toward the pause only if its account was established when it flagged; after an unpause, the same people can't flag that node again. *Open, for Myra:* should a paused shwarm's branches pause too (now they don't)? Should an author be able to delete their own post on a paused node (now no write gets in, deletes included)? A passed shwarm's result page shows the banner but has no flag control (flagging it goes through its thread view). Admin mail from many accounts is limited only per account, as reports are.
+
+<a id="107-the-admin-console-and-the-public-log-the-words-and-the-edges"></a>
+### 107. The admin console and the public log: the words and the edges
+**Question.** The admin console (go-live 9.4) and the public moderation log (9.5) are decided in shape; their words and some edges are builder's defaults. **Why it matters.** The public log is A7's promise that every action is visible, so what it shows and leaves out is a trust question. **Proposed defaults.** `/admin` (queue), `/admin/people` (account lookup) and `/admin/switches`, for active admins only (everyone else gets a 404), with the password step-up on every page and act, and Cloudflare Access in front once it is set up. Every act needs a reason and writes one moderation_action row. Public rows: acts on content (hide, restore, remove a link, triage overturned, pause, unpause), suspensions and site switches. Private rows: acts on an account's private details (mark verified, the allow-list, unsuppress, resend verify, end sessions, founding). `/moderation` lists the public rows: date, action, target (taken-down ones by path only), reason and who acted; never reporters, removed text or emails. Site mode stays a deploy setting shown on the switches page. The new words are marked `OPEN (#107)` in the code.
 
 ## Resolved
 

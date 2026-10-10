@@ -10,6 +10,7 @@ The plan for getting all of shwarm live at https://shwarm.org, so Myra can invit
 
 Only what waits on Myra. Claude adds an item when something needs her and removes it once it's settled; her answers land in `tracker/replies.json` under the item's id. Shwarm cards that wait on her approval show on the page by themselves.
 
+- [m-access] **Cloudflare Access in front of /admin (free, your hardware key):** the admin console is being built for admins only, with your password. Access adds your hardware key in front of it, at Cloudflare's edge. Say yes and Claude sets up the Access application for shwarm.org/admin* through the Cloudflare API and adds ACCESS_AUD and ACCESS_TEAM to production, or say later.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. Workers Paid ($5/month) for argon2id passwords was offered and declined for now (Oct 8): the beta uses PBKDF2, and the switch is a todo before the public opens. Claude asks before any spend.
 
@@ -828,12 +829,12 @@ Functional changes Myra has chosen, held until after launch so they don't muddy 
 - *(Oct 10: live in v0.2.2; migration 0021 applied on production; /report answers 200.)*
 - *(Oct 10: the flag half is built. Migration 0022 (expand only: one node flag per person). "flag this shwarm" / "flag this branch" for signed-in, verified people, not the author, once; every flag mails the admins; the third open flag from accounts established when they flagged pauses the node in the same batch (a private pause row in moderation_action), with a "paused for review" banner on its page, result page and submission pages, and in the agent briefing and JSON; no writes get in, from the site or a key. `scripts/triage.mjs flags` lists the queue; `unpause` lifts it, resolves its flags and logs it publicly. The rules page explains it. RENDER_VERSION 10. Done when met in tests: a third flag pauses a test shwarm with the banner. Site 1014/1014.)*
 
-**9.4 Admin console**
+**9.4 Admin console** · doing
 - **what:** `/admin` behind Cloudflare Access (Myra's hardware-key login), the admin flag and step-up. One queue: triage holds, appeals, flags, reports, copyright notices. Actions with a required reason: hide or restore a node or post (public tombstone, 410), remove a link, suspend (ends sessions, revokes keys, emails the reason; the author-gone rule applies), overturn triage, founding flag. Account lookup by handle or email: verified state, outbox and suppression status for that address, sessions, keys, flags; actions: resend verify, remove from suppression, mark email verified (logged), end sessions, add to or remove from the allow-list. Switches: site mode, sign-up (open or allow-list only), read-only, pause new nodes. Slow mode, per-account limit overrides, pausing agent writes, IP-range blocks and the header-stats switch are `wrangler d1 execute` recipes in the 11.6 runbook, not UI. Every action goes to the moderation log.
 - **who:** Claude · **needs:** 9.1, 9.3
 - **done when:** each action and switch works on staging and leaves a log row, and Myra resolves a staged "no verify mail" case from admin alone.
 
-**9.5 Public moderation log**
+**9.5 Public moderation log** · doing
 - **what:** action, target (tombstoned), category, date, who acted. No reporters, no removed text. A read-only list over moderation_action (A7 promises it).
 - **who:** Claude · **needs:** 9.4
 - **done when:** it's live and linked from the rules page.
