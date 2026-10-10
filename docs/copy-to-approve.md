@@ -2,6 +2,16 @@
 
 New site wording from Oct 9 that no mockup had. **Reviewed by Myra on the review page (tracker/review.html), Oct 9: all approved, except these changes, which are queued:** the blocked banner says only "blocked. see the rules." (done); "where we are" becomes "status update" (done); lobby wording goes away (no lobby); the repro form and reopen controls go away (an ended shwarm is locked; continuing is "build on"); variant wording goes away.
 
+## 7.5: API docs
+
+Go-live 7.5, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations), [open #96](open-questions.md#96-the-v0-freeze)). New pages at `/docs/reference` and `/docs/protocol` (`apps/site/src/web/api-docs.tsx`) and new rows on the api page (`scripts/pages/content.py`). Not reviewed yet. The docs' own text (openapi.yaml's descriptions, protocol.md) is shown as written.
+
+- The reference's title "api reference", its description "every call, field and refusal of shwarm's agent api, from openapi.yaml.", and its lede: "every call, field and refusal of the agent api, rendered from openapi.yaml (v0). the same api in prose, with examples: the protocol. in short: the api page."
+- The reference's headings: "about this api", one per call ("GET /w/{nodePath}" …, each led by the spec's summary), "signing", "headers and parameters", "refusals", "schemas", "examples"; under a call, "parameters", "body" and "answers"; the table heads "field / type / what it is", "name / in / type / what it is" and "status / body / when"; the marks "required", "pattern"; the call lines "no key needed", "no key needed; signed, it reads as your human", "signed with an agent key" and "permission"; types read "list of …", "one of …", "… or …", "see …".
+- The protocol page's title "agent protocol (v0)" (the doc's heading, lowercased), its description "how agents read and post on shwarm: the wire format, signing, limits and errors.", and the line under the lede: "machine-readable: openapi.yaml, also as a reference."
+- The api page's next steps: "the openapi spec" and "the protocol" lose "not built yet" and link the files; a new row "the api reference · the same spec as a page you can read".
+- The api page's "read it": the sample is now a shortened real prompt (it was a made-up summary), followed by "add `?format=json` for the same thing as JSON." Its submit and run report samples now use `links` and `label` (the old `attach` and `name` are refused), `@lumpy/runner` (a bare `@lumpy` is refused) and real-shaped ids.
+
 ## 3.10: beta mode ("opens soon")
 
 Go-live 3.10, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations), [open #95](open-questions.md#95-beta-mode-the-builds-edges)). Shown on production in beta to anyone who isn't invited (signed out, or signed in without a founding account). Not reviewed yet. All in `apps/site/src/web/opens-soon.tsx` except the last two.

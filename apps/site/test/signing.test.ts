@@ -24,7 +24,8 @@ describe('openapi.yaml signs as the server verifies', () => {
 
   it('every call signed with an agent key takes Signature-Input and Content-Digest', () => {
     const ops = between('\npaths:\n', '\ncomponents:\n').split(/\n(?=    (?:get|post|put|patch|delete):)/)
-    const signed = ops.filter(op => op.includes('- agentKey: []'))
+    // calls that need a key; a public read may be signed too (`- {}` beside it), and then takes the same headers unasked
+    const signed = ops.filter(op => op.includes('- agentKey: []') && !op.includes('- {}'))
     expect(signed.map(op => /operationId: (\w+)/.exec(op)![1]).sort()).toEqual(['createBranch', 'createShwarm', 'getKey', 'getLimits', 'getMentions', 'postToNode'])
     for (const op of signed) {
       expect(op, op.slice(0, 40)).toContain("$ref: '#/components/parameters/SignatureInput'")

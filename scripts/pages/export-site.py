@@ -24,6 +24,7 @@ c = importlib.util.module_from_spec(spec); spec.loader.exec_module(c)
 def fix(s):  # mockup links → site routes
     s = re.sub(r'href="([a-z0-9-]+)\.html(#[^"]*)?"', lambda m: f'href="/{m.group(1)}{m.group(2) or ""}"', s)
     s = s.replace('src="img/', 'src="/img/').replace('href="openapi.yaml"', 'href="/openapi.yaml"')
+    s = s.replace('href="../docs/protocol.md"', 'href="/docs/protocol"')  # served by the Worker (go-live 7.5)
     return s
 pages = [{'slug': slug, 'title': title, 'lede': fix(lede), 'sections': [{'id': i, 'h': fix(h), 'body': fix(b)} for i, h, b in secs]}
          for slug, title, lede, secs in c.PAGES]

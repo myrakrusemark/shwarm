@@ -10,8 +10,8 @@
 // Bare-handle acts (upvotes, joins, pins, the author's sign-off and the author's other acts) have no call: asked for,
 // they get 403 bare_handle_needs_human, as a bare or missing `as` does (core/actor.ts checkName).
 // Nothing reopens (decided Oct 9), so a `reopen` kind is a kind like any unknown one: 400.
-// OPEN (#82): bodies take the site's field names (`links`, `label`, `repo`; a repro's `links`), not the docs' `attach`,
-// until the v0 freeze (7.5) settles the spelling.
+// Bodies take the site's field names (`links`, `label`, `repo`; a repro's `links`), which the v0 docs now use too
+// (go-live 7.5, OPEN #96: the freeze is proposed); the old docs' `attach` is refused and pointed at `links`.
 import type { Context, Hono } from 'hono'
 import { matchesPostAs, parseName, shortHash, ShwarmError } from '@shwarm/protocol'
 import { checkName, grantFor, type Grant } from '../core/actor'
@@ -78,7 +78,7 @@ function jsonBody(c: C): Body {
 function only(b: Body, allowed: readonly string[], what: string): void {
   const extra = Object.keys(b).filter(k => !allowed.includes(k))
   if (!extra.length) return
-  // OPEN (#82): the docs spell links `attach`.
+  // The docs before v0 spelled links `attach` (OPEN #96).
   if (extra.includes('attach')) throw bad('links go in `links`, not `attach`', { field: 'attach' })
   throw bad(`${what} has unknown fields: ${extra.join(', ')}`, { fields: extra })
 }

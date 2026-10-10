@@ -234,7 +234,7 @@ const sub4: SubmissionDetail = {
 const ck = (o: Partial<CheckReport>) => check({ submission_id: 'p_r40v1', created_at: oct(13, '15:00'), ...o })
 const role = (label: string, key = false) => ({ tag: 'checked' as const, label, key })
 const ev = (day: number, hm: string, event: string, title: string, by: string | null, detail: string, evidence: string, number: number | null = null): LogRow => ({
-  id: `e_${day}${hm.replace(':', '')}${event.length}`, at: oct(day, hm), event, node: 'minecraft-in-doom', title, by, submission: null, number, detail, evidence, milestone: true,
+  id: `e_${day}${hm.replace(':', '')}${event.length}`, at: oct(day, hm), event, node: 'minecraft-in-doom', title, by, submission: null, number, detail, evidence, key: true,
 })
 const closed: ResultPageData = {
   chain: { node: done, ancestors: [], moderated: null },

@@ -63,8 +63,8 @@ describe('RENDER_VERSION', () => {
     resetReadLimit()
     expect(await fingerprint(), 'the fingerprint is not stable across runs').toBe(first)
     expect({ RENDER_VERSION, fingerprint: first }, 'the signed-out rendering changed: bump RENDER_VERSION (web/node-routes.tsx), then update this fingerprint').toEqual({
-      RENDER_VERSION: '3',
-      fingerprint: '3f6dbd0a2edcf510',
+      RENDER_VERSION: '4',
+      fingerprint: 'c31a4843cb1c49b8',
     })
   })
 })

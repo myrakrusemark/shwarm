@@ -30,7 +30,7 @@ export type LogRow = {
   number: number | null
   detail: string
   evidence: string // a site path
-  milestone: boolean // a key event; the JSON keeps the field's name from before Oct 9 (OPEN #93: renaming it is go-live 7.5's call)
+  key: boolean // a key event. Called `milestone` before the v0 freeze (go-live 7.5, OPEN #96: the rename is proposed)
 }
 
 export type LogPage = { rows: LogRow[]; total: number; all: number; next: string | null }
@@ -72,14 +72,14 @@ export async function readLog(db: D1Database, chain: Chain, o: { filter: LogFilt
     db
       .prepare(
         `SELECT a.id, a.at, a.event, t.path AS node, t.title, ${NAME_SHOWN('a.by_name')} AS by, a.submission_id AS submission, a.number, a.detail, a.evidence,
-                (${KEY_SQL}) AS milestone
+                (${KEY_SQL}) AS is_key
          FROM ${LOG_FROM} ${only} ${older} ORDER BY a.at DESC, a.rowid DESC LIMIT ${limit + 1}`,
       )
       .bind(...scope, ...(cursor ? [cursor.at, cursor.rid] : []))
-      .all<Omit<LogRow, 'milestone' | 'evidence'> & { milestone: number; evidence: string | null }>(),
+      .all<Omit<LogRow, 'key' | 'evidence'> & { is_key: number; evidence: string | null }>(),
     db.prepare(`SELECT COUNT(*) AS all_, COALESCE(SUM(${KEY_SQL}), 0) AS ks FROM ${LOG_FROM}`).bind(...scope).first<{ all_: number; ks: number }>(),
   ])
-  const rows: LogRow[] = results.map(r => ({ ...r, evidence: r.evidence ?? nodeHref(r.node), milestone: r.milestone === 1 }))
+  const rows: LogRow[] = results.map(({ is_key, ...r }) => ({ ...r, evidence: r.evidence ?? nodeHref(r.node), key: is_key === 1 }))
   // A18: the seeded node's first row, the oldest of all, so it closes the last page. It counts under both filters.
   // OPEN (#93): it isn't one of the four key events, but it stands where a shwarm's opening would; kept under key.
   const seeded = seededLogRow(n)
@@ -90,13 +90,13 @@ export async function readLog(db: D1Database, chain: Chain, o: { filter: LogFilt
   if (!seeded) return { rows, total, all, next: null }
   // The seeded row goes after the last stored row; when the page is full, it waits for the next one.
   if (rows.length === limit) return { rows, total, all, next: rows[limit - 1].id }
-  const row: LogRow = { id: null, at: seeded.at, event: seeded.event, node: n.path, title: n.title, by: seeded.by, submission: null, number: null, detail: seeded.detail, evidence: nodeHref(n.path), milestone: true }
+  const row: LogRow = { id: null, at: seeded.at, event: seeded.event, node: n.path, title: n.title, by: seeded.by, submission: null, number: null, detail: seeded.detail, evidence: nodeHref(n.path), key: true }
   return { rows: [...rows, row], total, all, next: null }
 }
 
 /**
  * The NodeLog JSON (docs/openapi.yaml NodeLog, LogEvent): each row's evidence as an absolute link. The seeded row
- * has no stored event, so its id is null. OPEN (#81): 'seeded' isn't in LogEventType, and a null id isn't an EventId.
+ * has no stored event, so its id is null (OPEN #81). `key` marks a key event (OPEN #96: called `milestone` until v0).
  */
 export function renderLogJson(path: string, filter: LogFilter, page: LogPage, origin: string) {
   return {
@@ -114,7 +114,7 @@ export function renderLogJson(path: string, filter: LogFilter, page: LogPage, or
       ...(r.number !== null ? { number: r.number } : {}),
       detail: r.detail,
       evidence: origin + r.evidence,
-      milestone: r.milestone,
+      key: r.key,
     })),
   }
 }

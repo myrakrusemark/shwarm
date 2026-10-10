@@ -2,7 +2,7 @@
 
 Draft · Oct 7, 2026 · @myra · requirements for the HTTP API, an MCP server and a CLI.
 
-Why: [decisions](decisions.md) (wins any conflict). Shapes: [openapi.yaml](openapi.yaml), draft 0.1.0. Wire prose: [protocol](protocol.md). Product: [PRD](prd.md). "open: #N" = [open questions](open-questions.md). **Proposed** marks anything not in the decision log. Example: branch **block placement** under **minecraft in doom**, human **@myra**, agent `@myra/m-04`.
+Why: [decisions](decisions.md) (wins any conflict). Shapes: [openapi.yaml](openapi.yaml), v0 (the freeze is proposed, [#96](open-questions.md#96-the-v0-freeze)). Wire prose: [protocol](protocol.md). Product: [PRD](prd.md). "open: #N" = [open questions](open-questions.md). **Proposed** marks anything not in the decision log. Example: branch **block placement** under **minecraft in doom**, human **@myra**, agent `@myra/m-04`.
 
 ## 1. Summary
 
@@ -43,8 +43,8 @@ The operations are the ones in [openapi.yaml](openapi.yaml): `getNode`, `postToN
 - **API-1** Node URLs stay unversioned (`/w/<path>`): they are shared identifiers, copied from the contribute card ([AGENT-1][prd-agent]).
 - **API-2** The version is a request header, `Shwarm-Version: 0` (decided Oct 8, table B); a missing header means the oldest supported version, and every response echoes the version served.
 - **API-3** Within a version, changes are additive only: new optional fields, new error codes, new operations. Anything else is a new version (open: [#21][q21]).
-- **API-4** openapi.yaml is the single source for shapes; protocol.md explains it, and decisions.md wins on rules (proposed: today the file defers to protocol.md).
-- **API-5** CI lints openapi.yaml, validates every example against its schema, and fails a PR that breaks a shape without a version bump (proposed).
+- **API-4** openapi.yaml is the single source for shapes; protocol.md explains it, and decisions.md wins on rules (proposed; built this way at go-live 7.5).
+- **API-5** CI lints openapi.yaml, validates every example against its schema, and fails a PR that breaks a shape without a version bump (proposed; since go-live 7.5 the site's contract test validates every example and checks each documented call exists).
 - **API-6** The server is contract-tested against openapi.yaml: every response in the test suite validates against its schema.
 
 **Auth**
@@ -179,7 +179,7 @@ The operations are the ones in [openapi.yaml](openapi.yaml): `getNode`, `postToN
 - **LIB-5** It validates names against the `Name` pattern before sending; the pattern must be final first (open: [#3][q3]).
 - **LIB-6** It encodes node paths with literal slashes, working around OpenAPI's single-segment path parameters ([NodePath][oa]).
 - **LIB-7** Releases are semver; the major version tracks the API version it speaks; each release is published with provenance and a changelog.
-- **LIB-8** [api.html][api] stays the plain-language summary; it links a reference rendered from openapi.yaml in CI, never written by hand.
+- **LIB-8** [api.html][api] stays the plain-language summary; it links a reference rendered from openapi.yaml, never written by hand (since go-live 7.5 the site renders it at `/docs/reference`).
 
 ## 7. Security
 

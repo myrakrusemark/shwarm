@@ -31,7 +31,7 @@ const MONSTERS = `${EXAMPLE_BRANCH}/monster-collision`
 const BREAK = `${EXAMPLE_BRANCH}/break-blocks`
 const TEXTURES = `${EXAMPLE_BRANCH}/texture-pack`
 
-type Ev = { id: string | null; at: string; event: string; node: string; by: string | null; submission?: string; number?: number; detail: string; evidence: string; milestone: boolean }
+type Ev = { id: string | null; at: string; event: string; node: string; by: string | null; submission?: string; number?: number; detail: string; evidence: string; key: boolean }
 type NodeLog = { node: string; filter: string; total: number; next: string | null; events: Ev[] }
 
 /** The closed world, plus the rest of a run: the branch passes, a sub-branch fails its author check, another is a dead end. */
@@ -96,10 +96,10 @@ describe('GET /w/<path>/log (5.7)', () => {
     expect(totals.every(t => t === want.length + 1)).toBe(true)
     // every event type still written happened ('lobby_filled' went with the lobby, Oct 9), and the seeded row (A18) closes the log
     expect(new Set(events.map(e => e.event))).toEqual(new Set([...AUDIT_EVENTS.filter(e => e !== 'lobby_filled' && e !== 'reopened'), 'seeded']))
-    expect(events.at(-1)).toEqual({ id: null, at: expect.any(String), event: 'seeded', node: EXAMPLE_ROOT, by: '@myra', detail: 'seeded by @myra at launch', evidence: `${ORIGIN}/w/${EXAMPLE_ROOT}`, milestone: true })
+    expect(events.at(-1)).toEqual({ id: null, at: expect.any(String), event: 'seeded', node: EXAMPLE_ROOT, by: '@myra', detail: 'seeded by @myra at launch', evidence: `${ORIGIN}/w/${EXAMPLE_ROOT}`, key: true })
     // the shape: each row names its node; the submission and its number when there is one
     const passed = events.find(e => e.event === 'passed' && e.node === EXAMPLE_ROOT)!
-    expect(passed).toMatchObject({ by: null, number: 1, submission: w.sub.id, evidence: `${ORIGIN}/w/${EXAMPLE_ROOT}/s/1`, milestone: true })
+    expect(passed).toMatchObject({ by: null, number: 1, submission: w.sub.id, evidence: `${ORIGIN}/w/${EXAMPLE_ROOT}/s/1`, key: true })
     expect(events.find(e => e.event === 'branch_opened')).not.toHaveProperty('submission')
     // every row links to its evidence, and the page it links to has the anchor
     for (const e of events) {
@@ -119,13 +119,13 @@ describe('GET /w/<path>/log (5.7)', () => {
     const want = w.stored(TREE).filter(e => (KEY_EVENTS as readonly string[]).includes(e.event))
     expect(page.events.map(e => e.id)).toEqual([...want.map(e => e.id), null])
     expect(page.total).toBe(want.length + 1)
-    expect(page.events.every(e => e.milestone)).toBe(true)
+    expect(page.events.every(e => e.key)).toBe(true)
     // each of the four happened, and the seeded row (A18) still closes it (OPEN #66)
     expect(new Set(page.events.map(e => e.event))).toEqual(new Set([...KEY_EVENTS, 'seeded']))
     // checks, sign-offs and fails are in the full log only, marked as not key
     const full = (await w.all(`${LOG}?filter=all`)).events
-    for (const ev of ['check', 'signed_off', 'failed']) expect(full.filter(e => e.event === ev).map(e => e.milestone), ev).toContain(false)
-    expect(full.filter(e => !e.milestone).every(e => !(KEY_EVENTS as readonly string[]).includes(e.event))).toBe(true)
+    for (const ev of ['check', 'signed_off', 'failed']) expect(full.filter(e => e.event === ev).map(e => e.key), ev).toContain(false)
+    expect(full.filter(e => !e.key).every(e => !(KEY_EVENTS as readonly string[]).includes(e.event))).toBe(true)
     // ?filter=key says so; ?filter=milestones, its name before Oct 9, still answers, as key
     expect(await w.json(`${LOG}?filter=key`)).toEqual(page)
     expect(await w.json(`${LOG}?filter=milestones`)).toEqual(page)

@@ -1,0 +1,29 @@
+/* the api docs (go-live 7.5, src/web/api-docs.tsx): /docs/reference and /docs/protocol. reading pages: plain prose
+   under headings, tables that scroll inside their own box on a phone. tokens come from site.css. */
+
+.dochead p + p { margin-top: 10px; }
+.apidoc section .body, .apidoc .prose { max-width: none; }
+.apidoc .body > p, .apidoc .body > ul, .apidoc .body > ol, .apidoc .item > p, .apidoc .item > ul { max-width: 72ch; }
+.apidoc .body p, .apidoc .body li { overflow-wrap: anywhere; }
+.apidoc .body h3 { margin: 26px 0 10px; font: 900 15px/1.3 "Arial Black", Arial, sans-serif; }
+.apidoc .body h4 { margin: 18px 0 8px; font-size: 13px; text-transform: lowercase; }
+.apidoc .prose h2 { margin: 40px 0 16px; padding-bottom: 8px; font: 900 19px/1.2 "Arial Black", Arial, sans-serif; border-bottom: 1px solid rgba(19,38,27,.35); scroll-margin-top: 16px; }
+.apidoc .prose h2:first-child { margin-top: 0; }
+.apidoc .prose h3 { scroll-margin-top: 16px; }
+.apidoc .item { margin: 0 0 30px; scroll-margin-top: 16px; }
+.apidoc .item h3 { margin-top: 0; }
+.apidoc .sig { margin: 0 0 12px; font-size: 13px; }
+.apidoc .lede { font-weight: 700; }
+.apidoc .ex { margin: 12px 0 4px; font-size: 13px; font-style: italic; }
+.apidoc .ty { margin: 0 0 10px; font-size: 13px; }
+.apidoc .pat { font-size: 12px; opacity: .8; }
+.apidoc .req { font-size: 11px; font-weight: 700; padding: 0 4px; border: 1px solid var(--ink); background: var(--paper-2); white-space: nowrap; }
+.apidoc pre.code { max-height: 480px; overflow: auto; }
+.apidoc .tbl { max-width: 100%; overflow-x: auto; margin: 0 0 16px; }
+.apidoc table { border-collapse: collapse; font-size: 13px; width: 100%; }
+.apidoc th { text-align: left; padding: 6px 8px; border-bottom: var(--rule); font-size: 12px; }
+.apidoc td { padding: 8px; border-bottom: 1px dashed rgba(19,38,27,.3); vertical-align: top; }
+.apidoc td p { margin: 0 0 6px; }
+.apidoc td p:last-child, .apidoc td ul:last-child { margin-bottom: 0; }
+.apidoc table.fields td:first-child { white-space: nowrap; }
+@media (max-width: 860px) { .apidoc table.fields td:first-child { white-space: normal; } }
