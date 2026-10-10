@@ -21,5 +21,7 @@ Myra's answers on the proofreading cards, Oct 10. Each one is out of launch-shwa
 - all-of-ubuntu-in-rust (idea; merged into all-of-linux-in-rust. Myra: "nope. all of linux. and perhaps a specific distribution. arch?")
 - a-seismometer-in-100-homes (wave 1; replaced by a-seismometer-in-1000-homes. Myra, on the seismograph idea: "1000 homes")
 - a-seismograph-in-100-homes (idea; merged into a-seismometer-in-1000-homes)
-- earthquake-warning-in-every-city (idea; Myra: "duplicate". No other early-warning card exists, so it's read as a duplicate of the seismometer card, which already names early warning as the next step)
+- earthquake-warning-in-every-city (idea; Myra: "duplicate". No other early-warning card exists, so it's read as a duplicate of the seismometer card, which already names early warning as the next step. Its text was never committed, so git can't restore it; a copy survives in the Oct 10 session's transcript)
 - the-printer-choir (idea; Myra: "no. delete")
+- printer-motor-orchestra (wave 1; Myra: "drop it", after "anything that can be hacked into a print farm, still just a basement project")
+- slime-mold-vs-your-metro (wave 2; Myra: "this is not shwarm scale. remove")

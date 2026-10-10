@@ -41,8 +41,8 @@ async function stagingLike() {
 }
 
 describe('mapping the launch list', () => {
-  test('all 100 map with no parse failures, and the offline dry run plans all of them', async () => {
-    expect(LIST).toHaveLength(100)
+  test('all 98 map with no parse failures, and the offline dry run plans all of them', async () => {
+    expect(LIST).toHaveLength(98)
     for (const e of LIST) {
       const m = mapLaunchShwarm(e)
       expect(m.notes.filter(n => n.kind === 'failed'), e.slug).toEqual([])
@@ -61,8 +61,8 @@ describe('mapping the launch list', () => {
     }
     const plan = await planSeed(testDb(), LIST, EMPTY, { target: 'offline', now: NOW, example: false })
     expect(plan.report.failures).toBe(0)
-    expect(plan.report.shwarms.filter(s => s.status === 'new')).toHaveLength(100)
-    expect(formatReport(plan.report)).toContain('100 new, 0 already there, 0 failed')
+    expect(plan.report.shwarms.filter(s => s.status === 'new')).toHaveLength(98)
+    expect(formatReport(plan.report)).toContain('98 new, 0 already there, 0 failed')
   })
 
   test('snapshots of a few mapped entries', () => {
@@ -262,17 +262,17 @@ describe('rendering statements', () => {
 })
 
 describe('the plan end to end', () => {
-  test('applied to a staging-like database: 100 seeded shwarms, live at once (plus the example), @myra working on each, pinned sources', async () => {
+  test('applied to a staging-like database: 98 seeded shwarms, live at once (plus the example), @myra working on each, pinned sources', async () => {
     const { db, myraId } = await stagingLike()
     const copy = testDb()
     const plan = await planSeed(copy, LIST, stateOf(db), { target: 'staging', now: NOW, example: true })
     expect(plan.report.failures).toBe(0)
     expect(plan.report.example.status).toBe('new')
-    expect(plan.newPaths).toHaveLength(101)
+    expect(plan.newPaths).toHaveLength(99)
     db.raw.exec(plan.sql)
 
     const nodes = db.raw.prepare("SELECT n.*, s.person_id AS seat1 FROM node n LEFT JOIN seat s ON s.node_id = n.id AND s.number = 1 WHERE n.kind <> 'branch'").all()
-    expect(nodes).toHaveLength(100)
+    expect(nodes).toHaveLength(98)
     for (const n of nodes) {
       expect(n.seeded, n.path).toBe(1)
       expect(n.seat1, n.path).toBe(myraId)
@@ -348,7 +348,7 @@ describe('the plan end to end', () => {
     expect(again.report.shwarms.every(s => s.status === 'exists')).toBe(true)
     expect(again.report.example.status).toBe('exists')
     expect(again.newPaths).toEqual([])
-    expect(formatReport(again.report)).toContain('0 new, 100 already there')
+    expect(formatReport(again.report)).toContain('0 new, 98 already there')
   })
 
   test('a partial import, then the rest', async () => {
@@ -358,7 +358,7 @@ describe('the plan end to end', () => {
     const rest = await planSeed(testDb(), LIST, stateOf(db), { target: 'staging', now: NOW, example: false })
     expect(rest.report.shwarms.filter(s => s.status === 'exists').map(s => s.slug)).toEqual(['bot-beats-freedoom', 'kart-race-on-the-moon'])
     db.raw.exec(rest.sql)
-    expect(db.raw.prepare('SELECT count(*) AS n FROM node WHERE seeded = 1').get().n).toBe(100)
+    expect(db.raw.prepare('SELECT count(*) AS n FROM node WHERE seeded = 1').get().n).toBe(98)
   })
 
   test('the guards stop a stale file at its first statement', async () => {
@@ -394,7 +394,7 @@ describe('the plan end to end', () => {
     expect((await planSeed(testDb(), LIST, stateOf(db), { target: 'staging', now: NOW, example: false })).report.failures).toBe(0)
     db.raw.prepare("UPDATE setting SET value = 'true' WHERE key = 'read_only'").run()
     const ro = await planSeed(testDb(), LIST, stateOf(db), { target: 'staging', now: NOW, example: false })
-    expect(ro.report.failures).toBe(100)
+    expect(ro.report.failures).toBe(98)
     expect(ro.sql).toBe('')
   })
 })

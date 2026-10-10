@@ -1,4 +1,4 @@
-// Go-live 3.5: the public profile and the name view, on a staging-like database (the 100 launch shwarms and the
+// Go-live 3.5: the public profile and the name view, on a staging-like database (the 98 launch shwarms and the
 // running example from the seed plan), with the stats job run so the figures are real.
 import { readFileSync } from 'node:fs'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -26,7 +26,7 @@ const one = (db: DB, sql: string, ...a: unknown[]) => {
   return r && { ...r }
 }
 
-/** Staging as it is after go-live 3.1: @myra (not id 1), the 100 seeded lobbies and the running example. */
+/** Staging as it is after go-live 3.1: @myra (not id 1), the 98 seeded lobbies and the running example. */
 let template: string
 async function buildStaging(): Promise<string> {
   const db = testDb()
@@ -103,7 +103,7 @@ afterEach(() => {
 describe('/@myra', () => {
   it('renders the head, the three figures, working on and created, as in the mockup', async () => {
     const { env } = await staging()
-    const res = await get(env, '/@myra?all=1') // the example's rows sit below the 100 seeded ones (their pinned posts are newer)
+    const res = await get(env, '/@myra?all=1') // the example's rows sit below the 98 seeded ones (their pinned posts are newer)
     expect(res.status).toBe(200)
     const html = await body(res)
     expect(html).toContain('<title>@myra · shwarm</title>')
@@ -133,9 +133,9 @@ describe('/@myra', () => {
     const { env, db, myra } = await staging()
     const html = await body(await get(env, '/@myra?all=1'))
     const pub = "n.hidden = 0 AND (n.triage = 'clear' OR n.seeded = 1)"
-    // working on: every open node with her seat or her posts. 100 seeded seats, plus the branch.
+    // working on: every open node with her seat or her posts. 98 seeded seats, plus the branch.
     const working = one(db, `SELECT COUNT(*) AS n FROM node n WHERE ${pub} AND (EXISTS (SELECT 1 FROM seat s WHERE s.node_id = n.id AND s.person_id = ?1 AND s.left_at IS NULL) OR EXISTS (SELECT 1 FROM post p WHERE p.node_id = n.id AND p.person_id = ?1 AND p.hidden = 0))`, myra).n
-    expect(working).toBe(101)
+    expect(working).toBe(99)
     expect(html).toContain(`<div>${working}<small>working on</small></div>`)
     const week = one(db, `SELECT COUNT(*) AS n FROM post p JOIN node n ON n.id = p.node_id WHERE p.person_id = ? AND p.hidden = 0 AND p.created_at > ? AND ${pub}`, myra, iso(NOW - WEEK_MS)).n
     expect(week).toBeGreaterThan(100) // the pinned sources posts, the reply and two submissions
@@ -164,9 +164,9 @@ describe('/@myra', () => {
     const short = await body(await get(env, '/@myra'))
     const rows = (h: string) => (h.split('<tbody>')[1].split('</tbody>')[0].match(/<tr>/g) ?? []).length
     expect(rows(short)).toBe(SHOWN)
-    expect(short).toContain('<a href="/@myra?all=1">show all 101</a>')
-    expect(short).toContain('<a href="/@myra?all=1">show all 100</a>') // created: the 100 seeded shwarms
-    expect(rows(await body(await get(env, '/@myra?all=1')))).toBe(101)
+    expect(short).toContain('<a href="/@myra?all=1">show all 99</a>')
+    expect(short).toContain('<a href="/@myra?all=1">show all 98</a>') // created: the 98 seeded shwarms
+    expect(rows(await body(await get(env, '/@myra?all=1')))).toBe(99)
   })
 
   it('has no email, password hash or other private data in the page', async () => {
@@ -241,7 +241,7 @@ describe('the name view', () => {
     expect(m07).toContain('found it. the neighbor lookup rounds toward zero')
     expect(m07).toContain('submission #2')
     const bare = await body(await get(env, '/@myra?as=@myra'))
-    expect(bare).toContain('where this pitch comes from:') // the 100 pinned sources posts, newest first
+    expect(bare).toContain('where this pitch comes from:') // the 98 pinned sources posts, newest first
     expect(bare).not.toContain("confirmed finn's diagnosis")
   })
 

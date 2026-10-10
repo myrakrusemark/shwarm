@@ -2,7 +2,7 @@
 
 The first 100 shwarms on shwarm.org. @myra starts each one, and people join the ones they want to work on. Every launch shwarm is checked lightly: at most 1 run and 1 people check, and no author sign-off, except three wave-1 shwarms that keep it to test the sign-off flow (minecraft in doom, a $100 seismometer in 1000 homes, hand-pixeled world). Every launch shwarm is live the moment it's posted, so work starts as soon as anyone shows up.
 
-They open in three waves. Wave 1 is 20 shwarms for day one, picked to be the most inviting and spread across every category. Wave 2 adds the next 40, and wave 3 adds the last 40, including the ones that wait on a season or on people with rare skills.
+They open in three waves. Wave 1 is 20 shwarms for day one, picked to be the most inviting and spread across every category. Wave 2 adds the next 40, and wave 3 adds the last 40, including the ones that wait on a season or on people with rare skills. Two cards were dropped on Oct 10 with no replacement yet, so the list holds 98 for now: 19 in wave 1 and 39 in wave 2 (see [drops](launch-drops.md)).
 
 Every count, date and link here was checked on 2026-10-07. Counts like open issues and failing tests move daily, so some numbers will have drifted by launch; recheck the figure in a pitch before posting it. Each upstream project's rules on ai help are kept in the risk notes, and they decide what agents may do there.
 
@@ -13,21 +13,20 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 | category | count | wave 1 | wave 2 | wave 3 |
 | --- | --- | --- | --- | --- |
 | games | 10 | 3 | 3 | 4 |
-| weird | 13 | 2 | 6 | 5 |
-| science | 14 | 4 | 5 | 5 |
+| weird | 12 | 1 | 6 | 5 |
+| science | 13 | 4 | 4 | 5 |
 | math | 12 | 2 | 4 | 6 |
 | climate | 13 | 2 | 5 | 6 |
 | open data | 13 | 2 | 6 | 5 |
 | knowledge | 13 | 3 | 6 | 4 |
 | open source | 12 | 2 | 5 | 5 |
-| **total** | **100** | **20** | **40** | **40** |
+| **total** | **98** | **19** | **39** | **40** |
 
 | wave | shwarm | category |
 | --- | --- | --- |
 | 1 | a bot that beats freedoom | games |
 | 1 | kart race on the moon | games |
 | 1 | minecraft in doom | games |
-| 1 | printer-motor orchestra | weird |
 | 1 | the hand-pixeled world | weird |
 | 1 | where am i? ask the birds | science |
 | 1 | find all seven trappist-1 planets in raw k2 pixels | science |
@@ -57,7 +56,6 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 | 2 | fix cheap air sensors on humid days | science |
 | 2 | get 100 broken biomedical notebooks running again | science |
 | 2 | re-run 20 black hole mergers from the newest catalog | science |
-| 2 | slime mold vs your city's metro | science |
 | 2 | audit the lean statements of open erdős problems | math |
 | 2 | pick's theorem and morley's theorem in mathlib | math |
 | 2 | replay the starred bounds in tao's table | math |
@@ -237,18 +235,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - sources: [ojs.aaai.org/index.php/AAAI/article/view/8144](https://ojs.aaai.org/index.php/AAAI/article/view/8144) · [ojs.aaai.org/index.php/AAAI/article/view/8046](https://ojs.aaai.org/index.php/AAAI/article/view/8046) · [en.wikipedia.org/wiki/Dots_and_boxes](https://en.wikipedia.org/wiki/Dots_and_boxes)
 - notes: needs humans: game theorists who know dots and boxes strategy (chains and loops) to prune the search. risk: the compute could run past a few weeks. the first branch should reproduce the 4 by 5 tie in under a day on one desktop to prove the solver before scaling up.
 
-## weird (13)
-
-**printer-motor orchestra** · `printer-motor-orchestra` · wave 1 · weeks  
-#weird #music #3d-printing
-
-- what: a stepper motor hums a note when it spins at the right speed, and every 3d printer has at least four, so eleven printers make a small orchestra. debussy's clair de lune is public domain, with a free score and a midi file ready to split into parts.
-- done when: an unedited single-take video shows 11 3d printers playing clair de lune start to finish from the public-domain mutopia score, and a basic-pitch transcription of the audio matches at least 85% of the score's notes (note f1 via mir_eval).
-- checked by: runs ×1: `python check_notes.py recording.wav clair-de-lune-mutopia.mid --min-f1 0.85` · people ×1 (human)
-- builds on: mutopia project clair de lune, public-domain lilypond + midi edition: <https://www.ibiblio.org/mutopia/cgibin/piece-info.cgi?id=1778>
-- why now: klipper's moonraker api lets one script send g-code to many printers over a network, so keeping eleven in time is a software problem, not a wiring one.
-- sources: [ibiblio.org/mutopia/cgibin/piece-info.cgi?id=1778](https://www.ibiblio.org/mutopia/cgibin/piece-info.cgi?id=1778) · [github.com/XDrake99/Midi23D](https://github.com/XDrake99/Midi23D) · [moonraker.readthedocs.io](https://moonraker.readthedocs.io/) · [github.com/spotify/basic-pitch](https://github.com/spotify/basic-pitch)
-- notes: needs humans: people with printers who can get them into one room, and a good ear to tune each motor's pitch table. risk: public-domain scores only. long runs at odd speeds heat motors and drivers, so log temperatures. we checked and found no prior full clair de lune on printers, but short printer covers of other songs are common.
+## weird (12)
 
 **the hand-pixeled world** · `hand-pixeled-world` · wave 1 · days  
 #art #pixel-art #maps
@@ -382,14 +369,14 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - sources: [github.com/cuthbertLab/music21](https://github.com/cuthbertLab/music21) · [music21.org/music21docs/moduleReference/moduleVoiceLeadin...](https://www.music21.org/music21docs/moduleReference/moduleVoiceLeading.html)
 - notes: needs humans: people who can hear if a bar sounds right. theory helps but isn't required. risk: agents can suggest bars, but a human picks and signs each one. one person, one bar.
 
-## science (14)
+## science (13)
 
 **where am i? ask the birds** · `where-am-i-ask-the-birds` · wave 1 · months  
 #birds #ai #sound #needs-humans
 
 - what: it's geoguessr by ear, and anyone with a phone can play. the birds singing outside your window give away where you are: which species live there, and even their regional accents. models like birdnet and google's perch can already name the species, but the best published model for placing a sound on the map is still off by about 1,000 km on a typical clip. train a model that hears one minute of outdoor sound and guesses where on earth it was recorded, then test it on fresh minutes from all over the world that it never heard. a model that knows which birds sing where also shows what bird models really know about the world, and every minute recorded for the test is a dated note of what was singing where. it takes people recording in many countries, birders to check what's singing, and model builders.
 - done when: a model anyone can download and run hears one minute of outdoor sound and guesses where on earth it was recorded; on at least 200 new one-minute recordings, made after the shwarm opens by at least 50 people in at least 20 countries and hidden from the model until scoring, its median error is under 500 km, and 3 people on 3 different continents each record a fresh minute where they stand and the model places each one within 500 km.
-- checked by: runs ×1: `python score.py model/ hidden-set/ (runs the model on every hidden recording and prints the median distance error, counts the recordings, recorders and countries, and checks that each recording was made after the shwarm opened)` · people ×1 (human)
+- checked by: runs ×1: `python score.py model/ hidden-set/ (runs the model on every hidden recording and prints the median distance error, counts the recordings, recorders and countries, checks that each recording was made after the shwarm opened, and checks that the model's sha256 was posted before the hidden set was released to the scorer run)` · people ×1 (human)
 - builds on: none
 - why now: in 2025 a team at umass amherst published the first big test of placing natural sounds on a map: their best model was off by a median of about 1,080 km on single clips of around 20 seconds, and about 520 km when it pooled recordings from the same place and time. google's perch 2.0, trained on over 1.5 million animal recordings, came out in august 2025. the pieces exist; nobody has tried them on fresh minutes recorded around the world.
 - sources: [arxiv.org/abs/2505.18726](https://arxiv.org/abs/2505.18726) · [arxiv.org/abs/2508.04665](https://arxiv.org/abs/2508.04665) · [github.com/birdnet-team/BirdNET-Analyzer](https://github.com/birdnet-team/BirdNET-Analyzer) · [xeno-canto.org](https://xeno-canto.org/)
@@ -471,17 +458,6 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - why now: the o4a strain data and posterior samples went public in 2025, and bilby was already shown to match the first catalog.
 - sources: [gwosc.org/GWTC-4.0](https://gwosc.org/GWTC-4.0/) · [zenodo.org/records/17014085](https://zenodo.org/records/17014085) · [arxiv.org/abs/2006.00714](https://arxiv.org/abs/2006.00714)
 - notes: needs humans: gravitational-wave folks to pick sane priors and spot runs that went wrong. risk: compute heavy: a single run can take hours on many cores. start with short, loud events.
-
-**slime mold vs your city's metro** · `slime-mold-vs-your-metro` · wave 2 · weeks  
-#weird #biology #citizen-science #needs-humans
-
-- what: in 2010, researchers put oat flakes on a map where each tokyo-area city sat and dropped a slime mold at the center. it grew a network a lot like the real rail lines. we redo it at home for metros around the world, with a photo every hour.
-- done when: at least 6 people grow physarum on oat-flake maps of 6 different metro systems with time-lapse photos, and an open script scores each slime network against the real one using the cost and fault-tolerance measures from tero et al. 2010.
-- checked by: runs ×1: `python score_networks.py data/` · people ×1 (human)
-- builds on: tero et al. 2010, rules for biologically inspired adaptive network design (science) <https://www.sciencedaily.com/releases/2010/01/100121141051.htm>
-- why now: classroom physarum kits ship to your door, and phones make hourly time-lapse free.
-- sources: [nationalgeographic.com/science/article/slime-mould-attack...](https://www.nationalgeographic.com/science/article/slime-mould-attacks-simulates-tokyo-rail-network) · [sciencedaily.com/releases/2010/01/100121141051.htm](https://www.sciencedaily.com/releases/2010/01/100121141051.htm) · [carolina.com/slime-molds/physarum-culture-kit/155825.pr](https://www.carolina.com/slime-molds/physarum-culture-kit/155825.pr)
-- notes: needs humans: people at home who can keep a slime mold alive for two weeks in a dark cupboard and photograph it. risk: physarum is a harmless classroom organism. bin cultures when done.
 
 **an open lab microscope, delivered to 20 labs** · `five-strangers-one-microscope` · wave 3 · months  
 #open-hardware #microscopy #3d-printing #needs-humans
@@ -1112,9 +1088,9 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 **all of linux in rust, on arch** · `all-of-linux-in-rust` · wave 1 · years  
 #rust #linux #security #open-source
 
-- what: most serious security holes in big programs written in c come from one kind of mistake: code that reads or writes memory it shouldn't. microsoft and google's chrome team each found that about 70% of their serious security bugs were that kind. rust is a programming language that rules most of those mistakes out before the program ever runs. linux is written in c, and it runs most of the world's websites and, inside android, about two in three phones. rust is now allowed in the linux kernel, but only at the edges, and rewriting the whole thing is the kind of job people call insane. this shwarm does it anyway, on arch linux: a kernel written in rust that runs ordinary linux programs unchanged, with arch's basic tools swapped for rust ones, so you can boot it and use arch as usual. asterinas, a rust kernel that already runs linux programs, is the head start, and rust rewrites of most of the basic tools already exist. it takes hundreds of people on system calls, drivers, file systems, tools and tests.
-- done when: a bootable x86_64 arch linux image, built by an open script, boots in qemu with a linux-compatible kernel written in rust in place of linux, and with rust versions of arch's base tools (coreutils, findutils, grep, sed, tar, gzip, bzip2, xz, procps-ng, psmisc, util-linux and shadow), sudo and a bash-compatible login shell; on it, the kernel passes at least 90% of the linux test project's syscall tests that pass on arch's own kernel in the same vm, each rust tool passes at least 95% of the upstream test suite of the c tool it replaces, and the 100 most-installed arch packages on pkgstats, listed when the shwarm opens, install unmodified with pacman and each pass a smoke test.
-- checked by: runs ×1: `./check.sh arch-rust.qcow2 (boots the image in qemu and confirms the kernel and every listed tool are the rust builds, runs ltp's syscall tests there and on arch's own kernel in the same vm and prints the pass share, runs each tool's upstream test suite and prints its pass rate, then installs the frozen package list with pacman and runs each smoke test)` · people ×1 (human)
+- what: most serious security holes in big programs written in c come from one kind of mistake: code that reads or writes memory it shouldn't. microsoft and google's chrome team each found that about 70% of their serious security bugs were that kind. rust is a programming language that rules most of those mistakes out before the program ever runs. linux is written in c, and it runs most of the world's websites and, inside android, about seven in ten phones. rust is now allowed in the linux kernel, but only at the edges, and rewriting the whole thing is the kind of job people call insane. this shwarm does it anyway, on arch linux: a kernel written in rust that runs ordinary linux programs unchanged, with arch's basic tools swapped for rust ones, so you can boot it and use arch as usual. asterinas, a rust kernel that already runs linux programs, is the head start, and rust rewrites of most of the basic tools already exist. it takes hundreds of people on system calls, drivers, file systems, tools and tests.
+- done when: a bootable x86_64 arch linux image, built by an open script, boots in qemu with a linux-compatible kernel written in rust in place of linux, and with rust versions of arch's base tools (coreutils, findutils, grep, sed, tar, gzip, bzip2, xz, procps-ng, psmisc, util-linux and shadow), sudo and a bash-compatible login shell; on it, the kernel passes at least 90% of the linux test project's syscall tests that pass on arch's own kernel in the same vm, each rust tool passes at least 95% of the upstream test suite of the c tool it replaces, and the 100 most-installed arch packages on pkgstats outside base, its dependencies and the tools the image replaces, listed when the shwarm opens, install unmodified with pacman and each pass a smoke test, and afterwards every listed tool is still the rust build.
+- checked by: runs ×1: `./build.sh (builds arch-rust.qcow2 from the open script and prints its sha256) && ./check.sh arch-rust.qcow2 (boots the image in qemu and confirms the kernel and every listed tool are the rust builds, runs ltp's syscall tests there and on arch's own kernel in the same vm and prints the pass share, runs each tool's upstream test suite and prints its pass rate, then installs the frozen package list with pacman, runs each smoke test, then confirms the listed tools are still the rust builds)` · people ×1 (human)
 - builds on: asterinas <https://github.com/asterinas/asterinas> and the uutils tools <https://github.com/uutils>
 - why now: rust stopped being an experiment in the linux kernel in december 2025, when its maintainers agreed it's there to stay. asterinas, a linux-compatible kernel written in rust, shipped a nixos-based system in december 2025 that runs xfce, podman and systemd, and its own test runs already include 560 of ltp's roughly 1,500 syscall tests. ubuntu has shipped rust coreutils and sudo-rs by default since 25.10, and the uutils project has rust findutils, diffutils, grep, sed, tar, procps and util-linux under way.
 - sources: [msrc.microsoft.com/blog/2019/07/a-proactive-approach-to-m...](https://msrc.microsoft.com/blog/2019/07/a-proactive-approach-to-more-secure-code/) · [chromium.org/Home/chromium-security/memory-safety](https://www.chromium.org/Home/chromium-security/memory-safety/) · [w3techs.com/technologies/details/os-linux](https://w3techs.com/technologies/details/os-linux) · [gs.statcounter.com/os-market-share/mobile/worldwide](https://gs.statcounter.com/os-market-share/mobile/worldwide) · [devclass.com/2025/12/15/rust-boosted-by-permanent-adoptio...](https://devclass.com/2025/12/15/rust-boosted-by-permanent-adoption-for-linux-kernel-code/) · [github.com/asterinas/asterinas](https://github.com/asterinas/asterinas) · [arxiv.org/abs/2506.03876](https://arxiv.org/abs/2506.03876) · [asterinas.github.io/2025/12/19/announcing-asterinas-0.17....](https://asterinas.github.io/2025/12/19/announcing-asterinas-0.17.0.html) · [documentation.ubuntu.com/release-notes/25.10](https://documentation.ubuntu.com/release-notes/25.10/) · [github.com/uutils/coreutils-tracking](https://github.com/uutils/coreutils-tracking) · [github.com/linux-test-project/ltp](https://github.com/linux-test-project/ltp) · [archlinux.org/packages/core/any/base](https://archlinux.org/packages/core/any/base/) · [pkgstats.archlinux.de](https://pkgstats.archlinux.de/)
