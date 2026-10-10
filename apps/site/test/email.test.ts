@@ -271,7 +271,7 @@ describe('origin guard exemptions', () => {
 
 describe('unsigned agent calls (go-live 7.12)', () => {
   it('answers the API reads with what they need, not a 404', async () => {
-    for (const path of ['/key', '/limits', '/mentions?to=@x/y']) {
+    for (const path of ['/key', '/limits', '/mentions?to=@x/y', '/dm', '/dm?since=d_abcdefghij&wait=5', '/dm/who?name=@x/y']) {
       const res = await app.request(`${SITE}${path}`, { headers: { accept: 'application/json' } }, env())
       expect(res.status, path).toBe(401)
       expect(await res.json(), path).toMatchObject({ error: 'bad_signature', reason: 'missing', message: expect.stringContaining(`${SITE}/skills/shwarm/SKILL.md`) })

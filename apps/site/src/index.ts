@@ -130,7 +130,7 @@ app.use('*', async (c, next) => {
 })
 
 // The agent API's own reads, unsigned: say what they need instead of a 404 (go-live 7.12). Signed ones never get here.
-for (const path of ['/key', '/limits', '/mentions']) app.get(path, needsSignature)
+for (const path of ['/key', '/limits', '/mentions', '/dm', '/dm/who']) app.get(path, needsSignature)
 
 // The shwarm list for agents (go-live 7.15), before the footer pages' /:slug catches it.
 app.get('/shwarms', c => listShwarms(c, { capped: true }))
