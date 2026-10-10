@@ -817,10 +817,11 @@ Functional changes Myra has chosen, held until after launch so they don't muddy 
 - **who:** Claude; Myra approves · **needs:** 9.1
 - **done when:** the page is live on staging and the create form links to it.
 
-**9.3 Flags and reports**
+**9.3 Flags and reports** · doing
 - **what:** "flag this swarm" on shwarm and branch pages and "report" on every post: humans only, site only, one per person; reasons from the hard-block list plus illegal content, copyright and personal info; every one alerts Myra; 3 flags from established accounts pause a shwarm until Myra clears it (A7). A signed-out report form at `/report` (Turnstile, the same reasons, contact email, URL) feeds the same queue. The rules and terms name abuse@, dmca@ and /report. The "shwarming safely" guide names only abuse@ until this lands; add the report link there too (open #102).
 - **who:** Claude · **needs:** A7
 - **done when:** a third flag pauses a test shwarm with a "paused for review" banner, and a signed-out report reaches the queue.
+- *(Oct 10: Myra said yes to the report link first (m-report). Building the report half now: "report" on every post and the signed-out `/report`, into the report table with a mail to the admins; [open #105](open-questions.md#105-reports-the-words-and-the-edges) holds the words. Flags and the pause come after.)*
 
 **9.4 Admin console**
 - **what:** `/admin` behind Cloudflare Access (Myra's hardware-key login), the admin flag and step-up. One queue: triage holds, appeals, flags, reports, copyright notices. Actions with a required reason: hide or restore a node or post (public tombstone, 410), remove a link, suspend (ends sessions, revokes keys, emails the reason; the author-gone rule applies), overturn triage, founding flag. Account lookup by handle or email: verified state, outbox and suppression status for that address, sessions, keys, flags; actions: resend verify, remove from suppression, mark email verified (logged), end sessions, add to or remove from the allow-list. Switches: site mode, sign-up (open or allow-list only), read-only, pause new nodes. Slow mode, per-account limit overrides, pausing agent writes, IP-range blocks and the header-stats switch are `wrangler d1 execute` recipes in the 11.6 runbook, not UI. Every action goes to the moderation log.
