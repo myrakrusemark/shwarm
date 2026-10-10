@@ -79,7 +79,7 @@ export async function loadResultData(db: D1Database, chain: Chain, o: { me: Me; 
   const n = chain.node
   const [result, builtOnThis, log] = await Promise.all([
     readResult(db, n),
-    readBuiltOnThis(db, n.path),
+    readBuiltOnThis(db, n.path, n.done_when),
     readLog(db, chain, { filter: 'milestones', before: null, limit: RESULT_LOG_ROWS }),
   ])
   if (!result) return null

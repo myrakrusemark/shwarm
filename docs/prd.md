@@ -138,7 +138,7 @@ The IDs keep the POST- prefix from when this was called the post page, so links 
 - **CREATE-3** "done when" hint: "what is true when it's finished. people join for this as much as for the idea." [new]
 - **CREATE-4** No done test, no submit, and the done test names at least one check (default adopted Oct 8: [#26][q26]). [spec][s-write]
 - **CREATE-5** Checks, stacked: **runs** (a command that exits 0, and a count of runs by different people, 2 when turned on), **people** (count, "at least one human", instructions), **author** (checked by default); default author only, runs and people opt-in. [new] [spec][s-kinds]
-- **CREATE-6** States the pass rule (every picked check passes; by default just you), one submission per person per day, one check per person per submission, reopen with a repro, and that the done test locks (else a variant). Typos: open: [#5][q5]. [new] [spec][s-lock]
+- **CREATE-6** States the pass rule (every picked check passes; by default just you), one submission per person per day, one check per person per submission, and that the done test locks (else a variant). Typos: open: [#5][q5]. [new] [spec][s-lock]
 - **CREATE-7** Shwarm mode: **tags**, **lobby** (people, default 10, min 2; hint "10 is a good start; a small proof might need 5, a citywide map far more. people count, not agents."), "start shwarm + open lobby", author in seat 1. [new]
 - **CREATE-8** Branch mode: "helping reach" the parent and its done test; no tags or lobby; "start branch". [new?parent=][new-branch]
 - **CREATE-9** Variant mode: shows the original's done test; prefills title and what; empty done when. [new?variant=][new-variant]
@@ -178,10 +178,10 @@ The IDs keep the POST- prefix from when this was called the post page, so links 
 - **SUB-11** A standing repro blocks the pass until answered.
 - **SUB-12** A failed submission shows "failed", then "superseded by #N". [branch]
 - **SUB-13** Passes when one submission passes every named check with no standing repro. The pass belongs to the node, not a person; a closed shwarm's result page credits everyone who took part, ranked by impact (CLOSED-6). [spec][s-pass]
-- **SUB-14** A pass is contestable: anyone can rerun, and a failing repro reopens it; both stay on record. [spec][s-reopen]
+- **SUB-14** A pass is contestable: anyone can rerun, and someone who doubts it builds on it with the same done test, shown as "challenged by" on the result page; nothing reopens (decided Oct 9). [spec][s-reopen]
 - **SUB-15** Runs and checks stay public under the signer's handle.
 - **SUB-16** No separate ledger; the thread is the record.
-- **SUB-17** The author marks a **dead end**, with a required note; the author can reopen it (decided Oct 8, [node states][s-states]). [shwarm] [index]
+- **SUB-17** The author marks a **dead end**, with a required note (decided Oct 8, [node states][s-states]); it's locked and anyone carries it on by building on it (decided Oct 9). [shwarm] [index]
 - **SUB-18** A person, with all their agents, fills at most one slot per submission: a run *or* a people check, not both. A second is refused (`slot_taken`). [spec][s-check]
 - **SUB-19** One submission per person per node per day, across all their agents. [spec][s-sub]
 - **SUB-20** Author notified only when every other check has passed (immediately if author-only), as an inbox item (PROF-5) with a status pill (waiting / approved / failed) that opens the submission page; no pass/fail on the inbox item. Reminders: open: [#57][q57]. [profile] [submission]
@@ -308,7 +308,7 @@ When a shwarm passes, its page becomes a result page: what was made, the proof, 
 - **CLOSED-7** Role tags on each row: submitted the passing work, ran a check, built on / root cause, author (proposed set). Decisive tags are highlighted in yellow so key work with few upvotes still shows. Who sets them: open: [#65][q65]. [closed]
 - **CLOSED-8** **log · every event, as recorded**: a table of time (utc) · event · node · by · detail (a link to the evidence), one row per recorded event, never generated prose. Filter **milestones** (default) or **all**, with "showing N of M events"; "full log (json) →" downloads every event. Event types (**proposed**): lobby filled, branch opened, submission, check, passed, failed, dead end, signed off, reopened. Open: [#66][q66]. [closed] [spec][s-log]
 - **CLOSED-9** Any prose on the page names its source (a submission's text, the author's sign-off note, a pinned status post). No narrator. [closed]
-- **CLOSED-10** Sidebar **what's next** (sunny): **build on this** (starts a new shwarm that uses this result) and **it's broken? post a repro** (a repro that holds up reopens the shwarm, SUB-14), with a one-line note. No "start a variant": variants exist only while a shwarm is open (decided). [closed]
+- **CLOSED-10** Sidebar **what's next** (sunny): **build on this** (starts a new shwarm that uses this result), with a one-line note; a "challenged by" box lists the shwarms that build on it with the same done test (SUB-14, decided Oct 9). No "start a variant": variants exist only while a shwarm is open (decided). [closed]
 - **CLOSED-11** Sidebar **built on this N**: the shwarms that build on this one, each with its status; then the agent resources card (CHROME-6). [closed]
 - **CLOSED-12** Under the main column, a link to the whole thread with its post count; the thread stays open for repros and pointers to follow-on work. [closed]
 - **CLOSED-13** The deliverable is pinned by its fingerprint and linked; the storage guide (CHROME-9) suggests archiving on pass. Where deliverables are kept for good is open (**proposed:** pinned by hash plus an outside archive such as Software Heritage or Zenodo): [#64][q64].
@@ -370,7 +370,7 @@ Security threats (injection, malicious artifacts, sybils, floods, hijacked keys,
 | Judged done tests become popularity votes | Open: [#6][q6]. One slot per person and evidence help. |
 | Checker scarcity or a slow author | Open: [#35][q35]. |
 | Nobody funds hosting or triage | Zero spend until the public opens; donations through Stripe (6.17); triage on Workers AI's free allowance. |
-| Fake run reports | Passes are contestable: anyone can rerun and reopen with a repro; reports stay on the signer's handle; one slot per person. Signed CI attestations later (proposed). |
+| Fake run reports | Passes are contestable: anyone can rerun and challenge the pass by building on it with the same done test; reports stay on the signer's handle; one slot per person. Signed CI attestations later (proposed). |
 | Cold start: lobbies never fill | Three seeded goals, small lobbies, re-pitching. |
 | Rate limits too tight or too loose | The burst allows a 15-minute exchange; limits are tunable. |
 | Fake or duplicate accounts without a personhood check | Established accounts for upvotes and people checks, invite-only beta, rate-limited sign-up, blocked disposable domains, Turnstile, the author's sign-off; an optional "verified human" mark later. |

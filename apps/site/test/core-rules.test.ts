@@ -490,41 +490,65 @@ describe('author sign-off and passing', () => {
   })
 })
 
-describe('dead ends and reopening', () => {
-  it('reopens a closed node when a repro is posted on the passing submission, keeping the pass on record', async () => {
+describe('dead ends, and an ended node is locked (decided Oct 9)', () => {
+  /** Every act an ended node refuses, by someone who could do it on a live one; each answers shwarm_closed and writes nothing. */
+  async function expectLocked(path: string, o: { own: string; sub: string; state: 'closed' | 'dead_end' }) {
+    const before = { posts: w.all('SELECT COUNT(*) AS n FROM post')[0].n, checks: w.all('SELECT COUNT(*) AS n FROM check_report')[0].n, events: w.events(path).length }
+    const closed = { node: path, state: o.state }
+    await refused(w.post(site(finn), path, 'is this really done?'), 'shwarm_closed', closed)
+    await refused(w.post(site(finn), path, 'agreed', { replyTo: o.own }), 'shwarm_closed', closed)
+    await refused(w.post(site(myra), path, 'where we are: done', { pin: true }), 'shwarm_closed', closed)
+    await refused(w.post(agent(finn), path), 'shwarm_closed', closed)
+    await refused(w.run({ type: 'editPost', actor: site(myra), input: { node: path, post: o.own, text: 'changed my mind' } }), 'shwarm_closed', closed)
+    await refused(w.run({ type: 'deletePost', actor: site(myra), input: { node: path, post: o.own } }), 'shwarm_closed', closed)
+    await refused(w.join(site(finn), path), 'shwarm_closed', closed)
+    await refused(w.run({ type: 'leave', actor: site(lumpy), input: { node: path } }), 'shwarm_closed', closed)
+    await refused(w.submit(agent(finn), path), 'shwarm_closed', closed)
+    await refused(w.pass(site(finn), path, o.sub), 'shwarm_closed', closed)
+    await refused(w.fail(site(finn), path, o.sub), 'shwarm_closed', closed) // no repro reopens it
+    await refused(w.fail(agent(finn), path, o.sub), 'shwarm_closed', closed)
+    expect(w.node(path).state).toBe(o.state)
+    expect({ posts: w.all('SELECT COUNT(*) AS n FROM post')[0].n, checks: w.all('SELECT COUNT(*) AS n FROM check_report')[0].n, events: w.events(path).length }).toEqual(before)
+  }
+
+  it('keeps a passed node passed: it takes nothing new, and no repro reopens it', async () => {
     await live({ people: 1 })
+    await w.join(site(lumpy), MID)
+    const own = await w.post(site(myra), MID, 'where we are: one submission in')
     const s = await w.submit(agent(kestrel), MID)
     await w.pass(site(lumpy), MID, s.id)
     expect(w.node(MID).state).toBe('closed')
-    await w.post(site(finn), MID, 'nice work') // the thread stays open
-    const r = await w.fail(agent(finn), MID, s.id)
-    expect(r).toMatchObject({ verdict: 'fail', submission_state: 'passed', node_state: 'live' })
-    expect(w.node(MID)).toMatchObject({ state: 'live', closed_at: null })
-    expect(w.events(MID).map(e => e.event)).toEqual(['submission', 'check', 'passed', 'check', 'reopened'])
-    expect(w.events(MID, 'reopened')[0]).toMatchObject({ by_name: '@finn_irl/m-04', submission_id: s.id, milestone: 1 })
-    // a new submission can pass it again
-    const s2 = await w.submit(agent(lumpy), MID)
-    expect((await w.pass(site(finn), MID, s2.id)).node_state).toBe('closed')
+    const e = await refused(w.post(site(finn), MID), 'shwarm_closed')
+    expect(e.message).toBe(`${MID} passed. it's locked: it takes nothing new`)
+    await expectLocked(MID, { own: own.id, sub: s.id, state: 'closed' })
+    expect(w.sub(s.id).status).toBe('passed')
+    expect(w.events(MID, 'reopened')).toEqual([])
+    // OPEN (#92): upvotes on its posts still count
+    expect((await w.run({ type: 'upvote', actor: site(finn), input: { node: MID, post: own.id } })).up).toBe(true)
   })
 
-  it('lets only the author mark a dead end, with a note, and reopen it', async () => {
-    await live()
+  it('lets only the author mark a dead end, with a note; a dead end is locked the same way, for good', async () => {
+    await live({ people: 1 })
+    await w.join(site(lumpy), MID)
+    const own = await w.post(site(myra), MID, 'where we are: stuck on geometry')
+    const s = await w.submit(agent(kestrel), MID)
     await refused(w.run({ type: 'deadEnd', actor: site(kestrel), input: { node: MID, note: 'x' } }), 'not_permitted', { need: 'author' })
     await refused(w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: MID, note: '  ' } }), 'bad_request')
     const r = await w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: MID, note: 'gzdoom caps dynamic geometry; 60 fps is out of reach.' } })
     expect(r.state).toBe('dead_end')
     expect(w.node(MID)).toMatchObject({ state: 'dead_end', dead_end_note: 'gzdoom caps dynamic geometry; 60 fps is out of reach.' })
     expect(w.get('SELECT kind, text FROM post WHERE id = ?', r.post)).toMatchObject({ kind: 'dead_end' })
-    await refused(w.submit(agent(kestrel), MID), 'shwarm_closed')
-    await refused(w.run({ type: 'reopen', actor: site(kestrel), input: { node: MID } }), 'not_permitted')
-    expect((await w.run({ type: 'reopen', actor: stepped(myra), input: { node: MID } })).state).toBe('live')
-    expect(w.node(MID)).toMatchObject({ state: 'live', dead_end_note: null })
-    expect(w.events(MID).map(e => e.event)).toEqual(['dead_end', 'reopened'])
+    const e = await refused(w.submit(agent(kestrel), MID), 'shwarm_closed')
+    expect(e.message).toBe(`${MID} is a dead end. it's locked: it takes nothing new`)
+    await expectLocked(MID, { own: own.id, sub: s.id, state: 'dead_end' })
+    // nothing reopens it: there is no such command, and marking it again is refused
+    await refused(w.run({ type: 'reopen', actor: stepped(myra), input: { node: MID } } as any), 'bad_request')
+    await refused(w.deadEnd(myra, MID), 'shwarm_closed')
+    expect(w.events(MID).map(e => e.event)).toEqual(['submission', 'dead_end'])
   })
 
-  it('lets a shwarm be a dead end the minute it is posted; a live one has nothing to reopen', async () => {
+  it('lets a shwarm be a dead end the minute it is posted', async () => {
     await w.shwarm(site(myra))
-    await refused(w.run({ type: 'reopen', actor: stepped(myra), input: { node: MID } }), 'bad_request')
     expect((await w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: MID, note: 'x' } })).state).toBe('dead_end')
   })
 
@@ -584,7 +608,25 @@ describe('creating nodes: what other trees and the seed import can change', () =
     expect(w.node(MID).seeded).toBe(0)
   })
 
-  it('refuses builds_on when the upstream reopens before the create commits', async () => {
+  it('builds on a shwarm that passed or is a dead end, never on a live one (decided Oct 9)', async () => {
+    await live({ people: 1 })
+    const clear = () => w.db.raw.prepare("UPDATE node SET triage = 'clear'").run() // others see them
+    clear()
+    const e = await refused(w.shwarm(site(finn), { title: 'speedruns', buildsOn: MID }), 'bad_request')
+    expect(e.message).toBe(`${MID} is still live. a shwarm is built on once it passed or is a dead end`)
+    await w.deadEnd(myra, MID)
+    expect(await w.shwarm(site(finn), { title: 'speedruns', buildsOn: MID })).toMatchObject({ kind: 'shwarm', state: 'live', license: 'MIT+CC-BY-4.0' })
+    expect(w.node('speedruns').builds_on).toBe(JSON.stringify({ node: MID }))
+    // the guard inside the batch takes a dead end too
+    await w.shwarm(site(myra), { title: 'other', check: { people: 1 } })
+    const s = await w.submit(agent(kestrel), 'other')
+    await w.pass(site(lumpy), 'other', s.id)
+    clear()
+    beforeNextBatch(() => w.db.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'x' WHERE path = 'other'").run())
+    expect(await w.shwarm(site(lumpy), { title: 'other 2', buildsOn: 'other' })).toMatchObject({ kind: 'shwarm' })
+  })
+
+  it('refuses builds_on when the upstream goes back to live before the create commits (a reopen before Oct 9)', async () => {
     await live({ people: 1 })
     const s = await w.submit(agent(kestrel), MID)
     await w.pass(site(lumpy), MID, s.id)
@@ -606,18 +648,19 @@ describe('creating nodes: what other trees and the seed import can change', () =
   })
 })
 
-describe('an author fail after a reopen', () => {
+describe('an author fail on a node reopened before Oct 9', () => {
   it('resets checks only on submissions that never passed, and leaves the old pass on record', async () => {
     await live() // author only
     const s1 = await w.submit(agent(kestrel), MID)
     await w.signOff(myra, MID, s1.id, 'pass', { text: 'played it, works' })
     expect(w.node(MID).state).toBe('closed')
-    await w.fail(site(lumpy), MID, s1.id) // the repro that reopens it
-    expect(w.node(MID).state).toBe('live')
+    // A node a repro reopened before nothing reopened (decided Oct 9): live again, its pass on record.
+    w.db.raw.prepare("UPDATE node SET state = 'live', closed_at = NULL WHERE path = ?").run(MID)
+    await refused(w.fail(site(lumpy), MID, s1.id), 'bad_request') // the old pass takes no checks
     const s2 = await w.submit(agent(finn), MID)
     expect((await w.signOff(myra, MID, s2.id, 'fail')).node_checks).toBe('reset')
-    // #1's sign-off and the repro that reopened the node stand
-    expect(w.all('SELECT reset_at FROM check_report WHERE submission_id = ?', s1.id).map(c => c.reset_at)).toEqual([null, null])
+    // #1's sign-off stands
+    expect(w.all('SELECT reset_at FROM check_report WHERE submission_id = ?', s1.id).map(c => c.reset_at)).toEqual([null])
     expect(w.sub(s1.id).status).toBe('passed')
     // and the author can't fail the passed submission now
     await refused(w.signOff(myra, MID, s1.id, 'fail'), 'bad_request')
@@ -634,8 +677,6 @@ describe('the in review flag and the ETag', () => {
     expect(w.node(MID).in_review).toBe(1)
     await w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: MID, note: 'the engine cannot do it' } })
     expect(w.node(MID)).toMatchObject({ state: 'dead_end', in_review: 0 })
-    await w.run({ type: 'reopen', actor: stepped(myra), input: { node: MID } })
-    expect(w.node(MID)).toMatchObject({ state: 'live', in_review: 1 }) // the submission is still waiting
   })
 
   it('changes the version on every write a signed-out view shows: posts, joins, leaves', async () => {
@@ -708,13 +749,10 @@ describe('the sign-off is asked for by name, behind the password (A5)', () => {
     expect((await w.signOff(myra, MID, s.id)).submission_state).toBe('passed')
   })
 
-  it('gates dead ends and reopening on the step-up too; the seed import is exempt', async () => {
+  it('gates dead ends on the step-up too; the seed import is exempt', async () => {
     await live()
     await refused(w.deadEnd(site(myra), MID), 'not_permitted', { need: 'step_up' })
     await refused(w.deadEnd(site(kestrel), MID), 'not_permitted', { need: 'author' }) // not the author: said first
-    await w.deadEnd(myra, MID)
-    await refused(w.reopen(site(myra), MID), 'not_permitted', { need: 'step_up' })
-    expect((await w.reopen(myra, MID)).state).toBe('live')
     expect((await w.deadEnd(seed(myra), MID)).state).toBe('dead_end')
   })
 })
@@ -755,25 +793,22 @@ describe('author gone: the operator signs off (table B)', () => {
   })
 })
 
-describe('a closed node takes only a repro on the submission that passed (A25, A11)', () => {
-  it('refuses a pass, and any check on another submission, with shwarm_closed', async () => {
+describe('a closed node takes no checks, not even a repro (decided Oct 9)', () => {
+  it('refuses a pass, a fail and a failing run on any submission, with shwarm_closed', async () => {
     await live({ runs: { command: './soak.sh', count: 1 }, people: 1 })
     const s1 = await w.submit(agent(kestrel), MID)
     const s2 = await w.submit(agent(lumpy), MID) // supersedes #1
     await w.runReport(agent(finn), MID, s2.id, s2.hash)
     expect((await w.pass(site(myra), MID, s2.id)).node_state).toBe('closed')
     const tall = await person(w.db, 'tallgrass')
-    const closed = { node: MID }
+    const closed = { node: MID, state: 'closed' }
     await refused(w.pass(site(tall), MID, s2.id), 'shwarm_closed', closed)
     await refused(w.runReport(agent(tall), MID, s2.id, s2.hash), 'shwarm_closed', closed) // exit 0 is a pass
+    await refused(w.runReport(agent(tall), MID, s2.id, s2.hash, 1), 'shwarm_closed', closed) // a failing run reopens nothing
+    await refused(w.fail(site(tall), MID, s2.id), 'shwarm_closed', closed)
     await refused(w.fail(site(tall), MID, s1.id), 'shwarm_closed', closed)
-    const e = await refused(w.pass(site(tall), MID, s1.id), 'shwarm_closed', closed)
-    expect(e.message).toBe(`${MID} passed on #2. it takes only a repro on #2, which reopens it`)
     expect(w.all('SELECT COUNT(*) AS n FROM check_report')[0].n).toBe(2)
-    // a failing run is a repro too: it reopens the node
-    const r = await w.runReport(agent(tall), MID, s2.id, s2.hash, 1)
-    expect(r).toMatchObject({ verdict: 'fail', node_state: 'live', submission_state: 'passed' })
-    expect(w.events(MID, 'reopened')).toHaveLength(1)
+    expect(w.node(MID).state).toBe('closed')
   })
 })
 
@@ -848,7 +883,7 @@ describe('ready for the author: the inbox item and the mail (go-live 5.4)', () =
     expect(mails()).toHaveLength(1)
   })
 
-  it('takes the item off while the node is a dead end and puts it back on reopen, with no second mail', async () => {
+  it('takes the item off for good when the node becomes a dead end, with no second mail', async () => {
     await live({ people: 1, author: true })
     const s = await w.submit(agent(kestrel), MID)
     await w.pass(site(lumpy), MID, s.id)
@@ -856,23 +891,9 @@ describe('ready for the author: the inbox item and the mail (go-live 5.4)', () =
     await w.deadEnd(myra, MID)
     expect(signOffs()[0].done_at).toBe(new Date(w.now).toISOString())
     w.tick(DAY)
-    await w.reopen(myra, MID)
-    expect(signOffs()).toEqual([{ person_id: myra.id, post_id: s.id, done_at: null }])
+    await refused(w.signOff(myra, MID, s.id, 'pass'), 'shwarm_closed', { node: MID, state: 'dead_end' })
+    expect(signOffs()[0].done_at).not.toBeNull()
     expect(mails()).toHaveLength(1)
-    expect((await w.signOff(myra, MID, s.id, 'pass')).submission_state).toBe('passed')
-  })
-
-  it('leaves a blocked sign-off done across a dead end and reopen', async () => {
-    await live({ people: 1, author: true })
-    const s = await w.submit(agent(kestrel), MID)
-    await w.pass(site(lumpy), MID, s.id)
-    await w.fail(site(finn), MID, s.id)
-    const blocked = signOffs()[0].done_at
-    w.tick(HOUR)
-    await w.deadEnd(myra, MID)
-    w.tick(DAY)
-    await w.reopen(myra, MID)
-    expect(signOffs()[0].done_at).toBe(blocked)
   })
 })
 
@@ -887,12 +908,11 @@ describe('every audit row links its evidence', () => {
     const s2 = await w.submit(agent(kestrel), MID)
     await w.pass(site(lumpy), MID, s2.id)
     const p2 = await w.signOff(myra, MID, s2.id, 'pass')
-    const repro = await w.fail(site(finn), MID, s2.id)
     const d = await w.deadEnd(myra, BP)
-    await w.reopen(myra, BP)
 
     const rows = w.all('SELECT event, evidence FROM audit_event ORDER BY rowid')
-    expect(new Set(rows.map(r => r.event)).size).toBe(8) // every event type written now ('lobby_filled' went with the lobby)
+    // every event type written now ('lobby_filled' went with the lobby, 'reopened' when nothing reopened, Oct 9)
+    expect(new Set(rows.map(r => r.event)).size).toBe(7)
     for (const r of rows) expect(r.evidence, r.event).toMatch(/^\/w\/[a-z0-9/-]+(\/s\/\d+)?(#[cp]_[a-z0-9]{10})?$/)
     const ev = (path: string, event: string) => w.events(path, event).map(e => e.evidence)
     expect(ev(BP, 'branch_opened')).toEqual([`/w/${BP}`])
@@ -901,8 +921,6 @@ describe('every audit row links its evidence', () => {
     expect(ev(MID, 'signed_off')).toEqual([`/w/${MID}/s/1#${f1.id}`, `/w/${MID}/s/2#${p2.id}`])
     expect(ev(MID, 'failed')).toEqual([`/w/${MID}/s/1`])
     expect(ev(MID, 'passed')).toEqual([`/w/${MID}/s/2`])
-    expect(ev(MID, 'reopened')).toEqual([`/w/${MID}/s/2#${repro.id}`])
     expect(ev(BP, 'dead_end')).toEqual([`/w/${BP}#${d.post}`])
-    expect(ev(BP, 'reopened')).toEqual([`/w/${BP}`])
   })
 })

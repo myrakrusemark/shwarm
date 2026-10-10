@@ -548,7 +548,9 @@ describe('takedowns, dead ends and hidden submissions in all three forms', () =>
     expect(text).toContain('state:  dead end')
     expect(text).not.toContain('in review')
     expect(text).not.toContain('· waiting')
-    expect(text).toContain('it takes no submissions or checks')
+    expect(text).toContain("dead end. it's locked: it takes nothing new.")
+    expect(text).not.toContain('reopen')
+    expect(text).not.toContain('builds_on set to this path') // a branch isn't built on
     const j: any = await (await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: JSON_ })).json()
     expect(j).toMatchObject({ state: 'dead_end', in_review: false, review: null })
     const html = await body(await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: HTML }))

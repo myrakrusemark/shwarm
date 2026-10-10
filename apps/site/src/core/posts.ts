@@ -1,11 +1,13 @@
 // Thread posts and submissions (spec "Submitting", protocol §6–7). A submission is a thread post marked
 // against the done test: numbered within its node, frozen by its hash, and it replaces older ones in review.
+// An ended node is locked (decided Oct 9): no posts, replies, pins, edits, deletes or submissions (context.ts needLive).
+// OPEN (#92): upvotes on its posts still count, since the decision doesn't name them.
 import { shortHash, ShwarmError, submissionHash } from '@shwarm/protocol'
 import { hiddenProblem } from '../render/hidden'
 import { authorize, isBare, needHuman, type Actor } from './actor'
 import { auditStatement, submissionHref } from './audit'
 import { needs } from './checks'
-import { isEstablished, loadNode, loadPerson, mentionStatements, postStatement, signOffDoneStatement, signOffStatements, specOf, touchNode, type Ctx } from './context'
+import { isEstablished, loadNode, loadPerson, mentionStatements, needLive, postStatement, signOffDoneStatement, signOffStatements, specOf, touchNode, type Ctx } from './context'
 import { isId, newId } from './ids'
 import { checkSubmissions, takeThreadToken } from './limits'
 import { checkWritable, readSettings } from './settings'
@@ -24,6 +26,7 @@ export async function post(ctx: Ctx, a: Actor, inp: PostInput): Promise<PostResu
   const person = await loadPerson(ctx, a)
   checkWritable(await readSettings(ctx.db, ['read_only']))
   const n = await loadNode(ctx, inp.node)
+  needLive(n)
   const text = needText(inp.text, 'text')
   const links = parseLinks(inp.links)
   let replyTo: string | null = null
@@ -158,6 +161,7 @@ export async function editPost(ctx: Ctx, a: Actor, inp: EditInput): Promise<Edit
   const person = await loadPerson(ctx, a)
   checkWritable(await readSettings(ctx.db, ['read_only']))
   const n = await loadNode(ctx, inp.node)
+  needLive(n)
   const p = await threadPost(ctx, n.id, inp.post)
   if (p.kind !== 'post') throw new ShwarmError('not_permitted', `a ${p.kind === 'dead_end' ? 'dead-end note' : p.kind} can't be edited`, { kind: p.kind })
   if (p.person_id !== person.id || p.as_name !== a.as) throw new ShwarmError('not_permitted', `only ${p.as_name} edits this post`, { need: 'poster' })
@@ -189,6 +193,7 @@ export async function deletePost(ctx: Ctx, a: Actor, inp: DeleteInput): Promise<
   const person = await loadPerson(ctx, a)
   checkWritable(await readSettings(ctx.db, ['read_only']))
   const n = await loadNode(ctx, inp.node)
+  needLive(n)
   const p = await threadPost(ctx, n.id, inp.post, { deleted: true })
   if (p.kind !== 'post') throw new ShwarmError('not_permitted', `a ${p.kind === 'dead_end' ? 'dead-end note' : p.kind} can't be deleted`, { kind: p.kind })
   if (p.person_id !== person.id || p.as_name !== a.as) throw new ShwarmError('not_permitted', `only ${p.as_name} deletes this post`, { need: 'poster' })
@@ -248,8 +253,7 @@ export async function submit(ctx: Ctx, a: Actor, inp: SubmitInput): Promise<Subm
   const person = await loadPerson(ctx, a)
   checkWritable(await readSettings(ctx.db, ['read_only']))
   const n = await loadNode(ctx, inp.node)
-  // OPEN: no code names "this node is closed or a dead end" for submissions; shwarm_closed is the nearest.
-  if (n.state !== 'live') throw new ShwarmError('shwarm_closed', `${n.path} is ${n.state.replace('_', ' ')}. it takes no submissions`, { node: n.path })
+  needLive(n)
   const text = needText(inp.text, 'text')
   const links = parseLinks(inp.links)
   if (!links.length) throw bad('a submission links the work: {url, sha256} or {repo, commit}')

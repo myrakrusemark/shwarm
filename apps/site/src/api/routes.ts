@@ -9,6 +9,7 @@
 //   GET  /key, GET /limits       the key itself, and what is left of the person's limits
 // Bare-handle acts (upvotes, joins, pins, the author's sign-off and the author's other acts) have no call: asked for,
 // they get 403 bare_handle_needs_human, as a bare or missing `as` does (core/actor.ts checkName).
+// Nothing reopens (decided Oct 9), so a `reopen` kind is a kind like any unknown one: 400.
 // OPEN (#82): bodies take the site's field names (`links`, `label`, `repo`; a repro's `links`), not the docs' `attach`,
 // until the v0 freeze (7.5) settles the spelling.
 import type { Context, Hono } from 'hono'
@@ -49,7 +50,6 @@ const SITE_ONLY: Record<string, string> = {
   pin: 'pinning a post',
   sign_off: 'the author sign-off',
   dead_end: 'marking a dead end',
-  reopen: 'reopening',
   repitch: 're-pitching',
   flag: 'flagging',
 }

@@ -1,7 +1,7 @@
 // Race tests (go-live 2.3 and 5.6 "done when"): parallel joins (each person twice at once; there is no lobby or kickoff
 // since Oct 9), the final check,
-// simultaneous submissions, a final check racing a new submission and the sign-off, repros racing to reopen, and a
-// final check racing a dead end, 100 times each, with zero double results. The control runs the same races
+// simultaneous submissions, a final check racing a new submission and the sign-off, and a final check racing a dead
+// end (repros no longer reopen anything, decided Oct 9), 100 times each, with zero double results. The control runs the same races
 // without the tree's queue and shows the invariants catch the double results it produces.
 import { describe, expect, it } from 'vitest'
 import type { Actor } from '../src/core/actor'
@@ -139,24 +139,6 @@ async function mixedFinishRace(mode: Mode): Promise<string[]> {
   return problems
 }
 
-/** Reopening: a passed node, then 5 repros on its passing submission at once. Exactly one reopens it. */
-async function reopenRace(mode: Mode): Promise<string[]> {
-  const w = new World()
-  const [myra, kestrel, lumpy, ...racers] = await people(w, 3 + RACERS)
-  await w.shwarm(site(myra), { check: { people: 1 } })
-  await w.join(site(kestrel), MID)
-  const s = await w.submit(agent(kestrel), MID)
-  await w.pass(site(lumpy), MID, s.id)
-  const r = await fire(w, mode, racers.map(p => ({ type: 'check', actor: site(p), input: { node: MID, on: s.id, verdict: 'fail', repro: 'place on corner 3. the block vanishes.' } })))
-  const problems: string[] = []
-  if (r.errors.length) problems.push(`${r.errors.length} repros failed: ${codes(r.errors)}`)
-  const reopened = w.events(MID, 'reopened').length
-  if (reopened !== 1) problems.push(`${reopened} reopened events`)
-  if (w.node(MID).state !== 'live') problems.push(`state ${w.node(MID).state}`)
-  if (w.sub(s.id).status !== 'passed') problems.push(`submission ${w.sub(s.id).status}`) // the pass stays on record
-  return problems
-}
-
 /** A final check racing the author's dead end: 2 people checks needed, 1 in. Exactly one of them ends the node. */
 async function deadEndRace(mode: Mode): Promise<string[]> {
   const w = new World()
@@ -183,7 +165,6 @@ const RACES = {
   'the final check': finalCheckRace,
   'two simultaneous submissions': submissionRace,
   'mixed finish (final checks, a new submission, the sign-off)': mixedFinishRace,
-  'reopen (repros on the passing submission)': reopenRace,
   'final check vs dead end': deadEndRace,
 }
 
@@ -193,7 +174,6 @@ const DOUBLED: Record<keyof typeof RACES, RegExp> = {
   'the final check': /^[2-5] passed events$/,
   'two simultaneous submissions': /^[1-4] submissions failed$/, // every racer took #1; the unique index refused the rest
   'mixed finish (final checks, a new submission, the sign-off)': /^[2-5] sign-off notices/, // each final check saw itself as the last
-  'reopen (repros on the passing submission)': /^[2-5] reopened events$/,
   'final check vs dead end': /^[1-5] passed and 1 dead_end events$/,
 }
 

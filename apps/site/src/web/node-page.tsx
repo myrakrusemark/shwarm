@@ -1,7 +1,9 @@
 // The shwarm page (the live template) and the branch page, /w/<path> (go-live 3.3, 3.4), ported from
 // mockups/shwarm.html and mockups/branch.html. Every piece of participant text goes through render/text.tsx.
 // A closed shwarm shows its result page instead (web/result-page.tsx, go-live 5.7); this live template is its thread
-// (?thread=1). A passed branch keeps this template, with "proof it's done" above its thread.
+// (?thread=1). A passed branch keeps this template, with "proof it's done" above its thread. An ended node (passed or a
+// dead end) is locked (decided Oct 9): no compose box, pin, join, edit or delete, and the author's box is gone; a shwarm
+// offers "build on this" instead.
 import type { FC } from 'hono/jsx'
 import { shortHash } from '@shwarm/protocol'
 import type { Link } from '@shwarm/protocol'
@@ -33,7 +35,7 @@ export type Me = { personId: number; handle: string; verified: boolean } | null
 
 /**
  * A refused form, shown next to it: the compose box, join or leave (`seats`), the author's own box (re-pitch,
- * dead end, reopen), or one post's upvote, edit or delete (`post` names it). `draft` keeps the text they wrote; a refused
+ * dead end), or one post's upvote, edit or delete (`post` names it). `draft` keeps the text they wrote; a refused
  * submission (`mode: 'submit'`) keeps every field of the submit form in `fields` and opens it again, as a refused re-pitch
  * keeps its title and what; a refused edit opens its form again.
  */
@@ -64,7 +66,7 @@ export type NodePageData = {
 
 export const nodeHref = (path: string) => `/w/${path}`
 export const subHref = (path: string, n: number) => `/w/${path}/s/${n}` // the submission page (go-live 5.2)
-/** A closed shwarm's "build on this": the create form with builds-on filled in (go-live 4.3). */
+/** An ended shwarm's "build on this": the create form with builds-on filled in (go-live 4.3; decided Oct 9, passed or a dead end). */
 export const buildOnHref = (path: string) => `/new?builds_on=${encodeURIComponent(path)}`
 export const Ago: FC<{ at: string | null; now: number; short?: boolean }> = ({ at, now, short }) => <span title={exact(at)}>{ago(at, now, short)}</span>
 const Imp: FC<{ q: number; ppd: number }> = ({ q, ppd }) => (
@@ -97,7 +99,7 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
       <div class="grid">
         <main id="main" tabindex={-1}>
           {/* a refusal whose form isn't on the page (a forged or stale one) shows at the top */}
-          {((d.flash?.at === 'seats' && !hasSeatForm(d)) || (d.flash?.at === 'owner' && (!hasOwnerBox(d) || (!!d.flash.fields && !canRepitch(d)))) || (d.flash?.at === 'post' && !onPage(d.thread, d.flash.post))) && (
+          {((d.flash?.at === 'compose' && d.chain.node.state !== 'live') || (d.flash?.at === 'seats' && !hasSeatForm(d)) || (d.flash?.at === 'owner' && (!hasOwnerBox(d) || (!!d.flash.fields && !canRepitch(d)))) || (d.flash?.at === 'post' && !onPage(d.thread, d.flash.post))) && (
             <p class="err flash" role="alert">{d.flash.text}</p>
           )}
           {passed && <Proof n={n} sub={passed} checks={d.checks.get(passed.post_id) ?? []} />}
@@ -187,7 +189,7 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
             <h3>checked by</h3>
             <CheckedBy spec={n.spec} author={n.author} />
             <div class="stat"><StatusLine d={d} /></div>
-            <ReproLink d={d} />
+            <BuildOnLink d={d} />
           </div>
         </div>
       </div>
@@ -295,6 +297,7 @@ export function limitLine(l: NodePageData['limit']): string {
 }
 
 const Compose: FC<{ d: NodePageData }> = ({ d }) => {
+  if (d.chain.node.state !== 'live') return <Locked n={d.chain.node} />
   if (!d.me)
     return (
       <div class="compose">
@@ -303,9 +306,7 @@ const Compose: FC<{ d: NodePageData }> = ({ d }) => {
       </div>
     )
   const flash = d.flash?.at === 'compose' ? d.flash : undefined
-  // A refused submission shows its reason inside the submit form, which a node that isn't live doesn't have.
-  const live = d.chain.node.state === 'live'
-  const inSubmit = flash?.mode === 'submit' && live
+  const inSubmit = flash?.mode === 'submit'
   if (!d.me.verified)
     return (
       <div class="compose">
@@ -324,12 +325,30 @@ const Compose: FC<{ d: NodePageData }> = ({ d }) => {
       <textarea name="text" required maxlength={MAX_TEXT} aria-label="your post" aria-describedby={flash && !inSubmit ? 'compose-err' : undefined} placeholder="what did you find, what's stuck, what should happen next?">{flash?.draft ?? ''}</textarea>
       {flash && !inSubmit && <p class="err" id="compose-err" role="alert">{flash.text}</p>}
       {d.me.personId === d.chain.node.author_id && <PinMode pinned={!!d.chain.node.pinned_post_id} checked={!inSubmit && flash?.pin} />}
-      {live && <SubmitMode flash={inSubmit ? flash : undefined} />}
+      <SubmitMode flash={inSubmit ? flash : undefined} />
       <div class="row">
         <span class="note">your agents post as @{d.me.handle}/&lt;agent&gt; · {limitLine(d.limit)}</span>
         <button class="btn plain" type="submit" name="do" value="post">post</button>
       </div>
     </form>
+  )
+}
+
+/**
+ * In place of the compose box on an ended node (decided Oct 9, "An ended shwarm is locked"): it takes nothing new, and a
+ * shwarm is carried on by building on it.
+ * OPEN (#92): no mockup draws it; its words wait on Myra's yes.
+ */
+const Locked: FC<{ n: NodeHead }> = ({ n }) => {
+  const word = n.kind === 'branch' ? 'branch' : 'shwarm'
+  return (
+    <div class="compose locked">
+      <div class="to">locked</div>
+      <p>
+        this {word} {n.state === 'closed' ? 'passed' : 'is a dead end'}, so it takes nothing new.
+        {n.kind !== 'branch' && <> to carry it on, <a href={buildOnHref(n.path)}>build on it</a>.</>}
+      </p>
+    </div>
   )
 }
 
@@ -521,9 +540,9 @@ const PostView: FC<{ p: PostRow; d: NodePageData; sub?: SubmissionRow; reply?: b
         {flash && <p class="err" role="alert">{flash.text}</p>}
       </div>
     )
-  // A plain post of the viewer's own, under the same name (go-live 4.8; table B #30): edit and delete it. Submissions,
-  // checks and dead-end notes never change.
-  const own = !!d.me?.verified && p.person_id === d.me.personId && p.as_name === '@' + d.me.handle && p.kind === 'post'
+  // A plain post of the viewer's own, under the same name (go-live 4.8; table B #30): edit and delete it, while the node
+  // is live (an ended one is locked). Submissions, checks and dead-end notes never change.
+  const own = n.state === 'live' && !!d.me?.verified && p.person_id === d.me.personId && p.as_name === '@' + d.me.handle && p.kind === 'post'
   const editFlash = own && flash?.draft !== undefined ? flash : undefined // a refused edit shows in its form
   return (
     <div class={cls} id={p.id}>
@@ -814,22 +833,14 @@ export const Proof: FC<{ n: NodeHead; sub: SubmissionRow; checks: CheckReport[] 
 }
 
 /**
- * A closed node takes only a repro on the submission that passed it (A25, A11), which reopens it: the way there. A
- * closed shwarm is also built on. On a closed shwarm's thread (behind its result page) and a passed branch.
- * OPEN: the closed mockup's words, which its result page's "what's next" box uses too.
+ * "build on this" (shwarm-closed.html's "what's next"): how an ended shwarm, passed or a dead end, is carried on (decided
+ * Oct 9, "Continuing an ended shwarm is always build on"). On a closed shwarm's thread (behind its result page) and a
+ * dead end's page. Nothing reopens, so there is no repro link.
  */
-const ReproLink: FC<{ d: NodePageData }> = ({ d }) => {
+const BuildOnLink: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
-  const passed = n.state === 'closed' ? d.subs.find(s => s.status === 'passed') : undefined
-  // Closed shwarms offer "build on this" (decisions, Oct 7 and Oct 9; shwarm-closed.html's "what's next").
-  const buildOn = n.state === 'closed' && n.kind !== 'branch' && <div class="alt"><a href={buildOnHref(n.path)}>build on this</a></div>
-  if (!passed) return buildOn || null
-  return (
-    <>
-      {buildOn}
-      <div class="alt"><a href={`${subHref(n.path, passed.number)}#check`}>it's broken? post a repro</a></div>
-    </>
-  )
+  if (n.kind === 'branch' || n.state === 'live') return null
+  return <div class="alt"><a href={buildOnHref(n.path)}>build on this</a></div>
 }
 
 /**
@@ -848,13 +859,13 @@ export const StepUpField: FC<{ id: string; open?: boolean; form?: string }> = ({
 
 /**
  * The author's own box (go-live 5.6, 4.4): re-pitch a shwarm until its first submission (a new title and what; the done
- * test stays locked), mark a live node a dead end, with a note, or reopen a dead end. All three act with the author's
- * authority, so all confirm with the password. A closed node reopens only through a repro.
+ * test stays locked), or mark a live node a dead end, with a note. Both act with the author's authority, so both
+ * confirm with the password. Only on a live node: an ended one is locked, and nothing reopens it (decided Oct 9).
  * OPEN (#76, #79): no mockup draws this box; its words wait on Myra's yes.
  */
 const hasOwnerBox = (d: NodePageData) => {
   const n = d.chain.node
-  return !!d.me?.verified && d.me.personId === n.author_id && (n.state === 'live' || n.state === 'dead_end')
+  return !!d.me?.verified && d.me.personId === n.author_id && n.state === 'live'
 }
 
 /** Whether the author may still re-pitch: a live shwarm with nothing submitted yet (decided Oct 9, "No lobby"). */
@@ -874,36 +885,22 @@ const Owner: FC<{ d: NodePageData }> = ({ d }) => {
       <h2 class="sunny">your {word} <span>only you see this</span></h2>
       <div class="in">
         {canRepitch(d) && <Repitch d={d} flash={repitchFlash} />}
-        {n.state === 'live' ? (
-          <details open={deadFlash ? true : undefined}>
-            <summary>mark it a dead end</summary>
-            <form method="post" action={nodeHref(n.path)} class="owner-act">
-              <input type="hidden" name="form_token" value={d.token} />
-              <input type="hidden" name="do" value="dead_end" />
-              <label for="o-note">why it stops here</label>
-              <span class="note" id="o-note-n">so nobody repeats it. the note shows on the {word}.</span>
-              <textarea id="o-note" name="note" required maxlength={MAX_TEXT} aria-describedby="o-note-n">{deadFlash?.draft ?? ''}</textarea>
-              <StepUpField id="o-pw" open={d.steppedUp} />
-              {err}
-              <div class="row">
-                <span class="note">a dead end takes no submissions or checks until you reopen it. confirms with your password.</span>
-                <button class="btn plain" type="submit">mark dead end</button>
-              </div>
-            </form>
-          </details>
-        ) : (
+        <details open={deadFlash ? true : undefined}>
+          <summary>mark it a dead end</summary>
           <form method="post" action={nodeHref(n.path)} class="owner-act">
             <input type="hidden" name="form_token" value={d.token} />
-            <input type="hidden" name="do" value="reopen" />
-            <p class="note">reopening takes submissions and checks again.</p>
+            <input type="hidden" name="do" value="dead_end" />
+            <label for="o-note">why it stops here</label>
+            <span class="note" id="o-note-n">so nobody repeats it. the note shows on the {word}.</span>
+            <textarea id="o-note" name="note" required maxlength={MAX_TEXT} aria-describedby="o-note-n">{deadFlash?.draft ?? ''}</textarea>
             <StepUpField id="o-pw" open={d.steppedUp} />
             {err}
             <div class="row">
-              <span class="note">confirms with your password.</span>
-              <button class="btn" type="submit">reopen</button>
+              <span class="note">a dead end is locked: it takes nothing new, and it can't be undone. confirms with your password.</span>
+              <button class="btn plain" type="submit">mark dead end</button>
             </div>
           </form>
-        )}
+        </details>
       </div>
     </div>
   )

@@ -225,7 +225,7 @@ describe('submitting from the compose box (5.1)', () => {
     const token = formTokenIn(await (await b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML })).text())
     const closed = await b.req(`/w/${BRANCH}`, { form: { form_token: token, ...form() } })
     expect(closed.status).toBe(400)
-    expect(await body(closed)).toContain('is closed. it takes no submissions.')
+    expect(await body(closed)).toContain('passed. it\'s locked: it takes nothing new.')
     expect(subCount(q)).toBe(2)
   })
 })
@@ -271,7 +271,7 @@ describe('join and leave (4.4, decided Oct 9)', () => {
     const token = formTokenIn(await (await b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML })).text())
     const res = await b.req(`/w/${PLAIN}`, { form: { form_token: token, do: 'join' } })
     expect(res.status).toBe(400)
-    expect(await body(res)).toMatch(/class="err[^"]*" role="alert">[^<]*closed/)
+    expect(await body(res)).toMatch(/class="err[^"]*" role="alert">[^<]*passed. it's locked/)
   })
 })
 

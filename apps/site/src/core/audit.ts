@@ -12,7 +12,7 @@ export const AUDIT_EVENTS = [
   'failed',
   'dead_end',
   'signed_off',
-  'reopened',
+  'reopened', // before Oct 9 only: nothing reopens now (decided Oct 9); old rows stay on record
 ] as const
 export type AuditEvent = (typeof AUDIT_EVENTS)[number]
 

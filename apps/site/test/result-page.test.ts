@@ -1,13 +1,14 @@
 // Go-live 5.7: a closed shwarm's result page at /w/<path>. The pass at the hash its checks ran, with its links and release
 // fields; the proof with evidence; who made it, ranked by counted upvotes with agents rolled up and only derived role tags;
-// what's built on it; the milestones; its thread at ?thread=1; a passed branch's proof box; a reopened node back on the
-// live template with the pass on record; and an ETag that moves with the tree.
+// the shwarms challenging it and the rest built on it; the milestones; its thread at ?thread=1, locked; a passed branch's
+// proof box; a node reopened before Oct 9 back on the live template with the pass on record; and an ETag that moves with
+// the tree. A passed shwarm stays passed (decided Oct 9): nothing on it offers a repro.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { hashPassword } from '../src/auth/password'
 import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
 import { resetReadLimit } from '../src/web/read-limit'
 import { forgetVersions } from '../src/web/version-memo'
-import { agent, site, stepped } from './core-fixtures'
+import { agent, refused, site, stepped } from './core-fixtures'
 import { T0 } from './d1'
 import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv } from './browser'
 import { closedWorld, PK3, RECORDING, SOURCE } from './result-fixture'
@@ -136,22 +137,30 @@ describe('the result page (5.7)', () => {
     expect(more.upvotes).toBe(all - shown)
   })
 
-  it("lists what's next and the shwarms built on it, once they're public", async () => {
+  it("lists what's next, and the shwarms challenging it or built on it, once they're public", async () => {
     const w = await world()
     let html = await w.page()
-    expect(html).toContain(`<div class="box next"><h2 class="sunny">what's next</h2><div class="in"><a class="btn" href="/new?builds_on=minecraft-in-doom">build on this</a><a class="btn plain" href="/w/minecraft-in-doom/s/1#check">it's broken? post a repro</a><p class="note">building on it starts a new shwarm that uses this result. a repro that holds up reopens this one.</p></div></div>`)
+    expect(html).toContain(`<div class="box next"><h2 class="sunny">what's next</h2><div class="in"><a class="btn" href="/new?builds_on=minecraft-in-doom">build on this</a><p class="note">building on it starts a new shwarm that uses this result. think it doesn't really pass? build on it with the same done test.</p></div></div>`)
+    expect(html).not.toContain('repro')
     expect(html).not.toContain('built on this <span>')
-    await w.run({
-      type: 'createNode',
-      actor: site(w.p('gunter')),
-      input: { kind: 'shwarm', title: 'doom block-building speedruns', what: 'race to build a bunker.', doneWhen: 'a leaderboard with 10 verified runs', check: { author: true }, tags: ['games'], buildsOn: EXAMPLE_ROOT },
-    })
+    expect(html).not.toContain('challenged by <span>')
+    const doneWhen = w.get('SELECT done_when FROM node WHERE path = ?', EXAMPLE_ROOT).done_when
+    const start = (who: string, title: string, done: string) =>
+      w.run({
+        type: 'createNode',
+        actor: site(w.p(who)),
+        input: { kind: 'shwarm', title, what: `${title}.`, doneWhen: done, check: { author: true }, tags: ['games'], buildsOn: EXAMPLE_ROOT },
+      })
+    await start('gunter', 'doom block-building speedruns', 'a leaderboard with 10 verified runs')
+    await start('finn_irl', 'does it really hold 60 fps', doneWhen) // the same done test, word for word: a challenge
     forgetVersions()
     expect(await w.page()).not.toContain('built on this <span>') // still being checked
-    w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = 'doom-block-building-speedruns'").run()
+    w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path IN ('doom-block-building-speedruns', 'does-it-really-hold-60-fps')").run()
     forgetVersions()
     html = await w.page()
+    expect(html).toContain('<h2>challenged by <span>1</span></h2><ul class="tree"><li><a href="/w/does-it-really-hold-60-fps">does it really hold 60 fps</a><span class="st live">live</span></li></ul>')
     expect(html).toContain('<h2>built on this <span>1</span></h2><ul class="tree"><li><a href="/w/doom-block-building-speedruns">doom block-building speedruns</a><span class="st live">live</span></li></ul>')
+    expect(html.indexOf('challenged by')).toBeLessThan(html.indexOf('built on this <span>'))
   })
 
   it('shows the newest milestones oldest first, each linked to its evidence, with the full log in JSON', async () => {
@@ -166,30 +175,38 @@ describe('the result page (5.7)', () => {
       ['oct 8 12:04', 'ev ok', 'passed', 'minecraft in doom', 'submission #1', '/w/minecraft-in-doom/s/1'],
     ])
     expect(html).toContain('<span class="note">showing 4 of 14 events · filter: <b>milestones</b> · <a href="/w/minecraft-in-doom/log?filter=all">all</a></span><a href="/w/minecraft-in-doom/log?filter=all">full log (json) →</a>')
-    expect(html).toContain('<a href="/w/minecraft-in-doom?thread=1">read the whole thread (8 posts) →</a> · it stays open for repros and pointers to follow-on work.')
+    expect(html).toContain('<a href="/w/minecraft-in-doom?thread=1">read the whole thread (8 posts) →</a> · it\'s locked.')
   })
 
-  it('keeps its thread at ?thread=1, where posts land and links stay', async () => {
+  it('keeps its thread at ?thread=1, locked: no compose box, and a forged post is refused there', async () => {
     const w = await world()
     const html = await w.page(`${ROOT}?thread=1`)
     expect(html).not.toContain('class="done-head"')
     expect(html).toContain('<a class="back" href="/w/minecraft-in-doom">← back to the result</a>')
     expect(html).toContain('<a href="?thread=1&sort=new">new</a>')
-    // a post from the thread view goes back to it, not to the result page
+    expect(html).toContain('<div class="compose locked"><div class="to">locked</div><p>this shwarm passed, so it takes nothing new. to carry it on, <a href="/new?builds_on=minecraft-in-doom">build on it</a>.</p></div>')
+    expect(html).toContain('<div class="alt"><a href="/new?builds_on=minecraft-in-doom">build on this</a></div>')
+    expect(html).not.toContain('repro</a>')
+    // a forged post comes back on the thread with the refusal, not on the result page
     const hash = await hashPassword(GOOD_PASSWORD, pepper, 1000)
     w.db.raw.prepare("UPDATE person SET password_hash = ?, email = 'gunter@example.org', email_norm = 'gunter@example.org' WHERE handle = 'gunter'").run(hash)
     const g = new Browser(w.b.env)
     expect((await g.post('/signin', { email: 'gunter@example.org', password: GOOD_PASSWORD })).status).toBe(303)
     const token = formTokenIn(await (await g.req(`${ROOT}?thread=1`, { headers: HTML })).text())
+    const posts = w.get('SELECT COUNT(*) AS n FROM post').n
     const res = await g.req(ROOT, { form: { form_token: token, do: 'post', text: 'speedrun branch idea: build a bunker in under a minute.' } })
-    expect(res.status).toBe(303)
-    expect(res.headers.get('location')).toMatch(/^\/w\/minecraft-in-doom\?thread=1#p_\w+$/)
-    // a refused post comes back on the thread with its draft, not on the result page
-    const refused = await g.req(ROOT, { form: { form_token: token, do: 'post', text: '   ' } })
-    expect(refused.status).toBe(400)
-    const again = await body(refused)
-    expect(again).toContain('write something first.')
+    expect(res.status).toBe(400)
+    const again = await body(res)
+    expect(again).toContain(`<p class="err flash" role="alert">${EXAMPLE_ROOT} passed. it's locked: it takes nothing new.</p>`)
     expect(again).toContain('← back to the result')
+    expect(w.get('SELECT COUNT(*) AS n FROM post').n).toBe(posts)
+  })
+
+  it('tells agents it is locked and how to carry it on or challenge it, with no repro', async () => {
+    const w = await world()
+    const text = await (await w.b.req(`${ROOT}?format=text`)).text()
+    expect(text).toContain("closed: it passed. it's locked: it takes nothing new.\nto carry it on, or to challenge the pass, start a shwarm with builds_on set to this path.\n")
+    expect(text).not.toContain('repro posted here')
   })
 
   it("a passed branch keeps the live template, with the closed pill and its proof", async () => {
@@ -203,21 +220,30 @@ describe('the result page (5.7)', () => {
     expect(html).toContain("<h2>proof it's done <span>submission #2 · 4 of 4 checks</span></h2>")
     expect(html).toContain('<h4><span>runs</span><span class="note">2 of 2</span></h4>')
     expect(html).toContain('<h4><span>author</span><span class="note">signed off oct 8</span></h4>')
-    expect(html.indexOf('class="box proof"')).toBeLessThan(html.indexOf('class="compose"'))
+    expect(html.indexOf('class="box proof"')).toBeLessThan(html.indexOf('class="compose locked"'))
+    // a branch isn't built on: its locked box says only that it's locked
+    expect(html).toContain('<p>this branch passed, so it takes nothing new.</p>')
   })
 
-  it('a reopened shwarm goes back to the live template, its pass on record', async () => {
+  it('a repro reopens nothing; a shwarm reopened before Oct 9 shows the live template, its pass on record', async () => {
     const w = await world()
-    await w.run({ type: 'check', actor: site(w.p('finn_irl')), input: { node: EXAMPLE_ROOT, on: w.sub.id, verdict: 'fail', repro: 'dig below y=-120: blocks place on the wrong face.' } })
-    expect(w.get('SELECT state FROM node WHERE path = ?', EXAMPLE_ROOT).state).toBe('live')
+    await refused(
+      w.run({ type: 'check', actor: site(w.p('finn_irl')), input: { node: EXAMPLE_ROOT, on: w.sub.id, verdict: 'fail', repro: 'dig below y=-120: blocks place on the wrong face.' } }),
+      'shwarm_closed',
+    )
+    expect(w.get('SELECT state FROM node WHERE path = ?', EXAMPLE_ROOT).state).toBe('closed')
+    // as a repro left it before nothing reopened (decided Oct 9)
+    w.db.raw.prepare("UPDATE node SET state = 'live', closed_at = NULL WHERE path = ?").run(EXAMPLE_ROOT)
     forgetVersions()
     const html = await w.page()
     expect(html).not.toContain('class="done-head"')
     expect(html).toContain('<a class="back" href="/">← back to hot</a>')
     expect(html).toMatch(/<span class="sb">submission #1<\/span>/)
     expect(html).not.toContain('class="box proof"')
-    // the submission page keeps the pass, reopened by the repro
-    expect(await w.page(`${ROOT}/s/1`)).toContain('<span class="stp no" id="status">reopened</span>')
+    // the submission page keeps the pass, reopened by the repro, and takes no checks on it
+    const sub = await w.page(`${ROOT}/s/1`)
+    expect(sub).toContain('<span class="stp no" id="status">reopened</span>')
+    expect(sub).not.toContain('id="check"')
   })
 
   it('falls back to the live template when the passing submission is taken down', async () => {

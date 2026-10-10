@@ -21,7 +21,7 @@ export async function person(db: D1Database, handle: string, o: { founding?: boo
 }
 
 export const site = (p: P): Actor => siteActor(p)
-/** The site actor with the password just re-entered: sign-off, dead ends and reopening need it (A5). */
+/** The site actor with the password just re-entered: sign-off, dead ends and re-pitches need it (A5). */
 export const stepped = (p: P): Actor => siteActor(p, { steppedUp: true })
 export const agent = (p: P, path = 'm-04', perms: Perm[] = ['read', 'post', 'submit', 'check', 'branch'], node = '*'): Actor =>
   keyActor(p, `@${p.handle}/${path}`, { id: `${p.handle}-key`, canPostAs: `@${p.handle}/*`, grants: [{ node, perms }] })
@@ -119,9 +119,6 @@ export class World {
   }
   deadEnd(by: P | Actor, node: string, note = 'the engine cannot do it') {
     return this.run({ type: 'deadEnd', actor: 'via' in by ? by : stepped(by), input: { node, note } })
-  }
-  reopen(by: P | Actor, node: string) {
-    return this.run({ type: 'reopen', actor: 'via' in by ? by : stepped(by), input: { node } })
   }
   runReport(by: Actor, node: string, on: string, hash: string, exit = 0, extra: Record<string, unknown> = {}) {
     return this.run({

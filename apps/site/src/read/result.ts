@@ -117,20 +117,30 @@ export async function readCredits(db: D1Database, chain: Chain, r: Result): Prom
 
 // ---------- built on this ----------
 
-export type BuiltOnThis = { path: string; title: string; kind: NodeHead['kind']; state: NodeHead['state']; in_review: number }
+export type BuiltOnThis = {
+  path: string
+  title: string
+  kind: NodeHead['kind']
+  state: NodeHead['state']
+  in_review: number
+  challenges: number // 1 when it kept this shwarm's done test, word for word: it's challenging the pass
+}
 
 /**
  * The public shwarms whose builds_on names this one (protocol §4 built_on_by), oldest first. Their branches carry the
  * same builds_on (they inherit it), so only shwarms count (and variants made before they were dropped). OPEN: no cap is decided; 100.
+ * A passed shwarm stays passed; someone who doubts it builds on it with the same done test (decided Oct 9), so one that
+ * kept `doneWhen` exactly is `challenges` (the result page's "challenged by"). OPEN (#92): an edited done test, however
+ * small the change, counts as building on it.
  */
-export async function readBuiltOnThis(db: D1Database, path: string): Promise<BuiltOnThis[]> {
+export async function readBuiltOnThis(db: D1Database, path: string, doneWhen: string): Promise<BuiltOnThis[]> {
   const { results } = await db
     .prepare(
-      `SELECT c.path, c.title, c.kind, c.state, c.in_review
-       FROM node c WHERE json_extract(c.builds_on, '$.node') = ? AND c.kind <> 'branch' AND ${OPEN_NODE('c')}
+      `SELECT c.path, c.title, c.kind, c.state, c.in_review, (c.done_when = ?2) AS challenges
+       FROM node c WHERE json_extract(c.builds_on, '$.node') = ?1 AND c.kind <> 'branch' AND ${OPEN_NODE('c')}
        ORDER BY c.created_at, c.id LIMIT 100`,
     )
-    .bind(path)
+    .bind(path, doneWhen)
     .all<BuiltOnThis>()
   return results
 }

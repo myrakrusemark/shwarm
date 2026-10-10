@@ -130,19 +130,18 @@ export const SubmissionPage: FC<{ d: SubmissionPageData }> = ({ d }) => {
   )
 }
 
-/** The passed submission that closed the node, while it stays closed: the one a repro reopens it from (A25, A11). */
+/** The passed submission that closed the node, while it stays closed. */
 const closingNumber = (d: SubmissionPageData) => (d.chain.node.state === 'closed' ? d.subs.find(s => s.status === 'passed')?.number ?? null : null)
 
 /**
- * A passed submission whose pass no longer closes the node: a repro reopened it (a pass closes the node, and only a
- * repro on the passing submission reopens it). Its pass stays on record.
+ * A passed submission whose pass no longer closes the node: a repro reopened it, before Oct 9. Nothing reopens now (decided
+ * Oct 9), but the record stays: its pass, and the pill that says what became of it.
  */
 const reopened = (d: SubmissionPageData, s: SubmissionRow) => s.status === 'passed' && closingNumber(d) !== s.number
 
 /**
  * Which forms the viewer gets. The sign-off box: the author (or, author gone, the operator) once every other check has
- * passed. The check box: anyone else while the submission takes checks, or, on a closed node, a repro on the passing
- * submission (fail only); in it, the form itself or why this viewer can't check (signed out, unverified, their own
+ * passed. The check box: anyone else while the submission takes checks (an ended node is locked, so it takes none); in it, the form itself or why this viewer can't check (signed out, unverified, their own
  * work, a slot they already hold). Core decides every refusal anyway; this only keeps forms off a page that can't use them.
  */
 function whichForms(d: SubmissionPageData, r: Review): { signOff: boolean; checkBox: boolean; check: boolean; why: string | null } {
@@ -150,7 +149,6 @@ function whichForms(d: SubmissionPageData, r: Review): { signOff: boolean; check
   const sub = d.sub
   const me = d.me
   const open = isOpen(n, sub)
-  const repro = sub.status === 'passed' && closingNumber(d) === sub.number
   const mine = !!me && sub.person_id === me.personId
   const holds = !!me && d.checks.some(c => !c.reset_at && humanOf(c.as_name) === '@' + me.handle)
   const signer = !!me?.verified && open && r.need.author && (me.personId === n.author_id || !!d.operator)
@@ -158,7 +156,7 @@ function whichForms(d: SubmissionPageData, r: Review): { signOff: boolean; check
   // The author's check on a submission in review is the sign-off; until it's their turn there's nothing to fill. The
   // same holds for the operator standing in for a gone author: a people check would take the slot the sign-off needs.
   const authorWaits = !!me && open && r.need.author && (me.personId === n.author_id || (!!d.operator && !mine && !holds))
-  const checkBox = (open || repro) && !signOff && !authorWaits
+  const checkBox = open && !signOff && !authorWaits
   const why = !me
     ? null
     : !me.verified
@@ -228,7 +226,7 @@ const Submitted: FC<{ d: SubmissionPageData }> = ({ d }) => {
 /** The box header's right side: the tally, or what became of the submission (as the mockup's script draws it). */
 function checksNote(d: SubmissionPageData, r: Review): string {
   const s = d.sub
-  // OPEN (#76): "reopened by a repro" isn't in a mockup; it waits on Myra's yes.
+  // OPEN (#76): "reopened by a repro" isn't in a mockup; only passes reopened before Oct 9 show it.
   if (s.status === 'passed') return reopened(d, s) ? `${r.done} of ${r.total} · passed · reopened by a repro` : `${r.done} of ${r.total} · ${showHidden(d.chain.node.title)} is done`
   if (s.status === 'failed') return 'reset · waiting for a new submission'
   if (s.status === 'superseded') return `superseded by #${s.superseded_number ?? '?'}`
@@ -280,7 +278,7 @@ const HISTORY_WORD: Record<string, string> = {
   signed_off: 'signed off',
   passed: 'passed',
   failed: 'failed the author check',
-  reopened: 'reopened by a repro',
+  reopened: 'reopened by a repro', // before Oct 9 only: nothing reopens now
 }
 
 const History: FC<{ d: SubmissionPageData }> = ({ d }) => {
@@ -310,19 +308,18 @@ const History: FC<{ d: SubmissionPageData }> = ({ d }) => {
 
 /**
  * The people check form (go-live 5.3), no script needed: pass with evidence links, or fail with steps that show it
- * failing (and optional links). A log stays a run report's, sent by an agent. On a closed node it takes only a repro.
+ * failing (and optional links). A log stays a run report's, sent by an agent.
  * OPEN (#76): no mockup draws this form; its words wait on Myra's yes.
  */
 const CheckForm: FC<{ d: SubmissionPageData; why: string | null }> = ({ d, why }) => {
   const n = d.chain.node
   const sub = d.sub
-  const repro = n.state === 'closed'
   const f = d.flash?.at === 'check' ? d.flash : undefined
   const v = f?.fields ?? {}
   const here = subHref(n.path, sub.number)
   return (
     <div class="box checkform" id="check">
-      <h2>{repro ? "it's broken? post a repro" : 'check it'} <span>one check per person, never on their own work.</span></h2>
+      <h2>check it <span>one check per person, never on their own work.</span></h2>
       <div class="in">
         {!d.me ? (
           <p class="note"><a href={signInHref(here)}>sign in</a> to check it. agents send run reports with a key.</p>
@@ -332,27 +329,20 @@ const CheckForm: FC<{ d: SubmissionPageData; why: string | null }> = ({ d, why }
           <form method="post" action={here}>
             <input type="hidden" name="form_token" value={d.token} />
             <input type="hidden" name="do" value="check" />
-            {repro ? (
-              <>
-                <input type="hidden" name="verdict" value="fail" />
-                <p class="note">#{sub.number} passed. a repro on it reopens {showHidden(n.title)}.</p>
-              </>
-            ) : (
-              <fieldset class="verdict">
-                <legend>your check</legend>
-                <label><input type="radio" name="verdict" value="pass" required checked={v.verdict === 'pass' ? true : undefined} /> pass</label>
-                <label><input type="radio" name="verdict" value="fail" checked={v.verdict === 'fail' ? true : undefined} /> fail</label>
-              </fieldset>
-            )}
-            <label for="k-text">{repro ? 'what fails and how to see it' : 'what you checked, or what fails and how to see it'}</label>
+            <fieldset class="verdict">
+              <legend>your check</legend>
+              <label><input type="radio" name="verdict" value="pass" required checked={v.verdict === 'pass' ? true : undefined} /> pass</label>
+              <label><input type="radio" name="verdict" value="fail" checked={v.verdict === 'fail' ? true : undefined} /> fail</label>
+            </fieldset>
+            <label for="k-text">what you checked, or what fails and how to see it</label>
             <textarea id="k-text" name="text" rows={3} maxlength={MAX_TEXT}>{v.text ?? ''}</textarea>
             <label for="k-links">links</label>
             <span class="note" id="k-links-n">one per line: a url and its sha256, or a repo and a full commit id. a pass needs at least one: a recording or a rerun.</span>
             <textarea id="k-links" name="links" rows={2} aria-describedby="k-links-n">{v.links ?? ''}</textarea>
             {f && <p class="err" role="alert">{f.text}</p>}
             <div class="row">
-              <span class="note">{repro ? 'a fail needs steps that show it failing.' : 'a pass needs evidence. a fail needs steps that show it failing.'}</span>
-              <button class="btn" type="submit">{repro ? 'post repro' : 'post check'}</button>
+              <span class="note">a pass needs evidence. a fail needs steps that show it failing.</span>
+              <button class="btn" type="submit">post check</button>
             </div>
           </form>
         )}

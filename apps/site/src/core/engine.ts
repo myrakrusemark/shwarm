@@ -6,7 +6,7 @@ import { ShwarmError } from '@shwarm/protocol'
 import type { Actor } from './actor'
 import { check, type CheckInput } from './checking'
 import { ctxAt, rootOf } from './context'
-import { createNode, deadEnd, join, leave, reopen, repitch, type CreateNodeInput, type RepitchInput } from './nodes'
+import { createNode, deadEnd, join, leave, repitch, type CreateNodeInput, type RepitchInput } from './nodes'
 import { deletePost, editPost, post, submit, upvote, type DeleteInput, type EditInput, type PostInput, type SubmitInput, type UpvoteInput } from './posts'
 
 export type Command =
@@ -20,7 +20,6 @@ export type Command =
   | { type: 'submit'; actor: Actor; input: SubmitInput }
   | { type: 'check'; actor: Actor; input: CheckInput }
   | { type: 'deadEnd'; actor: Actor; input: { node: string; note: string } }
-  | { type: 'reopen'; actor: Actor; input: { node: string } }
   | { type: 'repitch'; actor: Actor; input: RepitchInput }
 
 /** New top-level shwarms share one tree name, so their slugs (and the daily limit) are decided one at a time. */
@@ -76,8 +75,6 @@ export class TreeEngine {
         return check(ctx, cmd.actor, cmd.input)
       case 'deadEnd':
         return deadEnd(ctx, cmd.actor, cmd.input)
-      case 'reopen':
-        return reopen(ctx, cmd.actor, cmd.input)
       case 'repitch':
         return repitch(ctx, cmd.actor, cmd.input)
       default:

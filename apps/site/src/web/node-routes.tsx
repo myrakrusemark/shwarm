@@ -265,7 +265,7 @@ async function isOperatorFor(db: D1Database, n: Chain['node'], personId: number)
   return p?.is_admin === 1
 }
 
-/** The inline step-up (A5, auth/signin.ts inlineStepUp) for acts with the author's authority: the sign-off, a re-pitch, a dead end, reopening. */
+/** The inline step-up (A5, auth/signin.ts inlineStepUp) for acts with the author's authority: the sign-off, a re-pitch, a dead end. */
 async function steppedUp(c: C, session: Session, password: string | undefined, now: number): Promise<{ actor: Actor } | { refuse: string; status: 400 | 429; wait?: number }> {
   const s = await inlineStepUp(c.env.DB, c.env.PASSWORD_PEPPER, session, password, clientIp(c), now)
   if ('refuse' in s) return s
@@ -299,7 +299,7 @@ async function htmlPage(c: C, chain: Chain, path: string, session: Session | nul
 }
 
 /**
- * POST /w/<path>/s/<n>: a people check (or, on a closed node, a repro) and the author's sign-off, each run in the
+ * POST /w/<path>/s/<n>: a people check and the author's sign-off, each run in the
  * tree as one check command. The sign-off asks for the password inline when the step-up window is closed. A refusal
  * re-renders the submission page with the reason at the form and the draft kept; a double click goes to the first.
  */
@@ -362,11 +362,11 @@ async function submissionPost(c: C, path: string, number: number, session: Sessi
 // as the bare handle, pinned as "where we are" when the author ticks it. edit, delete: one of your own plain posts.
 // upvote: the ▲ on a post, either way. submit: the compose box's submit mode, which lands on the new submission's page.
 // join, leave: say you're working on a live shwarm, or stop. repitch (a shwarm's title and what, until its first
-// submission), dead_end (with a note), reopen: the author's own box, behind the password. Each runs in the shwarm's tree (do/shwarm-tree.ts), then
+// submission), dead_end (with a note): the author's own box, behind the password. Nothing reopens (decided Oct 9). Each runs in the shwarm's tree (do/shwarm-tree.ts), then
 // goes back to the page (303). A refusal re-renders the page with the reason next to the form and the draft kept.
 // Signed out, it goes to sign-in and back.
-// POST /w/<path>/s/<n> (5.3, 5.5): check (a people check or a repro) and signoff (the author's, behind the password).
-const ACTS = ['post', 'edit', 'delete', 'upvote', 'submit', 'join', 'leave', 'repitch', 'dead_end', 'reopen'] as const
+// POST /w/<path>/s/<n> (5.3, 5.5): check (a people check) and signoff (the author's, behind the password).
+const ACTS = ['post', 'edit', 'delete', 'upvote', 'submit', 'join', 'leave', 'repitch', 'dead_end'] as const
 type Act = (typeof ACTS)[number]
 
 /** Same person, same thread, same text within this long: a double click, so the first post stands. */
@@ -436,20 +436,20 @@ nodeRoutes.post('/*', async c => {
       if (r.repitched && r.triage === 'pending') await later(c, () => triageNew(c.env, parsed.path))
       return c.redirect(back, 303)
     }
-    if (act === 'dead_end' || act === 'reopen') {
+    if (act === 'dead_end') {
       const refuse = (text: string, status: 400 | 429 = 400) => htmlPage(c, chain, parsed.path, session, now, { at: 'owner', text, draft: f.note }, status)
       // A second click lands after the first did it: back to the page, as the first click went.
-      if ((act === 'dead_end' && n.state === 'dead_end') || (act === 'reopen' && n.state === 'live')) return c.redirect(back, 303)
+      if (n.state === 'dead_end') return c.redirect(back, 303)
       const note = (f.note ?? '').trim()
       // OPEN (#76): the words for a missing note wait on Myra's yes. Said before the password is checked, so it isn't spent.
-      if (act === 'dead_end' && !note) return refuse('say why it stops here, so nobody repeats it.')
+      if (!note) return refuse('say why it stops here, so nobody repeats it.')
       // Only the author is asked for the password; anyone else is refused by core (only the author marks a dead end).
       const s = n.author_id === session.personId ? await steppedUp(c, session, f.password, now) : { actor }
       if ('refuse' in s) {
         if (s.wait) c.header('Retry-After', String(s.wait))
         return refuse(s.refuse, s.status)
       }
-      await runInTree(c.env.TREE, act === 'dead_end' ? { type: 'deadEnd', actor: s.actor, input: { node: parsed.path, note } } : { type: 'reopen', actor: s.actor, input: { node: parsed.path } })
+      await runInTree(c.env.TREE, { type: 'deadEnd', actor: s.actor, input: { node: parsed.path, note } })
       return c.redirect(back, 303)
     }
     if (act === 'post') {
@@ -515,7 +515,7 @@ nodeRoutes.post('/*', async c => {
   } catch (e) {
     if (!(e instanceof ShwarmError)) throw e
     const at =
-      act === 'post' || act === 'submit' ? 'compose' : act === 'repitch' || act === 'dead_end' || act === 'reopen' ? 'owner' : act === 'edit' || act === 'delete' || act === 'upvote' ? 'post' : 'seats'
+      act === 'post' || act === 'submit' ? 'compose' : act === 'repitch' || act === 'dead_end' ? 'owner' : act === 'edit' || act === 'delete' || act === 'upvote' ? 'post' : 'seats'
     const draft = act === 'post' || act === 'submit' || act === 'edit' ? f.text ?? '' : act === 'dead_end' ? f.note : undefined
     // A refused upvote, edit or delete shows under its post; a refused pinned post keeps its box ticked; a refused
     // re-pitch keeps its title and what.

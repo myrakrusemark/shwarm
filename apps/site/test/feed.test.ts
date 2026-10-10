@@ -555,6 +555,7 @@ describe('cards', () => {
     w.db.raw.prepare("UPDATE node SET triage = 'clear'").run()
     await w.join(site(bob), 'alpha')
     await w.join(site(bob), 'beta')
+    const bobs = await w.post(site(bob), 'alpha', 'still poking at this.')
     w.now = T0 - 18 * DAY
     await w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: 'alpha', note: 'nope.' } })
     const alphaEnded = iso(w.now)
@@ -563,19 +564,13 @@ describe('cards', () => {
     const before = await loadFeed(w.db, { tab: 'closed' }, T0)
     expect(before.cards.map(c => [c.title, c.at])).toEqual([['beta', iso(T0 - 17 * DAY)], ['alpha', alphaEnded]])
 
+    // a dead end is locked (decided Oct 9), but an upvote on one of its posts still lands and moves its activity
     w.now = T0 - DAY
-    await w.post(site(bob), 'alpha', 'still poking at this.')
+    await w.run({ type: 'upvote', actor: site(myra), input: { node: 'alpha', post: bobs.id } })
+    expect(w.node('alpha').changed_at).toBe(iso(T0 - DAY))
     const after = await loadFeed(w.db, { tab: 'closed' }, T0)
     expect(after.cards.map(c => [c.title, c.at])).toEqual(before.cards.map(c => [c.title, c.at]))
     expect(w.node('alpha').closed_at).toBe(alphaEnded)
-
-    // reopening clears it; ending again stamps the new time
-    w.now = T0 - HOUR
-    await w.run({ type: 'reopen', actor: stepped(myra), input: { node: 'alpha' } })
-    expect(w.node('alpha')).toMatchObject({ state: 'live', closed_at: null })
-    w.now = T0 - MIN
-    await w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: 'alpha', note: 'really nope.' } })
-    expect((await loadFeed(w.db, { tab: 'closed' }, T0)).cards.map(c => [c.title, c.at])).toEqual([['alpha', iso(T0 - MIN)], ['beta', iso(T0 - 17 * DAY)]])
   })
 
   it('closed, builds on a shwarm, number shortening and user text kept as text', async () => {

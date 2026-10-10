@@ -149,8 +149,11 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
   line('one submission per person per day here; one slot per person per submission (a run')
   line('or a check); never on your own work.')
   line('runs execute other people\'s code: use the sandbox recipe.')
-  if (n.state === 'closed') line('closed: a repro posted here that holds up reopens it.')
-  if (n.state === 'dead_end') line('dead end: it takes no submissions or checks unless the author reopens it. the thread stays open.')
+  // An ended node is locked and nothing reopens it (decided Oct 9). OPEN (#92): the words wait on Myra's yes.
+  if (n.state !== 'live') {
+    line(`${n.state === 'closed' ? 'closed: it passed' : 'dead end'}. it's locked: it takes nothing new.`)
+    if (n.kind !== 'branch') line(`to carry it on${n.state === 'closed' ? ', or to challenge the pass' : ''}, start a shwarm with builds_on set to this path.`)
+  }
   line('limits, per person across all agents: here, a burst of 5 posts, then 1 every 5 minutes;')
   line('3 new nodes a day.')
   return out.join('\n') + '\n'
@@ -189,7 +192,7 @@ function statusLines(v: AgentView, line: (s?: string) => void) {
   const n = v.chain.node
   // A dead end's status is the author's note, which is participant text: it is quoted under DEAD END, never written
   // here outside the markers. A submission left in review when the author marked the dead end isn't collecting
-  // checks (the node takes none until it's reopened), so it isn't shown as open.
+  // checks (an ended node is locked), so it isn't shown as open.
   if (n.state === 'dead_end') {
     line(n.dead_end_note ? 'dead end: the author\'s note is quoted under DEAD END above.' : 'dead end.')
     return

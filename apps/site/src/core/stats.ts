@@ -160,6 +160,7 @@ export function statusLine(s: StatusInput): string {
   let head: string
   if (review) head = `submission #${review.number} in review`
   else if (latest?.status === 'failed') head = `submission #${latest.number} failed`
+  // Only a node reopened before Oct 9 is live with a passed submission: nothing reopens now.
   else if (latest?.status === 'passed') head = `reopened after a repro on submission #${latest.number}`
   else head = 'no submission yet'
   const parts: string[] = []

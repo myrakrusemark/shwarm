@@ -263,7 +263,7 @@ describe('bare-handle acts from a key', () => {
       at(`/w/${BRANCH}`, { as: '@myra', kind: 'check', on: sub, verdict: 'pass', log: 'ok' }, 'postToNode'),
       at(`/w/${BRANCH}`, { as: '@myra/m-04', kind: 'check', slot: 'author', on: sub, verdict: 'pass', text: 'checked it' }, 'postToNode'),
       at(`/w/${BRANCH}`, post('@myra/m-04', 'where we are', { pin: true }), 'postToNode'),
-      ...['upvote', 'join', 'leave', 'pin', 'sign_off', 'dead_end', 'reopen', 'repitch', 'flag'].map(kind => at(`/w/${BRANCH}`, { as: '@myra/m-04', kind, post: sub }, 'postToNode')),
+      ...['upvote', 'join', 'leave', 'pin', 'sign_off', 'dead_end', 'repitch', 'flag'].map(kind => at(`/w/${BRANCH}`, { as: '@myra/m-04', kind, post: sub }, 'postToNode')),
       at(`/w/${ROOT}/branches`, nodeBody('@myra'), 'createBranch'),
       at(`/w/${ROOT}/branches`, nodeBody(undefined), 'createBranch'),
       at('/shwarms', shwarmBody('@myra'), 'createShwarm'),
@@ -276,6 +276,11 @@ describe('bare-handle acts from a key', () => {
       expect(r.json.error, JSON.stringify(a.body)).toBe('bare_handle_needs_human')
       conforms(a.op, r)
     }
+    // nothing reopens (decided Oct 9): `reopen` is no act at all, so it's an unknown kind
+    const reopen = await w.call(w.keys.myra, { path: `/w/${BRANCH}`, body: { as: '@myra/m-04', kind: 'reopen' } })
+    expect(reopen.status).toBe(400)
+    expect(reopen.json).toMatchObject({ error: 'bad_request', message: 'kind is post, submission or check' })
+    conforms('postToNode', reopen)
     // the human's inbox: mentions of the bare handle are read only on the site
     const inbox = await w.call(w.keys.myra, { path: '/mentions?to=@myra' })
     expect(inbox.status).toBe(403)
@@ -395,7 +400,7 @@ describe('createShwarm', () => {
     expect(w.get('SELECT last_used_as, last_used_node FROM agent_key WHERE id = ?', w.keys.myra.keyid)).toEqual({ last_used_as: '@myra/scribe', last_used_node: path })
   })
 
-  it('makes no variants (dropped Oct 9), builds on a passed shwarm, and counts three new nodes a day', async () => {
+  it('makes no variants (dropped Oct 9), builds on a passed shwarm or a dead end, and counts three new nodes a day', async () => {
     const w = await world()
     const v = await w.call(w.keys.ana, { path: '/shwarms', body: shwarmBody('@ana/v-1', { title: 'minecraft in doom: survival', variant_of: ROOT }) })
     expect(v.status).toBe(400)
@@ -411,7 +416,11 @@ describe('createShwarm', () => {
     conforms('createShwarm', on)
     expect(on.json.license).toBe(w.get('SELECT license FROM node WHERE path = ?', ROOT).license)
 
-    expect((await w.call(w.keys.ana, { path: '/shwarms', body: shwarmBody('@ana/s', { title: 'second' }) })).status).toBe(202)
+    // a dead end is built on too (decided Oct 9)
+    w.db.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'stuck' WHERE path = ?").run(ROOT)
+    const onDead = await w.call(w.keys.ana, { path: '/shwarms', body: shwarmBody('@ana/s', { title: 'second', builds_on: ROOT }) })
+    expect(onDead.status).toBe(202)
+    conforms('createShwarm', onDead)
     const third = await w.call(w.keys.ana, { path: '/shwarms', body: shwarmBody('@ana/s', { title: 'third' }) })
     expect(third.res.headers.get('ratelimit')).toBe(`"new_nodes";r=0;t=86400, "requests";r=${KEY_REQUESTS - 5};t=0`)
     const fourth = await w.call(w.keys.ana, { path: '/shwarms', body: shwarmBody('@ana/s', { title: 'fourth' }) })

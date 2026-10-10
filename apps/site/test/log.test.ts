@@ -34,15 +34,12 @@ const TEXTURES = `${EXAMPLE_BRANCH}/texture-pack`
 type Ev = { id: string | null; at: string; event: string; node: string; by: string | null; submission?: string; number?: number; detail: string; evidence: string; milestone: boolean }
 type NodeLog = { node: string; filter: string; total: number; next: string | null; events: Ev[] }
 
-/** The closed world, plus the rest of a run: the branch passes and is reopened, a sub-branch fails its author check, another is a dead end. */
+/** The closed world, plus the rest of a run: the branch passes, a sub-branch fails its author check, another is a dead end. */
 async function fullRun() {
   const w = await closedWorld()
   const { run, p } = w
   const get = (sql: string, ...args: unknown[]) => w.db.raw.prepare(sql).get(...args) as any
   const subOf = (path: string, n: number) => get('SELECT s.post_id FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ? AND s.number = ?', path, n).post_id as string
-  // block placement passes on #2 with @bmo_fan's sign-off, then @gunter's repro reopens it
-  await run({ type: 'check', actor: stepped(p('bmo_fan')), input: { node: EXAMPLE_BRANCH, on: subOf(EXAMPLE_BRANCH, 2), slot: 'author', verdict: 'pass', text: 'every corner holds.' } })
-  await run({ type: 'check', actor: site(p('gunter')), input: { node: EXAMPLE_BRANCH, on: subOf(EXAMPLE_BRANCH, 2), verdict: 'fail', repro: 'place on a corner at y=-120: the block lands one chunk off.' } })
   // two sub-branches: one fails its author check, one is a dead end; a third is still being checked
   const branch = (who: string, title: string, check: unknown) =>
     run({ type: 'createNode', actor: site(p(who)), input: { kind: 'branch', parent: EXAMPLE_BRANCH, title, what: `${title}.`, doneWhen: `${title} works.`, check } })
@@ -57,6 +54,8 @@ async function fullRun() {
   })
   await run({ type: 'check', actor: stepped(p('bmo_fan')), input: { node: BREAK, on: brk.id, slot: 'author', verdict: 'fail', repro: 'broken blocks leave a ghost collision box.' } })
   await run({ type: 'deadEnd', actor: stepped(p('finn_irl')), input: { node: MONSTERS, note: 'the blockmap is built once per level; an incremental update needs engine changes.' } })
+  // then block placement passes on #2 with @bmo_fan's sign-off, which locks it (decided Oct 9): its sub-branches came first
+  await run({ type: 'check', actor: stepped(p('bmo_fan')), input: { node: EXAMPLE_BRANCH, on: subOf(EXAMPLE_BRANCH, 2), slot: 'author', verdict: 'pass', text: 'every corner holds.' } })
   const env = testEnv(w.db)
   const b = new Browser(env)
   const json = async (path: string): Promise<NodeLog> => JSON.parse(await body(await b.req(path)))
@@ -92,7 +91,7 @@ describe('GET /w/<path>/log (5.7)', () => {
     expect(events.slice(0, -1).map(e => e.id)).toEqual(want.map(e => e.id))
     expect(totals.every(t => t === want.length + 1)).toBe(true)
     // every event type still written happened ('lobby_filled' went with the lobby, Oct 9), and the seeded row (A18) closes the log
-    expect(new Set(events.map(e => e.event))).toEqual(new Set([...AUDIT_EVENTS.filter(e => e !== 'lobby_filled'), 'seeded']))
+    expect(new Set(events.map(e => e.event))).toEqual(new Set([...AUDIT_EVENTS.filter(e => e !== 'lobby_filled' && e !== 'reopened'), 'seeded']))
     expect(events.at(-1)).toEqual({ id: null, at: expect.any(String), event: 'seeded', node: EXAMPLE_ROOT, by: '@myra', detail: 'seeded by @myra at launch', evidence: `${ORIGIN}/w/${EXAMPLE_ROOT}`, milestone: true })
     // the shape: each row names its node; the submission and its number when there is one
     const passed = events.find(e => e.event === 'passed' && e.node === EXAMPLE_ROOT)!
@@ -108,7 +107,7 @@ describe('GET /w/<path>/log (5.7)', () => {
     }
   })
 
-  it('shows milestones by default: passes, sign-offs, dead ends, reopenings, branch openings', async () => {
+  it('shows milestones by default: passes, sign-offs, dead ends, branch openings', async () => {
     const w = await fullRun()
     const page = await w.json(LOG)
     expect(page.filter).toBe('milestones')
@@ -116,7 +115,8 @@ describe('GET /w/<path>/log (5.7)', () => {
     expect(page.events.map(e => e.id)).toEqual([...want.map(e => e.id), null])
     expect(page.total).toBe(want.length + 1)
     expect(page.events.every(e => e.milestone)).toBe(true)
-    expect(new Set(page.events.map(e => e.event))).toEqual(new Set([...MILESTONE_EVENTS.filter(e => e !== 'lobby_filled'), 'seeded']))
+    // no lobby fills since Oct 9, and nothing reopens (decided Oct 9)
+    expect(new Set(page.events.map(e => e.event))).toEqual(new Set([...MILESTONE_EVENTS.filter(e => e !== 'lobby_filled' && e !== 'reopened'), 'seeded']))
     expect(await w.json(`${LOG}?filter=milestones`)).toEqual(page)
   })
 

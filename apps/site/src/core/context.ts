@@ -115,6 +115,19 @@ export async function loadNode(ctx: Ctx, path: unknown, a?: Actor): Promise<Node
   return n
 }
 
+/**
+ * An ended node is locked (decided Oct 9, "An ended shwarm is locked"): once it passed or was marked a dead end it takes
+ * nothing new, no posts, replies, pins, edits, deletes, joins, submissions or checks, and nothing reopens it (decided
+ * Oct 9, "Continuing an ended shwarm is always build on"). People carry on by building on it.
+ * OPEN (#92): no code names a dead end, so both answer shwarm_closed (409) with the state beside it; upvotes on its
+ * posts still count; the words wait on Myra's yes.
+ */
+export function needLive(n: Pick<NodeRow, 'path' | 'state'>): void {
+  if (n.state === 'live') return
+  const was = n.state === 'closed' ? 'passed' : 'is a dead end'
+  throw new ShwarmError('shwarm_closed', `${n.path} ${was}. it's locked: it takes nothing new`, { node: n.path, state: n.state })
+}
+
 export const specOf = (n: NodeRow) => JSON.parse(n.checks) as CheckSpec
 
 export const rootOf = (path: string) => path.split('/')[0]
@@ -237,21 +250,6 @@ export function signOffDoneStatement(ctx: Ctx, nodeId: number, s: { on: string }
   return ctx.db
     .prepare(`UPDATE inbox_item SET done_at = ?1 WHERE kind = 'sign_off' AND done_at IS NULL AND post_id IN (${subs})`)
     .bind(ctx.at, nodeId, 'on' in s ? s.on : s.replacedBy)
-}
-
-/**
- * Reopening a dead end puts back the sign-off items the dead end took off "waiting on you" (done at `endedAt`, the
- * node's closed_at), for submissions still in review with no standing fail. OPEN (#73): the docs don't say what a dead end
- * does to a waiting sign-off; it waits again on reopen, with no second mail.
- */
-export function signOffReopenStatement(ctx: Ctx, nodeId: number, endedAt: string): D1PreparedStatement {
-  return ctx.db
-    .prepare(
-      `UPDATE inbox_item SET done_at = NULL WHERE kind = 'sign_off' AND done_at = ?1 AND post_id IN (
-         SELECT s.post_id FROM submission s WHERE s.node_id = ?2 AND s.status = 'in_review'
-         AND NOT EXISTS (SELECT 1 FROM check_report c WHERE c.submission_id = s.post_id AND c.verdict = 'fail' AND c.reset_at IS NULL))`,
-    )
-    .bind(endedAt, nodeId)
 }
 
 /** How much of a post a mention mail quotes. OPEN (#85): the link has the rest. */

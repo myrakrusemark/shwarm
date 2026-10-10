@@ -1,15 +1,14 @@
-// Checks, author sign-off, pass detection and reopening (spec "Checking", "Passing", "Reopening";
-// protocol §7; A6, A9, A11; table B #37).
+// Checks, author sign-off and pass detection (spec "Checking", "Passing"; protocol §7; A6, A9, A11; table B #37).
 //   * one slot per person per submission, whatever the slot (slot_taken); never your own work (own_work)
 //   * a people check needs an established account (not_established; founding accounts count)
 //   * a pass needs evidence, a fail needs a repro; a run report must name the submission's hash
 //   * the author goes last: only once every other check has passed (or at once when the author is the
 //     only check), never on their own work (the A9 swap), and an author fail resets every check on the done test
-//     (a submission that already passed keeps its checks: the pass stays on record)
+//     (a submission that passed before keeps its checks: the pass stays on record)
 //   * the sign-off is asked for by name (slot 'author'), on the site, with the password re-entered (A5); while the
 //     author's account is suspended or closed, the operator signs off in their place (table B "author gone")
-//   * a pass closes the node in the same batch; a closed node then takes only a repro on the passing
-//     submission (A25, A11), which reopens it
+//   * a pass closes the node in the same batch. An ended node, closed or a dead end, is locked: it takes no checks,
+//     and nothing reopens it (decided Oct 9). Doubts about a pass become a shwarm that builds on it.
 import { hashMatches, shortHash, ShwarmError } from '@shwarm/protocol'
 import { authorize, isBare, needHuman, needStepUp, type Actor } from './actor'
 import { auditStatement, submissionHref } from './audit'
@@ -19,6 +18,7 @@ import {
   loadNode,
   loadPerson,
   mentionStatements,
+  needLive,
   noticeMailStatement,
   notifyStatement,
   postStatement,
@@ -107,8 +107,7 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
   const person = await loadPerson(ctx, a)
   checkWritable(await readSettings(ctx.db, ['read_only']))
   const n = await loadNode(ctx, inp.node)
-  // OPEN: checks on a dead end aren't described; refused until the author reopens it.
-  if (n.state === 'dead_end') throw new ShwarmError('shwarm_closed', `${n.path} is a dead end`, { node: n.path })
+  needLive(n)
   const sub =
     typeof inp.on === 'string'
       ? await ctx.db
@@ -120,22 +119,11 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
           .first<SubRow>()
       : null
   if (!sub) throw new ShwarmError('not_a_submission', `${String(inp.on)} is not a submission on ${n.path}`, { on: inp.on ?? null })
-  // A closed node takes only a repro on the submission that closed it (A25, A11); a pass there is checked below, once
-  // the verdict is known. Anything else would change nothing the pass hasn't settled.
-  // OPEN (#72): a repro is an ordinary fail check, so the slot rules below hold for it too (own_work, slot_taken,
-  // not_established): someone who checked the passing submission can't later post a repro on it.
-  const closing =
-    n.state === 'closed'
-      ? await ctx.db
-          .prepare("SELECT post_id, number FROM submission WHERE node_id = ? AND status = 'passed' ORDER BY decided_at DESC, number DESC LIMIT 1")
-          .bind(n.id)
-          .first<{ post_id: string; number: number }>()
-      : null
-  const closedTo = (c: { number: number }) =>
-    new ShwarmError('shwarm_closed', `${n.path} passed on #${c.number}. it takes only a repro on #${c.number}, which reopens it`, { node: n.path })
-  if (closing && closing.post_id !== sub.post_id) throw closedTo(closing)
   // OPEN: checks on a superseded or failed submission aren't described; refused, since nothing they say can change it.
   if (sub.status === 'superseded' || sub.status === 'failed') throw bad(`#${sub.number} is ${sub.status}. check the newest submission`)
+  // A pass stays passed (decided Oct 9): only a node reopened before then is live with a passed submission, and its
+  // pass is on record. OPEN (#92): the words wait on Myra's yes.
+  if (sub.status === 'passed') throw bad(`#${sub.number} passed. its checks are on record`)
   if (sub.person_id === person.id) throw new ShwarmError('own_work', `#${sub.number} is work posted under @${person.handle}`)
 
   const spec = specOf(n)
@@ -145,13 +133,13 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
   // Author gone (table B): while the author's account is suspended or closed, the operator (any admin) takes the author's
   // slot, asked for by name and behind the password like the author's own. OPEN (open-questions #75): the usual refusals
   // stand, so an operator who submitted it or already checked it can't sign off; the rule covers branch authors too, but
-  // only the sign-off (not dead ends or reopening); and the slot goes back to the author once their account is active.
+  // only the sign-off (not dead ends); and the slot goes back to the author once their account is active.
   const byOperator = need.author && !isAuthor && inp.slot === 'author' && n.author_status !== 'active' && person.is_admin === 1
   if ((isAuthor || byOperator) && inp.slot === 'author') {
     // The author's one slot on someone else's submission is the sign-off, made on the site behind the password.
     needHuman(a, 'the author sign-off')
     needStepUp(a, 'the author sign-off')
-    // A passed submission only takes repros; its sign-off is on record and can't be redone.
+    // A passed submission's sign-off is on record and can't be redone.
     if (sub.status !== 'in_review') throw bad(`#${sub.number} already ${sub.status}. the author signs off on a submission in review`)
     slot = 'author'
   } else if (isAuthor && sub.status === 'in_review') {
@@ -203,8 +191,6 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
       if (!repro) throw new ShwarmError('missing_repro', 'a fail needs a repro: steps that show it failing')
     }
   }
-  if (closing && verdict === 'pass') throw closedTo(closing)
-
   const before = await checksOn(ctx, sub.post_id)
   const wasReady = tally(need, before).othersDone // the author was already asked to sign off
   if (slot === 'author' && !wasReady)
@@ -218,7 +204,7 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
   const authorFail = slot === 'author' && verdict === 'fail'
   if (authorFail)
     // An author's fail resets every check on the done test: runs and people start over (decided). Checks on a
-    // submission that passed before (the node closed, then a repro reopened it) stay as they are, repro included.
+    // submission that passed before (a node reopened by a repro before Oct 9) stay as they are, repro included.
     stmts.push(
       ctx.db
         .prepare(
@@ -269,7 +255,7 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
   )
   stmts.push(last.stmt, ...m.stmts)
 
-  // Passes, fails and reopenings are mailed to the people in the node who turned that on (go-live 6.3, notice 'pass_fail').
+  // Passes and fails are mailed to the people in the node who turned that on (go-live 6.3, notice 'pass_fail').
   const news = { notice: 'pass_fail', title: n.title, path: n.path, number: sub.number, link: subHref }
   let subState: CheckResult['submission_state'] = sub.status as 'in_review' | 'passed'
   let nodeState = n.state as 'live' | 'closed'
@@ -323,20 +309,6 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
     // OPEN (#73): a fail after the author was asked (checks past the count still land) blocks the sign-off, so nothing waits on
     // them for this submission any more. The submission stays in review until a newer one replaces it.
     stmts.push(signOffDoneStatement(ctx, n.id, { on: sub.post_id }))
-  } else if (closing && verdict === 'fail') {
-    // A repro on the passing submission (the only check a closed node takes) reopens the node; the pass stays on record.
-    nodeState = 'live'
-    stmts.push(ctx.db.prepare("UPDATE node SET state = 'live', closed_at = NULL WHERE id = ?").bind(n.id))
-    last = auditStatement(
-      ctx.db,
-      { event: 'reopened', node: n.id, by: a.as, submissionId: sub.post_id, number: sub.number, detail: `repro on #${sub.number}`, evidence: submissionHref(n.path, sub.number, checkId) },
-      ctx.at,
-    )
-    stmts.push(
-      last.stmt,
-      notifyStatement(ctx, n.id, `${n.title} reopened: a repro on #${sub.number}.`, 'involved'),
-      noticeMailStatement(ctx, n.id, 'involved', { template: 'node_news', payload: { ...news, event: 'reopened', link: submissionHref(n.path, sub.number, checkId) } }),
-    )
   }
   stmts.push(touchNode(ctx, n.id, last.id))
   await ctx.db.batch(stmts)

@@ -10,7 +10,7 @@
 // draws them. "a key is used somewhere new" is a security mail: always on, not a setting.
 // The kickoff mail went with the lobby (decided Oct 9, "No lobby"); a stored 'kickoff' setting is no longer read.
 // How often applies to mentions only: right away, or one daily digest (jobs/digest.ts). Sign-off mails always
-// go right away, since work waits on them; passes, fails and reopenings go right away when their box is on.
+// go right away, since work waits on them; passes and fails go right away when their box is on.
 
 export type NoticeGroup = { key: 'inbox' | 'pass_fail'; label: string; types: string[]; on: boolean }
 

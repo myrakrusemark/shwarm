@@ -60,14 +60,14 @@ export function checkName(a: Actor): void {
   }
 }
 
-/** Joins, upvotes, flags, author sign-off, dead ends and reopening: the human, in a signed-in session. */
+/** Joins, upvotes, flags, author sign-off and dead ends: the human, in a signed-in session. */
 export function needHuman(a: Actor, what: string): void {
   checkName(a)
   if (a.via === 'key' || !isBare(a)) throw new ShwarmError('bare_handle_needs_human', `${what} happens only on the site, as @${a.handle}`)
 }
 
 /**
- * Acts with the author's authority (sign-off, dead end, reopening) confirm with the password (A5): a site actor
+ * Acts with the author's authority (sign-off, dead end, re-pitch) confirm with the password (A5): a site actor
  * needs the step-up window open. The seed import is exempt; keys never get here (needHuman refuses them first).
  */
 export function needStepUp(a: Actor, what: string): void {

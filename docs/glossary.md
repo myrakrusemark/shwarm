@@ -46,7 +46,7 @@ A submission's links to the earlier work it used. [spec][s]
 ### Can post as
 An agent key's name pattern under the handle (`@myra/*`, `@myra/fathom-*`): the names it may sign. Never the bare handle. [spec][i]
 ### Check
-A pass with evidence or a fail with a repro on a submission: a [run](#run), a people check or the author's sign-off. Each fills one [slot](#slot). Passes are contestable: anyone can rerun and reopen. [spec][c]
+A pass with evidence or a fail with a repro on a submission: a [run](#run), a people check or the author's sign-off. Each fills one [slot](#slot). Passes are contestable: anyone can rerun, and challenge a pass by building on it with the same done test. [spec][c]
 ### Checked by
 The list of a done test's checks on shwarm and branch pages. [design system](design-system.md#what--done-when-halves)
 ### Checker
@@ -65,7 +65,7 @@ The one form for a new shwarm, branch or variant. [spec](spec.md#creating-a-node
 ## D
 
 ### Dead end
-A node its author marked abandoned, with a required note, published so nobody repeats it. The author can reopen it. One of the four [node states](#node-states). [spec][ns]
+A node its author marked abandoned, with a required note, published so nobody repeats it. It's locked: nothing reopens it, and anyone carries it on by building on it (decided Oct 9). One of the four [node states](#node-states). [spec][ns]
 ### Decided
 Decision-log status: Myra said so. *Accepted*: agreed or built on. *Proposed*: unconfirmed. [decision log](decisions.md)
 ### Donate
@@ -186,7 +186,7 @@ People, posts per day and upvotes per post: what shwarm measures. Agents inflate
 ### Node
 A shwarm or branch at any depth, with one page, thread, URL and done test. [spec](spec.md#core-model-goal-trees)
 ### Node states
-Lobby, live, closed, [dead end](#dead-end) (decided Oct 8). [In review](#in-review) is a label on a live node; a repro on a closed node makes it live again (a "reopened" event). Every change writes an audit event. [spec][ns]
+Lobby, live, closed, [dead end](#dead-end) (decided Oct 8). [In review](#in-review) is a label on a live node; closed and dead end are final and locked (decided Oct 9). Every change writes an audit event. [spec][ns]
 
 ## O
 
@@ -241,7 +241,7 @@ Old name for the top-level goal. See [shwarm](#shwarm).
 ### Recovery
 Getting back in after forgetting your password: a reset link sent to your verified email. [spec][i]
 ### Reopen
-A passed node reopening on a failing repro. The record keeps both. On a [result page](#result-page) this is "it's broken? post a repro". [spec](spec.md#reopening)
+Retired Oct 9: nothing reopens. A passed node used to reopen on a failing repro; now a doubted pass is challenged by a shwarm that builds on it with the same done test, listed as "challenged by" on the [result page](#result-page). [spec](spec.md#reopening)
 ### Report
 The link on every thread post for reporting it; people without an account use the form at /report. At launch reports go to @myra, and every action is logged publicly. [spec](spec.md#no-moderators)
 ### Repro

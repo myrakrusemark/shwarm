@@ -1,7 +1,8 @@
 // A closed shwarm's result page, /w/<path> (go-live 5.7), ported from mockups/shwarm-closed.html: what passed, at the
 // hash its checks ran against, with its links ("these links leave shwarm"); the proof; who made it, ranked by counted
-// upvotes with role tags from recorded events; what's next (build on it, or post a repro); what's built on it; and
-// the log's milestones. Its thread stays at ?thread=1 (the live template). Participant text goes through render/text.tsx.
+// upvotes with role tags from recorded events; what's next (build on it); the shwarms challenging it and the rest built
+// on it; and the log's milestones. A passed shwarm stays passed and is locked (decided Oct 9): no repro reopens it, and
+// doubts become a shwarm that builds on it with the same done test, listed here as "challenged by". Its thread stays at ?thread=1 (the live template). Participant text goes through render/text.tsx.
 import type { FC } from 'hono/jsx'
 import { shortHash } from '@shwarm/protocol'
 import type { Link } from '@shwarm/protocol'
@@ -34,7 +35,9 @@ const DAY = 86_400_000
 
 export const ResultPage: FC<{ d: ResultPageData }> = ({ d }) => {
   const n = d.chain.node
-  const sub = d.result.sub
+  // Shwarms that kept this done test are challenging the pass (decided Oct 9); the rest are built on it.
+  const challenged = d.builtOnThis.filter(b => b.challenges)
+  const builtOn = d.builtOnThis.filter(b => !b.challenges)
   return (
     <Layout title={`${showHidden(n.title)} · done · shwarm`} description={cut(showHidden(n.what), 200)}>
       <link rel="stylesheet" href="/css/node.css" />
@@ -45,11 +48,12 @@ export const ResultPage: FC<{ d: ResultPageData }> = ({ d }) => {
       <div class="grid">
         <main id="main" tabindex={-1}>
           <ResultBox d={d} />
-          <Proof n={n} sub={sub} checks={d.result.checks} />
+          <Proof n={n} sub={d.result.sub} checks={d.result.checks} />
           <WhoMadeIt credits={d.credits} />
           <LogBox d={d} />
           <p class="note thread-link">
-            <a href={threadHref(n.path)}>read the whole thread ({plural(d.result.posts, 'post', 'posts')}) →</a> · it stays open for repros and pointers to follow-on work.
+            {/* OPEN (#92): "it's locked." replaces the mockup's "it stays open for repros…"; it waits on Myra's yes. */}
+            <a href={threadHref(n.path)}>read the whole thread ({plural(d.result.posts, 'post', 'posts')}) →</a> · it's locked.
           </p>
         </main>
         <aside>
@@ -57,26 +61,31 @@ export const ResultPage: FC<{ d: ResultPageData }> = ({ d }) => {
             <h2 class="sunny">what's next</h2>
             <div class="in">
               <a class="btn" href={buildOnHref(n.path)}>build on this</a>
-              <a class="btn plain" href={`${subHref(n.path, sub.number)}#check`}>it's broken? post a repro</a>
-              <p class="note">building on it starts a new shwarm that uses this result. a repro that holds up reopens this one.</p>
+              {/* OPEN (#92): the second sentence replaces the mockup's repro line; it waits on Myra's yes. */}
+              <p class="note">building on it starts a new shwarm that uses this result. think it doesn't really pass? build on it with the same done test.</p>
             </div>
           </div>
-          {d.builtOnThis.length > 0 && (
-            <div class="box">
-              <h2>built on this <span>{d.builtOnThis.length}</span></h2>
-              <ul class="tree">
-                {d.builtOnThis.map(b => (
-                  <li><a href={nodeHref(b.path)}><Plain text={b.title} /></a><Pill n={b} now={d.now} short /></li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <NodeList title="challenged by" nodes={challenged} now={d.now} />
+          <NodeList title="built on this" nodes={builtOn} now={d.now} />
           <AgentResources />
         </aside>
       </div>
     </Layout>
   )
 }
+
+/** A sidebar list of shwarms that build on this one, each with its state; nothing when there are none. */
+const NodeList: FC<{ title: string; nodes: BuiltOnThis[]; now: number }> = ({ title, nodes, now }) =>
+  nodes.length ? (
+    <div class="box">
+      <h2>{title} <span>{nodes.length}</span></h2>
+      <ul class="tree">
+        {nodes.map(b => (
+          <li><a href={nodeHref(b.path)}><Plain text={b.title} /></a><Pill n={b} now={now} short /></li>
+        ))}
+      </ul>
+    </div>
+  ) : null
 
 const DoneHead: FC<{ d: ResultPageData }> = ({ d }) => {
   const n = d.chain.node

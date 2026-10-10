@@ -4,7 +4,7 @@
 // nodes a day, and goes to the new page. New nodes start 'pending' and triage (8.1, triage/run.ts) runs right after the redirect;
 // production keeps creation paused (setting pause_new_nodes) until the seeds are checked.
 //
-// Builds on: paste a passed shwarm's link or path, or any link. GitHub repo links get their name and SPDX license
+// Builds on: paste the link or path of a shwarm that passed or is a dead end, or any link. GitHub repo links get their name and SPDX license
 // from the GitHub API; any other link is stored as its URL and a name, with the license typed in. A builds-on
 // license replaces the license picker (protocol §8).
 // OPEN: the mockup's live search and the chip with "change" need JavaScript; this first version is a plain form.
@@ -12,8 +12,9 @@
 // Branch mode (go-live 4.3), as mockups/new.html draws it. /new?parent=<path> makes a branch: the parent's done
 // test shown as what it helps reach, no tags or builds-on, the parent's license, live at once. It reaches the parent
 // only as the node page would show it to this viewer. Variants are dropped (decided Oct 9): there is no ?variant= mode.
-// /new?builds_on=<path> fills the builds-on field, and names the shwarm when it's a closed one this viewer can see (the
-// result page's "build on this").
+// /new?builds_on=<path> fills the builds-on field, and names the shwarm when it's an ended one this viewer can see (the
+// result page's and a dead end's "build on this"); its done test then fills "done when", to keep or change (decided Oct 9:
+// a passed shwarm is challenged by building on it with the same done test; nothing enforces it).
 // /new?parent=<path>&from=<post id> is a post's "make it a branch" (go-live 4.8): the branch form, filled from the post.
 import { Hono, type Context } from 'hono'
 import type { FC } from 'hono/jsx'
@@ -24,7 +25,7 @@ import { signInHref } from '../auth/return-to'
 import { siteActor } from '../core/actor'
 import { isId } from '../core/ids'
 import { DEFAULT_RUNS } from '../core/checks'
-import { LICENSES, needBranchable, type CreateNodeInput } from '../core/nodes'
+import { ENDED, LICENSES, needBranchable, type CreateNodeInput } from '../core/nodes'
 import { MAX_TEXT, MAX_TITLE } from '../core/text'
 import { runInTree } from '../do/shwarm-tree'
 import { parseNodePath, readChain, type Chain, type NodeHead } from '../read/node'
@@ -47,8 +48,8 @@ export type CreateForm = Partial<Record<
 >>
 
 /**
- * What the form makes (go-live 4.3): a shwarm, with `upstream` when ?builds_on= names a closed shwarm this viewer can
- * see; or a branch under `chain.node`.
+ * What the form makes (go-live 4.3): a shwarm, with `upstream` when ?builds_on= names an ended shwarm (passed or a dead
+ * end) this viewer can see; or a branch under `chain.node`.
  */
 export type Mode = { kind: 'shwarm'; upstream?: NodeHead | null } | { kind: 'branch'; chain: Chain }
 
@@ -199,7 +200,8 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refus
               <div class="box">
                 <h2 class="sunny">how it's checked <span>{w.oneTest}</span></h2>
                 <div class="f">
-                  <p class="hint">a submission passes when every check you pick passes. by default that's just you. each person can submit once a day here; one check per person per submission; anyone can reopen a pass with a failing repro.</p>
+                  {/* OPEN (#92): the mockup's "anyone can reopen a pass with a failing repro." is dropped (decided Oct 9: nothing reopens). */}
+                  <p class="hint">a submission passes when every check you pick passes. by default that's just you. each person can submit once a day here; one check per person per submission.</p>
                   <div class="chk">
                     <input type="checkbox" id="c-machine" name="c_runs" checked={on('c_runs')} />
                     <div class="body">
@@ -429,10 +431,11 @@ async function modeOf(db: D1Database, q: { parent?: string; builds_on?: string }
     const chain = await shownNode(db, q.parent, viewerId)
     return chain && { mode: { kind: 'branch', chain }, refused: refusal(() => needBranchable(chain.node)) }
   }
-  // ?builds_on= names a closed shwarm (the result page's "build on this"): the field shows its path and the chip its name.
+  // ?builds_on= names an ended shwarm (the result page's or a dead end's "build on this"): the field shows its path and
+  // the chip its name.
   const path = q.builds_on ? shwarmPathOf(q.builds_on.trim(), origin) : null
   const up = path ? await shownNode(db, path, viewerId) : null
-  return { mode: { kind: 'shwarm', upstream: up?.node.state === 'closed' ? up.node : null } }
+  return { mode: { kind: 'shwarm', upstream: up && ENDED.includes(up.node.state) ? up.node : null } }
 }
 
 /** Where this form lives: /new, or /new in its branch mode. */
@@ -449,11 +452,14 @@ create.get('/new', async c => {
   const m = await modeOf(c.env.DB, q, w.session.personId, url.origin)
   if (!m) return noNode(c as C)
   const token = await formToken(c.env.CSRF_SECRET, w.session.id)
+  // Building on an ended shwarm starts from its done test (decided Oct 9): kept word for word, the new shwarm shows on the
+  // result page as challenging the pass; changed, it's built on it. OPEN (#92): only "done when" is filled, not its checks.
+  const upstream = m.mode.kind === 'shwarm' ? m.mode.upstream : null
   const v: CreateForm =
     m.mode.kind === 'branch'
       ? ((await fieldsFromPost(c.env.DB, m.mode.chain.node.id, c.req.query('from'))) ?? FRESH)
       : q.builds_on
-        ? { ...FRESH, builds_on: q.builds_on.trim().slice(0, 600) }
+        ? { ...FRESH, builds_on: q.builds_on.trim().slice(0, 600), ...(upstream ? { done_when: upstream.done_when } : {}) }
         : FRESH
   return page(c, <NewPage token={token} v={v} refused={m.refused} verified={w.session.verified} mode={m.mode} />)
 })
@@ -465,7 +471,7 @@ create.post('/new', async (c: C) => {
   const f = formFields(raw)
   const session = w.session
   const origin = new URL(c.req.url).origin
-  // builds_on too, so a refused form that builds on a closed shwarm comes back with its chip and the license picker hidden.
+  // builds_on too, so a refused form that builds on an ended shwarm comes back with its chip and the license picker hidden.
   const m = await modeOf(c.env.DB, { parent: f.parent, builds_on: f.builds_on }, session.personId, origin)
   if (!m) return noNode(c)
   const mode = m.mode

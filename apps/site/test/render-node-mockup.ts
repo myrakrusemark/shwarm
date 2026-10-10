@@ -264,7 +264,7 @@ const closed: ResultPageData = {
     ],
     more: { people: 4, posts: 61, upvotes: 142 },
   },
-  builtOnThis: [{ path: 'doom-block-building-speedruns', title: 'doom block-building speedruns', kind: 'shwarm', state: 'live', in_review: 0 }],
+  builtOnThis: [{ path: 'doom-block-building-speedruns', title: 'doom block-building speedruns', kind: 'shwarm', state: 'live', in_review: 0, challenges: 0 }],
   log: {
     rows: [
       ev(13, '21:47', 'passed', 'minecraft in doom', null, '#4 (e9b41d0) passed', '/w/minecraft-in-doom/s/4', 4),

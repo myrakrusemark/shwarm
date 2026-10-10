@@ -1,6 +1,6 @@
 // Go-live 6.3 (and the 4.4 kickoff mail): notice emails through the outbox. A mention of the bare handle is mailed at
 // once to people who asked for inbox mail right away, and goes in the daily digest for everyone else; a lobby filling
-// mails everyone seated; a node you're in passing, failing the author check or reopening is mailed to those who turned
+// mails everyone seated; a node you're in passing or failing the author check is mailed to those who turned
 // that on. Every mail is written in the act's batch, honours the notice settings and the one-click unsubscribe, and
 // goes only while what it's about still shows to its reader.
 import { describe, expect, it } from 'vitest'
@@ -9,7 +9,7 @@ import { closeAccount } from '../src/auth/close'
 import { sweepOutbox, TRIAGE_RECHECK_MS, TRIAGE_WAIT_MS } from '../src/jobs/mail'
 import { DIGEST_ITEMS, MailRenderError, renderMail } from '../src/email/templates'
 import { readUnsubToken } from '../src/email/unsubscribe'
-import { agent, DAY, HOUR, MIN, person, site, stepped, World, type P } from './core-fixtures'
+import { agent, DAY, HOUR, MIN, person, refused, site, stepped, World, type P } from './core-fixtures'
 import { T0 } from './d1'
 
 const SITE = 'https://shwarm.org'
@@ -78,19 +78,18 @@ describe('the templates (6.3, 4.4)', () => {
     expect(() => renderMail('digest', { handle: 'bob', items: [] }, notice('mention'))).toThrow(MailRenderError)
   })
 
-  it('pass, fail and reopen say what the inbox item says; the kickoff mail is gone (no lobby, Oct 9)', () => {
+  it('pass and fail say what the inbox item says; the kickoff and reopened mails are gone (Oct 9)', () => {
     expect(() => renderMail('kickoff', { handle: 'bob', title: 'minecraft in doom', link: '/w/minecraft-in-doom', seats: 2 }, notice('kickoff'))).toThrow(MailRenderError)
     const news = (p: Record<string, unknown>) => renderMail('node_news', { handle: 'bob', title: 'minecraft in doom', link: '/w/minecraft-in-doom/s/2', ...p }, notice('pass and fail'))
     expect(news({ event: 'passed', number: 2 })).toMatchObject({ subject: 'minecraft in doom passed' })
     expect(news({ event: 'passed', number: 2 }).text).toContain('minecraft in doom passed on #2.')
     expect(news({ event: 'failed', number: 2 }).subject).toBe('#2 on minecraft in doom failed the author check')
     expect(news({ event: 'failed', number: 2 }).text).toContain('#2 on minecraft in doom failed the author check. every check starts over.')
-    expect(news({ event: 'reopened', number: 2 }).text).toContain('minecraft in doom reopened: a repro on #2.')
-    expect(news({ event: 'reopened' }).text).toContain('minecraft in doom reopened. its author picked it back up.')
+    expect(() => news({ event: 'reopened', number: 2 })).toThrow(MailRenderError) // nothing reopens (decided Oct 9)
     expect(news({ event: 'passed', number: 2 }).text).toContain('you get this because pass and fail mails are on.')
     expect(() => news({ event: 'exploded' })).toThrow(MailRenderError)
     expect(() => news({ event: 'passed' })).toThrow(MailRenderError)
-    for (const m of [news({ event: 'passed', number: 2 }), news({ event: 'reopened' })]) {
+    for (const m of [news({ event: 'passed', number: 2 }), news({ event: 'failed', number: 2 })]) {
       expect(lower(m.text)).toBe(lower(m.text).toLowerCase())
       expect(m.text + m.html).not.toMatch(/[—–]/)
     }
@@ -276,7 +275,7 @@ describe('the daily digest (6.3)', () => {
   })
 })
 
-describe('no kickoff (decided Oct 9), and passes, fails and reopenings (6.3)', () => {
+describe('no kickoff (decided Oct 9), and passes and fails (6.3)', () => {
   it('starting and joining a shwarm mail no one', async () => {
     const w = new World()
     const myra = await person(w.db, 'myra')
@@ -288,7 +287,7 @@ describe('no kickoff (decided Oct 9), and passes, fails and reopenings (6.3)', (
     expect(w.all('SELECT 1 FROM inbox_item')).toEqual([])
   })
 
-  it('off by default; on, the people in the node hear of a fail, a pass, and a reopening either way', async () => {
+  it('off by default; on, the people in the node hear of a fail and a pass, and of nothing after it', async () => {
     const { w, myra, ana, bob, path } = await live()
     await w.post(site(bob), path, 'working on it') // bob is in it: he posted this week
     expect(outbox(w, 'node_news')).toEqual([])
@@ -303,24 +302,16 @@ describe('no kickoff (decided Oct 9), and passes, fails and reopenings (6.3)', (
     w.tick(DAY)
     const s3 = await w.submit(site(ana), path, 'third try')
     await w.signOff(myra, path, s3.id, 'pass')
-    await w.fail(site(bob), path, s3.id) // a repro on the passing submission reopens it
+    await refused(w.fail(site(bob), path, s3.id), 'shwarm_closed') // no repro reopens it (decided Oct 9)
     const news = outbox(w, 'node_news')
     expect(news.map(r => [r.person_id === bob.id ? 'bob' : 'ana', r.payload.event, r.payload.number])).toEqual([
       ['ana', 'failed', 2], ['bob', 'failed', 2],
       ['ana', 'passed', 3], ['bob', 'passed', 3],
-      ['ana', 'reopened', 3], ['bob', 'reopened', 3],
     ])
     expect(news[2].payload).toMatchObject({ notice: 'pass_fail', title: 'minecraft in doom', path, link: `/w/${path}/s/3` })
-    expect(news[4].payload.link).toMatch(new RegExp(`^/w/${path}/s/3#c_\\w+$`))
-    // the author's dead end and reopen
-    await w.deadEnd(myra, path)
-    await w.reopen(myra, path)
-    expect(outbox(w, 'node_news').slice(6).map(r => [r.payload.event, r.payload.by])).toEqual([['reopened', undefined], ['reopened', undefined]])
-    // no handle in the stored words, which outlive a closed account
-    expect(w.get("SELECT text FROM inbox_item WHERE kind = 'system' AND person_id = ? ORDER BY id DESC", bob.id).text).toBe('minecraft in doom reopened. its author picked it back up.')
     const r = await sweep(w)
     expect(r.mails.filter(m => m.to[0] === 'bob@example.org').map(m => m.subject)).toEqual([
-      '#2 on minecraft in doom failed the author check', 'minecraft in doom passed', 'minecraft in doom reopened', 'minecraft in doom reopened',
+      '#2 on minecraft in doom failed the author check', 'minecraft in doom passed',
     ])
   })
 

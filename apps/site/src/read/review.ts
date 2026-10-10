@@ -71,7 +71,7 @@ export const inReview = (subs: SubmissionRow[]) => subs.find(s => s.status === '
 
 /**
  * The submission collecting checks now: in review on a live node. A dead end keeps its submission's in_review
- * status (reopening picks the review back up), but takes no checks meanwhile, so it has no open review.
+ * status, but is locked and takes no checks (decided Oct 9), so it has no open review.
  */
 export const openReview = (n: { state: NodeHead['state'] }, subs: SubmissionRow[]) => (n.state === 'live' ? inReview(subs) : null)
 

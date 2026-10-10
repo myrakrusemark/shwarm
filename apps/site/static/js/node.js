@@ -11,7 +11,7 @@
   })
 })()
 
-// The page's forms (post, join, leave, re-pitch, dead end, reopen, upvote, edit, delete; on the owner's profile, the inbox's
+// The page's forms (post, join, leave, re-pitch, dead end, upvote, edit, delete; on the owner's profile, the inbox's
 // reply and read marks, and the account modal's forms; on the keys page, revoke and revoke all): one submit per click.
 // The button stays off until the page comes back. The keys page loads this file for that alone.
 document.querySelectorAll('form.compose, form.seat-act, form.owner-act, form.up-act, form.edit-act, form.del-act, form.inbox-act, form.acct-act, form.key-act').forEach(form => {

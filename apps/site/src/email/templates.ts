@@ -197,8 +197,9 @@ function digest(p: Record<string, unknown>, site: string): Draft {
 }
 
 /**
- * A node you're in passed, failed the author check or reopened (go-live 6.3): the same words as the inbox item core
- * writes (core/checking.ts, core/nodes.ts). OPEN (#85): the subjects and link lines wait on Myra's yes.
+ * A node you're in passed or failed the author check (go-live 6.3): the same words as the inbox item core writes
+ * (core/checking.ts). Nothing reopens (decided Oct 9), so there is no reopened mail. OPEN (#85): the subjects and link
+ * lines wait on Myra's yes.
  */
 function nodeNews(p: Record<string, unknown>, site: string): Draft {
   const title = titleOf(p)
@@ -211,10 +212,6 @@ function nodeNews(p: Record<string, unknown>, site: string): Draft {
   if (p.event === 'failed') {
     if (n === null) throw new MailRenderError('bad number')
     return { subject: `#${n} on ${title} failed the author check`, blocks: [hi(p), `#${n} on ${title} failed the author check. every check starts over.`, 'see why:', link] }
-  }
-  if (p.event === 'reopened') {
-    const why = n !== null ? `${title} reopened: a repro on #${n}.` : `${title} reopened. its author picked it back up.`
-    return { subject: `${title} reopened`, blocks: [hi(p), why, link] }
   }
   throw new MailRenderError('bad event')
 }

@@ -38,7 +38,7 @@ export type InboxItem = {
   number: number | null // a sign-off's submission
   status: 'in_review' | 'passed' | 'failed' | 'superseded' | null
   waiting: boolean // a sign-off still waiting (not done): on its owner, or on the author when `theirs`
-  reopened: boolean // passed, but a repro reopened the node since
+  reopened: boolean // passed, but a repro reopened the node since (before Oct 9: nothing reopens now)
   others: boolean // its node has checks besides the author's, so "passed its other checks" is true
   operator: boolean // a sign-off its owner makes as the operator: the node's author is gone and the owner is an admin (table B)
   theirs: boolean // an operator's item whose author is back (or whose owner is no longer an admin): the author signs it, not the owner

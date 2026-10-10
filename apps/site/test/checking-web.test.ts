@@ -1,5 +1,6 @@
 // Go-live 5.3, 5.5 and 5.6 on the site: the people check form on the submission page, the author's sign-off box with
-// its inline password, the struck reset checks, the author-gone rule on the page, and the author's dead end and reopen.
+// its inline password, the struck reset checks, the author-gone rule on the page, and the author's dead end. An ended
+// node is locked (decided Oct 9): no repro form, no compose box, and nothing reopens it.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { hashPassword } from '../src/auth/password'
 import { siteActor } from '../src/core/actor'
@@ -132,32 +133,30 @@ describe('the people check form (5.3)', () => {
   })
 })
 
-describe('a closed node takes only a repro (A25, A11)', () => {
-  it('refuses a pass on the passing submission; a repro reopens the node', async () => {
-    const { db, env, node, subId, get } = await world()
+describe('a passed node is locked (decided Oct 9)', () => {
+  it('shows no repro link, check form or compose box, and refuses a forged check or post', async () => {
+    const { db, env, node, subId, get, all } = await world()
     const bmo = get("SELECT id, handle FROM person WHERE handle = 'bmo_fan'")
     await new TreeEngine(db, () => T0).run({ type: 'check', actor: siteActor(bmo, { steppedUp: true }), input: { node: EXAMPLE_BRANCH, on: subId(2), slot: 'author', verdict: 'pass', text: 'played it tonight' } })
     expect(node().state).toBe('closed')
-    // the node page points at the repro form
-    expect(await body(await new Browser(env).req(BP, { headers: HTML }))).toContain(`<div class="alt"><a href="${S2}#check">it's broken? post a repro</a></div>`)
     const reader = await signIn(env, 'reader')
+    const nodePage = await body(await reader.req(BP, { headers: HTML }))
+    expect(nodePage).not.toContain('post a repro')
+    expect(nodePage).toContain('<div class="compose locked"><div class="to">locked</div><p>this branch passed, so it takes nothing new.</p></div>')
+    expect(nodePage).not.toContain('value="post"')
+    expect(nodePage).not.toContain('make it a branch')
     const page = await body(await reader.req(S2, { headers: HTML }))
-    expect(page).toContain("<h2>it's broken? post a repro <span>")
-    expect(page).toContain('<input type="hidden" name="verdict" value="fail"/>')
-    let res = await check(reader, { verdict: 'pass', text: 'still works', links: RERUN })
+    expect(page).not.toContain('id="check"')
+    expect(pill(page)).toBe('approved')
+    const checks = all('SELECT id FROM check_report').length
+    let res = await check(reader, { verdict: 'fail', text: 'place on a corner at y=-200: the block vanishes.' })
     expect(res.status).toBe(400)
-    expect(err(await body(res))).toBe(`${EXAMPLE_BRANCH} passed on #2. it takes only a repro on #2, which reopens it.`)
-    res = await check(reader, { verdict: 'fail', text: 'place on a corner at y=-200: the block vanishes.' })
-    expect(res.status).toBe(303)
-    expect(node().state).toBe('live')
-    // the repro shows once: its text is its steps
-    const html = await body(await reader.req(S2, { headers: HTML }))
-    expect(html).toContain('<a href="/@reader">@reader</a> · place on a corner at y=-200: the block vanishes.</span>')
-    // the pass stays on record, but the page no longer says the node is done
-    expect(pill(html)).toBe('reopened')
-    expect(html).toContain('<h2>checks <span>4 of 4 · passed · reopened by a repro</span></h2>')
-    expect(html).not.toContain('block placement is done')
-    expect(html).not.toContain('id="check"')
+    expect(err(await body(res))).toBe(`${EXAMPLE_BRANCH} passed. it's locked: it takes nothing new.`)
+    expect(all('SELECT id FROM check_report').length).toBe(checks)
+    res = await send(reader, BP, BP, { do: 'post', text: 'is it really done?' })
+    expect(res.status).toBe(400)
+    expect(err(await body(res))).toBe(`${EXAMPLE_BRANCH} passed. it's locked: it takes nothing new.`)
+    expect(node().state).toBe('closed')
   })
 })
 
@@ -271,7 +270,7 @@ describe('submission.js', () => {
   })
 })
 
-describe('dead end and reopen (5.6)', () => {
+describe('dead end (5.6)', () => {
   it('only the author gets the box; a dead end needs a note and the password', async () => {
     const { env, node } = await world()
     const reader = await signIn(env, 'reader')
@@ -291,22 +290,31 @@ describe('dead end and reopen (5.6)', () => {
     res = await send(author, BP, BP, { do: 'dead_end', note: 'gzdoom caps dynamic geometry.', password: GOOD_PASSWORD })
     expect(res.status).toBe(303)
     expect(node()).toEqual({ state: 'dead_end', dead_end_note: 'gzdoom caps dynamic geometry.' })
-    // the window is open now: reopening doesn't ask again
-    expect(await body(await author.req(BP, { headers: HTML }))).toContain('<input type="hidden" name="do" value="reopen"/>')
+    // a dead end is locked: the author's box and the compose box are gone, and nothing offers to reopen it
+    const ended = await body(await author.req(BP, { headers: HTML }))
+    expect(ended).not.toContain('id="owner"')
+    expect(ended).not.toContain('reopen')
+    expect(ended).toContain('<div class="compose locked"><div class="to">locked</div><p>this branch is a dead end, so it takes nothing new.</p></div>')
   })
 
-  it('reopen works only for the author', async () => {
+  it('a dead end is locked: a forged post or edit is refused, and there is no reopen', async () => {
     const { env, db, node, get } = await world()
     const bmo = get("SELECT id, handle FROM person WHERE handle = 'bmo_fan'")
+    const own = get("SELECT p.id FROM post p JOIN node n ON n.id = p.node_id WHERE n.path = ? AND p.person_id = ? AND p.kind = 'post' LIMIT 1", EXAMPLE_BRANCH, bmo.id).id
     await new TreeEngine(db, () => T0).run({ type: 'deadEnd', actor: siteActor(bmo, { steppedUp: true }), input: { node: EXAMPLE_BRANCH, note: 'stuck on chunk seams' } })
-    const reader = await signIn(env, 'reader')
-    let res = await send(reader, BP, BP, { do: 'reopen' })
-    expect(res.status).toBe(400)
-    expect(err(await body(res))).toBe('only the author reopens a dead end.')
-    expect(node().state).toBe('dead_end')
     const author = await signIn(env, 'bmo_fan', { existing: true })
-    res = await send(author, BP, BP, { do: 'reopen' })
-    expect(res.status).toBe(303)
-    expect(node().state).toBe('live')
+    const page = await body(await author.req(BP, { headers: HTML }))
+    expect(page).not.toContain('value="edit"')
+    expect(page).not.toContain('value="delete"')
+    let res = await send(author, BP, BP, { do: 'reopen' })
+    expect(res.status).toBe(400)
+    expect(await body(res)).toContain('that form asked for nothing we know.')
+    res = await send(author, BP, BP, { do: 'edit', post: own, text: 'never mind' })
+    expect(res.status).toBe(400)
+    expect(err(await body(res))).toBe(`${EXAMPLE_BRANCH} is a dead end. it's locked: it takes nothing new.`)
+    res = await send(author, BP, BP, { do: 'post', text: 'one more idea', pin: '1' })
+    expect(res.status).toBe(400)
+    expect(err(await body(res))).toBe(`${EXAMPLE_BRANCH} is a dead end. it's locked: it takes nothing new.`)
+    expect(node().state).toBe('dead_end')
   })
 })

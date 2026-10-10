@@ -263,6 +263,32 @@ describe('branch mode (4.3); no variants (decided Oct 9)', () => {
     expect(n).toEqual({ license: 'GPL-3.0', builds_on: JSON.stringify({ node: 'minecraft-in-doom' }) })
   })
 
+  it('builds on a dead end too, and starts from the done test of the shwarm it builds on (decided Oct 9)', async () => {
+    const { env, q, db } = await world()
+    const { b } = await member(env, 'ana')
+    const up = q("SELECT done_when FROM node WHERE path = 'minecraft-in-doom'") as { done_when: string }
+    const doneField = (page: string) => /<textarea id="done" name="done_when"[^>]*>([^<]*)<\/textarea>/.exec(page)?.[1]
+    // live: the field starts empty
+    expect(doneField(await body(await b.get('/new?builds_on=minecraft-in-doom')))).toBe('')
+    db.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'gzdoom caps dynamic geometry.', closed_at = ? WHERE path = 'minecraft-in-doom'").run(new Date(T0).toISOString())
+    // the dead end's page offers "build on this", with no way to reopen it
+    const ended = await body(await html(b, '/w/minecraft-in-doom'))
+    expect(ended).toContain('<div class="alt"><a href="/new?builds_on=minecraft-in-doom">build on this</a></div>')
+    expect(ended).not.toContain('reopen')
+    const page = await body(await b.get('/new?builds_on=minecraft-in-doom'))
+    expect(page).toContain('<div class="picked" id="picked"><div><b>minecraft in doom</b> <span>/w/minecraft-in-doom · license GPL-3.0</span></div></div>')
+    expect(up.done_when.length).toBeGreaterThan(0)
+    expect(doneField(page)).toBe(up.done_when.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'))
+    // editable: a changed done test is sent as typed, and nothing holds it to the upstream's
+    const res = await create(b, { ...HELLO, title: 'minecraft in doom, the sequel', builds_on: 'minecraft-in-doom', done_when: 'a playable demo of one level.' })
+    expect(res.status).toBe(303)
+    expect(q("SELECT license, builds_on, done_when FROM node WHERE path = 'minecraft-in-doom-the-sequel'")).toEqual({
+      license: 'GPL-3.0',
+      builds_on: JSON.stringify({ node: 'minecraft-in-doom' }),
+      done_when: 'a playable demo of one level.',
+    })
+  })
+
   it("refuses to build on a passed shwarm the viewer can't see, as for one that isn't there (7.4 review)", async () => {
     const { env, q, db } = await world()
     const { b } = await member(env, 'ana')

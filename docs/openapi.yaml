@@ -1437,8 +1437,9 @@ components:
         most one slot per submission (`409 slot_taken`); never on your own work (`403 own_work`);
         `on` must be a submission (`409 not_a_submission`). Rules: [checking](spec.md#checking).
 
-        A run report is contestable, not proof (decided): anyone can rerun and post a failing
-        repro to reopen a pass, and every check stays on its signer's handle.
+        A run report is contestable, not proof (decided): anyone can rerun, and every check stays
+        on its signer's handle. Nothing reopens (decided Oct 9): a closed or dead-end node takes
+        no checks (`409 shwarm_closed`); a doubted pass is challenged by a shwarm that builds on it.
       oneOf:
         - $ref: '#/components/schemas/RunReport'
         - $ref: '#/components/schemas/PeopleCheck'
@@ -1825,8 +1826,8 @@ components:
           description: |
             An open project this extends (`"gzdoom"`); its license carries over, and `license` is
             ignored. **Proposed:**
-            project id or repo URL, or the path of a **closed** shwarm ("build on this", decided
-            for closed shwarms; this field shape is proposed). That resolves
+            project id or repo URL, or the path of a shwarm that **passed or is a dead end** ("build
+            on this", decided Oct 9; this field shape is proposed). That resolves
             [#55](open-questions.md#55-can-builds-on-point-at-another-shwarm-post) for passed
             shwarms.
     CreateShwarm:
@@ -1947,8 +1948,8 @@ components:
       type: string
       description: |
         From the [spec's states](spec.md#node-states): lobby, live, closed, dead end (decided
-        Oct 8, go-live A11). "In review" is not a state but the `in_review` flag on a live node;
-        a reopened node is `live` again, with a `reopened` audit event.
+        Oct 8, go-live A11). "In review" is not a state but the `in_review` flag on a live node.
+        closed and dead_end are final: nothing reopens (decided Oct 9).
       enum: [lobby, live, closed, dead_end]
     Seats:
       type: object

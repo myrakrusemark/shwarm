@@ -2,8 +2,9 @@
 //   live              from the moment it's posted, shwarm or branch alike: no lobby, size or kickoff
 //   live → closed     on a pass (checks.ts / checking.ts)
 //   live → dead_end   by the author, with a required note
-//   closed → live     when a repro is posted on the passing submission (reopened; the pass stays on record)
-//   dead_end → live   when the author reopens it
+// Nothing reopens (decided Oct 9, "Continuing an ended shwarm is always build on"): an ended node is locked
+// (context.ts needLive), and anyone carries a passed or dead-end shwarm on by starting a shwarm that builds on it.
+// Nodes reopened before that keep their 'reopened' audit rows and their passes on record.
 // Until its first submission, the author may re-pitch a shwarm: a new title and pitch, the old ones kept in node_edit
 // (repitch). "In review" is a flag on live, not a state. "join" says you're working on a shwarm; it gates nothing.
 // Variants are dropped (decided Oct 9): none are made. Rows made before that keep kind 'variant' and their
@@ -12,7 +13,7 @@ import { ShwarmError } from '@shwarm/protocol'
 import { authorize, needHuman, needStepUp, type Actor } from './actor'
 import { auditStatement, nodeHref } from './audit'
 import { parseCheckSpec } from './checks'
-import { findNode, loadNode, loadPerson, MAX_PATH, moderatedStatement, noticeMailStatement, notifyStatement, postStatement, seenByPerson, signOffDoneStatement, signOffReopenStatement, touchNode, type Ctx, type NodeKind, type NodeRow } from './context'
+import { findNode, loadNode, loadPerson, MAX_PATH, moderatedStatement, needLive, postStatement, seenByPerson, signOffDoneStatement, touchNode, type Ctx, type NodeKind, type NodeRow } from './context'
 import { newId } from './ids'
 import { checkNewNodes, newNodeGuard, takeThreadToken } from './limits'
 import { checkWritable, readSettings } from './settings'
@@ -58,10 +59,13 @@ function parseTags(v: unknown): string[] {
   return tags
 }
 
-// OPEN: building on a node that is still open isn't described; the protocol only builds on closed shwarms.
-// OPEN (#69): with variants gone, the words no longer point at one; they wait on Myra's yes.
-function needClosed(n: NodeRow): void {
-  if (n.state !== 'closed') throw bad(`${n.path} is still open. a shwarm is built on once it's closed`)
+/** The states a shwarm is built on in: it passed, or it's a dead end (decided Oct 9, "Continuing an ended shwarm is always build on"). */
+export const ENDED: readonly NodeRow['state'][] = ['closed', 'dead_end']
+
+// OPEN: building on a node that is still live isn't described; refused, as before.
+// OPEN (#92): the words wait on Myra's yes.
+function needEnded(n: NodeRow): void {
+  if (!ENDED.includes(n.state)) throw bad(`${n.path} is still live. a shwarm is built on once it passed or is a dead end`)
 }
 
 type NodeAt = Pick<NodeRow, 'path' | 'kind' | 'state'>
@@ -75,7 +79,7 @@ export function needBranchable(n: NodeAt): void {
 const NO_UPSTREAM = 'builds_on names a shwarm on shwarm, or an outside project as {name, url, license}'
 
 /**
- * builds_on: a closed shwarm's path, or an outside project {name, url?, license}. Either way its license carries over.
+ * builds_on: the path of a shwarm that passed or is a dead end, or an outside project {name, url?, license}. Either way its license carries over.
  * A path its actor's person can't see is refused as not there, for site actors too: the site passes the typed path on.
  */
 async function parseBuildsOn(ctx: Ctx, a: Actor, v: CreateNodeInput['buildsOn']): Promise<{ json: string; license: string; node?: NodeRow } | null> {
@@ -83,7 +87,7 @@ async function parseBuildsOn(ctx: Ctx, a: Actor, v: CreateNodeInput['buildsOn'])
   if (typeof v === 'string') {
     const n = await findNode(ctx, v)
     if (!n || !(await seenByPerson(ctx, a, n))) throw bad(NO_UPSTREAM)
-    needClosed(n)
+    needEnded(n)
     return { json: JSON.stringify({ node: n.path }), license: n.license, node: n }
   }
   if (typeof v !== 'object') throw bad('builds_on is a path or {name, url, license}')
@@ -115,7 +119,7 @@ async function freePath(ctx: Ctx, prefix: string, base: string): Promise<string>
 
 export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Promise<CreateNodeResult> {
   const kind = inp?.kind
-  // Variants are dropped (decided Oct 9): building on a closed shwarm takes their place.
+  // Variants are dropped (decided Oct 9): building on an ended shwarm takes their place.
   if (kind !== 'shwarm' && kind !== 'branch') throw bad('kind is shwarm or branch')
   if (kind === 'branch') authorize(a, 'branch', String(inp.parent))
   else authorize(a, 'new_shwarms', '*')
@@ -179,7 +183,7 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
   const ref = { path }
   // What was read from outside this tree is checked again inside the batch: the daily limit (creates in
   // other trees don't queue behind this one), and the state of the upstream node, whose own tree may close
-  // or reopen it meanwhile. If any fails, the INSERT writes nothing, and nor does the rest.
+  // or end it meanwhile. If any fails, the INSERT writes nothing, and nor does the rest.
   const guards: string[] = []
   const guardArgs: unknown[] = []
   if (a.via !== 'seed') {
@@ -188,7 +192,7 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
     guardArgs.push(...g.args)
   }
   if (upstream) {
-    guards.push("EXISTS (SELECT 1 FROM node WHERE id = ? AND state = 'closed')")
+    guards.push("EXISTS (SELECT 1 FROM node WHERE id = ? AND state IN ('closed', 'dead_end'))")
     guardArgs.push(upstream.id)
   }
   const stmts: D1PreparedStatement[] = [
@@ -240,7 +244,7 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
     if (upstream) {
       const u = await findNode(ctx, upstream.path)
       if (!u || !(await seenByPerson(ctx, a, u))) throw bad(NO_UPSTREAM)
-      needClosed(u)
+      needEnded(u)
     }
     throw bad('something changed while this was sent. try again')
   }
@@ -268,7 +272,7 @@ export async function join(ctx: Ctx, a: Actor, inp: { node: string }): Promise<J
   const n = await loadNode(ctx, inp?.node)
   // OPEN: the words wait on Myra's yes.
   if (n.kind === 'branch') throw bad('a branch has nothing to join. just start working')
-  if (n.state !== 'live') throw new ShwarmError('shwarm_closed', `${n.path} is ${n.state.replace('_', ' ')}`, { node: n.path })
+  needLive(n)
   const mine = await ctx.db.prepare('SELECT left_at FROM seat WHERE node_id = ? AND person_id = ?').bind(n.id, person.id).first<{ left_at: string | null }>()
   if (mine && mine.left_at === null) return { node: n.path, joined: false }
   await ctx.db.batch([
@@ -290,7 +294,7 @@ export async function leave(ctx: Ctx, a: Actor, inp: { node: string }): Promise<
   const n = await loadNode(ctx, inp?.node)
   // OPEN: the words wait on Myra's yes.
   if (n.kind === 'branch') throw bad('a branch has nothing to leave')
-  if (n.state !== 'live') throw new ShwarmError('shwarm_closed', `${n.path} is ${n.state.replace('_', ' ')}`, { node: n.path })
+  needLive(n)
   if (n.author_id === person.id) throw bad("the author can't leave their own shwarm")
   await ctx.db.batch([
     ctx.db.prepare('UPDATE seat SET left_at = ? WHERE node_id = ? AND person_id = ? AND left_at IS NULL').bind(ctx.at, n.id, person.id),
@@ -384,34 +388,10 @@ export async function deadEnd(ctx: Ctx, a: Actor, inp: { node: string; note: str
     postStatement(ctx, { id: postId, nodeId: n.id, actor: a, kind: 'dead_end', text: note }),
     // closed_at is when it ended (the closed tab's order and time); later posts move changed_at, never this.
     ctx.db.prepare("UPDATE node SET state = 'dead_end', dead_end_note = ?, closed_at = ? WHERE id = ?").bind(note, ctx.at, n.id),
-    // A dead end takes no checks, so no sign-off waits on the author while it lasts; reopen puts them back.
+    // A dead end is locked: it takes no checks, so no sign-off waits on the author any more.
     signOffDoneStatement(ctx, n.id, 'deadEnd'),
     e.stmt,
     touchNode(ctx, n.id, e.id),
   ])
   return { node: n.path, state: 'dead_end', post: postId }
-}
-
-/** dead end → live, when the author reopens it. (A closed node reopens only through a repro; see checking.ts.) */
-export async function reopen(ctx: Ctx, a: Actor, inp: { node: string }): Promise<{ node: string; state: 'live' }> {
-  needHuman(a, 'reopening')
-  const person = await loadPerson(ctx, a)
-  checkWritable(await readSettings(ctx.db, ['read_only']))
-  const n = await loadNode(ctx, inp?.node)
-  if (n.author_id !== person.id) throw new ShwarmError('not_permitted', 'only the author reopens a dead end', { need: 'author', node: n.path })
-  needStepUp(a, 'reopening')
-  if (n.state === 'closed') throw bad('a closed node reopens when someone posts a repro on the passing submission')
-  if (n.state !== 'dead_end') throw bad(`${n.path} is ${n.state}, not a dead end`)
-  const e = auditStatement(ctx.db, { event: 'reopened', node: n.id, by: a.as, detail: 'reopened by the author', evidence: nodeHref(n.path) }, ctx.at)
-  await ctx.db.batch([
-    ctx.db.prepare("UPDATE node SET state = 'live', dead_end_note = NULL, closed_at = NULL WHERE id = ?").bind(n.id),
-    ...(n.closed_at ? [signOffReopenStatement(ctx, n.id, n.closed_at)] : []),
-    e.stmt,
-    // No handle in the stored words: an item stays as written, and the author may close their account later (read/names.ts).
-    // OPEN (#86): "its author picked it back up." waits on Myra's yes.
-    notifyStatement(ctx, n.id, `${n.title} reopened. its author picked it back up.`, 'involved'),
-    noticeMailStatement(ctx, n.id, 'involved', { template: 'node_news', payload: { notice: 'pass_fail', event: 'reopened', title: n.title, path: n.path, link: nodeHref(n.path) } }),
-    touchNode(ctx, n.id, e.id),
-  ])
-  return { node: n.path, state: 'live' }
 }
