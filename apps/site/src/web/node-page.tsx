@@ -844,6 +844,8 @@ export const Proof: FC<{ n: NodeHead; sub: SubmissionRow; checks: CheckReport[] 
  * "build on this" (shwarm-closed.html's "what's next"): how an ended shwarm, passed or a dead end, is carried on (decided
  * Oct 9, "Continuing an ended shwarm is always build on"). On a closed shwarm's thread (behind its result page) and a
  * dead end's page. Nothing reopens, so there is no repro link.
+ * OPEN (#92): never on a branch. Building on or challenging an ended branch has no site path (the API's builds_on takes
+ * one, and nothing lists it), so the footer pages speak of continuing a shwarm only.
  */
 const BuildOnLink: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node

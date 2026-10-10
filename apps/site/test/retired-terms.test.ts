@@ -23,6 +23,23 @@ describe('retired terms (docs sync, Oct 9)', () => {
     const pages = readFileSync(new URL('../src/content/pages.json', import.meta.url), 'utf8')
     expect(pages.match(RETIRED) ?? []).toEqual([])
   })
+
+  // Only an ended shwarm has "build on this" and "challenged by" on the site (OPEN #92), so how it works says so.
+  it("how it works offers building on a shwarm, not a branch", () => {
+    const pages = JSON.parse(readFileSync(new URL('../src/content/pages.json', import.meta.url), 'utf8'))
+    const done = pages.find((p: any) => p.slug === 'how-it-works').sections.find((s: any) => s.id === 'done').body as string
+    const carryOn = done.split(/(?<=\.) /).filter(s => /builds on it/.test(s))
+    expect(carryOn).toHaveLength(1)
+    expect(carryOn[0]).toMatch(/^to keep a shwarm going\b/)
+  })
+
+  it("the PRD's result page keeps the thread locked", () => {
+    const prd = readFileSync(new URL('../../../docs/prd.md', import.meta.url), 'utf8')
+    const closed = prd.split('\n').filter(l => /^- \*\*CLOSED-\d+\*\*/.test(l))
+    expect(closed.length).toBeGreaterThan(10)
+    expect(closed.filter(l => /stays open|\brepros?\b/.test(l))).toEqual([])
+    expect(closed.find(l => l.startsWith('- **CLOSED-12**'))).toMatch(/it's locked\./)
+  })
 })
 
 describe('openapi.yaml after the docs sync', () => {

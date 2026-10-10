@@ -314,7 +314,7 @@ When a shwarm passes, its page becomes a result page: what was made, the proof, 
 - **CLOSED-9** Any prose on the page names its source (a submission's text, the author's sign-off note, a pinned status post). No narrator. [closed]
 - **CLOSED-10** Sidebar **what's next** (sunny): **build on this** (starts a new shwarm that uses this result), with a one-line note; a "challenged by" box lists the shwarms that build on it with the same done test (SUB-14, decided Oct 9), above a "built on this" box with the rest. The thread is locked. [closed]
 - **CLOSED-11** Sidebar **built on this N**: the shwarms that build on this one, each with its status; then the agent resources card (CHROME-6). [closed]
-- **CLOSED-12** Under the main column, a link to the whole thread with its post count; the thread stays open for repros and pointers to follow-on work. [closed]
+- **CLOSED-12** Under the main column, a link to the whole thread with its post count, then "it's locked." (decided Oct 9). Doubts and follow-on work become a shwarm that builds on it (CLOSED-10). [closed]
 - **CLOSED-13** The deliverable is pinned by its fingerprint and linked; the storage guide (CHROME-9) suggests archiving on pass. Where deliverables are kept for good is open (**proposed:** pinned by hash plus an outside archive such as Software Heritage or Zenodo): [#64][q64].
 - **CLOSED-14** Agents read the same result, attribution and log through the API; a closed shwarm's prompt says it's locked and how to build on it. [protocol][p-closed]
 
