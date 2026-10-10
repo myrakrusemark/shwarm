@@ -2,6 +2,7 @@
 // page at /admin/beta (admins only; a plain 404 for everyone else), the loop funnel and testers' furthest steps on a
 // small world, daily activity, the server-side traffic counter (kinds, referrers, nothing personal kept, errors
 // swallowed) and the admins' daily summary mail, sent once a day.
+import { readFileSync } from 'node:fs'
 import { Hono } from 'hono'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import app from '../src/index'
@@ -9,7 +10,7 @@ import { hashPassword } from '../src/auth/password'
 import { renderMail } from '../src/email/templates'
 import { scheduled, STATS_CRON } from '../src/jobs'
 import { sendSummary, summaryDay } from '../src/jobs/summary'
-import { activity, daySummary, funnel, lastDays, STEPS, testers } from '../src/read/beta'
+import { activity, daySummary, funnel, lastDays, STEPS, testers, through } from '../src/read/beta'
 import { countTraffic, referrerHost, resetTrafficLog, trafficKind, trafficRow } from '../src/web/traffic'
 import { addPerson, T0, testDb } from './d1'
 import { body, Browser, fakeFetch, GOOD_PASSWORD, pepper, testEnv } from './browser'
@@ -116,29 +117,41 @@ describe('the beta funnel page', () => {
     expect((await myra.get('/admin/beta')).status).toBe(404)
   })
 
-  it('counts the loop for all accounts and for invited ones, leaving out seed accounts and admins', async () => {
+  it('counts the loop for all accounts and for invited ones, nested, leaving out seed accounts and admins', async () => {
     const { db } = await world()
     const people = await testers(db)
     expect(people.map(t => t.handle)).toEqual(['dee', 'cy', 'bo', 'ana', 'early']) // newest sign-up first
     const f = await funnel(db, people)
     expect(f.invited).toBe(4) // ana, bo, cy, eve; not @myra's own row
+    // A person counts at a step only with every step before it: dee joined without a post, bo checked without a
+    // submission and ana submitted without a check, so each stops short of the steps they reached out of order.
     expect(Object.fromEntries(STEPS.map((s, i) => [s, [f.fromInvites[i], f.all[i]]]))).toEqual({
       'signed up': [3, 5],
       verified: [2, 3],
       'first post': [2, 2],
-      'joined a shwarm or branch': [2, 3],
+      'joined a shwarm or branch': [2, 2],
       'first submission': [1, 1],
-      'first check given': [1, 1],
-      'part of a pass': [2, 2],
+      'first check given': [0, 0],
+      'part of a pass': [0, 0],
     })
+    // so no step counts more people than the one above it, and the drop is never negative
+    for (const list of [f.all, f.fromInvites]) for (let i = 1; i < list.length; i++) expect(list[i]).toBeLessThanOrEqual(list[i - 1])
+    // had ana also given a check, she'd be through the whole loop
+    const more = people.map(t => (t.handle === 'ana' ? { ...t, furthest: through(t.reached.map((r, i) => r || i === 5)) } : t))
+    expect((await funnel(db, more)).all.slice(-3)).toEqual([1, 1, 1])
+    expect(through([true, true, false, true])).toBe(1)
+    expect(through([true, false])).toBe(0)
+    expect(through([true, true, true])).toBe(2)
   })
 
   it("gives each tester's furthest step and last activity", async () => {
     const { db } = await world()
     const by = Object.fromEntries((await testers(db)).map(t => [t.handle, t]))
-    expect(STEPS[by.ana.furthest]).toBe('part of a pass') // submitted the passing work
-    expect(STEPS[by.bo.furthest]).toBe('part of a pass') // checked it
-    expect(STEPS[by.dee.furthest]).toBe('joined a shwarm or branch')
+    // the furthest step in order, as the loop counts them; each step reached on its own is kept too
+    expect(STEPS[by.ana.furthest]).toBe('first submission') // submitted the passing work, but gave no check
+    expect(STEPS[by.bo.furthest]).toBe('joined a shwarm or branch') // checked it, but submitted nothing
+    expect(by.ana.reached.at(-1) && by.bo.reached.at(-1)).toBe(true) // both part of the pass
+    expect(STEPS[by.dee.furthest]).toBe('verified') // joined, but never posted
     expect(STEPS[by.cy.furthest]).toBe('signed up')
     expect(by.cy.invited && !by.dee.invited).toBe(true)
     expect(by.ana.last_active).toBe(iso(T0 - 2 * DAY)) // the submission, newer than the post
@@ -167,7 +180,9 @@ describe('the beta funnel page', () => {
     const myra = await signIn(testEnv(w.db), 'myra@example.org')
     const page = await body(await myra.get('/admin/beta'))
     expect(page).toContain('news.ycombinator.com')
-    expect(page).toMatch(/2026-10-07<\/td><td class="num">40<\/td><td class="num">7<\/td>/)
+    expect(page).toMatch(/<td class="day">2026-10-07<\/td><td class="num">40<\/td><td class="num">7<\/td>/)
+    // dates don't wrap in the narrow column
+    expect(readFileSync(new URL('../static/css/admin.css', import.meta.url), 'utf8')).toMatch(/\.adm \.day \{[^}]*white-space: nowrap/)
     expect(page).toContain('DE')
     expect(page).not.toContain('old.example')
   })
@@ -308,6 +323,10 @@ describe('the daily summary', () => {
       'yesterday (2026-10-07): 140 requests (pages 90, prompts 30, json 12, api 8), 2 sign-ups, 2 first posts, 0 first submissions, 1 check, 1 pass.',
     )
     expect(mail.text).toContain('https://shwarm.org/admin/beta')
+    // 'other' shows when there was any, so the parts add up to the total
+    const withOther = renderMail('daily_summary', { ...JSON.parse(m.payload), requests: { page: 90, prompt: 30, json: 12, api: 8, other: 5 } }, { siteUrl: 'https://shwarm.org', stream: 'account' })
+    expect(withOther.subject).toBe('shwarm yesterday: 145 requests, 2 sign-ups')
+    expect(withOther.text).toContain('yesterday (2026-10-07): 145 requests (pages 90, prompts 30, json 12, api 8, other 5), 2 sign-ups,')
     expect(mail.text.replace(/https:\S+/g, '')).toBe(mail.text.replace(/https:\S+/g, '').toLowerCase())
 
     // The next day: one more, raced by two runs at once.

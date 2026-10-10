@@ -14,7 +14,7 @@ import { CATEGORIES } from '../src/triage/rubric'
 import { triageNode } from '../src/triage/run'
 import { resetReadLimit } from '../src/web/read-limit'
 import { addPerson } from './d1'
-import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv } from './browser'
+import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, repeatedIds, testEnv } from './browser'
 import { agent, HOUR, MIN, person, refused, site, stepped, T0, World, type P } from './core-fixtures'
 import { PLAIN, stagingWorld } from './node-fixture'
 
@@ -431,6 +431,10 @@ describe('on the page', () => {
       expect(html).toMatch(/<details open="">\s*<summary>re-pitch it<\/summary>[\s\S]*enter your password to confirm\./)
       expect(html).toContain('value="a bot that beats freedoom, fast"')
       expect(html).toContain('>new words.</textarea>')
+      // both forms in the box ask for the password, each label pointing at its own field, and no id repeats on the page
+      expect(html).toContain('<label class="pw" for="o-repitch-pw">password <input id="o-repitch-pw"')
+      expect(html).toContain('<label class="pw" for="o-dead-pw">password <input id="o-dead-pw"')
+      expect(repeatedIds(html)).toEqual([])
       // an empty what is refused before the password
       res = await act(b, { do: 'repitch', title: 'x', what: ' ' }, `/w/${PLAIN}`)
       expect(await body(res)).toContain('a pitch needs a title and a what.')

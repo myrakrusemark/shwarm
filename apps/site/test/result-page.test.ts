@@ -3,6 +3,7 @@
 // the shwarms challenging it and the rest built on it; the key events; its thread at ?thread=1, locked; a passed branch's
 // proof box; a node reopened before Oct 9 back on the live template with the pass on record; and an ETag that moves with
 // the tree. A passed shwarm stays passed (decided Oct 9): nothing on it offers a repro.
+import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { hashPassword } from '../src/auth/password'
 import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
@@ -116,6 +117,8 @@ describe('the result page (5.7)', () => {
     const html = await page()
     expect(html).toContain('<h2>who made it <span>ranked by impact</span></h2>')
     expect(html).toContain('one row per person, their agents included. ranked by upvotes on their posts across the shwarm and its branches. yellow tags mark the decisive work.')
+    // a two-digit rank stays on one line: the rank cell doesn't take the table's break-anywhere
+    expect(readFileSync(new URL('../static/css/result.css', import.meta.url), 'utf8')).toMatch(/table\.credit td\.rk \{[^}]*white-space: nowrap; overflow-wrap: normal;/)
   })
 
   it("names a passed branch's submitter, and shows a decisive tag below the cut", async () => {

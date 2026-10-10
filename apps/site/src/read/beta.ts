@@ -10,7 +10,11 @@
 /** SQL: the person row `a` is a seeded account, which can't sign in. */
 export const SEED = (a: string) => `${a}.password_hash LIKE '!%'`
 
-/** The steps of the loop, in order. A person's furthest step is the last one they reached. */
+/**
+ * The steps of the loop, in order. The funnel is nested: a person is through a step only if they also reached every
+ * step before it, so no step counts more people than the one above it, and a person's furthest step is the last one
+ * of that unbroken run (someone who checked work but never submitted their own stops at "joined").
+ */
 export const STEPS = ['signed up', 'verified', 'first post', 'joined a shwarm or branch', 'first submission', 'first check given', 'part of a pass'] as const
 
 export type Tester = {
@@ -19,8 +23,8 @@ export type Tester = {
   status: string
   created_at: string
   invited: boolean
-  reached: boolean[] // one per STEPS
-  furthest: number // index into STEPS
+  reached: boolean[] // one per STEPS, each on its own
+  furthest: number // index into STEPS: the last step reached with every step before it
   last_active: string | null
 }
 
@@ -66,13 +70,19 @@ export async function testers(db: D1Database): Promise<Tester[]> {
   return results.map(r => {
     const reached = [true, !!r.verified, !!r.last_post, !!r.joined, !!r.submitted, !!r.checked, !!r.passed]
     const last = [r.last_post, r.last_check].filter((x): x is string => !!x).sort().at(-1) ?? null
-    return { id: r.id, handle: r.handle, status: r.status, created_at: r.created_at, invited: !!r.invited, reached, furthest: reached.lastIndexOf(true), last_active: last }
+    return { id: r.id, handle: r.handle, status: r.status, created_at: r.created_at, invited: !!r.invited, reached, furthest: through(reached), last_active: last }
   })
+}
+
+/** The last step reached with every step before it (signing up always counts). */
+export const through = (reached: boolean[]) => {
+  const stop = reached.indexOf(false)
+  return stop === -1 ? reached.length - 1 : Math.max(0, stop - 1)
 }
 
 export type Funnel = {
   invited: number // rows on signup_allow, less the admins' and seed accounts' own
-  all: number[] // per STEPS: how many accounts reached it
+  all: number[] // per STEPS: how many accounts got through it, every step before it included
   fromInvites: number[] // the same, for accounts whose email is on signup_allow
 }
 
@@ -83,7 +93,7 @@ export async function funnel(db: D1Database, people: Tester[]): Promise<Funnel> 
        WHERE NOT EXISTS (SELECT 1 FROM person p WHERE p.email_norm = a.email_norm AND (p.is_admin = 1 OR ${SEED('p')}))`,
     )
     .first<{ n: number }>()
-  const count = (list: Tester[]) => STEPS.map((_, i) => list.filter(t => t.reached[i]).length)
+  const count = (list: Tester[]) => STEPS.map((_, i) => list.filter(t => t.furthest >= i).length)
   return { invited: row?.n ?? 0, all: count(people), fromInvites: count(people.filter(t => t.invited)) }
 }
 

@@ -74,6 +74,12 @@ export function formTokenIn(html: string): string {
   return m[1]
 }
 
+/** Element ids that appear more than once on the page (a label's `for` would point at the first): [] when none do. */
+export const repeatedIds = (html: string) => {
+  const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map(m => m[1])
+  return [...new Set(ids.filter((id, i) => ids.indexOf(id) !== i))]
+}
+
 /** Strips per-browser values (form tokens) so two pages can be compared. */
 export const sameShape = (html: string) => html.replace(/name="form_token" value="[^"]+"/g, 'name="form_token" value=""')
 

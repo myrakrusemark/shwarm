@@ -856,7 +856,8 @@ const BuildOnLink: FC<{ d: NodePageData }> = ({ d }) => {
 /**
  * The inline step-up (A5): the password field an act with the author's authority carries while the 10-minute window
  * is closed, so the form's draft never leaves for the /step-up page. With the window open it isn't asked again.
- * `form` ties the field to a form it doesn't sit inside (the account modal's save, go-live 6.2).
+ * `form` ties the field to a form it doesn't sit inside (the account modal's save, go-live 6.2). `id` must be unique on
+ * the page, so the label points at its own field when a page has more than one (the author's re-pitch and dead end).
  */
 export const StepUpField: FC<{ id: string; open?: boolean; form?: string }> = ({ id, open, form }) =>
   open ? null : (
@@ -903,7 +904,7 @@ const Owner: FC<{ d: NodePageData }> = ({ d }) => {
             <label for="o-note">why it stops here</label>
             <span class="note" id="o-note-n">so nobody repeats it. the note shows on the {word}.</span>
             <textarea id="o-note" name="note" required maxlength={MAX_TEXT} aria-describedby="o-note-n">{deadFlash?.draft ?? ''}</textarea>
-            <StepUpField id="o-pw" open={d.steppedUp} />
+            <StepUpField id="o-dead-pw" open={d.steppedUp} />
             {err}
             <div class="row">
               <span class="note">a dead end is locked: it takes nothing new, and it can't be undone. confirms with your password.</span>
@@ -935,7 +936,7 @@ const Repitch: FC<{ d: NodePageData; flash?: Flash }> = ({ d, flash }) => {
         <label for="o-what">what</label>
         <span class="note" id="o-what-n">the done test stays locked. the version you replace stays in the history. you can re-pitch until the first submission.</span>
         <textarea id="o-what" name="what" required maxlength={MAX_TEXT} aria-describedby="o-what-n">{f.what ?? n.what}</textarea>
-        <StepUpField id="o-pw" open={d.steppedUp} />
+        <StepUpField id="o-repitch-pw" open={d.steppedUp} />
         {flash && <p class="err" role="alert">{flash.text}</p>}
         <div class="row">
           <span class="note">a quick automatic check runs again first. until it's done, usually within a minute, only you can see it. confirms with your password.</span>

@@ -46,7 +46,7 @@ const SECTIONS: [string, string][] = [
 
 const n = (x: number) => x.toLocaleString('en-US')
 
-/** A count and its drop from the step before ("−3"), when it dropped. */
+/** A count and its drop from the step before ("−3"), when it dropped. The funnel is nested, so it never rises. */
 const Step: FC<{ x: number; prev?: number }> = ({ x, prev }) => (
   <td class="num">
     {n(x)}
@@ -90,9 +90,9 @@ const TesterTable: FC<{ people: Tester[]; now: number }> = ({ people, now }) =>
               {t.invited && <span class="mk"> invited</span>}
               {t.status !== 'active' && <span class="mk"> {t.status}</span>}
             </td>
-            <td>{t.created_at.slice(0, 10)}</td>
+            <td class="day">{t.created_at.slice(0, 10)}</td>
             <td>{STEPS[t.furthest]}</td>
-            <td>{t.last_active ? t.last_active.slice(0, 10) : '—'}</td>
+            <td class="day">{t.last_active ? t.last_active.slice(0, 10) : '—'}</td>
             <td class="num">{daysSince(t.last_active, now)}</td>
           </tr>
         ))}
@@ -105,7 +105,7 @@ const ActivityTable: FC<{ rows: DayActivity[] }> = ({ rows }) => (
     <thead><tr><th>day</th><th class="num">sign-ups</th><th class="num">posts</th><th class="num">submissions</th><th class="num">checks</th><th class="num">passes</th></tr></thead>
     <tbody>
       {[...rows].reverse().map(r => (
-        <tr><td>{r.day}</td><td class="num">{n(r.signups)}</td><td class="num">{n(r.posts)}</td><td class="num">{n(r.submissions)}</td><td class="num">{n(r.checks)}</td><td class="num">{n(r.passes)}</td></tr>
+        <tr><td class="day">{r.day}</td><td class="num">{n(r.signups)}</td><td class="num">{n(r.posts)}</td><td class="num">{n(r.submissions)}</td><td class="num">{n(r.checks)}</td><td class="num">{n(r.passes)}</td></tr>
       ))}
     </tbody>
   </table>
@@ -116,7 +116,7 @@ const TrafficTable: FC<{ rows: TrafficDay[] }> = ({ rows }) => (
     <thead><tr><th>day</th><th class="num">pages</th><th class="num">prompts</th><th class="num">json</th><th class="num">api</th><th class="num">other</th><th class="num">errors</th></tr></thead>
     <tbody>
       {[...rows].reverse().map(r => (
-        <tr><td>{r.day}</td><td class="num">{n(r.page)}</td><td class="num">{n(r.prompt)}</td><td class="num">{n(r.json)}</td><td class="num">{n(r.api)}</td><td class="num">{n(r.other)}</td><td class="num">{n(r.errors)}</td></tr>
+        <tr><td class="day">{r.day}</td><td class="num">{n(r.page)}</td><td class="num">{n(r.prompt)}</td><td class="num">{n(r.json)}</td><td class="num">{n(r.api)}</td><td class="num">{n(r.other)}</td><td class="num">{n(r.errors)}</td></tr>
       ))}
     </tbody>
   </table>
@@ -141,14 +141,14 @@ const BetaPage: FC<{ v: View }> = ({ v }) => (
         <section id="loop">
           <h2>the loop</h2>
           <div class="body">
-            <p>how many accounts reached each step, and how many dropped off since the step before. seed accounts and admins aren't counted.</p>
+            <p>how many accounts got through each step of the loop in order, and how many stopped at the step before. an account counts at a step only if it also reached every step before it. seed accounts and admins aren't counted.</p>
             <LoopTable f={v.funnel} />
           </div>
         </section>
         <section id="testers">
           <h2>testers</h2>
           <div class="body">
-            <p>{v.people.length === 1 ? '1 account' : `${n(v.people.length)} accounts`}, newest first. last active is their newest post, submission or check.</p>
+            <p>{v.people.length === 1 ? '1 account' : `${n(v.people.length)} accounts`}, newest first. furthest step is the last one they reached in order, as in the loop above. last active is their newest post, submission or check.</p>
             <TesterTable people={v.people} now={v.now} />
           </div>
         </section>

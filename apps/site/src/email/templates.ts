@@ -263,8 +263,10 @@ function dailySummary(p: Record<string, unknown>, site: string): Draft {
   const r = (p.requests ?? {}) as Record<string, unknown>
   const total = ['page', 'prompt', 'json', 'api', 'other'].reduce((a, k) => a + count(r[k]), 0)
   const n = (v: unknown, one: string, many = one + 's') => `${count(v)} ${count(v) === 1 ? one : many}`
+  // The parts add up to the total: 'other' (robots.txt, xml and the like, web/traffic.ts) shows when there was any.
+  const other = count(r.other) ? `, other ${count(r.other)}` : ''
   const line =
-    `yesterday (${day}): ${n(total, 'request')} (pages ${count(r.page)}, prompts ${count(r.prompt)}, json ${count(r.json)}, api ${count(r.api)}), ` +
+    `yesterday (${day}): ${n(total, 'request')} (pages ${count(r.page)}, prompts ${count(r.prompt)}, json ${count(r.json)}, api ${count(r.api)}${other}), ` +
     `${n(p.signups, 'sign-up')}, ${n(p.first_posts, 'first post')}, ${n(p.first_submissions, 'first submission')}, ${n(p.checks, 'check')}, ${n(p.passes, 'pass', 'passes')}.`
   const where = typeof p.env === 'string' && p.env !== 'production' && /^[a-z]{1,20}$/.test(p.env) ? ` ${p.env}` : ''
   return {

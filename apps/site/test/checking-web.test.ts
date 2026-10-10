@@ -8,7 +8,7 @@ import { TreeEngine } from '../src/core/engine'
 import { EXAMPLE_BRANCH } from '../src/seed/example'
 import { resetReadLimit } from '../src/web/read-limit'
 import { addPerson, T0 } from './d1'
-import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv } from './browser'
+import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, repeatedIds, testEnv } from './browser'
 import { stagingWorld } from './node-fixture'
 
 beforeEach(() => {
@@ -172,6 +172,8 @@ describe("the author's sign-off (5.5)", () => {
     vi.setSystemTime(T0 + 11 * MIN)
     html = await body(await author.req(S2, { headers: HTML }))
     expect(html).toContain('<label class="pw" for="pw-pass">password <input id="pw-pass" type="password" name="password" autocomplete="current-password" required="" maxlength="1024"/></label>')
+    expect(html).toContain('<label class="pw" for="pw-fail">') // pass and fail each ask on their own field
+    expect(repeatedIds(html)).toEqual([])
     expect(html).toContain('passing closes block placement as done. confirms with your password.')
     let res = await signOff(author, { verdict: 'pass', text: 'played it tonight, every corner holds.', password: 'not my password' })
     expect(res.status).toBe(400)

@@ -10,7 +10,7 @@ import { groupOn, inboxEvery, nextPrefs, NOTICE_GROUPS, noticeOn } from '../src/
 import { sweepOutbox } from '../src/jobs/mail'
 import { resetReadLimit } from '../src/web/read-limit'
 import { addPerson, T0 } from './d1'
-import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, linkIn, mails, pepper, testEnv, type TestEnv } from './browser'
+import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, linkIn, mails, pepper, repeatedIds, testEnv, type TestEnv } from './browser'
 
 const MIN = 60_000
 const NEW_PASSWORD = 'quiet brown owls by the river'
@@ -128,7 +128,9 @@ describe('the account modal (6.2)', () => {
 
     // eleven minutes on, the window is closed: the save asks for the password inline
     vi.setSystemTime(T0 + 11 * MIN)
-    const page = modalIn(await body(await b.get('/@myra?account=1')))!
+    const full = await body(await b.get('/@myra?account=1'))
+    expect(repeatedIds(full)).toEqual([]) // four password fields in the modal, each label on its own
+    const page = modalIn(full)!
     expect(page).toContain('<input id="pw-save" type="password" name="password" autocomplete="current-password" required="" maxlength="1024" form="acct-save"/>')
     expect(page).toContain('<input id="pw-change" type="password" name="password"')
     const draft = { about: 'a new about line', website: 'example.org/me' }

@@ -10,7 +10,7 @@ import { ACTIVE_KEY, MAX_KEYS, parseGrants, TEST_VECTOR_PUBLIC } from '../src/au
 import { hashPassword } from '../src/auth/password'
 import { resetReadLimit } from '../src/web/read-limit'
 import { addPerson, T0 } from './d1'
-import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv, type TestEnv } from './browser'
+import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, repeatedIds, testEnv, type TestEnv } from './browser'
 import { stagingWorld } from './node-fixture'
 
 const MIN = 60_000
@@ -360,7 +360,9 @@ describe('the keys page (7.2)', () => {
     expect(html).not.toMatch(/shwarm_sk_[a-z0-9]/)
 
     vi.setSystemTime(T0 + 11 * MIN)
-    expect(await body(await myra.get('/keys'))).toContain('<label class="pw" for="k-pw">')
+    const keysPage = await body(await myra.get('/keys'))
+    expect(keysPage).toContain('<label class="pw" for="k-pw">')
+    expect(repeatedIds(keysPage)).toEqual([])
   })
 
   it('lists each key: can post as, access, last used, made and expiry; titles from the nodes', async () => {
