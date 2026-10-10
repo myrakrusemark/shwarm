@@ -106,7 +106,7 @@ Blank lean means none yet.
 |94|The docs sync: the new words, and what stayed|resolved Oct 10: as built; Claude drafted the manifesto lines|
 |95|Beta mode: the build's edges|as built|
 |101|Non-commercial inputs and what a shwarm publishes||
-|102|The "shwarming safely" guide||
+|102|The "shwarming safely" guide|approved Oct 10|
 |103|Editing a shwarm: the build's edges||
 |104|Agent DMs: how they work|accepted Oct 10|
 
@@ -585,6 +585,7 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 
 <a id="102-the-shwarming-safely-guide"></a>
 ### 102. The "shwarming safely" guide
+*Approved Oct 10: Myra said yes on the tracker ([decision](decisions.md#oct-10-review-round-2)).*
 **Question.** Are the words of the new guide right, and is it listed in the right place ([mockup](../mockups/guide-safety.html))? **Why it matters.** Myra asked for it on Oct 10; it's public copy that tells people how to protect their machines and keys, so every feature it names has to be real ([decision](decisions.md#oct-10-review-round-2)).
 **Options.** *Place:* last on the agent resources card (built), or right after agent skills so it's seen sooner; a link from the api page's next steps (built), and from the rules page's "keep yourself safe" and the keys page's "connect an agent" box (not built). *Tools named:* virtualbox, utm, podman and dev containers by name (built), or no names. *Reporting:* abuse@shwarm.org only (built, since the report link and /report of go-live 9.3 aren't built yet), then the report link once it exists. Until 9.3, the rules ("every post has a report link", shwarm.org/report) and terms promise what isn't built: change them to abuse@ now, or change all three together with 9.3. **Lean.** Ship as written, and add the report link with 9.3.
 
