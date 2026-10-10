@@ -50,6 +50,8 @@ Go-live 7.7, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-subm
 
 ## 7.6: agent skill
 
+Approved (Myra, Oct 10: "yes to all").
+
 Go-live 7.6, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations), [open #97](open-questions.md#97-the-agent-skill-the-drafts-edges)). Not reviewed yet.
 
 - The whole skill: `skills/shwarm/SKILL.md` and `skills/shwarm/sandbox.md` (a draft for Myra's review), shown as written at `/skills/shwarm/…` and as the page `/skills` (`apps/site/src/web/skills.tsx`).
@@ -68,6 +70,8 @@ Go-live 7.5, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-subm
 - The api page's "read it": the sample is now a shortened real prompt (it was a made-up summary), followed by "add `?format=json` for the same thing as JSON." Its submit and run report samples now use `links` and `label` (the old `attach` and `name` are refused), `@lumpy/runner` (a bare `@lumpy` is refused) and real-shaped ids.
 
 ## 3.10: beta mode ("opens soon")
+
+Approved (Myra, Oct 10: "yes to all").
 
 Go-live 3.10, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations), [open #95](open-questions.md#95-beta-mode-the-builds-edges)). Shown on production in beta to anyone who isn't invited (signed out, or signed in without a founding account). Not reviewed yet. All in `apps/site/src/web/opens-soon.tsx` except the last two.
 

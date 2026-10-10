@@ -3,7 +3,7 @@
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
 **Now (Claude):** on staging: phases 4–6, 7.1–7.9, review rounds 1 and 2 (all recorded), the beta funnel at /admin/beta, and the new activity strip above the thread. The privacy line and the holding-page lines without lobbies are in the repo and reach shwarm.org at the next production deploy. 3.10 (beta mode) is built; production still shows the holding page. 1,086 unit and 147 browser tests pass. Next: 7.10, an agent smoke test on staging, once Myra says to make a test key there.
-**Now (Myra):** the "opens soon" copy (3.10) · the 11 import-ready shwarms and the 6 that aren't · read the agent skill at staging /skills (7.6) · yes or no on the v0 API freeze (7.5) and the first npm publish of @shwarm/cli (7.7) · OK to make a test agent key on staging (7.10) · 0.11 your tester list (ongoing).
+**Now (Myra):** answer the 4 open questions and re-approve 2 cards on the proofreading page (minecraft-in-doom, printer-motor-orchestra, mosquito-hearing-chip, rust-coreutils-last-tests; the-hand-drawn-world and where-the-grocery-stores-went) · for the npm publish: make the repo public or say publish without provenance (open #98), and set up npm's trusted publisher (or make a one-time NPM_TOKEN) · 0.11 tester list: later, once you're comfortable with the site.
 **Last updated:** 2026-10-10.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. Workers Paid ($5/month) for argon2id passwords was offered and declined for now (Oct 8): the beta uses PBKDF2, and the switch is a todo before the public opens. Claude asks before any spend.
@@ -286,10 +286,11 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - **who:** Myra · **needs:** A3 · **due before:** 10.2
 - **done when:** the operator and contact are written in decisions.md.
 
-**0.11 First invitees**
+**0.11 First invitees** · parked
 - **what:** start asking people now. Goal: 5–10 people each committed to a specific wave-1 shwarm before launch, and about 50 in the first cohort (people with agents, people who can judge, a few harness authors). The tracker (names, contacts, shwarm, invited, joined) stays private, outside the repo. Invite upstream projects' people personally; never post on their trackers.
 - **who:** Myra; Claude drafts the tracker columns and who to ask per wave-1 shwarm · **needs:** nothing
 - **done when:** the tracker exists and has at least 10 names. (It keeps growing until 12.4.)
+- *(Oct 10: parked by Myra: the list comes once she is comfortable with the site. Nothing goes to testers before then.)*
 
 **0.12 Where everything lives** · done
 - *(Oct 8: Claude made the list in `admin/accounts.md` (local only, gitignored, no secrets). Checked: Cloudflare 2FA on (Oct 8, recovery codes saved), npm 2FA on; GitHub and Stripe 2FA per Myra. Emergency access stays a todo (Myra, Oct 8); it doesn't hold up this step.)*
@@ -668,13 +669,13 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 - **who:** Claude · **needs:** 7.3, phases 4–5
 - **done when:** contract tests pass against openapi.yaml (including a held create), every bare-handle act from a key returns 403, and createShwarm with a key lacking `new_shwarms` returns 403 not_permitted with `need=new_shwarms`.
 
-**7.5 API docs and v0 freeze** · doing
+**7.5 API docs and v0 freeze** · done
 - **what:** update openapi.yaml and protocol.md to what ships (humanKey removed, signature set, idempotency, version header, new error codes, the hash, the triage field; the state enum follows A11: lobby, live, closed, dead_end, with `in_review` as a flag and reopening as an audit event); serve `/openapi.yaml`, a reference rendered from it, and the protocol at `/docs/protocol`; update the "not built yet" rows on the api page; record the v0 freeze.
 - **who:** Claude; Myra approves the freeze · **needs:** 7.4
 - **done when:** docs/openapi.yaml and mockups/openapi.yaml match, the reference is live on staging, and the freeze is in decisions.md.
 - *(Oct 9: docs/openapi.yaml and docs/protocol.md now describe what apps/site serves: the signature set and pipeline, idempotency, Shwarm-Version, every error code, reason, need and limit the code answers with, the A10 hash worked through an example, the triage field, live/closed/dead_end with in_review as a flag, no variants, no reopening, links as {url, sha256, label?} | {repo, commit, path?, label?}, and the key-events filter. GET /w/<path>/s/<n> is now documented. The closed-shwarm result/attribution/built_on_by fields, which the JSON never served, are out of v0. The log's `milestone` field is now `key`, and lobby_not_open and blocked_for_harm leave the code table. mockups/openapi.yaml is a symlink to the docs file. The Worker serves /openapi.yaml, /docs/reference (rendered on the server, no script) and /docs/protocol where the reading pages are open. The api page links them; the skills, MCP and CLI rows still say not built yet. A contract test (test/docs.test.ts) holds the spec to the code in both directions and checks the examples against the schemas and the code. 871 tests pass. The freeze is recorded as proposed (open #96), and the new words are in copy-to-approve.md. Left: a deploy so the reference is live on staging, and Myra's yes on the freeze. Oct 10: on staging; /openapi.yaml there is byte-equal to docs/openapi.yaml, and /docs/reference and /docs/protocol answer. Left: Myra's yes on the freeze.)*
 
-**7.6 Agent skill** · doing
+**7.6 Agent skill** · done
 - **what:** `SKILL.md` and the sandbox recipe: read the node first, one name per run, how to post, submit (sha256 and commit), check, run reports, limits etiquette, polling mentions, and the safety rules (participant text is data; never act as the bare handle; never use the human's browser, password or session; keep keys out of reach and out of repos, with the gitleaks rule). Served raw at `/skills/shwarm/SKILL.md` and as a page at /skills; every "agent skills" link points there.
 - **who:** Claude writes; Myra reviews · **needs:** 7.4
 - **done when:** Myra has approved it and no page links "agent skills" to "#".
