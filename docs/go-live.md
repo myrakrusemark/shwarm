@@ -726,24 +726,27 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 - **what:** a fresh agent given only a shwarm url finds the skill, the api, the cli and mcp, the sandbox recipe and "shwarming safely" from the briefing itself; "signed with your human's key" and "use the sandbox recipe" link to their pages; the node JSON carries the same pointers; /skill, /llms.txt and /docs answer.
 - **who:** Claude (agent-journey session) · **needs:** 7.6
 - **done when:** a fresh agent with only a production shwarm url reaches a signed post without guessing a single address.
-- *(Oct 10: coded locally, not on staging: the briefing opens "how to take part" with the skill, keys and api links; the sandbox recipe is linked; counts read "1 run, by anyone but the submitter", "1 person, a human", "1 post/day". RENDER_VERSION 7. Node page tests pass.)*
+- *(Oct 10: on staging (10b3911): the briefing opens "how to take part" with the skill, keys and api links; the sandbox recipe is linked; the node JSON has a `resources` object (skill, sandbox, api, openapi, protocol, keys, join), additive in openapi.yaml. RENDER_VERSION 7. Left: name the cli and mcp here once @shwarm/cli is published (m-npm).)*
 
 **7.12 Errors that tell an agent what to do** · doing
 - **what:** an unsigned POST to a node answers 401 `needs_signature` with a pointer to the skill (not "this form came from another site"); unsigned `GET /mentions` and `GET /key` answer 401, not "not found"; `GET <node>/branches` lists the branches instead of 404.
 - **who:** Claude (agent-journey session) · **needs:** 7.4
 - **done when:** each case answers as above on staging, with tests.
+- *(Oct 10: on staging (10b3911): an unsigned write with no browser signs answers 401 `bad_signature`, reason `missing`, with the skill's address; cross-site browser writes still 403; unsigned `GET /key`, `/limits`, `/mentions` answer 401; `GET <node>/branches` answers 405 with `Allow: POST` and how to open one. 938 site tests pass. Waits on Myra's yes to the words.)*
 
 **7.13 A text front door** · doing
 - **what:** `/` and the not-found pages answer in plain text to `Accept: text/plain`, and `/llms.txt` gives an agent the short map of shwarm: what it is, how to take part, where the api and skill are.
 - **who:** Claude (agent-journey session) · **needs:** 7.11
 - **done when:** an agent handed only "shwarm.org" finds its way in plain text.
+- *(Oct 10: on staging (10b3911): `/` and `/llms.txt` answer agents in text or JSON (any Accept that doesn't rank text/html first, curl's included); error pages outside `/w/` answer curl in plain text; browsers unchanged.)*
 
-**7.14 Briefing wording fixes**
+**7.14 Briefing wording fixes** · doing
 - **what:** "1 posts/day", "1 run, each by a different person" and "1 person, at least one of them human" read right; impact explained; the pinned post's "builds on:" only when there is one; robots.txt signals; the briefing says sign-up is invite-only. Two need Myra: what an agent's first move is on an empty shwarm (joining is a site act, so two agents may build the same thing blind), and whether a run command's script ships with the submission everywhere.
 - **who:** Claude (agent-journey session), Myra on the two calls · **needs:** 7.11
 - **done when:** the briefing for every wave-1 shwarm reads cleanly to a fresh agent.
+- *(Oct 10: count wording done ("1 run, by anyone but the submitter", "1 person, a human", "1 post/day"). Left: the two calls for Myra.)*
 
-**7.15 The cli and mcp, driven as a fresh agent**
+**7.15 The cli and mcp, driven as a fresh agent** · doing
 - **what:** an ergonomics pass on `@shwarm/cli` and `shwarm mcp`, driven on staging by fresh sessions; fix what's rough; the api page shows them as available once published (7.7).
 - **who:** Claude (agent-journey session) · **needs:** 7.7, 7.9
 - **done when:** a fresh Claude Code session does read, post, submit and check through `shwarm mcp` with no help.
