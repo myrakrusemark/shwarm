@@ -2,6 +2,8 @@
 
 New site wording from Oct 9 that no mockup had. **Reviewed by Myra on the review page (tracker/review.html), Oct 9: all approved, except these changes, which are queued:** the blocked banner says only "blocked. see the rules." (done); "where we are" becomes "status update" (done); lobby wording goes away (no lobby); the repro form and reopen controls go away (an ended shwarm is locked; continuing is "build on"); variant wording goes away.
 
+**Review round 2 (tracker/public/review2), Oct 10: Myra said yes to every item.** The sections it covers say "approved" under their heading. The account modal, inbox, no-lobby and beta funnel words have no section here; they are listed in open questions #83, #84 and #91 and go-live 11.4, and round 2 approved them too. Not covered yet: 3.10 ("opens soon") and 7.5 to 7.9.
+
 ## 7.9: shwarm mcp and the Python example
 
 Go-live 7.9, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations), [open #100](open-questions.md#100-shwarm-mcp-and-the-python-example-the-builds-edges)). Not reviewed yet. Models read the MCP words in their client; only the api page's section is on the site.
@@ -80,6 +82,8 @@ Go-live 3.10, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-sub
 
 ## Docs sync: footer pages and mockups
 
+Approved (Myra, Oct 10, review round 2).
+
 Go-live docs sync, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations), [open #94](open-questions.md#94-the-docs-sync-the-new-words-and-what-stayed)). Rebuilt into the mockups and exported to the site's footer pages.
 
 - How it works, "what's a shwarm?": "on this site, every goal is a shwarm: the goal, the sentence that says when it's done, and the people and agents working on it." (dropped "its lobby").
@@ -90,9 +94,11 @@ Go-live docs sync, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbo
 - The rules, "when something goes wrong": "think a pass is wrong? start a shwarm that builds on it with the same done test, and the finished shwarm's page lists yours under "challenged by"." (was "a pass that turns out wrong gets reopened by anyone who posts the steps to see it fail.").
 - The great-shwarm guide: the "size the lobby" section is gone.
 - Mockups (the words are the site's, already listed under 8.1 and A11 below): the create form's "a goal worth a crowd. it goes live as soon as you start it.", "…it locks once you post it, and branches inherit it.", the check-first go note and "start shwarm"; the branch form's "goes live as soon as you start it. the crew is already here."; the shwarm page's "join" / "join to say you're working on this."; the result page's "· it's locked.", "think it doesn't really pass? build on it with the same done test." and the "challenged by" box; the create form's "changing it means **starting a new shwarm**"; the keys page's "open branches".
-- Not changed, for Myra to word (go-live 8.1): the manifesto and the holding page still say "a new shwarm opens when enough *people* join its lobby", "A new shwarm opens a lobby and starts when enough people join." and "the same seat in a lobby".
+- Not changed, for Myra to word (go-live 8.1): the manifesto and the holding page still say "a new shwarm opens when enough *people* join its lobby", "A new shwarm opens a lobby and starts when enough people join." and "the same seat in a lobby". Oct 10: Myra said "you draft it"; Claude drafted the new lines (go-live 8.1).
 
 ## Oct 9 renames and review fixes
+
+Approved (Myra, Oct 10, review round 2).
 
 - the result page's log box: "filter: **key events** · all" (was "milestones"; "key events" is Myra's word, the line around it is the mockup's)
 - the triage alert mail: "checked by 1 run report." / "checked by N run reports." (was "run report(s)"), and "checked by 1 person, a human." / "checked by N people, at least one of them human." / "checked by N people." (the node page's words; was "N people (humans only)"). No "checker instructions" block when there are none.
@@ -158,6 +164,8 @@ Go-live docs sync, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbo
 
 ## 4.4, 4.8: late joiners, re-pitch, edit, delete
 
+Approved (Myra, Oct 10, review round 2).
+
 - late join (contributors box): button 'join'; 'late joiners are welcome: no seat limit now it's live.'; 'you're working on this.'; 'verify your email to join.' (already used on the lobby seats box)
 - re-pitch (author's box): 're-pitch it'; labels 'title', 'what'; 'the done test stays locked. the version you replace stays in the history.'; 'a quick automatic check runs again first. until it's done, usually within a minute, only you can see it. confirms with your password.'; button 're-pitch'
 - re-pitch history under the what: summary 're-pitched'; rows 'started 1h ago' / 're-pitched 1h ago'; 'older versions aren't shown.' (reused)
@@ -173,6 +181,8 @@ Go-live docs sync, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbo
 
 ## 5.7: result page and log
 
+Approved (Myra, Oct 10, review round 2).
+
 - '← back to the result' (the live template on a closed shwarm's ?thread=1)
 - 'the exact build the checks ran' now sits after the submission hash, with the release version before it ('v1.0 · e9b41d0 · the exact build the checks ran')
 - 'fingerprint' rows: 'sha256 9c4e07b2…a71f · of <file>' and 'commit e9b41d0 · of <repo>'
@@ -186,6 +196,8 @@ Go-live docs sync, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbo
 
 ## 6.3, 4.4: notice emails
 
+Approved (Myra, Oct 10, review round 2).
+
 - Mention mail (right away): subject '<name> mentioned you on <title>'; body '<name> mentioned you on <title>:', the post quoted under '<name> wrote:', then 'reply in its thread:' (or 'the post goes on. read it all and reply in its thread:' when it's cut at 1000 characters) and the link.
 - Daily digest: subject 'you were mentioned N times on shwarm' ('you were mentioned on shwarm' for one); 'you were mentioned N times since your last digest:' ('… once …'); each '<name> on <title>:' with the first 300 characters quoted and its link; 'and N more in your inbox:' with the inbox link; 'this comes once a day. you can get each mention right away instead, in your account.'
 - Kickoff mail: subject '<title> is live'; body "the lobby for <title> filled, so it's live now. branches and submissions are open." and the link.
@@ -194,13 +206,17 @@ Go-live docs sync, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbo
 
 ## 6.4: download your data, closing an account
 
+Approved (Myra, Oct 10, review round 2).
+
 - Account modal section 'your data': 'everything we hold about you, as a json file. confirms with your password.', button 'download your data'; 'close your account' (details), the paragraph 'we delete your email address, password, inbox, sign-ins and keys, and sign you out. your shwarms and posts stay up under their license, shown as by a former member. a sign-off still to make goes to the operator. this can't be undone.', field 'type <handle> to confirm', 'confirms with your password.', button 'close my account'.
 - Refusals: 'type <handle> to confirm.'; "that's a lot of downloads. wait …, then try again."
 - 'former member' wherever a closed account's name would show (pages, feed, JSON, log; `author="former member"` in the agent prompt).
 - Closing mail (security): subject 'your shwarm account is closed'; body 'your shwarm account was closed just now. we deleted your email address, password, inbox, sign-ins and keys. what you posted stays up under its license, shown as by a former member.' and "this is the last mail we send to this address. if you didn't close it, reply to this mail right away."
-- Not changed, for Myra: the privacy page's "your choices" still ends 'write to support@shwarm.org for any of these.'; downloading your data and closing are now in the account modal.
+- Not changed, for Myra: the privacy page's "your choices" still ends 'write to support@shwarm.org for any of these.'; downloading your data and closing are now in the account modal. Oct 10: changed, with Myra's yes: 'all of these but keys are under the account button on your own profile. for anything else, write to support@shwarm.org.'
 
 ## 7.2: the keys page
+
+Approved (Myra, Oct 10, review round 2).
 
 The page, the "you" box and the new-key modal reuse the mockup's words ([keys.html](../mockups/keys.html)). New:
 
@@ -213,17 +229,23 @@ The page, the "you" box and the new-key modal reuse the mockup's words ([keys.ht
 
 ## 7.3: the signed request pipeline
 
+Approved (Myra, Oct 10, review round 2).
+
 - The "key used somewhere new" mail (security mail, always on): subject 'your agent key was used somewhere new'. Body: 'your agent key "<name>" signed a request from a network it hasn't used before: <network>, at <yyyy-mm-dd hh:mm> utc.', then "if that was your agent, there's nothing to do. if it wasn't, revoke the key now. it stops working at once:" and the /keys link.
 - The same mail when it names several networks held back by the hourly pace (review fixes): 'your agent key "<name>" signed requests from <n> networks it hasn't used before: <network>, <network>, the first at <yyyy-mm-dd hh:mm> utc.'
 - API refusal messages (agents read these; the codes are the protocol's): 'this server speaks Shwarm-Version 0', 'signed requests go to shwarm.org' (the site's own host), 'this signature was already used. sign each request afresh, with a new nonce', 'this key is revoked or past its expiry', 'every POST needs an Idempotency-Key header, the same on each retry', 'Idempotency-Key is 1 to 255 visible ASCII characters', 'this Idempotency-Key was used for another request. use a new key for each new request', 'a request with this Idempotency-Key is still running. try again in a moment'.
 
 ## 7.4: the agent API
 
+Approved (Myra, Oct 10, review round 2).
+
 - API refusal messages (agents read these; the codes are the protocol's): 'send a JSON object as the body', 'the body is not JSON', '<a post | a submission | a check | a branch | a shwarm | a repro | release> has unknown fields: <fields>', 'links go in `links`, not `attach`', 'kind is post, submission or check', 'slot is run (a run report) or people', 'release is {name, version, how_to_use}', 'there are no variants. to take a passed shwarm further, build on it with builds_on', and for site-only acts core's '<act> happens only on the site, as @<handle>' with the acts 'upvoting', 'joining', 'leaving a seat', 'pinning a post', 'the author sign-off', 'marking a dead end', 'reopening', 're-pitching', 'flagging'.
 - Mentions: 'to is required: the name to fetch mentions for', '<to> is not under @<handle>', 'what is addressed to @<handle> is their inbox, read only on the site', "this key can't read mentions of <to>", "this key can't read", 'limit is a whole number from 1 to 100', 'since is not a post', 'before is not a post'.
 - Reads and limits: 'format is text or json', 'slow down: 120 signed requests a minute, per key' with the rule '120 signed requests a minute, per key'; `GET /limits`'s `per: "60 s"`; the RateLimit policy names "thread", "submissions", "new_nodes", "requests".
 
 ## A11, 5.6: locked nodes, build on, challenged by
+
+Approved (Myra, Oct 10, review round 2).
 
 - The locked box in place of the compose box: "locked", then "this shwarm passed, so it takes nothing new. to carry it on, build on it." ("build on it" links to the create form); for a dead end "this shwarm is a dead end, so …"; a branch says only "this branch passed, so it takes nothing new." (or "is a dead end").
 - Core refusals: "<path> passed. it's locked: it takes nothing new", "<path> is a dead end. it's locked: it takes nothing new", "#<n> passed. its checks are on record", "<path> is still live. a shwarm is built on once it passed or is a dead end".
