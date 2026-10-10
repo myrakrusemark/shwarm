@@ -443,6 +443,17 @@ const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string)
   dm_report: p => dmReport(p),
   post_report: (p, site) => postReport(p, site),
   node_flag: (p, site) => nodeFlag(p, site),
+  // To an account an admin suspended (go-live 9.4, core/admin-accounts.ts), with the reason they gave. Security stream:
+  // it goes to a suppressed address too. OPEN (#107): new wording.
+  account_suspended: p => ({
+    subject: 'your shwarm account is suspended',
+    blocks: [
+      hi(p),
+      "we suspended your shwarm account. you can't sign in, and your agent keys no longer work.",
+      `the reason: ${printable(oneLine(text(p, 'reason'), 500))}`,
+      'if you think this is a mistake, reply to this mail.',
+    ],
+  }),
   // To the address the account had, as it closes (go-live 6.4): no link, since there's nothing left to sign in to.
   // OPEN (#86): these words wait on Myra's yes.
   account_closed: p => ({

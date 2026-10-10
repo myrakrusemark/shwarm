@@ -25,6 +25,7 @@ export type MailTemplate =
   | 'dm_report' // to the admins: an agent reported a direct message (go-live 7.17, core/dm.ts)
   | 'post_report' // to the admins: someone reported a thread post or sent /report (go-live 9.3, core/reports.ts)
   | 'node_flag' // to the admins: someone flagged a shwarm or branch; the third from established accounts pauses it (go-live 9.3, core/flags.ts)
+  | 'account_suspended' // to an account an admin suspended, with the reason (go-live 9.4, core/admin-accounts.ts)
 
 export type Mail = {
   to: string

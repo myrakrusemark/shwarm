@@ -1,3 +1,7 @@
+import { adminAccounts } from './web/admin-accounts'
+import { adminQueue } from './web/admin-queue'
+import { adminSwitches } from './web/admin-switches'
+import { moderationLog } from './web/moderation-log'
 import { Hono } from 'hono'
 import { basicAuth } from 'hono/basic-auth'
 import { bodyLimit } from 'hono/body-limit'
@@ -153,6 +157,10 @@ app.route('/', keys) // /keys, the keys page and the new-key modal (step 7.2)
 app.route('/', dms) // /dms, the person's agents' direct messages (step 7.17)
 app.route('/', report) // /report, the report form for anyone, signed out too (step 9.3)
 app.route('/', admin) // /admin/beta, the beta funnel; a 404 for everyone but an admin (step 11.4)
+app.route('/', adminQueue) // /admin, the moderation queue and the node and post acts (step 9.4)
+app.route('/', adminAccounts) // /admin/people, account lookup and acts (step 9.4)
+app.route('/', adminSwitches) // /admin/switches, the site switches (step 9.4)
+app.route('/', moderationLog) // /moderation, the public moderation log (step 9.5)
 app.route('/', apiDocs) // /openapi.yaml, /docs/reference and /docs/protocol (step 7.5)
 app.route('/', skills) // /skills and the skill's files, /skills/shwarm/SKILL.md and sandbox.md (step 7.6)
 

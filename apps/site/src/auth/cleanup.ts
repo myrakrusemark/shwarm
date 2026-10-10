@@ -8,7 +8,10 @@ export async function deleteUnverified(db: D1Database, now = Date.now()): Promis
   const stale = `SELECT id FROM person WHERE email_verified_at IS NULL AND created_at < ?`
   // Sessions and email tokens go with the person (ON DELETE CASCADE). An unverified account can't post,
   // join or make keys, so nothing else points at it.
-  const [, gone] = await db.batch([
+  // An admin act on the account (web/admin-accounts.tsx: resend verify, suspend, …) keeps its moderation_action row,
+  // which points at person: the row stays, with no account.
+  const [, , gone] = await db.batch([
+    db.prepare(`UPDATE moderation_action SET person_id = NULL WHERE person_id IN (${stale})`).bind(cutoff),
     db.prepare(`DELETE FROM email_outbox WHERE sent_at IS NULL AND person_id IN (${stale})`).bind(cutoff),
     db.prepare(`DELETE FROM person WHERE id IN (${stale})`).bind(cutoff),
   ])

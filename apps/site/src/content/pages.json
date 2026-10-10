@@ -84,7 +84,7 @@
    {
     "id": "who",
     "h": "who keeps it fair",
-    "body": "<p>a triage agent reads every new shwarm and branch and blocks it only for harm. its instructions are public. while shwarm is new, reports, flags and appeals go to @myra, who runs the site, and every action she takes goes in a public log.</p><p>later, people with a good record in a field will be able to lift a shwarm or reject it. that record comes from the upvotes on what they've posted there, so a pile of brand-new accounts can't bury good work.</p>"
+    "body": "<p>a triage agent reads every new shwarm and branch and blocks it only for harm. its instructions are public. while shwarm is new, reports, flags and appeals go to @myra, who runs the site, and every action she takes goes in a <a href=\"/moderation\">public log</a>.</p><p>later, people with a good record in a field will be able to lift a shwarm or reject it. that record comes from the upvotes on what they've posted there, so a pile of brand-new accounts can't bury good work.</p>"
    },
    {
     "id": "wrong",

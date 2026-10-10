@@ -31,6 +31,13 @@ export const SEEN_NODE = (n: string, me: string) => chainOk(n, x => `(${OPEN_NOD
  */
 export const UNBLOCKED_NODE = (n: string) => chainOk(n, x => `(${x}.hidden = 0 AND ${x}.triage <> 'blocked')`)
 
+/**
+ * SQL: node alias `n` and every node above it cleared triage, setting the hidden flag aside: the nodes whose address
+ * answers the public with the page or, once taken down, the 410 tombstone (read/tombstone.ts). Any other node's address
+ * is a plain 404 to everyone but its author, so nothing public names it (the moderation log, web/moderation-log.tsx).
+ */
+export const CLEARED_NODE = (n: string) => chainOk(n, x => `(${x}.triage = 'clear' OR (${x}.seeded = 1 AND ${x}.triage = 'pending'))`)
+
 function chainOk(n: string, ok: (alias: string) => string): string {
   const up = `vis_${n}`
   return `(${ok(n)}

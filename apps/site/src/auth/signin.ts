@@ -111,13 +111,22 @@ export async function stepUp(db: D1Database, pepper: string, personId: number, s
  * someone who signed up with another person's address can't stay signed in once that person verifies it.
  */
 export async function markVerified(db: D1Database, personId: number, origin: string, opts: { keepSession?: string; now?: number } = {}) {
+  const stmts = await markVerifiedStatements(db, personId, origin, opts)
+  if (stmts) await db.batch(stmts)
+}
+
+/**
+ * markVerified's batch, for a caller that adds its own statements to it (the admin console's "mark email verified",
+ * web/admin-accounts.tsx, puts its moderation_action row in). Null when the account is gone or already verified.
+ */
+export async function markVerifiedStatements(db: D1Database, personId: number, origin: string, opts: { keepSession?: string; now?: number } = {}): Promise<D1PreparedStatement[] | null> {
   const nowMs = opts.now ?? Date.now()
   const now = new Date(nowMs).toISOString()
   const p = await db
     .prepare('SELECT id, handle, email, email_norm, email_verified_at FROM person WHERE id = ?')
     .bind(personId)
     .first<{ id: number; handle: string; email: string; email_norm: string; email_verified_at: string | null }>()
-  if (!p || p.email_verified_at) return
+  if (!p || p.email_verified_at) return null
   const invited = await db.prepare('SELECT 1 AS ok FROM signup_allow WHERE email_norm = ?').bind(p.email_norm).first()
   const stmts = [
     db.prepare('UPDATE person SET email_verified_at = ? WHERE id = ? AND email_verified_at IS NULL').bind(now, p.id),
@@ -135,7 +144,7 @@ export async function markVerified(db: D1Database, personId: number, origin: str
     db.prepare("UPDATE email_token SET used_at = ? WHERE person_id = ? AND purpose = 'verify' AND used_at IS NULL").bind(now, p.id),
     mailStatement(db, { to: p.email, template: 'welcome', stream: 'account', personId: p.id, payload: { handle: p.handle, link: `${origin}/` } }, now),
   )
-  await db.batch(stmts)
+  return stmts
 }
 
 /** Forgot password: a reset link if the address has an active account; nothing otherwise. The page is the same. */

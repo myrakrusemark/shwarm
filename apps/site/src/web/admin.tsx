@@ -7,6 +7,7 @@ import { Hono } from 'hono'
 import type { FC } from 'hono/jsx'
 import { sessionOf } from '../auth/request'
 import { activity, funnel, lastDays, STEPS, testers, trafficByDay, trafficTop, type DayActivity, type Funnel, type Ranked, type Tester, type TrafficDay } from '../read/beta'
+import { AdminNav } from './admin-nav'
 import { sendError } from './errors'
 import { AgentResources, Layout } from './layout'
 import { page } from './viewer'
@@ -138,6 +139,7 @@ const BetaPage: FC<{ v: View }> = ({ v }) => (
     </div>
     <div class="doc">
       <article id="main" tabindex={-1}>
+        <AdminNav here="/admin/beta" />
         <section id="loop">
           <h2>the loop</h2>
           <div class="body">

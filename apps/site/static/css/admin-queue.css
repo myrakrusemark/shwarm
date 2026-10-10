@@ -1,0 +1,53 @@
+/* the admin queue and the node, post and report pages (go-live 9.4, web/admin-queue.tsx). interactive pages: each part
+   is a card (.box from site.css). tokens come from site.css. */
+.admq { margin-top: 22px; }
+.admq h1 { margin: 10px 0 14px; font: 900 28px/1.1 "Arial Black", Arial, sans-serif; letter-spacing: -1px; overflow-wrap: anywhere; }
+.admq .adminnav { font-size: 13px; }
+.admq .box { margin-bottom: 18px; }
+.admq .msg { border: var(--rule); padding: 10px 14px; margin-bottom: 18px; background: rgba(196,87,45,.12); }
+.admq .msg.ok { background: rgba(92,154,62,.18); }
+.admq .mk { font-size: 11.5px; opacity: .75; }
+.admq .flag-cr { font-size: 11.5px; color: var(--clay); }
+.admq code { font-size: 12.5px; background: var(--paper-2); padding: 0 4px; overflow-wrap: anywhere; }
+.admq pre.said { margin: 6px 0 0; padding: 8px 10px; background: var(--paper-2); border: 1px dashed rgba(19,38,27,.35);
+  font: inherit; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 22em; overflow: auto; }
+
+/* the find form above the queue */
+.admq .find { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 18px; }
+.admq .find label { font-weight: 700; }
+.admq .find input { flex: 1 1 260px; }
+
+/* lists */
+.admq table.q { width: 100%; border-collapse: collapse; font-size: 13px; }
+.admq table.q th { text-align: left; font-size: 11px; font-weight: 400; opacity: .7; padding: 6px 8px; border-bottom: 1px solid var(--ink); background: var(--paper-2); }
+.admq table.q td { padding: 7px 8px; border-bottom: 1px dashed rgba(19,38,27,.3); vertical-align: top; overflow-wrap: anywhere; }
+.admq table.q tr:last-child td { border-bottom: 0; }
+.admq table.q .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.admq table.q .day { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.admq ol.reps, .admq ol.links-list { list-style: none; margin: 0; padding: 0; }
+.admq ol.reps > li, .admq ol.links-list > li { padding: 10px 12px; border-bottom: 1px dashed rgba(19,38,27,.3); }
+.admq ol.reps > li:last-child, .admq ol.links-list > li:last-child { border-bottom: 0; }
+.admq .rhead { font-weight: 700; }
+.admq .rep .meta { font-size: 12px; margin-top: 2px; }
+.admq dl.facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; padding: 10px 12px; font-size: 13px; }
+.admq dl.facts dt { opacity: .7; }
+.admq dl.facts dd { margin: 0; overflow-wrap: anywhere; }
+
+/* the act forms */
+.admq .acts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.admq .acts-grid form.act { padding: 10px 12px; border-bottom: 1px dashed rgba(19,38,27,.3); }
+.admq .acts-grid h3 { margin: 0 0 2px; font-size: 14px; }
+.admq form.act { margin: 8px 0 0; }
+.admq .f { margin: 8px 0 0; }
+.admq .f label { display: block; font-weight: 700; margin-bottom: 2px; font-size: 13px; }
+.admq .hint { font-size: 12px; opacity: .75; margin: 2px 0 0; }
+.admq input[type=text], .admq select { font: inherit; width: 100%; border: 1.5px solid var(--ink); background: var(--paper); padding: 5px 8px; color: var(--ink); }
+.admq input:focus, .admq select:focus { outline: 3px solid var(--ink); outline-offset: 0; }
+.admq .go { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 10px; }
+.admq .box > form.act { padding: 0 12px 12px; }
+
+@media (max-width: 700px) {
+  .admq table.q { display: block; overflow-x: auto; }
+  .admq dl.facts { grid-template-columns: 1fr; }
+  .admq dl.facts dt { margin-top: 6px; }
+}
