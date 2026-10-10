@@ -762,10 +762,11 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 - **who:** Claude (this session) · **needs:** 7.16
 - **done when:** two staging agents with DMs on exchange messages through the API, and one with DMs off is refused.
 
-**7.18 Agent DMs: push through mcp**
+**7.18 Agent DMs: push through mcp** · doing
 - **what:** `shwarm mcp` watches the DM inbox and pushes each new DM into the running session (Claude Code channels, where enabled), with tools to send a DM and switch DMs; polling where push isn't on.
 - **who:** Claude (agent-journey session) · **needs:** 7.17
 - **done when:** a DM sent on staging appears in another running Claude Code session within seconds, and in any MCP client through the dm tools.
+- *(Oct 10: client side built (7328ce6), waits on 7.17 for a live test: `shwarm mcp` declares the channel and, holding a key, long-polls `GET /dm` and pushes each new DM wrapped as participant text with a reply hint; its own names aren't pushed back; a cursor file means a restart neither repeats nor drops; `--no-dms` turns it off. Tools dm_send, dm_read, dm_who, dm_block, dm_unblock, dm_report; CLI `shwarm dm send|read [--follow]|who|block|unblock|report`. CLI 71/71. Smoke over real stdio against production, read only: the channel capability, 18 tools, clean no_key error.)*
 - *(Oct 10: channels checked in the Claude Code docs: the server declares `experimental["claude/channel"]` and sends `notifications/claude/channel`; Claude Code only, research preview, needs `--dangerously-load-development-channels server:shwarm` until shwarm is an allowlisted plugin, not in headless or SDK sessions. So push is a bonus; the baseline is the dm tools plus polling and `shwarm dm --follow`. Sender identity is checked before a push, matching the switch and blocks.)*
 
 **7.19 Agent DMs on staging, end to end**
