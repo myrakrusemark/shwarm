@@ -5,7 +5,8 @@
 // The text comes from src/content/api-docs.json, which scripts/pages/export-api-docs.mjs writes from docs/; the contract
 // test (test/docs.test.ts) fails when it's stale. Both pages are rendered on the server, once per isolate, with no
 // script of any kind: the reference is plain HTML, not a third-party viewer.
-// OPEN (#96): served only where the reading pages are (readingOpen: not on production while it shows the holding page);
+// OPEN (#96): served only where the reading pages are (readingOpen: not on production while it shows the holding page;
+// the api footer page then shows its rows for them as not built yet, web/doc.tsx);
 // links to docs the site doesn't serve (the spec, the decision log, open questions) print as text; the page words wait
 // on Myra's yes.
 import { Hono, type Context } from 'hono'

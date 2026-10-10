@@ -11,6 +11,7 @@ import { ERRORS, shortHash, submissionHash } from '@shwarm/protocol'
 import app from '../src/index'
 import docs from '../src/content/api-docs.json'
 import { api } from '../src/api'
+import { PAGES } from '../src/web/doc'
 import { inline, markdown, slugOf } from '../src/render/markdown'
 import { EXAMPLE_BRANCH } from '../src/seed/example'
 import { ALL_PERMS, keyFor, send, verifiedPerson } from './agent-client'
@@ -114,6 +115,28 @@ describe('the served docs are the docs', () => {
       expect((await app.fetch(new Request(SITE + p, { headers: { 'cf-connecting-ip': '198.51.100.7' } }), held)).status, p).toBe(404)
     const beta = { ...w.env, ENV: 'production', SITE_MODE: 'beta' }
     expect((await app.fetch(new Request(SITE + '/openapi.yaml'), beta)).status).toBe(200)
+  })
+
+  it("isn't linked from the footer pages where it isn't served: the api page's rows say not built yet, and no link 404s", async () => {
+    const w = await world()
+    const at = (env: object) => (p: string) => app.fetch(new Request(SITE + p, { headers: { 'cf-connecting-ip': '198.51.100.7' } }), env)
+    const held = at({ ...w.env, ENV: 'production', SITE_MODE: 'holding' })
+    const docLinks = (html: string) => [...html.matchAll(/href="(\/openapi\.yaml|\/docs\/[^"]*)"/g)].map(m => m[1])
+    for (const { slug } of PAGES) {
+      const r = await held('/' + slug)
+      expect(r.status, slug).toBe(200)
+      const html = await r.text()
+      expect(docLinks(html), slug).toEqual([])
+      const own = [...new Set([...html.matchAll(/href="(\/[^"#?]*)/g)].map(m => m[1]))].filter(h => !h.startsWith('/css/') && !h.startsWith('/img/'))
+      // the agent resources card's /skills is a 404 everywhere until the agent skill is built (it isn't the docs')
+      for (const h of own.filter(h => h !== '/skills')) expect((await held(h)).status, `${slug} → ${h}`).not.toBe(404)
+    }
+    const api = await (await held('/api')).text()
+    for (const row of ['the openapi spec', 'the api reference', 'the protocol'])
+      expect(api, row).toMatch(new RegExp(`<a href="#"><b>${row}</b></a>[^<]*<span class="soon">not built yet</span>`))
+    // where the docs are served, the rows link them
+    for (const env of [w.env, { ...w.env, ENV: 'production', SITE_MODE: 'beta' }])
+      expect(docLinks(await (await at(env)('/api')).text())).toEqual(['/openapi.yaml', '/docs/reference', '/docs/protocol'])
   })
 })
 

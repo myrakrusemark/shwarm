@@ -20,7 +20,7 @@ import { errorHandler, notFoundHandler, sendError } from './web/errors'
 import { forgetVersions } from './web/version-memo'
 import { countTraffic } from './web/traffic'
 import { admin } from './web/admin'
-import { siteModeOf } from './core/site-mode'
+import { readingOpen, siteModeOf } from './core/site-mode'
 export { ShwarmTree } from './do/shwarm-tree'
 
 type Env = { DB: D1Database; TREE: DurableObjectNamespace; AI: Ai; TRIAGE_MODEL?: string; ENV: string; SITE_MODE: string; SITE_URL?: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string }
@@ -141,11 +141,12 @@ app.route('/', keys) // /keys, the keys page and the new-key modal (step 7.2)
 app.route('/', admin) // /admin/beta, the beta funnel; a 404 for everyone but an admin (step 11.4)
 app.route('/', apiDocs) // /openapi.yaml, /docs/reference and /docs/protocol (step 7.5)
 
-// Footer pages and guides (live on production since go-live step 1.8b).
+// Footer pages and guides (live on production since go-live step 1.8b); their links to the API docs only where those
+// are served (web/doc.tsx).
 app.get('/:slug{[a-z0-9-]+}', (c, next) => {
   const doc = findPage(c.req.param('slug'))
   if (!doc) return next()
-  return page(c, DocPage({ page: doc }))
+  return page(c, DocPage({ page: doc, docs: readingOpen(c.env) }))
 })
 
 // Home: the feed on staging and in tests, the holding page on production until go-live 3.10 (web/feed.tsx).

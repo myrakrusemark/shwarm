@@ -8,7 +8,16 @@ type Page = { slug: string; title: string; lede: string; sections: { id: string;
 export const PAGES = pages as Page[]
 export const findPage = (slug: string) => PAGES.find(p => p.slug === slug)
 
-export const DocPage: FC<{ page: Page }> = ({ page }) => (
+// The API docs (/openapi.yaml, /docs/…) are served only where the reading pages are (web/api-docs.tsx). Where they
+// aren't, a row linking one goes back to how the api page had it before go-live 7.5: no link, "not built yet".
+// OPEN (#96): the docs stay unpublished on production while it holds, until Myra approves the v0 freeze and the words.
+const DOC_ROW = /<li><a href="\/(?:openapi\.yaml|docs\/[^"]*)">(.*?)<\/li>/g
+const unlinkDocs = (html: string) => html.replace(DOC_ROW, '<li><a href="#">$1 · <span class="soon">not built yet</span></li>')
+
+/** A footer page or guide; `docs` false where the API docs aren't served. */
+export const DocPage: FC<{ page: Page; docs?: boolean }> = ({ page: p, docs = true }) => {
+  const page = docs ? p : { ...p, sections: p.sections.map(s => ({ ...s, body: unlinkDocs(s.body) })) }
+  return (
   <Layout title={`${page.title} · shwarm`} description={page.lede.replace(/<[^>]+>/g, '').slice(0, 200)}>
     <div class="dochead"><h1>{page.title}</h1><p>{raw(page.lede)}</p></div>
     <div class="doc">
@@ -23,4 +32,5 @@ export const DocPage: FC<{ page: Page }> = ({ page }) => (
       </aside>
     </div>
   </Layout>
-)
+  )
+}
