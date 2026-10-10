@@ -1,0 +1,46 @@
+name: publish-cli
+# Publishes @shwarm/cli to npm with provenance (go-live 7.7; prd-api LIB-7). Run by hand only (Actions tab, or
+# `gh workflow run publish-cli -f dry_run=false`): running it is the approval, and Myra approves the first publish.
+# A dry run (the default) builds, tests and packs, and publishes nothing.
+#
+# Trusted publishing: npm takes a short-lived token from GitHub's OIDC (id-token below), so no npm token is stored.
+# npm sets it up per package on npmjs.com (package settings → trusted publisher: myrakrusemark/shwarm, this file), and
+# only for a package that exists. So the very first publish uses NPM_TOKEN, a granular token Myra makes for it and
+# deletes after; once trusted publishing is set up, the secret goes and the same run publishes through OIDC.
+# Not a `v*` tag: those deploy production (deploy.yml).
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: pack and check only, publish nothing
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write # trusted publishing and the provenance statement
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    concurrency: publish-cli
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      - name: npm with trusted publishing (11.5.1 or later)
+        run: npm install -g npm@^11.5.1
+      - run: npm ci
+      - name: typecheck and tests
+        run: npm run typecheck && npm test
+      - name: the version isn't on npm yet
+        run: |
+          v=$(node -p "require('./packages/cli/package.json').version")
+          if npm view "@shwarm/cli@$v" version >/dev/null 2>&1; then echo "@shwarm/cli@$v is already published. bump the version first."; exit 1; fi
+      - name: publish
+        run: npm publish -w @shwarm/cli --provenance --access public ${{ inputs.dry_run && '--dry-run' || '' }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

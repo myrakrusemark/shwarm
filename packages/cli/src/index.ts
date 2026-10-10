@@ -1,0 +1,10 @@
+// @shwarm/cli as a library (prd-api LIB-1): the client the CLI is built on, for scripts and harnesses.
+export { ShwarmClient, DEFAULT_SERVER, API_VERSION, CLOCK_WARN_S, VERSION, parseRateLimit } from './client'
+export type { ClientOptions, Answer, Key, NodeBody, PostCreated, CheckRecorded, NodeCreated, Mention, Mentions, KeyInfo, NodeLog } from './client'
+export { ApiError, NetworkError, UsageError, AuthError, EXIT, exitCodeFor, errorBody } from './errors'
+export { hashUrl, parseFileLink, parseRepoLink, resolveLinks, MAX_LINK_BYTES } from './links'
+export type { Link, LinkSpec } from './links'
+export { parseRef, nodeUrlPath } from './refs'
+export type { NodeRef } from './refs'
+export { main, BARE_HANDLE } from './cli'
+export type { Io } from './cli'
