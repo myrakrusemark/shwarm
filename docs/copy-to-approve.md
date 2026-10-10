@@ -256,3 +256,13 @@ Approved (Myra, Oct 10, review round 2).
 - A branch under an ended shwarm (review fix, Oct 9): the locked box "<shwarm title> passed, so this branch takes nothing new either. to carry it on, build on it." (or "is a dead end"; "build on it" links to building on that shwarm); the refusal names the ended shwarm ("<shwarm> passed. it's locked: it takes nothing new"); the agent prompt "locked: <shwarm> passed, so this takes nothing new either." then "to carry it on, start a shwarm with builds_on set to <shwarm>."; the inbox shows only "see thread" on a mention there (no new words).
 - The agent prompt: "closed: it passed. it's locked: it takes nothing new." or "dead end. it's locked: it takes nothing new.", then for a shwarm "to carry it on, or to challenge the pass, start a shwarm with builds_on set to this path." (a dead end: "to carry it on, start …").
 - The footer pages' reopen lines and the closed mockup's "it's broken? post a repro" were changed in the [docs sync](#docs-sync-footer-pages-and-mockups).
+
+## Activity strip
+
+The strip above the thread on shwarm and branch pages (decisions, Oct 10). Not yet approved.
+
+- under the bars: "N posts in the last 14 days, most on oct 6" (the busiest day; on a tie, the latest)
+- when every post fell on one day: "1 post in the last 14 days, on oct 8"
+- hover title on each bar: "oct 6: 112 posts", "sep 25: 1 post", "sep 26: 0 posts"
+- totals are grouped: "1,234 posts"
+- no posts in 14 days: nothing is shown

@@ -304,7 +304,7 @@
     {
       "from": "claude",
       "choice": "answer",
-      "text": "recorded: all yes (Oct 9, in chat). A21–A25 decided; privacy page now mentions the two form cookies.",
+      "text": "recorded: all yes (Oct 9, in chat). A21\u2013A25 decided; privacy page now mentions the two form cookies.",
       "at": "2026-10-09T00:27:23.644263+00:00"
     }
   ],
@@ -978,6 +978,684 @@
       "choice": "yes",
       "text": "",
       "at": "2026-10-09T23:17:11.899Z"
+    }
+  ],
+  "r2:privacy-visit-counts": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:17:51.206Z"
+    }
+  ],
+  "r2:manifesto-lobby-lines": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:18:17.830Z"
+    }
+  ],
+  "r2:launch-list-lobby-variant": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:18:24.218Z"
+    }
+  ],
+  "r2:claude-md-lines": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:18:44.404Z"
+    }
+  ],
+  "r2:copy-inbox-new": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:18:56.749Z"
+    }
+  ],
+  "r2:copy-inbox-read-and-reply": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:19:10.203Z"
+    }
+  ],
+  "r2:copy-profile-owner": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:19:24.515Z"
+    }
+  ],
+  "r2:copy-account-modal": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:19:35.426Z"
+    }
+  ],
+  "r2:copy-account-about": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:19:42.017Z"
+    }
+  ],
+  "r2:copy-account-saved-email-pending": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:20:00.253Z"
+    }
+  ],
+  "r2:copy-account-email-notices": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:20:22.450Z"
+    }
+  ],
+  "r2:copy-email-change-confirm": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:20:37.534Z"
+    }
+  ],
+  "r2:copy-email-change-done": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:20:44.998Z"
+    }
+  ],
+  "r2:copy-account-signin-change-password": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:20:55.246Z"
+    }
+  ],
+  "r2:copy-account-password-changed": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:21:03.384Z"
+    }
+  ],
+  "r2:copy-signed-out-everywhere": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:21:08.404Z"
+    }
+  ],
+  "r2:copy-account-your-data-close": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:21:17.888Z"
+    }
+  ],
+  "r2:copy-keys-empty": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:21:27.050Z"
+    }
+  ],
+  "r2:copy-newkey-modal": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:21:38.762Z"
+    }
+  ],
+  "r2:copy-newkey-chooser-youre-in": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:21:46.584Z"
+    }
+  ],
+  "r2:copy-newkey-chooser-branches": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:21:52.006Z"
+    }
+  ],
+  "r2:copy-newkey-grants-perms": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:22:03.742Z"
+    }
+  ],
+  "r2:copy-newkey-password-refused": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:22:13.613Z"
+    }
+  ],
+  "r2:copy-newkey-secret-once": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:22:42.123Z"
+    }
+  ],
+  "r2:copy-keys-list": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:22:54.135Z"
+    }
+  ],
+  "r2:copy-keys-revoke-open": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:22:57.681Z"
+    }
+  ],
+  "r2:copy-new-shwarm": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:23:05.317Z"
+    }
+  ],
+  "r2:copy-new-branch": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:23:10.575Z"
+    }
+  ],
+  "r2:copy-new-builds-on-passed": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:23:25.711Z"
+    }
+  ],
+  "r2:copy-new-builds-on-dead-end": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:23:36.290Z"
+    }
+  ],
+  "r2:copy-new-shwarm-live-at-once": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:23:42.838Z"
+    }
+  ],
+  "r2:copy-join-box": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:23:48.104Z"
+    }
+  ],
+  "r2:copy-join-working-on-this": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:23:53.141Z"
+    }
+  ],
+  "r2:copy-join-author-view": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:23:59.408Z"
+    }
+  ],
+  "r2:copy-owner-repitch": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:24:06.958Z"
+    }
+  ],
+  "r2:copy-owner-dead-end-box": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:24:20.168Z"
+    }
+  ],
+  "r2:copy-dead-end-page": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:24:26.135Z"
+    }
+  ],
+  "r2:copy-dead-end-locked": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:24:32.711Z"
+    }
+  ],
+  "r2:copy-status-update-compose": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:24:41.594Z"
+    }
+  ],
+  "r2:copy-status-update-pinned": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:24:49.982Z"
+    }
+  ],
+  "r2:copy-result-page": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:25:02.675Z"
+    }
+  ],
+  "r2:copy-result-page-before-builds": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:25:09.130Z"
+    }
+  ],
+  "r2:copy-result-challenged-built-on": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:25:12.563Z"
+    }
+  ],
+  "r2:copy-result-log-key-events": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:25:24.627Z"
+    }
+  ],
+  "r2:copy-closed-thread-locked": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:25:30.107Z"
+    }
+  ],
+  "r2:copy-admin-beta": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:25:46.046Z"
+    }
+  ],
+  "r2:copy-admin-beta-loop-testers": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:25:54.715Z"
+    }
+  ],
+  "r2:copy-admin-beta-activity-traffic": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:25:58.567Z"
+    }
+  ],
+  "r2:copy-email-email-change-new": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:26:03.640Z"
+    }
+  ],
+  "r2:copy-email-email-change-old": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:26:10.718Z"
+    }
+  ],
+  "r2:copy-email-password-changed": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:26:13.855Z"
+    }
+  ],
+  "r2:copy-email-account-closed": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:26:16.241Z"
+    }
+  ],
+  "r2:copy-email-mention": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:26:20.834Z"
+    }
+  ],
+  "r2:copy-email-mention-long": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:26:25.533Z"
+    }
+  ],
+  "r2:copy-email-digest": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:26:29.022Z"
+    }
+  ],
+  "r2:copy-email-digest-one": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:26:33.808Z"
+    }
+  ],
+  "r2:copy-email-node-passed": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:26:37.009Z"
+    }
+  ],
+  "r2:copy-email-node-failed": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:26:41.889Z"
+    }
+  ],
+  "r2:copy-email-key-new-network": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:26:48.043Z"
+    }
+  ],
+  "r2:copy-email-key-new-networks": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:26:51.646Z"
+    }
+  ],
+  "r2:copy-email-daily-summary": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:26:54.032Z"
+    }
+  ],
+  "r2:copy-email-triage-alert": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:26:58.416Z"
+    }
+  ],
+  "r2:repitch-edit-delete-make-branch": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:27:10.323Z"
+    }
+  ],
+  "r2:repitch-history-visibility": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:27:12.193Z"
+    }
+  ],
+  "r2:ended-shwarms-locked": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:27:17.824Z"
+    }
+  ],
+  "r2:branch-under-ended-shwarm-locked": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:27:57.275Z"
+    }
+  ],
+  "r2:no-build-on-for-ended-branch": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:28:00.433Z"
+    }
+  ],
+  "r2:inbox-reply-and-author-back": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:28:03.356Z"
+    }
+  ],
+  "r2:account-modal": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:28:09.138Z"
+    }
+  ],
+  "r2:email-change-stop-and-pace": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:28:14.101Z"
+    }
+  ],
+  "r2:notice-emails": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:28:17.046Z"
+    }
+  ],
+  "r2:download-data-and-close-account": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:28:22.870Z"
+    }
+  ],
+  "r2:closing-and-notice-mail-fixes": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:28:29.160Z"
+    }
+  ],
+  "r2:signed-request-details": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:28:35.499Z"
+    }
+  ],
+  "r2:keys-page-and-new-key": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:28:39.332Z"
+    }
+  ],
+  "r2:signed-request-pipeline": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:28:45.916Z"
+    }
+  ],
+  "r2:key-used-somewhere-new-mail": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:28:56.741Z"
+    }
+  ],
+  "r2:agent-api-calls": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:29:01.985Z"
+    }
+  ],
+  "r2:no-lobby-no-variants": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:29:07.551Z"
+    }
+  ],
+  "r2:key-events-log-box-triage-mail": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:29:13.239Z"
+    }
+  ],
+  "r2:docs-sync": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:29:20.390Z"
+    }
+  ],
+  "r2:beta-funnel-page": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:29:23.778Z"
+    }
+  ],
+  "r2:updates-and-campfire-view": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "you could do this but keep it very simple. just a visualization of activity above the thread.",
+      "at": "2026-10-10T08:30:22.834Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "building it now: a small bar strip of posts per day for the last 14 days, above the thread on shwarm and branch pages. counts only posts the public can see; no names, no agent counts, no script. it'll be on staging for you to look at.",
+      "at": "2026-10-10T08:33:15.328052+00:00"
+    }
+  ],
+  "r2:signed-ci-attestations": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T08:30:26.802Z"
     }
   ]
 }
