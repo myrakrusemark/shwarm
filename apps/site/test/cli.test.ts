@@ -1,8 +1,8 @@
 // Go-live 7.7: the shwarm command (packages/cli) against the whole site in-process, as an agent's machine reaches it:
 // its requests signed by the CLI and verified by the Worker's pipeline, keys made as the keys page makes them. Covers
 // login --key and whoami, reads signed and public, post (with a link fetched and hashed by the CLI), submit, check,
-// branch, new, mentions and --follow, limits and log; the exit codes (CLI-16) for each kind of refusal; and --as with
-// no path refused before anything reaches the site.
+// branch, new, mentions and --follow, limits and log; the exit codes (CLI-16) for each kind of refusal; --as with no
+// path refused before anything reaches the site; and a signed post through staging's password lock on its own host.
 import { createHash } from 'node:crypto'
 import { mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -39,9 +39,10 @@ afterEach(() => {
 
 const secret = (k: Key) => formatSecret(k.keyid, k.seed)
 
-async function world() {
+/** The site at `site`, with `more` in its env (the staging lock's ENV and password). */
+async function world(site = SITE, more: Record<string, string> = {}) {
   const { db, myraId } = await stagingWorld()
-  const env = { ...testEnv(db), SITE_URL: SITE }
+  const env = { ...testEnv(db), SITE_URL: site, ...more }
   const ana = await verifiedPerson(db, 'ana')
   const keys = {
     myra: await keyFor(db, myraId, { canPostAs: '@myra/*', grants: [{ node: '*', perms: ['read', 'post', 'submit', 'check', 'branch'] }] }),
@@ -53,7 +54,7 @@ async function world() {
   const fetched: string[] = []
   const route = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const req = new Request(input, init)
-    if (req.url.startsWith(SITE + '/')) {
+    if (req.url.startsWith(site + '/')) {
       reached.push(`${req.method} ${new URL(req.url).pathname}`)
       const headers = new Headers(req.headers)
       headers.set('cf-connecting-ip', '203.0.113.9')
@@ -71,7 +72,7 @@ async function world() {
     const ac = new AbortController()
     let sleeps = 0
     const code = await main(argv, {
-      env: { SHWARM_CONFIG_DIR: o.dir ?? (await mkdtemp(join(tmpdir(), 'shwarm-cli-'))), SHWARM_SERVER: SITE, ...(o.key ? { SHWARM_KEY: secret(o.key) } : {}), ...o.env },
+      env: { SHWARM_CONFIG_DIR: o.dir ?? (await mkdtemp(join(tmpdir(), 'shwarm-cli-'))), SHWARM_SERVER: site, ...(o.key ? { SHWARM_KEY: secret(o.key) } : {}), ...o.env },
       stdout: s => void out.push(s),
       stderr: s => void err.push(s),
       stdin: async () => o.stdin ?? '',
@@ -240,6 +241,21 @@ describe('exit codes and refusals against the Worker', () => {
     const revoked = await w.shwarm(['whoami', '--json'], { key: w.keys.myra })
     expect(revoked.code).toBe(3)
     expect(JSON.parse(revoked.out)).toMatchObject({ error: 'key_revoked' })
+  })
+
+  it("staging's password lock: signed acts get through it with SHWARM_BASIC_AUTH, and are refused without", async () => {
+    const STAGING = 'https://shwarm-staging.example.workers.dev'
+    const w = await world(STAGING, { ENV: 'staging', STAGING_PASSWORD: 'pw-for-tests' })
+    const auth = { SHWARM_BASIC_AUTH: 'shwarm:pw-for-tests' }
+    const who = await w.shwarm(['whoami'], { key: w.keys.myra, env: auth })
+    expect(who.code).toBe(0)
+    const p = await w.shwarm(['post', BRANCH, '--as', '@myra/m-04', 'from behind the lock.'], { key: w.keys.myra, env: auth })
+    expect(p).toMatchObject({ code: 0, err: '' })
+    expect(p.out).toMatch(new RegExp(`^${STAGING}/w/${BRANCH}#p_`))
+    expect(w.get('SELECT as_name, key_id FROM post WHERE id = ?', p.out.split('#')[1])).toEqual({ as_name: '@myra/m-04', key_id: w.keys.myra.keyid })
+    const locked = await w.shwarm(['post', BRANCH, '--as', '@myra/m-04', 'no password', '--json'], { key: w.keys.myra })
+    expect(locked.code).toBe(3)
+    expect(JSON.parse(locked.out)).toMatchObject({ error: 'unauthorized' })
   })
 
   it('--as with no path: "bare-handle acts happen on shwarm.org", exit 3, and nothing reaches the site', async () => {

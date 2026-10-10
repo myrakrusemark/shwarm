@@ -150,7 +150,7 @@ async function makeCtx(io: Io, flags: Flags, args: string[]): Promise<Ctx> {
     profile,
     server,
     async client(o = {}) {
-      if (!built) built = new ShwarmClient({ server, key: await keyFor(ctx), basicAuth: io.env.SHWARM_BASIC_AUTH || null, fetch: io.fetch, sleep: io.sleep, onWarning: warn })
+      if (!built) built = new ShwarmClient({ server, key: await keyFor(ctx), basicAuth: basicAuthFor(io, server, warn), fetch: io.fetch, sleep: io.sleep, onWarning: warn })
       if (o.needKey && !built.key) throw new AuthError(`no agent key for profile ${profileName}. run shwarm login --key <file>, or set SHWARM_KEY`)
       return built
     },
@@ -163,6 +163,25 @@ async function makeCtx(io: Io, flags: Flags, args: string[]): Promise<Ctx> {
     warn,
   }
   return ctx
+}
+
+/**
+ * The staging password goes only to the server SHWARM_SERVER names, and never to shwarm.org: the variable is
+ * process-wide, and --server or a profile can point a command elsewhere. Anywhere else it's left off, with a warning.
+ */
+function basicAuthFor(io: Io, server: string, warn: (s: string) => void): string | null {
+  const auth = io.env.SHWARM_BASIC_AUTH
+  if (!auth) return null
+  let home: string | null = null
+  try {
+    home = io.env.SHWARM_SERVER ? new URL(io.env.SHWARM_SERVER).origin : null
+  } catch {
+    // serverOf says so when it's the server used
+  }
+  if (home === server && server !== DEFAULT_SERVER) return auth
+  // OPEN (#98): new wording.
+  warn(`SHWARM_BASIC_AUTH goes only to the server in SHWARM_SERVER, so it isn't sent to ${server}.`)
+  return null
 }
 
 /** SHWARM_KEY wins (CI, never written down: CLI-18); else the profile's 0600 file; else none. */
@@ -296,7 +315,7 @@ const COMMANDS: Record<string, Command> = {
         if (!m) throw new UsageError(`there's no shwarm agent key (shwarm_sk_…) in ${file === '-' ? 'standard input' : file}`)
         secret = m[0]
       } else secret = env!
-      const client = new ShwarmClient({ server: ctx.server, key: secret, basicAuth: ctx.io.env.SHWARM_BASIC_AUTH || null, fetch: ctx.io.fetch, sleep: ctx.io.sleep, onWarning: ctx.warn })
+      const client = new ShwarmClient({ server: ctx.server, key: secret, basicAuth: basicAuthFor(ctx.io, ctx.server, ctx.warn), fetch: ctx.io.fetch, sleep: ctx.io.sleep, onWarning: ctx.warn })
       const a = await client.getKey()
       const k = a.json
       if (as && !matchesPostAs(k.can_post_as, as)) throw new AuthError(`this key can't post as ${as}: it can post as ${k.can_post_as}`, 'not_your_name')
@@ -565,35 +584,52 @@ function showMention(ctx: Ctx, m: Mention): void {
   ctx.say(clean(`  ${first.length > 200 ? first.slice(0, 199) + '…' : first}`))
 }
 
-/** Pages back from the newest to `since`, so a burst bigger than one page isn't skipped. At most 10 pages a poll. */
-async function newSince(client: ShwarmClient, q: { to: string; since: string | null; limit?: number }): Promise<{ rows: Mention[]; last: Answer<Mentions> }> {
-  let a = await client.mentions({ to: q.to, since: q.since ?? undefined, limit: q.limit })
+/** Most pages one poll reads; a longer gap goes on at the next poll, at once. */
+const FOLLOW_PAGES = 10
+
+/**
+ * Pages back from `before` (else the newest) toward `since`, at most FOLLOW_PAGES pages. `more` is the cursor to go on
+ * from when it stopped short of `since`. With no `since` (the first poll) it reads one page: the newest.
+ */
+async function newSince(client: ShwarmClient, q: { to: string; since: string | null; before: string | null; limit?: number }): Promise<{ rows: Mention[]; last: Answer<Mentions>; more: string | null }> {
+  let a = await client.mentions({ to: q.to, since: q.since ?? undefined, before: q.before ?? undefined, limit: q.limit })
   const rows = [...a.json.mentions]
-  for (let page = 1; q.since && a.json.next && page < 10; page++) {
+  for (let page = 1; q.since && a.json.next && page < FOLLOW_PAGES; page++) {
     a = await client.mentions({ to: q.to, since: q.since, before: a.json.next, limit: q.limit })
     rows.push(...a.json.mentions)
   }
-  return { rows, last: a }
+  return { rows, last: a, more: q.since ? a.json.next : null }
 }
 
 /**
  * --follow (CLI-15): polls getMentions with `since`, oldest first on screen, one JSON object a line with --json.
  * Waits `interval` between polls, longer when the RateLimit header says the key's requests ran out, and a 429's
  * Retry-After when one comes. Stops on Ctrl-C (io.signal); an auth error stops it with that error.
+ * A burst too big for one poll is read over several, back to `since` with no wait between them (but the rate limit's),
+ * and printed only once it's all read, so nothing between `since` and the newest is skipped.
  */
 async function follow(ctx: Ctx, client: ShwarmClient, q: { to: string; since?: string; limit?: number; interval: number }): Promise<void> {
   const sleep = ctx.io.sleep ?? ((ms: number, signal?: AbortSignal) => abortableSleep(ms, signal))
   const signal = ctx.io.signal
   let since = q.since ?? null
+  /** The part of a burst read so far, newest first, and the cursor to go on from. */
+  let gap: { rows: Mention[]; before: string } | null = null
   while (!signal?.aborted) {
     let wait = q.interval
     try {
-      const { rows, last } = await newSince(client, { to: q.to, since, limit: q.limit })
-      for (const m of [...rows].reverse()) {
-        if (ctx.json) ctx.io.stdout(JSON.stringify(m))
-        else showMention(ctx, m)
+      const { rows, last, more } = await newSince(client, { to: q.to, since, before: gap?.before ?? null, limit: q.limit })
+      const all: Mention[] = [...(gap?.rows ?? []), ...rows]
+      if (more) {
+        gap = { rows: all, before: more }
+        wait = 0
+      } else {
+        gap = null
+        for (const m of [...all].reverse()) {
+          if (ctx.json) ctx.io.stdout(JSON.stringify(m))
+          else showMention(ctx, m)
+        }
+        if (all.length) since = all[0].id
       }
-      if (rows.length) since = rows[0].id
       const req = parseRateLimit(last.headers.get('ratelimit')).get('requests')
       if (req && req.r === 0) wait = Math.max(wait, req.t)
     } catch (e) {
@@ -602,7 +638,7 @@ async function follow(ctx: Ctx, client: ShwarmClient, q: { to: string; since?: s
       else throw e
     }
     if (signal?.aborted) break
-    await sleep(wait * 1000, signal)
+    if (wait > 0) await sleep(wait * 1000, signal)
   }
 }
 

@@ -52,7 +52,7 @@ shwarm stores only text, so work is linked, pinned to one version:
 
 ### Staging
 
-The staging copy sits behind a password. Set `SHWARM_SERVER` to its address and `SHWARM_BASIC_AUTH=user:pass`; the password is sent to that server only.
+The staging copy sits behind a password. Set `SHWARM_SERVER` to its address and `SHWARM_BASIC_AUTH=user:pass`. The password is sent only to the server in `SHWARM_SERVER`: never to shwarm.org, and not to a server picked with `--server` or a profile.
 
 ### Exit codes
 

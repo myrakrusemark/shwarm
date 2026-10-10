@@ -200,4 +200,55 @@ describe('mentions --follow (CLI-15)', () => {
     expect(q.every(s => s.get('to') === '@myra/m-04')).toBe(true)
     expect(r.sleeps).toEqual([90_000, 120_000, 60_000])
   })
+
+  it('reads a burst bigger than ten pages over two polls, back to since, and skips none', async () => {
+    // 12 new mentions after p_00, one a page: the newest first, each pointing back at the next older one
+    const id = (n: number) => `p_${String(n).padStart(2, '0')}`
+    const page = (n: number) => Response.json({ to: '@myra/m-04', next: n > 1 ? id(n) : null, mentions: [m(id(n), `2026-10-10T00:00:${String(n).padStart(2, '0')}Z`)] })
+    const r = await run(['mentions', '--to', '@myra/m-04', '--since', id(0), '--limit', '1', '--follow', '--json'], {
+      env: { SHWARM_KEY: SECRET },
+      signalAfter: 2,
+      answers: [...Array.from({ length: 12 }, (_, i) => page(12 - i)), Response.json({ to: '@myra/m-04', next: null, mentions: [] })],
+    })
+    expect(r.code).toBe(0)
+    expect(r.out.split('\n').map(l => JSON.parse(l).id)).toEqual(Array.from({ length: 12 }, (_, i) => id(i + 1)))
+    const q = r.calls.map(c => new URL(c.url).searchParams)
+    expect(q).toHaveLength(13)
+    // the second poll goes on from where the first stopped, still after p_00, with no wait between
+    expect(q.slice(0, 12).every(s => s.get('since') === id(0))).toBe(true)
+    expect(q[10].get('before')).toBe(id(3))
+    expect(q[12].get('since')).toBe(id(12))
+    expect(q[12].get('before')).toBeNull()
+    expect(r.sleeps).toEqual([60_000, 60_000])
+  })
+})
+
+describe('the staging password (SHWARM_BASIC_AUTH)', () => {
+  const STAGING = 'https://shwarm-staging.example.workers.dev'
+  const env = { SHWARM_KEY: SECRET, SHWARM_SERVER: STAGING, SHWARM_BASIC_AUTH: 'shwarm:pw' }
+  it('goes to the server SHWARM_SERVER names', async () => {
+    const r = await run(['whoami'], { env })
+    expect(r.code).toBe(0)
+    expect(r.calls[0].headers.get('authorization')).toBe('Basic ' + btoa('shwarm:pw'))
+    expect(r.err).toBe('')
+  })
+
+  it('never goes to another server, from --server, a profile or the default, and the warning leaves it out', async () => {
+    const elsewhere = await run(['whoami', '--server', 'https://shwarm.org'], { env })
+    expect(elsewhere.code).toBe(0)
+    expect(elsewhere.calls[0].url).toBe('https://shwarm.org/key')
+    expect(elsewhere.calls[0].headers.get('authorization')).toBeNull()
+    expect(elsewhere.err).toContain("isn't sent to https://shwarm.org")
+    expect(elsewhere.err).not.toContain('pw')
+    const other = await run(['login', '--key', '-', '--server', 'https://evil.example'], { env: { SHWARM_SERVER: STAGING, SHWARM_BASIC_AUTH: 'shwarm:pw' }, stdin: SECRET })
+    expect(other.calls[0].headers.get('authorization')).toBeNull()
+    const dir = await mkdtemp(join(tmpdir(), 'shwarm-cli-'))
+    await writeFile(join(dir, 'config.toml'), `default_profile = "prod"\n\n[profile.prod]\nserver = "https://shwarm.org"\n`)
+    const profile = await run(['whoami'], { dir, env: { SHWARM_KEY: SECRET, SHWARM_BASIC_AUTH: 'shwarm:pw' } })
+    expect(profile.calls[0].url).toBe('https://shwarm.org/key')
+    expect(profile.calls[0].headers.get('authorization')).toBeNull()
+    // SHWARM_SERVER set to shwarm.org itself still doesn't send it there
+    const prod = await run(['whoami'], { env: { ...env, SHWARM_SERVER: 'https://shwarm.org' } })
+    expect(prod.calls[0].headers.get('authorization')).toBeNull()
+  })
 })

@@ -25,6 +25,17 @@ jobs:
     runs-on: ubuntu-latest
     concurrency: publish-cli
     steps:
+      # npm makes provenance only for a public source repository, and this one is private, so a real publish would fail
+      # with E422 after every other check passed. A dry run never asks sigstore, so it can't catch that; it warns here
+      # instead. Making the repo public, or publishing without provenance (against LIB-7), is Myra's call (OPEN #98).
+      - name: provenance needs a public repo
+        if: ${{ github.event.repository.private }}
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then echo "::warning::the repo is private: a real publish with provenance would fail (npm E422). see open question #98."; exit 0; fi
+          echo "::error::npm makes provenance only for a public repo, and this one is private. make it public first, or publish without provenance (open question #98)."
+          exit 1
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:

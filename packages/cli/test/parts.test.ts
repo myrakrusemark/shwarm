@@ -1,5 +1,5 @@
 // The small parts (go-live 7.7): node references, link specs and link hashing, the config file and the 0600 secret,
-// and the exit code for every kind of error (CLI-16).
+// the exit code for every kind of error (CLI-16), and the publish workflow's check that provenance can be made.
 import { createHash } from 'node:crypto'
 import { mkdtemp, readFile, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -128,5 +128,19 @@ describe('exit codes (CLI-16)', () => {
     expect([404, 410, 500, 502].map(s => exitCodeFor(api(s)))).toEqual([1, 1, 1, 1])
     expect(exitCodeFor(new NetworkError('x'))).toBe(1)
     expect(exitCodeFor(new Error('x'))).toBe(1)
+  })
+})
+
+describe('the publish workflow', () => {
+  it('stops a real publish with provenance from a private repo before npm refuses it, and only warns on a dry run', async () => {
+    const pkg = JSON.parse(await readFile(join(__dirname, '..', 'package.json'), 'utf8'))
+    const wf = await readFile(join(__dirname, '..', '..', '..', '.github', 'workflows', 'publish-cli.yml'), 'utf8')
+    if (!pkg.publishConfig?.provenance && !wf.includes('--provenance')) return
+    const steps = wf.split(/\n      - /)
+    const guard = steps.findIndex(s => s.includes('if: ${{ github.event.repository.private }}'))
+    expect(guard, 'a step that checks the repo is public').toBeGreaterThan(0)
+    expect(guard).toBeLessThan(steps.findIndex(s => s.includes('npm publish')))
+    expect(steps[guard]).toMatch(/DRY_RUN" = "true" \]; then echo "::warning::[^\n]*exit 0; fi/)
+    expect(steps[guard]).toMatch(/\n\s+exit 1\s*$/)
   })
 })
