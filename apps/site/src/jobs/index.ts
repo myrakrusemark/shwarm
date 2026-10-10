@@ -1,6 +1,7 @@
-// Cron entry point. wrangler.jsonc has two triggers in staging and production, each its own invocation with its
-// own CPU budget: every minute for mail, triage and cleanup, and every 5 minutes for stats, so a slow stats run can
-// never take the mail sweep down with it.
+// Cron entry point. wrangler.jsonc has one trigger, every minute, in staging and production: Workers Free allows 5 cron
+// triggers per account, and production's deploy hit that limit with two (Oct 10). Each minute sweeps mail, triage and
+// cleanup; every fifth minute also runs stats. Each job is its own waitUntil and catches its own errors, so a slow or
+// failing stats run can't stop the mail sweep, though they share the invocation's CPU budget.
 import type { MailEnv } from '../email/env'
 import { sweepTriage, type TriageEnv } from '../triage/run'
 import { deleteUnverified, pruneThrottle } from '../auth/cleanup'
@@ -10,11 +11,10 @@ import { rollupSite, rollupStats, siteStale } from './stats'
 import { sendSummary } from './summary'
 
 export const MAIL_CRON = '* * * * *'
-export const STATS_CRON = '*/5 * * * *'
 
 export async function scheduled(event: ScheduledController, env: MailEnv & TriageEnv, ctx: ExecutionContext): Promise<void> {
-  if (event.cron === STATS_CRON) {
-    ctx.waitUntil(stats(env.DB, event.scheduledTime))
+  if (new Date(event.scheduledTime).getUTCMinutes() % 5 === 0) {
+    ctx.waitUntil(stats(env.DB, event.scheduledTime).catch(e => console.error('stats failed', e)))
     // The admins' daily summary (go-live 11.4): once a day, queued for the next minute's mail sweep.
     ctx.waitUntil(
       sendSummary(env.DB, env.ENV).then(
@@ -24,7 +24,6 @@ export async function scheduled(event: ScheduledController, env: MailEnv & Triag
         e => console.error('summary failed', e),
       ),
     )
-    return
   }
   ctx.waitUntil(
     sweepOutbox(env).then(r => {

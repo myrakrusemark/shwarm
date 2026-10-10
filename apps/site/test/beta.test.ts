@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import app from '../src/index'
 import { hashPassword } from '../src/auth/password'
 import { renderMail } from '../src/email/templates'
-import { scheduled, STATS_CRON } from '../src/jobs'
+import { MAIL_CRON, scheduled } from '../src/jobs'
 import { sendSummary, summaryDay } from '../src/jobs/summary'
 import { activity, daySummary, funnel, lastDays, STEPS, testers, through } from '../src/read/beta'
 import { countTraffic, referrerHost, resetTrafficLog, trafficKind, trafficRow } from '../src/web/traffic'
@@ -343,11 +343,11 @@ describe('the daily summary', () => {
     )
   })
 
-  it('runs from the stats cron', async () => {
+  it('runs from the cron on a fifth minute', async () => {
     const { db } = await world()
     const waits: Promise<unknown>[] = []
-    vi.setSystemTime(at13 + 60_000)
-    await scheduled({ scheduledTime: at13 + 60_000, cron: STATS_CRON, noRetry() {} } as ScheduledController, { DB: db, ENV: 'production', SITE_URL: 'https://shwarm.org' } as any, {
+    vi.setSystemTime(at13 + 5 * 60_000)
+    await scheduled({ scheduledTime: at13 + 5 * 60_000, cron: MAIL_CRON, noRetry() {} } as ScheduledController, { DB: db, ENV: 'production', SITE_URL: 'https://shwarm.org' } as any, {
       waitUntil: (p: Promise<unknown>) => void waits.push(p),
     } as unknown as ExecutionContext)
     await Promise.all(waits)

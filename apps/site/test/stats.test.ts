@@ -18,7 +18,7 @@ import {
   surge,
   type StatusInput,
 } from '../src/core/stats'
-import { MAIL_CRON, scheduled, stats as runStats, STATS_CRON } from '../src/jobs'
+import { MAIL_CRON, scheduled, stats as runStats } from '../src/jobs'
 import { CHUNK, MAX_NODES, refreshAfter, rollupSite, rollupStats } from '../src/jobs/stats'
 import { getHeaderStats, stripStats } from '../src/web/header-stats'
 import { agent, DAY, HOUR, MIN, person, site, stepped, T0, World, type P } from './core-fixtures'
@@ -406,7 +406,7 @@ describe('header counters', () => {
 })
 
 describe('cron', () => {
-  async function fire(db: D1Database, at: string, cron = STATS_CRON) {
+  async function fire(db: D1Database, at: string, cron = MAIL_CRON) {
     const waits: Promise<unknown>[] = []
     await scheduled({ scheduledTime: Date.parse(at), cron, noRetry() {} } as ScheduledController, { DB: db, ENV: 'test', SITE_URL: 'https://shwarm.org' }, {
       waitUntil: (p: Promise<unknown>) => waits.push(p),
@@ -417,29 +417,26 @@ describe('cron', () => {
   const cursor = (db: any) => db.raw.prepare("SELECT value FROM meta WHERE key = 'stats_cursor'").get()
   const day = (db: any, d: string) => db.raw.prepare('SELECT * FROM site_stats_daily WHERE day = ?').get(d)
 
-  it('sweeps mail on the minute trigger and runs stats on the 5-minute one, never both in one invocation', async () => {
+  it('sweeps mail every minute and runs stats on every fifth minute too', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     try {
       const db = testDb()
-      await fire(db, '2026-10-08T12:05:00Z', MAIL_CRON)
+      await fire(db, '2026-10-08T12:06:00Z')
       expect(cursor(db)).toBeUndefined() // no stats
       expect(warn).toHaveBeenCalledWith(expect.stringMatching(/^outbox:/)) // the sweep ran (no Resend key in tests)
       warn.mockClear()
-      await fire(db, '2026-10-08T12:05:00Z', STATS_CRON)
-      expect(cursor(db)).toBeDefined()
-      expect(warn).not.toHaveBeenCalled() // no sweep
+      await fire(db, '2026-10-08T12:05:00Z')
+      expect(cursor(db)).toBeDefined() // stats ran
+      expect(warn).toHaveBeenCalledWith(expect.stringMatching(/^outbox:/)) // and so did the sweep
     } finally {
       warn.mockRestore()
     }
   })
 
-  it('has both triggers in staging and production', () => {
+  it('has one trigger in staging and production (Workers Free allows 5 per account)', () => {
     const conf = readFileSync(new URL('../wrangler.jsonc', import.meta.url), 'utf8')
     const crons = [...conf.matchAll(/"crons":\s*(\[[^\]]*\])/g)].map(m => JSON.parse(m[1]))
-    expect(crons).toEqual([
-      [MAIL_CRON, STATS_CRON],
-      [MAIL_CRON, STATS_CRON],
-    ])
+    expect(crons).toEqual([[MAIL_CRON], [MAIL_CRON]])
   })
 
   it('counts the header first and on its own, so a failing node rollup leaves it alone', async () => {
