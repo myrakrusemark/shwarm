@@ -3,7 +3,10 @@ import { deleteUnverified } from '../src/auth/cleanup'
 import { isDisposable, parseEmail } from '../src/auth/email'
 import { bump, LIMITS } from '../src/auth/throttle'
 import { T0, testDb } from './d1'
+import { JOIN_INVITE_ONLY, WAITING } from '../src/web/auth-pages'
 import { allow, body, Browser, fakeFetch, GOOD_PASSWORD, joinForm, linkIn, mails, sameShape, setSignup, testEnv } from './browser'
+
+const WAITING_HTML = WAITING
 
 let fetcher: ReturnType<typeof fakeFetch>
 beforeEach(() => {
@@ -140,29 +143,104 @@ describe('sign-up', () => {
     expect(await bump(db, 'signup:domain:example.org', LIMITS.signupDomain, T0 + 61 * 60_000)).toBe(0) // not for good
   })
 
-  it('turns away an address off the allow-list with the same answer an existing account gets', async () => {
+  it('lets an address off the allow-list join (decided Oct 10): an account, a verify mail, the waiting words and a signup_wait row', async () => {
     const env = testEnv() // signup setting starts as allow_list
     await allow(env.DB, 'member@example.org')
-    const m = new Browser(env, '192.0.2.1')
-    await m.post('/join', joinForm('member', 'member@example.org'))
-    expect(await (await new Browser(env).get('/join')).text()).toContain('invite-only for now')
-    // a stranger, and someone typing the member's address with a fresh handle
+    expect(await body(await new Browser(env).get('/join'))).toContain(JOIN_INVITE_ONLY)
     const stranger = new Browser(env, '192.0.2.2')
-    const probe = new Browser(env, '192.0.2.3')
-    const r1 = await stranger.post('/join', joinForm('stranger', 'stranger@example.org'))
-    const r2 = await probe.post('/join', joinForm('prober', 'member@example.org'))
-    for (const r of [r1, r2]) {
-      expect(r.status).toBe(303)
-      expect(r.headers.get('location')).toBe('/check-email')
+    const res = await stranger.post('/join', joinForm('stranger', 'stranger@example.org'))
+    expect(res.status).toBe(303)
+    expect(res.headers.get('location')).toBe('/check-email?w=1')
+    const p = person(env, 'stranger')
+    expect(p).toMatchObject({ email: 'stranger@example.org', email_verified_at: null, founding: 0 })
+    expect(mails(env.DB).map(x => [x.template, x.to_email])).toEqual([['verify', 'stranger@example.org']])
+    expect(env.DB.raw.prepare('SELECT person_id, joined_at, mailed_at FROM signup_wait').all()).toEqual([{ person_id: p.id, joined_at: expect.any(String), mailed_at: null }])
+    const page = await body(await stranger.get('/check-email?w=1'))
+    expect(page).toContain(WAITING_HTML)
+    expect(page).toContain('we sent the next step to your email address. it will expire after 7 days.')
+    expect(page).toContain('name="w" value="1"') // "send it again" keeps the words
+    expect((await stranger.post('/check-email', { w: '1' })).headers.get('location')).toBe('/check-email?sent=1&w=1')
+    // an invited address gets the page as before, and isn't waiting
+    const member = new Browser(env, '192.0.2.1')
+    const r2 = await member.post('/join', joinForm('member', 'member@example.org'))
+    expect(r2.headers.get('location')).toBe('/check-email')
+    const normal = await body(await member.get('/check-email'))
+    expect(normal).toContain('we sent the next step to your email address. it will expire after 7 days.')
+    expect(normal).toContain('be sure to check your spam folder!')
+    expect(normal).not.toContain(WAITING_HTML)
+    expect(env.DB.raw.prepare('SELECT COUNT(*) AS n FROM signup_wait').get().n).toBe(1)
+  })
+
+  it('shows whether an address is invited, the trade-off Myra chose, but never whether it has an account', async () => {
+    const env = testEnv()
+    await allow(env.DB, 'member@example.org')
+    await new Browser(env, '192.0.2.1').post('/join', joinForm('member', 'member@example.org'))
+    await new Browser(env, '192.0.2.2').post('/join', joinForm('waiter', 'waiter@example.org'))
+    const before = mails(env.DB).length
+    // off the list: a new address, and someone typing the waiting account's address with a fresh handle (other networks:
+    // one /24 may sign up 5 times an hour)
+    const fresh = new Browser(env, '198.51.100.3')
+    const probe = new Browser(env, '198.51.100.4')
+    const a = await fresh.post('/join', joinForm('fresh', 'fresh@example.org'))
+    const b = await probe.post('/join', joinForm('prober', 'waiter@example.org'))
+    // on the list: a new invited address, and someone typing the member's address
+    await allow(env.DB, 'invitee@example.org')
+    const invitee = new Browser(env, '203.0.113.5')
+    const probe2 = new Browser(env, '203.0.113.6')
+    const c = await invitee.post('/join', joinForm('invitee', 'invitee@example.org'))
+    const d = await probe2.post('/join', joinForm('prober2', 'member@example.org'))
+    for (const [x, y, bx, by] of [[a, b, fresh, probe], [c, d, invitee, probe2]] as const) {
+      expect(x.status).toBe(303)
+      expect(y.headers.get('location')).toBe(x.headers.get('location'))
+      expect([...by.jar.keys()].sort()).toEqual([...bx.jar.keys()].sort())
+      const loc = x.headers.get('location')!
+      expect(sameShape(await body(await by.get(loc)))).toBe(sameShape(await body(await bx.get(loc))))
     }
-    expect([...stranger.jar.keys()].sort()).toEqual([...probe.jar.keys()].sort())
-    const page = await body(await stranger.get('/check-email'))
-    expect(page).toContain('we sent the next step to your email address')
-    expect(sameShape(page)).toBe(sameShape(await body(await probe.get('/check-email'))))
-    expect(person(env, 'stranger')).toBeUndefined()
+    expect(a.headers.get('location')).not.toBe(c.headers.get('location')) // the invited/not-invited difference
     expect(person(env, 'prober')).toBeUndefined()
-    // only the member's own address hears about it
-    expect(mails(env.DB).map(x => [x.template, x.to_email])).toEqual([['verify', 'member@example.org'], ['signup_existing', 'member@example.org']])
+    expect(person(env, 'prober2')).toBeUndefined()
+    // only each address's owner hears about the probes
+    expect(mails(env.DB).slice(before).map(x => [x.template, x.to_email])).toEqual([
+      ['verify', 'fresh@example.org'], ['signup_existing', 'waiter@example.org'], ['verify', 'invitee@example.org'], ['signup_existing', 'member@example.org'],
+    ])
+  })
+
+  it('a waiting account stays waiting when it verifies; signed in, its check-email page still says so', async () => {
+    const env = testEnv()
+    const b = new Browser(env)
+    await b.post('/join', joinForm('bea', 'bea@example.org'))
+    expect((await b.post('/signin', { email: 'bea@example.org', password: GOOD_PASSWORD })).headers.get('location')).toBe('/check-email')
+    expect(await body(await b.get('/check-email'))).toContain(WAITING_HTML)
+    const html = await (await b.get(linkIn(env.DB, 'verify'))).text()
+    await b.req('/verify', { form: { form_token: /name="form_token" value="([^"]+)"/.exec(html)![1], t: /name="t" value="([^"]+)"/.exec(html)![1] } })
+    expect(person(env, 'bea')).toMatchObject({ founding: 0 })
+    expect(person(env, 'bea').email_verified_at).toBeTruthy()
+    expect(env.DB.raw.prepare('SELECT COUNT(*) AS n FROM signup_wait').get().n).toBe(1)
+  })
+
+  it('an address invited after joining becomes founding when it verifies, and stops waiting', async () => {
+    const env = testEnv()
+    const b = new Browser(env)
+    await b.post('/join', joinForm('cy', 'cy@example.org'))
+    expect(env.DB.raw.prepare('SELECT COUNT(*) AS n FROM signup_wait').get().n).toBe(1)
+    await allow(env.DB, 'cy@example.org')
+    const html = await (await b.get(linkIn(env.DB, 'verify'))).text()
+    await b.req('/verify', { form: { form_token: /name="form_token" value="([^"]+)"/.exec(html)![1], t: /name="t" value="([^"]+)"/.exec(html)![1] } })
+    expect(person(env, 'cy')).toMatchObject({ founding: 1 })
+    expect(env.DB.raw.prepare('SELECT COUNT(*) AS n FROM signup_wait').get().n).toBe(0)
+  })
+
+  it('still refuses a disposable domain off the allow-list, and an unverified waiting account goes after 7 days with its row', async () => {
+    const env = testEnv()
+    const res = await new Browser(env).post('/join', joinForm('spammy', 'x@mailinator.com'))
+    expect(res.status).toBe(400)
+    expect(await body(res)).toContain('throwaway mail services')
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(T0)
+    await new Browser(env, '192.0.2.1').post('/join', joinForm('stale', 'stale@example.org'))
+    expect(env.DB.raw.prepare('SELECT COUNT(*) AS n FROM signup_wait').get().n).toBe(1)
+    expect(await deleteUnverified(env.DB, T0 + 7 * 86_400_000 + 1000)).toBe(1)
+    expect(env.DB.raw.prepare('SELECT COUNT(*) AS n FROM signup_wait').get().n).toBe(0)
   })
 
   it("answers a taken handle the same whether or not the address has an account", async () => {

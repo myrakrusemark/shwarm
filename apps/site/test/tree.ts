@@ -1,8 +1,8 @@
 // A stand-in DurableObjectNamespace for the ShwarmTree: one tree per name, reached through fetch like the real stub.
 import { ShwarmTree } from '../src/do/shwarm-tree'
 
-/** `env`: what else the tree's env holds, e.g. SITE_MODE: 'beta'. */
-export function treeNamespace(db: D1Database, env: { SITE_MODE?: string } = {}) {
+/** `env`: what else the tree's env holds, e.g. SITE_MODE: 'beta' (with ENV: 'production', holding limits acts too). */
+export function treeNamespace(db: D1Database, env: { ENV?: string; SITE_MODE?: string } = {}) {
   const trees = new Map<string, ShwarmTree>()
   const names: string[] = []
   const ns = {

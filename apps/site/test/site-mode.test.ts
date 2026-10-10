@@ -1,5 +1,5 @@
-// Go-live 3.10: site_mode beta. Reading pages public on production, noindex on every response, sign-up for
-// allow-listed addresses only, "opens soon" where join, post, check and "start a shwarm" would be for anyone who isn't
+// Go-live 3.10: site_mode beta. Reading pages public on production, noindex on every response, sign-up open to anyone
+// with an address off the allow-list waiting (decided Oct 10), "opens soon" where join, post, check and "start a shwarm" would be for anyone who isn't
 // invited, core refusing their acts, and creation paused while pause_new_nodes is on.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ShwarmError } from '@shwarm/protocol'
@@ -7,12 +7,14 @@ import app from '../src/index'
 import { hashPassword } from '../src/auth/password'
 import { keyActor, siteActor } from '../src/core/actor'
 import { TreeEngine } from '../src/core/engine'
-import { BETA_REFUSAL, homeShowsFeed, inBeta, readingOpen, siteModeOf } from '../src/core/site-mode'
+import { actsLimited, BETA_REFUSAL, homeShowsFeed, inBeta, readingOpen, siteModeOf } from '../src/core/site-mode'
+import { runInTree } from '../src/do/shwarm-tree'
+import { WAITING } from '../src/web/auth-pages'
 import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
 import { OPENS_SOON } from '../src/web/opens-soon'
 import { resetReadLimit } from '../src/web/read-limit'
 import { forgetVersions } from '../src/web/version-memo'
-import { allow, body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, joinForm, pepper, testEnv } from './browser'
+import { allow, body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, joinForm, linkIn, pepper, testEnv } from './browser'
 import { addPerson, T0 } from './d1'
 import { PLAIN, stagingWorld } from './node-fixture'
 import { treeNamespace } from './tree'
@@ -40,7 +42,7 @@ async function prod(mode: 'holding' | 'beta' | 'open' = 'beta') {
     actor: siteActor({ id: w.myraId, handle: 'myra' }),
     input: { node: PLAIN, text: 'eight demos.', links: [{ url: 'https://codeberg.org/myra/bot/demos.zip', sha256: 'a'.repeat(64) }], howToCheck: 'replay them.' },
   })
-  const env = { ...testEnv(w.db), ENV: 'production', SITE_MODE: mode, TREE: treeNamespace(w.db, { SITE_MODE: mode }).ns }
+  const env = { ...testEnv(w.db), ENV: 'production', SITE_MODE: mode, TREE: treeNamespace(w.db, { ENV: 'production', SITE_MODE: mode }).ns }
   const count = (sql: string, ...args: unknown[]) => (w.db.raw.prepare(sql).get(...args) as { n: number }).n
   /** A verified account signed in on its own browser; `founding` makes it invited, `admin` the operator. */
   const signedIn = async (handle: string, o: { founding?: boolean; admin?: boolean } = {}) => {
@@ -229,16 +231,58 @@ describe('core refuses acts by anyone who isn\'t invited during the beta', () =>
   })
 })
 
-describe('sign-up in beta takes only allow-listed addresses', () => {
-  it('the setting starts as allow_list, so an address off the list makes no account and one on it does', async () => {
+describe('anyone may join while sign-up is invite-only (decided Oct 10); only the invited act', () => {
+  /** Joins from `ip`, presses the verify button, signs in; returns the browser and the account's id. */
+  async function joinAndVerify(env: any, handle: string, email: string, ip: string) {
+    const b = new Browser(env, ip)
+    const res = await b.post('/join', joinForm(handle, email))
+    expect(res.status).toBe(303)
+    const page = await body(await b.get(res.headers.get('location')!))
+    const html = await body(await b.get(linkIn(env.DB, 'verify')))
+    await b.req('/verify', { form: { form_token: formTokenIn(html), t: /name="t" value="([^"]+)"/.exec(html)![1] } })
+    expect((await b.post('/signin', { email, password: GOOD_PASSWORD })).status).toBe(303)
+    const pid = (env.DB.raw.prepare('SELECT id FROM person WHERE handle = ?').get(handle) as { id: number }).id
+    return { b, pid, page }
+  }
+
+  it('beta: a stranger gets an account and the waiting words, reads, and is refused when they post', async () => {
     const { env, count } = await prod('beta')
     expect(count("SELECT count(*) AS n FROM setting WHERE key = 'signup' AND value = '\"allow_list\"'")).toBe(1)
-    const b = new Browser(env as any)
-    expect((await b.post('/join', joinForm('outsider', 'outsider@example.net'))).status).toBe(303)
-    expect(count("SELECT count(*) AS n FROM person WHERE handle = 'outsider'")).toBe(0)
+    const { b, pid, page } = await joinAndVerify(env, 'outsider', 'outsider@example.net', '198.51.100.20')
+    expect(page).toContain(WAITING)
+    expect(count('SELECT count(*) AS n FROM person WHERE id = ? AND email_verified_at IS NOT NULL AND founding = 0', pid)).toBe(1)
+    expect(count('SELECT count(*) AS n FROM signup_wait WHERE person_id = ? AND mailed_at IS NULL', pid)).toBe(1)
+    const root = await b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML })
+    expect(root.status).toBe(200)
+    const html = await body(root)
+    expect(html).toContain(OPENS_SOON.why)
+    const posts = count('SELECT count(*) AS n FROM post')
+    const posted = await b.req(`/w/${EXAMPLE_ROOT}`, { form: { form_token: formTokenIn(html), do: 'post', text: 'hello from the waiting list' } })
+    expect(posted.status).toBe(400)
+    expect(await body(posted)).toContain(BETA_REFUSAL)
+    expect(count('SELECT count(*) AS n FROM post')).toBe(posts)
+    // an invited address joins as before: the usual page, founding, acting
     await allow(env.DB, 'friend@example.net')
-    expect((await new Browser(env as any, '198.51.100.20').post('/join', joinForm('friend', 'friend@example.net'))).status).toBe(303)
-    expect(count("SELECT count(*) AS n FROM person WHERE handle = 'friend'")).toBe(1)
+    const friend = await joinAndVerify(env, 'friend', 'friend@example.net', '203.0.113.20')
+    expect(friend.page).not.toContain(WAITING)
+    expect(friend.page).toContain('we sent the next step to your email address.')
+    expect(count('SELECT count(*) AS n FROM person WHERE id = ? AND founding = 1', friend.pid)).toBe(1)
+    expect(count('SELECT count(*) AS n FROM signup_wait WHERE person_id = ?', friend.pid)).toBe(0)
+    const fh = await body(await friend.b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML }))
+    await friend.b.req(`/w/${EXAMPLE_ROOT}`, { form: { form_token: formTokenIn(fh), do: 'post', text: 'hello from an invited tester' } })
+    expect(count('SELECT count(*) AS n FROM post WHERE person_id = ?', friend.pid)).toBe(1)
+  })
+
+  it('production in holding: core refuses a stranger\'s acts too, and /new says it opens soon', async () => {
+    const w = await prod('holding')
+    const { b, pid } = await joinAndVerify(w.env, 'outsider', 'outsider@example.net', '198.51.100.30')
+    const e = await runInTree(w.env.TREE, { type: 'post', actor: siteActor({ id: pid, handle: 'outsider' }), input: { node: EXAMPLE_ROOT, text: 'hi' } }).catch(x => x)
+    expect(e).toMatchObject({ code: 'not_permitted', details: { reason: 'opens_soon' } })
+    await expect(runInTree(w.env.TREE, { type: 'post', actor: siteActor({ id: w.myraId, handle: 'myra' }), input: { node: EXAMPLE_ROOT, text: 'hi' } })).resolves.toBeTruthy()
+    expect(await body(await b.get('/new'))).toContain(OPENS_SOON.newText)
+    // staging and tests in holding still let every verified account act (staging mails only invited addresses)
+    expect(actsLimited({ ENV: 'staging', SITE_MODE: 'holding' })).toBe(false)
+    expect(actsLimited({ ENV: 'production', SITE_MODE: 'open' })).toBe(false)
   })
 })
 

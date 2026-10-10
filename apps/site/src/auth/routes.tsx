@@ -15,7 +15,7 @@ import { clientIp, formOf, later, openNext, pageToken, postedTokenOk, safeNext, 
 import { backLabel } from './return-to'
 import { clearCookie, endSession, ipPrefix, sessionCookie } from './session'
 import { applyReset, markVerified, sendReset, signIn, stepUp } from './signin'
-import { COPY, PEND_COOKIE, PEND_SECONDS, resendVerify, setting, signUp } from './signup'
+import { COPY, isWaiting, PEND_COOKIE, PEND_SECONDS, resendVerify, setting, signUp } from './signup'
 import { bump, LIMITS } from './throttle'
 import { consumeToken, peekEmailChange, peekToken } from './tokens'
 import { TURNSTILE_FIELD, turnstileOk } from './turnstile'
@@ -72,17 +72,19 @@ auth.post('/join', async c => {
   if (r.kind === 'errors') return again(r.errors)
   if (r.kind === 'slow') return slow(c, r.seconds)
   c.header('Set-Cookie', `${PEND_COOKIE}=${r.pend}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=${PEND_SECONDS}`, { append: true })
-  return c.redirect(await checkEmail(c, next), 303)
+  // w=1: the address isn't invited, so the page says it's waiting (decided Oct 10). Only words hang on it.
+  return c.redirect(await checkEmail(c, next, r.waiting ? 'w=1' : ''), 303)
 })
 
 auth.get('/check-email', async c => {
   const w = await who(c)
   const p = await personOf(c, w)
   const kind = c.req.query('r') === 'reset' ? 'reset' : 'verify'
-  const inviteOnly = (await setting<string>(c.env.DB, 'signup')) !== 'open'
   const n = c.req.query('n')
   const back = (await openNext(c.env.CSRF_SECRET, n, 'check')) ? n : undefined
-  return render(c, <CheckEmailPage token={await pageToken(c, w)} kind={kind} sent={c.req.query('sent') === '1'} unverified={!!p && !p.email_verified_at} inviteOnly={inviteOnly} n={back} />)
+  // Straight from /join (w=1), or signed in to an account that's waiting (sign-in sends an unverified one here).
+  const waiting = kind === 'verify' && (c.req.query('w') === '1' || (!!w.session && (await isWaiting(c.env.DB, w.session.personId))))
+  return render(c, <CheckEmailPage token={await pageToken(c, w)} kind={kind} sent={c.req.query('sent') === '1'} unverified={!!p && !p.email_verified_at} waiting={waiting} n={back} />)
 })
 
 auth.post('/check-email', async c => {
@@ -92,7 +94,7 @@ auth.post('/check-email', async c => {
   const next = (await openNext(c.env.CSRF_SECRET, f.n, 'check')) ?? undefined
   const wait = await resendVerify(c.env.DB, c.env, { ip: clientIp(c), origin: origin(c), pend: getCookie(c, PEND_COOKIE), sessionPersonId: w.session?.personId, next })
   if (wait) return slow(c, wait)
-  return c.redirect(await checkEmail(c, next, 'sent=1'), 303)
+  return c.redirect(await checkEmail(c, next, f.w === '1' ? 'sent=1&w=1' : 'sent=1'), 303)
 })
 
 // ---------- emailed links: a page with one button ----------

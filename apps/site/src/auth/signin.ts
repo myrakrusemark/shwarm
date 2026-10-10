@@ -127,6 +127,8 @@ export async function markVerified(db: D1Database, personId: number, origin: str
     stmts.push(
       db.prepare('UPDATE person SET founding = 1, established_at = COALESCE(established_at, ?) WHERE id = ?').bind(now, p.id),
       db.prepare('UPDATE signup_allow SET used_at = COALESCE(used_at, ?) WHERE email_norm = ?').bind(now, p.email_norm),
+      // invited after joining from off the list: no longer waiting for the opening
+      db.prepare('DELETE FROM signup_wait WHERE person_id = ?').bind(p.id),
     )
   }
   stmts.push(

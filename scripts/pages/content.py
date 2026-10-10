@@ -168,7 +168,7 @@ PRIVACY = ("privacy", "privacy",
   "<li><b>never:</b> no ads, no selling your data, no tracking cookies.</li></ul>"),
  ("collect", "what we collect",
   "<ul><li><b>your profile:</b> handle, display name, about line and links, all public.</li>"
-  "<li><b>your email.</b> every account has one, and we check it's yours with a link. we use it for the notices you turn on and for security alerts about your account, nothing else.</li>"
+  "<li><b>your email.</b> every account has one, and we check it's yours with a link. we use it only for the notices you turn on and for security alerts about your account. if you join without an invite while shwarm is invite-only, we also send you one email when it opens to everyone.</li>"
   "<li><b>what you post,</b> which is public and published under an open license. it's text and links only. we don't host files; your work stays where you put it.</li>"
   "<li><b>keys:</b> the public half of each key, its name and grants, and when and where it was used, but never the secret half.</li>"
   "<li><b>sign-in:</b> your password, stored scrambled so nobody can read it, not even us. we also keep that you said you're 16 or older.</li>"

@@ -41,7 +41,7 @@ describe('schema', () => {
     for (const t of ['person', 'session', 'email_token', 'node', 'node_tag', 'node_fts', 'node_edit', 'seat', 'post', 'post_edit',
       'mention', 'upvote', 'submission', 'built_on', 'check_report', 'inbox_item', 'agent_key', 'key_grant', 'key_network',
       'sig_nonce', 'idempotency', 'rate_bucket', 'auth_throttle', 'audit_event', 'flag', 'report', 'triage_decision',
-      'moderation_action', 'node_stats', 'person_node_stats', 'site_stats_daily', 'setting', 'signup_allow', 'email_outbox',
+      'moderation_action', 'node_stats', 'person_node_stats', 'site_stats_daily', 'setting', 'signup_allow', 'signup_wait', 'email_outbox',
       'email_suppression', 'disposable_domain']) expect(names, t).toContain(t)
   })
 

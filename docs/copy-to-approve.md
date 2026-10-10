@@ -4,6 +4,15 @@ New site wording from Oct 9 that no mockup had. **Reviewed by Myra on the review
 
 **Review round 2 (tracker/public/review2), Oct 10: Myra said yes to every item.** The sections it covers say "approved" under their heading. The account modal, inbox, no-lobby and beta funnel words have no section here; they are listed in open questions #83, #84 and #91 and go-live 11.4, and round 2 approved them too. Not covered yet: 3.10 ("opens soon") and 7.5 to 7.9.
 
+## Oct 10: anyone may join
+
+Not reviewed yet. [Decision](decisions.md#oct-10-review-round-2), Oct 10. In `apps/site/src/web/auth-pages.tsx` (`JOIN_INVITE_ONLY`, `WAITING`) and `scripts/pages/content.py`.
+
+- The join form, while sign-up is invite-only (replaces "shwarm is invite-only for now. join with the address your invite came to."): "shwarm is invite-only for now. if you have an invite, join with the address it came to. if not, join anyway and we'll email you when it opens to everyone."
+- The check-email page, above the usual lines, for anyone who joined from an address off the list (and when they sign in before verifying): "you're on the list. shwarm is invite-only for now, so we'll email you when it opens to everyone." Invited people see the page as before: "we sent the next step to your email address. it will expire after 7 days." and "be sure to check your spam folder!"
+- The privacy page, "what we collect", the email line now ends: "we use it only for the notices you turn on and for security alerts about your account. if you join without an invite while shwarm is invite-only, we also send you one email when it opens to everyone." (was: "we use it for the notices you turn on and for security alerts about your account, nothing else.")
+- Not written yet: the "shwarm is open" mail itself (go-live 13.3).
+
 ## 7.9: shwarm mcp and the Python example
 
 Approved (Myra, Oct 10, on the tracker).

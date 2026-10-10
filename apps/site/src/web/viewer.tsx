@@ -8,7 +8,7 @@ import { formToken } from '../auth/csrf'
 import { sessionOf } from '../auth/request'
 import { here } from '../auth/return-to'
 import { unreadCount } from '../read/inbox'
-import { inBeta } from '../core/site-mode'
+import { actsLimited } from '../core/site-mode'
 
 /** A signed-in viewer: their handle, whether their email is verified, unread inbox items, the sign-out form token. */
 export type Viewer = { handle: string; verified: boolean; unread: number; token: string }
@@ -24,7 +24,7 @@ export const PageContext = createContext<PageInfo>({ viewer: null })
 // Account pages don't send people back to themselves.
 const NO_RETURN = /^\/(join|signin|signout|check-email|verify|verified|forgot|reset|step-up|email-change)(\/|\?|$)/
 
-type PageEnv = { Bindings: { DB: D1Database; CSRF_SECRET: string; SITE_MODE?: string } }
+type PageEnv = { Bindings: { DB: D1Database; CSRF_SECRET: string; ENV?: string; SITE_MODE?: string } }
 const envOf = (c: Context) => c.env as PageEnv['Bindings']
 
 export async function viewerOf<E extends PageEnv>(c: Context<E>): Promise<Viewer | null> {
@@ -36,9 +36,12 @@ export async function viewerOf<E extends PageEnv>(c: Context<E>): Promise<Viewer
   return { handle: s.handle, verified: s.verified, unread, token: await formToken(envOf(c).CSRF_SECRET, s.id) }
 }
 
-/** The site is in beta and this request's viewer may not act (PageInfo `opensSoon`). Reads only the cached session. */
+/**
+ * Only invited accounts act right now (beta, or production in holding: actsLimited) and this request's viewer isn't one
+ * (PageInfo `opensSoon`). Reads only the cached session.
+ */
 export async function opensSoon<E extends PageEnv>(c: Context<E>): Promise<boolean> {
-  if (!inBeta(envOf(c))) return false
+  if (!actsLimited(envOf(c))) return false
   return !(await sessionOf(c))?.member
 }
 

@@ -1,7 +1,8 @@
 // The site's mode (go-live 3.10): SITE_MODE in wrangler.jsonc, per environment, so changing it is a deploy.
 //   holding: production shows the holding page; its reading pages are closed (staging and tests still read).
 //   beta:    the reading pages are public; only invited accounts act (see actsInBeta). Everyone else is told it
-//            opens soon. Sign-up stays allow-list only (the `signup` setting), creating new nodes stays paused with
+//            opens soon. Sign-up stays invite-only (the `signup` setting): anyone may join, but an address off the
+//            allow-list waits for the opening (decided Oct 10, auth/signup.ts). Creating new nodes stays paused with
 //            the `pause_new_nodes` setting until triage is seen running on production.
 //   open:    everyone acts, and search engines may index (step 12.2).
 // Every mode but open sends X-Robots-Tag: noindex on every response (src/index.ts).
@@ -24,6 +25,13 @@ export const homeShowsFeed = (env: { ENV?: string; SITE_MODE?: string }) =>
   env.ENV === 'staging' || env.ENV === 'test' || (env.ENV === 'production' && siteModeOf(env) !== 'holding')
 
 export const inBeta = (env: { SITE_MODE?: string }) => siteModeOf(env) === 'beta'
+
+/**
+ * Whether only invited accounts and the operator act (actsInBeta): in beta, and on production in holding mode, since
+ * anyone may join there too now (decided Oct 10). Staging and tests in holding let every account act; staging mails
+ * only allow-listed addresses, so nobody else can verify an account there.
+ */
+export const actsLimited = (env: { ENV?: string; SITE_MODE?: string }) => inBeta(env) || !readingOpen(env)
 
 /**
  * Who may act during the beta: founding accounts (an allow-listed address, verified, decided A6) and the operator.

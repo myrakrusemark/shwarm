@@ -1,10 +1,12 @@
 // Sign-up (go-live 2.5). The rules, in order: fields look right, the domain isn't disposable, this network
 // and domain aren't signing up too fast, the password isn't breached, the handle is free (handles are public,
-// so that answer may differ). After that, every case gets the SAME "check your email" page, so no answer
-// shows whether an address has an account (2.7): an address that already has one gets a "you already have an
-// account" mail; an address off the allow-list (while sign-up is allow-list only) gets nothing; otherwise the
-// account is made, unverified, with a verify link mailed in the same batch. The writes run after the
-// response where the runtime allows, so the time taken doesn't tell the cases apart either.
+// so that answer may differ). After that, no answer shows whether an address has an account (2.7): an address
+// that already has one gets a "you already have an account" mail; otherwise the account is made, unverified,
+// with a verify link mailed in the same batch. While sign-up is invite-only, an address off the allow-list
+// still gets its account (decided Oct 10), recorded in signup_wait so it hears when shwarm opens, and its
+// "check your email" page says it's waiting. So that page does show whether an address is invited: the
+// trade-off Myra chose. It depends only on the allow-list, never on whether the address has an account. The
+// writes run after the response where the runtime allows, so the time taken doesn't tell the cases apart.
 import { handleProblem, toBase64url } from '@shwarm/protocol'
 import { mailStatement } from '../email/outbox'
 import { formToken, formTokenOk } from './csrf'
@@ -26,8 +28,11 @@ export type SignupInput = { handle?: string; display_name?: string; email?: stri
 export type SignupResult =
   | { kind: 'errors'; errors: Errors }
   | { kind: 'slow'; seconds: number }
-  /** New account, existing address or not invited: the caller can't tell, and neither can the visitor. */
-  | { kind: 'sent'; pend: string }
+  /**
+   * New account or existing address: the caller can't tell, and neither can the visitor. `waiting`: sign-up is
+   * invite-only and the address isn't on the allow-list, whether or not it has an account.
+   */
+  | { kind: 'sent'; pend: string; waiting: boolean }
 
 type Env = { PASSWORD_PEPPER: string; CSRF_SECRET: string }
 /** Runs the writes; the route passes one that runs them after the response. The default runs them now. */
@@ -85,6 +90,11 @@ export async function pendingAccount(db: D1Database, env: Env, handle: string, c
   return pend && pend.handle === handle && (await formTokenOk(env.CSRF_SECRET, `pend:${p.handle}:${p.created_at}`, pend.mac)) ? p : null
 }
 
+/** Whether this account joined from an address off the allow-list and is waiting for shwarm to open (signup_wait). */
+export async function isWaiting(db: D1Database, personId: number): Promise<boolean> {
+  return !!(await db.prepare('SELECT 1 AS ok FROM signup_wait WHERE person_id = ? AND mailed_at IS NULL').bind(personId).first())
+}
+
 export function verifyMail(db: D1Database, p: { id: number; handle: string; email: string }, token: string, origin: string, now: string, signedNext?: string) {
   const link = `${origin}/verify?t=${token}${signedNext ? `&n=${signedNext}` : ''}`
   return mailStatement(db, { to: p.email, template: 'verify', stream: 'account', personId: p.id, payload: { handle: p.handle, link } }, now)
@@ -140,8 +150,9 @@ export async function signUp(db: D1Database, env: Env, input: SignupInput, ctx: 
   const open = (await setting<string>(db, 'signup')) === 'open'
   const invited = await db.prepare('SELECT 1 AS ok FROM signup_allow WHERE email_norm = ?').bind(email.norm).first()
   const termsVersion = (await setting<string>(db, 'terms_version')) ?? '0'
+  const waiting = !open && !invited
   const defer: Defer = ctx.defer ?? (work => work().then(() => {}))
-  const decoy: SignupResult = { kind: 'sent', pend: `${handle}.${randomMac()}` }
+  const decoy: SignupResult = { kind: 'sent', pend: `${handle}.${randomMac()}`, waiting }
 
   if (owner && owner.id !== mine?.id) {
     await defer(() =>
@@ -152,21 +163,21 @@ export async function signUp(db: D1Database, env: Env, input: SignupInput, ctx: 
     )
     return decoy
   }
-  // OPEN (open-questions #71): an address off the allow-list gets the same "check your email" page and no
-  // mail. That page and /join say sign-up is invite-only for now. A mail saying so would be kinder, but it
-  // would mail any address someone types in.
-  if (!open && !invited) return decoy
-
   // 6. make the account. Replacing this browser's pending one keeps its creation time, so re-sending the form
   // never restarts the 7-day clock that frees the handle (table B).
   const created_at = mine?.created_at ?? now
-  await defer(() => createAccount(db, { handle, displayName, email: email.email, norm: email.norm, hash, termsVersion, created_at, replaces: mine?.id }, ctx.origin, nowMs, { secret: env.CSRF_SECRET, next: ctx.next }))
-  return { kind: 'sent', pend: `${handle}.${await pendMac(env, { handle, created_at })}` }
+  await defer(() =>
+    createAccount(db, { handle, displayName, email: email.email, norm: email.norm, hash, termsVersion, created_at, replaces: mine?.id, waiting }, ctx.origin, nowMs, {
+      secret: env.CSRF_SECRET, next: ctx.next,
+    }),
+  )
+  return { kind: 'sent', pend: `${handle}.${await pendMac(env, { handle, created_at })}`, waiting }
 }
 
-type NewAccount = { handle: string; displayName: string; email: string; norm: string; hash: string; termsVersion: string; created_at: string; replaces?: number }
+/** `waiting`: off the allow-list while sign-up is invite-only, so it goes on signup_wait (decided Oct 10). */
+type NewAccount = { handle: string; displayName: string; email: string; norm: string; hash: string; termsVersion: string; created_at: string; replaces?: number; waiting: boolean }
 
-/** The account (replacing this browser's pending one), its verify link and the mail, in one batch. */
+/** The account (replacing this browser's pending one, whose signup_wait row goes with it), its verify link and the mail, in one batch. */
 async function createAccount(db: D1Database, a: NewAccount, origin: string, nowMs: number, back: { secret: string; next?: string }) {
   const now = new Date(nowMs).toISOString()
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -189,6 +200,7 @@ async function createAccount(db: D1Database, a: NewAccount, origin: string, nowM
       stmt,
       verifyMail(db, p, token, origin, now, signedNext),
     )
+    if (a.waiting) stmts.push(db.prepare('INSERT INTO signup_wait (person_id, joined_at) VALUES (?, ?)').bind(p.id, now))
     try {
       await db.batch(stmts)
       return

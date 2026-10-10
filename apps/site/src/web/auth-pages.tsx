@@ -73,6 +73,14 @@ const Field: FC<FieldProps> = ({ label, name, type = 'text', value, hint, error,
 
 // ---------- join ----------
 
+/**
+ * While sign-up is invite-only (decided Oct 10: anyone may join; an address off the list waits for the opening). The
+ * join form says so first; the check-email page says WAITING to anyone who joined from an address off the list.
+ * OPEN: both wait on Myra's yes.
+ */
+export const JOIN_INVITE_ONLY = "shwarm is invite-only for now. if you have an invite, join with the address it came to. if not, join anyway and we'll email you when it opens to everyone."
+export const WAITING = "you're on the list. shwarm is invite-only for now, so we'll email you when it opens to everyone."
+
 export type JoinValues = { handle?: string; display_name?: string; email?: string; age?: boolean; terms?: boolean }
 
 const Next: FC<{ next?: string }> = ({ next }) => (next ? <input type="hidden" name="next" value={next} /> : null)
@@ -81,7 +89,7 @@ export const JoinPage: FC<{ token: string; siteKey?: string; inviteOnly: boolean
   token, siteKey, inviteOnly, values = {}, errors = {}, next,
 }) => (
   <Shell title="join" heading="join shwarm" below={<>have an account? <a href={withNext('/signin', next)}>sign in</a></>}>
-    {inviteOnly && <div class="msg ok">shwarm is invite-only for now. join with the address your invite came to.</div>}
+    {inviteOnly && <div class="msg ok">{JOIN_INVITE_ONLY}</div>}
     <Msg text={errors.form} />
     <form method="post" action="/join">
       <Token value={token} />
@@ -109,11 +117,13 @@ export const JoinPage: FC<{ token: string; siteKey?: string; inviteOnly: boolean
 // ---------- check your email ----------
 
 /** `n`: the signed return-to, passed on to the new verify link. */
-export const CheckEmailPage: FC<{ token: string; kind: 'verify' | 'reset'; sent?: boolean; unverified?: boolean; inviteOnly?: boolean; n?: string }> = ({
-  token, kind, sent, unverified, n,
+/** `waiting`: joined from an address off the allow-list while sign-up is invite-only (decided Oct 10). */
+export const CheckEmailPage: FC<{ token: string; kind: 'verify' | 'reset'; sent?: boolean; unverified?: boolean; waiting?: boolean; n?: string }> = ({
+  token, kind, sent, unverified, waiting, n,
 }) => (
   <Shell title="check your email" heading="check your email">
     {sent && <Msg ok text="sent again. it can take a minute or two." />}
+    {waiting && kind === 'verify' && <div class="msg ok" role="status">{WAITING}</div>}
     <div class="in">
       {kind === 'reset' ? (
         <>
@@ -125,13 +135,14 @@ export const CheckEmailPage: FC<{ token: string; kind: 'verify' | 'reset'; sent?
           {unverified ? (
             <p>your email isn't verified yet. until it is, you can read and sign in, nothing else.</p>
           ) : (
-            // Myra's words (Oct 10). Shown for every address, invited or not, so the page never tells who can join.
+            // Myra's words (Oct 10). Shown whether or not the address has an account, so the page never tells which.
             <p>we sent the next step to your email address. it will expire after 7 days.</p>
           )}
           <p>be sure to check your spam folder!</p>
           <form method="post" action="/check-email">
             <Token value={token} />
             {n && <input type="hidden" name="n" value={n} />}
+            {waiting && <input type="hidden" name="w" value="1" />}
             <button class="btn plain" type="submit">send it again</button>
           </form>
         </>

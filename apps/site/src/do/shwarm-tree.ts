@@ -5,9 +5,9 @@
 // (Fetch-based on purpose: no 'cloudflare:workers' import, so the class loads in Node tests too.)
 import { isErrorCode, ShwarmError } from '@shwarm/protocol'
 import { TreeEngine, treeName, type Command } from '../core/engine'
-import { inBeta } from '../core/site-mode'
+import { actsLimited } from '../core/site-mode'
 
-type TreeEnv = { DB: D1Database; SITE_MODE?: string }
+type TreeEnv = { DB: D1Database; ENV?: string; SITE_MODE?: string }
 
 export class ShwarmTree {
   private engine: TreeEngine
@@ -16,7 +16,7 @@ export class ShwarmTree {
     readonly state: DurableObjectState,
     env: TreeEnv,
   ) {
-    this.engine = new TreeEngine(env.DB, Date.now, { beta: inBeta(env) })
+    this.engine = new TreeEngine(env.DB, Date.now, { beta: actsLimited(env) })
   }
 
   async fetch(req: Request): Promise<Response> {

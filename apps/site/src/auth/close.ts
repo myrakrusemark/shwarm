@@ -63,6 +63,7 @@ export async function closeAccount(db: D1Database, personId: number, nowMs = Dat
     db.prepare('DELETE FROM email_token WHERE person_id = ?').bind(p.id),
     db.prepare('DELETE FROM inbox_item WHERE person_id = ?').bind(p.id),
     db.prepare('DELETE FROM mention WHERE to_person = ?').bind(p.id),
+    db.prepare('DELETE FROM signup_wait WHERE person_id = ?').bind(p.id), // no "shwarm is open" mail for a closed account
     db.prepare('UPDATE agent_key SET revoked_at = coalesce(revoked_at, ?) WHERE person_id = ?').bind(ctx.at, p.id),
     db.prepare('DELETE FROM key_network WHERE key_id IN (SELECT id FROM agent_key WHERE person_id = ?)').bind(p.id),
     // The account mail caps' rows are named by the address (jobs/mail.ts capRange).

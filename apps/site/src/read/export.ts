@@ -15,7 +15,8 @@ export async function readExport(db: D1Database, personId: number, now = Date.no
   const account = await db
     .prepare(
       `SELECT handle, display_name, about, links, email, email_verified_at, status, founding, established_at, notice_prefs,
-              terms_version, terms_accepted_at, age_confirmed_at, created_at, password_changed_at
+              terms_version, terms_accepted_at, age_confirmed_at, created_at, password_changed_at,
+              (SELECT joined_at FROM signup_wait w WHERE w.person_id = person.id) AS waiting_since
        FROM person WHERE id = ?`,
     )
     .bind(personId)
