@@ -6,6 +6,8 @@ New site wording from Oct 9 that no mockup had. **Reviewed by Myra on the review
 
 ## 7.9: shwarm mcp and the Python example
 
+Approved (Myra, Oct 10, on the tracker).
+
 Go-live 7.9, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations), [open #100](open-questions.md#100-shwarm-mcp-and-the-python-example-the-builds-edges)). Not reviewed yet. Models read the MCP words in their client; only the api page's section is on the site.
 
 - The api page's new section "signing, in python": "every request made with a key is signed (RFC 9421, ed25519). here it is in python, with pip install cryptography:", the example itself (its comments and docstrings: "sign a request to the shwarm api: RFC 9421 with ed25519 (protocol §10).", "needs python 3.8+ and: pip install cryptography", "shwarm_sk_<keyid>_<seed>, as the keys page shows it once. returns (keyid, seed).", "the content-digest, signature-input and signature headers to add. body is the exact bytes sent.", "every POST sends one, the same on each retry", "the published test vector's GET (…). it must print", "a real call: …"), then "run as it is, it signs our published test vector. if it prints the signature in its comment, your signing matches the server's."
@@ -18,6 +20,8 @@ Go-live 7.9, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-subm
 - Refusals made here: "say which name to act as: as, or start shwarm mcp with --as @you/agent", "say whose mentions: to, or start shwarm mcp with --as @you/agent", "<node> is on <origin>, not <server>. start shwarm mcp with --server <origin> to work there", "start_shwarm takes no node: a new shwarm starts at the top. for a branch, use open_branch", "<field> is a string", "limit is a whole number from 1 to 100", "shwarm mcp takes no path: your MCP client starts it, and says which node in each call", "shwarm mcp talks over standard input, and there's none here". Bare-handle refusals reuse "bare-handle acts happen on shwarm.org".
 
 ## 7.8: shwarm run
+
+Approved (Myra, Oct 10, on the tracker).
 
 Go-live 7.8, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations), [open #99](open-questions.md#99-shwarm-run-the-builds-edges)). Not reviewed yet. People read these in a terminal; nothing here is on the site. Refusals that repeat the server's own words (own work, slot taken, sign-off, locked, no runs, superseded, passed, a key that can't check) aren't listed.
 
@@ -33,6 +37,8 @@ Go-live 7.8, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-subm
 - Refusals made here: "there's no terminal to ask on. to run it without asking, pass --yes", "nothing on <path> is in review. name one: <path>/s/<n>", "this key can't post as <name>: it can post as <pattern>" (login's words), "#<n>'s text and links hash to <hash>, not <hash> as the server says. nothing was run", "link <i> (<label or address>) doesn't match its sha256: it hashes to <hash>, not <hash>. nothing was run", "… has no commit <hash>. nothing was run", "… checked out at <hash>, not <hash>. nothing was run", "… has no <path> at <hash>. nothing was run", "… isn't an https address; only https links are fetched. nothing was run", "couldn't clone <repo>: <reason>", "couldn't start <program>: <reason>", "<url> isn't the log: it hashes to <hash>, not <hash>", and the flag errors ("--machine is one line of up to 200 characters, like "linux, rtx 3060"", "--engine is podman or docker", "--engine goes with --container <image>", "<image> isn't an image name", "--report takes no path or --as: the report says which node, and as whom", "<file> isn't a saved run report", "that report is for <server>. pass --server <server>", "its log is too big to go inline: put it somewhere public, then pass --log-url <url>", "this report carries its log inline, so it takes no --log-url").
 
 ## 7.7: the shwarm command
+
+Approved (Myra, Oct 10, on the tracker).
 
 Go-live 7.7, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations), [open #98](open-questions.md#98-the-shwarm-command-the-builds-edges)). Not reviewed yet. People and agents read these in a terminal; nothing here is on the site.
 
@@ -60,6 +66,8 @@ Go-live 7.6, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-subm
 - The api page's next steps: "agent skills" loses "not built yet" and links `/skills`.
 
 ## 7.5: API docs
+
+Approved (Myra, Oct 10, on the tracker).
 
 Go-live 7.5, Oct 9 ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations), [open #96](open-questions.md#96-the-v0-freeze)). New pages at `/docs/reference` and `/docs/protocol` (`apps/site/src/web/api-docs.tsx`) and new rows on the api page (`scripts/pages/content.py`). Not reviewed yet. The docs' own text (openapi.yaml's descriptions, protocol.md) is shown as written.
 
