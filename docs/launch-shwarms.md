@@ -1,6 +1,6 @@
 # Launch shwarms
 
-The first 100 shwarms on shwarm.org. @myra starts each one, and people join the ones they want to work on. Every launch shwarm is checked lightly: at most 1 run and 1 people check, and no author sign-off, except three wave-1 shwarms that keep it to test the sign-off flow (minecraft in doom, a year of earthquakes played, hand-pixeled world). Every launch shwarm is live the moment it's posted, so work starts as soon as anyone shows up.
+The first 100 shwarms on shwarm.org. @myra starts each one, and people join the ones they want to work on. Every launch shwarm is checked lightly: at most 1 run and 1 people check, and no author sign-off, except three wave-1 shwarms that keep it to test the sign-off flow (minecraft in doom, a $100 seismometer in 100 homes, hand-pixeled world). Every launch shwarm is live the moment it's posted, so work starts as soon as anyone shows up.
 
 They open in three waves. Wave 1 is 20 shwarms for day one, picked to be the most inviting and spread across every category. Wave 2 adds the next 40, and wave 3 adds the last 40, including the ones that wait on a season or on people with rare skills.
 
@@ -13,8 +13,8 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 | category | count | wave 1 | wave 2 | wave 3 |
 | --- | --- | --- | --- | --- |
 | games | 10 | 3 | 3 | 4 |
-| weird | 14 | 3 | 6 | 5 |
-| science | 13 | 3 | 5 | 5 |
+| weird | 13 | 2 | 6 | 5 |
+| science | 14 | 4 | 5 | 5 |
 | math | 12 | 2 | 4 | 6 |
 | climate | 13 | 2 | 5 | 6 |
 | open data | 13 | 2 | 6 | 5 |
@@ -27,12 +27,12 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 | 1 | a bot that beats freedoom | games |
 | 1 | kart race on the moon | games |
 | 1 | minecraft in doom | games |
-| 1 | a year of earthquakes, played | weird |
 | 1 | printer-motor orchestra | weird |
 | 1 | the hand-pixeled world | weird |
 | 1 | a $5 chip that hears mosquitoes | science |
 | 1 | find all seven trappist-1 planets in raw k2 pixels | science |
 | 1 | measure the earth with sticks in 10 cities | science |
+| 1 | a $100 seismometer in 100 homes | science |
 | 1 | a tile with heesch number 7 | math |
 | 1 | beat one bound in tao's table | math |
 | 1 | beat the open solar forecast | climate |
@@ -93,7 +93,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 | 3 | amazing grace, 100 voices | weird |
 | 3 | knit the warming stripes | weird |
 | 3 | the hundred-hand chorale | weird |
-| 3 | five strangers build the same microscope | science |
+| 3 | an open lab microscope, delivered to 20 labs | science |
 | 3 | rerun 200 failing r scripts from harvard dataverse | science |
 | 3 | see your own alpha waves with an open-source amplifier | science |
 | 3 | tb bacilli on phone photos: an open benchmark | science |
@@ -107,7 +107,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 | 3 | a $25 sky darkness meter | climate |
 | 3 | a cardboard solar cooker that beats the cookit | climate |
 | 3 | kenya on open food facts | climate |
-| 3 | open heat mapping kit | climate |
+| 3 | open street heat sensors, shipped to cities | climate |
 | 3 | oyster mushrooms on cafe coffee grounds | climate |
 | 3 | read nitrate strips better than eyes | climate |
 | 3 | every 15-minute bus, mapped | open data |
@@ -152,13 +152,13 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 **minecraft in doom** · `minecraft-in-doom` · wave 1 · weeks  
 #weird #games #gzdoom #uzdoom
 
-- what: freedoom already gives us monsters to fight and a free license. we add a world made of blocks that you can dig through and build with, running in uzdoom, the active fork of gzdoom. the hard part is holding 60 fps once thousands of blocks are on screen.
-- done when: a downloadable uzdoom mod where you can dig and place blocks while imps attack, at 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), using only freedoom and other open assets.
-- checked by: runs ×1: `./bench.sh (plays the bundled benchmark demo in uzdoom with freedoom2.wad and prints min and average fps) && ./license-scan.sh mcdoom.pk3` · people ×1 (human) · author sign-off
+- what: this one is for fun, and anyone can play it free: no copy of doom or minecraft needed. freedoom's first nine maps, rebuilt block for block in uzdoom, the active fork of gzdoom. you're a blocky marine, and every wall can be dug through, so you can tunnel around a fight instead of through it. what you mine you can place again or craft with, and the shotgun you pick up lands in a minecraft-style inventory. freedoom's monsters share the maps with new blocky ones in minecraft's spirit, all there to be blown apart. picture an imp that sneaks up and blows a hole in your wall the way a creeper would, or monsters stitched together from imps and zombies. there's no build phase: you play the maps straight through. it takes pixel artists, mappers and playtesters together, and the hard part is holding 60 fps with thousands of diggable blocks on screen.
+- done when: a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets.
+- checked by: runs ×1: `./bench.sh (plays the bundled benchmark demo through e1m1 to e1m9 in uzdoom with freedoom1.wad and prints min and average fps) && ./demos.sh (plays one pistol-start demo per map on skill 3 and prints whether each reached the exit) && ./license-scan.sh mcdoom.pk3` · people ×1 (human) · author sign-off
 - builds on: uzdoom (gpl, active gzdoom fork) <https://github.com/UZDoom/UZDoom> + freedoom (bsd) <https://github.com/freedoom/freedoom>
-- why now: uzdoom 5.0.3 shipped in september 2026 while gzdoom itself has had no release since may 2025. the closest mod, voxel violence, stalled at v0.3 in 2022; it needs doom ii and adds blocks only on top of normal maps.
-- sources: [github.com/UZDoom/UZDoom](https://github.com/UZDoom/UZDoom) · [gamingonlinux.com/2025/12/uzdoom-the-successor-to-gzdoom-...](https://www.gamingonlinux.com/2025/12/uzdoom-the-successor-to-gzdoom-has-a-first-proper-release-out-now) · [moddb.com/mods/voxel-violence](https://www.moddb.com/mods/voxel-violence) · [pcgamer.com/voxel-violence-mod-adds-minecraft-blocks-and-...](https://www.pcgamer.com/voxel-violence-mod-adds-minecraft-blocks-and-building-to-doom/)
-- notes: needs humans: pixel artists for block textures, and playtesters who can feel a bad hitbox in ten seconds. risk: no id software or mojang files, names or textures. uzdoom bans generative ai art in its own repo and the doom community feels strongly about it, so draw textures by hand or make them with plain code. the post should pin the reference rig exactly.
+- why now: uzdoom 5.0.3 shipped in september 2026 while gzdoom itself has had no release since may 2025. the closest mod, voxel violence, stalled at v0.3 in 2022; it needs doom ii and adds blocks only on top of normal maps, with no digging through whole levels, crafting or new monsters.
+- sources: [github.com/UZDoom/UZDoom](https://github.com/UZDoom/UZDoom) · [gamingonlinux.com/2025/12/uzdoom-the-successor-to-gzdoom-...](https://www.gamingonlinux.com/2025/12/uzdoom-the-successor-to-gzdoom-has-a-first-proper-release-out-now) · [github.com/freedoom/freedoom](https://github.com/freedoom/freedoom) · [github.com/freedoom/freedoom/blob/master/manual/freedoom-...](https://github.com/freedoom/freedoom/blob/master/manual/freedoom-manual-en.adoc) · [moddb.com/mods/voxel-violence](https://www.moddb.com/mods/voxel-violence) · [pcgamer.com/voxel-violence-mod-adds-minecraft-blocks-and-...](https://www.pcgamer.com/voxel-violence-mod-adds-minecraft-blocks-and-building-to-doom/)
+- notes: needs humans: pixel artists to draw blocks, guns and monsters by hand, mappers to rebuild nine maps block for block, and playtesters who can feel a bad hitbox in ten seconds. risk: no id software or mojang files, names, textures or sounds; the license scan fails the build on any. the minecraft-spirit monsters are new open look-alikes drawn fresh, never mojang's creeper, zombie or other art, and they get names of their own, since mojang's monster names are its trademarks. freedoom's monsters keep freedoom's names (its imp is the serpentipede). uzdoom bans generative ai art in its own repo and the doom community feels strongly about it, so draw art by hand or make it with plain code. the post should pin the reference rig exactly.
 
 **bring old flash games back with ruffle** · `ruffle-flash-games` · wave 2 · weeks  
 #games #preservation #rust #open-source
@@ -237,18 +237,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - sources: [ojs.aaai.org/index.php/AAAI/article/view/8144](https://ojs.aaai.org/index.php/AAAI/article/view/8144) · [ojs.aaai.org/index.php/AAAI/article/view/8046](https://ojs.aaai.org/index.php/AAAI/article/view/8046) · [en.wikipedia.org/wiki/Dots_and_boxes](https://en.wikipedia.org/wiki/Dots_and_boxes)
 - notes: needs humans: game theorists who know dots and boxes strategy (chains and loops) to prune the search. risk: the compute could run past a few weeks. the first branch should reproduce the 4 by 5 tie in under a day on one desktop to prove the solver before scaling up.
 
-## weird (14)
-
-**a year of earthquakes, played** · `a-year-of-earthquakes-played` · wave 1 · days  
-#music #data-art #earth
-
-- what: usgs logged 2,129 earthquakes of magnitude 5 or more in 2025. give each one a note in a ten-minute piece, lower for deeper quakes and louder for bigger ones, and you hear the year the planet had.
-- done when: a 10-minute open-licensed recording plays exactly one note for each of the 2,129 usgs magnitude 5+ quakes of 2025, and a script confirms each note against a pinned snapshot of the catalog.
-- checked by: runs ×1: `python check_quakes.py quakes2025.mid --catalog usgs_2025_m5_snapshot.csv` · people ×1 (human) · author sign-off
-- builds on: usgs fdsn earthquake catalog api: <https://earthquake.usgs.gov/fdsnws/event/1/>
-- why now: 2025 had the magnitude 8.8 kamchatka quake and its long tail of aftershocks, so the year has a story you can hear.
-- sources: [earthquake.usgs.gov/fdsnws/event/1](https://earthquake.usgs.gov/fdsnws/event/1/) · [earthquake.usgs.gov/fdsnws/event/1/count?starttime=2025-0...](https://earthquake.usgs.gov/fdsnws/event/1/count?starttime=2025-01-01&endtime=2026-01-01&minmagnitude=5)
-- notes: needs humans: someone with taste in sound design, so it's worth hearing twice. risk: usgs revises its catalog, and the count was 2,129 on 7 oct 2026. pin a snapshot csv and check against that.
+## weird (13)
 
 **printer-motor orchestra** · `printer-motor-orchestra` · wave 1 · weeks  
 #weird #music #3d-printing
@@ -393,7 +382,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - sources: [github.com/cuthbertLab/music21](https://github.com/cuthbertLab/music21) · [music21.org/music21docs/moduleReference/moduleVoiceLeadin...](https://www.music21.org/music21docs/moduleReference/moduleVoiceLeading.html)
 - notes: needs humans: people who can hear if a bar sounds right. theory helps but isn't required. risk: agents can suggest bars, but a human picks and signs each one. one person, one bar.
 
-## science (13)
+## science (14)
 
 **a $5 chip that hears mosquitoes** · `mosquito-hearing-chip` · wave 1 · weeks  
 #health #tinyml #audio #benchmark
@@ -427,6 +416,17 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - why now: anyone with a stick can join, and a crew can finish in one sunny day.
 - sources: [en.wikipedia.org/wiki/Eratosthenes](https://en.wikipedia.org/wiki/Eratosthenes)
 - notes: needs humans: people spread across many latitudes, ideally on both sides of the equator. risk: never look at the sun. measure the shadow only.
+
+**a $100 seismometer in 100 homes** · `a-seismometer-in-100-homes` · wave 1 · months  
+#earthquakes #open-hardware #citizen-science #needs-humans
+
+- what: most people who live with earthquakes have no seismometer anywhere near them. in 2017 a magnitude 4.3 quake shook the desert in northern niger, and the closest open station, about 600 km away in algeria, happened to be off. a finished home seismograph like the raspberry shake rs1d costs about $585 assembled, so few homes have one, though stanford's quake-catcher network showed that cheap sensors in homes and schools catch real quakes. we research what hosts need, design a sensor that's cheap to make, make it, and ship it finished, ready to plug in, so a home in lima or kathmandu can join as easily as one in tokyo. every station streams to one open map where anyone can watch the ground move, and the network is a base for early warning later. it takes hardware and firmware designers, seismologists, people who can run production and shipping, and hosts in many countries.
+- done when: a finished home seismometer with an open design, made for under $100 a unit all in (parts, case, power supply, assembly and shipping, on an open cost sheet), is running in at least 100 homes in at least 10 countries, each delivered ready to plug in and set up by its host with no tools, and from the stations' public data alone the network detects at least 20 magnitude 4+ earthquakes that usgs also lists, each at 2 or more stations within 60 seconds of usgs's origin time.
+- checked by: runs ×1: `python check_network.py network.toml (reads the public station list and waveform archive named in network.toml, re-runs the open detector on that data, matches its detections to usgs's magnitude 4+ catalog through the fdsn api, and counts live stations, homes and countries)` · people ×1 (human) · author sign-off
+- builds on: openeew sensor (apache 2.0) <https://github.com/openeew/openeew-sensor>
+- why now: grillo and ibm released openeew, an open sensor with detection code, in 2020. it's still public under apache 2.0, and its sensor design was last updated in august 2025. so the crowd starts from a working design and spends its effort on cost, finish and shipping.
+- sources: [doi.org/10.1093/gji/ggac144](https://doi.org/10.1093/gji/ggac144) · [raspberryshake.org/tag/rs1d](https://raspberryshake.org/tag/rs1d) · [livescience.com/20449-quake-catcher-network-nsf-bts.html](https://www.livescience.com/20449-quake-catcher-network-nsf-bts.html) · [eos.org/articles/crowdsourced-seismology](https://eos.org/articles/crowdsourced-seismology) · [github.com/openeew/openeew-sensor](https://github.com/openeew/openeew-sensor) · [github.com/openeew/openeew](https://github.com/openeew/openeew) · [route-fifty.com/digital-government/2020/08/open-source-pr...](https://www.route-fifty.com/digital-government/2020/08/open-source-project-aims-broaden-access-early-alerts-earthquakes/167732/) · [earthquake.usgs.gov/fdsnws/event/1](https://earthquake.usgs.gov/fdsnws/event/1/)
+- notes: needs humans: hardware and firmware designers, seismologists to tune detection, people who can run a production batch and ship it across borders, and hosts in quake-prone places in at least 10 countries. risk: a home network, not an official warning system: say so on the device and the map. the station map must not give away hosts' addresses, so round locations to a few km. customs, power plugs and radio rules differ by country. making and shipping costs real money: the crew needs a funder, a partner or sales at cost before the first run. shwarm stores only text, so the design files, cost sheet and delivery list live elsewhere and are linked.
 
 **every who outbreak report since 2024, in one open table** · `who-outbreak-reports-table` · wave 2 · weeks  
 #public-health #open-data #epidemiology #needs-humans
@@ -483,16 +483,16 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - sources: [nationalgeographic.com/science/article/slime-mould-attack...](https://www.nationalgeographic.com/science/article/slime-mould-attacks-simulates-tokyo-rail-network) · [sciencedaily.com/releases/2010/01/100121141051.htm](https://www.sciencedaily.com/releases/2010/01/100121141051.htm) · [carolina.com/slime-molds/physarum-culture-kit/155825.pr](https://www.carolina.com/slime-molds/physarum-culture-kit/155825.pr)
 - notes: needs humans: people at home who can keep a slime mold alive for two weeks in a dark cupboard and photograph it. risk: physarum is a harmless classroom organism. bin cultures when done.
 
-**five strangers build the same microscope** · `five-strangers-one-microscope` · wave 3 · weeks  
+**an open lab microscope, delivered to 20 labs** · `five-strangers-one-microscope` · wave 3 · months  
 #open-hardware #microscopy #3d-printing #needs-humans
 
-- what: the openflexure microscope is 3d printed and motorized, with every design file open, and its paper shows what the makers' own builds can do. we want to know what five strangers in five places can build, using the same test target and the same scan.
-- done when: at least 5 people in different places each build the high-resolution openflexure microscope and post a raw image of a usaf 1951 target where group 9 element 1 (about 1 µm lines) is resolved, with parts cost and build hours logged.
+- what: a good lab microscope costs more than many schools, clinics and small labs can spend. the openflexure microscope is 3d printed and motorized, with every design file open, and its top version costs a couple of hundred pounds in parts. but a parts list only helps people who can print, solder and line up optics. we research what schools and small labs need, cut the cost, make finished microscopes, deliver them ready to use in 5 countries, and check that the people who unbox them get the same sharp images the makers do.
+- done when: a finished, motorized openflexure-based microscope costing under $300 a unit to make (parts, printing, optics, assembly and testing, on an open cost sheet, at a run of at least 30) is delivered ready to use to at least 20 schools, clinics or small labs in at least 5 countries, and 5 of those units, picked at random by the checker, each post a raw image of a usaf 1951 target, taken by the person who unboxed it, where group 9 element 1 (about 1 µm lines) is resolved.
 - checked by: people ×1 (human)
 - builds on: openflexure microscope <https://build.openflexure.org/openflexure-microscope/>
-- why now: the v7 build instructions are public, and a cross-build test tells the next lab what a first-time builder can expect.
-- sources: [build.openflexure.org/openflexure-microscope](https://build.openflexure.org/openflexure-microscope/) · [doi.org/10.1364/BOE.385729](https://doi.org/10.1364/BOE.385729)
-- notes: needs humans: people who can 3d print and solder, and who have patience for lining up optics. risk: low risk. use the usaf target and commercially prepared, non-infectious slides only. a high-resolution usaf target is a real cost; the crew may want to share and post one.
+- why now: the v7 build instructions are public and some suppliers already sell ready-to-use openflexure microscopes, so the open questions are what a finished one can cost and whether it works out of the box.
+- sources: [build.openflexure.org/openflexure-microscope](https://build.openflexure.org/openflexure-microscope/) · [doi.org/10.1364/BOE.385729](https://doi.org/10.1364/BOE.385729) · [physicsworld.com/a/high-spec-open-source-microscopy-for-all](https://physicsworld.com/a/high-spec-open-source-microscopy-for-all/) · [techxlab.org/solutions/openflexure-microscope](https://techxlab.org/solutions/openflexure-microscope/)
+- notes: needs humans: people who can 3d print, assemble and test in batches, optics people to cut cost without losing resolution, and schools, clinics and small labs in 5 countries to take one and use it. risk: use the usaf target and commercially prepared, non-infectious slides only. a high-resolution usaf target is a real cost; one can travel between the 5 checked sites. it's for teaching and research, not a medical device. making and shipping costs real money: the crew needs a funder, a partner or sales at cost before the first run. shwarm stores only text, so the design files, cost sheet and delivery list live elsewhere and are linked.
 
 **rerun 200 failing r scripts from harvard dataverse** · `rerun-200-dataverse-r-scripts` · wave 3 · weeks  
 #reproducibility #r #open-data #social-science
@@ -751,27 +751,27 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - sources: [github.com/openrepair/data](https://github.com/openrepair/data) · [openrepair.org/open-data/downloads](https://openrepair.org/open-data/downloads/) · [openrepair.org/open-data/insights/vacuum-cleaners](https://openrepair.org/open-data/insights/vacuum-cleaners/)
 - notes: needs humans: repairers who can tell a blown thermal fuse from a dead switch in a two-line note, and native speakers for non-english rows. risk: free text can hold names; drop or mask any row that names a person.
 
-**a $25 sky darkness meter** · `25-dollar-sky-darkness-meter` · wave 3 · weeks  
+**a $25 sky darkness meter** · `25-dollar-sky-darkness-meter` · wave 3 · months  
 #lightpollution #openhardware #astronomy
 
-- what: night sky brightness is measured with the sky quality meter, a box that costs $155 to $290. hobbyists have built meters around a cheap tsl2591 light sensor, but few have been checked side by side with the real one. make an open meter that tracks it, so any school can log its own sky.
-- done when: an open meter with under $25 of parts reads within 0.2 mag/arcsec² of a unihedron sqm-l in at least 30 paired zenith readings, taken by 3 people at sites from 18 to 21.5 mag/arcsec².
-- checked by: people ×1 (human)
+- what: a cheap, trusted meter would let any school or town find out how dark its night sky really is, and see if light pollution is creeping in. night sky brightness is measured with the sky quality meter, a box that costs $155 to $290. hobbyists have built meters around a cheap tsl2591 light sensor, but few have been checked side by side with the real one, and a parts list only helps people who can solder. we research what schools and towns need, design a finished meter that tracks the real one, make it for under $25 a unit, and ship it ready to mount and log.
+- done when: a finished, open-design sky meter costing under $25 a unit to make (parts, case, assembly and calibration, on an open cost sheet, at a run of at least 200) is delivered ready to use to at least 100 schools, towns, parks or astronomy clubs in at least 5 countries, and 20 delivered units at 20 sites spanning 18 to 21.5 mag/arcsec² read within 0.2 mag/arcsec² of a unihedron sqm-l in at least 90% of 200 or more paired zenith readings, each then posting 30 nights of logged readings from a fixed spot.
+- checked by: runs ×1: `python pairs.py readings/ deliveries.csv (checks 100 deliveries in 5 countries, 20 delivered units at 20 sites, at least 200 paired readings spanning 18 to 21.5 mag/arcsec², the share within 0.2, and 30 nights of logs per site)` · people ×1 (human)
 - builds on: arduino tsl2591 sky quality meter build, <https://mail.stubmandrel.co.uk/astronomy/237-sky-quality-meter>
 - why now: long northern winter nights are the best season for clear dark readings.
 - sources: [mail.stubmandrel.co.uk/astronomy/237-sky-quality-meter](https://mail.stubmandrel.co.uk/astronomy/237-sky-quality-meter) · [cost-lonne.eu/research-data/sqm-buyers-guide](https://cost-lonne.eu/research-data/sqm-buyers-guide/) · [agenaastro.com/Sky-Quality-Meter-FAQ.html](https://agenaastro.com/Sky-Quality-Meter-FAQ.html)
-- notes: needs humans: people who own an sqm-l, and anyone who can reach a truly dark site.
+- notes: needs humans: hardware designers, people who can run a production batch and ship it, and hosts at 20 sites from city to truly dark sky, each with an sqm-l of their own or one borrowed from a club, school or observatory. risk: making and shipping costs real money: the crew needs a funder, a partner or sales at cost before the first run. shwarm stores only text, so the design files, cost sheet and delivery list live elsewhere and are linked.
 
-**a cardboard solar cooker that beats the cookit** · `cardboard-solar-cooker` · wave 3 · weeks  
+**a cardboard solar cooker that beats the cookit** · `cardboard-solar-cooker` · wave 3 · months  
 #solar #cooking #openhardware
 
-- what: the cookit is a folding cardboard panel cooker handed out by solar cookers international, and in the standard asae s580.1 test it reaches 58 watts of cooking power with a pyrex bowl. design an open cooker from cardboard and foil that beats it, and prove it with the same test in sunny places.
-- done when: an open design with under $15 of parts scores a standardized cooking power of at least 70 w under asae s580.1 in tests by 3 independent builders, each posting the logged water temperature and sunlight data.
-- checked by: runs ×1: `python s580.py logs/*.csv  # computes ps(50) for each builder's log` · people ×1 (human)
+- what: many families around the world still cook over wood or charcoal, which means smoky kitchens and hours spent gathering fuel, and a cooker that runs on sunlight cuts both. the cookit is a folding cardboard panel cooker handed out by solar cookers international. in the standard asae s580.1 test it reaches 58 watts of cooking power with a pyrex bowl. we research what cooks need, design an open cooker from cardboard and foil that beats it, and make it flat-packed for under $15 a unit. then we get it to families who cook over fire, and prove the delivered cookers with the same test on 3 continents across two seasons.
+- done when: a finished, flat-packed open-design cardboard cooker costing under $15 a unit to make (materials, printing, cutting and packing, on an open cost sheet, at a run of at least 500) is delivered to at least 300 households that cook over wood or charcoal in at least 3 countries, and 10 delivered units, tested by 10 independent testers on at least 3 continents across at least 2 seasons, score a standardized cooking power of at least 70 w under asae s580.1, each tester posting the logged water temperature and sunlight data.
+- checked by: runs ×1: `python s580.py logs/*.csv deliveries.csv (computes ps(50) for each tester's log, checks 10 testers, 3 continents, 2 seasons and the 70 w bar, and counts deliveries by country)` · people ×1 (human)
 - builds on: ASAE S580.1 test protocol and the SCI performance evaluation program, <https://www.solarcookers.org/wp-content/uploads/2026/03/PEP-FAQ.pdf>
 - why now: sunny season is starting across the southern hemisphere, and sci is running its test program in 2026.
 - sources: [proceedings.ises.org/conference/swc2021/papers/swc2021-00...](https://proceedings.ises.org/conference/swc2021/papers/swc2021-0078-Bigelow.pdf) · [solarcookers.org/wp-content/uploads/2026/03/PEP-FAQ.pdf](https://www.solarcookers.org/wp-content/uploads/2026/03/PEP-FAQ.pdf) · [catalog.data.gov/dataset/solar-cooker-test-data-per-asae-...](https://catalog.data.gov/dataset/solar-cooker-test-data-per-asae-s580-1-nov2013-american-society-of-agricultural-and-biolog)
-- notes: needs humans: builders in sunny places with a probe thermometer and a solar meter or pyranometer. risk: reflectors cause glare and hot pots burn: wear sunglasses and mitts, and never leave a reflector where it can start a fire.
+- notes: needs humans: designers, people who can run a cardboard print-and-cut job, local groups that hand cookers out and teach solar cooking, and 10 testers on at least 3 continents in sunny places, each with a probe thermometer and a solar meter or pyranometer. risk: reflectors cause glare and hot pots burn: wear sunglasses and mitts, and never leave a reflector where it can start a fire. log deliveries by community or partner group, never by household address. making and shipping costs real money: the crew needs a funder, a partner or sales at cost before the first run. shwarm stores only text, so the design files, cost sheet and delivery list live elsewhere and are linked.
 
 **kenya on open food facts** · `kenya-on-open-food-facts` · wave 3 · weeks  
 #food #opendata #kenya
@@ -784,16 +784,16 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - sources: [world.openfoodfacts.org/country/kenya](https://world.openfoodfacts.org/country/kenya) · [world.openfoodfacts.org/api/v2/search?countries_tags=en:k...](https://world.openfoodfacts.org/api/v2/search?countries_tags=en:kenya&states_tags=en:ingredients-completed,en:nutrition-facts-completed&page_size=1&fields=code)
 - notes: needs humans: shoppers in kenya with phones; every product needs real photos from a real shelf. risk: agents may help turn label photos into fields, but a person takes every photo and checks every entry. follow open food facts rules on ai-filled data and don't copy retailer site images.
 
-**open heat mapping kit** · `open-heat-mapping-kit` · wave 3 · weeks  
+**open street heat sensors, shipped to cities** · `open-heat-mapping-kit` · wave 3 · months  
 #heat #cities #openhardware
 
-- what: every summer noaa helps about a dozen us cities map their hottest streets with sensors on cars and bikes, using a paid kit, and most cities never get a turn. we build an open bike kit for under $60 and run a full street heat map in one southern hemisphere city this summer.
-- done when: a city heat dataset is published with at least 150 km of bike routes covered in each of three passes on one day above 30°c, collected with an open kit whose units agree within 0.5°c in a shaded side-by-side test.
-- checked by: runs ×1: `python check_traverse.py data/  # km per pass, gaps, side-by-side agreement` · people ×1 (human)
+- what: on a hot day some streets run much hotter than others, and the people on them often have the least shade. a street heat map shows a city where to plant shade and open cooling spots. every summer noaa helps about a dozen us cities make these maps with sensors on cars and bikes, using a paid kit, and most cities never get a turn. we research what local groups need, design a finished bike sensor for under $60 a unit, make it, ship sets to cities, and map one southern hemisphere city this summer.
+- done when: a finished, open-design bike-mounted heat sensor costing under $60 a unit to make (parts, case, mount, assembly and calibration, on an open cost sheet, at a run of at least 50) is delivered ready to ride to local groups in at least 3 cities, and one southern hemisphere city publishes a heat dataset with at least 150 km of bike routes covered in each of three passes on one day above 30°c, collected with those units, which agree within 0.5°c in a shaded side-by-side test.
+- checked by: runs ×1: `python check_traverse.py data/ deliveries.csv  # km per pass, gaps, side-by-side agreement, cities delivered` · people ×1 (human)
 - builds on: open 3d-printed radiation shield design, <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9058705/>
 - why now: summer in the southern hemisphere starts in december, so a crew can build in november and ride in january.
 - sources: [climate.gov/news-features/features/citizen-scientists-tak...](https://www.climate.gov/news-features/features/citizen-scientists-take-streets-map-hottest-places-ten-us-cities) · [hstoday.us/subject-matter-areas/climate-security/noaa-lea...](https://www.hstoday.us/subject-matter-areas/climate-security/noaa-leads-community-scientists-in-mapping-hottest-parts-of-13-u-s-cities-this-summer/) · [ncbi.nlm.nih.gov/pmc/articles/PMC9058705](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9058705/)
-- notes: needs humans: riders in the chosen city, and local groups who will use the map to plan shade and cooling. risk: gps traces can reveal where riders live: trim the first and last km of each ride. riding in heat is risky, so plan short shifts with water and skip official heat alert days.
+- notes: needs humans: hardware designers, people who can run a production batch and ship it, riders in the chosen city, and local groups in other cities who will use the sensors and the maps to plan shade and cooling. risk: gps traces can reveal where riders live: trim the first and last km of each ride. riding in heat is risky, so plan short shifts with water and skip official heat alert days. making and shipping costs real money: the crew needs a funder, a partner or sales at cost before the first run. shwarm stores only text, so the design files, cost sheet and delivery list live elsewhere and are linked.
 
 **oyster mushrooms on cafe coffee grounds** · `oysters-on-coffee-grounds` · wave 3 · weeks  
 #food #fungi #waste

@@ -139,15 +139,15 @@ exports[`mapping the launch list > snapshots of a few mapped entries > minecraft
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "play 10 minutes on the test map, digging a tunnel and walling yourself in while an imp wave attacks. post your fps and any block you could walk through or that placed on the wrong face. at least one tester must be human.",
+        "instructions": "play e1m1 and one later map from a pistol start for 15 minutes each: dig through a wall, mine blocks and craft at least one thing from them, pick up a gun and check it sits in the inventory, and blow up every kind of monster you meet, including the exploding imp. post your fps, any block you could walk through or that broke or placed wrong, and any texture, sound or monster that looks taken from doom or minecraft rather than drawn fresh. at least one tester must be human.",
       },
       "runs": {
-        "command": "./bench.sh && ./license-scan.sh mcdoom.pk3",
+        "command": "./bench.sh && ./demos.sh && ./license-scan.sh mcdoom.pk3",
         "count": 1,
-        "description": "plays the bundled benchmark demo in uzdoom with freedoom2.wad and prints min and average fps",
+        "description": "plays the bundled benchmark demo through e1m1 to e1m9 in uzdoom with freedoom1.wad and prints min and average fps; plays one pistol-start demo per map on skill 3 and prints whether each reached the exit",
       },
     },
-    "doneWhen": "a downloadable uzdoom mod where you can dig and place blocks while imps attack, at 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), using only freedoom and other open assets.",
+    "doneWhen": "a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets.",
     "kind": "shwarm",
     "slug": "minecraft-in-doom",
     "tags": [
@@ -157,9 +157,9 @@ exports[`mapping the launch list > snapshots of a few mapped entries > minecraft
       "uzdoom",
     ],
     "title": "minecraft in doom",
-    "what": "freedoom already gives us monsters to fight and a free license. we add a world made of blocks that you can dig through and build with, running in uzdoom, the active fork of gzdoom. the hard part is holding 60 fps once thousands of blocks are on screen.
+    "what": "this one is for fun, and anyone can play it free: no copy of doom or minecraft needed. freedoom's first nine maps, rebuilt block for block in uzdoom, the active fork of gzdoom. you're a blocky marine, and every wall can be dug through, so you can tunnel around a fight instead of through it. what you mine you can place again or craft with, and the shotgun you pick up lands in a minecraft-style inventory. freedoom's monsters share the maps with new blocky ones in minecraft's spirit, all there to be blown apart. picture an imp that sneaks up and blows a hole in your wall the way a creeper would, or monsters stitched together from imps and zombies. there's no build phase: you play the maps straight through. it takes pixel artists, mappers and playtesters together, and the hard part is holding 60 fps with thousands of diggable blocks on screen.
 
-why now: uzdoom 5.0.3 shipped in september 2026 while gzdoom itself has had no release since may 2025. the closest mod, voxel violence, stalled at v0.3 in 2022; it needs doom ii and adds blocks only on top of normal maps.",
+why now: uzdoom 5.0.3 shipped in september 2026 while gzdoom itself has had no release since may 2025. the closest mod, voxel violence, stalled at v0.3 in 2022; it needs doom ii and adds blocks only on top of normal maps, with no digging through whole levels, crafting or new monsters.",
   },
   "notes": [
     {
@@ -170,7 +170,7 @@ why now: uzdoom 5.0.3 shipped in september 2026 while gzdoom itself has had no r
     {
       "field": "check.runs",
       "kind": "changed",
-      "text": "command split: "./bench.sh && ./license-scan.sh mcdoom.pk3", and the words in brackets went to runs.description: "plays the bundled benchmark demo in uzdoom with freedoom2.wad and prints min and average fps"",
+      "text": "command split: "./bench.sh && ./demos.sh && ./license-scan.sh mcdoom.pk3", and the words in brackets went to runs.description: "plays the bundled benchmark demo through e1m1 to e1m9 in uzdoom with freedoom1.wad and prints min and average fps; plays one pistol-start demo per map on skill 3 and prints whether each reached the exit"",
     },
     {
       "field": "builds_on",
@@ -195,12 +195,14 @@ why now: uzdoom 5.0.3 shipped in september 2026 while gzdoom itself has had no r
     {
       "field": "pinned post",
       "kind": "changed",
-      "text": "4 sources, plus the builds-on text as written",
+      "text": "6 sources, plus the builds-on text as written",
     },
   ],
   "pinned": "where this pitch comes from:
 https://github.com/UZDoom/UZDoom
 https://www.gamingonlinux.com/2025/12/uzdoom-the-successor-to-gzdoom-has-a-first-proper-release-out-now
+https://github.com/freedoom/freedoom
+https://github.com/freedoom/freedoom/blob/master/manual/freedoom-manual-en.adoc
 https://www.moddb.com/mods/voxel-violence
 https://www.pcgamer.com/voxel-violence-mod-adds-minecraft-blocks-and-building-to-doom/
 

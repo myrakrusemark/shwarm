@@ -64,7 +64,7 @@ describe('RENDER_VERSION', () => {
     expect(await fingerprint(), 'the fingerprint is not stable across runs').toBe(first)
     expect({ RENDER_VERSION, fingerprint: first }, 'the signed-out rendering changed: bump RENDER_VERSION (web/node-routes.tsx), then update this fingerprint').toEqual({
       RENDER_VERSION: '5',
-      fingerprint: '62cc4b0aa73be7c4',
+      fingerprint: 'bcd23981ef8ded69', // also moves when the seeded launch entries in docs/launch-shwarms.json change (no bump then: the code renders the same)
     })
   })
 })

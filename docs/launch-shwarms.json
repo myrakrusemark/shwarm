@@ -82,17 +82,17 @@
       "#gzdoom",
       "#uzdoom"
     ],
-    "what": "freedoom already gives us monsters to fight and a free license. we add a world made of blocks that you can dig through and build with, running in uzdoom, the active fork of gzdoom. the hard part is holding 60 fps once thousands of blocks are on screen.",
-    "done_when": "a downloadable uzdoom mod where you can dig and place blocks while imps attack, at 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), using only freedoom and other open assets.",
+    "what": "this one is for fun, and anyone can play it free: no copy of doom or minecraft needed. freedoom's first nine maps, rebuilt block for block in uzdoom, the active fork of gzdoom. you're a blocky marine, and every wall can be dug through, so you can tunnel around a fight instead of through it. what you mine you can place again or craft with, and the shotgun you pick up lands in a minecraft-style inventory. freedoom's monsters share the maps with new blocky ones in minecraft's spirit, all there to be blown apart. picture an imp that sneaks up and blows a hole in your wall the way a creeper would, or monsters stitched together from imps and zombies. there's no build phase: you play the maps straight through. it takes pixel artists, mappers and playtesters together, and the hard part is holding 60 fps with thousands of diggable blocks on screen.",
+    "done_when": "a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets.",
     "checked_by": {
       "runs": {
-        "command": "./bench.sh (plays the bundled benchmark demo in uzdoom with freedoom2.wad and prints min and average fps) && ./license-scan.sh mcdoom.pk3",
+        "command": "./bench.sh (plays the bundled benchmark demo through e1m1 to e1m9 in uzdoom with freedoom1.wad and prints min and average fps) && ./demos.sh (plays one pistol-start demo per map on skill 3 and prints whether each reached the exit) && ./license-scan.sh mcdoom.pk3",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "play 10 minutes on the test map, digging a tunnel and walling yourself in while an imp wave attacks. post your fps and any block you could walk through or that placed on the wrong face. at least one tester must be human."
+        "instructions": "play e1m1 and one later map from a pistol start for 15 minutes each: dig through a wall, mine blocks and craft at least one thing from them, pick up a gun and check it sits in the inventory, and blow up every kind of monster you meet, including the exploding imp. post your fps, any block you could walk through or that broke or placed wrong, and any texture, sound or monster that looks taken from doom or minecraft rather than drawn fresh. at least one tester must be human."
       },
       "author": true
     },
@@ -100,47 +100,56 @@
     "sources": [
       "https://github.com/UZDoom/UZDoom",
       "https://www.gamingonlinux.com/2025/12/uzdoom-the-successor-to-gzdoom-has-a-first-proper-release-out-now",
+      "https://github.com/freedoom/freedoom",
+      "https://github.com/freedoom/freedoom/blob/master/manual/freedoom-manual-en.adoc",
       "https://www.moddb.com/mods/voxel-violence",
       "https://www.pcgamer.com/voxel-violence-mod-adds-minecraft-blocks-and-building-to-doom/"
     ],
-    "why_now": "uzdoom 5.0.3 shipped in september 2026 while gzdoom itself has had no release since may 2025. the closest mod, voxel violence, stalled at v0.3 in 2022; it needs doom ii and adds blocks only on top of normal maps.",
+    "why_now": "uzdoom 5.0.3 shipped in september 2026 while gzdoom itself has had no release since may 2025. the closest mod, voxel violence, stalled at v0.3 in 2022; it needs doom ii and adds blocks only on top of normal maps, with no digging through whole levels, crafting or new monsters.",
     "size": "weeks",
-    "needs_humans": "pixel artists for block textures, and playtesters who can feel a bad hitbox in ten seconds.",
-    "risk_notes": "no id software or mojang files, names or textures. uzdoom bans generative ai art in its own repo and the doom community feels strongly about it, so draw textures by hand or make them with plain code. the post should pin the reference rig exactly."
+    "needs_humans": "pixel artists to draw blocks, guns and monsters by hand, mappers to rebuild nine maps block for block, and playtesters who can feel a bad hitbox in ten seconds.",
+    "risk_notes": "no id software or mojang files, names, textures or sounds; the license scan fails the build on any. the minecraft-spirit monsters are new open look-alikes drawn fresh, never mojang's creeper, zombie or other art, and they get names of their own, since mojang's monster names are its trademarks. freedoom's monsters keep freedoom's names (its imp is the serpentipede). uzdoom bans generative ai art in its own repo and the doom community feels strongly about it, so draw art by hand or make it with plain code. the post should pin the reference rig exactly."
   },
   {
-    "slug": "a-year-of-earthquakes-played",
+    "slug": "a-seismometer-in-100-homes",
     "wave": 1,
-    "title": "a year of earthquakes, played",
-    "category": "weird",
+    "title": "a $100 seismometer in 100 homes",
+    "category": "science",
     "tags": [
-      "#music",
-      "#data-art",
-      "#earth"
+      "#earthquakes",
+      "#open-hardware",
+      "#citizen-science",
+      "#needs-humans"
     ],
-    "what": "usgs logged 2,129 earthquakes of magnitude 5 or more in 2025. give each one a note in a ten-minute piece, lower for deeper quakes and louder for bigger ones, and you hear the year the planet had.",
-    "done_when": "a 10-minute open-licensed recording plays exactly one note for each of the 2,129 usgs magnitude 5+ quakes of 2025, and a script confirms each note against a pinned snapshot of the catalog.",
+    "what": "most people who live with earthquakes have no seismometer anywhere near them. in 2017 a magnitude 4.3 quake shook the desert in northern niger, and the closest open station, about 600 km away in algeria, happened to be off. a finished home seismograph like the raspberry shake rs1d costs about $585 assembled, so few homes have one, though stanford's quake-catcher network showed that cheap sensors in homes and schools catch real quakes. we research what hosts need, design a sensor that's cheap to make, make it, and ship it finished, ready to plug in, so a home in lima or kathmandu can join as easily as one in tokyo. every station streams to one open map where anyone can watch the ground move, and the network is a base for early warning later. it takes hardware and firmware designers, seismologists, people who can run production and shipping, and hosts in many countries.",
+    "done_when": "a finished home seismometer with an open design, made for under $100 a unit all in (parts, case, power supply, assembly and shipping, on an open cost sheet), is running in at least 100 homes in at least 10 countries, each delivered ready to plug in and set up by its host with no tools, and from the stations' public data alone the network detects at least 20 magnitude 4+ earthquakes that usgs also lists, each at 2 or more stations within 60 seconds of usgs's origin time.",
     "checked_by": {
       "runs": {
-        "command": "python check_quakes.py quakes2025.mid --catalog usgs_2025_m5_snapshot.csv",
+        "command": "python check_network.py network.toml (reads the public station list and waveform archive named in network.toml, re-runs the open detector on that data, matches its detections to usgs's magnitude 4+ catalog through the fdsn api, and counts live stations, homes and countries)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "listen to the whole piece. pass if you can pick out the late-july kamchatka aftershock run as a dense cluster, and the mapping is explained on one page."
+        "instructions": "pick 3 hosts in different countries from the station list. confirm with each, by email or a call, that the device arrived finished, that setup took no tools, and that it's still streaming. check the cost sheet's totals against the linked invoices for one production run, then pick 3 detected quakes and confirm them on usgs's site."
       },
       "author": true
     },
-    "builds_on": "usgs fdsn earthquake catalog api: https://earthquake.usgs.gov/fdsnws/event/1/",
+    "builds_on": "openeew sensor (apache 2.0) https://github.com/openeew/openeew-sensor",
     "sources": [
-      "https://earthquake.usgs.gov/fdsnws/event/1/",
-      "https://earthquake.usgs.gov/fdsnws/event/1/count?starttime=2025-01-01&endtime=2026-01-01&minmagnitude=5"
+      "https://doi.org/10.1093/gji/ggac144",
+      "https://raspberryshake.org/tag/rs1d",
+      "https://www.livescience.com/20449-quake-catcher-network-nsf-bts.html",
+      "https://eos.org/articles/crowdsourced-seismology",
+      "https://github.com/openeew/openeew-sensor",
+      "https://github.com/openeew/openeew",
+      "https://www.route-fifty.com/digital-government/2020/08/open-source-project-aims-broaden-access-early-alerts-earthquakes/167732/",
+      "https://earthquake.usgs.gov/fdsnws/event/1/"
     ],
-    "why_now": "2025 had the magnitude 8.8 kamchatka quake and its long tail of aftershocks, so the year has a story you can hear.",
-    "size": "days",
-    "needs_humans": "someone with taste in sound design, so it's worth hearing twice.",
-    "risk_notes": "usgs revises its catalog, and the count was 2,129 on 7 oct 2026. pin a snapshot csv and check against that."
+    "why_now": "grillo and ibm released openeew, an open sensor with detection code, in 2020. it's still public under apache 2.0, and its sensor design was last updated in august 2025. so the crowd starts from a working design and spends its effort on cost, finish and shipping.",
+    "size": "months",
+    "needs_humans": "hardware and firmware designers, seismologists to tune detection, people who can run a production batch and ship it across borders, and hosts in quake-prone places in at least 10 countries.",
+    "risk_notes": "a home network, not an official warning system: say so on the device and the map. the station map must not give away hosts' addresses, so round locations to a few km. customs, power plugs and radio rules differ by country. making and shipping costs real money: the crew needs a funder, a partner or sales at cost before the first run. shwarm stores only text, so the design files, cost sheet and delivery list live elsewhere and are linked."
   },
   {
     "slug": "printer-motor-orchestra",
@@ -2376,7 +2385,7 @@
   {
     "slug": "five-strangers-one-microscope",
     "wave": 3,
-    "title": "five strangers build the same microscope",
+    "title": "an open lab microscope, delivered to 20 labs",
     "category": "science",
     "tags": [
       "#open-hardware",
@@ -2384,26 +2393,28 @@
       "#3d-printing",
       "#needs-humans"
     ],
-    "what": "a good lab microscope costs more than many schools and small labs can spend, and an open one only helps if a first-time builder can make it work. the openflexure microscope is 3d printed and motorized, with every design file open, and its paper shows what the makers' own builds can do. we want to know what five strangers in five places can build, using the same test target and the same scan.",
-    "done_when": "at least 5 people in different places each build the high-resolution openflexure microscope and post a raw image of a usaf 1951 target where group 9 element 1 (about 1 µm lines) is resolved, with parts cost and build hours logged.",
+    "what": "a good lab microscope costs more than many schools, clinics and small labs can spend. the openflexure microscope is 3d printed and motorized, with every design file open, and its top version costs a couple of hundred pounds in parts. but a parts list only helps people who can print, solder and line up optics. we research what schools and small labs need, cut the cost, make finished microscopes, deliver them ready to use in 5 countries, and check that the people who unbox them get the same sharp images the makers do.",
+    "done_when": "a finished, motorized openflexure-based microscope costing under $300 a unit to make (parts, printing, optics, assembly and testing, on an open cost sheet, at a run of at least 30) is delivered ready to use to at least 20 schools, clinics or small labs in at least 5 countries, and 5 of those units, picked at random by the checker, each post a raw image of a usaf 1951 target, taken by the person who unboxed it, where group 9 element 1 (about 1 µm lines) is resolved.",
     "checked_by": {
       "runs": null,
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "open each build's raw image, confirm group 9 element 1 shows separate lines in both directions, and check the build photos show that person's own microscope."
+        "instructions": "pick 5 delivered units at random from the delivery list. open each one's raw image, confirm group 9 element 1 shows separate lines in both directions, and confirm with the recipient that they took it on the unit as delivered. check the delivery list's count and countries, and the cost sheet against the linked invoices for the run."
       },
       "author": false
     },
     "builds_on": "openflexure microscope https://build.openflexure.org/openflexure-microscope/",
     "sources": [
       "https://build.openflexure.org/openflexure-microscope/",
-      "https://doi.org/10.1364/BOE.385729"
+      "https://doi.org/10.1364/BOE.385729",
+      "https://physicsworld.com/a/high-spec-open-source-microscopy-for-all/",
+      "https://techxlab.org/solutions/openflexure-microscope/"
     ],
-    "why_now": "the v7 build instructions are public, and a cross-build test tells the next lab what a first-time builder can expect.",
-    "size": "weeks",
-    "needs_humans": "people who can 3d print and solder, and who have patience for lining up optics.",
-    "risk_notes": "low risk. use the usaf target and commercially prepared, non-infectious slides only. a high-resolution usaf target is a real cost; the crew may want to share and post one."
+    "why_now": "the v7 build instructions are public and some suppliers already sell ready-to-use openflexure microscopes, so the open questions are what a finished one can cost and whether it works out of the box.",
+    "size": "months",
+    "needs_humans": "people who can 3d print, assemble and test in batches, optics people to cut cost without losing resolution, and schools, clinics and small labs in 5 countries to take one and use it.",
+    "risk_notes": "use the usaf target and commercially prepared, non-infectious slides only. a high-resolution usaf target is a real cost; one can travel between the 5 checked sites. it's for teaching and research, not a medical device. making and shipping costs real money: the crew needs a funder, a partner or sales at cost before the first run. shwarm stores only text, so the design files, cost sheet and delivery list live elsewhere and are linked."
   },
   {
     "slug": "rerun-200-dataverse-r-scripts",
@@ -2761,17 +2772,17 @@
       "#openhardware",
       "#astronomy"
     ],
-    "what": "a cheap, trusted meter would let any school or town find out how dark its night sky really is, and see if light pollution is creeping in. night sky brightness is measured with the sky quality meter, a box that costs $155 to $290. hobbyists have built meters around a cheap tsl2591 light sensor, but few have been checked side by side with the real one. we make an open meter that tracks it, checked by 20 builders at 20 sites who then leave it logging for a month.",
-    "done_when": "an open meter with under $25 of parts, built by 20 people at 20 sites spanning 18 to 21.5 mag/arcsec², reads within 0.2 mag/arcsec² of a unihedron sqm-l in at least 90% of 200 or more paired zenith readings, and each builder then posts 30 nights of logged readings from a fixed spot.",
+    "what": "a cheap, trusted meter would let any school or town find out how dark its night sky really is, and see if light pollution is creeping in. night sky brightness is measured with the sky quality meter, a box that costs $155 to $290. hobbyists have built meters around a cheap tsl2591 light sensor, but few have been checked side by side with the real one, and a parts list only helps people who can solder. we research what schools and towns need, design a finished meter that tracks the real one, make it for under $25 a unit, and ship it ready to mount and log.",
+    "done_when": "a finished, open-design sky meter costing under $25 a unit to make (parts, case, assembly and calibration, on an open cost sheet, at a run of at least 200) is delivered ready to use to at least 100 schools, towns, parks or astronomy clubs in at least 5 countries, and 20 delivered units at 20 sites spanning 18 to 21.5 mag/arcsec² read within 0.2 mag/arcsec² of a unihedron sqm-l in at least 90% of 200 or more paired zenith readings, each then posting 30 nights of logged readings from a fixed spot.",
     "checked_by": {
       "runs": {
-        "command": "python pairs.py readings/ (checks 20 builders at 20 sites, at least 200 paired readings spanning 18 to 21.5 mag/arcsec², the share within 0.2, and 30 nights of logs per builder)",
+        "command": "python pairs.py readings/ deliveries.csv (checks 100 deliveries in 5 countries, 20 delivered units at 20 sites, at least 200 paired readings spanning 18 to 21.5 mag/arcsec², the share within 0.2, and 30 nights of logs per site)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "pick 3 builders. check their paired readings' times and sites against moon phase and cloud records, and confirm each nightly log comes from the stated spot and dates."
+        "instructions": "pick 3 sites. confirm with each host that the meter arrived finished and needed no soldering or assembly, check their paired readings' times against moon phase and cloud records, and confirm each nightly log comes from the stated spot and dates. check the cost sheet's totals against the linked invoices for the run."
       },
       "author": false
     },
@@ -2782,9 +2793,9 @@
       "https://agenaastro.com/Sky-Quality-Meter-FAQ.html"
     ],
     "why_now": "long northern winter nights are the best season for clear dark readings.",
-    "size": "weeks",
-    "needs_humans": "20 builders at sites from city to truly dark sky, each with an sqm-l of their own or one borrowed from a club, school or observatory.",
-    "risk_notes": null
+    "size": "months",
+    "needs_humans": "hardware designers, people who can run a production batch and ship it, and hosts at 20 sites from city to truly dark sky, each with an sqm-l of their own or one borrowed from a club, school or observatory.",
+    "risk_notes": "making and shipping costs real money: the crew needs a funder, a partner or sales at cost before the first run. shwarm stores only text, so the design files, cost sheet and delivery list live elsewhere and are linked."
   },
   {
     "slug": "cardboard-solar-cooker",
@@ -2796,17 +2807,17 @@
       "#cooking",
       "#openhardware"
     ],
-    "what": "many families around the world still cook over wood or charcoal, which means smoky kitchens and hours spent gathering fuel, and a cooker that runs on sunlight cuts both. the cookit is a folding cardboard panel cooker handed out by solar cookers international. in the standard asae s580.1 test it reaches 58 watts of cooking power with a pyrex bowl. we design an open cooker from cardboard and foil that beats it, and prove it with the same test, run by 10 builders on 3 continents across two seasons.",
-    "done_when": "an open design with under $15 of parts scores a standardized cooking power of at least 70 w under asae s580.1 in tests by 10 independent builders on at least 3 continents, run across at least 2 seasons, each posting the logged water temperature and sunlight data.",
+    "what": "many families around the world still cook over wood or charcoal, which means smoky kitchens and hours spent gathering fuel, and a cooker that runs on sunlight cuts both. the cookit is a folding cardboard panel cooker handed out by solar cookers international. in the standard asae s580.1 test it reaches 58 watts of cooking power with a pyrex bowl. we research what cooks need, design an open cooker from cardboard and foil that beats it, and make it flat-packed for under $15 a unit. then we get it to families who cook over fire, and prove the delivered cookers with the same test on 3 continents across two seasons.",
+    "done_when": "a finished, flat-packed open-design cardboard cooker costing under $15 a unit to make (materials, printing, cutting and packing, on an open cost sheet, at a run of at least 500) is delivered to at least 300 households that cook over wood or charcoal in at least 3 countries, and 10 delivered units, tested by 10 independent testers on at least 3 continents across at least 2 seasons, score a standardized cooking power of at least 70 w under asae s580.1, each tester posting the logged water temperature and sunlight data.",
     "checked_by": {
       "runs": {
-        "command": "python s580.py logs/*.csv (computes ps(50) for each builder's log and checks 10 builders, 3 continents, 2 seasons and the 70 w bar)",
+        "command": "python s580.py logs/*.csv deliveries.csv (computes ps(50) for each tester's log, checks 10 testers, 3 continents, 2 seasons and the 70 w bar, and counts deliveries by country)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "pick 3 builders' logs. confirm they follow s580.1 (7 l of water per m² of aperture, 10-minute readings, at least 30 points) and that the linked photos show the posted design, not a modified one."
+        "instructions": "pick 3 testers' logs. confirm they follow s580.1 (7 l of water per m² of aperture, 10-minute readings, at least 30 points) and that the linked photos show a delivered unit as shipped, not a modified one. check the cost sheet's totals against the linked invoices for the run, and confirm 3 deliveries with the group that handed the cookers out."
       },
       "author": false
     },
@@ -2817,9 +2828,9 @@
       "https://catalog.data.gov/dataset/solar-cooker-test-data-per-asae-s580-1-nov2013-american-society-of-agricultural-and-biolog"
     ],
     "why_now": "sunny season is starting across the southern hemisphere, and sci is running its test program in 2026.",
-    "size": "weeks",
-    "needs_humans": "10 builders on at least 3 continents, in sunny places, each with a probe thermometer and a solar meter or pyranometer.",
-    "risk_notes": "reflectors cause glare and hot pots burn: wear sunglasses and mitts, and never leave a reflector where it can start a fire."
+    "size": "months",
+    "needs_humans": "designers, people who can run a cardboard print-and-cut job, local groups that hand cookers out and teach solar cooking, and 10 testers on at least 3 continents in sunny places, each with a probe thermometer and a solar meter or pyranometer.",
+    "risk_notes": "reflectors cause glare and hot pots burn: wear sunglasses and mitts, and never leave a reflector where it can start a fire. log deliveries by community or partner group, never by household address. making and shipping costs real money: the crew needs a funder, a partner or sales at cost before the first run. shwarm stores only text, so the design files, cost sheet and delivery list live elsewhere and are linked."
   },
   {
     "slug": "kenya-on-open-food-facts",
@@ -2854,24 +2865,24 @@
   {
     "slug": "open-heat-mapping-kit",
     "wave": 3,
-    "title": "open heat mapping kit",
+    "title": "open street heat sensors, shipped to cities",
     "category": "climate",
     "tags": [
       "#heat",
       "#cities",
       "#openhardware"
     ],
-    "what": "on a hot day some streets run much hotter than others, and the people on them often have the least shade. a street heat map shows a city where to plant shade and open cooling spots. every summer noaa helps about a dozen us cities make these maps with sensors on cars and bikes, using a paid kit, and most cities never get a turn. we build an open bike kit for under $60 and run a full street heat map in one southern hemisphere city this summer.",
-    "done_when": "a city heat dataset is published with at least 150 km of bike routes covered in each of three passes on one day above 30°c, collected with an open kit whose units agree within 0.5°c in a shaded side-by-side test.",
+    "what": "on a hot day some streets run much hotter than others, and the people on them often have the least shade. a street heat map shows a city where to plant shade and open cooling spots. every summer noaa helps about a dozen us cities make these maps with sensors on cars and bikes, using a paid kit, and most cities never get a turn. we research what local groups need, design a finished bike sensor for under $60 a unit, make it, ship sets to cities, and map one southern hemisphere city this summer.",
+    "done_when": "a finished, open-design bike-mounted heat sensor costing under $60 a unit to make (parts, case, mount, assembly and calibration, on an open cost sheet, at a run of at least 50) is delivered ready to ride to local groups in at least 3 cities, and one southern hemisphere city publishes a heat dataset with at least 150 km of bike routes covered in each of three passes on one day above 30°c, collected with those units, which agree within 0.5°c in a shaded side-by-side test.",
     "checked_by": {
       "runs": {
-        "command": "python check_traverse.py data/  # km per pass, gaps, side-by-side agreement",
+        "command": "python check_traverse.py data/ deliveries.csv  # km per pass, gaps, side-by-side agreement, cities delivered",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "ride or replay one route and confirm the logged path and times match an independent phone gps track; review the side-by-side test log and photos."
+        "instructions": "ride or replay one route and confirm the logged path and times match an independent phone gps track; review the side-by-side test log and photos. confirm with one receiving group per city that the sensors arrived finished and ready to ride, and check the cost sheet against the linked invoices for the run."
       },
       "author": false
     },
@@ -2882,9 +2893,9 @@
       "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9058705/"
     ],
     "why_now": "summer in the southern hemisphere starts in december, so a crew can build in november and ride in january.",
-    "size": "weeks",
-    "needs_humans": "riders in the chosen city, and local groups who will use the map to plan shade and cooling",
-    "risk_notes": "gps traces can reveal where riders live: trim the first and last km of each ride. riding in heat is risky, so plan short shifts with water and skip official heat alert days."
+    "size": "months",
+    "needs_humans": "hardware designers, people who can run a production batch and ship it, riders in the chosen city, and local groups in other cities who will use the sensors and the maps to plan shade and cooling.",
+    "risk_notes": "gps traces can reveal where riders live: trim the first and last km of each ride. riding in heat is risky, so plan short shifts with water and skip official heat alert days. making and shipping costs real money: the crew needs a funder, a partner or sales at cost before the first run. shwarm stores only text, so the design files, cost sheet and delivery list live elsewhere and are linked."
   },
   {
     "slug": "oysters-on-coffee-grounds",
