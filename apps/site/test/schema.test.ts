@@ -211,7 +211,14 @@ describe('schema', () => {
     run("UPDATE node SET live_at = '2026-10-09T08:00:00Z' WHERE id = ?", live)
     const closed = shwarm('voxel-renderer', myra, { state: 'closed' })
     run('INSERT INTO seat (node_id, person_id, number, joined_at) VALUES (?, ?, 1, ?)', lobby, myra, T)
+    const rolled = (id: number) =>
+      run("INSERT INTO node_stats (node_id, score, status_line, stale_at, updated_at) VALUES (?, 0.5, '1 seat from kickoff.', NULL, ?)", id, T)
+    rolled(lobby)
+    rolled(live)
     db.exec(readFileSync(new URL(files.find(f => f.startsWith('0016'))!, dir), 'utf8'))
+    // the lobby's stats are due again at once, so the next rollup rewrites them; the live one's are left alone
+    expect(get('SELECT stale_at FROM node_stats WHERE node_id = ?', lobby).stale_at < T).toBe(true)
+    expect(get('SELECT stale_at FROM node_stats WHERE node_id = ?', live).stale_at).toBeNull()
     expect(get('SELECT state, live_at, lobby_size FROM node WHERE id = ?', lobby)).toEqual({ state: 'live', live_at: T, lobby_size: 2 })
     expect(get('SELECT state, live_at FROM node WHERE id = ?', live)).toEqual({ state: 'live', live_at: '2026-10-09T08:00:00Z' })
     expect(get('SELECT state, live_at FROM node WHERE id = ?', closed)).toEqual({ state: 'closed', live_at: null })

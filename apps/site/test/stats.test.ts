@@ -310,6 +310,22 @@ describe('stats rollup', () => {
     expect(stats(w).alpha).toMatchObject({ upvotes: 33, posts: 6, impact: 5.5 }) // all-time totals stay
   })
 
+  it('rewrites the lobby-era stats of a quiet shwarm that 0016 moved to live, at the next run (decided Oct 9)', async () => {
+    const w = new World()
+    const myra = await person(w.db, 'myra')
+    await w.shwarm(seed(myra), { title: 'quiet' })
+    await rollupStats(w.db, T0)
+    await rollupStats(w.db, T0 + 8 * DAY) // cooled off: nothing is due, and nothing changes
+    // as staging had it: a lobby, rolled up as one
+    w.db.raw.prepare("UPDATE node SET state = 'lobby', live_at = NULL WHERE path = 'quiet'").run()
+    w.db.raw.prepare("UPDATE node_stats SET score = 0.5, status_line = '1 seat from kickoff.', stale_at = NULL").run()
+    expect(await rollupStats(w.db, T0 + 8 * DAY + 5 * MIN)).toMatchObject({ nodes: 0 })
+    w.db.raw.exec(readFileSync(new URL('../migrations/0016_no_lobby.sql', import.meta.url), 'utf8'))
+    expect(await rollupStats(w.db, T0 + 8 * DAY + 10 * MIN)).toMatchObject({ nodes: 1, warm: 1 })
+    expect(stats(w).quiet).toMatchObject({ score: 0, status_line: 'no submission yet.', stale_at: null })
+    expect(w.node('quiet').state).toBe('live')
+  })
+
   it('takes a backlog over several runs without skipping any', async () => {
     const w = new World()
     const myra = await person(w.db, 'myra')
