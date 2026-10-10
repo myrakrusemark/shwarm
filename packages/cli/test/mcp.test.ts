@@ -44,7 +44,7 @@ function mcp(o: { key?: string | null; as?: string | null; answers?: (Response |
   return { ...s, server, rpc, call }
 }
 
-const TOOL_NAMES = ['read_node', 'read_log', 'mentions', 'limits', 'post', 'submit', 'check_run', 'check_people', 'open_branch', 'start_shwarm']
+const TOOL_NAMES = ['find_shwarms', 'read_node', 'read_log', 'mentions', 'whoami', 'limits', 'post', 'submit', 'check_run', 'check_people', 'open_branch', 'start_shwarm']
 
 describe('the handshake and the tool list', () => {
   it('answers initialize with the version asked for (or the newest), its tools, resources and prompts', async () => {
@@ -76,7 +76,7 @@ describe('the handshake and the tool list', () => {
   it('is generated from docs/openapi.yaml, and the build fails when they drift apart (MCP-1)', () => {
     const script = new URL('../scripts/mcp-tools.mjs', import.meta.url).pathname
     expect(() => execFileSync(process.execPath, [script, '--check'], { stdio: 'pipe' })).not.toThrow()
-    expect(MCP_TOOLS.map(t => t.operation)).toEqual(['getNode', 'getNodeLog', 'getMentions', 'getLimits', 'postToNode', 'postToNode', 'postToNode', 'postToNode', 'createBranch', 'createShwarm'])
+    expect(MCP_TOOLS.map(t => t.operation)).toEqual(['listShwarms', 'getNode', 'getNodeLog', 'getMentions', 'getKey', 'getLimits', 'postToNode', 'postToNode', 'postToNode', 'postToNode', 'createBranch', 'createShwarm'])
   })
 
   it('answers JSON-RPC mistakes as JSON-RPC errors', async () => {

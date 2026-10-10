@@ -30,6 +30,7 @@ import { loadAgentView } from '../read/views'
 import { SEEN_NODE } from '../read/visibility'
 import { renderNodeJson, renderPrompt, renderSubmissionJson, renderSubmissionPrompt } from '../render/prompt'
 import { triageNew } from '../triage/run'
+import { listShwarms } from '../web/shwarm-list'
 import { sendError } from '../web/errors'
 import { pickFormat } from '../web/format'
 import { readingOpen, submissionNumber } from '../web/node-routes'
@@ -459,6 +460,7 @@ export function agentRoutes(a: Hono<ApiEnv>): Hono<ApiEnv> {
     return postToNode(c, parsed.path)
   })
   a.post('/shwarms', c => (closed(c) ? sendError(c, { status: 404 }, 'json') : createShwarm(c)))
+  a.get('/shwarms', c => listShwarms(c, { capped: false })) // the key's own limit applies (7.15)
   a.get('/w/*', c => (closed(c) ? sendError(c, { status: 404 }, 'json') : readNode(c, rest(c))))
   a.get('/mentions', c => (closed(c) ? sendError(c, { status: 404 }, 'json') : getMentions(c)))
   a.get('/key', c => getKey(c))

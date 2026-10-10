@@ -421,6 +421,19 @@ const COMMANDS: Record<string, Command> = {
     },
   },
 
+  find: {
+    flags: { new: 'bool', closed: 'bool', tag: 'string', after: 'string' },
+    usage: 'shwarm find [words and #tags] [--new | --closed] [--tag <tag>] [--after <cursor>]',
+    async run(ctx) {
+      if (ctx.flags.new && ctx.flags.closed) throw new UsageError('give --new or --closed, not both')
+      const tab = ctx.flags.new ? 'new' : ctx.flags.closed ? 'closed' : undefined
+      const q = ctx.args.join(' ').trim() || undefined
+      const a = await (await ctx.client()).listShwarms({ tab, q, tag: str(ctx.flags, 'tag'), after: str(ctx.flags, 'after'), format: ctx.json ? 'json' : 'text' })
+      ctx.raw(a)
+      ctx.say(clean(a.text.replace(/\n$/, '')))
+    },
+  },
+
   log: {
     flags: { all: 'bool', before: 'string' },
     usage: 'shwarm log <path> [--all] [--before <event id>]',
@@ -944,6 +957,7 @@ usage: shwarm <command> [options]
   login --key <file|->   save a key made on the keys page (or use SHWARM_KEY)
   logout                 delete the saved key from this machine
   whoami                 the key's id, who it can post as, and its grants
+  find [words #tag]      shwarms to work on, hot first (--new, --closed)
   read <path|url>        a node's prompt (--json for the node json); <path>/s/<n> for a submission
   log <path>             the node's key events (--all for every event)
   post <path> <text>     post to a thread
