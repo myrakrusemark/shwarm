@@ -11,8 +11,7 @@ The plan for getting all of shwarm live at https://shwarm.org, so Myra can invit
 Only what waits on Myra. Claude adds an item when something needs her and removes it once it's settled; her answers land in `tracker/replies.json` under the item's id. Shwarm cards that wait on her approval show on the page by themselves.
 
 - [m-signup] **your turn, step 3 of 6 toward beta:** steps 1–2 are done (shwarm.org runs the new code on the holding page, your two addresses are on the sign-up list, new shwarms are paused). Make your account at https://shwarm.org/join, click the email link, then say done. Next Claude makes you admin, shows you the import list, and imports.
-- [m-npm] **npm publish of `@shwarm/cli`:** you chose to make the repo public; Claude does that once the item below is settled. Your part: on npmjs.com, in the `@shwarm/cli` package settings, add the trusted publisher (GitHub, repo myrakrusemark/shwarm, workflow publish-cli.yml). Say done when it's set.
-- [m-public] **making the repo public:** the history scan is clean (no secrets, no address), and the private risk notes are out of the files now. They are still in older commits: short product notes such as "no id software files" or "pin the reference rig". OK to go public with them in the history (recommended), or rewrite the history first (slower, and every copy of the repo must be re-cloned)?
+- [m-npm] **npm publish of `@shwarm/cli`:** the repo is public now. Your part: on npmjs.com, in the `@shwarm/cli` package settings, add the trusted publisher (GitHub, repo myrakrusemark/shwarm, workflow publish-cli.yml). Say done, and Claude runs the publish.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. Workers Paid ($5/month) for argon2id passwords was offered and declined for now (Oct 8): the beta uses PBKDF2, and the switch is a todo before the public opens. Claude asks before any spend.
 
@@ -368,11 +367,12 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - **who:** Claude adds records; Myra clicks verify in Resend · **needs:** 0.7, 0.8, 1.8a
 - **done when:** a mail from Gmail to support@ arrives and Myra's reply comes back; the domain shows verified in Resend; a test send scores 9/10 or better on mail-tester with SPF, DKIM and DMARC passing.
 
-**1.10 Make the repo public**
+**1.10 Make the repo public** · done
 - *(Oct 10: the launch shwarms' risk notes left the tree. They live in `docs/launch-risk-notes.json` ({slug: risk_notes}), which is git-ignored and read by nothing; launch-shwarms.json and its .md mirror no longer hold them, and a seed test fails if one comes back. shwarm-ideas.json's working copy is clean too, but its committed copy keeps the ideas' notes until that file's pending edits are committed. They are still in earlier commits, so the history check below decides whether that history is rewritten or accepted. `tracker/replies.json` and `tracker/proof.json` were already untracked.)*
 - **what:** README, CONTRIBUTING, SECURITY.md, code licenses per A14, the A2 license on docs and content. Before flipping to public: move the launch shwarms' private risk notes (A18) and `tracker/replies.json` out of the repo, and check git history for anything private (`git grep` plus a gitleaks scan of all commits).
 - **who:** Claude; Myra approves · **needs:** 0.3, A2, A14, 1.2
 - **done when:** the repo is public.
+- *(Oct 10: public at https://github.com/myrakrusemark/shwarm, made public by Myra. Before it: a gitleaks scan of all history (only the planted fake key on the old ci-secret-test branch), the staging deploy limited to pushes to this repo, example test addresses, the private inbox address taken out, tracker replies and card verdicts made local, and the risk notes moved to the gitignored docs/launch-risk-notes.json. The notes stay in older commits; Myra chose to go public with them there.)*
 
 **1.11 Apply to Open Source Collective**
 - **what:** Myra applies the day the repo goes public; Claude drafts the application text (what shwarm is, the license, the repo, what donations pay for).
