@@ -4,7 +4,8 @@
 // branch, new, mentions and --follow, limits and log; the exit codes (CLI-16) for each kind of refusal; --as with no
 // path refused before anything reaches the site; and a signed post through staging's password lock on its own host.
 // Go-live 7.8: `shwarm run` from fixture accounts, with a real repo and the real `sh`: a run report that counts, own
-// work and a taken slot refused before anything runs, and a link with a wrong hash refused before anything runs.
+// work and a taken slot refused before anything runs, and a link with a wrong hash refused before anything runs; a
+// command that prints nothing posts its empty log; a branch under a passed shwarm is refused before anything runs.
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
@@ -19,6 +20,7 @@ import { systemGit, type Git } from '../../../packages/cli/src/run'
 import { ALL_PERMS, keyFor, verifiedPerson, type Key } from './agent-client'
 import { fakeFetch, testEnv } from './browser'
 import { T0 } from './d1'
+import { schemaErrors } from './contract'
 import { stagingWorld } from './node-fixture'
 
 const SITE = 'https://shwarm.org'
@@ -299,11 +301,11 @@ describe('exit codes and refusals against the Worker', () => {
 })
 
 describe('shwarm run (go-live 7.8)', () => {
-  /** A branch whose done test is two runs of ./check.sh, cleared by triage, and ana's submission on it linking the repo and a file. */
-  async function rehearsal(w: Awaited<ReturnType<typeof world>>, fileSha = LINK_SHA) {
+  /** A branch whose done test is two runs of ./check.sh (or `command`), cleared by triage, and ana's submission on it linking the repo and a file. */
+  async function rehearsal(w: Awaited<ReturnType<typeof world>>, fileSha = LINK_SHA, command = './check.sh') {
     await rm(join(repo.marks, 'ran'), { force: true })
     const b = await w.shwarm(
-      ['branch', ROOT, '--as', '@myra/m-04', '--title', 'rehearsal check', '--what', 'a rehearsal of the run loop.', '--done-when', './check.sh in the rehearsal repo prints ok.', '--runs', './check.sh', '--runs-count', '2', '--no-author'],
+      ['branch', ROOT, '--as', '@myra/m-04', '--title', 'rehearsal check', '--what', 'a rehearsal of the run loop.', '--done-when', './check.sh in the rehearsal repo prints ok.', '--runs', command, '--runs-count', '2', '--no-author'],
       { key: w.keys.myra },
     )
     expect(b.code).toBe(0)
@@ -324,7 +326,7 @@ describe('shwarm run (go-live 7.8)', () => {
     const kai = await verifiedPerson(w.db, 'kai')
     const kaiKey = await keyFor(w.db, kai.id, { canPostAs: '@kai/*' })
 
-    const first = await w.shwarm(['run', `${path}/s/${sub.number}`, '--as', '@kai/runner', '--yes', '--machine', 'linux, rtx 3060'], { key: kaiKey })
+    const first = await w.shwarm(['run', `${path}/s/${sub.number}`, '--as', '@kai/runner', '--yes', '--no-container', '--machine', 'linux, rtx 3060'], { key: kaiKey })
     expect(first).toMatchObject({ code: 0, out: 'pass recorded. the submission is in review.' })
     expect(first.err).toContain('  command     ./check.sh')
     expect(await runs()).toBe(1)
@@ -345,10 +347,10 @@ describe('shwarm run (go-live 7.8)', () => {
 
     // a second run from another of kai's names, and one on ana's own work: refused, nothing run, nothing posted
     const before = posts(w)
-    const again = await w.shwarm(['run', path, '--as', '@kai/other', '--yes', '--json'], { key: kaiKey })
+    const again = await w.shwarm(['run', path, '--as', '@kai/other', '--yes', '--no-container', '--json'], { key: kaiKey })
     expect(again.code).toBe(4)
     expect(JSON.parse(again.out)).toMatchObject({ error: 'slot_taken' })
-    const own = await w.shwarm(['run', path, '--as', '@ana/runner', '--yes'], { key: w.keys.ana })
+    const own = await w.shwarm(['run', path, '--as', '@ana/runner', '--yes', '--no-container'], { key: w.keys.ana })
     expect(own.code).toBe(3)
     expect(own.err).toBe(`shwarm: #${sub.number} is work posted under @ana (own_work)`)
     expect(await runs()).toBe(1)
@@ -356,7 +358,7 @@ describe('shwarm run (go-live 7.8)', () => {
 
     // the second person's run is the last check the done test asks for: the submission passes and the node closes
     const rowan = await verifiedPerson(w.db, 'rowan')
-    const second = await w.shwarm(['run', path, '--as', '@rowan/runner', '--yes'], { key: await keyFor(w.db, rowan.id, { canPostAs: '@rowan/*' }) })
+    const second = await w.shwarm(['run', path, '--as', '@rowan/runner', '--yes', '--no-container'], { key: await keyFor(w.db, rowan.id, { canPostAs: '@rowan/*' }) })
     expect(second).toMatchObject({ code: 0, out: 'pass recorded. the submission is passed, and the node passed.' })
     expect(w.get('SELECT state FROM node WHERE path = ?', path)).toEqual({ state: 'closed' })
     expect(await runs()).toBe(2)
@@ -367,12 +369,45 @@ describe('shwarm run (go-live 7.8)', () => {
     const { path, sub } = await rehearsal(w, createHash('sha256').update('not the diff').digest('hex'))
     const kai = await verifiedPerson(w.db, 'kai')
     const before = posts(w)
-    const r = await w.shwarm(['run', path, '--as', '@kai/runner', '--yes', '--json'], { key: await keyFor(w.db, kai.id, { canPostAs: '@kai/*' }) })
+    const r = await w.shwarm(['run', path, '--as', '@kai/runner', '--yes', '--no-container', '--json'], { key: await keyFor(w.db, kai.id, { canPostAs: '@kai/*' }) })
     expect(r.code).toBe(4)
     expect(JSON.parse(r.out)).toMatchObject({ error: 'link_mismatch', link: 0, expected: createHash('sha256').update('not the diff').digest('hex'), got: LINK_SHA })
     expect(w.fetched).toContain(LINK_URL)
     expect(await runs()).toBe(0)
     expect(posts(w)).toBe(before)
     expect(w.get('SELECT COUNT(*) AS n FROM check_report WHERE submission_id = ?', sub.id)).toEqual({ n: 0 })
+  })
+
+  it('posts the empty log of a command that prints nothing, it counts, and the submission page shows it', async () => {
+    const w = await world()
+    const { path, sub } = await rehearsal(w, LINK_SHA, 'true')
+    const kai = await verifiedPerson(w.db, 'kai')
+    const r = await w.shwarm(['run', `${path}/s/${sub.number}`, '--as', '@kai/runner', '--yes', '--no-container'], { key: await keyFor(w.db, kai.id, { canPostAs: '@kai/*' }) })
+    expect(r).toMatchObject({ code: 0, out: 'pass recorded. the submission is in review.' })
+    expect(w.get('SELECT verdict, exit_code, log_inline FROM check_report WHERE submission_id = ?', sub.id)).toEqual({ verdict: 'pass', exit_code: 0, log_inline: '' })
+    const page = await app.fetch(new Request(`${SITE}/w/${path}/s/${sub.number}`, { headers: { accept: 'text/html', 'cf-connecting-ip': '203.0.113.9' } }), w.env)
+    expect(await page.text()).toContain('<summary>signed log</summary>')
+  })
+
+  it("refuses a branch under a passed shwarm before anything runs, in the server's words", async () => {
+    const w = await world()
+    const { path, sub } = await rehearsal(w)
+    w.db.raw.prepare("UPDATE node SET state = 'closed' WHERE path = ?").run(ROOT)
+    // the Node JSON says what locks it, though the branch's own state stays live
+    const node = JSON.parse((await w.shwarm(['read', path, '--json'])).out)
+    expect(node).toMatchObject({ state: 'live', locked_by: { path: ROOT, state: 'closed' } })
+    expect(schemaErrors('Node', node)).toEqual([])
+    const key = await keyFor(w.db, (await verifiedPerson(w.db, 'kai')).id, { canPostAs: '@kai/*' })
+    const before = posts(w)
+    for (const ref of [`${path}/s/${sub.number}`, path]) {
+      const r = await w.shwarm(['run', ref, '--as', '@kai/runner', '--yes', '--no-container', '--json'], { key })
+      expect(r.code, ref).toBe(4)
+      expect(JSON.parse(r.out), ref).toEqual({ error: 'shwarm_closed', message: `${ROOT} passed. it's locked: it takes nothing new`, node: path, state: 'closed', locked_by: ROOT })
+    }
+    expect(await runs()).toBe(0)
+    expect(posts(w)).toBe(before)
+    // the server's own refusal, for a check sent anyway, is the same
+    const sent = await w.shwarm(['check', `${path}/s/${sub.number}`, '--as', '@kai/runner', '--fail', '--repro', 'it locks.', '--json'], { key })
+    expect(JSON.parse(sent.out)).toEqual({ error: 'shwarm_closed', message: `${ROOT} passed. it's locked: it takes nothing new`, node: path, state: 'closed', locked_by: ROOT })
   })
 })

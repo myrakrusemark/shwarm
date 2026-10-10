@@ -301,6 +301,7 @@ export function renderNodeJson(v: AgentView): Record<string, unknown> {
   const parent = v.chain.ancestors[v.chain.ancestors.length - 1]
   const sub = openReview(v.chain, v.subs)
   const r = sub ? review(n.spec, n.author, sub, v.checks.get(sub.post_id) ?? []) : null
+  const locked = lockedBy(v.chain)
   const s = n.stats
   const post = (p: PromptPost, pinned: boolean) => ({
     id: p.id,
@@ -325,6 +326,9 @@ export function renderNodeJson(v: AgentView): Record<string, unknown> {
     // on live, so state is one of live, closed, dead_end (no lobby, decided Oct 9) and in_review is its own flag.
     state: n.state,
     in_review: n.in_review === 1,
+    // A branch under an ended node is locked with it (lockedBy), though its own state stays live; this names the node
+    // above that ended, as a shwarm_closed refusal's locked_by does, so a client can refuse before acting. OPEN (#92, #99).
+    ...(locked && locked !== n ? { locked_by: { path: locked.path, state: locked.state } } : {}),
     author: n.author,
     ...(n.posted_by !== n.author ? { posted_by: n.posted_by } : {}),
     momentum: { people: s?.people ?? 1, posts_per_day: s?.posts_per_day ?? 0, upvotes: s?.upvotes ?? 0, upvotes_per_post: Math.round((s?.impact ?? 0) * 100) / 100 },

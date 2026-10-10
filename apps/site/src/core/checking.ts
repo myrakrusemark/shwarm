@@ -166,7 +166,8 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
     if (typeof inp.submissionHash !== 'string') throw bad('a run report names the submission hash it ran')
     if (typeof inp.scriptHash !== 'string' || !/^[0-9a-f]{7,64}$/i.test(inp.scriptHash)) throw bad('a run report names the check script hash (hex)')
     if (!Number.isInteger(inp.exit)) throw bad('a run report gives the exit code')
-    if (!inlineLog && !logLink) throw bad('a run report carries the full log, inline or linked')
+    // A command that prints nothing has an empty log, and that's still the full log.
+    if (inlineLog === null && !logLink) throw bad('a run report carries the full log, inline or linked')
     const env = needText(inp.env, 'env', MAX_ENV)
     return { submissionHash: inp.submissionHash.toLowerCase(), scriptHash: inp.scriptHash.toLowerCase(), exit: inp.exit as number, env }
   })() : null

@@ -396,6 +396,13 @@ describe('checks', () => {
     expect(linked.verdict).toBe('pass')
   })
 
+  it('takes an empty log as the full log of a command that printed nothing, but not a missing one', async () => {
+    await refused(w.runReport(agent(lumpy), MID, s.id, s.hash, 0, { log: undefined }), 'bad_request')
+    const r = await w.runReport(agent(lumpy), MID, s.id, s.hash, 0, { log: '' })
+    expect(r.verdict).toBe('pass')
+    expect(w.get('SELECT log_inline FROM check_report WHERE id = ?', r.id)).toEqual({ log_inline: '' })
+  })
+
   it('counts a nonzero exit as a fail with the log as its repro', async () => {
     const r = await w.runReport(agent(lumpy), MID, s.id, s.hash, 3)
     expect(r.verdict).toBe('fail')

@@ -9,7 +9,9 @@
 //   4. show the command and ask (--yes for scripts). 5. run it, unchanged. 6. post the signed run report.
 // Running: in a throwaway container when --container names an image (the recipe's podman flags: no network, not
 // root, no capabilities, limits), else on this machine with nothing from it but PATH: no SHWARM_KEY, no tokens, no
-// environment, a fresh HOME and TMPDIR. The container is the recipe's "should"; it isn't required. OPEN (#99).
+// environment, a fresh HOME and TMPDIR. The container is the recipe's "should"; it isn't required. OPEN (#99). But on
+// this machine the command can read the saved key, and its output is posted: so there, --yes also needs --no-container,
+// a terminal is asked again before the log is posted, and a log that holds a key is never posted.
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { createWriteStream } from 'node:fs'
@@ -17,7 +19,7 @@ import { lstat, readFile, realpath, stat } from 'node:fs/promises'
 import { arch, constants, cpus, platform } from 'node:os'
 import { join, resolve, sep } from 'node:path'
 import { StringDecoder } from 'node:string_decoder'
-import { grantFor, matchesPostAs, shortHash, submissionHash, type Link } from '@shwarm/protocol'
+import { grantFor, matchesPostAs, SECRET_PREFIX, shortHash, submissionHash, toBase64url, type Link } from '@shwarm/protocol'
 import type { KeyInfo } from './client'
 import { LocalRefusal, UsageError } from './errors'
 import { hashUrl } from './links'
@@ -33,6 +35,8 @@ export const TIMEOUT_EXIT = 124
 export type RunNode = {
   node: string
   state: string
+  /** On a node under one that passed or is a dead end: that node, which locks this one too. */
+  locked_by?: { path: string; state: string }
   author: string
   check: { author?: boolean; runs?: { command: string; count?: number } }
   review: { number: number } | null
@@ -74,8 +78,13 @@ export function refuseForNode(o: { node: RunNode; key: KeyInfo; as: string }): v
   if (!grantFor(key.grants, node.node)?.perms.includes('check'))
     throw new LocalRefusal(403, 'not_permitted', `this key can't check on ${node.node}`, { need: 'check', node: node.node })
   // The server's words from here on (core/checking.ts, core/context.ts).
-  if (node.state !== 'live')
-    throw new LocalRefusal(409, 'shwarm_closed', `${node.node} ${node.state === 'closed' ? 'passed' : 'is a dead end'}. it's locked: it takes nothing new`, { node: node.node, state: node.state })
+  const ended = node.state !== 'live' ? { path: node.node, state: node.state } : node.locked_by
+  if (ended)
+    throw new LocalRefusal(409, 'shwarm_closed', `${ended.path} ${ended.state === 'closed' ? 'passed' : 'is a dead end'}. it's locked: it takes nothing new`, {
+      node: node.node,
+      state: ended.state,
+      ...(ended.path === node.node ? {} : { locked_by: ended.path }),
+    })
   if (!node.check.runs) throw new LocalRefusal(400, 'bad_request', "this done test doesn't ask for runs")
 }
 
@@ -202,14 +211,17 @@ export type Engine = 'podman' | 'docker'
 
 /**
  * The recipe's container run (sandbox.md step 4): throwaway, no network, not root, no capabilities, 2 CPUs, 4 GB, 256
- * processes, a read-only root with a small /tmp, only the work folder mounted, and the time limit inside.
+ * processes, a read-only root with a small /tmp, only the work folder mounted, and the time limit inside. Named, so it
+ * can be stopped: the container runs under the engine (conmon, dockerd), so killing the engine's client leaves it going.
  */
-export function containerArgv(o: { engine: Engine; image: string; work: string; cwd: string; minutes: number; uid: number; gid: number }): string[] {
+export function containerArgv(o: { engine: Engine; image: string; name: string; work: string; cwd: string; minutes: number; uid: number; gid: number }): string[] {
   const inWork = o.cwd === o.work ? '/work' : '/work/' + o.cwd.slice(o.work.length + 1).split(sep).join('/')
   return [
     o.engine,
     'run',
     '--rm',
+    '--name',
+    o.name,
     '--network=none',
     ...(o.engine === 'podman' ? ['--userns=keep-id'] : ['--user', `${o.uid}:${o.gid}`]),
     '--cap-drop=ALL',
@@ -235,12 +247,28 @@ export function containerArgv(o: { engine: Engine; image: string; work: string; 
 /** An image reference, pinned or not; never something an engine would read as an option. */
 export const IMAGE_RE = /^[a-z0-9][a-z0-9._/:@-]*$/i
 
+/** How long past the time limit a container run may take before it's stopped from outside: the engine starting, and an image pull. */
+export const CONTAINER_GRACE_MS = 5 * 60_000
+
+/** Kills the named container (SIGKILL, in both engines), then removes it, if there is one yet. Never fails: it's the cleanup after a stop. */
+export async function removeContainer(engine: Engine, name: string, env: Record<string, string>): Promise<void> {
+  const engineDoes = (args: string[]) =>
+    new Promise<void>(done => {
+      const child = spawn(engine, args, { env, stdio: 'ignore' })
+      child.on('error', () => done())
+      child.on('close', () => done())
+    })
+  await engineDoes(['kill', name])
+  await engineDoes(['rm', '--force', name])
+}
+
 export type Outcome = { exit: number; timedOut: boolean; interrupted: boolean; seconds: number }
 
 /**
  * Step 5: runs argv in `cwd` with exactly `env`, the output (both streams, in the order they came) written to
  * `logFile` and passed to `onLine` a line at a time. Its own process group, so the time limit or Ctrl-C (`signal`)
- * stops everything it started.
+ * stops everything it started. What it doesn't start itself (a container) `stop` stops, and it's waited for. In a
+ * container the limit is `timeout`'s, inside; `graceMs` past it, it's stopped from here.
  */
 export function runCommand(o: {
   argv: string[]
@@ -248,6 +276,8 @@ export function runCommand(o: {
   env: Record<string, string>
   logFile: string
   limitMs: number
+  graceMs?: number
+  stop?: () => Promise<void>
   signal?: AbortSignal
   onLine?: (line: string) => void
 }): Promise<Outcome> {
@@ -270,7 +300,9 @@ export function runCommand(o: {
         log.write(chunk)
         show(chunk)
       })
+    let stopped: Promise<void> = Promise.resolve()
     const killAll = () => {
+      if (o.stop) stopped = o.stop()
       try {
         process.kill(-child.pid!, 'SIGKILL')
       } catch {
@@ -280,7 +312,7 @@ export function runCommand(o: {
     const timer = setTimeout(() => {
       timedOut = true
       killAll()
-    }, o.limitMs)
+    }, o.limitMs + (o.graceMs ?? 0))
     const onAbort = () => {
       interrupted = true
       killAll()
@@ -302,7 +334,8 @@ export function runCommand(o: {
       // In a container the limit is `timeout`'s, inside: 124 once the limit has passed.
       const limitHit = timedOut || (code === TIMEOUT_EXIT && Date.now() - started >= o.limitMs - 1000)
       const exit = limitHit ? TIMEOUT_EXIT : code ?? 128 + ((sig && constants.signals[sig]) || 0)
-      log.end(() => done({ exit, timedOut: limitHit, interrupted, seconds }))
+      // A container is gone before this answers, so its folder can be deleted.
+      void stopped.then(() => log.end(() => done({ exit, timedOut: limitHit, interrupted, seconds })))
     })
   })
 }
@@ -312,6 +345,19 @@ export async function inlineLog(file: string): Promise<{ text: string | null; by
   const bytes = await readFile(file)
   const text = bytes.length <= MAX_INLINE_LOG ? bytes.toString('utf8') : null
   return { text: text !== null && Buffer.byteLength(text) <= MAX_INLINE_LOG ? text : null, bytes: bytes.length, sha256: sha256(bytes) }
+}
+
+/**
+ * Whether the log holds an agent key: any shwarm_sk_ secret, or this key's seed (base64url, base64 or hex) without its
+ * prefix. On this machine the command can read the saved key file, and the log is posted for anyone to read. It catches
+ * a key printed as it is, not one the command disguised: only a container keeps the key out of reach. OPEN (#99).
+ */
+export async function leaksKey(file: string, seed: Uint8Array | null): Promise<boolean> {
+  const text = (await readFile(file)).toString('latin1')
+  if (text.includes(SECRET_PREFIX)) return true
+  if (!seed) return false
+  const b64 = Buffer.from(seed).toString('base64').replace(/=+$/, '')
+  return text.includes(toBase64url(seed)) || text.includes(b64) || text.toLowerCase().includes(Buffer.from(seed).toString('hex'))
 }
 
 /** The default git: the one on PATH. */

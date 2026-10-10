@@ -785,7 +785,7 @@ export const CheckRowView: FC<{ row: ReviewRow; n: NodeHead; sub: SubmissionRow;
   } catch {
     repro = null
   }
-  const inline = page && c.log_text
+  const inline = page && c.log_text != null // an empty log is a log too
   return (
     <li id={c.id} class={c.reset_at ? 'reset' : undefined}>
       <span class={c.verdict === 'pass' ? 'ck y' : 'ck n'}>{c.verdict === 'pass' ? '✓' : '✗'}</span>

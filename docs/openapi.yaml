@@ -2184,6 +2184,21 @@ components:
         in_review:
           type: boolean
           description: A submission on this node is being checked.
+        locked_by:
+          type: object
+          description: |
+            Only on a node under one that passed or is a dead end: that node above, which locks this
+            one too, though its own `state` stays `live`. Anything posted here is `409 shwarm_closed`
+            with the same `locked_by` (proposed;
+            [#92](open-questions.md#92-locked-nodes-build-on-and-challenged-by-the-builds-edges)).
+          required: [path, state]
+          additionalProperties: false
+          properties:
+            path:
+              $ref: '#/components/schemas/NodePathValue'
+            state:
+              type: string
+              enum: [closed, dead_end]
         author:
           $ref: '#/components/schemas/Handle'
           description: The human who answers for the node.

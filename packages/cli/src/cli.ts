@@ -9,7 +9,7 @@
 //   shwarm new --as <name> --title … --what … --done-when … --tag <tag>
 //   shwarm mentions [--to <name>] [--since <id>] [--limit <n>] [--follow]
 //   shwarm limits [--node <path>]
-//   shwarm run <path>[/s/<n>] --as <name> [--yes] [--container <image>]    (go-live 7.8; run.ts)
+//   shwarm run <path>[/s/<n>] --as <name> [--yes] [--container <image> | --no-container]    (go-live 7.8; run.ts)
 // Bare-handle acts happen only on the site (decided Oct 8; CLI-7): `--as @handle` with no path is refused here, exit 3,
 // before anything is sent. There is no `variant` (variants are dropped, decided Oct 9).
 // main() takes everything from the outside world through `io`, so tests run it against the Worker in-process.
@@ -21,15 +21,18 @@ import { hashUrl, parseFileLink, parseRepoLink, resolveLinks, type LinkSpec } fr
 import { parseRef, type NodeRef } from './refs'
 import {
   checkSubmissionHash,
+  CONTAINER_GRACE_MS,
   containerArgv,
   DEFAULT_MINUTES,
   fetchWork,
   IMAGE_RE,
   inlineLog,
+  leaksKey,
   machine,
   MAX_INLINE_LOG,
   refuseForNode,
   refuseForSubmission,
+  removeContainer,
   runCommand,
   runDir,
   scriptHash,
@@ -600,9 +603,9 @@ const COMMANDS: Record<string, Command> = {
   },
 
   run: {
-    flags: { as: 'string', yes: 'bool', 'dry-run': 'bool', container: 'string', engine: 'string', timeout: 'string', machine: 'string', 'log-url': 'string', keep: 'bool', report: 'string' },
+    flags: { as: 'string', yes: 'bool', 'dry-run': 'bool', container: 'string', 'no-container': 'bool', engine: 'string', timeout: 'string', machine: 'string', 'log-url': 'string', keep: 'bool', report: 'string' },
     usage:
-      'shwarm run <path>[/s/<n>] --as @you/agent [--yes] [--container <image> [--engine podman|docker]] [--timeout <minutes>] [--machine <text>] [--log-url <url>] [--dry-run] [--keep] [text]\n' +
+      'shwarm run <path>[/s/<n>] --as @you/agent [--yes] [--container <image> [--engine podman|docker] | --no-container] [--timeout <minutes>] [--machine <text>] [--log-url <url>] [--dry-run] [--keep] [text]\n' +
       '       shwarm run --report <file> [--log-url <url>]',
     async run(ctx) {
       if (str(ctx.flags, 'report') !== undefined) return postSavedReport(ctx)
@@ -635,6 +638,12 @@ async function runDoneTest(ctx: Ctx): Promise<void> {
   if (engine !== 'podman' && engine !== 'docker') throw new UsageError('--engine is podman or docker')
   if (str(f, 'engine') !== undefined && image === undefined) throw new UsageError('--engine goes with --container <image>')
   if (image !== undefined && !IMAGE_RE.test(image)) throw new UsageError(`${image} isn't an image name`)
+  // On this machine the command can read your files, the saved key among them, and what it prints is posted. So it runs
+  // there unattended only when asked for by name; asked on a terminal, the log is shown before it's posted. OPEN (#99).
+  const onHost = image === undefined
+  if (!onHost && f['no-container'] === true) throw new UsageError('--container and --no-container are one or the other')
+  if (onHost && f.yes === true && f['no-container'] !== true)
+    throw new UsageError('--yes with no container runs it on this machine unattended. pass --container <image>, or --no-container to run it here')
 
   // 1. Ask the API, and refuse what it would refuse before anything is fetched or run.
   const client = await ctx.client({ needKey: true })
@@ -690,19 +699,32 @@ async function runDoneTest(ctx: Ctx): Promise<void> {
 
     if (ctx.io.signal?.aborted) throw new Stopped('stopped. nothing was posted.', 'interrupted')
     // 5. Run it, unchanged. On this machine it gets PATH and nothing else from here: no key, no tokens.
+    // A container is named, so Ctrl-C or the limit can stop it: it runs under the engine, not under this process.
+    const name = `shwarm-run-${(await import('node:crypto')).randomBytes(6).toString('hex')}`
     const argv = image
-      ? containerArgv({ engine, image, work, cwd, minutes, uid: process.getuid?.() ?? 0, gid: process.getgid?.() ?? 0 })
+      ? containerArgv({ engine, image, name, work, cwd, minutes, uid: process.getuid?.() ?? 0, gid: process.getgid?.() ?? 0 })
       : ['sh', join(work, '.shwarm-run.sh')]
     // The engine gets only what it needs to find its own storage and socket; it passes nothing on into the container.
     const runEnv: Record<string, string> = image
       ? Object.fromEntries(Object.entries(ctx.io.env).filter((e): e is [string, string] => e[1] !== undefined && ENGINE_ENV.has(e[0])))
       : { PATH: ctx.io.env.PATH ?? '/usr/local/bin:/usr/bin:/bin', HOME: home, TMPDIR: tmp, LANG: 'C.UTF-8' }
     const logFile = join(run, 'run.log')
-    const out = await runCommand({ argv, cwd: image ? run : cwd, env: runEnv, logFile, limitMs: minutes * 60_000, signal: ctx.io.signal, onLine: l => err(`  ${clean(l)}`) })
+    const out = await runCommand({
+      argv,
+      cwd: image ? run : cwd,
+      env: runEnv,
+      logFile,
+      limitMs: minutes * 60_000,
+      ...(image ? { graceMs: CONTAINER_GRACE_MS, stop: () => removeContainer(engine, name, runEnv) } : {}),
+      signal: ctx.io.signal,
+      onLine: l => err(`  ${clean(l)}`),
+    })
     if (out.interrupted) throw new Stopped('stopped. nothing was posted.', 'interrupted')
     err(`exit ${out.exit} after ${out.seconds} s${out.timedOut ? `, stopped at the ${minutes} minute limit` : ''}.`)
 
-    // 6. The report.
+    // 6. The report. A log that holds a key is never posted, nor saved, nor printed. OPEN (#99): new wording.
+    if (await leaksKey(logFile, client.key?.seed ?? null))
+      throw new Stopped("the log holds an agent key, so nothing was posted. if it's one of yours, revoke it on the keys page.", 'key_in_log')
     const log = await inlineLog(logFile)
     const notes = [text?.trim(), out.timedOut && `stopped at the ${minutes} minute limit.`, image && `ran in ${engine}: ${image}`].filter(Boolean).join('\n')
     const report: Omit<RunReport, 'log'> & { log?: RunReport['log'] } = {
@@ -730,6 +752,11 @@ async function runDoneTest(ctx: Ctx): Promise<void> {
       if (ctx.json) ctx.io.stdout(JSON.stringify({ kind: 'check', slot: 'run', ...report }))
       ctx.say(`dry run: exit ${out.exit}, a ${out.exit === 0 ? 'pass' : 'fail'}. nothing was posted.`)
       return
+    }
+    // On this machine, the human reads the log above before it goes up under their name. OPEN (#99): new wording.
+    if (onHost && f.yes !== true && typeof report.log === 'string') {
+      const post = /^y(es)?$/i.test((await ctx.io.ask!(`post it, with the log above, as ${as}? [y/N] `)).trim())
+      if (!post) throw new Stopped('not posted.', 'declined')
     }
     await postReport(ctx, client, node.node, report as RunReport)
   } finally {

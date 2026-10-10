@@ -1,8 +1,9 @@
 // shwarm run (go-live 7.8) against a stand-in server: each refusal made before anything runs (own work, a slot held,
 // the author's sign-off, a name or grant the key lacks, no runs, nothing in review, a submission hash or a link that
 // doesn't match), the question and --yes, the report's fields, a log too big to go inline saved and posted later with
-// --report, and the parts: the script hash, the container's flags, the time limit. apps/site/test/cli.test.ts runs
-// it against the real Worker.
+// --report, an empty log posted, --no-container for an unattended run here and the question before the log is posted,
+// a log holding a key never posted, the container itself stopped on Ctrl-C, and the parts: the script hash, the
+// container's flags, the time limit and a container's grace. apps/site/test/cli.test.ts runs it against the real Worker.
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { access, chmod, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
@@ -71,7 +72,7 @@ async function world(w: World = {}) {
   return { node, sub, key: { ...KEY, ...w.key }, served: { [FILE_URL]: FILE_BYTES, ...w.served } as Record<string, string> }
 }
 
-async function run(argv: string[], o: { world?: Awaited<ReturnType<typeof world>>; answer?: string; noAsk?: boolean; post?: Response } = {}) {
+async function run(argv: string[], o: { world?: Awaited<ReturnType<typeof world>>; answer?: string; answers?: string[]; noAsk?: boolean; post?: Response; path?: string; signal?: AbortSignal } = {}) {
   const w = o.world ?? (await world())
   const out: string[] = []
   const err: string[] = []
@@ -79,7 +80,8 @@ async function run(argv: string[], o: { world?: Awaited<ReturnType<typeof world>
   const fetched: string[] = []
   const asked: string[] = []
   const code = await main(argv, {
-    env: { SHWARM_CONFIG_DIR: await mkdtemp(join(tmpdir(), 'shwarm-cli-')), SHWARM_KEY: SECRET, PATH: process.env.PATH },
+    env: { SHWARM_CONFIG_DIR: await mkdtemp(join(tmpdir(), 'shwarm-cli-')), SHWARM_KEY: SECRET, PATH: o.path ?? process.env.PATH },
+    signal: o.signal,
     stdout: s => void out.push(s),
     stderr: s => void err.push(s),
     stdin: async () => '',
@@ -103,7 +105,7 @@ async function run(argv: string[], o: { world?: Awaited<ReturnType<typeof world>
       : {
           ask: async (q: string) => {
             asked.push(q)
-            return o.answer ?? 'y'
+            return o.answers?.[asked.length - 1] ?? o.answer ?? 'y'
           },
         }),
   })
@@ -120,7 +122,8 @@ describe('shwarm run', () => {
     const r = await run(['run', PATH, '--as', '@lumpy/runner', '--machine', 'linux, rtx 3060', 'ran it twice.'])
     expect(r.code).toBe(0)
     expect(r.out).toBe('pass recorded. the submission is in review.')
-    expect(r.asked).toEqual(['run it? [y/N] '])
+    // on this machine, the log is shown and asked about before it's posted
+    expect(r.asked).toEqual(['run it? [y/N] ', 'post it, with the log above, as @lumpy/runner? [y/N] '])
     expect(r.err).toContain('  command     ./check.sh')
     expect(r.err).toMatch(/  links       link-0 corner-fix\.diff \(sha256 [0-9a-f]{7}, matches\); repo-1 https:\/\/codeberg\.org\/ana\/doom-blocks \(commit [0-9a-f]{7}, matches\)/)
     expect(r.err).toContain(`  script      ./check.sh, sha256 ${sha(await readFile(join(repoDir, 'check.sh'))).slice(0, 7)}`)
@@ -146,11 +149,11 @@ describe('shwarm run', () => {
 
   it('posts a nonzero exit as a fail, with --yes and no question, and --dry-run posts nothing', async () => {
     const failing = await world({ node: { check: { runs: { command: 'exit 3' } } } })
-    const r = await run(['run', `${PATH}/s/2`, '--as', '@lumpy/runner', '--yes'], { world: failing, noAsk: true })
+    const r = await run(['run', `${PATH}/s/2`, '--as', '@lumpy/runner', '--yes', '--no-container'], { world: failing, noAsk: true })
     expect(r.code).toBe(0)
     expect(r.asked).toEqual([])
     expect(r.posts[0].body).toMatchObject({ exit: 3, log: '', script_hash: sha('exit 3') }) // no script file: the command's text
-    const dry = await run(['run', PATH, '--as', '@lumpy/runner', '--yes', '--dry-run', '--json'], { world: failing })
+    const dry = await run(['run', PATH, '--as', '@lumpy/runner', '--yes', '--no-container', '--dry-run', '--json'], { world: failing })
     expect(dry.code).toBe(0)
     expect(dry.posts).toEqual([])
     expect(JSON.parse(dry.out)).toMatchObject({ kind: 'check', slot: 'run', exit: 3, env: expect.stringMatching(/^(linux|macos|windows|\w+), \w+, \d+ cpus$/) })
@@ -180,6 +183,7 @@ describe('shwarm run', () => {
       ['no runs in the done test', { node: { check: { author: true } } }, 'bad_request', 2],
       ['a passed submission', { sub: { status: 'passed' } }, 'bad_request', 2],
       ['a locked node', { node: { state: 'closed' } }, 'shwarm_closed', 4],
+      ['a node under a passed shwarm', { node: { locked_by: { path: 'minecraft-in-doom', state: 'closed' } } }, 'shwarm_closed', 4],
       ['a submission whose text was changed', { sub: { text: 'corner fix, take four.' } }, 'hash_mismatch', 4],
     ]
     for (const [what, w, error, exit] of cases) {
@@ -191,7 +195,7 @@ describe('shwarm run', () => {
       expect(r.asked, what).toEqual([])
     }
     // a reset check doesn't hold a slot
-    const reset = await run(['run', PATH, '--as', '@lumpy/runner', '--yes', '--dry-run'], { world: await world({ sub: { checks: [{ slot: 'run', as: '@lumpy/r', verdict: 'pass', reset: true }] } }) })
+    const reset = await run(['run', PATH, '--as', '@lumpy/runner', '--yes', '--no-container', '--dry-run'], { world: await world({ sub: { checks: [{ slot: 'run', as: '@lumpy/r', verdict: 'pass', reset: true }] } }) })
     expect(reset.code).toBe(0)
     expect(await ran()).toBe(true)
   })
@@ -216,7 +220,7 @@ describe('shwarm run', () => {
 
   it('saves a log over 64 KB to be linked, and posts it with --report once the link holds the same bytes', async () => {
     const big = await world({ node: { check: { runs: { command: 'head -c 70000 /dev/zero | tr "\\0" x' } } } })
-    const r = await run(['run', PATH, '--as', '@lumpy/runner', '--yes'], { world: big })
+    const r = await run(['run', PATH, '--as', '@lumpy/runner', '--yes', '--no-container'], { world: big })
     expect(r.code).toBe(1)
     expect(r.posts).toEqual([])
     expect(r.err).toMatch(/the log is 69 KB, over the 64 KB that goes inline\. it's saved at .+run\.log \(sha256 [0-9a-f]{64}\)/)
@@ -236,12 +240,71 @@ describe('shwarm run', () => {
   })
 
   it('saves a report the server could not take for now, to post again with --report', async () => {
-    const r = await run(['run', PATH, '--as', '@lumpy/runner', '--yes'], { post: Response.json({ error: 'rate_limited', message: 'slow down', retry_after: 3600 }, { status: 429 }) })
+    const r = await run(['run', PATH, '--as', '@lumpy/runner', '--yes', '--no-container'], { post: Response.json({ error: 'rate_limited', message: 'slow down', retry_after: 3600 }, { status: 429 }) })
     expect(r.code).toBe(5)
     const file = /to post it again: shwarm run --report (\S+)/.exec(r.err)![1]
     const again = await run(['run', '--report', file])
     expect(again.code).toBe(0)
     expect(again.posts[0].body).toMatchObject({ exit: 0, log: 'placed 200, 0 failures\n' })
+  })
+
+  it('posts the empty log of a command that prints nothing', async () => {
+    const silent = await world({ node: { check: { runs: { command: 'true' } } } })
+    const r = await run(['run', PATH, '--as', '@lumpy/runner', '--yes', '--no-container'], { world: silent })
+    expect(r.code).toBe(0)
+    expect(r.posts[0].body).toMatchObject({ exit: 0, log: '' })
+  })
+
+  it('runs on this machine unattended only with --no-container, and posts nothing when the human says no to the log', async () => {
+    await clearMarks()
+    const bare = await run(['run', PATH, '--as', '@lumpy/runner', '--yes', '--json'])
+    expect(bare.code).toBe(2)
+    expect(JSON.parse(bare.out)).toMatchObject({ error: 'usage', message: expect.stringContaining('--no-container') })
+    expect(bare.calls).toEqual([])
+    const both = await run(['run', PATH, '--as', '@lumpy/runner', '--container', 'docker.io/library/alpine', '--no-container'])
+    expect(both.code).toBe(2)
+    expect(both.calls).toEqual([])
+    expect(await ran()).toBe(false)
+
+    const no = await run(['run', PATH, '--as', '@lumpy/runner'], { answers: ['y', 'n'] })
+    expect(no.code).toBe(1)
+    expect(no.err).toContain('shwarm: not posted.')
+    expect(await ran()).toBe(true)
+    expect(no.posts).toEqual([])
+  })
+
+  it('never posts, saves or prints a log that holds an agent key', async () => {
+    const seed = SECRET.slice(-43) // the seed, base64url, as the saved key file holds it
+    for (const command of ['echo shwarm_sk_someone_else', `printf '%s\\n' '${seed}'`, `echo ${Buffer.from(seed, 'base64url').toString('hex').toUpperCase()}`]) {
+      const leaky = await world({ node: { check: { runs: { command } } } })
+      for (const flags of [['--yes', '--no-container'], ['--yes', '--no-container', '--dry-run', '--json']]) {
+        const r = await run(['run', PATH, '--as', '@lumpy/runner', ...flags], { world: leaky })
+        expect(r.code, command).toBe(1)
+        expect(flags.includes('--json') ? JSON.parse(r.out).error : r.err, command).toMatch(/^key_in_log$|the log holds an agent key, so nothing was posted\./)
+        expect(r.posts, command).toEqual([])
+        expect(r.out, command).not.toContain(seed)
+        expect(r.err, command).not.toContain('--report')
+      }
+    }
+  })
+
+  it('stops the container itself on Ctrl-C, not just the engine, before its folder is deleted', async () => {
+    // A stand-in podman: `run` records its arguments and waits; `kill` and `rm` record theirs.
+    const bin = await mkdtemp(join(tmpdir(), 'shwarm-bin-'))
+    const log = join(bin, 'calls')
+    await writeFile(join(bin, 'podman'), `#!/bin/sh\necho "$*" >> "${log}"\n[ "$1" = run ] && exec sleep 30\nexit 0\n`)
+    await chmod(join(bin, 'podman'), 0o755)
+    // Ctrl-C once the engine has started
+    const ac = new AbortController()
+    const started = setInterval(() => access(log).then(() => (clearInterval(started), ac.abort()), () => {}), 50)
+    const image = 'docker.io/library/alpine@sha256:' + 'b'.repeat(64)
+    const r = await run(['run', PATH, '--as', '@lumpy/runner', '--yes', '--container', image], { path: `${bin}:${process.env.PATH}`, signal: ac.signal })
+    expect(r.code).toBe(1)
+    expect(r.err).toContain('stopped. nothing was posted.')
+    expect(r.posts).toEqual([])
+    const calls = (await readFile(log, 'utf8')).trim().split('\n')
+    const name = /--name (shwarm-run-[0-9a-f]{12}) /.exec(calls[0])![1]
+    expect(calls.slice(1)).toEqual([`kill ${name}`, `rm --force ${name}`])
   })
 })
 
@@ -262,10 +325,10 @@ describe('the parts', () => {
   })
 
   it("builds the sandbox recipe's container run", () => {
-    const base = { image: 'docker.io/library/debian:stable-slim@sha256:' + 'a'.repeat(64), work: '/tmp/shwarm-run-1/work', minutes: 30, uid: 1000, gid: 1000 }
+    const base = { image: 'docker.io/library/debian:stable-slim@sha256:' + 'a'.repeat(64), name: 'shwarm-run-1a2b3c', work: '/tmp/shwarm-run-1/work', minutes: 30, uid: 1000, gid: 1000 }
     const podman = containerArgv({ ...base, engine: 'podman', cwd: '/tmp/shwarm-run-1/work/repo-1' })
     expect(podman.join(' ')).toBe(
-      `podman run --rm --network=none --userns=keep-id --cap-drop=ALL --security-opt=no-new-privileges --cpus=2 --memory=4g --pids-limit=256 --read-only --tmpfs /tmp:rw,size=1g -v /tmp/shwarm-run-1/work:/work:rw -w /work/repo-1 ${base.image} timeout 30m sh /work/.shwarm-run.sh`,
+      `podman run --rm --name shwarm-run-1a2b3c --network=none --userns=keep-id --cap-drop=ALL --security-opt=no-new-privileges --cpus=2 --memory=4g --pids-limit=256 --read-only --tmpfs /tmp:rw,size=1g -v /tmp/shwarm-run-1/work:/work:rw -w /work/repo-1 ${base.image} timeout 30m sh /work/.shwarm-run.sh`,
     )
     const docker = containerArgv({ ...base, engine: 'docker', cwd: base.work })
     expect(docker).toContain('--user')
@@ -280,6 +343,26 @@ describe('the parts', () => {
     expect(out).toMatchObject({ exit: 124, timedOut: true, interrupted: false })
     expect(out.seconds).toBeLessThan(5)
     expect(await readFile(join(dir, 'log'), 'utf8')).toBe('start\n')
+  })
+
+  it('gives a container its grace past the limit, then stops it from outside and waits for that', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'shwarm-limit-'))
+    let stopped = false
+    const out = await runCommand({
+      argv: ['sh', '-c', 'sleep 30'],
+      cwd: dir,
+      env: { PATH: process.env.PATH! },
+      logFile: join(dir, 'log'),
+      limitMs: 200,
+      graceMs: 400,
+      stop: async () => {
+        await new Promise(r => setTimeout(r, 100))
+        stopped = true
+      },
+    })
+    expect(out).toMatchObject({ exit: 124, timedOut: true })
+    expect(out.seconds).toBeGreaterThanOrEqual(0.5)
+    expect(stopped).toBe(true)
   })
 
   it('shows hidden characters in a command instead of passing them on', () => {
