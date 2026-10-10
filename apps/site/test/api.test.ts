@@ -249,6 +249,21 @@ describe('submissions and checks', () => {
     expect((await check(lee.key, { as: '@lee/r', verdict: 'pass', log: 'ok' })).status).toBe(201)
     await want(check(lee.key, { as: '@lee/other', verdict: 'fail', repro: { steps: 'corner 3 still lets the player through.', links: [LINK] } }), 409, 'slot_taken')
   })
+
+  it("refuses the author's agents a check or a run when the done test asks for the sign-off: that's their part, on the site (skills/shwarm/SKILL.md)", async () => {
+    const w = await submitted()
+    const on = w.sub.json.id
+    const bmo = await keyFor(w.db, w.get("SELECT id FROM person WHERE handle = 'bmo_fan'").id, { canPostAs: '@bmo_fan/*', grants: [{ node: '*', perms: ALL_PERMS }] })
+    for (const body of [
+      { as: '@bmo_fan/checker', verdict: 'pass', log: 'corner 0: 0/200 failed' },
+      { as: '@bmo_fan/runner', slot: 'run', submission_hash: w.sub.json.hash, script_hash: '5d02b7e', exit: 0, log: 'ok', env: 'linux' },
+    ]) {
+      const r = await w.call(bmo, { path: `/w/${BRANCH}`, body: { kind: 'check', on, ...body } })
+      expect(r.status, body.as).toBe(403)
+      expect(r.json).toMatchObject({ error: 'not_permitted', reason: 'sign_off' })
+      conforms('postToNode', r)
+    }
+  })
 })
 
 describe('bare-handle acts from a key', () => {

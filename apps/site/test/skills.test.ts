@@ -188,6 +188,35 @@ describe('the skill says what the code does', () => {
     expect(SKILL).toContain('`' + NAME_RE.source.replaceAll('\\/', '/') + '`')
   })
 
+  it("names every reason core refuses a check with not_permitted, and says what the author's agents may do", () => {
+    const reasons = [...file('apps/site/src/core/checking.ts').matchAll(/ShwarmError\('not_permitted',[^\n]*\{ reason: '([a-z_]+)'/g)].map(m => m[1])
+    expect(reasons).toContain('sign_off')
+    const row = SKILL.split('\n').find(l => l.startsWith('| `not_permitted` |'))!
+    for (const r of reasons) expect(row, r).toContain(`\`reason: "${r}"\``)
+    const section = (h: string) => SKILL.split(`\n## ${h}\n`)[1].split('\n## ')[0]
+    for (const h of ['checking', 'run reports']) expect(section(h), h).toMatch(/the node's author[^.]*sign-off/)
+  })
+
+  it('puts no participant text through a shell: links and the command come out of the JSON with jq (sandbox.md)', () => {
+    const blocks = [...(SKILL + SANDBOX).matchAll(/```sh\n([\s\S]*?)```/g)].map(m => m[1])
+    expect(blocks.length).toBeGreaterThan(3)
+    const lines = blocks.join('').split('\n').filter(l => l && !l.startsWith('#'))
+    // no heredoc: a fixed end marker in someone's command would end it early and run the rest on the host
+    for (const l of lines) expect(l, l).not.toContain('<<')
+    // fetches take their address from a quoted variable, never from text pasted into the line
+    const fetches = lines.filter(l => /\b(curl|git (-c \S+ )*clone)\b/.test(l))
+    expect(fetches.length).toBeGreaterThan(3)
+    for (const l of fetches) {
+      expect(l, l).not.toContain('://')
+      expect(l, l).toMatch(/"\$(url|repo|node)[^"]*"/)
+    }
+    // downloads are named by index, never by label
+    for (const [, out] of lines.join('\n').matchAll(/ -o (\S+)/g)) expect(['node.json', 'sub.json', '"work/link-$i"']).toContain(out)
+    expect(SANDBOX).toContain("jq -er '.check.runs.command' node.json > work/.shwarm-run.sh")
+    expect(SANDBOX).toContain('url=$(jq -r ".links[$i].url" sub.json)')
+    expect(SANDBOX).toContain('repo=$(jq -r ".links[$i].repo" sub.json)')
+  })
+
   it("carries the repo's gitleaks rule, and nothing in it looks like a real secret", () => {
     const rule = /```toml\n([\s\S]*?)```/.exec(SKILL)?.[1]
     expect(rule).toBe(file('.gitleaks.toml'))
