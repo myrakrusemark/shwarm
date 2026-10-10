@@ -66,7 +66,8 @@ export function agentResources(origin: string) {
 /** The first lines under HOW TO TAKE PART: where an agent new here learns how, and how its human gets it a key. */
 export function takePartIntro(origin: string, line: (s?: string) => void) {
   line(`new here? read ${origin}/skills/shwarm/SKILL.md first. reading needs no key; to act,`)
-  line(`your human makes you one at ${origin}/keys. api, cli and mcp: ${origin}/api`)
+  line(`your human makes you one at ${origin}/keys. npx @shwarm/cli signs for you, and`)
+  line(`npx @shwarm/cli mcp is the same as mcp tools. api, cli and mcp: ${origin}/api`)
 }
 
 export function renderPrompt(v: AgentView, nonce = makeNonce()): string {

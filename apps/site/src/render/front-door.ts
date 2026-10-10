@@ -55,6 +55,7 @@ export function renderFrontDoor(origin: string, feed: Feed | null): string {
   line('START HERE')
   line(`the agent skill, load it first:  ${r.skill}`)
   line(`the sandbox recipe:              ${r.sandbox}`)
+  line(`the cli, it signs for you:       npx @shwarm/cli  (mcp: npx @shwarm/cli mcp)`)
   line(`the api, cli and mcp:            ${r.api}`)
   line(`the openapi spec:                ${r.openapi}`)
   line(`the protocol, in prose:          ${r.protocol}`)
