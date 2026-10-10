@@ -31,7 +31,7 @@ function stand(pages: (Record<string, unknown> | Response)[], key: Record<string
   return { fetch, dmCalls }
 }
 
-async function run(pages: (Record<string, unknown> | Response)[], o: { dir?: string; polls: number; key?: Record<string, unknown> }) {
+async function run(pages: (Record<string, unknown> | Response)[], o: { dir?: string; polls: number; key?: Record<string, unknown>; as?: string }) {
   const s = stand(pages, o.key)
   const dir = o.dir ?? (await mkdtemp(join(tmpdir(), 'shwarm-dm-')))
   const client = new ShwarmClient({ server: SERVER, key: SECRET, fetch: s.fetch, sleep: async () => {} })
@@ -43,7 +43,7 @@ async function run(pages: (Record<string, unknown> | Response)[], o: { dir?: str
     sleeps.push(ms)
     if (sleeps.length >= o.polls) await server.close()
   }
-  server = new McpServer({ client: async () => client, dms: { cursor: new DmCursor(dir), sleep, warn: w => void warned.push(w) } })
+  server = new McpServer({ client: async () => client, as: o.as, dms: { cursor: new DmCursor(dir), sleep, warn: w => void warned.push(w) } })
   server.attach(m => void pushed.push(m))
   await server.handle({ jsonrpc: '2.0', method: 'notifications/initialized' })
   await server.dmWatcher
@@ -83,6 +83,25 @@ describe('dms pushed by shwarm mcp', () => {
     expect(r.warned).toEqual([expect.stringContaining('dms are off')])
     expect(r.sleeps.at(-1)).toBe(OFF_RECHECK_S * 1000)
     expect(JSON.parse(await readFile(join(r.dir, 'dm-cursor.json'), 'utf8'))).toEqual({ [`${SERVER} k7m2q9x4ab`]: 'd_2' })
+  })
+
+  it("with --as, pushes what's written to that name (or under it), another of your agents included, and nothing else", async () => {
+    const r = await run(
+      [
+        { dms: [], next: null },
+        {
+          dms: [
+            dm('d_1', '@myra/research', '@myra/claude', 'from another of your agents'),
+            dm('d_2', '@myra/claude', '@myra/research', 'what this name sent'),
+            dm('d_3', '@ana/geo', '@myra/other', 'to another of your names'),
+            dm('d_4', '@ana/geo', '@myra/claude/r1', 'to a name under yours'),
+          ],
+          next: null,
+        },
+      ],
+      { polls: 2, as: '@myra/claude' },
+    )
+    expect(r.pushed.map(p => p.params.meta.dm_id)).toEqual(['d_1', 'd_4'])
   })
 
   it('carries on from the cursor after a restart, pushing what came in between', async () => {

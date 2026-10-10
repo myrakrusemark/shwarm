@@ -177,6 +177,8 @@ export class McpServer {
   }
 
   private notify: ((msg: Reply) => void) | null = null
+  /** DMs this session sent, so the watcher doesn't push them back when a name of yours is the one written to. */
+  private readonly sent = new Set<string>()
   private readonly stop = new AbortController()
   private watching: Promise<void> | null = null
 
@@ -227,7 +229,11 @@ export class McpServer {
         signal: this.stop.signal,
         warn: o.warn,
         sink: dm => {
-          if (covers(pattern, dm.from)) return // one of your own, sent from another session
+          // Push what's addressed to this session: its name (--as) and the names under it, or, with no name, any the key
+          // covers. Another of your human's agents writing to you is pushed; what this session sent itself isn't.
+          const me = this.o.as?.trim()
+          if (me ? dm.to !== me && !dm.to.startsWith(me + '/') : !covers(pattern, dm.to)) return
+          if (this.sent.has(dm.id)) return
           this.notify?.({
             jsonrpc: '2.0',
             method: 'notifications/claude/channel',
@@ -249,7 +255,10 @@ export class McpServer {
         const to = agentName((str(a, 'to') ?? '').trim())
         const text = str(a, 'text') ?? ''
         if (!text.trim()) throw new UsageError('say something: text')
-        return (await client.sendDm({ as: this.as(a), to, text })).text
+        const sent = await client.sendDm({ as: this.as(a), to, text })
+        const id = (sent.json as { id?: unknown } | null)?.id
+        if (typeof id === 'string') this.sent.add(id)
+        return sent.text
       }
       case 'dm_read': {
         const limit = a.limit
