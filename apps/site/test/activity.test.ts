@@ -49,10 +49,7 @@ async function world() {
       .prepare("INSERT INTO post (id, node_id, person_id, as_name, kind, text, hidden, created_at, deleted_at) VALUES (?, ?, ?, ?, 'post', 'hello', ?, ?, ?)")
       .run(newId('p'), ids.get(path), poster, o.as ?? '@gunter', o.hidden ? 1 : 0, iso, o.deleted ? iso : null)
   }
-  const read = (path: string, now = Date.now()) => {
-    const root = ids.get(path.split('/')[0])!
-    return readActivity(db, { id: ids.get(path)!, path }, root, now)
-  }
+  const read = (path: string, now = Date.now()) => readActivity(db, ids.get(path)!, now)
   return { db, node, post, read, ids }
 }
 
@@ -131,7 +128,38 @@ describe('counting (read/activity.ts)', () => {
     expect(total(await w.read('mid/held'))).toBe(0) // its author may see the page; the strip still counts only public posts
   })
 
-  it('is one query on the indexes (node_root and post_node), with no scan of the post table', async () => {
+  it("checks visibility once per tree, not each node's whole chain: the path tests grow with the nodes, not their square", async () => {
+    // Review fix: checking every counted node's ancestors through node_root read the whole tree once per node, so a
+    // tree of N nodes made about N² path comparisons (1.7 s on 4,000 nodes). Counting the substr calls on paths shows
+    // the shape whatever the machine: a tree of 301 nodes took about 90,000 of them before, a few hundred now.
+    const w = await world()
+    w.node('mid')
+    const at = T0 - 60_000
+    w.post('mid', at)
+    for (let b = 0; b < 20; b++) {
+      w.node(`mid/b${b}`)
+      w.post(`mid/b${b}`, at)
+      for (let s = 0; s < 14; s++) {
+        w.node(`mid/b${b}/s${s}`)
+        w.post(`mid/b${b}/s${s}`, at)
+      }
+    }
+    w.node('mid/b0/held', { triage: 'held' }) // still dropped, with what's under it
+    w.node('mid/b0/held/under')
+    w.post('mid/b0/held', at)
+    w.post('mid/b0/held/under', at)
+    let pathTests = 0
+    w.db.raw.function('substr', { deterministic: true }, (s: string, a: number, n?: number) => {
+      if (!/^\d{4}-/.test(s)) pathTests++ // a node path, not a post's created_at
+      return n === undefined ? s.slice(a - 1) : s.substr(a - 1, n)
+    })
+    expect(total(await w.read('mid'))).toBe(301)
+    expect(total(await w.read('mid/b0'))).toBe(15)
+    expect(total(await w.read('mid/b0/s3'))).toBe(1)
+    expect(pathTests).toBeLessThan(3 * 303)
+  })
+
+  it('is one query on the indexes (node_parent and post_node), with no scan of the post table', async () => {
     const w = await world()
     w.node('mid')
     w.node('mid/block')
@@ -142,12 +170,15 @@ describe('counting (read/activity.ts)', () => {
     expect(seen).toHaveLength(1)
     const plan = w.db.raw
       .prepare(`EXPLAIN QUERY PLAN ${seen[0]}`)
-      .all(w.ids.get('mid/block'), w.ids.get('mid'), 'mid/block', activityDays(T0)[0])
+      .all(w.ids.get('mid/block'), activityDays(T0)[0])
       .map((r: { detail: string }) => r.detail)
       .join('\n')
-    expect(plan).toMatch(/SEARCH d USING INDEX node_root \(root_id=\?\)/)
+    expect(plan).toMatch(/SEARCH d USING INTEGER PRIMARY KEY \(rowid=\?\)/) // the node itself
+    expect(plan).toMatch(/SEARCH vis_d USING INDEX node_root \(root_id=\?\)/) // its chain, once
+    expect(plan).toMatch(/SEARCH c USING INDEX node_parent \(parent_id=\?\)/) // the walk down
     expect(plan).toMatch(/SEARCH p USING INDEX post_node \(node_id=\? AND created_at>\?\)/)
-    expect(plan).not.toMatch(/\bSCAN\b/)
+    expect(plan).not.toMatch(/post_created/) // not the whole site's recent posts
+    expect(plan.replace(/\bSCAN u\b/g, '')).not.toMatch(/\bSCAN\b/) // only the walk's own rows are read in full
   })
 })
 

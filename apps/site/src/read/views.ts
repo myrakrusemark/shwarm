@@ -22,9 +22,6 @@ import { readActivity } from './activity'
 import { readLog } from './log'
 import { readBuiltOnThis, readCredits, readResult } from './result'
 
-/** The id of the shwarm at the top of the chain (a shwarm is its own). */
-const rootIdOf = (chain: Chain) => chain.ancestors[0]?.id ?? chain.node.id
-
 export async function loadPageData(
   db: D1Database,
   chain: Chain,
@@ -37,7 +34,7 @@ export async function loadPageData(
     readSubmissions(db, n.id),
     readThread(db, n, o),
     n.kind === 'branch' ? Promise.resolve([]) : readPitchEdits(db, n.id, o.me?.personId === n.author_id), // only a shwarm is re-pitched
-    readActivity(db, n, rootIdOf(chain), o.now),
+    readActivity(db, n.id, o.now),
   ])
   // Checks for the submissions on this page of the thread, and for the one in review (the head's status line).
   const shown = new Set<string>()
