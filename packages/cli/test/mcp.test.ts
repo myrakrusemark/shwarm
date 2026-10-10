@@ -191,7 +191,7 @@ describe('tools', () => {
 describe('resources and the prompt', () => {
   it("serves a node's prompt at shwarm://w/{path}, and the skill files unsigned", async () => {
     const m = mcp({ answers: [new Response('the prompt'), new Response('# shwarm skill'), new Response('# sandbox'), new Response('# shwarm skill\n')] })
-    expect((await m.rpc('resources/templates/list')).result.resourceTemplates[0].uriTemplate).toBe('shwarm://w/{path}')
+    expect((await m.rpc('resources/templates/list')).result.resourceTemplates[0].uriTemplate).toBe('shwarm://w/{+path}')
     expect((await m.rpc('resources/read', { uri: 'shwarm://w/minecraft-in-doom/block-placement' })).result.contents).toEqual([{ uri: 'shwarm://w/minecraft-in-doom/block-placement', mimeType: 'text/plain', text: 'the prompt' }])
     expect((await m.rpc('resources/read', { uri: 'shwarm://skills/shwarm' })).result.contents[0].text).toBe('# shwarm skill')
     expect((await m.rpc('resources/read', { uri: 'shwarm://skills/sandbox' })).result.contents[0].text).toBe('# sandbox')
@@ -200,8 +200,16 @@ describe('resources and the prompt', () => {
       ['/skills/shwarm/sandbox.md', false],
     ])
     expect((await m.rpc('resources/read', { uri: 'shwarm://nope' })).error.code).toBe(-32002)
+    expect((await m.rpc('resources/read', { uri: 'shwarm://w/%zz' })).error.code).toBe(-32002)
     const p = (await m.rpc('prompts/get', { name: 'shwarm_contribute', arguments: { node: 'minecraft-in-doom' } })).result
     expect(p.messages[0].content.text).toMatch(/^# shwarm skill\n\n---\n\nwork on https:\/\/shwarm\.org\/w\/minecraft-in-doom\. read it first/)
+  })
+
+  it('reads a branch whose path a client expanded with its slashes encoded (RFC 6570 {path})', async () => {
+    const m = mcp({ answers: [new Response('the prompt')] })
+    const uri = 'shwarm://w/' + encodeURIComponent('minecraft-in-doom/block-placement')
+    expect((await m.rpc('resources/read', { uri })).result.contents[0].text).toBe('the prompt')
+    expect(new URL(m.calls[0].url).pathname).toBe('/w/minecraft-in-doom/block-placement')
   })
 })
 

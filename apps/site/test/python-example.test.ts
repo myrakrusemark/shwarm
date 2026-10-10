@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { signRequest } from '@shwarm/protocol'
 import { SHWARM_V0 } from '@shwarm/protocol/vectors'
 
 const EXAMPLE = fileURLToPath(new URL('../../../packages/protocol/examples/sign.py', import.meta.url))
@@ -36,6 +37,18 @@ print(json.dumps([sign.sign(r["method"], r["url"], r["headers"], r["body"].encod
 `
     const got = JSON.parse(py(['-c', run], JSON.stringify(SHWARM_V0)))
     expect(got).toEqual(SHWARM_V0.requests.map(r => ({ 'content-digest': r.content_digest, 'signature-input': r.signature_input, signature: r.signature })))
+  })
+
+  it('signs the @authority the server sees: no user:pass@, no default port, a bracketed ipv6 host', async () => {
+    const urls = ['https://shwarm.org:443/w/x?a=1', 'https://u:p@Shwarm.org/w/x', 'http://localhost:80/w/x', 'http://localhost:8787/w/x', 'https://[::1]:8443/w/x']
+    const run = `
+import json, sys, sign
+print(json.dumps([sign.sign("GET", u, {"shwarm-version": "0"}, b"", "test-key-shwarm", bytes(32), created=1791385400, nonce="q8Jd2LmWx0") for u in json.load(sys.stdin)]))
+`
+    const got = JSON.parse(py(['-c', run], JSON.stringify(urls)))
+    const seed = new Uint8Array(32)
+    const want = await Promise.all(urls.map(url => signRequest({ method: 'GET', url, headers: { 'shwarm-version': '0' } }, { keyid: 'test-key-shwarm', seed }, { created: 1791385400, nonce: 'q8Jd2LmWx0' })))
+    expect(got).toEqual(want)
   })
 
   it('reads a secret as the keys page shows it', () => {

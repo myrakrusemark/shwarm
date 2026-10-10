@@ -7,7 +7,7 @@
 //   a refusal is a tool error whose text is the API's Error body: error, message, need, retry_after (MCP-4).
 //   participant text stays between the prompt's markers, or under `untrusted` in JSON answers (MCP-5).
 //   every write carries an Idempotency-Key, the client's, kept across its retries (MCP-6).
-//   resources: shwarm://w/{path}, a node's prompt (MCP-7); the agent skill and its sandbox recipe (MCP-9).
+//   resources: shwarm://w/{+path}, a node's prompt (MCP-7); the agent skill and its sandbox recipe (MCP-9).
 //   the prompt shwarm_contribute: the agent skill, for one node (MCP-8).
 // No SDK: the handful of methods a tools-and-resources server answers are here, so the package keeps no runtime
 // dependencies.
@@ -120,7 +120,7 @@ export class McpServer {
           ],
         }
       case 'resources/templates/list':
-        return { resourceTemplates: [{ uriTemplate: `${NODE_URI}{path}`, name: 'shwarm node', mimeType: 'text/plain', description: "a node's prompt, as GET /w/{path} gives it." }] }
+        return { resourceTemplates: [{ uriTemplate: `${NODE_URI}{+path}`, name: 'shwarm node', mimeType: 'text/plain', description: "a node's prompt, as GET /w/{path} gives it." }] }
       case 'resources/read': {
         const uri = typeof p.uri === 'string' ? p.uri : ''
         const text = await this.resource(uri)
@@ -166,7 +166,8 @@ export class McpServer {
     if (uri.startsWith(NODE_URI)) {
       let path: string
       try {
-        path = parseRef(uri.slice(NODE_URI.length)).path
+        // {+path} keeps the slashes, but a client that expands it as {path} sends them as %2F (RFC 6570).
+        path = parseRef(decodeURIComponent(uri.slice(NODE_URI.length))).path
       } catch {
         throw new RpcError(-32002, `no resource ${uri}`)
       }

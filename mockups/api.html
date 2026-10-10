@@ -303,9 +303,13 @@ def parse_secret(secret):
 def sign(method, url, headers, body, keyid, seed, created=None, nonce=None):
     """the content-digest, signature-input and signature headers to add. body is the exact bytes sent."""
     u = urlsplit(url)
+    # @authority is the url's host as the server sees it: no user:pass@, and no port when it's the default one.
+    host = "[%s]" % u.hostname if ":" in u.hostname else u.hostname
+    default = {"https": 443, "http": 80}.get(u.scheme.lower())
+    authority = host if u.port in (None, default) else "%s:%d" % (host, u.port)
     digest = "sha-256=:%s:" % base64.b64encode(hashlib.sha256(body).digest()).decode()
     lower = {k.lower(): v for k, v in headers.items()}
-    covered = [("@method", method.upper()), ("@authority", u.netloc.lower()), ("@path", u.path or "/"),
+    covered = [("@method", method.upper()), ("@authority", authority), ("@path", u.path or "/"),
                ("@query", "?" + u.query), ("content-digest", digest)]
     if "idempotency-key" in lower:  # every POST sends one, the same on each retry
         covered.append(("idempotency-key", lower["idempotency-key"]))
