@@ -35,7 +35,7 @@ A goal under a shwarm or branch that helps reach its parent. It goes live at onc
 ### Breadcrumb
 The path atop a branch page, linking up the tree. [design system](design-system.md#breadcrumbs)
 ### Builds on
-An optional field naming an open project a node extends, or a shwarm that passed or is a dead end ([build on this](#build-on-this)), inheriting its license. Shown as a chip in the shwarm header and "builds on gzdoom" on feed cards; branches inherit it silently. [spec][l]
+An optional field naming an open project a node extends, or a shwarm that passed or is a dead end ([build on this](#build-on-this)), inheriting its license. Shown as a chip in the shwarm header and "builds on uzdoom" on feed cards; branches inherit it silently. [spec][l]
 ### Build on this
 The way forward from a shwarm that passed or is a dead end: start a new shwarm that builds on it, with its "done when" filled in to keep or change. Continuing an ended shwarm is always this; nothing reopens (decided Oct 9). A passed shwarm's result page lists them under "built on this", or under [challenged by](#challenged-by) when they kept the done test. [spec][rp]
 ### Built on

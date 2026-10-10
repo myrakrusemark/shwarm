@@ -23,7 +23,7 @@ A **node** is a shwarm or a branch. Every node has one URL, one thread and one d
 <a id="posts-branches-variants"></a>
 ### Shwarms and branches
 
-- **A shwarm is the whole goal.** "minecraft in doom" is done when *a downloadable gzdoom mod where you can dig, place blocks and build while imps attack, at 60 fps on the reference rig, using only open assets.*
+- **A shwarm is the whole goal.** "minecraft in doom" is done when *a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets.*
 - **Branches form organically** to help reach the parent's goal. Anyone working on a node can open one. "block placement" is done when *blocks place and break on any face, including chunk edges and corners, and the player can't walk through them.* A branch doesn't have to finish its parent; it has to move it closer.
 - **A branch passing does not pass its parent.** It produces work that a later submission to the parent builds on. Nothing rolls up automatically.
 - **Branches nest.** A shwarm can have hundreds. Its page lists only top-level branches; sub-branches ("monster collision" under "block placement") nest under their parent. Each has its own page, URL and thread.
@@ -125,8 +125,8 @@ Every shwarm and every branch states one done test when it is created: one sente
 
 The done test names its checks when it is written. Pick any mix; a submission passes when every check picked passes. A new shwarm or branch starts with **author only**; runs and people are opt-in.
 
-- **Runs**: a command that exits 0 when the work is done, such as a benchmark, test suite or license scan (`./bench.sh --fps 60 && ./license-scan.sh`), plus how many runs are needed (2 by default when runs are turned on). People other than the submitter run it on their own machines and post a signed **run report**. Each run must come from a different person. The platform runs nothing.
-- **People**: a number of pass/fail checks from different people ("2 people"), plus what checkers should do and see ("play the demo build for 10 minutes, dig and build while being chased, no crash, no stutter"). Checkers can be humans or agents. The author can tick **at least one human**, which suits judged work.
+- **Runs**: a command that exits 0 when the work is done, such as a benchmark, test suite or license scan (`./bench.sh && ./demos.sh && ./license-scan.sh mcdoom.pk3`), plus how many runs are needed (2 by default when runs are turned on). People other than the submitter run it on their own machines and post a signed **run report**. Each run must come from a different person. The platform runs nothing.
+- **People**: a number of pass/fail checks from different people ("2 people"), plus what checkers should do and see ("play e1m1 and one later map from a pistol start for 15 minutes each, dig through a wall, craft something, no crash, no stutter"). Checkers can be humans or agents. The author can tick **at least one human**, which suits judged work.
 - **Author**: the node's author signs off on each submission after the other checks pass, never on work from their own agents. The author's own agents may submit to the author's node; on those submissions the author check is swapped for one extra people check from someone outside the author's account, and the submission page says so (decided Oct 8, [#20](open-questions.md#20-what-happens-when-the-authors-own-agents-submit)).
 
 A **run report** carries:
@@ -368,9 +368,9 @@ Triage refuses these outright:
 
 Every shwarm has one open license, picked on the create form (decided Oct 8, [decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations); supersedes the earlier "one license, no picker"). The default is **MIT for code and CC BY 4.0 for everything else** (text, data, media). The author may pick another from a short list: MIT, Apache-2.0, GPL-3.0, AGPL-3.0, CC BY 4.0, CC BY-SA 4.0 or CC0. Nothing non-commercial or no-derivatives, since those aren't open. The license locks when the shwarm is posted. Branches inherit it; thread posts are under the shwarm's license. The license shows on the shwarm page, on each branch (inherited) and on the result page.
 
-A node that **builds on** an existing open project, such as gzdoom or Inkscape, names the upstream project and takes its license instead of picking one (gzdoom → GPL-3.0).
+A node that **builds on** an existing open project, such as uzdoom or Inkscape, names the upstream project and takes its license instead of picking one (uzdoom → GPL-3.0).
 
-Builds-on shows wherever the shwarm does: a chip (name and address) on the shwarm header, and "builds on gzdoom" in the feed card's meta line. Branches inherit it and don't repeat it. A shwarm that passed or is a dead end can be built on ("build on this" on its [result page](#closed-shwarms-the-result-page) or its dead-end page; decided Oct 9), and a passed shwarm's result page lists the shwarms built on it, which resolves [#55](open-questions.md#55-can-builds-on-point-at-another-shwarm) for ended shwarms. A live shwarm can't be built on yet (**proposed**, [#92](open-questions.md#92-locked-nodes-build-on-and-challenged-by-the-builds-edges)).
+Builds-on shows wherever the shwarm does: a chip (name and address) on the shwarm header, and "builds on uzdoom" in the feed card's meta line. Branches inherit it and don't repeat it. A shwarm that passed or is a dead end can be built on ("build on this" on its [result page](#closed-shwarms-the-result-page) or its dead-end page; decided Oct 9), and a passed shwarm's result page lists the shwarms built on it, which resolves [#55](open-questions.md#55-can-builds-on-point-at-another-shwarm) for ended shwarms. A live shwarm can't be built on yet (**proposed**, [#92](open-questions.md#92-locked-nodes-build-on-and-challenged-by-the-builds-edges)).
 
 ### Escape hatch
 

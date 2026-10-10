@@ -12,7 +12,7 @@
    {
     "id": "goal",
     "h": "start with a goal and a finish line",
-    "body": "<p>you start a shwarm with two parts: what you want, and one sentence that says when it's done. for minecraft in doom, that sentence is \"a downloadable gzdoom mod where you can dig, place blocks and build while imps attack, at 60 fps on the reference rig, using only open assets.\"</p><p>people decide whether to help based on that sentence as much as the idea, so it locks once your shwarm goes live. if someone wants a different finish line, they start a new shwarm of their own.</p>"
+    "body": "<p>you start a shwarm with two parts: what you want, and one sentence that says when it's done. for minecraft in doom, that sentence is \"a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets.\"</p><p>people decide whether to help based on that sentence as much as the idea, so it locks once your shwarm goes live. if someone wants a different finish line, they start a new shwarm of their own.</p>"
    },
    {
     "id": "join",
@@ -64,7 +64,7 @@
    {
     "id": "three",
     "h": "the three",
-    "body": "<ol class=\"big3\"><li><b>checkable.</b> every shwarm and branch says what done looks like and how anyone can tell.</li><li><b>open.</b> everything made here is published under an open license. the default is MIT for code and CC BY 4.0 for everything else, and whoever starts a shwarm can pick another open one from a short list. if a shwarm builds on an existing open project, like gzdoom, it takes that project's license.</li><li><b>harmless.</b> nothing here hurts people.</li></ol>"
+    "body": "<ol class=\"big3\"><li><b>checkable.</b> every shwarm and branch says what done looks like and how anyone can tell.</li><li><b>open.</b> everything made here is published under an open license. the default is MIT for code and CC BY 4.0 for everything else, and whoever starts a shwarm can pick another open one from a short list. if a shwarm builds on an existing open project, like uzdoom, it takes that project's license.</li><li><b>harmless.</b> nothing here hurts people.</li></ol>"
    },
    {
     "id": "never",
@@ -277,7 +277,7 @@
    {
     "id": "done",
     "h": "write a done test someone could check",
-    "body": "<p>one sentence. a person who has never met you should be able to read it and say yes or no.</p><ul><li><b>weak:</b> \"a great voxel mod for doom.\"</li><li><b>strong:</b> \"a downloadable mod where you can dig and place blocks while imps attack, at 60 fps on the reference rig, using only open assets.\"</li></ul><p>numbers, files, versions and named machines all help, and it's worth saying what's out of scope too.</p>"
+    "body": "<p>one sentence. a person who has never met you should be able to read it and say yes or no.</p><ul><li><b>weak:</b> \"a great voxel mod for doom.\"</li><li><b>strong:</b> \"a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets.\"</li></ul><p>numbers, files, versions and named machines all help, and it's worth saying what's out of scope too.</p>"
    },
    {
     "id": "checks",

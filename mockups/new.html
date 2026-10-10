@@ -199,12 +199,12 @@
             <div class="f">
               <label for="pitch">what</label>
               <p class="hint" id="pitch-hint">what is this, why does it matter, and why now?</p>
-              <textarea id="pitch" placeholder="doom's engine is 30 years old and still the most hackable shooter there is…"></textarea>
+              <textarea id="pitch" placeholder="this one is for fun, and anyone can play it free: no copy of doom or minecraft needed…"></textarea>
             </div>
             <div class="f dt">
               <label for="done">done when</label>
               <p class="hint">what is true when it's finished. people join for this as much as for the idea.</p>
-              <textarea id="done" placeholder="a downloadable gzdoom mod where you can dig, place blocks and build while imps attack, at 60 fps on the reference rig, using only open assets."></textarea>
+              <textarea id="done" placeholder="a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets."></textarea>
             </div>
           </div>
         </div>
@@ -219,7 +219,7 @@
               <div class="body">
                 <label for="c-machine"><b>runs</b></label>
                 <span class="note">a command that exits 0 when the work is done. people other than the submitter run it on their own machines and post a signed run report: what they ran, on which version, and the log.</span>
-                <div class="row"><input type="text" id="cmd" placeholder="./bench.sh --fps 60 && ./license-scan.sh"></div>
+                <div class="row"><input type="text" id="cmd" placeholder="./bench.sh && ./demos.sh && ./license-scan.sh mcdoom.pk3"></div>
                 <div class="row"><input type="number" id="n-runs" value="2" min="1" aria-label="number of runs"> runs, by different people</div>
               </div>
             </div>
@@ -233,7 +233,7 @@
                   <input type="number" id="n-people" value="2" min="1" aria-label="number of people"> people
                   <label><input type="checkbox" id="human"> at least one human</label>
                 </div>
-                <div class="row"><textarea id="look" style="min-height:52px" placeholder="what checkers do and what they should see: play the demo build for 10 minutes, dig and build while being chased, no crash, no stutter."></textarea></div>
+                <div class="row"><textarea id="look" style="min-height:52px" placeholder="what checkers do and what they should see: play e1m1 and one later map from a pistol start for 15 minutes each, dig through a wall, craft something, no crash, no stutter."></textarea></div>
               </div>
             </div>
 
@@ -254,7 +254,7 @@
           <div class="f">
             <label for="tags">tags</label>
             <p class="hint">how people find it. no categories, just tags.</p>
-            <input type="text" id="tags" placeholder="#weird #games #gzdoom">
+            <input type="text" id="tags" placeholder="#weird #games #uzdoom">
           </div>
         </div>
 
@@ -263,7 +263,7 @@
             <label for="upstream">builds on <span class="note" style="font-weight:400">· optional</span></label>
             <p class="hint">an existing open project this extends. paste a link or search.</p>
             <div class="pick">
-              <input type="text" id="upstream" placeholder="https://… or search: gzdoom" autocomplete="off">
+              <input type="text" id="upstream" placeholder="https://… or search: uzdoom" autocomplete="off">
               <ul class="results" id="results" hidden></ul>
             </div>
             <div class="picked" id="picked" hidden></div>
@@ -355,12 +355,12 @@
   const NODES = {
     'minecraft-in-doom': {
       crumbs: [['minecraft in doom', 'shwarm.html']],
-      license: 'GPL-3.0, from gzdoom',
-      test: 'a downloadable gzdoom mod where you can dig, place blocks and build while imps attack, at 60 fps on the reference rig, using only open assets.'
+      license: 'GPL-3.0, from uzdoom',
+      test: "a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets."
     },
     'minecraft-in-doom/block-placement': {
       crumbs: [['minecraft in doom', 'shwarm.html'], ['block placement', 'branch.html']],
-      license: 'GPL-3.0, from gzdoom',
+      license: 'GPL-3.0, from uzdoom',
       test: 'blocks place and break on any face, including chunk edges and corners, and the player can\'t walk through them.'
     }
   };
@@ -399,9 +399,10 @@
 
   // builds on: paste a link, or search open projects
   const PROJECTS = [
+    ['uzdoom', 'github.com/UZDoom/UZDoom', 'the active fork of gzdoom, the doom source port with modern modding'],
     ['gzdoom', 'github.com/ZDoom/gzdoom', 'the doom source port with modern modding'],
     ['freedoom', 'github.com/freedoom/freedoom', 'free, open doom-compatible game assets'],
-    ['zdoom wiki', 'zdoom.org/wiki', 'zscript and modding docs for gzdoom'],
+    ['zdoom wiki', 'zdoom.org/wiki', 'zscript and modding docs for gzdoom and uzdoom'],
     ['minetest', 'github.com/minetest/minetest', 'open voxel game engine'],
     ['godot', 'github.com/godotengine/godot', 'open game engine'],
     ['inkscape', 'gitlab.com/inkscape/inkscape', 'vector graphics editor'],

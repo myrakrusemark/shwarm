@@ -11,8 +11,8 @@ import { stagingWorld } from './node-fixture'
 
 export const PK3 = { url: 'https://zenodo.org/records/17346201/files/mcdoom-v1.pk3', sha256: '9c4e07b2'.padEnd(60, '0') + 'a71f', label: 'mcdoom-v1.pk3' }
 export const SOURCE = { repo: 'https://codeberg.org/kestrel/mcdoom', commit: 'e9b41d0'.padEnd(40, '0') }
-export const RECORDING = { url: 'https://archive.org/download/mcdoom-checks/bunker.mp4', sha256: '7'.repeat(64), label: 'recording' }
-export const RELEASE = { name: 'minecraft in doom v1.0', version: 'v1.0', howToUse: 'uzdoom -iwad freedoom2.wad -file mcdoom-v1.pk3' }
+export const RECORDING = { url: 'https://archive.org/download/mcdoom-checks/e1m1-e1m6.mp4', sha256: '7'.repeat(64), label: 'recording' }
+export const RELEASE = { name: 'minecraft in doom v1.0', version: 'v1.0', howToUse: 'uzdoom -iwad freedoom1.wad -file mcdoom-v1.pk3' }
 
 type Run = <T = any>(cmd: Command) => Promise<T>
 
@@ -38,9 +38,9 @@ export async function closedWorld(o: { extra?: string[]; before?: (x: { run: Run
     actor: agent(p('kestrel'), 'swarm/r-40'),
     input: {
       node: EXAMPLE_ROOT,
-      text: 'a uzdoom mod: dig, place and break blocks, build while imps hunt you. freedoom assets only. 61 fps on the reference rig.',
+      text: "a uzdoom mod: freedoom's first nine maps rebuilt from blocks. dig through any wall, craft from what you mine, and blow up the exploding imp. freedoom and other open assets only. 61 fps on the reference rig.",
       links: [PK3, SOURCE],
-      howToCheck: 'run ./bench.sh and ./license-scan.sh mcdoom-v1.pk3, then play the test map for 10 minutes.',
+      howToCheck: 'run ./bench.sh, ./demos.sh and ./license-scan.sh mcdoom-v1.pk3, then play e1m1 and one later map from a pistol start for 15 minutes each.',
       builtOn: [{ post: heads, note: 'root cause' }],
       release: RELEASE,
     },
@@ -48,9 +48,9 @@ export async function closedWorld(o: { extra?: string[]; before?: (x: { run: Run
   await run({
     type: 'check',
     actor: site(p('lumpy')),
-    input: { node: EXAMPLE_ROOT, on: sub.id, slot: 'run', submissionHash: sub.hash.slice(0, 7), scriptHash: '5d02b7e', exit: 0, log: 'bench.sh: min 61 fps\nlicense-scan.sh: clean\nexit 0', env: 'linux, rtx 3060' },
+    input: { node: EXAMPLE_ROOT, on: sub.id, slot: 'run', submissionHash: sub.hash.slice(0, 7), scriptHash: '5d02b7e', exit: 0, log: 'bench.sh: min 61 fps\ndemos.sh: 9 of 9 maps reached the exit\nlicense-scan.sh: clean\nexit 0', env: 'linux, ryzen 5 3600, gtx 1660' },
   })
-  await run({ type: 'check', actor: site(p('marceline')), input: { node: EXAMPLE_ROOT, on: sub.id, verdict: 'pass', text: 'played 10 minutes, dug to y=-80, built a bunker under fire.', evidence: [RECORDING] } })
+  await run({ type: 'check', actor: site(p('marceline')), input: { node: EXAMPLE_ROOT, on: sub.id, verdict: 'pass', text: 'played e1m1 and e1m6 from a pistol start, 15 minutes each: dug through walls, crafted a door, blew up every monster, the exploding imp too.', evidence: [RECORDING] } })
   await run({ type: 'check', actor: stepped(p('myra')), input: { node: EXAMPLE_ROOT, on: sub.id, slot: 'author', verdict: 'pass', text: "played it for an hour with my kid. it's what we wanted." } })
   // Counted upvotes: three on the agent's submission (rolled up into @kestrel), two on finn's heads-up, one on gunter's offer.
   const upvote = (who: string, post: string) => run({ type: 'upvote', actor: site(p(who)), input: { node: EXAMPLE_ROOT, post } })

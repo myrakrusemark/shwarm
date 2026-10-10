@@ -74,7 +74,7 @@ describe('the result page (5.7)', () => {
     expect(html).toContain(`<dt>version</dt><dd>v1.0 · <code title="sha256 ${sub.hash}">${sub.hash.slice(0, 7)}</code> · the exact build the checks ran</dd>`)
     expect(html).toContain(`<dt>fingerprint</dt><dd>sha256 <code title="${PK3.sha256}">9c4e07b2…a71f</code> · of mcdoom-v1.pk3<br/>commit <code title="${SOURCE.commit}">e9b41d0</code> · of kestrel/mcdoom</dd>`)
     expect(html).toContain(`<dt>license</dt><dd>${n.license}, from uzdoom</dd>`)
-    expect(html).toContain('<dt>how to use</dt><dd><div class="txt"><p>uzdoom -iwad freedoom2.wad -file mcdoom-v1.pk3</p></div></dd>')
+    expect(html).toContain('<dt>how to use</dt><dd><div class="txt"><p>uzdoom -iwad freedoom1.wad -file mcdoom-v1.pk3</p></div></dd>')
     expect(html).not.toContain('kept safe') // no archive links until they have a mechanism (#64)
     expect(html).toContain(
       `<div class="dl"><a class="btn" href="${PK3.url}" rel="nofollow ugc noopener noreferrer">mcdoom-v1.pk3 on zenodo.org ↗</a><a class="btn plain" href="${SOURCE.repo}" rel="nofollow ugc noopener noreferrer">kestrel/mcdoom on codeberg.org ↗</a></div>`,
@@ -87,9 +87,9 @@ describe('the result page (5.7)', () => {
     const html = await page()
     expect(html).toContain("<h2>proof it's done <span>submission #1 · 3 of 3 checks</span></h2>")
     expect(html).toContain('<h4><span>runs</span><span class="note">1 of 1</span></h4>')
-    expect(html).toMatch(/<a href="\/@lumpy">@lumpy<\/a> · run · <code class="cmd">[^<]+<\/code> exit 0 on #1 \([0-9a-f]{7}\) · linux, rtx 3060 · <a href="\/w\/minecraft-in-doom\/s\/1#c_\w+">signed log<\/a>/)
+    expect(html).toMatch(/<a href="\/@lumpy">@lumpy<\/a> · run · <code class="cmd">[^<]+<\/code> exit 0 on #1 \([0-9a-f]{7}\) · linux, ryzen 5 3600, gtx 1660 · <a href="\/w\/minecraft-in-doom\/s\/1#c_\w+">signed log<\/a>/)
     expect(html).toContain('<h4><span>people</span><span class="note">1 of 1 · one human</span></h4>')
-    expect(html).toContain(`<a href="/@marceline">@marceline</a> · person · played 10 minutes, dug to y=-80, built a bunker under fire. · <a href="${RECORDING.url}"`)
+    expect(html).toContain(`<a href="/@marceline">@marceline</a> · person · played e1m1 and e1m6 from a pistol start, 15 minutes each: dug through walls, crafted a door, blew up every monster, the exploding imp too. · <a href="${RECORDING.url}"`)
     expect(html).toContain('<h4><span>author</span><span class="note">signed off oct 8</span></h4>')
     expect(html).toContain("<a href=\"/@myra\">@myra</a> · author · played it for an hour with my kid. it's what we wanted.")
   })

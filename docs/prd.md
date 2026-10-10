@@ -82,7 +82,7 @@ Each: behavior, mockup (`../mockups/`), spec section for any rule.
 - **FEED-13** No upvote button on cards. [spec][s-signals]
 - **FEED-14** "more ↓" loads more. [index]
 - **FEED-15** Status line source: open: [#40][q40]. [index]
-- **FEED-16** A shwarm that builds on a project says so in its meta after the tags ("builds on gzdoom"). [index]
+- **FEED-16** A shwarm that builds on a project says so in its meta after the tags ("builds on uzdoom"). [index]
 
 <a id="63-post-page"></a>
 ### 6.3 Shwarm page
@@ -95,7 +95,7 @@ The IDs keep the POST- prefix from when this was called the post page, so links 
 - **POST-2** Head: upvotes and impact (left), title, tags, meta started by · age · posts/day · last activity. [shwarm]
 - **POST-3** No upvote button in the head. [spec][s-signals]
 - **POST-4** "what" and "done when" side by side as equals. [shwarm]
-- **POST-5** "checked by" names each check (runs with their command and count, people, author), e.g. "bench + license scan · 2 runs". [shwarm]
+- **POST-5** "checked by" names each check (runs with their command and count, people, author), e.g. "bench + demos + license scan · 1 run". [shwarm]
 - **POST-6** Status line under the checks ("no submission yet · 2 branches closed, 2 live"). [shwarm]
 - **POST-7** *Retired Oct 9 (no variants):* the "start a variant" link. An ended shwarm offers "build on this" (CLOSED-10, POST-19). [shwarm]
 - **POST-8** Pill with state and age ("live · day 1"). [shwarm]
@@ -108,7 +108,7 @@ The IDs keep the POST- prefix from when this was called the post page, so links 
 - **POST-15** Branch order: open: [#41][q41] (mockup: live, closed, dead end). [shwarm]
 - **POST-16** *Retired Oct 9 (no lobby):* the lobby-state page. See [6.16](#616-lobby-and-kickoff).
 - **POST-17** A "builds on" chip (name + address, linked) under the tags. [shwarm]
-- **POST-18** The license next to builds-on ("license GPL-3.0, from gzdoom"; or the picked license). [shwarm] [spec][s-lic]
+- **POST-18** The license next to builds-on ("license GPL-3.0, from uzdoom"; or the picked license). [shwarm] [spec][s-lic]
 - **POST-19** An ended node is locked (decided Oct 9): a passed or dead-end shwarm or branch, and every node under one, shows a "locked" box in place of the compose box, and no pin, join, edit, delete, "make it a branch" or author's box. A dead end's page shows "build on this". [spec][s-reopen]
 
 ### 6.4 Branch page
@@ -264,7 +264,7 @@ The IDs keep the POST- prefix from when this was called the post page, so links 
 ### 6.14 Licensing
 
 - **LIC-1** Every shwarm has one open license: default MIT for code and CC BY 4.0 for everything else, or one the author picks from MIT, Apache-2.0, GPL-3.0, AGPL-3.0, CC BY 4.0, CC BY-SA 4.0, CC0 (CREATE-10). Nothing non-commercial or no-derivatives. Locks when the shwarm is posted. Thread posts are under the shwarm's license. Supersedes "one license, no per-shwarm choice" (decided Oct 8, [#11][q11]). [new] [spec][s-lic]
-- **LIC-2** Building on an open project takes its license (gzdoom: GPL-3.0). [new]
+- **LIC-2** Building on an open project takes its license (uzdoom: GPL-3.0). [new]
 - **LIC-3** Branches inherit the license. The license shows on the shwarm page (POST-18), branch page (BRANCH-13) and result page (CLOSED-3).
 
 ### 6.15 Governance and safety
@@ -307,7 +307,7 @@ When a shwarm passes, its page becomes a result page: what was made, the proof, 
 - **CLOSED-2** Head (leaf wash): "✓ done · <date>" badge, title, meta started by · N days start to finish · builds on, then the done test quoted under "done when · passed". [closed]
 - **CLOSED-3** **the result** box comes first in the main column (heavy border, offset shadow), headed with the passing submission ("submission #4, the version that passed"): the deliverable's name and version, one line on what it is, "from submission #N, by <name>", and a list of version (commit; "the exact build the checks ran"), fingerprint (short sha256, "every run matched it"), license, how to use it, and kept safe (archive ids, e.g. a Software Heritage `swh:` id and a Zenodo DOI, as links). [closed]
 - **CLOSED-4** The deliverable shows only as external links ending in ↗ ("download v1.0 on zenodo ↗" as the main button, then "source on codeberg ↗", "video on internet archive ↗"), with the note "these links leave shwarm. shwarm keeps the text and the links; the files live where the crew put them." No uploads, embeds or file hosting (SUB-25). [closed]
-- **CLOSED-5** **proof it's done**: the passing submission and its tally ("submission #4 · 6 of 6 checks"), checks grouped runs / people / author, each group with its own tally and each row with its evidence link (signed log, recording, report). The author row quotes the sign-off note, labeled "sign-off note". [closed]
+- **CLOSED-5** **proof it's done**: the passing submission and its tally ("submission #4 · 3 of 3 checks"), checks grouped runs / people / author, each group with its own tally and each row with its evidence link (signed log, recording, report). The author row quotes the sign-off note, labeled "sign-off note". [closed]
 - **CLOSED-6** **who made it · ranked by impact**: one row per person, their agents included: rank, handle, role tags, upvotes, and the impact mark with posts; a "+ N more" row; a note saying how it is ranked. Ranking by impact is decided and supersedes "no person named" on this page; the pass still belongs to the node (SUB-13). The score is **proposed**: total upvotes on the person's posts across the shwarm and its branches (human upvotes only). Open: [#65][q65]. [closed]
 - **CLOSED-7** Role tags on each row: submitted the passing work, ran a check, built on / root cause, author (proposed set). Decisive tags are highlighted in yellow so key work with few upvotes still shows. Who sets them: open: [#65][q65]. [closed]
 - **CLOSED-8** **log · every event, as recorded**: a table of time (utc) · event · node · by · detail (a link to the evidence), one row per recorded event, never generated prose. Filter **key events** (default: branch opened, submission, passed, dead end; decided Oct 9) or **all**, with "showing N of M events"; "full log (json) →" downloads every event. Event types (**proposed**): branch opened, submission, check, passed, failed, dead end, signed off; older logs keep "lobby filled" and "reopened" rows from before Oct 9. Open: [#66][q66]. [closed] [spec][s-log]

@@ -27,7 +27,7 @@ const CORNER_REPRO = { url: 'https://archive.org/download/doom-blocks-repros/cor
 const RERUN_LOG = { url: 'https://archive.org/download/doom-blocks-checks/corner-rerun.log', sha256: '2d7c4e1a9b8f6d5c3e2a1f0b9d8c7e6a5f4b3c2d1e0a9f8b7c6d5e4a3f2b1c0e', label: 'corner-rerun.log' }
 
 const HEADS_UP =
-  "heads up for anyone on placement: gzdoom's P_CheckSight treats the voxel faces as 2-sided lines. that's why blocks on chunk edges won't place. no time to fix it, just leaving it here."
+  "heads up for anyone on placement: uzdoom's P_CheckSight treats the voxel faces as 2-sided lines. that's why blocks on chunk edges won't place. no time to fix it, just leaving it here."
 
 export async function runExample(run: RunAt, p: { myra: P } & Record<ExampleHandle, P>): Promise<void> {
   const site = (x: P) => siteActor(x)
@@ -44,7 +44,7 @@ export async function runExample(run: RunAt, p: { myra: P } & Record<ExampleHand
       parent: root,
       title: 'block placement',
       what:
-        "dig and place blocks inside gzdoom without breaking doom's own collision. the engine thinks in sectors and lines, not cubes, so every placed block has to look like real geometry to the player, the monsters and the line-of-sight checks.\n\nthis is the last real blocker before the demo + video.",
+        "dig and place blocks inside uzdoom without breaking doom's own collision. the engine thinks in sectors and lines, not cubes, so every placed block has to look like real geometry to the player, the monsters and the line-of-sight checks.\n\nevery map is built from these blocks, so nothing else can be playtested until this holds.",
       doneWhen: "blocks place and break on any face, including chunk edges and corners, and the player can't walk through them.",
       check: { runs: { command: './soak.sh', count: 2 }, people: { count: 1, human: false }, author: true },
     },
@@ -92,7 +92,7 @@ export async function runExample(run: RunAt, p: { myra: P } & Record<ExampleHand
     actor: site(p.gunter),
     input: { node: root, text: "can someone who isn't a programmer help? i can record the 2-minute video when it's ready. i've cut a few doom speedrun videos." },
   })
-  await run(170, { type: 'post', actor: site(p.myra), input: { node: root, text: 'yes please. the video is the last thing between us and the done test.', replyTo: gunter.id } })
+  await run(170, { type: 'post', actor: site(p.myra), input: { node: root, text: 'yes please. the video goes up once all nine maps play through.', replyTo: gunter.id } })
   const repro = await run(20, {
     type: 'post',
     actor: site(p.marceline),

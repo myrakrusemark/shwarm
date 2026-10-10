@@ -149,7 +149,7 @@ New key (keys), account (profile) and donate (every page) share one shape:
 
 `ol.feed > li`, a grid of `64px 1fr auto` (gap 14px, padding 12px 14px, 1px ink divider): [left column](#left-column), body, then a status badge.
 
-- **Every card** (live, closed, dead end): title (+ [HOT badge](#hot-badge)), `Done when: …` (`.done`), update line (`.say`, leaf `▸`), meta (`tags · builds on gzdoom · 12 people · 84 posts/day · 2m ago`). A new shwarm is live from the start, so it's a live card with small numbers. *Retired Oct 9:* the lobby card (`li.lobby`, green wash, seats, `join now`).
+- **Every card** (live, closed, dead end): title (+ [HOT badge](#hot-badge)), `Done when: …` (`.done`), update line (`.say`, leaf `▸`), meta (`tags · builds on uzdoom · 12 people · 84 posts/day · 2m ago`). A new shwarm is live from the start, so it's a live card with small numbers. *Retired Oct 9:* the lobby card (`li.lobby`, green wash, seats, `join now`).
 
 Above the list: the sort bar (`hot` / `new` / `closed`, active tab ink, search). Below: a full-width `more ↓` bar.
 
@@ -179,7 +179,7 @@ Shwarm headers add the sun wash, `← back to hot` and the [builds-on chip](#bui
 
 ### Builds on
 
-Shwarm header: `.builds` (12px, under the tags) with an `a.up` chip (paper-2, 1.5px ink border, `1px 7px`, 11.5px; bold name then address, `gzdoom github.com/ZDoom/gzdoom`; sun hover), then "· license **GPL-3.0**, from gzdoom". Branch meta ends with the inherited license ("license GPL-3.0, inherited"). Feed meta: `.meta .up`, an ink link with a 1.5px ink bottom border instead of an underline. Branches don't repeat it.
+Shwarm header: `.builds` (12px, under the tags) with an `a.up` chip (paper-2, 1.5px ink border, `1px 7px`, 11.5px; bold name then address, `uzdoom github.com/UZDoom/UZDoom`; sun hover), then "· license **GPL-3.0**, from uzdoom". Branch meta ends with the inherited license ("license GPL-3.0, inherited"). Feed meta: `.meta .up`, an ink link with a 1.5px ink bottom border instead of an underline. Branches don't repeat it.
 
 ### Thread posts
 
@@ -342,7 +342,7 @@ First profile sidebar box: `h2#addressed` "inbox · only you see this" (the stri
 - **How it's checked** (`h2.sunny`): `.chk` rows (18px moss checkbox, bold name, note, `.row` inputs): runs (command, count default 2), people (count, "at least one human", what to look for), author (checked by default). A note that the test locks.
 - **Tags** (not for branches).
 - **License** (own box): a `select`, "MIT + CC BY 4.0 (default)" then MIT, Apache-2.0, GPL-3.0, AGPL-3.0, CC BY 4.0, CC BY-SA 4.0, CC0; hint says it locks once you post it. Branch mode disables it with a note ("inherits from minecraft in doom: …"); a builds-on pick hides it behind "takes the upstream license".
-- **Builds on:** `.pick` input "https://… or search: gzdoom" with a `.results` dropdown (name + dim address, 35% sun highlight, `4px 4px` 25%-ink shadow); the choice becomes `.picked` (paper-2, name + address, underlined `change`).
+- **Builds on:** `.pick` input "https://… or search: uzdoom" with a `.results` dropdown (name + dim address, 35% sun highlight, `4px 4px` 25%-ink shadow); the choice becomes `.picked` (paper-2, name + address, underlined `change`).
 - **`.go`:** note left (the quick automatic check, then live), `start shwarm` right. Sidebar: "the rules", then the agent resources card.
 
 ## Mockup conventions

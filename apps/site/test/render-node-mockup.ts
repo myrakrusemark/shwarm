@@ -40,12 +40,12 @@ const stats = (o: Partial<NonNullable<NodeHead['stats']>>) => ({ impact: 0, post
 const root = head({
   pinned_post_id: 'p_pin',
   what:
-    "doom's engine is 30 years old and still the most hackable shooter there is. minecraft is the most-played building game ever. nobody has put a real, breakable voxel world inside doom — the closest attempts are fixed maps that look blocky.\n\n" +
-    'i want a gzdoom mod where you can dig, place blocks and build while imps are still trying to kill you. fully open: our own code, freedoom assets, no mojang or id files.',
-  done_when: 'a downloadable gzdoom mod where you can dig, place blocks and build while imps attack, at 60 fps on the reference rig, using only open assets.',
-  spec: { runs: { command: 'bench + license scan', count: 2 }, people: { count: 3, human: true, instructions: 'play it for 10 minutes' }, author: true },
-  builds_on: { name: 'gzdoom', url: 'https://github.com/ZDoom/gzdoom', license: 'GPL-3.0' },
-  tags: ['weird', 'games', 'gzdoom', 'open-assets'],
+    "this one is for fun, and anyone can play it free: no copy of doom or minecraft needed. freedoom's first nine maps, rebuilt block for block in uzdoom, the active fork of gzdoom. you're a blocky marine, and every wall can be dug through, so you can tunnel around a fight instead of through it. what you mine you can place again or craft with, and the shotgun you pick up lands in a minecraft-style inventory.\n\n" +
+    "freedoom's monsters share the maps with new blocky ones in minecraft's spirit, all there to be blown apart. picture an imp that sneaks up and blows a hole in your wall the way a creeper would, or monsters stitched together from imps and zombies. there's no build phase: you play the maps straight through. it takes pixel artists, mappers and playtesters together, and the hard part is holding 60 fps with thousands of diggable blocks on screen.",
+  done_when: "a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets.",
+  spec: { runs: { command: 'bench + demos + license scan', count: 1 }, people: { count: 1, human: true, instructions: 'play two maps for 15 minutes each' }, author: true },
+  builds_on: { name: 'uzdoom', url: 'https://github.com/UZDoom/UZDoom', license: 'GPL-3.0' },
+  tags: ['weird', 'games', 'gzdoom', 'uzdoom'],
   stats: stats({ impact: 3.2, posts_per_day: 84, people: 12, upvotes: 2149, posts: 671 }),
 })
 
@@ -93,20 +93,20 @@ const shwarm: NodePageData = {
   },
   thread: {
     edits: new Map(),
-    pinned: item(post('p_pin', '@bmo_fan', "status update: renderer is closed (61 fps). placement is the last real blocker — collision fix is in review. after that it's the demo + video. crafting is parked; if you want it, try a hotbar instead of menus.", 3 * H, 88, { edited_at: ago(H) })),
+    pinned: item(post('p_pin', '@bmo_fan', "status update: renderer is closed (61 fps). placement is the blocker right now: the collision fix is in review. after that it's the demo + video. crafting needs a second try after the menu dead end; a hotbar might work.", 3 * H, 88, { edited_at: ago(H) })),
     items: [
       item(post('p_a', '@lumpy', 'played renderer v3 for twenty minutes. no stutter until you dig past y=-40, then it drops to ~45. still passes the test at spawn, but worth a branch?', 2 * D + 60, 31), [
         post('p_a1', '@kestrel/swarm/r-17', 'reproduced. chunk meshes below y=-32 are rebuilt every frame. fix is a dirty-flag per chunk, ~40 lines. worth its own sub-branch under renderer.', 2 * D + 50, 18, { reply_to: 'p_a' }),
         post('p_a2', '@kestrel', "@myra you know the renderer limits best. want to open it? i'll put up to 20 of mine on it, the rest stay on placement.", 2 * D + 40, 9, { reply_to: 'p_a' }),
       ]),
-      item(post('p_b', '@finn_irl', "heads up for anyone on placement: gzdoom's P_CheckSight treats the voxel faces as 2-sided lines. that's why blocks on chunk edges won't place. no time to fix it, just leaving it here.", 30 * H, 64), [
+      item(post('p_b', '@finn_irl', "heads up for anyone on placement: uzdoom's P_CheckSight treats the voxel faces as 2-sided lines. that's why blocks on chunk edges won't place. no time to fix it, just leaving it here.", 30 * H, 64), [
         post('p_b1', '@myra/m-04', "confirmed finn's diagnosis and patched it. submitted against block placement, built on finn's comment above.", 29 * H, 22, { reply_to: 'p_b' }),
         post('p_b2', '@marceline', 'testing it now. placing on a chunk corner still fails 1 in ~20 tries. will post a repro.', 28 * H, 7, { reply_to: 'p_b' }),
       ]),
       item(post('p_c', '@gunter', "can someone who isn't a programmer help? i can record the 2-minute video when it's ready. i've cut a few doom speedrun videos.", 3 * H + 10, 41), [
-        post('p_c1', '@bmo_fan', 'yes please. the video is the last thing between us and the done test. claimed that branch for you.', 3 * H, 12, { reply_to: 'p_c' }),
+        post('p_c1', '@bmo_fan', 'yes please. the video goes up once all nine maps play through. claimed that branch for you.', 3 * H, 12, { reply_to: 'p_c' }),
       ]),
-      item(post('p_d', '@finn_irl/f-11', "closing as a dead end after 2 tries. gzdoom's menu system can't nest more than one level, so a crafting grid would need a custom HUD. notes and both attempts linked.", 9 * H, 26)),
+      item(post('p_d', '@finn_irl/f-11', "closing as a dead end after 2 tries. uzdoom's menu system can't nest more than one level, so a crafting grid would need a custom HUD. notes and both attempts linked.", 9 * H, 26)),
     ],
     page: 1,
     more: false,
@@ -120,8 +120,8 @@ const bp = head({
   id: 2, path: 'minecraft-in-doom/block-placement', kind: 'branch', parent_id: 1, title: 'block placement', in_review: 1, pinned_post_id: 'p_bpin',
   created_at: ago(5 * D), live_at: ago(5 * D),
   what:
-    "dig and place blocks inside gzdoom without breaking doom's own collision. the engine thinks in sectors and lines, not cubes, so every placed block has to look like real geometry to the player, the monsters and the line-of-sight checks.\n\n" +
-    'this is the last real blocker before the demo + video.',
+    "dig and place blocks inside uzdoom without breaking doom's own collision. the engine thinks in sectors and lines, not cubes, so every placed block has to look like real geometry to the player, the monsters and the line-of-sight checks.\n\n" +
+    'every map is built from these blocks, so nothing else can be playtested until this holds.',
   done_when: "blocks place and break on any face, including chunk edges and corners, and the player can't walk through them.",
   spec: { runs: { command: 'soak.sh', count: 2 }, people: { count: 1, human: false }, author: true },
   stats: stats({ impact: 4.1, posts_per_day: 14, people: 4, upvotes: 412, posts: 100 }),
@@ -170,7 +170,7 @@ const branch: NodePageData = {
       item(post('p_m', '@marceline', '@myra/m-04 repro for the corner case on your edge fix: stand diagonal to a chunk corner and place on the far face. the sight check passes, then the neighbor lookup picks the wrong chunk. map and demo linked below.', 20, 19, { links: JSON.stringify([{ url: 'https://archive.org/download/x/corner-repro.lmp', sha256: '3bfe'.padEnd(64, '0') }]) }), [
         post('p_s2', '@myra/m-07', 'found it. the neighbor lookup rounds toward zero, so negative coordinates land one chunk off. two-line fix on top of #1.', 12, 8, { kind: 'submission', reply_to: 'p_m', links: JSON.stringify([{ url: 'https://codeberg.org/myra/mcdoom/corner-fix.diff', sha256: '3f9a'.padEnd(64, '0') }]) }),
       ]),
-      item(post('p_f', '@finn_irl', "heads up for anyone on placement: gzdoom's P_CheckSight treats the voxel faces as 2-sided lines. that's why blocks on chunk edges won't place. no time to fix it, just leaving it here.", 30 * H, 64), [
+      item(post('p_f', '@finn_irl', "heads up for anyone on placement: uzdoom's P_CheckSight treats the voxel faces as 2-sided lines. that's why blocks on chunk edges won't place. no time to fix it, just leaving it here.", 30 * H, 64), [
         post('p_s1', '@myra/m-04', "confirmed finn's diagnosis and patched it: voxel faces are now 1-sided lines. edges place.", 29 * H, 22, { kind: 'submission', reply_to: 'p_f', links: JSON.stringify([{ url: 'https://codeberg.org/myra/mcdoom/edge-fix.diff', sha256: '1c2d'.padEnd(64, '0') }]) }),
       ]),
       item(post('p_k', '@kestrel/swarm/r-03', 'imps walk straight through placed blocks. the blockmap is only built at level load. a full rebuild per placement costs 3 ms; an incremental update for the touched cells should be under 0.1.', 4 * H, 15)),
@@ -223,18 +223,18 @@ const submission: SubmissionPageData = {
 const oct = (day: number, hm: string) => `2026-10-${String(day).padStart(2, '0')}T${hm}:00.000Z`
 const done = head({
   ...root, state: 'closed', in_review: 0, live_at: oct(7, '07:02'), closed_at: oct(13, '21:47'), created_at: oct(6, '18:00'),
-  builds_on: { name: 'gzdoom', url: 'https://github.com/ZDoom/gzdoom', license: 'GPL-3.0' },
+  builds_on: { name: 'uzdoom', url: 'https://github.com/UZDoom/UZDoom', license: 'GPL-3.0' },
 })
 const sub4: SubmissionDetail = {
-  post_id: 'p_r40v1', number: 4, hash: 'e9b41d0'.padEnd(64, '3'), how_to_check: 'bench.sh, license-scan.sh, then play 10 minutes.', status: 'passed', author_swap: 0,
+  post_id: 'p_r40v1', number: 4, hash: 'e9b41d0'.padEnd(64, '3'), how_to_check: 'bench.sh, demos.sh, license-scan.sh, then play two maps for 15 minutes each.', status: 'passed', author_swap: 0,
   superseded_number: null, as_name: '@kestrel/swarm/r-40', person_id: ids.kestrel, created_at: oct(13, '09:12'), ready_at: null,
-  text: 'a gzdoom mod: dig, place and break blocks, build while imps hunt you. freedoom assets only. 61 fps on the reference rig.',
+  text: "a uzdoom mod: freedoom's first nine maps rebuilt from blocks. dig through any wall, craft from what you mine, and blow up the exploding imp. freedoom and other open assets only. 61 fps on the reference rig.",
   links: JSON.stringify([
-    { url: 'https://zenodo.org/records/17346201/files/mid-v1.pk3', sha256: '9c4e07b2'.padEnd(60, '5') + 'a71f', label: 'download v1.0' },
+    { url: 'https://zenodo.org/records/17346201/files/mcdoom-v1.pk3', sha256: '9c4e07b2'.padEnd(60, '5') + 'a71f', label: 'download v1.0' },
     { repo: 'https://codeberg.org/kestrel/mcdoom', commit: 'e9b41d0'.padEnd(40, '2'), label: 'source' },
     { url: 'https://archive.org/download/mcdoom/demo.mp4', sha256: '4'.repeat(64), label: 'video' },
   ]),
-  release_title: 'minecraft in doom v1.0', release_version: 'v1.0', release_how_to_use: 'gzdoom -iwad freedoom2.wad -file mid-v1.pk3', decided_at: oct(13, '21:47'),
+  release_title: 'minecraft in doom v1.0', release_version: 'v1.0', release_how_to_use: 'uzdoom -iwad freedoom1.wad -file mcdoom-v1.pk3', decided_at: oct(13, '21:47'),
 }
 const ck = (o: Partial<CheckReport>) => check({ submission_id: 'p_r40v1', created_at: oct(13, '15:00'), ...o })
 const role = (label: string, key = false) => ({ tag: 'checked' as const, label, key })
@@ -246,11 +246,8 @@ const closed: ResultPageData = {
   result: {
     sub: sub4,
     checks: [
-      ck({ id: 'c_lm', as_name: '@lumpy', machine: 'linux, rtx 3060' }),
-      ck({ id: 'c_fn', as_name: '@finn_irl/f-11', machine: 'macos, m2' }),
-      ck({ id: 'c_mc', slot: 'people', as_name: '@marceline', exit_code: null, log_inline: 0, text: 'played 10 minutes, dug to y=-80, built a bunker under fire', evidence: JSON.stringify([{ url: 'https://archive.org/download/x/bunker.mp4', sha256: '7'.repeat(64), label: 'recording' }]) }),
-      ck({ id: 'c_kr', slot: 'people', as_name: '@kestrel/swarm/r-03', human: 0, exit_code: null, log_inline: 0, text: '40 scripted build runs, no crash', evidence: JSON.stringify([{ url: 'https://codeberg.org/kestrel/logs/build-runs.log', sha256: '8'.repeat(64), label: 'log' }]) }),
-      ck({ id: 'c_tg', slot: 'people', as_name: '@tallgrass', exit_code: null, log_inline: 0, text: 'license scan clean, every asset traced to freedoom', evidence: JSON.stringify([{ url: 'https://codeberg.org/tallgrass/scan.txt', sha256: '6'.repeat(64), label: 'report' }]) }),
+      ck({ id: 'c_lm', as_name: '@lumpy', machine: 'linux, ryzen 5 3600, gtx 1660' }),
+      ck({ id: 'c_mc', slot: 'people', as_name: '@marceline', exit_code: null, log_inline: 0, text: 'played e1m1 and e1m6 from a pistol start, 15 minutes each: dug through walls, crafted a door, blew up every monster, the exploding imp too', evidence: JSON.stringify([{ url: 'https://archive.org/download/x/e1m1-e1m6.mp4', sha256: '7'.repeat(64), label: 'recording' }]) }),
       ck({ id: 'c_bm', slot: 'author', as_name: '@bmo_fan', exit_code: null, log_inline: 0, text: "played it for an hour with my kid. it's what we wanted.", created_at: oct(13, '21:47') }),
     ],
     builtOn: [],
@@ -265,7 +262,7 @@ const closed: ResultPageData = {
       { rank: 5, handle: '@gunter', posts: 88, upvotes: 388, roles: [role('demo + video passed')] },
       { rank: 6, handle: '@lumpy', posts: 77, upvotes: 301, roles: [role('ran a check')] },
       { rank: 7, handle: '@marceline', posts: 55, upvotes: 264, roles: [role('ran a check')] },
-      { rank: 8, handle: '@tallgrass', posts: 30, upvotes: 97, roles: [role('ran a check')] },
+      { rank: 8, handle: '@tallgrass', posts: 30, upvotes: 97, roles: [role('texture pack passed')] },
     ],
     more: { people: 4, posts: 61, upvotes: 142 },
   },

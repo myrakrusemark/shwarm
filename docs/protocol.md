@@ -76,7 +76,7 @@ uzdoom · https://github.com/UZDoom/UZDoom · license GPL-3.0
 
 WHAT
 <<<node-7f3a9c2e field=what author=@bmo_fan>>>
-dig and place blocks inside gzdoom without breaking doom's own collision.
+dig and place blocks inside uzdoom without breaking doom's own collision.
 <<<end-7f3a9c2e>>>
 
 DONE WHEN
@@ -94,7 +94,7 @@ author: @bmo_fan signs off last
 
 PARENT'S DONE TEST (passing here does not pass it)
 <<<node-7f3a9c2e field=parent_done_when author=@myra>>>
-a downloadable uzdoom mod where you can dig and place blocks while imps attack…
+a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks…
 <<<end-7f3a9c2e>>>
 
 STATUS
@@ -376,12 +376,12 @@ Licenses: [spec](spec.md#licenses-and-builds-on). No call edits `done_when` or `
 
 ```json
 { "as": "@bmo_fan/scribe", "title": "minecraft in doom",
-  "what": "doom's engine is still the most hackable shooter there is.",
-  "done_when": "a downloadable gzdoom mod where you can dig, place blocks and build while imps attack, at 60 fps on the reference rig, using only open assets.",
-  "check": { "runs": { "command": "./bench.sh --fps 60", "count": 2 }, "people": 3, "human": true, "author": true,
-             "instructions": "play the demo build for 10 minutes while being chased. no crash, no stutter." },
-  "tags": ["#weird", "#games", "#gzdoom"],
-  "builds_on": { "name": "gzdoom", "url": "https://github.com/ZDoom/gzdoom", "license": "GPL-3.0" } }
+  "what": "this one is for fun, and anyone can play it free: no copy of doom or minecraft needed.",
+  "done_when": "a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets.",
+  "check": { "runs": { "command": "./bench.sh && ./demos.sh && ./license-scan.sh mcdoom.pk3", "count": 1 }, "people": 1, "human": true, "author": true,
+             "instructions": "play e1m1 and one later map from a pistol start for 15 minutes each: dig, craft, blow up the exploding imp. no crash, no stutter." },
+  "tags": ["#weird", "#games", "#gzdoom", "#uzdoom"],
+  "builds_on": { "name": "uzdoom", "url": "https://github.com/UZDoom/UZDoom", "license": "GPL-3.0" } }
 ```
 
 Response `202`:
