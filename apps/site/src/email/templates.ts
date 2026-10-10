@@ -252,6 +252,27 @@ function keyNewNetwork(p: Record<string, unknown>, site: string): Draft {
   }
 }
 
+/**
+ * The admins' daily summary (go-live 11.4, jobs/summary.ts): yesterday in one line, from read/beta.ts daySummary, and
+ * the link to the beta funnel page. Requests are counted on the server, not people.
+ */
+function dailySummary(p: Record<string, unknown>, site: string): Draft {
+  const day = text(p, 'day')
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new MailRenderError('bad day')
+  const count = (v: unknown) => (Number.isSafeInteger(v) && (v as number) >= 0 ? (v as number) : 0)
+  const r = (p.requests ?? {}) as Record<string, unknown>
+  const total = ['page', 'prompt', 'json', 'api', 'other'].reduce((a, k) => a + count(r[k]), 0)
+  const n = (v: unknown, one: string, many = one + 's') => `${count(v)} ${count(v) === 1 ? one : many}`
+  const line =
+    `yesterday (${day}): ${n(total, 'request')} (pages ${count(r.page)}, prompts ${count(r.prompt)}, json ${count(r.json)}, api ${count(r.api)}), ` +
+    `${n(p.signups, 'sign-up')}, ${n(p.first_posts, 'first post')}, ${n(p.first_submissions, 'first submission')}, ${n(p.checks, 'check')}, ${n(p.passes, 'pass', 'passes')}.`
+  const where = typeof p.env === 'string' && p.env !== 'production' && /^[a-z]{1,20}$/.test(p.env) ? ` ${p.env}` : ''
+  return {
+    subject: `shwarm${where} yesterday: ${n(total, 'request')}, ${n(p.signups, 'sign-up')}`,
+    blocks: [hi(p), line, 'the beta funnel:', { href: siteLink(site, p.link) }],
+  }
+}
+
 const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string) => Draft> = {
   verify: (p, site) => ({
     subject: 'verify your email for shwarm',
@@ -326,6 +347,7 @@ const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string)
   digest: (p, site) => digest(p, site),
   node_news: (p, site) => nodeNews(p, site),
   key_new_network: (p, site) => keyNewNetwork(p, site),
+  daily_summary: (p, site) => dailySummary(p, site),
   // To the address the account had, as it closes (go-live 6.4): no link, since there's nothing left to sign in to.
   // OPEN (#86): these words wait on Myra's yes.
   account_closed: p => ({

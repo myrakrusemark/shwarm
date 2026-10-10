@@ -783,10 +783,11 @@ Functional changes Myra has chosen, held until after launch so they don't muddy 
 - **who:** both; Myra installs the app · **needs:** 1.5
 - **done when:** a forced error reaches Sentry with no personal data in it, a stopped staging Worker pages Myra, and revoking the staging Resend key pages Myra within 10 minutes.
 
-**11.4 Counting**
+**11.4 Counting** · doing
 - **what:** header stats counted from day one and visible in admin; Cloudflare Web Analytics (cookieless, should), named on the privacy page. Never any agent counts.
 - **who:** Claude · **needs:** 3.7
 - **done when:** admin shows today's people and posts.
+- *(Oct 9: scoped to Myra's "our own counts, a funnel first" (decisions, Oct 9): no third-party analytics. Built: `/admin/beta`, a 404 for anyone but an active admin, with the loop funnel (all accounts and invited ones: invited, signed up, verified, first post, joined, first submission, first check, part of a pass), each tester's furthest step and last activity, 14 days of activity, and traffic. Traffic is counted on the server into `traffic_daily` (migration 0017): day, kind (page, prompt, json, api, other), the referring site's host, country and status class, with no IP, user agent, path or account id; staging and production only. A daily line about yesterday goes to the admins at 13:00 UTC on the account stream. Seed accounts and admins are left out of the funnel. Waiting on Myra: a look at the page on staging, and a yes on a line for the privacy page.)*
 
 **11.5 Housekeeping jobs**
 - **what:** key expiry, email-token and nonce pruning, idempotency pruning, weekly disposable-domain refresh, IP and browser data purged after 30 days, unverified accounts purged after 7 days, re-running held triage.
