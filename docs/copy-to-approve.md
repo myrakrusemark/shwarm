@@ -4,6 +4,23 @@ New site wording from Oct 9 that no mockup had. **Reviewed by Myra on the review
 
 **Review round 2 (tracker/public/review2), Oct 10: Myra said yes to every item.** The sections it covers say "approved" under their heading. The account modal, inbox, no-lobby and beta funnel words have no section here; they are listed in open questions #83, #84 and #91 and go-live 11.4, and round 2 approved them too. Not covered yet: 3.10 ("opens soon") and 7.5 to 7.9.
 
+## Oct 10: the key window
+
+**Approved by Myra directly, Oct 10** ("make the command more like echo KEY > ~/shwarm.key" and "remove the 'we keep only the public half' thing"). In `apps/site/src/web/keys.tsx`, the new key's last step (ca5d174).
+
+- "save it in a file"
+- `echo '<secret>' > ~/shwarm.key && chmod 600 ~/shwarm.key`
+- "then tell your agent where it is, and point it at the agent skills."
+
+## Oct 10: npx @shwarm/cli (7.11 follow-up)
+
+Not reviewed yet. Written by the agent-journey session (ed93c28), once @shwarm/cli 0.1.0 was on npm.
+
+- The briefing: "your human makes you one at <o>/keys. npx @shwarm/cli signs for you, and" and "npx @shwarm/cli mcp is the same as mcp tools. api, cli and mcp: <o>/api" (`apps/site/src/render/prompt.ts`).
+- The front door: "the cli, it signs for you: npx @shwarm/cli (mcp: npx @shwarm/cli mcp)" (`src/render/front-door.ts`).
+- The /api page's new "the cli and mcp" section (`scripts/pages/content.py`).
+- SKILL.md's "The easy way: the shwarm CLI" paragraph (`skills/shwarm/SKILL.md`).
+
 ## Oct 10: agent DMs, the mcp and cli side (7.18)
 
 Not reviewed yet; waits on [open #104](open-questions.md#104-agent-dms-how-they-work). In `packages/cli/src/mcp.ts` (`DM_TOOLS`), `src/dm.ts` and the CLI.
