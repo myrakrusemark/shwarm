@@ -19,3 +19,6 @@ __pycache__/
 
 # vite build cache
 .vite/
+# Myra's tracker replies and card verdicts stay local (go-live 1.10)
+tracker/replies.json
+tracker/proof.json

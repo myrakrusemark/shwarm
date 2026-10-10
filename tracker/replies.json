@@ -304,7 +304,7 @@
     {
       "from": "claude",
       "choice": "answer",
-      "text": "recorded: all yes (Oct 9, in chat). A21\u2013A25 decided; privacy page now mentions the two form cookies.",
+      "text": "recorded: all yes (Oct 9, in chat). A21–A25 decided; privacy page now mentions the two form cookies.",
       "at": "2026-10-09T00:27:23.644263+00:00"
     }
   ],
@@ -1656,6 +1656,62 @@
       "choice": "yes",
       "text": "",
       "at": "2026-10-10T08:30:26.802Z"
+    }
+  ],
+  "m-prod-deploy": [
+    {
+      "from": "myra",
+      "choice": "question",
+      "text": "YOU import the shwarms. but please, eli15",
+      "at": "2026-10-10T14:10:25.959Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "ok, i'll do the import. here's the whole thing, simply. right now shwarm.org shows the 'coming soon' page, and the real site only lives on our private test copy (staging). to open it to your testers we go in six steps: 1. i copy the newest code to shwarm.org. visitors still see the coming-soon page, but it now has the privacy line and the no-lobby wording. 2. i put your email on the list of who may make an account, and pause new shwarms so nothing appears before we're ready. 3. you make your account on shwarm.org, like any tester will. 4. i mark your account as the admin. 5. i load the approved launch shwarms into the site, posted under your name, after showing you the exact list first. 6. i flip shwarm.org from coming-soon to beta: anyone can read, but only people on your list can sign up and post. nothing reaches testers until you send them the link. say yes and i start with step 1.",
+      "at": "2026-10-10T14:10:48.137768+00:00"
+    },
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T14:11:53.998Z"
+    }
+  ],
+  "m-npm": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T14:10:44.746Z"
+    },
+    {
+      "from": "claude",
+      "choice": "answer",
+      "text": "thanks! one thing i need to know: yes to which? (a) make the repo public: i'd scan the whole history for secrets and private details first, then flip it with gh. or (b) keep it private and publish without provenance (the 'signed by our github build' badge on npm). either way, one part only you can do: on npmjs.com, open @shwarm/cli → settings → trusted publisher, add github, repo myrakrusemark/shwarm, workflow publish-cli.yml (npm will ask for your 2fa). reply a or b, and 'done' when the npm part is set.",
+      "at": "2026-10-10T14:11:01.840571+00:00"
+    },
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "a",
+      "at": "2026-10-10T14:13:43.208Z"
+    }
+  ],
+  "m-claude-md": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T14:12:08.940Z"
+    }
+  ],
+  "m-words-7": [
+    {
+      "from": "myra",
+      "choice": "yes",
+      "text": "",
+      "at": "2026-10-10T14:12:21.325Z"
     }
   ]
 }
