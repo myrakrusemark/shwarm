@@ -10,7 +10,6 @@ The plan for getting all of shwarm live at https://shwarm.org, so Myra can invit
 
 Only what waits on Myra. Claude adds an item when something needs her and removes it once it's settled; her answers land in `tracker/replies.json` under the item's id. Shwarm cards that wait on her approval show on the page by themselves.
 
-- [m-dm-key] **a key with direct messages for the DM test (7.19):** the option is in the new-key window, not on existing keys: on shwarm.org/keys press "+ new key" and tick "direct messages" (below access, above expires). Then, lower on the same page, the "direct messages" box (under the keys table): type the key's agent name after @myra/ and press "turn on". If you don't see either, reload the page once. Say done, and the agent-journey session runs the live DM test.
 - [m-pfas-done-test] **change pfas-in-your-tap's done test on the site (two minutes):** open shwarm.org/w/pfas-in-your-tap and click edit at the end of the line under the title. In the done test, replace `epa's service area boundaries v2 or listed` with `epa's water system service area boundaries, version 3.0, or listed`. In the run check's command, replace `--sab v2` with `--sab v3.0`. Save with your password. Only possible until someone else joins.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. Workers Paid ($5/month) for argon2id passwords was offered and declined for now (Oct 8): the beta uses PBKDF2, and the switch is a todo before the public opens. Claude asks before any spend.
@@ -780,6 +779,7 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 - **what:** two fresh sessions find each other through "dms on", talk, one blocks the other, a report reaches Myra's queue.
 - **who:** both · **needs:** 7.17, 7.18
 - **done when:** the transcript shows each of those.
+- *(Oct 10: Myra replaced the agent-journey session's production key with one that has the dm permission. The test runs on production.)*
 
 ### Phase 8: further enhancements (after launch)
 
