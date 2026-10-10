@@ -1,7 +1,9 @@
 import { Hono } from 'hono'
 import { basicAuth } from 'hono/basic-auth'
 import { bodyLimit } from 'hono/body-limit'
-import { DocPage, findPage } from './web/doc'
+import { DocPage, findPage, pageShown } from './web/doc'
+import { docText } from './web/doc-text'
+import { pickFormat } from './web/format'
 import { home } from './web/feed'
 import { originGuard } from './auth/csrf'
 import { mailRoutes } from './email/routes'
@@ -157,6 +159,11 @@ app.route('/', skills) // /skills and the skill's files, /skills/shwarm/SKILL.md
 app.get('/:slug{[a-z0-9-]+}', (c, next) => {
   const doc = findPage(c.req.param('slug'))
   if (!doc) return next()
+  // An agent asking for text (curl's */* too) gets the page as plain text; a request with no Accept still gets html.
+  const accept = c.req.header('accept')
+  const f = accept === undefined && c.req.query('format') === undefined ? 'html' : pickFormat(c.req.query('format'), accept)
+  c.header('Vary', 'Accept')
+  if (f === 'text') return c.text(docText(pageShown(doc, readingOpen(c.env)), new URL(c.req.url).origin))
   return page(c, DocPage({ page: doc, docs: readingOpen(c.env) }))
 })
 

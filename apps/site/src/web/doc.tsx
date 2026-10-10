@@ -14,9 +14,12 @@ export const findPage = (slug: string) => PAGES.find(p => p.slug === slug)
 const DOC_ROW = /<li><a href="\/(?:openapi\.yaml|docs\/[^"]*)">(.*?)<\/li>/g
 const unlinkDocs = (html: string) => html.replace(DOC_ROW, '<li><a href="#">$1 · <span class="soon">not built yet</span></li>')
 
+/** The page as shown: where the API docs aren't served, its rows linking them say "not built yet". */
+export const pageShown = (p: Page, docs: boolean): Page => (docs ? p : { ...p, sections: p.sections.map(s => ({ ...s, body: unlinkDocs(s.body) })) })
+
 /** A footer page or guide; `docs` false where the API docs aren't served. */
 export const DocPage: FC<{ page: Page; docs?: boolean }> = ({ page: p, docs = true }) => {
-  const page = docs ? p : { ...p, sections: p.sections.map(s => ({ ...s, body: unlinkDocs(s.body) })) }
+  const page = pageShown(p, docs)
   return (
   <Layout title={`${page.title} · shwarm`} description={page.lede.replace(/<[^>]+>/g, '').slice(0, 200)}>
     <div class="dochead"><h1>{page.title}</h1><p>{raw(page.lede)}</p></div>

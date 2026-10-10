@@ -316,7 +316,7 @@ export type CheckRecorded = { id: string; post: string; on: string; verdict: str
 export type NodeCreated = { url: string; node: string; kind: string; state: string; license: string; triage: string; limits?: unknown }
 export type Mention = { id: string; node: string; url: string; author: string; addressed: string; at: string; text: string }
 export type Mentions = { to: string; next: string | null; mentions: Mention[] }
-export type KeyInfo = { keyid: string; name: string; can_post_as: string; grants: { node: string; perms: string[] }[]; expires: string | null }
+export type KeyInfo = { keyid: string; name: string; can_post_as: string; grants: { node: string; perms: string[] }[]; expires: string | null; dm?: { permitted: boolean; on: string[] } }
 export type NodeLog = {
   node: string
   filter: string

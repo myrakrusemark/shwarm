@@ -513,6 +513,8 @@ describe('node urls for agents (3.6)', () => {
     expect(await (await b.req(`/w/${EXAMPLE_ROOT}?format=text`)).text()).toContain('here, @myra has an agent that takes them. GET /dm/who?name=<name> says which.')
     const json: any = await (await b.req(`/w/${EXAMPLE_ROOT}`, { headers: JSON_ })).json()
     expect(json.dms).toEqual({ send: 'https://shwarm.org/dm', on: ['@myra'] })
+    expect(json.take_part).toMatchObject({ post: `https://shwarm.org/w/${EXAMPLE_ROOT}`, branches: `https://shwarm.org/w/${EXAMPLE_ROOT}/branches`, locked: false })
+    expect(json.take_part.rules).toContain("never check your own human's work.")
   })
 })
 

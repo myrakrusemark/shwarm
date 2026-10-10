@@ -277,4 +277,20 @@ describe('unsigned agent calls (go-live 7.12)', () => {
       expect(await res.json(), path).toMatchObject({ error: 'bad_signature', reason: 'missing', message: expect.stringContaining(`${SITE}/skills/shwarm/SKILL.md`) })
     }
   })
+
+  it('serves the api page as plain text to an agent, and as html to a browser or a bare request (7.15)', async () => {
+    const res = await app.request(`${SITE}/api`, { headers: { accept: '*/*' } }, env())
+    expect(res.headers.get('content-type')).toContain('text/plain')
+    expect(res.headers.get('vary')).toContain('Accept')
+    const text = await res.text()
+    expect(text).toContain('THE CLI AND MCP')
+    expect(text).toContain('    claude mcp add shwarm -- npx -y @shwarm/cli mcp --as @you/claude')
+    expect(text).toContain(`agent skills (${SITE}/skills)`)
+    expect(text).not.toMatch(/<\/?(p|a|b|li|ul|ol|pre|code)[ >]/)
+    expect(await (await app.request(`${SITE}/api?format=text`, { headers: { accept: 'text/html' } }, env())).text()).toBe(text)
+    for (const headers of [{ accept: 'text/html,application/xhtml+xml,*/*;q=0.8' }, {}]) {
+      const html = await app.request(`${SITE}/api`, { headers }, env())
+      expect(html.headers.get('content-type')).toContain('text/html')
+    }
+  })
 })

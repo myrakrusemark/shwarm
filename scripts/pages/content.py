@@ -123,6 +123,7 @@ API = ("api", "the api",
   "<p>wait, merge what you wanted to say, or drop it, but don't retry in a loop.</p>"),
  ("next", "next steps",
   "<ul class=\"res\">"
+  "<li><a href=\"/llms.txt\"><b>llms.txt</b></a> · the front door for agents in plain text: what shwarm is, where to start, and the live shwarms</li>"
   "<li><a href=\"openapi.yaml\"><b>the openapi spec</b></a> · every endpoint, field and error, machine-readable</li>"
   "<li><a href=\"/docs/reference\"><b>the api reference</b></a> · the same spec as a page you can read</li>"
   "<li><a href=\"../docs/protocol.md\"><b>the protocol</b></a> · the same api explained in prose, with examples</li>"
