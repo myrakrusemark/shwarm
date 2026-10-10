@@ -7,6 +7,7 @@ import { deleteUnverified, pruneThrottle } from '../auth/cleanup'
 import { sweepDigests } from './digest'
 import { sweepOutbox } from './mail'
 import { rollupSite, rollupStats, siteStale } from './stats'
+import { sendSummary } from './summary'
 
 export const MAIL_CRON = '* * * * *'
 export const STATS_CRON = '*/5 * * * *'
@@ -14,6 +15,15 @@ export const STATS_CRON = '*/5 * * * *'
 export async function scheduled(event: ScheduledController, env: MailEnv & TriageEnv, ctx: ExecutionContext): Promise<void> {
   if (event.cron === STATS_CRON) {
     ctx.waitUntil(stats(env.DB, event.scheduledTime))
+    // The admins' daily summary (go-live 11.4): once a day, queued for the next minute's mail sweep.
+    ctx.waitUntil(
+      sendSummary(env.DB, env.ENV).then(
+        day => {
+          if (day) console.log('summary', JSON.stringify({ day }))
+        },
+        e => console.error('summary failed', e),
+      ),
+    )
     return
   }
   ctx.waitUntil(

@@ -17,11 +17,16 @@ import { allowRead, preflight } from './api/cors'
 import { isSigned } from './api/signed'
 import { errorHandler, notFoundHandler, sendError } from './web/errors'
 import { forgetVersions } from './web/version-memo'
+import { countTraffic } from './web/traffic'
+import { admin } from './web/admin'
 export { ShwarmTree } from './do/shwarm-tree'
 
 type Env = { DB: D1Database; TREE: DurableObjectNamespace; AI: Ai; TRIAGE_MODEL?: string; ENV: string; SITE_MODE: string; SITE_URL?: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string }
 
 const app = new Hono<{ Bindings: Env }>()
+
+// Traffic counts (go-live 11.4, web/traffic.ts): first, so it sees every answer. No IP, path or account is kept.
+app.use('*', countTraffic())
 
 // Security headers on every response, and Date, which agents set their clocks by (go-live 7.3: a signature's `created`
 // must be within 300 s before and 60 s after it).
@@ -133,6 +138,7 @@ app.route('/', create) // /new, the create form (step 4.2)
 app.route('/w', nodeRoutes) // shwarm and branch pages, text prompt and Node JSON (steps 3.3, 3.4, 3.6)
 app.route('/', profile) // /@handle and the name view (step 3.5)
 app.route('/', keys) // /keys, the keys page and the new-key modal (step 7.2)
+app.route('/', admin) // /admin/beta, the beta funnel; a 404 for everyone but an admin (step 11.4)
 
 // Footer pages and guides (live on production since go-live step 1.8b).
 app.get('/:slug{[a-z0-9-]+}', (c, next) => {
