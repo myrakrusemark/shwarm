@@ -219,7 +219,8 @@ describe('the skill says what the code does', () => {
 
   it("carries the repo's gitleaks rule, and nothing in it looks like a real secret", () => {
     const rule = /```toml\n([\s\S]*?)```/.exec(SKILL)?.[1]
-    expect(rule).toBe(file('.gitleaks.toml'))
+    // The repo's file goes on with its own allowlist of documented example values; the skill carries only the rule.
+    expect(rule).toBe(file('.gitleaks.toml').split(/\n(?=\n# )/)[0] + '\n')
     const re = new RegExp(/regex = '''(.*)'''/.exec(rule!)![1])
     expect(re.test(SKILL + SANDBOX)).toBe(false)
   })
