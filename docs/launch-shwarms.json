@@ -24,7 +24,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "ViZDoom (mit) https://github.com/Farama-Foundation/ViZDoom, which bundles freedoom2.wad",
     "sources": [
       "https://github.com/Farama-Foundation/ViZDoom",
@@ -61,7 +60,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "SuperTuxKart https://github.com/supertuxkart/stk-code + LROC NAC Apollo 17 DTM https://data.lroc.im-ldi.com/lroc/view_rdr_product/NAC_DTM_APOLLO17_2M",
     "sources": [
       "https://data.lroc.im-ldi.com/lroc/view_rdr_product/NAC_DTM_APOLLO17_2M",
@@ -98,7 +96,6 @@
       },
       "author": true
     },
-    "lobby": 2,
     "builds_on": "uzdoom (gpl, active gzdoom fork) https://github.com/UZDoom/UZDoom + freedoom (bsd) https://github.com/freedoom/freedoom",
     "sources": [
       "https://github.com/UZDoom/UZDoom",
@@ -135,7 +132,6 @@
       },
       "author": true
     },
-    "lobby": 2,
     "builds_on": "usgs fdsn earthquake catalog api: https://earthquake.usgs.gov/fdsnws/event/1/",
     "sources": [
       "https://earthquake.usgs.gov/fdsnws/event/1/",
@@ -170,7 +166,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "mutopia project clair de lune, public-domain lilypond + midi edition: https://www.ibiblio.org/mutopia/cgibin/piece-info.cgi?id=1778",
     "sources": [
       "https://www.ibiblio.org/mutopia/cgibin/piece-info.cgi?id=1778",
@@ -208,7 +203,6 @@
       },
       "author": true
     },
-    "lobby": 2,
     "builds_on": "openstreetmap (odbl) https://www.openstreetmap.org, with map warping in gdal or qgis georeferencer (open source)",
     "sources": [
       "https://www.openstreetmap.org/copyright",
@@ -245,7 +239,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "humbugdb (cc by 4.0 data, mit code) https://zenodo.org/record/4904800",
     "sources": [
       "https://arxiv.org/abs/2110.07607",
@@ -282,7 +275,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "mast k2 archive https://archive.stsci.edu/missions-and-data/k2 and lightkurve",
     "sources": [
       "https://arxiv.org/abs/1703.04166",
@@ -318,7 +310,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": null,
     "sources": [
       "https://en.wikipedia.org/wiki/Eratosthenes"
@@ -349,7 +340,6 @@
       "people": null,
       "author": false
     },
-    "lobby": 2,
     "builds_on": "craig kaplan's heesch-sat, https://github.com/isohedral/heesch-sat",
     "sources": [
       "https://github.com/isohedral/heesch-sat",
@@ -381,7 +371,6 @@
       "people": null,
       "author": false
     },
-    "lobby": 2,
     "builds_on": "teorth/optimizationproblems, https://github.com/teorth/optimizationproblems",
     "sources": [
       "https://github.com/teorth/optimizationproblems",
@@ -412,7 +401,6 @@
       "people": null,
       "author": false
     },
-    "lobby": 2,
     "builds_on": "open-source-quartz-solar-forecast by Open Climate Fix, https://github.com/openclimatefix/open-source-quartz-solar-forecast (mit)",
     "sources": [
       "https://github.com/openclimatefix/open-source-quartz-solar-forecast",
@@ -443,7 +431,6 @@
       "people": null,
       "author": false
     },
-    "lobby": 2,
     "builds_on": "electricitymaps-contrib, https://github.com/electricitymaps/electricitymaps-contrib (agpl-3.0)",
     "sources": [
       "https://github.com/electricitymaps/electricitymaps-contrib",
@@ -478,7 +465,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "EPA UCMR 5 occurrence data and EPA community water system service area boundaries, https://www.epa.gov/ground-water-and-drinking-water/community-water-system-service-area-boundaries",
     "sources": [
       "https://www.wateronline.com/doc/epa-releases-final-ucmr-drinking-water-data-for-pfas-and-lithium-0001",
@@ -514,7 +500,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "USDA FNS SNAP retailer historical data, https://www.fns.usda.gov/snap/retailer-locator/data",
     "sources": [
       "https://www.fns.usda.gov/snap/retailer-locator/data",
@@ -550,7 +535,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "wikimedia commons timed text https://commons.wikimedia.org/wiki/Commons:Timed_Text",
     "sources": [
       "https://commons.wikimedia.org/wiki/Commons:Timed_Text",
@@ -583,7 +567,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "public-domain holmes texts on wikisource https://en.wikisource.org/wiki/Author:Arthur_Conan_Doyle and openstreetmap",
     "sources": [
       "https://en.wikipedia.org/wiki/Canon_of_Sherlock_Holmes",
@@ -619,7 +602,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "LaTeXML https://github.com/brucemiller/LaTeXML",
     "sources": [
       "https://github.com/brucemiller/LaTeXML/issues?q=is%3Aissue+is%3Aopen+label%3Apackages",
@@ -651,7 +633,6 @@
       "people": null,
       "author": false
     },
-    "lobby": 2,
     "builds_on": "uutils coreutils, https://github.com/uutils/coreutils",
     "sources": [
       "https://github.com/uutils/coreutils/releases/tag/0.12.0",
@@ -687,7 +668,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "libreoffice, https://git.libreoffice.org/core",
     "sources": [
       "https://bugs.documentfoundation.org/show_bug.cgi?id=119931",
@@ -724,7 +704,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "ruffle, https://github.com/ruffle-rs/ruffle",
     "sources": [
       "https://github.com/ruffle-rs/ruffle",
@@ -763,7 +742,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "freedoom (bsd) https://github.com/freedoom/freedoom + dsda-doom https://github.com/kraflab/dsda-doom",
     "sources": [
       "https://github.com/freedoom/freedoom",
@@ -798,7 +776,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "Luanti https://github.com/luanti-org/luanti + Minetest Game",
     "sources": [
       "https://github.com/luanti-org/luanti/issues/17536",
@@ -835,7 +812,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "wordfreq word frequency data: https://github.com/rspeer/wordfreq",
     "sources": [
       "https://github.com/rspeer/wordfreq",
@@ -870,7 +846,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "bombelli et al. 2016, bryophyte microbial fuel cells (open access): https://pmc.ncbi.nlm.nih.gov/articles/PMC5098967/",
     "sources": [
       "https://pmc.ncbi.nlm.nih.gov/articles/PMC5098967/",
@@ -906,7 +881,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "fontbakery font checker: https://github.com/fonttools/fontbakery",
     "sources": [
       "https://github.com/fonttools/fontbakery",
@@ -942,7 +916,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "imslp scans of 1930 sheet music: https://imslp.org/wiki/I_Got_Rhythm_(Gershwin%2C_George)",
     "sources": [
       "https://web.law.duke.edu/cspd/publicdomainday/2026/",
@@ -978,7 +951,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "public-domain tapestry photos on wikimedia commons: https://commons.wikimedia.org/wiki/Category:Bayeux_Tapestry",
     "sources": [
       "https://commons.wikimedia.org/wiki/Category:Bayeux_Tapestry",
@@ -1014,7 +986,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": null,
     "sources": [
       "https://www.ubergizmo.com/2018/07/robot-plant-pot-legs-chase-sunlight",
@@ -1050,7 +1021,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "carlson et al. 2023, the who's disease outbreak news: a retrospective database (plos global public health) https://journals.plos.org/globalpublichealth/article?id=10.1371/journal.pgph.0001083",
     "sources": [
       "https://journals.plos.org/globalpublichealth/article?id=10.1371/journal.pgph.0001083",
@@ -1083,7 +1053,6 @@
       "people": null,
       "author": false
     },
-    "lobby": 2,
     "builds_on": "sensor.community open data archive https://archive.sensor.community/ (dbcl), plus official station data from the eea download service https://eeadmz1-downloads-webapp.azurewebsites.net/ and openaq",
     "sources": [
       "https://archive.sensor.community/",
@@ -1122,7 +1091,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "samuel and mietchen, computational reproducibility of jupyter notebooks from biomedical publications (gigascience 2024) https://arxiv.org/abs/2209.04308",
     "sources": [
       "https://arxiv.org/abs/2209.04308",
@@ -1154,7 +1122,6 @@
       "people": null,
       "author": false
     },
-    "lobby": 2,
     "builds_on": "gwosc gwtc-4.0 data release https://gwosc.org/GWTC-4.0/ and bilby https://arxiv.org/abs/2006.00714",
     "sources": [
       "https://gwosc.org/GWTC-4.0/",
@@ -1191,7 +1158,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "tero et al. 2010, rules for biologically inspired adaptive network design (science) https://www.sciencedaily.com/releases/2010/01/100121141051.htm",
     "sources": [
       "https://www.nationalgeographic.com/science/article/slime-mould-attacks-simulates-tokyo-rail-network",
@@ -1225,7 +1191,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "google-deepmind/formal-conjectures, https://github.com/google-deepmind/formal-conjectures",
     "sources": [
       "https://github.com/google-deepmind/formal-conjectures",
@@ -1258,7 +1223,6 @@
       "people": null,
       "author": false
     },
-    "lobby": 2,
     "builds_on": "mathlib4, https://github.com/leanprover-community/mathlib4",
     "sources": [
       "https://github.com/leanprover-community/mathlib4/blob/master/docs/100.yaml",
@@ -1291,7 +1255,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "teorth/optimizationproblems, https://github.com/teorth/optimizationproblems",
     "sources": [
       "https://github.com/teorth/optimizationproblems",
@@ -1325,7 +1288,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "bbchallenge and busycoq, https://github.com/ccz181078/busycoq/tree/BB6",
     "sources": [
       "https://wiki.bbchallenge.org/wiki/BB(6)",
@@ -1361,7 +1323,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": null,
     "sources": [
       "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11768944/",
@@ -1396,7 +1357,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "MapYourGrid initiative (Open Energy Transition), https://wiki.openstreetmap.org/wiki/Organised_Editing/Activities/MapYourGrid_Initiative",
     "sources": [
       "https://wiki.openstreetmap.org/wiki/Organised_Editing/Activities/MapYourGrid_Initiative/Country_overview",
@@ -1432,7 +1392,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "HeatpumpMonitor.org by OpenEnergyMonitor, public api at https://heatpumpmonitor.org/system/list/public.json (cc by 4.0)",
     "sources": [
       "https://docs.openenergymonitor.org/heatpumpmonitor/introduction.html",
@@ -1465,7 +1424,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "Open Repair Alliance dataset, https://openrepair.org/open-data/downloads/ (cc by-sa 4.0), to pick the parts",
     "sources": [
       "https://openrepair.org/open-data/downloads/",
@@ -1500,7 +1458,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "Open Repair Alliance data and past quests, https://github.com/openrepair/data (cc by-sa 4.0)",
     "sources": [
       "https://github.com/openrepair/data",
@@ -1536,7 +1493,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "Lincoln Institute Fiscally Standardized Cities (for categories and a sanity check), https://www.lincolninst.edu/data/fiscally-standardized-cities/",
     "sources": [
       "https://www.lincolninst.edu/data/fiscally-standardized-cities/"
@@ -1571,7 +1527,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "EPA SDWIS service line inventory report, https://sdwis.epa.gov/ords/sfdw_pub/r/sfdw/sdwis_fed_reports_public/service-line-inventory",
     "sources": [
       "https://sdwis.epa.gov/ords/sfdw_pub/r/sfdw/sdwis_fed_reports_public/service-line-inventory",
@@ -1607,7 +1562,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "r5py routing on GTFS from the Mobility Database plus the USDA SNAP retailer list, https://r5py.readthedocs.io/",
     "sources": [
       "https://www.fns.usda.gov/snap/retailer-locator/data",
@@ -1643,7 +1597,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "NYC Open Data public restrooms, https://data.cityofnewyork.us/City-Government/Public-Restrooms/i7jb-7jku",
     "sources": [
       "https://data.cityofnewyork.us/City-Government/Public-Restrooms/i7jb-7jku",
@@ -1678,7 +1631,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "Same busy-road definition as the 2017 Center for Public Integrity and Reveal study, https://publicintegrity.org/environment/getting-under-the-hood-our-methodology/",
     "sources": [
       "https://publicintegrity.org/environment/getting-under-the-hood-our-methodology/",
@@ -1714,7 +1666,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "HUD LIHTC database, https://www.huduser.gov/portal/datasets/lihtc.html",
     "sources": [
       "https://www.huduser.gov/portal/datasets/lihtc.html",
@@ -1751,7 +1702,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "wikipedia manual of style, alt text https://en.wikipedia.org/wiki/Wikipedia:Manual_of_Style/Accessibility/Alternative_text_for_images",
     "sources": [
       "https://en.wikipedia.org/wiki/Wikipedia:Manual_of_Style/Accessibility/Alternative_text_for_images",
@@ -1788,7 +1738,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "mozilla common voice https://github.com/common-voice/common-voice",
     "sources": [
       "https://commonvoice.mozilla.org/api/v1/stats/languages",
@@ -1825,7 +1774,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "project gutenberg offline catalog https://www.gutenberg.org/ebooks/offline_catalogs.html and wikidata property P2034 https://www.wikidata.org/wiki/Property:P2034",
     "sources": [
       "https://www.wikidata.org/wiki/Property:P2034",
@@ -1862,7 +1810,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "liblouis https://github.com/liblouis/liblouis",
     "sources": [
       "https://github.com/liblouis/liblouis/tree/master/tables",
@@ -1898,7 +1845,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "wikipedia vital articles, level 3 https://en.wikipedia.org/wiki/Wikipedia:Vital_articles/Level_3",
     "sources": [
       "https://en.wikipedia.org/wiki/Wikipedia:Vital_articles/Level_3",
@@ -1935,7 +1881,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "ucsb cylinder audio archive: https://cylinders.library.ucsb.edu",
     "sources": [
       "https://en.wikipedia.org/wiki/Cylinder_Audio_Archive",
@@ -1970,7 +1915,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "battle for wesnoth, https://github.com/wesnoth/wesnoth",
     "sources": [
       "https://github.com/wesnoth/wesnoth",
@@ -2006,7 +1950,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "archwiki, https://wiki.archlinux.org",
     "sources": [
       "https://wiki.archlinux.org/title/Category:Pages_or_sections_flagged_with_Template:Out_of_date",
@@ -2041,7 +1984,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "arch linux reproducible builds (rebuilderd), https://reproducible.archlinux.org",
     "sources": [
       "https://reproducible.archlinux.org/api/v0/dashboard",
@@ -2077,7 +2019,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "python-docs-bn-in, https://github.com/python/python-docs-bn-in",
     "sources": [
       "https://translations.python.org/",
@@ -2113,7 +2054,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "ffmpeg fate, https://ffmpeg.org/fate.html",
     "sources": [
       "https://coverage.ffmpeg.org/",
@@ -2147,7 +2087,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "GB Studio (mit) https://github.com/chrismaltby/gb-studio",
     "sources": [
       "https://github.com/chrismaltby/gb-studio",
@@ -2166,10 +2105,9 @@
     "tags": [
       "#weird",
       "#games",
-      "#uzdoom",
-      "#variant"
+      "#uzdoom"
     ],
-    "what": "this one is for fun. survival is what gives building a point: you get hungry, and when night falls monsters spawn wherever it's dark, so a lit shelter is the line between dawn and a respawn. this variant of minecraft in doom keeps the same goal and gives you a reason to build.",
+    "what": "this one is for fun. survival is what gives building a point: you get hungry, and when night falls monsters spawn wherever it's dark, so a lit shelter is the line between dawn and a respawn. it builds on minecraft in doom and gives you a reason to build.",
     "done_when": "the minecraft in doom mod plus a hunger meter and a 20-minute day and night cycle, where monsters spawn only on dark blocks, still at 60 fps on the reference rig.",
     "checked_by": {
       "runs": {
@@ -2183,17 +2121,16 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "uzdoom (gpl, active gzdoom fork) https://github.com/UZDoom/UZDoom + freedoom (bsd) https://github.com/freedoom/freedoom",
     "sources": [
       "https://github.com/UZDoom/UZDoom",
       "https://github.com/freedoom/freedoom",
       "https://www.moddb.com/mods/voxel-violence"
     ],
-    "why_now": "a variant that can start as soon as the parent's block engine holds up; we found no survival block mod for any doom port.",
+    "why_now": "it can start as soon as the block engine in minecraft in doom holds up; we found no survival block mod for any doom port.",
     "size": "weeks",
     "needs_humans": "game designers who can tune hunger and night length so it feels tense, not tedious.",
-    "risk_notes": "a variant of the minecraft-in-doom shwarm: same goal, its own done test, opened in a later wave so the parent's block engine has time to hold up. same asset rules as the parent: freedoom and hand-made or code-made art only, no mojang or id files. uzdoom bans generative ai art in its own repo."
+    "risk_notes": "builds on the minecraft-in-doom shwarm's mod, with its own done test, opened in a later wave so that block engine has time to hold up. same asset rules as minecraft in doom: freedoom and hand-made or code-made art only, no mojang or id files. uzdoom bans generative ai art in its own repo."
   },
   {
     "slug": "sokoban-world-atlas",
@@ -2220,7 +2157,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "Natural Earth (public domain) https://www.naturalearthdata.com + YASS (gpl-3.0) https://github.com/joriswit/YASS + Festival (mit) https://github.com/joriswit/Festival",
     "sources": [
       "https://www.naturalearthdata.com/about/terms-of-use/",
@@ -2253,7 +2189,6 @@
       "people": null,
       "author": false
     },
-    "lobby": 2,
     "builds_on": "Barker and Korf, Solving Dots-And-Boxes (AAAI 2012) https://ojs.aaai.org/index.php/AAAI/article/view/8144",
     "sources": [
       "https://ojs.aaai.org/index.php/AAAI/article/view/8144",
@@ -2289,7 +2224,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "astrometry.net offline plate solver: https://github.com/dstndstn/astrometry.net",
     "sources": [
       "https://astrometry.net",
@@ -2325,7 +2259,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "organ pipe maker by michael krzyzaniak: https://michaelkrzyzaniak.com/organ_pipe_maker/",
     "sources": [
       "https://michaelkrzyzaniak.com/organ_pipe_maker/",
@@ -2360,7 +2293,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "amazing grace (public-domain hymn): https://hymnary.org/text/amazing_grace_how_sweet_the_sound",
     "sources": [
       "https://en.wikipedia.org/wiki/Amazing_Grace",
@@ -2395,7 +2327,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "ayab open knitting machine interface (https://ayab-knitting.com) and ed hawkins' warming stripes, cc by 4.0 (https://showyourstripes.info)",
     "sources": [
       "https://www.evilmadscientist.com/?p=7162",
@@ -2432,7 +2363,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "music21 (voiceLeading module): https://github.com/cuthbertLab/music21",
     "sources": [
       "https://github.com/cuthbertLab/music21",
@@ -2465,7 +2395,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "openflexure microscope https://build.openflexure.org/openflexure-microscope/",
     "sources": [
       "https://build.openflexure.org/openflexure-microscope/",
@@ -2501,7 +2430,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "trisovic et al. 2022 replication dataset (cc0) https://doi.org/10.7910/DVN/UZLXSZ",
     "sources": [
       "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8861064/",
@@ -2537,7 +2465,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "bioamp exg pill, oshwa-certified open hardware (in000026) https://github.com/upsidedownlabs/BioAmp-EXG-Pill",
     "sources": [
       "https://github.com/upsidedownlabs/BioAmp-EXG-Pill",
@@ -2575,7 +2502,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "mendeley ziehl-neelsen smear dataset (1,438 images, 11,447 boxes, cc by 4.0) https://data.mendeley.com/datasets/34gymtj5yc and the makerere ai lab microscopy dataset with its tuberculosis-phonecamera split (cc0) https://datasetninja.com/microscopy-malaria-dataset",
     "sources": [
       "https://data.mendeley.com/datasets/34gymtj5yc",
@@ -2612,7 +2538,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": null,
     "sources": [
       "https://en.wikipedia.org/wiki/Cavendish_experiment",
@@ -2645,7 +2570,6 @@
       "people": null,
       "author": false
     },
-    "lobby": 2,
     "builds_on": "marijnheule/CNP-SAT, https://github.com/marijnheule/CNP-SAT",
     "sources": [
       "https://arxiv.org/abs/1805.12181",
@@ -2681,7 +2605,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "google-deepmind/formal-conjectures, https://github.com/google-deepmind/formal-conjectures",
     "sources": [
       "https://people.maths.ox.ac.uk/greenbj/papers/open-problems.pdf",
@@ -2717,7 +2640,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "anthropics/fermats-last-theorem, https://github.com/anthropics/fermats-last-theorem",
     "sources": [
       "https://github.com/anthropics/fermats-last-theorem",
@@ -2754,7 +2676,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "teorth/erdosproblems, https://github.com/teorth/erdosproblems",
     "sources": [
       "https://github.com/teorth/erdosproblems",
@@ -2787,7 +2708,6 @@
       "people": null,
       "author": false
     },
-    "lobby": 2,
     "builds_on": "gauthier and brown's hol4 proof, https://arxiv.org/abs/2404.01761, plus mathlib's SimpleGraph",
     "sources": [
       "https://arxiv.org/abs/2404.01761",
@@ -2820,7 +2740,6 @@
       "people": null,
       "author": false
     },
-    "lobby": 2,
     "builds_on": "jcreedcmu/Noperthedron, https://github.com/jcreedcmu/Noperthedron",
     "sources": [
       "https://arxiv.org/abs/2508.18475",
@@ -2856,7 +2775,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "arduino tsl2591 sky quality meter build, https://mail.stubmandrel.co.uk/astronomy/237-sky-quality-meter",
     "sources": [
       "https://mail.stubmandrel.co.uk/astronomy/237-sky-quality-meter",
@@ -2892,7 +2810,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "ASAE S580.1 test protocol and the SCI performance evaluation program, https://www.solarcookers.org/wp-content/uploads/2026/03/PEP-FAQ.pdf",
     "sources": [
       "https://proceedings.ises.org/conference/swc2021/papers/swc2021-0078-Bigelow.pdf",
@@ -2924,7 +2841,6 @@
       "people": null,
       "author": false
     },
-    "lobby": 2,
     "builds_on": "Open Food Facts, https://world.openfoodfacts.org (odbl)",
     "sources": [
       "https://world.openfoodfacts.org/country/kenya",
@@ -2959,7 +2875,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "open 3d-printed radiation shield design, https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9058705/",
     "sources": [
       "https://www.climate.gov/news-features/features/citizen-scientists-take-streets-map-hottest-places-ten-us-cities",
@@ -2992,7 +2907,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": null,
     "sources": [
       "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9098300/",
@@ -3027,7 +2941,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": null,
     "sources": [
       "https://theoryandpractice.citizenscienceassociation.org/articles/346",
@@ -3062,7 +2975,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "GTFS feeds from the Mobility Database, https://mobilitydatabase.org/",
     "sources": [
       "https://mobilitydatabase.org/",
@@ -3098,7 +3010,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "OpenTrees, https://github.com/stevage/opentrees-data",
     "sources": [
       "https://github.com/stevage/opentrees-data",
@@ -3134,7 +3045,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "MobilityData GTFS validator, https://github.com/MobilityData/gtfs-validator",
     "sources": [
       "https://nap.nationalacademies.org/read/27438/chapter/2",
@@ -3170,7 +3080,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "US City Open Data Census (Sunlight Foundation and Open Knowledge), https://sunlightfoundation.com/2017/11/20/changes-are-coming-to-the-u-s-city-open-data-census/",
     "sources": [
       "https://sunlightfoundation.com/2017/11/20/changes-are-coming-to-the-u-s-city-open-data-census/",
@@ -3206,7 +3115,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "City of Austin land use inventory layer, https://awgisadaptor.austintexas.gov/awgisago/rest/services/AGO/LocalBaseLayers/MapServer/3",
     "sources": [
       "https://awgisadaptor.austintexas.gov/awgisago/rest/services/AGO/LocalBaseLayers/MapServer/3",
@@ -3243,7 +3151,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "wikidata lexicographical data https://www.wikidata.org/wiki/Wikidata:Lexicographical_data",
     "sources": [
       "https://www.wikidata.org/wiki/Wikidata:Lexicographical_data",
@@ -3279,7 +3186,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "mozilla common voice https://github.com/common-voice/common-voice",
     "sources": [
       "https://commonvoice.mozilla.org/api/v1/stats/languages",
@@ -3316,7 +3222,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "igbo wikipedia https://ig.wikipedia.org",
     "sources": [
       "https://ig.wikipedia.org/wiki/Special:Statistics",
@@ -3353,7 +3258,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "english wikisource monthly challenge https://en.wikisource.org/wiki/Wikisource:Community_collaboration/Monthly_Challenge",
     "sources": [
       "https://en.wikisource.org/wiki/Category:Proofread",
@@ -3389,7 +3293,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "opendataloader-pdf, https://github.com/opendataloader-project/opendataloader-pdf",
     "sources": [
       "https://github.com/opendataloader-project/opendataloader-pdf",
@@ -3425,7 +3328,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "inkscape, https://gitlab.com/inkscape/inkscape",
     "sources": [
       "https://gitlab.com/inkscape/inkscape/-/blob/master/CONTRIBUTING.md",
@@ -3461,7 +3363,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "debian gtk2 removal tracking, https://udd.debian.org/cgi-bin/bts-usertags.cgi?user=pkg-gnome-maintainers%40lists.alioth.debian.org&tag=gtk2",
     "sources": [
       "https://udd.debian.org/cgi-bin/bts-usertags.cgi?user=pkg-gnome-maintainers%40lists.alioth.debian.org&tag=gtk2",
@@ -3497,7 +3398,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "gimp-plugin-registry (debian), https://tracker.debian.org/pkg/gimp-plugin-registry",
     "sources": [
       "https://sources.debian.org/src/gimp-plugin-registry/9.20240811/debian/rules/",
@@ -3531,7 +3431,6 @@
       },
       "author": false
     },
-    "lobby": 2,
     "builds_on": "xerahs, https://github.com/ShareX/XerahS",
     "sources": [
       "https://github.com/ShareX/XerahS",

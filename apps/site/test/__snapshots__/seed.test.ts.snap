@@ -236,18 +236,17 @@ exports[`mapping the launch list > snapshots of a few mapped entries > minecraft
       "weird",
       "games",
       "uzdoom",
-      "variant",
     ],
     "title": "minecraft in doom: survival",
-    "what": "this one is for fun. survival is what gives building a point: you get hungry, and when night falls monsters spawn wherever it's dark, so a lit shelter is the line between dawn and a respawn. this variant of minecraft in doom keeps the same goal and gives you a reason to build.
+    "what": "this one is for fun. survival is what gives building a point: you get hungry, and when night falls monsters spawn wherever it's dark, so a lit shelter is the line between dawn and a respawn. it builds on minecraft in doom and gives you a reason to build.
 
-why now: a variant that can start as soon as the parent's block engine holds up; we found no survival block mod for any doom port.",
+why now: it can start as soon as the block engine in minecraft in doom holds up; we found no survival block mod for any doom port.",
   },
   "notes": [
     {
       "field": "what",
       "kind": "changed",
-      "text": "why_now appended as a last paragraph, "why now: a variant that can start as soon as the…"",
+      "text": "why_now appended as a last paragraph, "why now: it can start as soon as the block engin…"",
     },
     {
       "field": "check.runs",

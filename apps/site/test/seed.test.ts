@@ -79,7 +79,9 @@ describe('mapping the launch list', () => {
   })
 
   test('variants are dropped (Oct 9): a #variant entry goes in as a plain shwarm, its tag kept; an explicit variant_of says so', () => {
-    const e = LIST.find(e => e.slug === 'minecraft-in-doom-survival')
+    // The launch list has no variant since Oct 10 (the survival entry builds on minecraft in doom); an older entry still could.
+    const survival = LIST.find(e => e.slug === 'minecraft-in-doom-survival')
+    const e = { ...survival, tags: [...survival.tags, '#variant'] }
     const m = mapLaunchShwarm(e)
     expect(m.input).toMatchObject({ kind: 'shwarm' })
     expect(m.input).not.toHaveProperty('variantOf')

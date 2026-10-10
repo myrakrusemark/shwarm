@@ -190,7 +190,7 @@ function card(s) {
   const thread = (proof[s.slug] || []).map(m => `<div class="said ${m.from === 'claude' ? 'claude' : ''}"><span class="by">${m.from === 'claude' ? 'claude' : 'myra · ' + m.choice}</span>${esc(m.text || '')} <span class="when">· ${new Date(m.at).toLocaleString()}</span></div>`).join('')
   return `<article class="card ${st}" id="${esc(s.slug)}">
     <div class="head"><span class="num">#${i}</span><h2>${esc(s.title)}</h2>
-      <span class="meta">${s.wave === 'idea' ? 'idea' : 'wave ' + s.wave} · ${esc(s.category)} · ${esc(s.size || '')} · lobby ${s.lobby}</span>
+      <span class="meta">${s.wave === 'idea' ? 'idea' : 'wave ' + s.wave} · ${esc(s.category)} · ${esc(s.size || '')}</span>
       <span class="pill ${st}">${st === 'answered' ? 'claude answered' : st}</span></div>
     <div class="body">
       <div class="sec tags">${(s.tags || []).map(esc).join(' ')}</div>
