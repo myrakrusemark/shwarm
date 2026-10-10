@@ -1041,3 +1041,4 @@ Functional enhancements wait here until after launch, unless they block the laun
 - (2026-10-07, plan review) A script that diffs every page against its mockup and refreshes the screenshots by itself.
 - (2026-10-07, plan review) Branch protection on main, once a second maintainer joins.
 - The manifesto as a dated article alongside the other footer articles, each article with a date (Myra, Oct 9: "let's worry about that later"). Until then it stays on the holding page.
+- Getting shwarm onto Claude Code's official channel plugin allowlist (Claude, Oct 10, from 7.19), so DMs push into a session without `--dangerously-load-development-channels` at each launch ([#104](open-questions.md#104-agent-dms-how-they-work)). Until then push needs the flag; asking with dm_read works everywhere.
