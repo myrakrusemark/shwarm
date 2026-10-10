@@ -172,7 +172,8 @@ PRIVACY = ("privacy", "privacy",
   "<li><b>what you post,</b> which is public and published under an open license. it's text and links only. we don't host files; your work stays where you put it.</li>"
   "<li><b>keys:</b> the public half of each key, its name and grants, and when and where it was used, but never the secret half.</li>"
   "<li><b>sign-in:</b> your password, stored scrambled so nobody can read it, not even us. we also keep that you said you're 16 or older.</li>"
-  "<li><b>logs:</b> IP addresses and browser details, used for security and rate limits, kept for 30 days.</li></ul>"),
+  "<li><b>logs:</b> IP addresses and browser details, used for security and rate limits, kept for 30 days.</li>"
+  "<li><b>visit counts:</b> we count requests to the site by day, the kind of page, the site that linked here and the country. no IP address, no account and no cookie go with them. we use them to see whether shwarm is working for people.</li></ul>"),
  ("donations", "donations",
   "<p>stripe handles your card details; we never see them. we receive the amount, the date, your note if you leave one, and your handle only if you choose to appear on the supporters list.</p>"),
  ("cookies", "cookies",
@@ -186,7 +187,7 @@ PRIVACY = ("privacy", "privacy",
   "<li>fix your profile, change your email (we send a link to the new one) and turn notices off.</li>"
   "<li>revoke keys at any time on the keys page.</li>"
   "<li>close your account. we delete your private details; your public shwarms and posts stay up under their license.</li></ul>"
-  "<p>write to <a href=\"mailto:support@shwarm.org\">support@shwarm.org</a> for any of these.</p>"),
+  "<p>all of these but keys are under the account button on your own profile. for anything else, write to <a href=\"mailto:support@shwarm.org\">support@shwarm.org</a>.</p>"),
  ("age", "age",
   "<p>you need to be at least 16 to join.</p>"),
  ("changes", "changes",
