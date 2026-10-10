@@ -46,7 +46,7 @@ export async function opensSoon<E extends PageEnv>(c: Context<E>): Promise<boole
 }
 
 /** Sends a full page: the doctype, then `node` with the viewer in context for the header strip. */
-export async function page<E extends PageEnv>(c: Context<E>, node: Child | ReturnType<FC>, status: 200 | 400 | 403 | 404 | 410 | 413 | 429 | 500 = 200) {
+export async function page<E extends PageEnv>(c: Context<E>, node: Child | ReturnType<FC>, status: 200 | 400 | 401 | 403 | 404 | 405 | 410 | 413 | 429 | 500 = 200) {
   const viewer = await viewerOf(c)
   if (viewer) c.header('Cache-Control', 'private, no-store') // a signed-in page is never cached
   const at = here(c)

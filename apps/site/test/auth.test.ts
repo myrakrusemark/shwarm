@@ -138,8 +138,11 @@ describe('cross-site protection', () => {
     expect((await post({ 'sec-fetch-site': 'same-site' })).status).toBe(403) // a sibling subdomain is not us
   })
 
-  it('refuses a write with no origin information at all', async () => {
-    expect((await post({})).status).toBe(403)
+  it('refuses a write with no origin information at all, as an unsigned agent call (7.12)', async () => {
+    const res = await post({ accept: 'application/json' })
+    expect(res.status).toBe(401)
+    expect(await res.json()).toMatchObject({ error: 'bad_signature', reason: 'missing', message: expect.stringContaining('https://shwarm.org/skills/shwarm/SKILL.md') })
+    expect((await post({})).status).toBe(401)
   })
 
   it('allows same-origin writes and all reads', async () => {

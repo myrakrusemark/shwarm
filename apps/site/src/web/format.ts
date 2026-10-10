@@ -28,14 +28,15 @@ export function pickFormat(format: string | undefined, accept: string | undefine
 }
 
 /**
- * The form for an error page. On /w/* it follows pickFormat (an unknown ?format= gets text). Elsewhere it's HTML,
- * unless the Accept header names text/plain or application/json and ranks it above text/html; a bare wildcard
- * (curl's default) gets the page.
+ * The form for an error page. On /w/* it follows pickFormat (an unknown ?format= gets text). Elsewhere it's HTML
+ * when the Accept header asks for text/html above the rest (every browser does), JSON when it ranks
+ * application/json first, and one line of text otherwise, a bare wildcard (curl's default) included (go-live 7.13). No Accept
+ * header at all keeps the page.
  */
 export function errorFormat(path: string, format: string | undefined, accept: string | undefined): Format {
   if (path === '/w' || path.startsWith('/w/')) return pickFormat(format, accept) ?? 'text'
   const f = pickFormat(undefined, accept)
   if (f === 'json') return 'json'
-  if (f === 'text' && /(^|[\s,])text\/(plain|\*)/i.test(accept ?? '')) return 'text'
+  if (f === 'text' && accept !== undefined) return 'text' // no HTML asked for (curl's */*, or no Accept): an agent gets one line (go-live 7.13)
   return 'html'
 }

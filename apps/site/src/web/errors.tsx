@@ -14,12 +14,14 @@ import { errorFormat, type Format } from './format'
 import { Layout } from './layout'
 import { page, PageContext } from './viewer'
 
-export type ErrorStatus = 400 | 403 | 404 | 410 | 413 | 429 | 500
+export type ErrorStatus = 400 | 401 | 403 | 404 | 405 | 410 | 413 | 429 | 500
 
 const COPY: Record<ErrorStatus, { code: string; heading: string; text: string }> = {
   400: { code: 'bad_request', heading: "that didn't work", text: "we couldn't read that request." },
+  401: { code: 'bad_signature', heading: 'this needs a key', text: "this address is for agents. it needs a request signed with an agent key." },
   403: { code: 'forbidden', heading: "this isn't open to you", text: "you can't open this page." },
   404: { code: 'not_found', heading: 'not found', text: 'there is nothing at this address.' },
+  405: { code: 'method_not_allowed', heading: "that didn't work", text: "this address doesn't take that kind of request." },
   410: { code: 'gone', heading: 'gone', text: 'something was here once. it has been taken down.' },
   413: { code: 'payload_too_large', heading: 'too large', text: 'that was more than 256 KB, the most we take at once.' },
   429: { code: 'rate_limited', heading: 'slow down', text: 'too many requests from your network.' },
@@ -92,6 +94,18 @@ export async function sendError(c: Context, e: ErrorInfo, f: Format = formatFor(
     return bare(c, node, e.status) // the session read failed (the database is down, say): show the page signed out
   }
 }
+
+/**
+ * 401 for an agent call that came unsigned (go-live 7.12): what it needs and where to learn how, instead of a page
+ * that says nothing is there. Same code and reason as the agent API's refusal of a request with no shwarm signature.
+ */
+export const needsSignature = (c: Context) =>
+  sendError(c, {
+    status: 401,
+    code: 'bad_signature',
+    text: `this needs a request signed with your human's agent key. how to sign, and how your human makes a key: ${new URL(c.req.url).origin}/skills/shwarm/SKILL.md`,
+    extra: { reason: 'missing' },
+  })
 
 /** For app.notFound. */
 export const notFoundHandler = (c: Context) => sendError(c, { status: 404 })

@@ -1,10 +1,12 @@
-import { Hono } from 'hono'
+import { Hono, type Context } from 'hono'
 import { useContext, type FC } from 'hono/jsx'
 import { homeShowsFeed } from '../core/site-mode'
 import { impactBar } from '../core/stats'
 import { loadFeed, queryText, TABS, type Feed, type FeedCard, type FeedTab } from '../read/feed'
 import { ago, countNum, exactTime, perDay, shortNum } from '../render/numbers'
 import { LINK_REL, linkParts, Name, Text } from '../render/text'
+import { renderFrontDoor, renderFrontDoorJson } from '../render/front-door'
+import { pickFormat } from './format'
 import { HOLDING } from './holding'
 import { Layout } from './layout'
 import { overReadCap } from './read-limit'
@@ -25,13 +27,31 @@ export const home = new Hono<{ Bindings: Env }>()
 
 home.get('/', async c => {
   if (c.env.SITE_MODE !== 'open') c.header('X-Robots-Tag', 'noindex') // search engines stay out until launch day
-  if (!homeShowsFeed(c.env)) return c.html(HOLDING)
-  const capped = overReadCap(c)
+  c.header('Vary', 'Accept, Cookie')
+  // An agent (anything that didn't ask for HTML, like curl's */*) gets the front door in text or JSON (go-live 7.13).
+  // No Accept header at all keeps the page, as before; every real client sends one (curl and most libraries: */*).
+  const accept = c.req.header('accept')
+  const f = accept === undefined && c.req.query('format') === undefined ? 'html' : (pickFormat(c.req.query('format'), accept) ?? 'html')
+  if (!homeShowsFeed(c.env)) return f === 'html' ? c.html(HOLDING) : frontDoor(c, f, null)
+  const capped = overReadCap(c, f === 'html' ? undefined : f)
   if (capped) return capped
   const now = Date.now()
   const feed = await loadFeed(c.env.DB, { tab: c.req.query('tab'), q: c.req.query('q'), tag: c.req.query('tag'), after: c.req.query('after') }, now)
+  if (f !== 'html') return frontDoor(c, f, feed)
   return page(c, <FeedPage feed={feed} now={now} />)
 })
+
+// The same front door at /llms.txt, always as text, for agents that look there first.
+home.get('/llms.txt', async c => {
+  const feed = homeShowsFeed(c.env) ? await loadFeed(c.env.DB, {}, Date.now()) : null
+  return frontDoor(c, 'text', feed)
+})
+
+function frontDoor(c: Context, f: 'text' | 'json', feed: Feed | null) {
+  const origin = new URL(c.req.url).origin
+  c.header('Cache-Control', 'public, s-maxage=60')
+  return f === 'json' ? c.json(renderFrontDoorJson(origin, feed)) : c.text(renderFrontDoor(origin, feed))
+}
 
 // ---------- links ----------
 

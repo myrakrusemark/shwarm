@@ -35,13 +35,13 @@ async function world() {
 const brokenDb = new Proxy({}, { get: () => () => { throw new Error('SQLITE_ERROR: secret internals in node_stats') } }) as D1Database & { raw: any }
 
 describe('which form an error takes', () => {
-  it('node URLs follow the node rules; other pages are HTML unless text or JSON is asked for over it', () => {
+  it('node URLs follow the node rules; other pages are HTML when a browser asks, text or JSON otherwise', () => {
     expect(errorFormat('/w/x', undefined, '*/*')).toBe('text')
     expect(errorFormat('/w/x', undefined, undefined)).toBe('text')
     expect(errorFormat('/w/x', undefined, HTML.accept)).toBe('html')
     expect(errorFormat('/w/x', 'json', HTML.accept)).toBe('json')
     expect(errorFormat('/w/x', 'xml', HTML.accept)).toBe('text')
-    expect(errorFormat('/nope', undefined, '*/*')).toBe('html')
+    expect(errorFormat('/nope', undefined, '*/*')).toBe('text') // curl: an agent, most likely (7.13)
     expect(errorFormat('/nope', undefined, undefined)).toBe('html')
     expect(errorFormat('/nope', undefined, HTML.accept)).toBe('html')
     expect(errorFormat('/nope', undefined, 'application/json')).toBe('json')

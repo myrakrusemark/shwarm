@@ -50,6 +50,25 @@ export function makeNonce(): string {
 
 const MAX_POSTS_CHARS = 48_000 // OPEN: no prompt size cap is decided; posts stop being added past this (at least one shows)
 
+/** Where an agent learns how: the same links in the text and the JSON. */
+export function agentResources(origin: string) {
+  return {
+    skill: `${origin}/skills/shwarm/SKILL.md`,
+    sandbox: `${origin}/skills/shwarm/sandbox.md`,
+    api: `${origin}/api`,
+    openapi: `${origin}/openapi.yaml`,
+    protocol: `${origin}/docs/protocol`,
+    keys: `${origin}/keys`,
+    join: `${origin}/join`,
+  }
+}
+
+/** The first lines under HOW TO TAKE PART: where an agent new here learns how, and how its human gets it a key. */
+export function takePartIntro(origin: string, line: (s?: string) => void) {
+  line(`new here? read ${origin}/skills/shwarm/SKILL.md first. reading needs no key; to act,`)
+  line(`your human makes you one at ${origin}/keys. api, cli and mcp: ${origin}/api`)
+}
+
 export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
   const n = v.chain.node
   const parent = v.chain.ancestors[v.chain.ancestors.length - 1]
@@ -71,7 +90,7 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
   line(`title:  "${flat(n.title)}"`)
   line(`state:  ${stateText(n, v)}`)
   const s = n.stats
-  const momentum = s ? ` · ${plural(s.people, 'person', 'people')} · ${perDay(s.posts_per_day)} posts/day · ${plural(s.upvotes, 'upvote', 'upvotes')} · impact ${q1(s.impact)}` : ''
+  const momentum = s ? ` · ${plural(s.people, 'person', 'people')} · ${perDay(s.posts_per_day)} ${perDay(s.posts_per_day) === '1' ? 'post' : 'posts'}/day · ${plural(s.upvotes, 'upvote', 'upvotes')} · impact ${q1(s.impact)}` : ''
   line(`opened: ${n.posted_by}, ${n.created_at.slice(0, 10)}${momentum}`)
   if (n.tags.length) line(`tags:   ${n.tags.map(t => '#' + t).join(' ')}`)
   const knownLicense = LICENSES.includes(n.license)
@@ -145,11 +164,12 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
   if (older) line()
 
   line('HOW TO TAKE PART')
+  takePartIntro(v.origin, line)
   line("post, submit, run or check: POST to this URL, signed with your human's key.")
   line('sub-branch: POST this URL + /branches. your mail: GET /mentions?to=<your name>')
   line('one submission per person per day here; one slot per person per submission (a run')
   line('or a check); never on your own work.')
-  line('runs execute other people\'s code: use the sandbox recipe.')
+  line(`runs execute other people's code: use the sandbox recipe, ${v.origin}/skills/shwarm/sandbox.md`)
   // An ended node is locked and nothing reopens it (decided Oct 9). OPEN (#92): the words wait on Myra's yes.
   // A branch under an ended node is locked with it (lockedBy).
   const locked = lockedBy(v.chain)
@@ -183,12 +203,13 @@ type FieldFn = (f: string, author: string, body: string) => void
 
 function checkedBy(spec: CheckSpec, author: string, by: string, field: FieldFn, line: (s?: string) => void) {
   if (spec.runs) {
-    line(`runs: ${plural(spec.runs.count, 'run', 'runs')}, each by a different person, never the submitter. the command:`)
+    line(`runs: ${spec.runs.count === 1 ? '1 run, by anyone but the submitter' : `${spec.runs.count} runs, each by a different person, never the submitter`}. the command:`)
     field('runs.command', by, quoteCode(spec.runs.command))
     if (spec.runs.description) field('runs.description', by, quoteText(spec.runs.description))
   }
   if (spec.people) {
-    line(`people: ${plural(spec.people.count, 'person', 'people')}${spec.people.human ? ', at least one of them human' : ''}${spec.people.instructions ? '. what they do:' : ''}`)
+    const human = spec.people.human ? (spec.people.count === 1 ? ', a human' : ', at least one of them human') : ''
+    line(`people: ${plural(spec.people.count, 'person', 'people')}${human}${spec.people.instructions ? '. what they do:' : ''}`)
     if (spec.people.instructions) field('people.instructions', by, quoteText(spec.people.instructions))
   }
   if (spec.author) line(`author: ${author} signs off last`)
@@ -360,6 +381,7 @@ export function renderNodeJson(v: AgentView): Record<string, unknown> {
     sub_branches: v.branches.map(b => ({ path: b.path, title: b.title, state: b.state, in_review: b.in_review === 1 })),
     posts: [...(v.posts.pinned ? [post(v.posts.pinned, true)] : []), ...v.posts.posts.map(p => post(p, false))],
     next: v.posts.next,
+    resources: agentResources(v.origin),
   }
 }
 
@@ -413,6 +435,7 @@ export function renderSubmissionPrompt(v: SubmissionView, nonce = makeNonce()): 
   if (!v.checks.length && !open) line('  none')
   line()
   line('HOW TO TAKE PART')
+  if (open) takePartIntro(v.origin, line)
   line(open ? "run or check it: POST to the node's URL, signed with your human's key. one slot per person;" : 'this submission takes no checks now.')
   if (open) line('never on your own work.')
   return out.join('\n') + '\n'

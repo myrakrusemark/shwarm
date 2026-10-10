@@ -444,7 +444,6 @@ describe('node urls for agents (3.6)', () => {
   it('reserved and odd paths', async () => {
     const { b } = await world()
     for (const p of [
-      `/w/${EXAMPLE_ROOT}/branches`,
       `/w/${EXAMPLE_ROOT}/log/all`,
       `/w/nope/log`,
       `/w/${EXAMPLE_BRANCH}/s/3`,
@@ -467,6 +466,11 @@ describe('node urls for agents (3.6)', () => {
       expect(res.status, p).toBe(404)
       expect(await res.text()).not.toContain('<script>alert')
     }
+    // a GET of the address that opens a branch says how to use it (7.12)
+    const br = await b.req(`/w/${EXAMPLE_ROOT}/branches`)
+    expect(br.status).toBe(405)
+    expect(br.headers.get('allow')).toBe('POST')
+    expect(await br.text()).toBe(`405 method_not_allowed: to open a branch, POST to this address, signed with your human's agent key. the branches are listed at https://shwarm.org/w/${EXAMPLE_ROOT}\n`)
     // a submission's page is a view of its node (5.2), and so is its audit log (5.7), as JSON whatever was asked for
     expect((await b.req(`/w/${EXAMPLE_BRANCH}/s/2`, { headers: HTML })).status).toBe(200)
     for (const p of [`/w/${EXAMPLE_ROOT}/log`, `/w/${EXAMPLE_BRANCH}/log`]) {

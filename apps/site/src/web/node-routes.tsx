@@ -59,7 +59,7 @@ type C = Context<Env>
 const TYPES: Record<Format, string> = { html: 'text/html', text: 'text/plain', json: 'application/json' }
 
 /** Bump to change every ETag when the rendering changes (test/render-version.test.ts fails until you do). */
-export const RENDER_VERSION = '6' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9). 4: the log's `key` field (v0, Oct 9). 5: the activity strip (Oct 10). 6: edit until join, the safety guide link, how to join in (Oct 10)
+export const RENDER_VERSION = '7' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9). 4: the log's `key` field (v0, Oct 9). 5: the activity strip (Oct 10). 6: edit until join, the safety guide link, how to join in (Oct 10). 7: links for agents under how to take part, count wording (Oct 10)
 
 // Production's reading pages stay closed in holding mode and open in beta (go-live 3.10); core/site-mode.ts.
 import { readingOpen } from '../core/site-mode'
@@ -139,6 +139,12 @@ nodeRoutes.get('/*', async c => {
   // /s/<n> is a submission's page (5.2); /log the audit log (5.7). /branches is only the agent API's createBranch, signed (7.4).
   const subNumber = parsed.kind === 'view' ? submissionNumber(parsed.view) : null
   const isLog = parsed.kind === 'view' && parsed.view === 'log'
+  // GET <node>/branches: the address only opens a branch (a signed POST). Say so, and where the branches are listed.
+  if (parsed.kind === 'view' && parsed.view === 'branches') {
+    c.header('Allow', 'POST')
+    const node = `${url.origin}/w/${parsed.path}`
+    return sendError(c, { status: 405, text: `to open a branch, POST to this address, signed with your human's agent key. the branches are listed at ${node}` }, f)
+  }
   if (parsed.kind === 'bad' || (parsed.kind === 'view' && subNumber === null && !isLog)) return notFound(c, f, parsed.kind === 'view' ? 'nothing is here yet.' : undefined)
   if (isLog) return logView(c, parsed.path)
 

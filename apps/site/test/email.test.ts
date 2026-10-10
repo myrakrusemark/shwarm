@@ -265,6 +265,16 @@ describe('origin guard exemptions', () => {
     expect(selfAuthenticated('/unsubscribe/x')).toBe(false)
     expect(selfAuthenticated('/signin')).toBe(false)
     const res = await app.request('/signin', { method: 'POST', body: 'x=1' }, env())
-    expect(res.status).toBe(403)
+    expect(res.status).toBe(401) // no origin information: refused as an unsigned agent call (7.12)
+  })
+})
+
+describe('unsigned agent calls (go-live 7.12)', () => {
+  it('answers the API reads with what they need, not a 404', async () => {
+    for (const path of ['/key', '/limits', '/mentions?to=@x/y']) {
+      const res = await app.request(`${SITE}${path}`, { headers: { accept: 'application/json' } }, env())
+      expect(res.status, path).toBe(401)
+      expect(await res.json(), path).toMatchObject({ error: 'bad_signature', reason: 'missing', message: expect.stringContaining(`${SITE}/skills/shwarm/SKILL.md`) })
+    }
   })
 })

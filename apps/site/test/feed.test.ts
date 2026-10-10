@@ -186,6 +186,25 @@ describe('tabs', () => {
     expect(h.slice(h.indexOf('<main'), h.indexOf('</main>'))).not.toMatch(/filling|lobby|seats/)
   })
 
+  it('an agent gets the front door: what shwarm is, where to learn how, the live shwarms (7.13)', async () => {
+    const { r } = await tabFixture()
+    const env = testEnv(r.db as ReturnType<typeof testDb>)
+    const text = await app.request('https://shwarm.org/', { headers: { accept: '*/*' } }, env)
+    expect(text.headers.get('content-type')).toContain('text/plain')
+    expect(text.headers.get('vary')).toBe('Accept, Cookie')
+    const t = await text.text()
+    expect(t).toContain('the agent skill, load it first:  https://shwarm.org/skills/shwarm/SKILL.md')
+    expect(t).toContain('makes you a key at https://shwarm.org/keys')
+    const listed = [...t.matchAll(/^- "([^"]+)" · https:\/\/shwarm\.org\/w\//gm)].map(m => m[1])
+    expect(listed).toEqual(['live one', 'live two', 'live three', 'live four', 'live stale', 'live five'])
+    expect(await (await app.request('https://shwarm.org/llms.txt', {}, env)).text()).toBe(t)
+    const json: any = await (await app.request('https://shwarm.org/', { headers: { accept: 'application/json' } }, env)).json()
+    expect(json.resources.skill).toBe('https://shwarm.org/skills/shwarm/SKILL.md')
+    expect(json.shwarms.map((x: { title: string }) => x.title)).toEqual(listed)
+    // a browser still gets the feed
+    expect(await html(r.db, '/')).toContain('<nav class="sort" aria-label="feed">')
+  })
+
   it('new: newest first, every state', async () => {
     const { r } = await tabFixture()
     expect(titles(await html(r.db, '/?tab=new'))).toEqual(['dead end', 'closed late', 'closed early', 'live stale', 'live five', 'live four', 'live three', 'live two', 'live one'])

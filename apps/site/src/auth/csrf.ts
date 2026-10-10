@@ -2,6 +2,7 @@
 // GET and HEAD never change anything. Signed agent API requests carry their own signature and skip this.
 import type { MiddlewareHandler } from 'hono'
 import { toBase64url, utf8 } from '@shwarm/protocol'
+import { needsSignature } from '../web/errors'
 
 const SAFE = new Set(['GET', 'HEAD', 'OPTIONS'])
 
@@ -41,6 +42,11 @@ export const selfAuthenticated = (path: string) => path.startsWith('/hooks/') ||
 // CORS preflight (api/cors.ts), but only with a key's signature; without one, its write is refused here.
 export const originGuard = (): MiddlewareHandler => async (c, next) => {
   if (selfAuthenticated(c.req.path)) return next()
-  if (!c.req.raw.headers.has('signature-input') && !sameOrigin(c.req.raw)) return c.text('this form came from another site, so it was refused.', 403)
+  if (!c.req.raw.headers.has('signature-input') && !sameOrigin(c.req.raw)) {
+    // No Origin and no Sec-Fetch-Site: not a browser, so most likely an agent that hasn't signed yet (go-live 7.12).
+    const h = c.req.raw.headers
+    if (!h.has('origin') && !h.has('sec-fetch-site')) return needsSignature(c)
+    return c.text('this form came from another site, so it was refused.', 403)
+  }
   await next()
 }

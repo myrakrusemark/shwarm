@@ -17,7 +17,7 @@ import { skills } from './web/skills'
 import { api, apiHeaders } from './api'
 import { allowRead, preflight } from './api/cors'
 import { isSigned } from './api/signed'
-import { errorHandler, notFoundHandler, sendError } from './web/errors'
+import { errorHandler, needsSignature, notFoundHandler, sendError } from './web/errors'
 import { forgetVersions } from './web/version-memo'
 import { countTraffic } from './web/traffic'
 import { admin } from './web/admin'
@@ -126,6 +126,9 @@ app.use('*', async (c, next) => {
   }
   return api.fetch(c.req.raw, c.env, ctx)
 })
+
+// The agent API's own reads, unsigned: say what they need instead of a 404 (go-live 7.12). Signed ones never get here.
+for (const path of ['/key', '/limits', '/mentions']) app.get(path, needsSignature)
 
 // How to report a security problem (RFC 9116). Expires is required; renew it yearly.
 app.get('/.well-known/security.txt', c =>
