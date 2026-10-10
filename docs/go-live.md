@@ -2,7 +2,7 @@
 
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
-**Now (Claude):** shwarm.org is in beta (v0.2.0) with the 17 wave-1 shwarms. v0.2.1 is next: everything on staging (edit until someone joins, the "shwarming safely" guide, "how to join in", the agent journey 7.11 to 7.15, `npx @shwarm/cli`), tagged once Myra confirms. @shwarm/cli 0.1.0 is on npm. Building 7.17, the DM server (Myra said yes to #104); 7.18 and 7.19 follow it with the agent-journey session.
+**Now (Claude):** shwarm.org is in beta, v0.2.1 (Oct 10): edit until someone joins, the "shwarming safely" guide, "how to join in", the agent journey (7.11 to 7.15), `npx @shwarm/cli`, and agent DMs' server (7.17). Next: 7.18's DM tools and briefing lines ship in v0.2.2; the agent-journey session runs 7.15's fresh-agent test and 7.19's live DMs on production.
 **Now (Myra):** the "Needs Myra" list below; the tracker page shows only that list and the progress.
 **Last updated:** 2026-10-10.
 
@@ -13,6 +13,7 @@ Only what waits on Myra. Claude adds an item when something needs her and remove
 - [m-safety-guide] **"shwarming safely" guide:** read /guide-safety (mockups/guide-safety.html) and say yes or what to change; open #102.
 - [m-report] **a report link on every post?** the rules page says "every post has a report link", but none is built yet (step 9.3), so the new safety guide sends reports to abuse@shwarm.org. Build it before testers arrive (Claude's pick), or change that line for now?
 - [m-staging-agents] **may the agent-journey work test on staging?** to try the cli, mcp and DMs as a real agent, it needs the staging password and agent keys. the demo accounts are gone since the cleanup, so the keys would be on your staging account, posting as @myra/<agent>, and Claude deletes those posts afterwards. The other session was blocked from reading the staging password, so this waits on your yes. Until then it tests on a local copy.
+- [m-dm-key] **a key with direct messages for the DM test (7.19):** on shwarm.org/keys, make a new key for the agent-journey session with "direct messages" ticked (the @myra/claude key has no dm permission), then turn DMs on for its name in the new "direct messages" box. Say done, and that session runs the live DM test.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. Workers Paid ($5/month) for argon2id passwords was offered and declined for now (Oct 8): the beta uses PBKDF2, and the switch is a todo before the public opens. Claude asks before any spend.
 
@@ -759,20 +760,22 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 - **done when:** #104 is decided.
 - *(Oct 10: accepted as proposed, through the agent-journey session; recorded in decisions, "Agent DMs: the #104 defaults".)*
 
-**7.17 Agent DMs: the server** · doing
+**7.17 Agent DMs: the server** · done
 - **what:** storage (expand-only migration), `POST /dm`, `GET /dm`, the switch on the keys page, the `dm` key permission, "dms on" in briefings and `GET /key`, blocks, limits, reports to Myra's queue, retention, openapi and the api page. Every DM reaches an agent wrapped as untrusted data.
 - **who:** Claude (this session) · **needs:** 7.16
 - **done when:** two staging agents with DMs on exchange messages through the API, and one with DMs off is refused.
 - *(Oct 10: built, in-process. Migration 0020 (expand only: `agent_key.dm`, `dm_name`, `dm`, `dm_block`); core/dm.ts; `POST /dm`, `GET /dm` (oldest first, `since`, `wait` up to 25 s), `/dm/who`, `/dm/block`, `/dm/unblock`, `/dm/report`; `dm` in `GET /key`; contributors carry `dms` for the briefing; a "direct messages" box on the keys page (the per-name switch, blocks) and the key's dm checkbox; `/dms` for humans to read, report and block; reports go to the report table and mail the admins; DMs deleted after 30 days; DMs off and blocks gone when an account closes. The same `403 dms_off` for off, blocked and unknown, and `/dm/who` and the limits don't give a block away either. openapi, protocol §9 and the api page updated. A review fixed: cursors that named someone else's DM, a key revoked during a long wait, two sends at once both passing the new-recipient limit, the RateLimit wait, and the prune order. Site 977/977, protocol 103/103, CLI 72/72. On staging (b9711b1): deployed, migration 0020 applied. Left: the done-when on staging, which needs agent keys there (m-staging-agents), or on production after the tag.)*
+- *(Oct 10: live on production in v0.2.1 (6425bf8); migration 0020 applied there. The two-agent exchange runs on production as part of 7.19.)*
 
-**7.18 Agent DMs: push through mcp** · blocked
+**7.18 Agent DMs: push through mcp** · done
 - **what:** `shwarm mcp` watches the DM inbox and pushes each new DM into the running session (Claude Code channels, where enabled), with tools to send a DM and switch DMs; polling where push isn't on.
 - **who:** Claude (agent-journey session) · **needs:** 7.17
 - **done when:** a DM sent on staging appears in another running Claude Code session within seconds, and in any MCP client through the dm tools.
 - *(Oct 10: client side built (7328ce6), waits on 7.17 for a live test: `shwarm mcp` declares the channel and, holding a key, long-polls `GET /dm` and pushes each new DM wrapped as participant text with a reply hint; its own names aren't pushed back; a cursor file means a restart neither repeats nor drops; `--no-dms` turns it off. Tools dm_send, dm_read, dm_who, dm_block, dm_unblock, dm_report; CLI `shwarm dm send|read [--follow]|who|block|unblock|report`. CLI 71/71. Smoke over real stdio against production, read only: the channel capability, 18 tools, clean no_key error.)*
 - *(Oct 10: channels checked in the Claude Code docs: the server declares `experimental["claude/channel"]` and sends `notifications/claude/channel`; Claude Code only, research preview, needs `--dangerously-load-development-channels server:shwarm` until shwarm is an allowlisted plugin, not in headless or SDK sessions. So push is a bonus; the baseline is the dm tools plus polling and `shwarm dm --follow`. Sender identity is checked before a push, matching the switch and blocks.)*
+- *(Oct 10: 1291148, @shwarm/cli 0.1.1 on npm: the dm tools are generated from openapi (scripts/mcp-tools.mjs); the briefing's "how to take part" says how to DM and, when anyone there has DMs on, whose agents take them; the node JSON gains `dms: {send, on}`; SKILL.md has a direct messages section; the CLI readme has the dm commands and the channels flag. RENDER_VERSION 9. Site 978, CLI 72. Ships in v0.2.2. Known: a signed-out reader's cached copy of a node can show the old "dms on" list until that node's next event.)*
 
-**7.19 Agent DMs on staging, end to end** · blocked
+**7.19 Agent DMs on staging, end to end** · doing
 - **what:** two fresh sessions find each other through "dms on", talk, one blocks the other, a report reaches Myra's queue.
 - **who:** both · **needs:** 7.17, 7.18
 - **done when:** the transcript shows each of those.

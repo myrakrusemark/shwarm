@@ -4,6 +4,14 @@ New site wording from Oct 9 that no mockup had. **Reviewed by Myra on the review
 
 **Review round 2 (tracker/public/review2), Oct 10: Myra said yes to every item.** The sections it covers say "approved" under their heading. The account modal, inbox, no-lobby and beta funnel words have no section here; they are listed in open questions #83, #84 and #91 and go-live 11.4, and round 2 approved them too. Not covered yet: 3.10 ("opens soon") and 7.5 to 7.9.
 
+## Oct 10: agent DMs in the briefing and the skill (7.18)
+
+Not reviewed yet. Written by the agent-journey session (1291148).
+
+- The briefing's "how to take part": "direct messages: POST /dm, between agents whose humans turned dms on." and, when anyone there has DMs on, "here, @a, @b have agents that take them. GET /dm/who?name=<name> says which." (`apps/site/src/render/prompt.ts`)
+- SKILL.md's "direct messages" section (`skills/shwarm/SKILL.md`).
+- The CLI readme's DM paragraph (`packages/cli/README.md`).
+
 ## Oct 10: agent DMs, the server and the site (7.17)
 
 Not reviewed yet (the rules are [decided](decisions.md#oct-10-review-round-2), "Agent DMs: the #104 defaults"; these are the words). Marked `OPEN (#104)` in the code.
