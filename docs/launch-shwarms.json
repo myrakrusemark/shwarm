@@ -2024,40 +2024,6 @@
     "needs_humans": "game theorists who know dots and boxes strategy (chains and loops) to prune the search."
   },
   {
-    "slug": "a-clock-set-by-the-stars",
-    "wave": 3,
-    "title": "a clock set by the stars",
-    "category": "weird",
-    "tags": [
-      "#weird",
-      "#astronomy",
-      "#hardware"
-    ],
-    "what": "most clocks now get their time from gps or the internet, and both can go down or be jammed. this is mostly a fun build that shows the sky still works as a backup. the night sky turns once every 23 hours 56 minutes. a camera that knows where it sits on earth can look at which stars are overhead and work out the time, with no gps and no network, just a lens pointed up.",
-    "done_when": "a camera clock with no gps and no network connection sets itself from one photo of the night sky and shows utc within 10 seconds of time.gov on 3 separate clear nights.",
-    "checked_by": {
-      "runs": {
-        "command": "python solve_time.py samples/*.fits --lat <deg> --lon <deg> --max-error 10",
-        "count": 1
-      },
-      "people": {
-        "count": 1,
-        "human": true,
-        "instructions": "watch the video of each night: the network is shown off, the clock sets itself from the sky photo, then sits beside time.gov. confirm the offset is under 10 s on all 3 nights."
-      },
-      "author": false
-    },
-    "builds_on": "astrometry.net offline plate solver: https://github.com/dstndstn/astrometry.net",
-    "sources": [
-      "https://astrometry.net",
-      "https://astrometrynet.readthedocs.io/en/latest/readme.html",
-      "https://www.febo.com/pipermail/time-nuts/2016-December/102900.html"
-    ],
-    "why_now": "astrometry.net's wide-field tycho-2 index files solve sky photos offline on small computers, so a pi and a cheap lens are enough.",
-    "size": "weeks",
-    "needs_humans": "people under dark, clear skies, and someone comfortable with astronomy coordinate math."
-  },
-  {
     "slug": "amazing-grace-100-voices",
     "wave": 3,
     "title": "amazing grace, 100 voices",
@@ -2157,6 +2123,46 @@
     "why_now": "the v7 build instructions are public and some suppliers already sell ready-to-use openflexure microscopes, so the open questions are what a finished one can cost and whether it works out of the box.",
     "size": "months",
     "needs_humans": "people who can 3d print, assemble and test in batches, optics people to cut cost without losing resolution, and schools, clinics and small labs in 5 countries to take one and use it."
+  },
+  {
+    "slug": "name-the-sky-from-64-pixels",
+    "wave": 3,
+    "title": "name the sky from 64 pixels",
+    "category": "science",
+    "tags": [
+      "#stars",
+      "#ai",
+      "#navigation",
+      "#needs-humans"
+    ],
+    "what": "gps can fail, and it can be jammed or faked: europe's air safety agency has warned airlines about it since 2022, from the baltic to the middle east. the stars are a backup nobody can jam. satellites already find their way with star trackers, which match the pattern of a few stars to know exactly where they point, but even small ones cost tens of thousands of dollars, and esa's open star solver suggests a camera of at least 512x512 pixels. a star tracker cheap enough for everyone could give direction and position with no gps at all. this shwarm is the first step: train an open model that looks through a tiny, blurry sensor, 64x64 pixels or fewer, at the night sky and says which patch of sky it's seeing, then test it on fresh shots from real skies with clouds, haze and city glow. nobody can collect those skies alone: it takes people at many latitudes and in many countries, each with a cheap sensor and an ordinary camera side by side, plus model builders. once it passes, a $20 star compass that gives heading and where you are on earth can build on it.",
+    "done_when": "an open model anyone can download and run reads one frame of at most 64x64 pixels from a sensor pointed at the night sky and, from that frame alone (no time, place or compass reading), reports the sky position at the frame's center. on at least 500 test shots, taken after the shwarm opens by at least 30 people in at least 10 countries and hidden from the model's builders until scoring, at least 90% of its answers land within 2 degrees of the truth. the truth for each shot is the center of the small frame, found by solving a photo from an ordinary camera fixed beside the sensor and taken in the same second with astrometry.net, then shifting it by that rig's offset, measured on a distant light before the night. at least 100 of the shots are under city or suburban skies (bortle 6 or brighter for the site on lightpollutionmap.info's world atlas 2015 layer) and at least 100 have cloud over part of the frame. an answer of \"can't tell\" counts as wrong, and shots whose reference photo doesn't solve don't count toward the 500.",
+    "checked_by": {
+      "runs": {
+        "command": "python score.py model/ hidden-set/ (checks every frame is at most 64x64 pixels, solves each reference photo with astrometry.net, applies the rig's posted offset, runs the model on every frame and prints the share of answers within 2 degrees, counts the shots, people, countries, city-sky shots and cloudy shots, checks that each shot was taken after the shwarm opened, and checks that the model's sha256 was posted before the hidden set was released to the scorer run)",
+        "count": 1
+      },
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "pick 10 shots at random from the hidden set. for each, confirm the small frame and the reference photo were taken in the same second, that the rig's offset measurement is posted, and that the clouds or city glow the run counted are really there. confirm the hidden set was held by a scorer outside the model's builders and that the model scored is the one whose hash was posted first. then take your own pair of shots on a night with stars out and post how far off the model was."
+      },
+      "author": false
+    },
+    "builds_on": null,
+    "sources": [
+      "https://www.easa.europa.eu/en/domains/air-operations/global-navigation-satellite-system-outages-and-alterations",
+      "https://satcatalog.com/component/sagitta-star-tracker",
+      "https://github.com/esa/tetra3",
+      "https://arxiv.org/abs/0910.2233",
+      "https://astrometry.net",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC7374481/",
+      "https://repositorio.uchile.cl/handle/2250/194384",
+      "https://www.lightpollutionmap.info"
+    ],
+    "why_now": "astrometry.net solves almost any sky photo with no starting guess (99.9% on survey images in its 2010 paper), so every test shot can be scored against a trusted answer. esa's tetra3 matches star patterns in about 10 milliseconds, and student teams have built star trackers for cubesats from off-the-shelf parts. neural networks have learned to name stars since 2020, but the published ones were tested on sharp simulated images of 1000x1000 pixels, not on tiny frames under real skies.",
+    "size": "months",
+    "needs_humans": "people in at least 10 countries, under city glow and cloud as well as dark skies, to build a simple two-camera rig and shoot the hidden test set; a scorer outside the model's builders to hold that set; people who know astrometry; and model builders."
   },
   {
     "slug": "rerun-200-dataverse-r-scripts",

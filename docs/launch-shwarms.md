@@ -13,8 +13,8 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 | category | count | wave 1 | wave 2 | wave 3 |
 | --- | --- | --- | --- | --- |
 | games | 9 | 3 | 3 | 3 |
-| weird | 10 | 1 | 6 | 3 |
-| science | 13 | 4 | 4 | 5 |
+| weird | 9 | 1 | 6 | 2 |
+| science | 14 | 4 | 4 | 6 |
 | math | 12 | 2 | 4 | 6 |
 | climate | 13 | 2 | 5 | 6 |
 | open data | 12 | 2 | 5 | 5 |
@@ -84,10 +84,10 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 | 3 | a game boy game on a real cartridge | games |
 | 3 | minecraft in doom: survival | games |
 | 3 | solve 5x5 dots and boxes | games |
-| 3 | a clock set by the stars | weird |
 | 3 | amazing grace, 100 voices | weird |
 | 3 | knit the warming stripes | weird |
 | 3 | an open lab microscope, delivered to 20 labs | science |
+| 3 | name the sky from 64 pixels | science |
 | 3 | rerun 200 failing r scripts from harvard dataverse | science |
 | 3 | see your own alpha waves with an open-source amplifier | science |
 | 3 | tb bacilli on phone photos: an open benchmark | science |
@@ -219,7 +219,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - sources: [ojs.aaai.org/index.php/AAAI/article/view/8144](https://ojs.aaai.org/index.php/AAAI/article/view/8144) · [ojs.aaai.org/index.php/AAAI/article/view/8046](https://ojs.aaai.org/index.php/AAAI/article/view/8046) · [en.wikipedia.org/wiki/Dots_and_boxes](https://en.wikipedia.org/wiki/Dots_and_boxes)
 - notes: needs humans: game theorists who know dots and boxes strategy (chains and loops) to prune the search.
 
-## weird (10)
+## weird (9)
 
 **the hand-pixeled world** · `hand-pixeled-world` · wave 1 · days  
 #art #pixel-art #maps
@@ -298,17 +298,6 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - sources: [ubergizmo.com/2018/07/robot-plant-pot-legs-chase-sunlight](https://www.ubergizmo.com/2018/07/robot-plant-pot-legs-chase-sunlight) · [theculturetrip.com/articles/this-robot-chases-the-sun-to-...](https://theculturetrip.com/articles/this-robot-chases-the-sun-to-keep-house-plants-alive)
 - notes: needs humans: people with sunny rooms, and someone who keeps plants alive.
 
-**a clock set by the stars** · `a-clock-set-by-the-stars` · wave 3 · weeks  
-#weird #astronomy #hardware
-
-- what: the night sky turns once every 23 hours 56 minutes. a camera that knows where it sits on earth can look at which stars are overhead and work out the time, with no gps and no network, just a lens pointed up.
-- done when: a camera clock with no gps and no network connection sets itself from one photo of the night sky and shows utc within 10 seconds of time.gov on 3 separate clear nights.
-- checked by: runs ×1: `python solve_time.py samples/*.fits --lat <deg> --lon <deg> --max-error 10` · people ×1 (human)
-- builds on: astrometry.net offline plate solver: <https://github.com/dstndstn/astrometry.net>
-- why now: astrometry.net's wide-field tycho-2 index files solve sky photos offline on small computers, so a pi and a cheap lens are enough.
-- sources: [astrometry.net](https://astrometry.net) · [astrometrynet.readthedocs.io/en/latest/readme.html](https://astrometrynet.readthedocs.io/en/latest/readme.html) · [febo.com/pipermail/time-nuts/2016-December/102900.html](https://www.febo.com/pipermail/time-nuts/2016-December/102900.html)
-- notes: needs humans: people under dark, clear skies, and someone comfortable with astronomy coordinate math.
-
 **amazing grace, 100 voices** · `amazing-grace-100-voices` · wave 3 · weeks  
 #music #choir #needs-humans
 
@@ -331,7 +320,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - sources: [evilmadscientist.com/?p=7162](https://www.evilmadscientist.com/?p=7162) · [showyourstripes.info](https://showyourstripes.info) · [climatecentral.org/warming-stripes](https://www.climatecentral.org/warming-stripes) · [2025.oshwa.org/talks/010-carson-holgate](https://2025.oshwa.org/talks/010-carson-holgate/)
 - notes: needs humans: people who own a brother kh-9xx machine (not the kh-970) and know how to run it.
 
-## science (13)
+## science (14)
 
 **where am i? ask the birds** · `where-am-i-ask-the-birds` · wave 1 · months  
 #birds #ai #sound #needs-humans
@@ -431,6 +420,17 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - why now: the v7 build instructions are public and some suppliers already sell ready-to-use openflexure microscopes, so the open questions are what a finished one can cost and whether it works out of the box.
 - sources: [build.openflexure.org/openflexure-microscope](https://build.openflexure.org/openflexure-microscope/) · [doi.org/10.1364/BOE.385729](https://doi.org/10.1364/BOE.385729) · [physicsworld.com/a/high-spec-open-source-microscopy-for-all](https://physicsworld.com/a/high-spec-open-source-microscopy-for-all/) · [techxlab.org/solutions/openflexure-microscope](https://techxlab.org/solutions/openflexure-microscope/)
 - notes: needs humans: people who can 3d print, assemble and test in batches, optics people to cut cost without losing resolution, and schools, clinics and small labs in 5 countries to take one and use it.
+
+**name the sky from 64 pixels** · `name-the-sky-from-64-pixels` · wave 3 · months  
+#stars #ai #navigation #needs-humans
+
+- what: gps can fail, and it can be jammed or faked: europe's air safety agency has warned airlines about it since 2022, from the baltic to the middle east. the stars are a backup nobody can jam. satellites already find their way with star trackers, which match the pattern of a few stars to know exactly where they point, but even small ones cost tens of thousands of dollars, and esa's open star solver suggests a camera of at least 512x512 pixels. a star tracker cheap enough for everyone could give direction and position with no gps at all. this shwarm is the first step: train an open model that looks through a tiny, blurry sensor, 64x64 pixels or fewer, at the night sky and says which patch of sky it's seeing, then test it on fresh shots from real skies with clouds, haze and city glow. nobody can collect those skies alone: it takes people at many latitudes and in many countries, each with a cheap sensor and an ordinary camera side by side, plus model builders. once it passes, a $20 star compass that gives heading and where you are on earth can build on it.
+- done when: an open model anyone can download and run reads one frame of at most 64x64 pixels from a sensor pointed at the night sky and, from that frame alone (no time, place or compass reading), reports the sky position at the frame's center. on at least 500 test shots, taken after the shwarm opens by at least 30 people in at least 10 countries and hidden from the model's builders until scoring, at least 90% of its answers land within 2 degrees of the truth. the truth for each shot is the center of the small frame, found by solving a photo from an ordinary camera fixed beside the sensor and taken in the same second with astrometry.net, then shifting it by that rig's offset, measured on a distant light before the night. at least 100 of the shots are under city or suburban skies (bortle 6 or brighter for the site on lightpollutionmap.info's world atlas 2015 layer) and at least 100 have cloud over part of the frame. an answer of "can't tell" counts as wrong, and shots whose reference photo doesn't solve don't count toward the 500.
+- checked by: runs ×1: `python score.py model/ hidden-set/ (checks every frame is at most 64x64 pixels, solves each reference photo with astrometry.net, applies the rig's posted offset, runs the model on every frame and prints the share of answers within 2 degrees, counts the shots, people, countries, city-sky shots and cloudy shots, checks that each shot was taken after the shwarm opened, and checks that the model's sha256 was posted before the hidden set was released to the scorer run)` · people ×1 (human)
+- builds on: none
+- why now: astrometry.net solves almost any sky photo with no starting guess (99.9% on survey images in its 2010 paper), so every test shot can be scored against a trusted answer. esa's tetra3 matches star patterns in about 10 milliseconds, and student teams have built star trackers for cubesats from off-the-shelf parts. neural networks have learned to name stars since 2020, but the published ones were tested on sharp simulated images of 1000x1000 pixels, not on tiny frames under real skies.
+- sources: [easa.europa.eu/en/domains/air-operations/global-navigatio...](https://www.easa.europa.eu/en/domains/air-operations/global-navigation-satellite-system-outages-and-alterations) · [satcatalog.com/component/sagitta-star-tracker](https://satcatalog.com/component/sagitta-star-tracker) · [github.com/esa/tetra3](https://github.com/esa/tetra3) · [arxiv.org/abs/0910.2233](https://arxiv.org/abs/0910.2233) · [astrometry.net](https://astrometry.net) · [pmc.ncbi.nlm.nih.gov/articles/PMC7374481](https://pmc.ncbi.nlm.nih.gov/articles/PMC7374481/) · [repositorio.uchile.cl/handle/2250/194384](https://repositorio.uchile.cl/handle/2250/194384) · [lightpollutionmap.info](https://www.lightpollutionmap.info)
+- notes: needs humans: people in at least 10 countries, under city glow and cloud as well as dark skies, to build a simple two-camera rig and shoot the hidden test set; a scorer outside the model's builders to hold that set; people who know astrometry; and model builders.
 
 **rerun 200 failing r scripts from harvard dataverse** · `rerun-200-dataverse-r-scripts` · wave 3 · weeks  
 #reproducibility #r #open-data #social-science

@@ -30,3 +30,4 @@ Myra's answers on the proofreading cards, Oct 10. Each one is out of launch-shwa
 - printed-pipe-organ (wave 3; Myra: "the trumpet. yes. remove this one tho". The trumpet idea, a-pla-trumpet-you-cant-tell-from-brass, stays)
 - when-affordable-housing-expires (wave 2; Myra: "drop it", after Claude said that as written it's one person and a script)
 - the-dawn-chorus-of-the-world (idea; Myra: "agreed. drop this one". Its shared recording day is folded into where-am-i-ask-the-birds, whose what now says the fresh minutes can come from a shared dawn-chorus day)
+- a-clock-set-by-the-stars (wave 3; replaced by name-the-sky-from-64-pixels, the first step: an open model that names the patch of sky a 64x64 sensor sees. The clock part goes away; the star compass idea, a-20-dollar-star-compass, builds on it once it passes. Myra: "i still want to geolocate using the model. but honestly, this model could be the initial, and then the geolocation can be a BUILD ON")
