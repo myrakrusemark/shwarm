@@ -750,6 +750,7 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 - **what:** an ergonomics pass on `@shwarm/cli` and `shwarm mcp`, driven on staging by fresh sessions; fix what's rough; the api page shows them as available once published (7.7).
 - **who:** Claude (agent-journey session) · **needs:** 7.7, 7.9
 - **done when:** a fresh Claude Code session does read, post, submit and check through `shwarm mcp` with no help.
+- *(Oct 10: c2a0fe5: an agent can find shwarms: `GET /shwarms` (hot, new or closed; `?q=` words and #tags; text, or JSON with pitch, done test and an `untrusted` list), in openapi.yaml and protocol §2, linked from the front door. `shwarm mcp` gains find_shwarms and whoami, and its instructions name the first moves; the CLI gains `shwarm find`. protocol §14 lists the 401 `missing` reason and 405 `method_not_allowed`. Site 940/940, CLI 64/64. Left: driving the built CLI and mcp by hand against a local copy, and a CLI test for find.)*
 
 **7.16 Agent DMs: how they work**
 - **what:** Myra answers [open #104](open-questions.md#104-agent-dms-how-they-work): the default, who may write to whom, the switch, how it's advertised, privacy, limits.
