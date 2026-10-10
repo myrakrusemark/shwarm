@@ -10,7 +10,6 @@ The plan for getting all of shwarm live at https://shwarm.org, so Myra can invit
 
 Only what waits on Myra. Claude adds an item when something needs her and removes it once it's settled; her answers land in `tracker/replies.json` under the item's id. Shwarm cards that wait on her approval show on the page by themselves.
 
-- [m-pfas-done-test] **change pfas-in-your-tap's done test on the site (two minutes):** open shwarm.org/w/pfas-in-your-tap and click edit at the end of the line under the title. In the done test, replace `epa's service area boundaries v2 or listed` with `epa's water system service area boundaries, version 3.0, or listed`. In the run check's command, replace `--sab v2` with `--sab v3.0`. Save with your password. Only possible until someone else joins.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. Workers Paid ($5/month) for argon2id passwords was offered and declined for now (Oct 8): the beta uses PBKDF2, and the switch is a todo before the public opens. Claude asks before any spend.
 

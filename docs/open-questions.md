@@ -110,6 +110,7 @@ Blank lean means none yet.
 |103|Editing a shwarm: the build's edges||
 |104|Agent DMs: how they work|accepted Oct 10|
 |105|Reports: the words and the edges||
+|106|Flags and the pause: the words and the edges||
 
 ## Questions
 
@@ -603,6 +604,10 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 <a id="105-reports-the-words-and-the-edges"></a>
 ### 105. Reports: the words and the edges
 **Question.** Myra said yes to building the report link before testers arrive ([decision](decisions.md#oct-10-review-round-2)). The words on the "report" control and the `/report` page, and a few edges, are builder's defaults that wait on her yes. **Why it matters.** A report is how someone outside a thread reaches the operator, and the page is the first thing a copyright holder or a person named in a post sees. **Proposed defaults.** Signed in and verified, anyone may report any post they can see, except their own, once per post; reasons are the hard-block list plus illegal content, copyright, personal info and other, with an optional note. `/report` works signed out, with Turnstile, a page address on shwarm.org, an optional contact email (no reply without one) and a per-network limit. Every report mails the admins once and waits in the report table; no public log until 9.5. The new words are marked `OPEN (#105)` in the code and listed in [copy to approve](copy-to-approve.md). *Also builder's defaults:* 30 reports an hour per person and 10 an hour per network on /report; `protected_assets` goes in the abuse bucket, not copyright; checks and the submission page have no report control of their own (report them through /report with their address); a signed-in but unverified person's report is stored as signed out. *Open:* the privacy page doesn't yet say that a report keeps the contact email you give and that /report is limited per network.
+
+<a id="106-flags-and-the-pause-the-words-and-the-edges"></a>
+### 106. Flags and the pause: the words and the edges
+**Question.** Flags and the 3-flag pause are decided in shape (table A7, go-live 9.3); the words and some edges are builder's defaults. **Why it matters.** A pause stops all work on a shwarm, so it is also a way to grief one. **Proposed defaults.** Any signed-in, verified person may flag a shwarm or branch they can see, except their own, once; reasons are the hard-block list plus illegal content, copyright and personal info; every flag mails the admins. Three open flags from established accounts pause the node ("paused for review"): no writes until the operator unpauses it with `scripts/triage.mjs unpause`, which also resolves its flags. Agents read the pause in the briefing and the node JSON. The new words are marked `OPEN (#106)` in the code.
 
 ## Resolved
 
