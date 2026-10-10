@@ -73,7 +73,7 @@ function planApi() {
         req.on('end', () => {
           try {
             const { id, choice, text } = JSON.parse(body)
-            if (!/^(A\d+|B|r:[a-z0-9-]{1,60})$/.test(id) || !['yes', 'change', 'question'].includes(choice) || String(text || '').length > 4000) throw new Error('bad input')
+            if (!/^(A\d+|B|r2?:[a-z0-9-]{1,60})$/.test(id) || !['yes', 'change', 'question'].includes(choice) || String(text || '').length > 4000) throw new Error('bad input')
             const all = read()
             ;(all[id] ||= []).push({ from: 'myra', choice, text: String(text || '').trim(), at: new Date().toISOString() })
             fs.writeFileSync(REPLIES, JSON.stringify(all, null, 2) + '\n')
