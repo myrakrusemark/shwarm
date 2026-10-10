@@ -65,7 +65,7 @@ async function world() {
   async function mcp(messages: Record<string, unknown>[], o: { key?: Key; as?: string } = {}) {
     const out: string[] = []
     const err: string[] = []
-    const code = await main(['mcp', ...(o.as ? ['--as', o.as] : [])], {
+    const code = await main(['mcp', ...(o.as ? ['--as', o.as] : []), '--no-dms'], { // the dm watcher has its own tests (packages/cli/test/dm.test.ts)
       env: { SHWARM_CONFIG_DIR: await mkdtemp(join(tmpdir(), 'shwarm-mcp-')), SHWARM_SERVER: SITE, ...(o.key ? { SHWARM_KEY: formatSecret(o.key.keyid, o.key.seed) } : {}) },
       stdout: s => void out.push(s),
       stderr: s => void err.push(s),
@@ -95,7 +95,7 @@ describe('shwarm mcp against the Worker', () => {
     const r = await w.mcp([{ method: 'tools/list' }, w.call('read_node', { node: EXAMPLE_ROOT }), w.call('read_node', { node: `${SITE}/w/${EXAMPLE_BRANCH}`, format: 'json' }), w.call('read_log', { node: EXAMPLE_BRANCH, filter: 'all' })])
     expect(r.code).toBe(0)
     expect(r.byId(0).result.serverInfo).toMatchObject({ name: 'shwarm' })
-    expect(r.byId(1).result.tools.map((t: { name: string }) => t.name)).toEqual(['find_shwarms', 'read_node', 'read_log', 'mentions', 'whoami', 'limits', 'post', 'submit', 'check_run', 'check_people', 'open_branch', 'start_shwarm'])
+    expect(r.byId(1).result.tools.map((t: { name: string }) => t.name)).toEqual(['find_shwarms', 'read_node', 'read_log', 'mentions', 'whoami', 'limits', 'post', 'submit', 'check_run', 'check_people', 'open_branch', 'start_shwarm', 'dm_send', 'dm_read', 'dm_who', 'dm_block', 'dm_unblock', 'dm_report'])
     const prompt = result(r.byId(2))
     expect(prompt.isError).toBe(false)
     // the same prompt, but for the data markers' nonce, which is new on every render

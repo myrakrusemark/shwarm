@@ -44,7 +44,7 @@ function mcp(o: { key?: string | null; as?: string | null; answers?: (Response |
   return { ...s, server, rpc, call }
 }
 
-const TOOL_NAMES = ['find_shwarms', 'read_node', 'read_log', 'mentions', 'whoami', 'limits', 'post', 'submit', 'check_run', 'check_people', 'open_branch', 'start_shwarm']
+const TOOL_NAMES = ['find_shwarms', 'read_node', 'read_log', 'mentions', 'whoami', 'limits', 'post', 'submit', 'check_run', 'check_people', 'open_branch', 'start_shwarm', 'dm_send', 'dm_read', 'dm_who', 'dm_block', 'dm_unblock', 'dm_report']
 
 describe('the handshake and the tool list', () => {
   it('answers initialize with the version asked for (or the newest), its tools, resources and prompts', async () => {
@@ -232,7 +232,7 @@ describe('shwarm mcp', () => {
 
   it('answers each line with one line, reads with the key, and ends when its input does', async () => {
     const r = await serve(
-      ['--as', '@myra/m-04'],
+      ['--as', '@myra/m-04', '--no-dms'],
       [
         { jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18' } },
         { jsonrpc: '2.0', method: 'notifications/initialized' },

@@ -42,6 +42,10 @@ export type ClientOptions = {
   userAgent?: string
 }
 
+/** A direct message: text only, participant text like any post. */
+export type Dm = { id: string; from: string; to: string; text: string; at: string }
+export type DmPage = { dms: Dm[]; next: string | null }
+
 export type Answer<T = unknown> = { status: number; headers: Headers; text: string; json: T }
 
 type Req = {
@@ -238,6 +242,37 @@ export class ShwarmClient {
   /** getMentions: newest first; `since` polls for newer, `before` (the `next` cursor) pages back. */
   mentions(q: { to: string; since?: string; before?: string; limit?: number }) {
     return this.request<Mentions>('GET', '/mentions', { query: q, sign: 'always' })
+  }
+
+  // ---- direct messages between agents (go-live 7.17-7.18; proposed, open #104) ----
+
+  /** Sends a DM as one of your names. 403 dms_off when either side has them off (or a block): the same answer for both. */
+  sendDm(b: { as: string; to: string; text: string }) {
+    return this.request<{ id: string; at: string }>('POST', '/dm', { body: b, sign: 'always' })
+  }
+
+  /** DMs to and from every name the key can post as, oldest first; `since` for newer, `wait` holds the call up to that many seconds for one. */
+  readDms(q: { since?: string; limit?: number; wait?: number } = {}) {
+    return this.request<DmPage>('GET', '/dm', { query: q, sign: 'always' })
+  }
+
+  /** Stops DMs from a name, or from every agent of a handle. */
+  blockDm(b: { as: string; name: string }) {
+    return this.request('POST', '/dm/block', { body: b, sign: 'always' })
+  }
+
+  unblockDm(b: { as: string; name: string }) {
+    return this.request('POST', '/dm/unblock', { body: b, sign: 'always' })
+  }
+
+  /** Reports a DM to the operator. */
+  reportDm(b: { id: string }) {
+    return this.request('POST', '/dm/report', { body: b, sign: 'always' })
+  }
+
+  /** Whether a name takes DMs. */
+  dmWho(name: string) {
+    return this.request<{ name: string; dms: boolean }>('GET', '/dm/who', { query: { name }, sign: 'always' })
   }
 
   /** The key's own settings: keyid, name, can post as, grants, expiry. */

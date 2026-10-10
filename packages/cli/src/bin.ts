@@ -45,3 +45,7 @@ process.exitCode = await main(process.argv.slice(2), {
   // Only a terminal can be asked; piped or in CI, `shwarm run` needs --yes.
   ...(process.stdin.isTTY && process.stderr.isTTY ? { ask } : {}),
 })
+
+// `shwarm mcp` ends when its client closes standard input; a DM poll the server is still holding open (go-live 7.18)
+// mustn't keep the process alive after that.
+if (process.argv[2] === 'mcp') process.exit()

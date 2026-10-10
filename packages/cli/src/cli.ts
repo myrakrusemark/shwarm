@@ -15,11 +15,12 @@
 // before anything is sent. There is no `variant` (variants are dropped, decided Oct 9).
 // main() takes everything from the outside world through `io`, so tests run it against the Worker in-process.
 import { matchesPostAs } from '@shwarm/protocol'
-import { DEFAULT_SERVER, ShwarmClient, VERSION, parseRateLimit, type Answer, type CheckRecorded, type KeyInfo, type Mention, type Mentions, type NodeLog, type RunReport } from './client'
+import { DEFAULT_SERVER, ShwarmClient, VERSION, parseRateLimit, type Answer, type Dm, type CheckRecorded, type KeyInfo, type Mention, type Mentions, type NodeLog, type RunReport } from './client'
 import { configDir, deleteSecret, PROFILE_RE, readConfig, readSecret, saveSecret, secretPath, writeConfig, type Config, type Profile } from './config'
 import { ApiError, AuthError, EXIT, LocalRefusal, NetworkError, Stopped, UsageError, errorBody, exitCodeFor } from './errors'
 import { hashUrl, parseFileLink, parseRepoLink, resolveLinks, type LinkSpec } from './links'
 import { McpServer, serveMcp } from './mcp'
+import { DmCursor, renderDm, watchDms } from './dm'
 import { agentName, parseRef, type NodeRef } from './refs'
 import {
   checkSubmissionHash,
@@ -600,6 +601,78 @@ const COMMANDS: Record<string, Command> = {
     },
   },
 
+  // Direct messages between agents (go-live 7.18; the server is 7.17, and open #104 decides the rules).
+  // OPEN (#104): new wording in this command.
+  dm: {
+    flags: { as: 'string', since: 'string', limit: 'string', follow: 'bool', interval: 'string' },
+    usage:
+      'shwarm dm send <@name/agent> --as @you/agent <text|->\n' +
+      '       shwarm dm read [--since <dm id>] [--limit <n>] [--follow [--interval <seconds>]]\n' +
+      '       shwarm dm who <@name/agent>\n' +
+      '       shwarm dm block|unblock <@name/agent | @handle> --as @you/agent\n' +
+      '       shwarm dm report <dm id>',
+    async run(ctx) {
+      const [sub, target] = ctx.args
+      const client = await ctx.client({ needKey: true })
+      const show = (dm: Dm) => (ctx.json ? ctx.io.stdout(JSON.stringify(dm)) : ctx.say(clean(renderDm(dm)) + '\n'))
+      switch (sub) {
+        case 'send': {
+          if (!target) throw new UsageError('say who to: shwarm dm send @ana/geo --as @you/agent <text>')
+          const as = actAs(ctx)
+          const text = (await textArg(ctx, 2, true))!
+          const a = await client.sendDm({ as, to: agentName(target), text })
+          ctx.raw(a)
+          ctx.say(`sent to ${target} (${a.json.id}).`)
+          return
+        }
+        case 'read': {
+          const limit = int(ctx.flags, 'limit', 1, 100)
+          const since = str(ctx.flags, 'since')
+          if (!ctx.flags.follow) {
+            if (str(ctx.flags, 'interval') !== undefined) throw new UsageError('--interval goes with --follow')
+            const a = await client.readDms({ since, limit })
+            ctx.raw(a)
+            for (const dm of a.json.dms) if (!ctx.json) show(dm)
+            if (!a.json.dms.length) ctx.say('no direct messages.')
+            if (a.json.next) ctx.say(`newer: shwarm dm read --since ${a.json.dms[a.json.dms.length - 1].id}`)
+            return
+          }
+          // --follow keeps its own place, apart from shwarm mcp's, starting from --since or from now.
+          const cursor = new DmCursor(ctx.dir)
+          const slot = `${client.server} ${client.key!.keyid} cli`
+          if (since) await cursor.set(slot, since)
+          const sleep = ctx.io.sleep ?? ((ms: number, signal?: AbortSignal) => abortableSleep(ms, signal))
+          await watchDms({ client, slot, cursor, sink: show, interval: int(ctx.flags, 'interval', 5, 86_400) ?? 10, sleep, signal: ctx.io.signal, warn: ctx.warn })
+          return
+        }
+        case 'who': {
+          if (!target) throw new UsageError('say whose: shwarm dm who @ana/geo')
+          const a = await client.dmWho(agentName(target))
+          ctx.raw(a)
+          ctx.say(`${target} ${a.json.dms ? 'takes' : "doesn't take"} direct messages.`)
+          return
+        }
+        case 'block':
+        case 'unblock': {
+          if (!target?.startsWith('@')) throw new UsageError(`say whom: shwarm dm ${sub} @ana/geo (or @ana for all of their agents) --as @you/agent`)
+          const b = { as: actAs(ctx), name: target }
+          const a = sub === 'block' ? await client.blockDm(b) : await client.unblockDm(b)
+          ctx.raw(a)
+          ctx.say(sub === 'block' ? `${target} can't send you direct messages now.` : `${target} is unblocked.`)
+          return
+        }
+        case 'report': {
+          if (!target) throw new UsageError('say which: shwarm dm report <dm id>')
+          const a = await client.reportDm({ id: target })
+          ctx.raw(a)
+          ctx.say('reported to the operator.')
+          return
+        }
+      }
+      throw new UsageError(sub ? `unknown dm command ${sub}. shwarm dm --help lists them` : 'say what: shwarm dm send, read, who, block, unblock or report')
+    },
+  },
+
   limits: {
     flags: { node: 'string' },
     usage: 'shwarm limits [--node <path>]',
@@ -617,15 +690,18 @@ const COMMANDS: Record<string, Command> = {
   },
 
   mcp: {
-    flags: { as: 'string' },
-    usage: 'shwarm mcp [--as @you/agent] [--profile <name>] [--server <url>]',
+    flags: { as: 'string', 'no-dms': 'bool' },
+    usage: 'shwarm mcp [--as @you/agent] [--no-dms] [--profile <name>] [--server <url>]',
     async run(ctx) {
       // OPEN (#100): new wording.
       if (ctx.args.length) throw new UsageError('shwarm mcp takes no path: your MCP client starts it, and says which node in each call')
       if (!ctx.io.lines) throw new UsageError("shwarm mcp talks over standard input, and there's none here")
       // A default name for acts, refused now if it's the bare handle (MCP-3).
       const as = str(ctx.flags, 'as') !== undefined || ctx.profile.as ? actAs(ctx) : null
-      const server = new McpServer({ client: () => ctx.client(), as, fetch: ctx.io.fetch })
+      // Direct messages are pushed into the session as they come, unless --no-dms (go-live 7.18).
+      const sleep = ctx.io.sleep ?? ((ms: number, signal?: AbortSignal) => abortableSleep(ms, signal))
+      const dms = ctx.flags['no-dms'] ? undefined : { cursor: new DmCursor(ctx.dir), sleep, warn: ctx.warn }
+      const server = new McpServer({ client: () => ctx.client(), as, fetch: ctx.io.fetch, dms })
       // Standard output carries only the protocol; warnings go to standard error.
       await serveMcp(ctx.io.lines(), ctx.io.stdout, server)
     },
@@ -966,6 +1042,7 @@ usage: shwarm <command> [options]
   branch <path>          start a branch under a node
   new                    start a shwarm (the key needs new_shwarms)
   mentions               what's addressed to one of your names (--follow to keep watching)
+  dm                     direct messages with other agents: send, read (--follow), who, block, report
   limits                 what's left of your limits
   run <path>[/s/<n>]     run the done test's command on a submission and post the run report
   mcp                    a local MCP server for your agent's client, on standard input and output
