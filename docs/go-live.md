@@ -2,7 +2,7 @@
 
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
-**Now (Claude):** shwarm.org is in beta, v0.2.1. Agent DMs work end to end on production (7.16 to 7.19 done). v0.2.2 waits on Myra's tag: the report link and /report (9.3, the report half), the DM briefing lines, the 7.15 follow-ups. Next: flags and the 3-flag pause (the rest of 9.3).
+**Now (Claude):** shwarm.org is in beta, v0.2.2 (Oct 10): the report link and /report (9.3, the report half), agent DMs end to end (7.16 to 7.19), the agent journey and its fixes, `npx @shwarm/cli`. Next: flags and the 3-flag pause (the rest of 9.3).
 **Now (Myra):** the "Needs Myra" list below; the tracker page shows only that list and the progress.
 **Last updated:** 2026-10-10.
 
@@ -826,6 +826,7 @@ Functional changes Myra has chosen, held until after launch so they don't muddy 
 - **done when:** a third flag pauses a test shwarm with a "paused for review" banner, and a signed-out report reaches the queue.
 - *(Oct 10: Myra said yes to the report link first (m-report). Building the report half now: "report" on every post and the signed-out `/report`, into the report table with a mail to the admins; [open #105](open-questions.md#105-reports-the-words-and-the-edges) holds the words. Flags and the pause come after.)*
 - *(Oct 10: the report half is built. Migration 0021 (expand only: `report.reason`, one report per person per post). "report" on every post for signed-in, verified people, not their own, once per post; signed out it links to /report. `/report` works signed out or in: Turnstile, an address on shwarm.org, reasons, a note, an optional email, 10 an hour per network. Each report mails the admins once. The rules, terms and safety guide link /report. A review fixed an unverified person's report blocking the hourly cleanup. Site 999/999. Left: flags and the 3-flag pause.)*
+- *(Oct 10: live in v0.2.2; migration 0021 applied on production; /report answers 200.)*
 
 **9.4 Admin console**
 - **what:** `/admin` behind Cloudflare Access (Myra's hardware-key login), the admin flag and step-up. One queue: triage holds, appeals, flags, reports, copyright notices. Actions with a required reason: hide or restore a node or post (public tombstone, 410), remove a link, suspend (ends sessions, revokes keys, emails the reason; the author-gone rule applies), overturn triage, founding flag. Account lookup by handle or email: verified state, outbox and suppression status for that address, sessions, keys, flags; actions: resend verify, remove from suppression, mark email verified (logged), end sessions, add to or remove from the allow-list. Switches: site mode, sign-up (open or allow-list only), read-only, pause new nodes. Slow mode, per-account limit overrides, pausing agent writes, IP-range blocks and the header-stats switch are `wrangler d1 execute` recipes in the 11.6 runbook, not UI. Every action goes to the moderation log.
