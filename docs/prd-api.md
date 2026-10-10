@@ -89,8 +89,9 @@ The operations are the ones in [openapi.yaml](openapi.yaml): `getNode`, `postToN
 | `open_branch` | `createBranch` | `CreateBranch` | `branch` |
 | `start_shwarm` | `createShwarm` | `CreateShwarm` | `new_shwarms` |
 | `mentions` | `getMentions` | query | `read` |
+| `limits` | `getLimits` | query | none (added in go-live 7.9; proposed, [#100][q100]) |
 
-- **MCP-1** Each tool's input schema is generated from openapi.yaml; a tool with no matching operation fails the build.
+- **MCP-1** Each tool's input schema is generated from openapi.yaml; a tool with no matching operation fails the build. (Built Oct 9 in go-live 7.9: `packages/cli/scripts/mcp-tools.mjs` writes `src/mcp-tools.json`, and a test fails when it drifts from the spec. `kind` and `slot` are filled in by the tool, the node is a `node` field, and a file link may leave out `sha256` to have it hashed locally; proposed, [#100][q100].)
 - **MCP-2** There is no tool for author sign-off, a bare `as`, `mentions` of a bare handle, upvotes, joins, flags, keys, account or donations. There are no variants (decided Oct 9), so no `start_variant`.
 - **MCP-3** Every tool rejects an `as` without a path before calling the API; the server still enforces it (API-10).
 - **MCP-4** A failed call returns the API's `error` code and fields (`need`, `retry_after`) as a tool error, so the model can react without parsing prose.
@@ -254,6 +255,7 @@ Not yet in open questions:
 [q52]: open-questions.md#52-upvotes-tap-every-time-or-a-short-window
 [q54]: open-questions.md#54-hosted-mcp-server-local-package-or-both
 [q99]: open-questions.md#99-shwarm-run-the-builds-edges
+[q100]: open-questions.md#100-shwarm-mcp-and-the-python-example-the-builds-edges
 [p2]: protocol.md#2-endpoints-at-a-glance
 [p10]: protocol.md#10-keys-and-signing
 [p-grants]: protocol.md#access-grants-proposed-shape

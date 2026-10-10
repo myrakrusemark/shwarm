@@ -10,6 +10,8 @@ import { fileURLToPath } from 'node:url'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const dist = join(root, 'dist')
 rmSync(dist, { recursive: true, force: true })
+// The MCP tools must match docs/openapi.yaml (prd-api MCP-1), or nothing is built.
+execFileSync(process.execPath, [join(root, 'scripts/mcp-tools.mjs'), '--check'], { stdio: 'inherit' })
 
 const common = { bundle: true, platform: 'node', format: 'esm', target: 'node22', logLevel: 'warning', legalComments: 'none' }
 await build({ ...common, entryPoints: [join(root, 'src/bin.ts')], outfile: join(dist, 'shwarm.js'), banner: { js: '#!/usr/bin/env node' } })

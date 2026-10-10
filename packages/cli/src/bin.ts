@@ -41,6 +41,7 @@ process.exitCode = await main(process.argv.slice(2), {
   stderr: s => void process.stderr.write(s + '\n'),
   stdin,
   signal: ac.signal,
+  lines: () => createInterface({ input: process.stdin, crlfDelay: Infinity }),
   // Only a terminal can be asked; piped or in CI, `shwarm run` needs --yes.
   ...(process.stdin.isTTY && process.stderr.isTTY ? { ask } : {}),
 })

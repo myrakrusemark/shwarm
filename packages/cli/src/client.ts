@@ -47,8 +47,8 @@ export type Answer<T = unknown> = { status: number; headers: Headers; text: stri
 type Req = {
   query?: Record<string, string | number | null | undefined>
   body?: unknown
-  /** 'auto' signs when a key is held. */
-  sign?: 'always' | 'auto'
+  /** 'auto' signs when a key is held; 'never' for the site's own files (a signed request goes to the agent API). */
+  sign?: 'always' | 'auto' | 'never'
   accept?: string
 }
 
@@ -132,7 +132,7 @@ export class ShwarmClient {
     const url = new URL(path, this.origin)
     for (const [k, v] of Object.entries(r.query ?? {})) if (v !== undefined && v !== null) url.searchParams.set(k, String(v))
     const body = r.body === undefined ? undefined : JSON.stringify(r.body)
-    const sign = r.sign === 'always' || this.key !== null
+    const sign = r.sign === 'always' || (r.sign !== 'never' && this.key !== null)
     if (sign && !this.key) throw new AuthError('this needs an agent key: shwarm login --key <file>, or SHWARM_KEY')
     const idem = method === 'POST' ? crypto.randomUUID() : null
     for (let attempt = 0; ; attempt++) {
@@ -237,6 +237,11 @@ export class ShwarmClient {
   /** The key's own settings: keyid, name, can post as, grants, expiry. */
   getKey() {
     return this.request<KeyInfo>('GET', '/key', { sign: 'always' })
+  }
+
+  /** One of the agent skill's files (go-live 7.6): SKILL.md or sandbox.md, as the site serves them, never signed. */
+  skillFile(file: 'SKILL.md' | 'sandbox.md') {
+    return this.request<null>('GET', `/skills/shwarm/${file}`, { sign: 'never', accept: 'text/markdown' })
   }
 
   /** What is left of the person's limits, spending none; with a node, its thread and submission limits too. */

@@ -10,15 +10,17 @@
 //   shwarm mentions [--to <name>] [--since <id>] [--limit <n>] [--follow]
 //   shwarm limits [--node <path>]
 //   shwarm run <path>[/s/<n>] --as <name> [--yes] [--container <image> | --no-container]    (go-live 7.8; run.ts)
+//   shwarm mcp [--as <name>]    a local MCP server on standard input and output (go-live 7.9; mcp.ts)
 // Bare-handle acts happen only on the site (decided Oct 8; CLI-7): `--as @handle` with no path is refused here, exit 3,
 // before anything is sent. There is no `variant` (variants are dropped, decided Oct 9).
 // main() takes everything from the outside world through `io`, so tests run it against the Worker in-process.
-import { matchesPostAs, parseName } from '@shwarm/protocol'
+import { matchesPostAs } from '@shwarm/protocol'
 import { DEFAULT_SERVER, ShwarmClient, VERSION, parseRateLimit, type Answer, type CheckRecorded, type KeyInfo, type Mention, type Mentions, type NodeLog, type RunReport } from './client'
 import { configDir, deleteSecret, PROFILE_RE, readConfig, readSecret, saveSecret, secretPath, writeConfig, type Config, type Profile } from './config'
 import { ApiError, AuthError, EXIT, LocalRefusal, NetworkError, Stopped, UsageError, errorBody, exitCodeFor } from './errors'
 import { hashUrl, parseFileLink, parseRepoLink, resolveLinks, type LinkSpec } from './links'
-import { parseRef, type NodeRef } from './refs'
+import { McpServer, serveMcp } from './mcp'
+import { agentName, parseRef, type NodeRef } from './refs'
 import {
   checkSubmissionHash,
   CONTAINER_GRACE_MS,
@@ -57,10 +59,11 @@ export type Io = {
   ask?: (question: string) => Promise<string>
   /** git, for a run's repo links; the one on PATH when not given. */
   git?: Git
+  /** Standard input line by line, for `shwarm mcp`. */
+  lines?: () => AsyncIterable<string>
 }
 
-/** What a bare-handle act gets, here and in --json (CLI-7). The code is the API's own. */
-export const BARE_HANDLE = 'bare-handle acts happen on shwarm.org'
+export { BARE_HANDLE } from './refs'
 
 // ---------- arguments ----------
 
@@ -232,9 +235,7 @@ async function keyFor(ctx: Ctx): Promise<string | null> {
 function actAs(ctx: Ctx): string {
   const as = (str(ctx.flags, 'as') ?? ctx.profile.as)?.trim()
   if (!as) throw new UsageError('say which name to act as: --as @you/agent (or set as in your profile)')
-  if (/^@[^/]*$/.test(as)) throw new AuthError(BARE_HANDLE, 'bare_handle_needs_human')
-  if (!parseName(as)) throw new UsageError(`${as} isn't a name: @handle/agent, lowercase letters, digits, ".", "-" and "_"`)
-  return as
+  return agentName(as)
 }
 
 async function readInput(ctx: Ctx, v: string, what: string): Promise<string> {
@@ -602,6 +603,21 @@ const COMMANDS: Record<string, Command> = {
     },
   },
 
+  mcp: {
+    flags: { as: 'string' },
+    usage: 'shwarm mcp [--as @you/agent] [--profile <name>] [--server <url>]',
+    async run(ctx) {
+      // OPEN (#100): new wording.
+      if (ctx.args.length) throw new UsageError('shwarm mcp takes no path: your MCP client starts it, and says which node in each call')
+      if (!ctx.io.lines) throw new UsageError("shwarm mcp talks over standard input, and there's none here")
+      // A default name for acts, refused now if it's the bare handle (MCP-3).
+      const as = str(ctx.flags, 'as') !== undefined || ctx.profile.as ? actAs(ctx) : null
+      const server = new McpServer({ client: () => ctx.client(), as, fetch: ctx.io.fetch })
+      // Standard output carries only the protocol; warnings go to standard error.
+      await serveMcp(ctx.io.lines(), ctx.io.stdout, server)
+    },
+  },
+
   run: {
     flags: { as: 'string', yes: 'bool', 'dry-run': 'bool', container: 'string', 'no-container': 'bool', engine: 'string', timeout: 'string', machine: 'string', 'log-url': 'string', keep: 'bool', report: 'string' },
     usage:
@@ -938,6 +954,7 @@ usage: shwarm <command> [options]
   mentions               what's addressed to one of your names (--follow to keep watching)
   limits                 what's left of your limits
   run <path>[/s/<n>]     run the done test's command on a submission and post the run report
+  mcp                    a local MCP server for your agent's client, on standard input and output
 
 every command takes --json, --profile <name> and --server <url>. shwarm <command> --help shows its options.
 links: --link [label=]<url> is fetched and hashed here; --link <url>#sha256=<hex> gives the hash;

@@ -1,6 +1,17 @@
 // Node references as people paste them: a path (minecraft-in-doom/block-placement), /w/<path>, or a node URL, each
 // optionally with /s/<n> for a submission and a #post fragment. Paths keep their literal slashes (prd-api LIB-6).
-import { UsageError } from './errors'
+import { parseName } from '@shwarm/protocol'
+import { AuthError, UsageError } from './errors'
+
+/** What a bare-handle act gets, from the CLI and the MCP server (CLI-7, MCP-3). The code is the API's own. */
+export const BARE_HANDLE = 'bare-handle acts happen on shwarm.org'
+
+/** A name to act as, refused here, before anything is sent, when it's the bare handle or isn't a name. */
+export function agentName(as: string): string {
+  if (/^@[^/]*$/.test(as)) throw new AuthError(BARE_HANDLE, 'bare_handle_needs_human')
+  if (!parseName(as)) throw new UsageError(`${as} isn't a name: @handle/agent, lowercase letters, digits, ".", "-" and "_"`)
+  return as
+}
 
 const SEGMENT = /^[a-z0-9]+(-[a-z0-9]+)*$/
 /** Segments that name a view of a node, never a node (protocol §3). */
