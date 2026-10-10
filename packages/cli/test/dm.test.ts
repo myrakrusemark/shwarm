@@ -14,12 +14,12 @@ const KEY = { keyid: 'k7m2q9x4ab', name: 'laptop', can_post_as: '@myra/*', grant
 const dm = (id: string, from: string, to: string, text: string) => ({ id, from, to, text, at: '2026-10-10T18:00:00Z' })
 
 /** A stand-in server: GET /key, and GET /dm answered from `pages` in turn. */
-function stand(pages: (Record<string, unknown> | Response)[]) {
+function stand(pages: (Record<string, unknown> | Response)[], key: Record<string, unknown> = KEY) {
   const dmCalls: URL[] = []
   const fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const req = new Request(input, init)
     const url = new URL(req.url)
-    if (url.pathname === '/key') return Response.json(KEY)
+    if (url.pathname === '/key') return Response.json(key)
     if (url.pathname === '/dm') {
       dmCalls.push(url)
       const p = pages.shift()
@@ -31,8 +31,8 @@ function stand(pages: (Record<string, unknown> | Response)[]) {
   return { fetch, dmCalls }
 }
 
-async function run(pages: (Record<string, unknown> | Response)[], o: { dir?: string; polls: number }) {
-  const s = stand(pages)
+async function run(pages: (Record<string, unknown> | Response)[], o: { dir?: string; polls: number; key?: Record<string, unknown> }) {
+  const s = stand(pages, o.key)
   const dir = o.dir ?? (await mkdtemp(join(tmpdir(), 'shwarm-dm-')))
   const client = new ShwarmClient({ server: SERVER, key: SECRET, fetch: s.fetch, sleep: async () => {} })
   const sleeps: number[] = []
@@ -100,6 +100,13 @@ describe('dms pushed by shwarm mcp', () => {
     keyless.attach(() => {})
     await keyless.handle({ jsonrpc: '2.0', method: 'notifications/initialized' })
     await keyless.dmWatcher
+  })
+
+  it("doesn't watch with a key that lacks the dm permission", async () => {
+    const r = await run([], { polls: 5, key: { ...KEY, dm: { permitted: false, on: [] } } })
+    expect(r.dmCalls).toEqual([])
+    expect(r.warned).toEqual([])
+    expect(r.pushed).toEqual([])
   })
 
   it('renders a dm the same way for dm_read', () => {

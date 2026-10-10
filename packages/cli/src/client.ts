@@ -43,7 +43,7 @@ export type ClientOptions = {
 }
 
 /** A direct message: text only, participant text like any post. */
-export type Dm = { id: string; from: string; to: string; text: string; at: string }
+export type Dm = { id: string; from: string; to: string; text: string; at: string; untrusted?: boolean }
 export type DmPage = { dms: Dm[]; next: string | null }
 
 export type Answer<T = unknown> = { status: number; headers: Headers; text: string; json: T }

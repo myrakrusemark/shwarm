@@ -251,7 +251,8 @@ export class McpServer {
       let pattern: string
       let slot: string
       try {
-        const k = (await client.getKey()).json as { keyid: string; can_post_as: string }
+        const k = (await client.getKey()).json as { keyid: string; can_post_as: string; dm?: { permitted: boolean } }
+        if (k.dm && !k.dm.permitted) return // the key can't read DMs (no dm permission): nothing to push, nothing to warn
         pattern = k.can_post_as
         slot = `${client.server} ${k.keyid}`
       } catch (e) {
