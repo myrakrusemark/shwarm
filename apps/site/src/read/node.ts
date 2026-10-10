@@ -593,28 +593,92 @@ export async function readEdits(db: D1Database, ids: string[]): Promise<Map<stri
 }
 
 /**
- * An earlier title and pitch of a shwarm: what a re-pitch replaced, by whom and when, and when it was written (the
- * re-pitch before it, or null when it's the one the node started with) (core/nodes.ts repitch).
+ * An earlier version of a shwarm: what an edit (or, before Oct 10, a re-pitch) replaced, by whom and when, and when it
+ * was written (the edit before it, or null when it's the one the node started with) (core/nodes.ts editNode). Its title
+ * and what always; the rest only where they differ from the version that replaced it: its done test, checks, license,
+ * builds on (null: it built on nothing) and tags. A re-pitch never changed those, so its rows have none of them.
  */
-export type PitchEdit = { title: string; what: string; by_name: string; edited_at: string; written_at: string | null }
+export type NodeEdit = {
+  title: string
+  what: string
+  by_name: string
+  edited_at: string
+  written_at: string | null
+  done_when?: string
+  spec?: CheckSpec
+  license?: string
+  builds_on?: BuildsOn | null
+  tags?: string[]
+}
+
+type EditRow = {
+  title: string
+  what: string
+  by_name: string
+  edited_at: string
+  written_at: string | null
+  done_when: string | null
+  checks: string | null
+  license: string | null
+  builds_on: string | null
+  tags: string | null
+  next_done_when: string
+  next_checks: string
+  next_license: string
+  next_builds_on: string | null
+  next_tags: string
+}
+
+/** A stored builds_on as an earlier version shows it: a shwarm's path (no title: it may have changed since), or an outside project. */
+function buildsOnOf(s: string | null): BuildsOn | null {
+  const bo = parseJson<Record<string, unknown> | null>(s, null)
+  if (bo && typeof bo.node === 'string') return { node: bo.node, title: null }
+  if (bo && typeof bo.name === 'string') return { name: bo.name, license: String(bo.license ?? ''), ...(typeof bo.url === 'string' ? { url: bo.url } : {}) }
+  return null
+}
 
 /**
- * A node's earlier pitches, newest first: up to EDITS_SHOWN, plus one more to say older ones aren't shown. Everyone
+ * A node's earlier versions, newest first: up to EDITS_SHOWN, plus one more to say older ones aren't shown. Everyone
  * sees only the versions everyone could read when they were replaced; words still being checked or held then, which
- * triage never cleared, show to the author alone (`all`). OPEN (#79): who sees which versions.
+ * triage never cleared, show to the author alone (`all`). Each is compared with the next version the viewer may see (a
+ * later edit's row, or the node as it is now for the newest), so only what changed between versions they can read shows;
+ * when it was written comes from every row, hidden ones too. OPEN (#79): who sees which versions.
  */
-export async function readPitchEdits(db: D1Database, nodeId: number, all: boolean): Promise<PitchEdit[]> {
+export async function readNodeEdits(db: D1Database, nodeId: number, all: boolean): Promise<NodeEdit[]> {
   const { results } = await db
     .prepare(
-      `SELECT title, what, ${NAME_SHOWN('by_name')} AS by_name, edited_at, written_at FROM (
-         SELECT title, what, by_name, edited_at, was_public, id,
-                LAG(edited_at) OVER (ORDER BY edited_at, id) AS written_at
-         FROM node_edit WHERE node_id = ?1)
-       WHERE was_public = 1 OR ?2 = 1 ORDER BY edited_at DESC, id DESC LIMIT ?3`,
+      `SELECT e.title, e.what, ${NAME_SHOWN('e.by_name')} AS by_name, e.edited_at, e.written_at, e.done_when, e.checks, e.license, e.builds_on, e.tags,
+              CASE WHEN e.later IS NULL THEN n.done_when ELSE e.n_done_when END AS next_done_when,
+              CASE WHEN e.later IS NULL THEN n.checks ELSE e.n_checks END AS next_checks,
+              CASE WHEN e.later IS NULL THEN n.license ELSE e.n_license END AS next_license,
+              CASE WHEN e.later IS NULL THEN n.builds_on ELSE e.n_builds_on END AS next_builds_on,
+              CASE WHEN e.later IS NULL
+                THEN (SELECT json_group_array(tag) FROM (SELECT t.tag FROM node_tag t WHERE t.node_id = n.id ORDER BY t.rowid))
+                ELSE e.n_tags END AS next_tags
+       FROM (
+         SELECT title, what, by_name, edited_at, id, done_when, checks, license, builds_on, tags, written_at,
+                LEAD(id) OVER w AS later,
+                LEAD(done_when) OVER w AS n_done_when, LEAD(checks) OVER w AS n_checks, LEAD(license) OVER w AS n_license,
+                LEAD(builds_on) OVER w AS n_builds_on, LEAD(tags) OVER w AS n_tags
+         FROM (SELECT *, LAG(edited_at) OVER (ORDER BY edited_at, id) AS written_at FROM node_edit WHERE node_id = ?1)
+         WHERE was_public = 1 OR ?2 = 1 WINDOW w AS (ORDER BY edited_at, id)) e
+       JOIN node n ON n.id = ?1
+       ORDER BY e.edited_at DESC, e.id DESC LIMIT ?3`,
     )
     .bind(nodeId, all ? 1 : 0, EDITS_SHOWN + 1)
-    .all<PitchEdit>()
-  return results
+    .all<EditRow>()
+  return results.map(r => {
+    const e: NodeEdit = { title: r.title, what: r.what, by_name: r.by_name, edited_at: r.edited_at, written_at: r.written_at }
+    // A re-pitch's row (done_when NULL) changed none of the rest. An edit's row and every row after it carry all of it.
+    if (r.done_when === null) return e
+    if (r.done_when !== r.next_done_when) e.done_when = r.done_when
+    if (r.checks !== r.next_checks) e.spec = parseJson<CheckSpec>(r.checks, { author: false })
+    if (r.license !== r.next_license) e.license = r.license ?? ''
+    if (r.builds_on !== r.next_builds_on) e.builds_on = buildsOnOf(r.builds_on)
+    const tags = parseJson<string[]>(r.tags, [])
+    if (tags.join(' ') !== parseJson<string[]>(r.next_tags, []).join(' ')) e.tags = tags
+    return e
+  })
 }
 
 /** Which of these posts the viewer upvoted, and whether each upvote counts (A6: not until their account is established). */

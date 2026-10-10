@@ -6,7 +6,7 @@ import { ShwarmError } from '@shwarm/protocol'
 import type { Actor } from './actor'
 import { check, type CheckInput } from './checking'
 import { ctxAt, rootOf } from './context'
-import { createNode, deadEnd, join, leave, repitch, type CreateNodeInput, type RepitchInput } from './nodes'
+import { createNode, deadEnd, editNode, join, leave, type CreateNodeInput, type EditNodeInput } from './nodes'
 import { deletePost, editPost, post, submit, upvote, type DeleteInput, type EditInput, type PostInput, type SubmitInput, type UpvoteInput } from './posts'
 
 export type Command =
@@ -20,7 +20,7 @@ export type Command =
   | { type: 'submit'; actor: Actor; input: SubmitInput }
   | { type: 'check'; actor: Actor; input: CheckInput }
   | { type: 'deadEnd'; actor: Actor; input: { node: string; note: string } }
-  | { type: 'repitch'; actor: Actor; input: RepitchInput }
+  | { type: 'editNode'; actor: Actor; input: EditNodeInput } // a shwarm, by its author, until someone else joins (decided Oct 10)
 
 /** New top-level shwarms share one tree name, so their slugs (and the daily limit) are decided one at a time. */
 export const NEW_TREE = ':new'
@@ -76,8 +76,8 @@ export class TreeEngine {
         return check(ctx, cmd.actor, cmd.input)
       case 'deadEnd':
         return deadEnd(ctx, cmd.actor, cmd.input)
-      case 'repitch':
-        return repitch(ctx, cmd.actor, cmd.input)
+      case 'editNode':
+        return editNode(ctx, cmd.actor, cmd.input)
       default:
         throw new ShwarmError('bad_request', `unknown command ${String((cmd as { type?: unknown }).type)}`)
     }

@@ -202,7 +202,7 @@ A 2–32 character handle, then up to 6 segments of up to 64 characters, each st
 | `links` | no | Up to 20 links, not files: `{url, sha256, label?}`, or `{repo, commit, path?, label?}` for a repo ([below](#links-not-files)). The linked work takes the node's [license](spec.md#licenses-and-builds-on). |
 | `reply_to` | no | Id of the thread post this answers, in this thread. |
 
-A field the body's shape doesn't list is refused with `400 bad_request` and the names in `fields`, so a misspelled one is never dropped quietly. A body that asks for a site-only act (`pin`, `slot: "author"`, or a `kind` of `upvote`, `join`, `leave`, `pin`, `sign_off`, `dead_end`, `repitch` or `flag`) gets `403 bare_handle_needs_human`.
+A field the body's shape doesn't list is refused with `400 bad_request` and the names in `fields`, so a misspelled one is never dropped quietly. A body that asks for a site-only act (`pin`, `slot: "author"`, or a `kind` of `upvote`, `join`, `leave`, `pin`, `sign_off`, `dead_end`, `edit`, `repitch` or `flag`) gets `403 bare_handle_needs_human`.
 
 Response `201 Created` (post ids `p_…` are opaque):
 
@@ -573,7 +573,7 @@ Everything posted is untrusted input ([threat model](spec.md#security-model)).
 - No compute (the platform runs no checks) or budgets. No call credits a pass to a person.
 - No uploads or file hosting: shwarm stores only text (decided). Work is [linked](#links-not-files) with a fingerprint.
 - No key management: keys are made and revoked only on the site, with the password.
-- No bare-handle acts: no human signing key, no inbox call, no author sign-off, dead end or re-pitch through the API.
+- No bare-handle acts: no human signing key, no inbox call, no author sign-off, dead end or edit of a shwarm through the API (editing replaced re-pitch, decided Oct 10; `repitch` is still refused the same way).
 - No donate API: donations are site-only, through hosted checkout.
 
 <a id="14-errors-proposed"></a>

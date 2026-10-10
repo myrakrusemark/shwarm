@@ -99,7 +99,8 @@ export const nodeSql = (path: string) => {
   return renderStatement(
     `SELECT n.path, n.kind, n.title, n.triage, n.seeded, n.hidden, n.what, n.done_when, n.checks, n.builds_on, par.title AS parent_title,
             (SELECT group_concat(tag, ' ') FROM (SELECT t.tag FROM node_tag t WHERE t.node_id = n.id ORDER BY t.rowid)) AS tags,
-            (SELECT json_group_array(json_object('title', e.title, 'what', e.what, 'was_public', e.was_public))
+            (SELECT json_group_array(json_object('title', e.title, 'what', e.what, 'was_public', e.was_public, 'done_when', e.done_when,
+                                                 'checks', e.checks, 'tags', e.tags, 'license', e.license, 'builds_on', e.builds_on))
              FROM (SELECT * FROM node_edit e WHERE e.node_id = n.id ORDER BY e.edited_at DESC, e.id DESC) e) AS earlier
      FROM node n LEFT JOIN node par ON par.id = n.parent_id WHERE n.path = ?`,
     [path],
@@ -113,9 +114,9 @@ type NodeShown = { path: string; kind: string; title: string; triage: string; se
 /**
  * The node as the script prints it before clear or block: every field the model was given (triage/model.ts
  * stateOf), since a hold can come from the check command, the checkers' instructions, the tags or builds-on, and
- * the page is a 404 to Myra; then any earlier pitches a re-pitch replaced, and who sees each. Each author-written line
- * is quoted with '| ' and run through printableLines, so none of it can pass for the script's own output or reach the
- * terminal as an escape sequence.
+ * the page is a 404 to Myra; then any earlier versions an edit (or a re-pitch, before Oct 10) replaced, and who sees
+ * each. Each author-written line is quoted with '| ' and run through printableLines, so none of it can pass for the
+ * script's own output or reach the terminal as an escape sequence.
  */
 export function describeNode(n: NodeShown): string {
   const quote = (label: string, v: unknown) => `  ${label}:\n` + printableLines(v).split('\n').map(l => `    | ${l}`).join('\n')
@@ -145,16 +146,21 @@ export function describeNode(n: NodeShown): string {
   if (spec.author) out.push('  and by its author.')
   if (n.tags) out.push(quote('tags', n.tags))
   if (n.builds_on) out.push(quote('builds on', n.builds_on))
-  // Earlier pitches from re-pitches: the model saw only the current words. A version public when it was replaced stays
-  // in the page's history for everyone; the others only its author sees (read/node.ts readPitchEdits).
-  let earlier: { title?: unknown; what?: unknown; was_public?: unknown }[] = []
+  // Earlier versions from edits (and re-pitches before Oct 10): the model saw only the current words. A version public
+  // when it was replaced stays in the page's history for everyone; the others only its author sees (read/node.ts
+  // readNodeEdits). A re-pitch kept only the title and what; an edit keeps the rest too.
+  type Earlier = { title?: unknown; what?: unknown; was_public?: unknown; done_when?: unknown; checks?: unknown; tags?: unknown; license?: unknown; builds_on?: unknown }
+  let earlier: Earlier[] = []
   try {
     earlier = JSON.parse(n.earlier ?? '[]')
   } catch {
     // shown as none
   }
   earlier.forEach((e, i) => {
-    out.push(`  earlier pitch ${i + 1}, newest first (${e.was_public === 1 ? 'shown to everyone' : 'shown to its author only'}):`, quote('title', e.title), quote('what', e.what))
+    out.push(`  earlier version ${i + 1}, newest first (${e.was_public === 1 ? 'shown to everyone' : 'shown to its author only'}):`, quote('title', e.title), quote('what', e.what))
+    if (e.done_when === null || e.done_when === undefined) return // a re-pitch's: the rest was as the version after it
+    out.push(quote('done when', e.done_when), quote('checks', e.checks), quote('tags', e.tags), quote('license', e.license))
+    if (e.builds_on !== null && e.builds_on !== undefined) out.push(quote('builds on', e.builds_on))
   })
   return out.join('\n')
 }

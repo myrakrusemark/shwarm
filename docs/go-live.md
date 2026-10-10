@@ -10,6 +10,7 @@ The plan for getting all of shwarm live at https://shwarm.org, so Myra can invit
 
 Only what waits on Myra. Claude adds an item when something needs her and removes it once it's settled; her answers land in `tracker/replies.json` under the item's id. Shwarm cards that wait on her approval show on the page by themselves.
 
+- [m-safety-guide] **"shwarming safely" guide:** read /guide-safety (mockups/guide-safety.html) and say yes or what to change; open #102.
 - [m-npm] **npm publish of `@shwarm/cli`:** the repo is public now. Your part: on npmjs.com, in the `@shwarm/cli` package settings, add the trusted publisher (GitHub, repo myrakrusemark/shwarm, workflow publish-cli.yml). Say done, and Claude runs the publish.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. Workers Paid ($5/month) for argon2id passwords was offered and declined for now (Oct 8): the beta uses PBKDF2, and the switch is a todo before the public opens. Claude asks before any spend.
@@ -178,7 +179,7 @@ shwarm/                      pnpm workspace; docs/ and mockups/ stay as they are
 | person | handle (permanent), display name, email (verified), password hash (PBKDF2-SHA256 with a pepper for the beta; argon2id later; the stored string names the algorithm), about, links, status, founding flag, established date, notice prefs, accepted terms version and date, age confirmation. No legal name. |
 | session | the one sign-in cookie (stored hashed), last seen, step-up window, IP prefix and browser summary (purged after 30 days) |
 | email_token | verify, reset and email-change links (hashed, single use, expiring, used only on POST) |
-| node, node_tag, node_fts, node_edit | shwarms and branches: path, parent, root, variant of, title, what, done when (locked), checks, tags, lobby size, builds on (url, name, license), author, agent byline, state, in-review flag, triage status, hidden/paused; search index; re-pitch history |
+| node, node_tag, node_fts, node_edit | shwarms and branches: path, parent, root, variant of, title, what, done when (locked), checks, tags, lobby size, builds on (url, name, license), author, agent byline, state, in-review flag, triage status, hidden/paused; search index; edit history (re-pitch history before Oct 10) |
 | seat | one per human per node; seat 1 is the author |
 | post, post_edit, mention | thread posts of every kind (post, submission, check, repro, dead end), with links as `{url, sha256}` or repo + commit; edit history; mentions extracted at write time |
 | upvote | one per person per post, with a counted flag |
@@ -532,6 +533,7 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 **4.4 Lobby, seats and kickoff** · done
 - *(Oct 9: late joiners: once a shwarm is live, "join" sits under its contributors, with no seat limit and no second kickoff, and a late joiner shows among the contributors and on their profile as working on it. Re-pitch: the author changes a lobby's title and what from their own box, behind the password; earlier versions show under "re-pitched". The new words go through triage again (a new triage round), so a cleared lobby is seen only by its author until it's cleared again. Defaults proposed, open #79.)*
 - *(Oct 10: Myra said yes in review round 2 to the re-pitch defaults and re-pitch history (open #79, now resolved); lobby and kickoff are gone since 8.1.)*
+- *(Oct 10, later: re-pitch is replaced by "edit" ([decision](decisions.md#oct-10-review-round-2)): the author's "edit" link opens /new filled in, and everything the form holds can change until someone else joins or anything is submitted. Built in apps/site (core/nodes.ts editNode, web/create.tsx edit mode, migration 0019 keeps whole earlier versions); not deployed. Its edges and words are open [#103](open-questions.md#103-editing-a-shwarm-the-builds-edges).)*
 - **what:** join (verified humans only), leave before kickoff, kickoff in one batch (state live, day count starts, "lobby filled" event, inbox items and emails), late joiners; re-pitch edits in the lobby with history (should).
 - **who:** Claude · **needs:** 2.3, 4.2
 - **done when:** the race test of two people joining the last seat runs 100 times in CI with exactly one kickoff each time.
@@ -755,7 +757,7 @@ Functional changes Myra has chosen, held until after launch so they don't muddy 
 - **done when:** the page is live on staging and the create form links to it.
 
 **9.3 Flags and reports**
-- **what:** "flag this swarm" on shwarm and branch pages and "report" on every post: humans only, site only, one per person; reasons from the hard-block list plus illegal content, copyright and personal info; every one alerts Myra; 3 flags from established accounts pause a shwarm until Myra clears it (A7). A signed-out report form at `/report` (Turnstile, the same reasons, contact email, URL) feeds the same queue. The rules and terms name abuse@, dmca@ and /report.
+- **what:** "flag this swarm" on shwarm and branch pages and "report" on every post: humans only, site only, one per person; reasons from the hard-block list plus illegal content, copyright and personal info; every one alerts Myra; 3 flags from established accounts pause a shwarm until Myra clears it (A7). A signed-out report form at `/report` (Turnstile, the same reasons, contact email, URL) feeds the same queue. The rules and terms name abuse@, dmca@ and /report. The "shwarming safely" guide names only abuse@ until this lands; add the report link there too (open #102).
 - **who:** Claude · **needs:** A7
 - **done when:** a third flag pauses a test shwarm with a "paused for review" banner, and a signed-out report reaches the queue.
 

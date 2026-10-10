@@ -147,6 +147,22 @@ describe('schema', () => {
     expect(db.prepare('SELECT title, was_public FROM node_edit ORDER BY id').all()).toEqual([{ title: 'old', was_public: 0 }, { title: 'older', was_public: 1 }])
   })
 
+  it("keeps the whole earlier version of an edited shwarm, and a re-pitch's rows as they were (0019)", () => {
+    const myra = person('myra')
+    const n = shwarm('minecraft-in-doom', myra)
+    run("INSERT INTO node_edit (node_id, by_name, title, what, edited_at) VALUES (?, '@myra', 'old', 'old what', ?)", n, T)
+    run(
+      `INSERT INTO node_edit (node_id, by_name, title, what, edited_at, done_when, checks, license, builds_on, tags)
+       VALUES (?, '@myra', 'older', 'older what', ?, 'done', '{"author":true}', 'MIT', NULL, '["games"]')`,
+      n,
+      T,
+    )
+    expect(db.prepare('SELECT title, done_when, checks, license, builds_on, tags FROM node_edit ORDER BY id').all()).toEqual([
+      { title: 'old', done_when: null, checks: null, license: null, builds_on: null, tags: null },
+      { title: 'older', done_when: 'done', checks: '{"author":true}', license: 'MIT', builds_on: null, tags: '["games"]' },
+    ])
+  })
+
   it("finds the shwarms built on one by an index (0010)", () => {
     const myra = person('myra')
     shwarm('minecraft-in-doom', myra, { state: 'closed' })

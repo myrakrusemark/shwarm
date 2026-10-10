@@ -72,6 +72,8 @@ const CASES: Case[] = [
   { path: '/new', status: 200, only: 'in' },
   { path: `/new?parent=${LONG_BRANCH}`, status: 200, only: 'in' },
   { path: `/new?builds_on=${EXAMPLE_ROOT}`, status: 200, only: 'in' },
+  // edit mode (decided Oct 10): @myra's own shwarm, filled in as it stands
+  { path: `/new?edit=${PLAIN}`, status: 200, only: 'in' },
   // error pages
   { path: '/no-such-page', status: 404 },
   { path: '/w/no-such-shwarm', status: 404 },

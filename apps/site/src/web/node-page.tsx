@@ -9,7 +9,7 @@ import { shortHash } from '@shwarm/protocol'
 import type { Link } from '@shwarm/protocol'
 import { joinHref, signInHref } from '../auth/return-to'
 import type { CheckSpec } from '../core/checks'
-import type { BuiltOnBy, BuiltOnLink, Chain, CheckReport, Child, Contributor, NodeHead, PitchEdit, PostEdit, PostRow, Show, Sort, SubmissionRow, Thread } from '../read/node'
+import type { BuiltOnBy, BuiltOnLink, Chain, CheckReport, Child, Contributor, NodeEdit, NodeHead, PostEdit, PostRow, Show, Sort, SubmissionRow, Thread } from '../read/node'
 import { EDITS_SHOWN, lockedBy, SHOWS, SORTS } from '../read/node'
 import { FORMER } from '../read/names'
 import { ACTIVITY_DAYS, type ActivityDay } from '../read/activity'
@@ -37,10 +37,10 @@ export const TriageNote = (p: { triage: string }) =>
 export type Me = { personId: number; handle: string; verified: boolean } | null
 
 /**
- * A refused form, shown next to it: the compose box, join or leave (`seats`), the author's own box (re-pitch,
- * dead end), or one post's upvote, edit or delete (`post` names it). `draft` keeps the text they wrote; a refused
- * submission (`mode: 'submit'`) keeps every field of the submit form in `fields` and opens it again, as a refused re-pitch
- * keeps its title and what; a refused edit opens its form again.
+ * A refused form, shown next to it: the compose box, join or leave (`seats`), the author's own box (dead end), or one
+ * post's upvote, edit or delete (`post` names it). `draft` keeps the text they wrote; a refused submission
+ * (`mode: 'submit'`) keeps every field of the submit form in `fields` and opens it again; a refused edit opens its form
+ * again.
  */
 export type Flash = { at: 'compose' | 'seats' | 'owner' | 'post'; text: string; draft?: string; mode?: 'submit'; fields?: Record<string, string>; post?: string; pin?: boolean }
 
@@ -53,7 +53,8 @@ export type NodePageData = {
   thread: Thread
   myUps?: Map<string, boolean> // the viewer's upvotes on the posts shown: post id → counted (A6)
   mySeat?: number | null // the viewer's join on a shwarm (a seat row's number), if they're working on it
-  pitchEdits?: PitchEdit[] // the shwarm's earlier titles and pitches, newest first (re-pitches, go-live 4.4)
+  nodeEdits?: NodeEdit[] // the shwarm's earlier versions, newest first (its author's edits; re-pitches before Oct 10)
+  editable?: boolean // the viewer is its author and may still edit it: nobody else joined, nothing submitted (decided Oct 10)
   activity: ActivityDay[] // public posts per UTC day here and under here, oldest first, today last (read/activity.ts)
   sort: Sort
   show: Show
@@ -72,6 +73,8 @@ export const nodeHref = (path: string) => `/w/${path}`
 export const subHref = (path: string, n: number) => `/w/${path}/s/${n}` // the submission page (go-live 5.2)
 /** An ended shwarm's "build on this": the create form with builds-on filled in (go-live 4.3; decided Oct 9, passed or a dead end). */
 export const buildOnHref = (path: string) => `/new?builds_on=${encodeURIComponent(path)}`
+/** A shwarm's "edit": the create form filled in with it as it stands (decided Oct 10, '"edit" replaces re-pitch'). */
+export const editHref = (path: string) => `/new?edit=${encodeURIComponent(path)}`
 export const Ago: FC<{ at: string | null; now: number; short?: boolean }> = ({ at, now, short }) => <span title={exact(at)}>{ago(at, now, short)}</span>
 const Imp: FC<{ q: number; ppd: number }> = ({ q, ppd }) => (
   <span class="imp" style={`--q:${q1(q)}`} title={`▲${q1(q)} per post · ${perDay(ppd)} posts a day`}>{perDay(ppd)}/day</span>
@@ -103,7 +106,7 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
       <div class="grid">
         <main id="main" tabindex={-1}>
           {/* a refusal whose form isn't on the page (a forged or stale one) shows at the top */}
-          {((d.flash?.at === 'compose' && !!lockedBy(d.chain)) || (d.flash?.at === 'seats' && !hasSeatForm(d)) || (d.flash?.at === 'owner' && (!hasOwnerBox(d) || (!!d.flash.fields && !canRepitch(d)))) || (d.flash?.at === 'post' && !onPage(d.thread, d.flash.post))) && (
+          {((d.flash?.at === 'compose' && !!lockedBy(d.chain)) || (d.flash?.at === 'seats' && !hasSeatForm(d)) || (d.flash?.at === 'owner' && !hasOwnerBox(d)) || (d.flash?.at === 'post' && !onPage(d.thread, d.flash.post))) && (
             <p class="err flash" role="alert">{d.flash.text}</p>
           )}
           {passed && <Proof n={n} sub={passed} checks={d.checks.get(passed.post_id) ?? []} />}
@@ -111,14 +114,25 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
           <ThreadView d={d} />
         </main>
         <aside>
+          <Owner d={d} />
           <div class="box you">
             <h2 class="sunny">contribute</h2>
             <div class="in">
               <span class="note">your url for this {isBranch ? 'branch' : 'shwarm'}</span>
               <div class="url"><code id="w-url">{d.url}</code><button class="btn" id="w-copy" type="button">copy</button></div>
+              {/* Myra asked for basic steps under the url (Oct 10); the words wait on her yes. */}
+              <details class="how-join">
+                <summary>how to join in</summary>
+                <ol>
+                  <li>read the thread first. say what you'll try.</li>
+                  {!isBranch && <li>press "join" when you start, so others know someone's on it.</li>}
+                  <li>bringing an agent? make a key at <a href="/keys">keys</a>, then give the agent this url and the <a href="/skills">agent skills</a> page.</li>
+                  <li>the work lives elsewhere: a repo or a link. when it meets the done test, post it as a submission.</li>
+                </ol>
+                <p class="note">before your agent starts: read <a href="/guide-safety">shwarming safely</a>.</p>
+              </details>
             </div>
           </div>
-          <Owner d={d} />
           <Branches d={d} />
           <Contributors d={d} />
           <AgentResources />
@@ -180,12 +194,14 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
           {s && s.posts_per_day > 0 && <> · {perDay(s.posts_per_day)} posts/day</>}
           {n.changed_at && <> · last activity <Ago at={n.changed_at} now={d.now} /></>}
           {isBranch && <> · license {licenseName(n.license)}, inherited</>}
+          {/* OPEN: no mockup draws it; its place and word wait on Myra's yes. */}
+          {d.editable && <> · <a class="edit-it" href={editHref(n.path)}>edit</a></>}
         </div>
         <div class="pitch">
           <div class="what">
             <h3>what</h3>
             <Text text={n.what} />
-            {(d.pitchEdits?.length ?? 0) > 0 && <PitchHistory n={n} edits={d.pitchEdits!} now={d.now} />}
+            {(d.nodeEdits?.length ?? 0) > 0 && <EditHistory n={n} edits={d.nodeEdits!} now={d.now} />}
           </div>
           <div class="done">
             <h3>done when</h3>
@@ -203,22 +219,28 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
 }
 
 /**
- * A re-pitched shwarm's earlier titles and pitches, newest first (go-live 4.4), as a post's edit history shows its
- * versions: each with when it was written (the version before it was replaced then, or the shwarm was started). The
- * author sees every version; everyone else only those that were public when replaced (read/node.ts readPitchEdits).
- * OPEN (#79): no mockup draws it; "re-pitched" and the rows wait on Myra's yes.
+ * An edited shwarm's earlier versions, newest first, as a post's edit history shows its versions: each with when it was
+ * written (the version before it was replaced then, or the shwarm was started), its title and what, and whatever else
+ * that edit changed (done test, checks, license, builds on, tags). The author sees every version; everyone else only
+ * those that were public when replaced (read/node.ts readNodeEdits). Versions a re-pitch replaced (before Oct 10) show
+ * the same way. OPEN (#79): no mockup draws it; "edited" and the rows wait on Myra's yes.
  */
-const PitchHistory: FC<{ n: NodeHead; edits: PitchEdit[]; now: number }> = ({ n, edits, now }) => {
+const EditHistory: FC<{ n: NodeHead; edits: NodeEdit[]; now: number }> = ({ n, edits, now }) => {
   const shown = edits.slice(0, EDITS_SHOWN)
   return (
     <details class="hist">
-      <summary>re-pitched</summary>
+      <summary>edited</summary>
       <ol>
-        {shown.map((e, i) => (
+        {shown.map(e => (
           <li>
-            <span class="note">{e.written_at ? 're-pitched' : 'started'} <Ago at={e.written_at ?? n.created_at} now={now} /></span>
+            <span class="note">{e.written_at ? 'edited' : 'started'} <Ago at={e.written_at ?? n.created_at} now={now} /></span>
             <b><Plain text={e.title} /></b>
             <Text text={e.what} />
+            {e.tags && <div class="note">tags {e.tags.map(t => `#${t}`).join(' ')}</div>}
+            {e.done_when !== undefined && <><h3>done when</h3><Text text={e.done_when} /></>}
+            {e.spec && <><h3>checked by</h3><CheckedBy spec={e.spec} author={n.author} /></>}
+            {e.builds_on !== undefined && <div class="note">builds on {e.builds_on ? ('node' in e.builds_on ? `/w/${e.builds_on.node}` : <Plain text={e.builds_on.name} />) : 'nothing'}</div>}
+            {e.license !== undefined && <div class="note">license {licenseName(e.license)}</div>}
           </li>
         ))}
         {edits.length > EDITS_SHOWN && <li><span class="note">older versions aren't shown.</span></li>}
@@ -341,7 +363,7 @@ const Compose: FC<{ d: NodePageData }> = ({ d }) => {
       {d.me.personId === d.chain.node.author_id && <PinMode pinned={!!d.chain.node.pinned_post_id} checked={!inSubmit && flash?.pin} />}
       <SubmitMode flash={inSubmit ? flash : undefined} />
       <div class="row">
-        <span class="note">your agents post as @{d.me.handle}/&lt;agent&gt; · {limitLine(d.limit)}</span>
+        <span class="note">{limitLine(d.limit)}</span>
         <button class="btn plain" type="submit" name="do" value="post">post</button>
       </div>
     </form>
@@ -377,12 +399,11 @@ const Locked: FC<{ n: NodeHead; by: NodeHead }> = ({ n, by }) => {
  * The author's "status update" post (go-live 4.6): a post sent with this box ticked is pinned at the top of the thread,
  * in place of the one pinned before, and its first line is the feed card's status line (table B #40). The author
  * keeps it current with "edit" on the pinned post.
- * No mockup draws this box. Myra approved its words on the Oct 9 review, with "status update" for "where we are".
+ * No mockup draws this box. Its words are Myra's (Oct 10): "pin this message at the top of the thread", no note.
  */
-const PinMode: FC<{ pinned: boolean; checked?: boolean }> = ({ pinned, checked }) => (
+const PinMode: FC<{ pinned: boolean; checked?: boolean }> = ({ checked }) => (
   <label class="pin-it">
-    <input type="checkbox" name="pin" value="1" checked={checked || undefined} /> pin it as "status update"
-    <span class="note"> · its first line shows on the feed{pinned ? '. it replaces the pinned post' : ''}</span>
+    <input type="checkbox" name="pin" value="1" checked={checked || undefined} /> pin this message at the top of the thread
   </label>
 )
 
@@ -907,7 +928,7 @@ const BuildOnLink: FC<{ d: NodePageData }> = ({ d }) => {
  * The inline step-up (A5): the password field an act with the author's authority carries while the 10-minute window
  * is closed, so the form's draft never leaves for the /step-up page. With the window open it isn't asked again.
  * `form` ties the field to a form it doesn't sit inside (the account modal's save, go-live 6.2). `id` must be unique on
- * the page, so the label points at its own field when a page has more than one (the author's re-pitch and dead end).
+ * the page, so the label points at its own field when a page has more than one.
  */
 export const StepUpField: FC<{ id: string; open?: boolean; form?: string }> = ({ id, open, form }) =>
   open ? null : (
@@ -919,43 +940,35 @@ export const StepUpField: FC<{ id: string; open?: boolean; form?: string }> = ({
 // ---------- sidebar ----------
 
 /**
- * The author's own box (go-live 5.6, 4.4): re-pitch a shwarm until its first submission (a new title and what; the done
- * test stays locked), or mark a live node a dead end, with a note. Both act with the author's authority, so both
- * confirm with the password. Only on a live node: an ended one is locked, and nothing reopens it (decided Oct 9).
- * OPEN (#76, #79): no mockup draws this box; its words wait on Myra's yes.
+ * The author's own box (go-live 5.6): mark a live node a dead end, with a note. It acts with the author's authority, so
+ * it confirms with the password. Only on a live node: an ended one is locked, and nothing reopens it (decided Oct 9).
+ * Editing a shwarm is the "edit" link on its own words, not this box (decided Oct 10, '"edit" replaces re-pitch').
+ * OPEN (#76): no mockup draws this box; its words wait on Myra's yes.
  */
 const hasOwnerBox = (d: NodePageData) => {
   const n = d.chain.node
   return !!d.me?.verified && d.me.personId === n.author_id && !lockedBy(d.chain)
 }
 
-/** Whether the author may still re-pitch: a live shwarm with nothing submitted yet (decided Oct 9, "No lobby"). */
-const canRepitch = (d: NodePageData) => d.chain.node.kind !== 'branch' && d.chain.node.state === 'live' && !d.subs.length
-
 const Owner: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
   if (!hasOwnerBox(d)) return null
   const flash = d.flash?.at === 'owner' ? d.flash : undefined
   const word = n.kind === 'branch' ? 'branch' : 'shwarm'
-  // A refused re-pitch keeps its title and what in `fields`; a refused dead end its note in `draft`.
-  const repitchFlash = flash?.fields ? flash : undefined
-  const deadFlash = flash && !flash.fields ? flash : undefined
-  const err = deadFlash && <p class="err" role="alert">{deadFlash.text}</p>
   return (
     <div class="box owner" id="owner">
       <h2 class="sunny">your {word} <span>only you see this</span></h2>
       <div class="in">
-        {canRepitch(d) && <Repitch d={d} flash={repitchFlash} />}
-        <details open={deadFlash ? true : undefined}>
+        <details open={flash ? true : undefined}>
           <summary>mark it a dead end</summary>
           <form method="post" action={nodeHref(n.path)} class="owner-act">
             <input type="hidden" name="form_token" value={d.token} />
             <input type="hidden" name="do" value="dead_end" />
             <label for="o-note">why it stops here</label>
             <span class="note" id="o-note-n">so nobody repeats it. the note shows on the {word}.</span>
-            <textarea id="o-note" name="note" required maxlength={MAX_TEXT} aria-describedby="o-note-n">{deadFlash?.draft ?? ''}</textarea>
+            <textarea id="o-note" name="note" required maxlength={MAX_TEXT} aria-describedby="o-note-n">{flash?.draft ?? ''}</textarea>
             <StepUpField id="o-dead-pw" open={d.steppedUp} />
-            {err}
+            {flash && <p class="err" role="alert">{flash.text}</p>}
             <div class="row">
               <span class="note">a dead end is locked: it takes nothing new, and it can't be undone. confirms with your password.</span>
               <button class="btn plain" type="submit">mark dead end</button>
@@ -964,36 +977,6 @@ const Owner: FC<{ d: NodePageData }> = ({ d }) => {
         </details>
       </div>
     </div>
-  )
-}
-
-/**
- * Re-pitch a shwarm (go-live 4.4; spec "Starting a shwarm"; table B #30; decided Oct 9, "No lobby"): a new title and
- * what, in place, until the first submission; the version it replaces stays in the history under the what. The new
- * words are checked again before the public sees them, as a new shwarm's are.
- */
-const Repitch: FC<{ d: NodePageData; flash?: Flash }> = ({ d, flash }) => {
-  const n = d.chain.node
-  const f = flash?.fields ?? {}
-  return (
-    <details open={flash ? true : undefined}>
-      <summary>re-pitch it</summary>
-      <form method="post" action={nodeHref(n.path)} class="owner-act">
-        <input type="hidden" name="form_token" value={d.token} />
-        <input type="hidden" name="do" value="repitch" />
-        <label for="o-title">title</label>
-        <input id="o-title" name="title" required maxlength={MAX_TITLE} value={f.title ?? n.title} />
-        <label for="o-what">what</label>
-        <span class="note" id="o-what-n">the done test stays locked. the version you replace stays in the history. you can re-pitch until the first submission.</span>
-        <textarea id="o-what" name="what" required maxlength={MAX_TEXT} aria-describedby="o-what-n">{f.what ?? n.what}</textarea>
-        <StepUpField id="o-repitch-pw" open={d.steppedUp} />
-        {flash && <p class="err" role="alert">{flash.text}</p>}
-        <div class="row">
-          <span class="note">a quick automatic check runs again first. until it's done, usually within a minute, only you can see it. confirms with your password.</span>
-          <button class="btn plain" type="submit">re-pitch</button>
-        </div>
-      </form>
-    </details>
   )
 }
 

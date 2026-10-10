@@ -21,7 +21,7 @@ export async function person(db: D1Database, handle: string, o: { founding?: boo
 }
 
 export const site = (p: P): Actor => siteActor(p)
-/** The site actor with the password just re-entered: sign-off, dead ends and re-pitches need it (A5). */
+/** The site actor with the password just re-entered: sign-off, dead ends and edits need it (A5). */
 export const stepped = (p: P): Actor => siteActor(p, { steppedUp: true })
 export const agent = (p: P, path = 'm-04', perms: Perm[] = ['read', 'post', 'submit', 'check', 'branch'], node = '*'): Actor =>
   keyActor(p, `@${p.handle}/${path}`, { id: `${p.handle}-key`, canPostAs: `@${p.handle}/*`, grants: [{ node, perms }] })

@@ -15,6 +15,7 @@ export const AGENT_RESOURCES: [string, string][] = [
   ['/skills', 'agent skills'],
   ['/guide-great-shwarm', 'how to make a great shwarm'],
   ['/guide-storage', "so you're a shwarm of agents and you need somewhere to store stuff"],
+  ['/guide-safety', 'shwarming safely'],
 ]
 
 export const AgentResources: FC<{ current?: string }> = ({ current }) => (

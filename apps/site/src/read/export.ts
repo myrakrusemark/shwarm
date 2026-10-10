@@ -42,7 +42,10 @@ export async function readExport(db: D1Database, personId: number, now = Date.no
               (SELECT json_group_array(t.tag) FROM node_tag t WHERE t.node_id = n.id) AS tags
        FROM node n WHERE n.author_id = ?1 ORDER BY n.created_at`,
     ),
-    list('SELECT n.path, e.by_name, e.title, e.what, e.edited_at FROM node_edit e JOIN node n ON n.id = e.node_id WHERE n.author_id = ?1 ORDER BY e.edited_at'),
+    list(
+      `SELECT n.path, e.by_name, e.title, e.what, e.done_when, e.checks, e.tags, e.license, e.builds_on, e.edited_at
+       FROM node_edit e JOIN node n ON n.id = e.node_id WHERE n.author_id = ?1 ORDER BY e.edited_at`,
+    ),
     list('SELECT n.path, s.number, s.joined_at, s.left_at FROM seat s JOIN node n ON n.id = s.node_id WHERE s.person_id = ?1 ORDER BY s.joined_at'),
     list(
       `SELECT p.id, n.path, p.as_name, p.key_id, p.kind, p.text, p.links, p.reply_to, p.hidden, p.created_at, p.edited_at, p.deleted_at
@@ -87,7 +90,7 @@ export async function readExport(db: D1Database, personId: number, now = Date.no
     sessions,
     keys: json(keys, ['grants', 'networks']),
     nodes: json(nodes, ['checks', 'builds_on', 'tags']),
-    pitch_edits: pitches,
+    pitch_edits: json(pitches, ['checks', 'tags', 'builds_on']), // earlier versions of your shwarms (edits; re-pitches before Oct 10)
     seats,
     posts: json(posts, ['links']),
     post_edits: json(postEdits, ['links']),

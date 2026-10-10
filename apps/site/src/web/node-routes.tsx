@@ -9,7 +9,7 @@
 import { Hono, type Context } from 'hono'
 import { ShwarmError } from '@shwarm/protocol'
 import { formToken } from '../auth/csrf'
-import { clientIp, formOf, hasSessionCookie, later, postedTokenOk, sessionOf, who, type AuthContext } from '../auth/request'
+import { clientIp, formOf, hasSessionCookie, postedTokenOk, sessionOf, who, type AuthContext } from '../auth/request'
 import { signInHref } from '../auth/return-to'
 import type { Session } from '../auth/session'
 import { inlineStepUp } from '../auth/signin'
@@ -34,9 +34,7 @@ import {
   type Sort,
 } from '../read/node'
 import { renderNodeJson, renderPrompt, renderSubmissionJson, renderSubmissionPrompt } from '../render/prompt'
-import type { RepitchResult } from '../core/nodes'
 import type { SubmitInput, SubmitResult } from '../core/posts'
-import { triageNew } from '../triage/run'
 import { loadAgentView, loadPageData, loadResultData } from '../read/views'
 import { BAD_FILTER, logFilter, readLog, renderLogJson } from '../read/log'
 import { readTreeVersion } from '../read/result'
@@ -44,7 +42,7 @@ import { readTombstone } from '../read/tombstone'
 import { utcDay } from '../read/activity'
 import { sendError, waitText } from './errors'
 import { pickFormat, type Format } from './format'
-import { NodePage, type Flash } from './node-page'
+import { editHref, NodePage, type Flash } from './node-page'
 import { ResultPage } from './result-page'
 import { SubmissionPage, type SubFlash } from './submission-page'
 import { overReadCap } from './read-limit'
@@ -61,7 +59,7 @@ type C = Context<Env>
 const TYPES: Record<Format, string> = { html: 'text/html', text: 'text/plain', json: 'application/json' }
 
 /** Bump to change every ETag when the rendering changes (test/render-version.test.ts fails until you do). */
-export const RENDER_VERSION = '5' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9). 4: the log's `key` field (v0, Oct 9). 5: the activity strip (Oct 10)
+export const RENDER_VERSION = '6' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9). 4: the log's `key` field (v0, Oct 9). 5: the activity strip (Oct 10). 6: edit until join, the safety guide link, how to join in (Oct 10)
 
 // Production's reading pages stay closed in holding mode and open in beta (go-live 3.10); core/site-mode.ts.
 import { readingOpen } from '../core/site-mode'
@@ -269,7 +267,7 @@ async function isOperatorFor(db: D1Database, n: Chain['node'], personId: number)
   return p?.is_admin === 1
 }
 
-/** The inline step-up (A5, auth/signin.ts inlineStepUp) for acts with the author's authority: the sign-off, a re-pitch, a dead end. */
+/** The inline step-up (A5, auth/signin.ts inlineStepUp) for acts with the author's authority: the sign-off, a dead end (an edit asks on /new, web/create.tsx). */
 async function steppedUp(c: C, session: Session, password: string | undefined, now: number): Promise<{ actor: Actor } | { refuse: string; status: 400 | 429; wait?: number }> {
   const s = await inlineStepUp(c.env.DB, c.env.PASSWORD_PEPPER, session, password, clientIp(c), now)
   if ('refuse' in s) return s
@@ -365,12 +363,12 @@ async function submissionPost(c: C, path: string, number: number, session: Sessi
 // POST /w/<path> (go-live 4.4–4.8, 5.1, 5.6): the page's forms, picked by the `do` field. post: a thread post or reply
 // as the bare handle, pinned as "status update" when the author ticks it. edit, delete: one of your own plain posts.
 // upvote: the ▲ on a post, either way. submit: the compose box's submit mode, which lands on the new submission's page.
-// join, leave: say you're working on a live shwarm, or stop. repitch (a shwarm's title and what, until its first
-// submission), dead_end (with a note): the author's own box, behind the password. Nothing reopens (decided Oct 9). Each runs in the shwarm's tree (do/shwarm-tree.ts), then
-// goes back to the page (303). A refusal re-renders the page with the reason next to the form and the draft kept.
+// join, leave: say you're working on a live shwarm, or stop. dead_end (with a note): the author's own box, behind the
+// password. Editing a shwarm is the /new form's (web/create.tsx, /new?edit=<path>; re-pitch is retired, decided Oct 10).
+// Nothing reopens (decided Oct 9). Each runs in the shwarm's tree (do/shwarm-tree.ts), then goes back to the page (303). A refusal re-renders the page with the reason next to the form and the draft kept.
 // Signed out, it goes to sign-in and back.
 // POST /w/<path>/s/<n> (5.3, 5.5): check (a people check) and signoff (the author's, behind the password).
-const ACTS = ['post', 'edit', 'delete', 'upvote', 'submit', 'join', 'leave', 'repitch', 'dead_end'] as const
+const ACTS = ['post', 'edit', 'delete', 'upvote', 'submit', 'join', 'leave', 'dead_end'] as const
 type Act = (typeof ACTS)[number]
 
 /** Same person, same thread, same text within this long: a double click, so the first post stands. */
@@ -407,6 +405,9 @@ nodeRoutes.post('/*', async c => {
   const f = await formOf(c)
   if (!(await postedTokenOk(c as unknown as AuthContext, w, f))) return sendError(c, { status: 403, heading: 'this form expired', text: 'go back, reload the page and try again.' }, 'html')
   if (subNumber !== null) return submissionPost(c, parsed.path, subNumber, w.session, f)
+  // Re-pitch is retired (decided Oct 10, '"edit" replaces re-pitch'): a re-pitch form from an old tab goes to the edit
+  // form, which says whether this viewer may still edit it.
+  if (f.do === 'repitch') return c.redirect(editHref(parsed.path), 303)
   const act = (ACTS as readonly string[]).includes(f.do) ? (f.do as Act) : null
   if (!act) return errorOut(c, 'html', 400, 'bad_request', 'that form asked for nothing we know.')
 
@@ -420,26 +421,6 @@ nodeRoutes.post('/*', async c => {
   // A refused submission reopens the submit form with every field as typed.
   const kept: Partial<Flash> = act === 'submit' ? { mode: 'submit' as const, fields: Object.fromEntries(SUBMIT_FIELDS.map(k => [k, f[k] ?? ''])) } : {}
   try {
-    if (act === 'repitch') {
-      const fields = { title: f.title ?? '', what: f.what ?? '' }
-      const refuse = (text: string, status: 400 | 429 = 400) => htmlPage(c, chain, parsed.path, session, now, { at: 'owner', text, fields }, status)
-      const title = fields.title.trim()
-      const what = fields.what.trim()
-      // OPEN (#79): the words wait on Myra's yes. Said before the password is checked, so it isn't spent.
-      if (!title || !what) return refuse('a pitch needs a title and a what.')
-      // A second click lands after the first did it: back to the page, as the first click went.
-      if (title === n.title && what === n.what) return c.redirect(back, 303)
-      // Only the author is asked for the password; anyone else is refused by core (only the author re-pitches).
-      const s = n.author_id === session.personId ? await steppedUp(c, session, f.password, now) : { actor }
-      if ('refuse' in s) {
-        if (s.wait) c.header('Retry-After', String(s.wait))
-        return refuse(s.refuse, s.status)
-      }
-      const r = await runInTree<RepitchResult>(c.env.TREE, { type: 'repitch', actor: s.actor, input: { node: parsed.path, title, what } })
-      // The new words are checked like a new node's, after the response (as web/create.tsx does).
-      if (r.repitched && r.triage === 'pending') await later(c, () => triageNew(c.env, parsed.path))
-      return c.redirect(back, 303)
-    }
     if (act === 'dead_end') {
       const refuse = (text: string, status: 400 | 429 = 400) => htmlPage(c, chain, parsed.path, session, now, { at: 'owner', text, draft: f.note }, status)
       // A second click lands after the first did it: back to the page, as the first click went.
@@ -519,24 +500,19 @@ nodeRoutes.post('/*', async c => {
   } catch (e) {
     if (!(e instanceof ShwarmError)) throw e
     const at =
-      act === 'post' || act === 'submit' ? 'compose' : act === 'repitch' || act === 'dead_end' ? 'owner' : act === 'edit' || act === 'delete' || act === 'upvote' ? 'post' : 'seats'
+      act === 'post' || act === 'submit' ? 'compose' : act === 'dead_end' ? 'owner' : act === 'edit' || act === 'delete' || act === 'upvote' ? 'post' : 'seats'
     const draft = act === 'post' || act === 'submit' || act === 'edit' ? f.text ?? '' : act === 'dead_end' ? f.note : undefined
-    // A refused upvote, edit or delete shows under its post; a refused pinned post keeps its box ticked; a refused
-    // re-pitch keeps its title and what.
+    // A refused upvote, edit or delete shows under its post; a refused pinned post keeps its box ticked.
     if (act === 'edit' || act === 'delete' || act === 'upvote') Object.assign(kept, { post: f.post })
     if (act === 'post' && f.pin === '1') Object.assign(kept, { pin: true })
-    if (act === 'repitch') Object.assign(kept, { fields: { title: f.title ?? '', what: f.what ?? '' } })
     if (e.code === 'rate_limited') {
       const wait = Number(e.details.retry_after) || 60
       c.header('Retry-After', String(wait))
       // OPEN: the submissions wording isn't in a mockup; it waits on Myra's yes.
-      // OPEN (#79): a re-pitch's wait is its own words, waiting on Myra's yes too.
       const text =
         e.details.limit === 'submissions'
           ? `one submission per person per day here. next in ${waitText(wait)}.`
-          : act === 'repitch'
-            ? `slow down: you can re-pitch again in ${waitText(wait)}.`
-            : `slow down: you can post here again in ${waitText(wait)}.`
+          : `slow down: you can post here again in ${waitText(wait)}.`
       return htmlPage(c, chain, parsed.path, session, now, { at, text, draft, ...kept }, 429)
     }
     return htmlPage(c, chain, parsed.path, session, now, { at, text: e.message.replace(/\.?$/, '.'), draft, ...kept }, 400)

@@ -5,8 +5,9 @@
 // Nothing reopens (decided Oct 9, "Continuing an ended shwarm is always build on"): an ended node is locked
 // (context.ts needLive), and anyone carries a passed or dead-end shwarm on by starting a shwarm that builds on it.
 // Nodes reopened before that keep their 'reopened' audit rows and their passes on record.
-// Until its first submission, the author may re-pitch a shwarm: a new title and pitch, the old ones kept in node_edit
-// (repitch). "In review" is a flag on live, not a state. "join" says you're working on a shwarm; it gates nothing.
+// Until someone else joins or anything is submitted, the author may edit a shwarm: everything the /new form holds, the
+// old version kept in node_edit (editNode; it replaced re-pitch, decided Oct 10). "In review" is a flag on live, not a
+// state. "join" says you're working on a shwarm; it gates nothing (except that it locks a shwarm's words).
 // Variants are dropped (decided Oct 9): none are made. Rows made before that keep kind 'variant' and their
 // variant_of_id, and read as plain shwarms; nothing reads variant_of_id. Old 'lobby' rows went live in migration 0016.
 import { ShwarmError } from '@shwarm/protocol'
@@ -18,7 +19,7 @@ import { newId } from './ids'
 import { checkNewNodes, newNodeGuard, takeThreadToken } from './limits'
 import { checkWritable, readSettings } from './settings'
 import { OPEN_NODE } from '../read/visibility'
-import { MAX_SLUG, MAX_TITLE, needText, RESERVED_SLUGS, slugify } from './text'
+import { lf, MAX_SLUG, MAX_TITLE, needText, RESERVED_SLUGS, slugify } from './text'
 
 // A2 (decided Oct 8): a default and a short open list. OPEN: the identifiers are proposed in protocol §8.
 export const DEFAULT_LICENSE = 'MIT+CC-BY-4.0'
@@ -127,10 +128,10 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
   // The launch import skips pause_new_nodes: in beta, new nodes stay paused while approved shwarms go in (go-live 3.10).
   checkWritable(await readSettings(ctx.db, ['read_only', 'pause_new_nodes']), a.via !== 'seed')
 
-  const title = needText(inp.title, 'title', MAX_TITLE)
-  const what = needText(inp.what, 'what')
+  const title = needText(lf(inp.title), 'title', MAX_TITLE)
+  const what = needText(lf(inp.what), 'what')
   if (typeof inp.doneWhen !== 'string' || !inp.doneWhen.trim()) throw new ShwarmError('no_done_test', 'a node needs a done test: one sentence of what is true when it is finished')
-  const doneWhen = needText(inp.doneWhen, 'done_when', 2000)
+  const doneWhen = needText(lf(inp.doneWhen), 'done_when', 2000)
   const spec = parseCheckSpec(inp.check)
 
   let parent = null
@@ -304,73 +305,175 @@ export async function leave(ctx: Ctx, a: Actor, inp: { node: string }): Promise<
   return { node: n.path }
 }
 
-export type RepitchInput = { node: string; title: string; what: string }
-export type RepitchResult = { node: string; repitched: boolean; at: string; triage: NodeRow['triage'] }
-
-/** Whether anything was ever submitted to this node: from then on its title and what stay as they are. */
-const submitted = async (ctx: Ctx, nodeId: number) => !!(await ctx.db.prepare('SELECT 1 FROM submission WHERE node_id = ? LIMIT 1').bind(nodeId).first())
-// The same rule inside the batch, on the node row: a block from triage (which runs outside the tree) can land meanwhile.
-const REPITCHABLE = "state = 'live' AND triage <> 'blocked' AND NOT EXISTS (SELECT 1 FROM submission s WHERE s.node_id = node.id)"
+export type EditNodeInput = {
+  node: string
+  title: string
+  what: string
+  doneWhen: string
+  check: unknown // CheckSpec, flat or grouped, as createNode takes it
+  tags?: string[]
+  license?: string
+  buildsOn?: CreateNodeInput['buildsOn']
+}
+export type EditNodeResult = { node: string; edited: boolean; at: string; triage: NodeRow['triage'] }
 
 /**
- * Re-pitch a shwarm (spec "Starting a shwarm", LOBBY-6; table B #30; decided Oct 9, "No lobby": "title and what stay
- * editable until the first submission"): the author changes the title and the pitch ("what") while it's live and nothing
- * has been submitted to it; the done test, checks, license and address never change. OPEN: a branch keeps the words it
- * was opened with, as before; whether it may be re-pitched too waits on Myra. The version it replaces goes to node_edit,
- * so the page can show the history: to everyone only if everyone could read it then, otherwise to the author alone
- * (OPEN #79). Acts with the author's authority, so it confirms with the password (A5), and happens only on the site, as
- * the bare handle (no edit API at launch, table B #30). The same title and pitch again change nothing.
+ * Whether a shwarm's words may still change (decided Oct 10, '"edit" replaces re-pitch'), as SQL on node `e`: live, not
+ * blocked, nothing ever submitted to it or to any of its branches, and nobody but its author ever joined. A join stays in seat with left_at set
+ * when the joiner leaves, so leaving doesn't unlock it; the author's own seat (made with the shwarm) doesn't count.
+ * Used inside the edit's batch too: a block from triage (which runs outside the tree) can land meanwhile.
+ */
+export const EDITABLE = (e: string) =>
+  `${e}.kind <> 'branch' AND ${e}.state = 'live' AND ${e}.triage <> 'blocked'
+   AND NOT EXISTS (SELECT 1 FROM submission s JOIN node sb ON sb.id = s.node_id WHERE sb.id = ${e}.id OR sb.root_id = ${e}.id)
+   AND NOT EXISTS (SELECT 1 FROM seat j WHERE j.node_id = ${e}.id AND j.person_id <> ${e}.author_id)`
+
+/**
+ * Why a node's words can't be edited any more, or null while they can: the refusal core gives, which the page and the
+ * /new form show too (web/create.tsx, read/views.ts). OPEN: the words wait on Myra's yes.
+ */
+export async function editLock(db: D1Database, n: { id: number; path: string; kind: string; state: string; triage: string }): Promise<ShwarmError | null> {
+  if (n.kind === 'branch') return bad('a branch keeps the words it was opened with', { node: n.path })
+  if (n.state !== 'live') return new ShwarmError('shwarm_closed', `${n.path} is ${n.state.replace('_', ' ')}`, { node: n.path })
+  if (n.triage === 'blocked') return new ShwarmError('not_permitted', `${n.path} was blocked. it can't be edited`, { reason: 'blocked', node: n.path })
+  const r = await db
+    .prepare(
+      `SELECT EXISTS (SELECT 1 FROM submission s JOIN node b ON b.id = s.node_id WHERE b.id = ?1 OR b.root_id = ?1) AS submitted,
+              EXISTS (SELECT 1 FROM seat j JOIN node n ON n.id = j.node_id WHERE j.node_id = ?1 AND j.person_id <> n.author_id) AS joined`,
+    )
+    .bind(n.id)
+    .first<{ submitted: number; joined: number }>()
+  if (r?.submitted) return bad(`${n.path} has a submission. its words stay as they are`, { reason: 'submitted', node: n.path })
+  if (r?.joined) return bad(`someone else joined ${n.path}. its words stay as they are`, { reason: 'joined', node: n.path })
+  return null
+}
+
+/** A check spec as stored, in the shape parseCheckSpec gives, so the same done test compares equal. */
+function sameSpec(stored: string, spec: unknown): boolean {
+  try {
+    return JSON.stringify(parseCheckSpec(JSON.parse(stored))) === JSON.stringify(spec)
+  } catch {
+    return stored === JSON.stringify(spec)
+  }
+}
+
+/**
+ * Edit a shwarm (decided Oct 10, '"edit" replaces re-pitch'; it supersedes re-pitch): its author changes everything the
+ * /new form holds (title, what, done test and its checks, tags, license, builds on) until someone other than the author
+ * joins or anything is submitted, whichever comes first; after that its words are locked for good (EDITABLE). The
+ * address stays. Each field is checked as createNode checks it: builds on is an ended shwarm the author can see, or an
+ * outside project with its license, and its license replaces any sent. Branches carry their shwarm's license and
+ * builds on, so a change to either reaches them too. A branch itself keeps the words it was opened with (Claude's
+ * default, Oct 10). The version it replaces goes to node_edit, so the page can show the history: to everyone only if
+ * everyone could read it then, otherwise to the author alone. Acts with the author's authority, so it confirms with the
+ * password (A5), and happens only on the site, as the bare handle. The same words again change nothing.
  * The new words are checked like a new node's (A8): a cleared node goes back to 'pending' ("being checked", seen only by
  * its author; a seeded one stays public while pending) and a new triage round starts (triage_since), which the caller
- * runs after this batch (triage/run.ts triageNew). A held node stays held, for Myra to read again; a blocked one can't be
- * re-pitched. OPEN (#79): now that a shwarm is live from the start, a cleared one being checked again goes dark to everyone
- * else for that minute, its thread and branches with it, as a lobby did; a held one stays dark until Myra reads it.
- * OPEN (#79): a re-pitch spends a thread post token, so it can't flood the history or triage.
+ * runs after this batch (triage/run.ts triageNew). A held node stays held, for Myra to read again; a blocked one can't
+ * be edited. OPEN (#79): a cleared one being checked again goes dark to everyone else for that minute, its thread and
+ * branches with it; a held one stays dark until Myra reads it. An edit spends a thread post token (the posting pace), so
+ * it can't flood the history or triage.
  */
-export async function repitch(ctx: Ctx, a: Actor, inp: RepitchInput): Promise<RepitchResult> {
-  needHuman(a, 're-pitching')
+export async function editNode(ctx: Ctx, a: Actor, inp: EditNodeInput): Promise<EditNodeResult> {
+  needHuman(a, 'editing a shwarm')
   const person = await loadPerson(ctx, a)
   checkWritable(await readSettings(ctx.db, ['read_only']))
   const n = await loadNode(ctx, inp?.node)
-  if (n.author_id !== person.id) throw new ShwarmError('not_permitted', 'only the author re-pitches', { need: 'author', node: n.path })
-  needStepUp(a, 're-pitching')
-  // OPEN: the words for a branch and for a shwarm with a submission wait on Myra's yes.
-  if (n.kind === 'branch') throw bad("a branch keeps the title and what it was opened with", { node: n.path })
-  if (n.state !== 'live') throw new ShwarmError('shwarm_closed', `${n.path} is ${n.state.replace('_', ' ')}`, { node: n.path })
-  if (await submitted(ctx, n.id)) throw bad(`${n.path} has a submission. its title and what stay as they are`, { node: n.path })
-  if (n.triage === 'blocked') throw new ShwarmError('not_permitted', `${n.path} was blocked. it can't be re-pitched`, { reason: 'blocked', node: n.path })
-  const title = needText(inp.title, 'title', MAX_TITLE)
-  const what = needText(inp.what, 'what')
-  if (title === n.title && what === n.what) return { node: n.path, repitched: false, at: ctx.at, triage: n.triage }
+  if (n.author_id !== person.id) throw new ShwarmError('not_permitted', 'only the author edits a shwarm', { need: 'author', node: n.path })
+  needStepUp(a, 'editing a shwarm')
+  const locked = await editLock(ctx.db, n)
+  if (locked) throw locked
+
+  const title = needText(lf(inp.title), 'title', MAX_TITLE)
+  const what = needText(lf(inp.what), 'what')
+  if (typeof inp.doneWhen !== 'string' || !inp.doneWhen.trim()) throw new ShwarmError('no_done_test', 'a node needs a done test: one sentence of what is true when it is finished')
+  const doneWhen = needText(lf(inp.doneWhen), 'done_when', 2000)
+  const spec = parseCheckSpec(inp.check)
+  const tags = parseTags(inp.tags)
+  const b = await parseBuildsOn(ctx, a, inp.buildsOn)
+  let license: string
+  if (b) license = b.license // the upstream license wins; any license sent is ignored (protocol §8)
+  else {
+    license = inp.license ?? DEFAULT_LICENSE
+    if (!LICENSES.includes(license)) throw new ShwarmError('bad_license', `pick one of ${LICENSES.join(', ')}`, { allowed: LICENSES })
+  }
+  // A new shwarm can't name its own branch (it has none yet); an edit could, and the branch would then build on itself.
+  if (b?.node && (b.node.id === n.id || b.node.root_id === n.id)) throw bad(NO_UPSTREAM)
+  const buildsOn = b?.json ?? null
+  const upstream = b?.node ?? null
+
+  const was = await ctx.db.prepare('SELECT tag FROM node_tag WHERE node_id = ? ORDER BY rowid').bind(n.id).all<{ tag: string }>()
+  const oldTags = was.results.map(r => r.tag)
+  const same =
+    title === lf(n.title) &&
+    what === lf(n.what) &&
+    doneWhen === lf(n.done_when) &&
+    sameSpec(n.checks, spec) &&
+    license === n.license &&
+    buildsOn === (n.builds_on ?? null) &&
+    tags.join(' ') === oldTags.join(' ')
+  if (same) return { node: n.path, edited: false, at: ctx.at, triage: n.triage }
   const bucket = await takeThreadToken(ctx.db, { personId: person.id, handle: person.handle, nodeId: n.id, path: n.path }, ctx.now)
   const recheck = n.triage === 'clear' || n.triage === 'pending'
-  // Triage runs outside the tree, so the round restarts on the node's triage as it is when the batch runs: a hold or a
-  // block that lands meanwhile stands.
-  const res = await ctx.db.batch([
+  // Every statement carries the same guard, so they land or skip together. The batch is one transaction, so a block
+  // from triage or the upstream ending meanwhile reads the same to all of them. Ids are integers from the database.
+  const upstreamGuard = upstream ? ` AND EXISTS (SELECT 1 FROM node u WHERE u.id = ${Number(upstream.id)} AND u.state IN ('closed', 'dead_end'))` : ''
+  const guard = `EXISTS (SELECT 1 FROM node e WHERE e.id = ${Number(n.id)} AND ${EDITABLE('e')})${upstreamGuard}`
+  const inherited = license !== n.license || buildsOn !== (n.builds_on ?? null)
+  const stmts: D1PreparedStatement[] = [
     // The version it replaces, read as the batch runs, noting whether everyone could read it then: words still being
     // checked or held were never cleared, so they show in the history to the author alone (read/node.ts readPitchEdits).
-    // Same guard as the update below, so the two land or skip together.
     ctx.db
       .prepare(
-        `INSERT INTO node_edit (node_id, by_name, title, what, edited_at, was_public)
-         SELECT id, ?1, title, what, ?2, ${OPEN_NODE('node')} FROM node WHERE id = ?3 AND ${REPITCHABLE}`,
+        `INSERT INTO node_edit (node_id, by_name, title, what, edited_at, was_public, done_when, checks, license, builds_on, tags)
+         SELECT id, ?1, title, what, ?2, ${OPEN_NODE('node')}, done_when, checks, license, builds_on,
+                (SELECT json_group_array(tag) FROM (SELECT t.tag FROM node_tag t WHERE t.node_id = node.id ORDER BY t.rowid))
+         FROM node WHERE id = ?3 AND ${guard}`,
       )
       .bind(a.as, ctx.at, n.id),
+    // Triage runs outside the tree, so the round restarts on the node's triage as it is when the batch runs: a hold that
+    // lands meanwhile stands.
     ctx.db
       .prepare(
-        `UPDATE node SET title = ?1, what = ?2,
-           triage_since = CASE WHEN triage IN ('clear', 'pending') THEN ?3 ELSE triage_since END,
+        `UPDATE node SET title = ?1, what = ?2, done_when = ?3, checks = ?4, license = ?5, builds_on = ?6,
+           triage_since = CASE WHEN triage IN ('clear', 'pending') THEN ?7 ELSE triage_since END,
            triage = CASE WHEN triage = 'clear' THEN 'pending' ELSE triage END
-         WHERE id = ?4 AND ${REPITCHABLE}`,
+         WHERE id = ?8 AND ${guard}`,
       )
-      .bind(title, what, ctx.at, n.id),
+      .bind(title, what, doneWhen, JSON.stringify(spec), license, buildsOn, ctx.at, n.id),
+  ]
+  if (tags.join(' ') !== oldTags.join(' ')) {
+    stmts.push(ctx.db.prepare(`DELETE FROM node_tag WHERE node_id = ? AND ${guard}`).bind(n.id))
+    for (const t of tags) stmts.push(ctx.db.prepare(`INSERT INTO node_tag (node_id, tag) SELECT ?, ? WHERE ${guard}`).bind(n.id, t))
+  }
+  // Branches take their shwarm's license and builds on (createNode), so live ones follow it, and their pages change.
+  // An ended branch is locked for good and keeps what it ended under.
+  if (inherited)
+    stmts.push(
+      ctx.db
+        .prepare(`UPDATE node SET license = ?1, builds_on = ?2, last_event_id = ?3, changed_at = ?4 WHERE root_id = ?5 AND state = 'live' AND ${guard}`)
+        .bind(license, buildsOn, newId('v'), ctx.at, n.id),
+    )
+  stmts.push(
     bucket.stmt,
     touchNode(ctx, n.id, null),
     // A cleared node leaves the public until it's checked again, so every signed-out page that lists it changes.
     ...(recheck ? [moderatedStatement(ctx)] : []),
-  ])
-  if (!res[1]?.meta?.changes) throw new ShwarmError('not_permitted', `${n.path} was blocked. it can't be re-pitched`, { reason: 'blocked', node: n.path })
-  return { node: n.path, repitched: true, at: ctx.at, triage: recheck ? 'pending' : n.triage }
+  )
+  const res = await ctx.db.batch(stmts)
+  if (!res[1]?.meta?.changes) {
+    // A guard failed: say which, from a fresh read.
+    const now = await findNode(ctx, n.path)
+    const why = now && (await editLock(ctx.db, now))
+    if (why) throw why
+    if (upstream) {
+      const u = await findNode(ctx, upstream.path)
+      if (!u || !(await seenByPerson(ctx, a, u))) throw bad(NO_UPSTREAM)
+      needEnded(u)
+    }
+    throw bad('something changed while this was sent. try again')
+  }
+  return { node: n.path, edited: true, at: ctx.at, triage: recheck ? 'pending' : n.triage }
 }
 
 /** live → dead end, by the author, with a note so nobody repeats it. Acts with the author's authority, so it confirms with the password. */

@@ -9,7 +9,7 @@
 // Seeded launch shwarms (seeded = 1) are public while 'pending' (read/visibility.ts), so triage never hides one:
 // a no clears it; a yes or unsure leaves it 'pending' and alerts Myra once; 5 errors alert once and stop retrying.
 // No node is called again once it has a model answer under the current rubric, in its current round.
-// A round starts when the node is made, and again when its author re-pitches a shwarm (core/nodes.ts repitch sets
+// A round starts when the node is made, and again when its author edits a shwarm (core/nodes.ts editNode sets
 // triage_since and puts a cleared node back to 'pending'): answers, errors and the 10 minutes count from it, and an
 // answer from an earlier round never moves the node.
 //
@@ -47,7 +47,7 @@ type Row = NodeForTriage & {
   seeded: number
   triage: string
   created_at: string
-  since: string // when this triage round began: created_at, or the last re-pitch
+  since: string // when this triage round began: created_at, or the last edit
   errors: number // error rows under the current rubric, this round
   decided: number // a model answer under the current rubric exists, this round
 }
@@ -116,7 +116,7 @@ async function alertStatements(ctx: Ctx, env: TriageEnv, n: Row, f: AlertFacts, 
 
 // Moves a non-seeded node from 'pending' to 'held' (or 'clear'), with the version and moderation bumps every
 // visibility change carries (core/context.ts moderatedStatement). The guarded UPDATE comes first: runMove reads it.
-// Guarded on the round too, so an answer about words the author re-pitched meanwhile moves nothing.
+// Guarded on the round too, so an answer about words the author edited meanwhile moves nothing.
 function moveStatements(ctx: Ctx, n: Row, to: 'clear' | 'held'): D1PreparedStatement[] {
   const out = [
     ctx.db.prepare(`UPDATE node SET triage = ? WHERE id = ? AND triage = 'pending' AND ${SINCE('node')} = ?`).bind(to, n.id, n.since),
@@ -135,7 +135,7 @@ function addMove(p: Plan, ctx: Ctx, n: Row, to: 'clear' | 'held') {
   p.stmts.push(...m)
 }
 
-// Written only while the node is still in the round the call was about: an answer about words the author re-pitched
+// Written only while the node is still in the round the call was about: an answer about words the author edited
 // meanwhile would otherwise count as this round's answer, and the new words would never be checked.
 const decisionStatement = (ctx: Ctx, n: Row, model: string, answer: string, reason: string) =>
   ctx.db
@@ -310,8 +310,8 @@ export async function sweepTriage(env: TriageEnv, o: { now?: number; timeoutMs?:
 }
 
 /**
- * The hook after a create (web/create.tsx; branches in 4.3 call it the same way) and after a re-pitch
- * (web/node-routes.tsx), run after the response. A failure here is only logged: the node stays 'pending' and the sweep picks it up.
+ * The hook after a create (web/create.tsx; branches in 4.3 call it the same way) and after an edit (web/create.tsx,
+ * edit mode), run after the response. A failure here is only logged: the node stays 'pending' and the sweep picks it up.
  */
 export async function triageNew(env: TriageEnv, path: string): Promise<Outcome | null> {
   try {

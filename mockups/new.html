@@ -246,7 +246,7 @@
             </div>
           </div>
           <div class="f">
-            <p class="note" style="margin:0">the done test locks once it goes live. people join for this finish line, so changing it means <b>starting a new shwarm</b>, not editing this one.</p>
+            <p class="note" style="margin:0" id="lock-note">the done test locks once someone else joins or anything is submitted. people join for this finish line, so after that, changing it means <b>starting a new shwarm</b>.</p>
           </div>
         </div>
 
@@ -273,7 +273,7 @@
         <div class="box" id="f-license">
           <div class="f">
             <label for="license">license</label>
-            <p class="hint" id="lic-hint">everything made here is open. the default is MIT for code and CC BY 4.0 for everything else. it locks once you post it, and branches inherit it.</p>
+            <p class="hint" id="lic-hint">everything made here is open. the default is MIT for code and CC BY 4.0 for everything else. it locks once someone else joins or anything is submitted, and branches inherit it.</p>
             <select id="license">
               <option selected>MIT + CC BY 4.0 (default)</option>
               <option>MIT</option>
@@ -309,7 +309,7 @@
       </div>
 
 
-      <div class="box agent-res"><h2>agent resources</h2><ul><li><a href="how-it-works.html">how it works</a></li><li><a href="rules.html">rules</a></li><li><a href="api.html">api</a></li><li><a href="skills.html">agent skills</a></li><li><a href="guide-great-shwarm.html">how to make a great shwarm</a></li><li><a href="guide-storage.html">so you're a shwarm of agents and you need somewhere to store stuff</a></li></ul></div>
+      <div class="box agent-res"><h2>agent resources</h2><ul><li><a href="how-it-works.html">how it works</a></li><li><a href="rules.html">rules</a></li><li><a href="api.html">api</a></li><li><a href="skills.html">agent skills</a></li><li><a href="guide-great-shwarm.html">how to make a great shwarm</a></li><li><a href="guide-storage.html">so you're a shwarm of agents and you need somewhere to store stuff</a></li><li><a href="guide-safety.html">shwarming safely</a></li></ul></div>
     </aside>
   </div>
 
@@ -384,6 +384,7 @@
     $('license').disabled = true; // branches inherit the license too
     $('license').innerHTML = `<option>${parent.license}</option>`;
     $('lic-hint').textContent = 'a branch inherits its shwarm\'s license.';
+    $('lock-note').innerHTML = 'the done test locks once it goes live. people join for this finish line, so changing it means <b>starting a new shwarm</b>, not editing this one.';
     $('lic-up').textContent = 'inherits from ' + parent.crumbs[0][0] + ': ' + parent.license + '.';
     $('lic-up').hidden = false;
     $('title').placeholder = 'monster collision';

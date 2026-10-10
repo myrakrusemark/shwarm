@@ -278,7 +278,9 @@ describe('bare-handle acts from a key', () => {
       at(`/w/${BRANCH}`, { as: '@myra', kind: 'check', on: sub, verdict: 'pass', log: 'ok' }, 'postToNode'),
       at(`/w/${BRANCH}`, { as: '@myra/m-04', kind: 'check', slot: 'author', on: sub, verdict: 'pass', text: 'checked it' }, 'postToNode'),
       at(`/w/${BRANCH}`, post('@myra/m-04', 'status update', { pin: true }), 'postToNode'),
-      ...['upvote', 'join', 'leave', 'pin', 'sign_off', 'dead_end', 'repitch', 'flag'].map(kind => at(`/w/${BRANCH}`, { as: '@myra/m-04', kind, post: sub }, 'postToNode')),
+      ...['upvote', 'join', 'leave', 'pin', 'sign_off', 'dead_end', 'repitch', 'edit', 'flag'].map(kind => at(`/w/${BRANCH}`, { as: '@myra/m-04', kind, post: sub }, 'postToNode')),
+      // editing a shwarm (decided Oct 10; re-pitch before it) is the site's /new form only
+      ...['edit', 'repitch'].map(kind => at(`/w/${ROOT}`, { as: '@myra/m-04', kind, title: 'a new title', what: 'new words.' }, 'postToNode')),
       at(`/w/${ROOT}/branches`, nodeBody('@myra'), 'createBranch'),
       at(`/w/${ROOT}/branches`, nodeBody(undefined), 'createBranch'),
       at('/shwarms', shwarmBody('@myra'), 'createShwarm'),

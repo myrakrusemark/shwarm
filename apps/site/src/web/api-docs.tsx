@@ -26,7 +26,7 @@ type Schema = Record<string, any>
 const SPEC = docs.openapi as Schema
 
 /** Our own pages a doc may link to: the footer pages and guides, the create form, the keys page. */
-const SITE_PAGES = new Set(['how-it-works', 'rules', 'api', 'terms', 'privacy', 'guide-great-shwarm', 'guide-storage', 'new', 'keys'])
+const SITE_PAGES = new Set(['how-it-works', 'rules', 'api', 'terms', 'privacy', 'guide-great-shwarm', 'guide-storage', 'guide-safety', 'new', 'keys'])
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 

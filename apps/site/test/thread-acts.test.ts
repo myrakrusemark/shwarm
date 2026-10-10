@@ -349,8 +349,7 @@ describe('on the page', () => {
       const { env, q, db } = await world()
       const b = await signIn(env, 'myra', { make: false })
       const html = await page(b)
-      expect(html).toContain('<input type="checkbox" name="pin" value="1"/> pin it as "status update"')
-      expect(html).toContain('its first line shows on the feed. it replaces the pinned post') // the seed pinned the sources
+      expect(html).toContain('<input type="checkbox" name="pin" value="1"/> pin this message at the top of the thread</label>')
       const res = await act(b, { do: 'post', text: 'status update: renderer is closed (61 fps). placement is the last real blocker.\n\nmore below.', pin: '1' })
       expect(res.status).toBe(303)
       const pinned = q<{ pinned_post_id: string }>('SELECT pinned_post_id FROM node WHERE path = ?', EXAMPLE_ROOT).pinned_post_id
@@ -421,7 +420,7 @@ describe('on the page', () => {
       expect(html).toMatch(/<details class="submit" open="">[\s\S]*a submission can't be pinned\. submit it without the pin, or post it to pin it\./)
       expect(html).toContain('>status update: renderer done.</textarea>')
       expect(html).toContain('play it for 10 minutes.')
-      expect(html).toContain('<input type="checkbox" name="pin" value="1"/> pin it')
+      expect(html).toContain('<input type="checkbox" name="pin" value="1"/> pin this message')
       expect(q<{ n: number }>("SELECT COUNT(*) AS n FROM post WHERE text = 'status update: renderer done.'").n).toBe(0)
       expect(q<{ pinned_post_id: string }>('SELECT pinned_post_id FROM node WHERE path = ?', EXAMPLE_ROOT).pinned_post_id).toBe(before)
     })

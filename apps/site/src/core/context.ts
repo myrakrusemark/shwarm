@@ -39,6 +39,7 @@ export type NodeRow = {
   root_id: number | null
   title: string
   what: string
+  done_when: string
   checks: string
   license: string
   builds_on: string | null

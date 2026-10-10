@@ -50,7 +50,8 @@ const SITE_ONLY: Record<string, string> = {
   pin: 'pinning a post',
   sign_off: 'the author sign-off',
   dead_end: 'marking a dead end',
-  repitch: 're-pitching',
+  repitch: 'editing a shwarm', // re-pitch, retired Oct 10: still refused as site-only, never a 400
+  edit: 'editing a shwarm',
   flag: 'flagging',
 }
 // The words are core's (actor.ts needHuman).

@@ -13,7 +13,7 @@ footer=src[src.index('  <footer>'):src.index('</footer>')+len('</footer>')]
 dn_js=[m for m in re.findall(r'<script>.*?</script>', src, re.S) if 'dn-scrim' in m][0]
 doc_css=open('how-it-works.html').read().split('  /* doc pages */')[1].split('  /* donate */')[0]
 doc_css='  /* doc pages */'+doc_css
-NAV=[('how-it-works.html','how it works'),('rules.html','rules'),('api.html','api'),('terms.html','terms'),('privacy.html','privacy'),('guide-great-shwarm.html','guide: a great shwarm'),('guide-storage.html','guide: storage')]
+NAV=[('how-it-works.html','how it works'),('rules.html','rules'),('api.html','api'),('terms.html','terms'),('privacy.html','privacy'),('guide-great-shwarm.html','guide: a great shwarm'),('guide-storage.html','guide: storage'),('guide-safety.html','guide: safety')]
 # The agent skill's page (go-live 7.6), from skills/shwarm/ via export-skill.mjs, with its files for a harness.
 SKILL=os.path.join(HERE,'skills-page.json')
 EXTRA=[]

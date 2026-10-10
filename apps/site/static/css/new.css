@@ -41,3 +41,8 @@ main > .err.top { margin: 0 0 12px; padding: 8px 10px; border: var(--rule); back
 .parent b { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: .7; }
 .picked { margin-top: 8px; padding: 6px 10px; border: 1.5px solid var(--ink); background: var(--paper-2); display: flex; justify-content: space-between; gap: 10px; align-items: center; font-size: 13px; overflow-wrap: anywhere; }
 .picked span { font-size: 11.5px; opacity: .75; }
+
+/* edit mode (decided Oct 10): the inline password step-up above the save button, as the owner box draws it */
+form.new label.pw { display: block; margin-top: 18px; font-weight: 700; font-size: 12.5px; }
+form.new label.pw input { display: block; width: 100%; font: inherit; font-weight: 400; border: 1.5px solid var(--ink); background: var(--paper); padding: 6px 8px; margin-top: 4px; color: var(--ink); }
+form.new label.pw input:focus { outline: 3px solid var(--sun); outline-offset: 0; }

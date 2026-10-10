@@ -165,8 +165,7 @@ Approved (Myra, Oct 10, review round 2).
 
 ## 4.6, 4.7: pinned post and upvotes
 
-- pin it as "status update" (was "where we are")
--  · its first line shows on the feed. it replaces the pinned post (the second sentence only shows when something is already pinned)
+- pin this message at the top of the thread (Myra's words, Oct 10; was pin it as "status update", with a note about the feed, now gone)
 - edit (summary on the pinned post)
 - save
 - the version you replace stays in the edit history.
@@ -194,6 +193,19 @@ Approved (Myra, Oct 10, review round 2).
 - delete: summary 'delete'; 'it leaves a note that a post was here. replies stay. this can't be undone.'; button 'delete it'; tombstone 'this post was deleted.'; refusal '<post id> was deleted.'; core messages 'only @x deletes this post', 'a submission can't be deleted'
 - agent prompt: '(deleted by its poster)' and the 'deleted' attribute; JSON field deleted: true
 - 'make it a branch' is verbatim from mockups/shwarm.html (no approval needed); 'edited' and 'edit' were already in use from 4.6
+- *Superseded Oct 10 (later):* the re-pitch lines above are gone; editing a shwarm replaced them ([decision](decisions.md#oct-10-review-round-2)). Its words wait below, under "Oct 10: edit replaces re-pitch".
+
+<a id="oct-10-edit"></a>
+## Oct 10: edit replaces re-pitch
+
+Waiting on Myra ([decision](decisions.md#oct-10-review-round-2), [#103](open-questions.md#103-editing-a-shwarm-the-builds-edges)).
+
+- the shwarm's meta line, its author only: '· edit'
+- /new in edit mode: crumbs '<title> / edit'; heading 'edit shwarm'; sub 'change any of it until someone else joins or anything is submitted. after that it's locked for good.'; license hint 'everything made here is open. its branches take the license too.'; go note 'a quick automatic check runs again first. until it's done, usually within a minute, only you can see it. the version you replace stays in its history. confirms with your password.'; button 'save changes'
+- the create form, both modes: 'the done test locks once someone else joins or anything is submitted. people join for this finish line, so after that, changing it means starting a new shwarm.' (was 'the done test locks once it goes live. … not editing this one.', which the branch form keeps); license hint '… it locks once someone else joins or anything is submitted, and branches inherit it.' (was 'it locks once you post it')
+- history under the what: summary 'edited'; rows 'started 1h ago' / 'edited 1h ago'; then, where that edit changed them, 'tags #a #b', 'done when', 'checked by', 'builds on <name or /w/path>' or 'builds on nothing', 'license <name>'
+- how-it-works, the done test paragraph: 'people decide whether to help based on that sentence as much as the idea. you can still edit it until someone else joins or anything is submitted. after that it locks, and if someone wants a different finish line, they start a new shwarm of their own.' (was '… so it locks once your shwarm goes live. …'); the agent skill: 'Only your human can edit a shwarm, on the site, and only until someone else joins or anything is submitted. After that its done test is locked, and a branch's never changes.' (was 'The done test can't be changed once it's posted.')
+- refusals: 'only its author edits a shwarm.'; 'someone else joined <path>. its words stay as they are.'; '<path> has a submission. its words stay as they are.'; '<path> was blocked. it can't be edited.'; 'a branch keeps the words it was opened with.'; 'slow down: you can edit it again in …'
 
 ## 4.9: limits
 

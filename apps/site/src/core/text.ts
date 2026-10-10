@@ -11,6 +11,12 @@ export const MAX_SLUG = 80 // OPEN: slug length isn't decided; long titles are c
 
 const bad = (message: string, details: Record<string, unknown> = {}) => new ShwarmError('bad_request', message, details)
 
+/**
+ * Line breaks as \n: browsers send a textarea's as \r\n, so a node's words are stored one way and the same words sent
+ * again from a form compare equal (an edit's "no change").
+ */
+export const lf = <T,>(v: T): T => (typeof v === 'string' ? (v.replace(/\r\n?/g, '\n') as T) : v)
+
 /** A required plain-text field: trimmed, non-empty, under `max` characters. */
 export function needText(v: unknown, field: string, max = MAX_TEXT): string {
   if (typeof v !== 'string' || !v.trim()) throw bad(`${field} is required`, { field })

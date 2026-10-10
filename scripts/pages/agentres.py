@@ -2,7 +2,8 @@ import re, os
 os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'mockups'))
 RES=[('how-it-works.html','how it works'),('rules.html','rules'),('api.html','api'),('skills.html','agent skills'),
      ('guide-great-shwarm.html','how to make a great shwarm'),
-     ('guide-storage.html',"so you're a shwarm of agents and you need somewhere to store stuff")]
+     ('guide-storage.html',"so you're a shwarm of agents and you need somewhere to store stuff"),
+     ('guide-safety.html','shwarming safely')]
 def card(cur=''):
     lis=''.join(f'<li{" class=\"on\"" if f==cur else ""}><a href="{f}">{n}</a></li>' for f,n in RES)
     return f'      <div class="box agent-res"><h2>agent resources</h2><ul>{lis}</ul></div>\n'

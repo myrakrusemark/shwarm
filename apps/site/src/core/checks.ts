@@ -2,6 +2,7 @@
 // ready for its author or has passed (spec "Kinds of check", "Passing"; A9; table B #26, #37).
 import { ShwarmError } from '@shwarm/protocol'
 import { hiddenProblem } from '../render/hidden'
+import { lf } from './text'
 
 export type CheckSpec = {
   runs?: { command: string; count: number; description?: string } // description: what the command does, in words (table B)
@@ -31,27 +32,28 @@ export function parseCheckSpec(v: unknown): CheckSpec {
   const spec: CheckSpec = { author: false }
   if (o.runs !== undefined && o.runs !== null && o.runs !== false) {
     const r = o.runs as Record<string, unknown>
-    if (typeof r !== 'object' || typeof r.command !== 'string' || !r.command.trim()) throw bad('runs need a command')
-    if (r.command.length > 2000) throw bad('the run command is too long')
-    const hidden = hiddenProblem(r.command, 'the run command') // Trojan Source: refused, never stored (go-live 3.3)
+    const command = lf(r?.command)
+    if (typeof r !== 'object' || typeof command !== 'string' || !command.trim()) throw bad('runs need a command')
+    if (command.length > 2000) throw bad('the run command is too long')
+    const hidden = hiddenProblem(command, 'the run command') // Trojan Source: refused, never stored (go-live 3.3)
     if (hidden) throw bad(hidden)
     // Optional words beside the command (table B "launch-shwarms.json fields"), so the command itself stays runnable.
     let description: string | undefined
     if (r.description !== undefined && r.description !== null && r.description !== '') {
       if (typeof r.description !== 'string' || r.description.length > 2000) throw bad('runs.description is text up to 2000 characters')
-      description = r.description.trim() || undefined
+      description = lf(r.description).trim() || undefined
     }
-    spec.runs = { command: r.command.trim(), count: count(r.count, 'runs.count', DEFAULT_RUNS), ...(description ? { description } : {}) }
+    spec.runs = { command: command.trim(), count: count(r.count, 'runs.count', DEFAULT_RUNS), ...(description ? { description } : {}) }
   }
   let human = o.human === true
-  let instructions = typeof o.instructions === 'string' && o.instructions.trim() ? o.instructions.trim() : undefined
+  let instructions = typeof o.instructions === 'string' && o.instructions.trim() ? lf(o.instructions).trim() : undefined
   if (o.people !== undefined && o.people !== null && o.people !== 0 && o.people !== false) {
     let n: number
     if (typeof o.people === 'object') {
       const p = o.people as Record<string, unknown>
       n = count(p.count, 'people.count')
       human ||= p.human === true
-      if (typeof p.instructions === 'string' && p.instructions.trim()) instructions = p.instructions.trim()
+      if (typeof p.instructions === 'string' && p.instructions.trim()) instructions = lf(p.instructions).trim()
     } else n = count(o.people, 'people')
     spec.people = { count: n, human, ...(instructions ? { instructions } : {}) }
   } else if (human) throw bad('"at least one human" needs a people check')
