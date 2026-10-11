@@ -5,7 +5,7 @@
   if (!sc) return
   let amt = 25, freq = 'once', lastFocus = null
   const label = () => { g('dn-go').textContent = amt ? `donate $${amt}${freq === 'monthly' ? ' a month' : ''}` : 'pick an amount' }
-  const focusables = () => [...sc.querySelectorAll('button, input, textarea, [href]')].filter(el => !el.disabled)
+  const focusables = () => [...sc.querySelectorAll('button, input:not([type=hidden]), textarea, [href]')].filter(el => !el.disabled)
   const open = e => { e.preventDefault(); lastFocus = document.activeElement; sc.hidden = false; focusables()[0]?.focus() }
   const close = () => { sc.hidden = true; lastFocus?.focus() }
   document.querySelectorAll('.dn-link').forEach(a => a.addEventListener('click', open))
@@ -33,6 +33,17 @@
     sc.querySelectorAll('.amts button').forEach(x => x.classList.remove('on'))
     g('dn-custom').classList.add('on'); amt = Math.max(0, Math.floor(+g('dn-other').value || 0)); label()
   })
-  // Stripe Checkout is wired in go-live step 9.1; until then the button says so.
-  g('dn-go').addEventListener('click', () => { if (amt) g('dn-go').textContent = 'checkout opens soon' })
+  // The form posts to /donate, which opens Stripe Checkout (go-live 10.1), only when the page says the Worker has a
+  // Stripe key (data-checkout); until then the button says checkout opens soon. Enter in the amount box submits too.
+  const form = sc.querySelector('form.dn')
+  form.addEventListener('submit', e => {
+    if (!amt || !form.dataset.checkout) {
+      e.preventDefault()
+      if (amt) g('dn-go').textContent = 'checkout opens soon'
+      return
+    }
+    g('dn-freq').value = freq; g('dn-amount').value = String(amt)
+    g('dn-go').textContent = 'opening checkout…'
+  })
+  window.addEventListener('pageshow', label) // back from Stripe's page: the button names the amount again
 })()

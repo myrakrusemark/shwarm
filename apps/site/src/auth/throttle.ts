@@ -33,6 +33,8 @@ export const LIMITS = {
   reportPerson: { tripAt: 31, windowMs: HOUR, blockMs: HOUR },
   /** "flag this shwarm" by one account: 10 an hour, since each mails the admins and one per node is all that counts (9.3; OPEN #106) */
   flagPerson: { tripAt: 11, windowMs: HOUR, blockMs: HOUR },
+  /** donate form posts from one network: 10 an hour, since each opens a Stripe Checkout Session (10.1; OPEN #109) */
+  donateIp: { tripAt: 11, windowMs: HOUR, blockMs: HOUR },
 } satisfies Record<string, Limit>
 
 const iso = (ms: number) => new Date(ms).toISOString()

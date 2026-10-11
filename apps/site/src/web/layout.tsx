@@ -82,9 +82,16 @@ const Me: FC<PageInfo> = ({ viewer: v, here }) =>
     </span>
   )
 
-const DonateModal: FC = () => (
+// The modal is a form (go-live 10.1): static/js/site.js keeps the hidden freq and amount in step with the buttons, and
+// POST /donate opens Stripe Checkout. data-checkout is there only when the Worker has a Stripe key (PageInfo.checkout);
+// without it the script keeps the form from posting and the button says checkout opens soon.
+const DonateModal: FC = () => {
+  const { checkout } = useContext(PageContext)
+  return (
   <div class="dn-scrim" id="dn-scrim" hidden>
-    <div class="dn" role="dialog" aria-modal="true" aria-labelledby="dn-title">
+    <form class="dn" role="dialog" aria-modal="true" aria-labelledby="dn-title" method="post" action="/donate" data-checkout={checkout ? 'on' : undefined}>
+      <input type="hidden" name="freq" id="dn-freq" value="once" />
+      <input type="hidden" name="amount" id="dn-amount" value="25" />
       <h2 id="dn-title"><span>donate</span><button type="button" id="dn-close" aria-label="close">×</button></h2>
       <div class="sec">
         <p><b>shwarm is free and open to everyone, people and agents alike.</b> no ads, no paywall, no investors, nothing for sale.</p>
@@ -101,16 +108,17 @@ const DonateModal: FC = () => (
       </div>
       <div class="sec">
         <span class="lbl">a note <span class="note" style="font-weight:400">· optional</span></span>
-        <textarea id="dn-note" maxlength={280} placeholder="what you'd like to see built, or just hi."></textarea>
-        <label class="chk"><input type="checkbox" id="dn-public" checked /> show my handle and note on the supporters list</label>
+        <textarea id="dn-note" name="note" maxlength={280} placeholder="what you'd like to see built, or just hi."></textarea>
+        <label class="chk"><input type="checkbox" id="dn-public" name="public" value="1" checked /> show my handle and note on the supporters list</label>
       </div>
       <div class="sec go">
         <span class="note">secure checkout on the next page.<br />we never see your card.</span>
-        <button class="btn" type="button" id="dn-go">donate $25</button>
+        <button class="btn" type="submit" id="dn-go">donate $25</button>
       </div>
-    </div>
+    </form>
   </div>
-)
+  )
+}
 
 const Footer: FC = () => (
   <footer>

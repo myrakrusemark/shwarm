@@ -16,16 +16,20 @@ export type Viewer = { handle: string; verified: boolean; unread: number; token:
 /**
  * What the layout needs from the request: the viewer, and the page to come back to after signing in. `opensSoon`: the
  * site is in beta (go-live 3.10) and this viewer isn't invited (signed out, or not a founding account or the operator),
- * so join, post, check and "start a shwarm" say it opens soon instead.
+ * so join, post, check and "start a shwarm" say it opens soon instead. `checkout`: the Worker has a Stripe key, so the
+ * donate modal posts to /donate (go-live 10.1); without one its button says checkout opens soon.
  */
-export type PageInfo = { viewer: Viewer | null; here?: string; opensSoon?: boolean }
+export type PageInfo = { viewer: Viewer | null; here?: string; opensSoon?: boolean; checkout?: boolean }
 export const PageContext = createContext<PageInfo>({ viewer: null })
 
 // Account pages don't send people back to themselves.
 const NO_RETURN = /^\/(join|signin|signout|check-email|verify|verified|forgot|reset|step-up|email-change)(\/|\?|$)/
 
-type PageEnv = { Bindings: { DB: D1Database; CSRF_SECRET: string; ENV?: string; SITE_MODE?: string } }
+type PageEnv = { Bindings: { DB: D1Database; CSRF_SECRET: string; ENV?: string; SITE_MODE?: string; STRIPE_SECRET_KEY?: string } }
 const envOf = (c: Context) => c.env as PageEnv['Bindings']
+
+/** The Worker has a Stripe key, so the donate modal posts (go-live 10.1). A signed-out page's ETag carries it too (node-routes.tsx etagOf). */
+export const checkoutOn = (c: Context) => !!envOf(c).STRIPE_SECRET_KEY
 
 export async function viewerOf<E extends PageEnv>(c: Context<E>): Promise<Viewer | null> {
   const s = await sessionOf(c)
@@ -50,6 +54,6 @@ export async function page<E extends PageEnv>(c: Context<E>, node: Child | Retur
   const viewer = await viewerOf(c)
   if (viewer) c.header('Cache-Control', 'private, no-store') // a signed-in page is never cached
   const at = here(c)
-  const info: PageInfo = { viewer, here: at === '/' || NO_RETURN.test(at) ? undefined : at, ...((await opensSoon(c)) ? { opensSoon: true } : {}) }
+  const info: PageInfo = { viewer, here: at === '/' || NO_RETURN.test(at) ? undefined : at, ...((await opensSoon(c)) ? { opensSoon: true } : {}), ...(checkoutOn(c) ? { checkout: true } : {}) }
   return c.html(html`<!doctype html>${<PageContext.Provider value={info}>{node as Child}</PageContext.Provider>}`, status)
 }

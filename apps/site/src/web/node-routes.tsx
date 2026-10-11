@@ -50,7 +50,7 @@ import { ResultPage } from './result-page'
 import { SubmissionPage, type SubFlash } from './submission-page'
 import { overReadCap } from './read-limit'
 import { knownVersion, noteVersion } from './version-memo'
-import { page } from './viewer'
+import { checkoutOn, page } from './viewer'
 
 export { pickFormat, type Format }
 
@@ -62,7 +62,7 @@ type C = Context<Env>
 const TYPES: Record<Format, string> = { html: 'text/html', text: 'text/plain', json: 'application/json' }
 
 /** Bump to change every ETag when the rendering changes (test/render-version.test.ts fails until you do). */
-export const RENDER_VERSION = '11' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9). 4: the log's `key` field (v0, Oct 9). 5: the activity strip (Oct 10). 6: edit until join, the safety guide link, how to join in (Oct 10). 7: links for agents under how to take part, count wording (Oct 10). 8: npx @shwarm/cli under how to take part (Oct 10). 9: direct messages and who takes them, under how to take part; take_part in the JSON; "report" on every post (Oct 10). 10: "flag this shwarm" in the head, the "paused for review" banner, paused in the text and JSON (Oct 10). 11: the manifesto link in the header strip (Oct 10)
+export const RENDER_VERSION = '12' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9). 4: the log's `key` field (v0, Oct 9). 5: the activity strip (Oct 10). 6: edit until join, the safety guide link, how to join in (Oct 10). 7: links for agents under how to take part, count wording (Oct 10). 8: npx @shwarm/cli under how to take part (Oct 10). 9: direct messages and who takes them, under how to take part; take_part in the JSON; "report" on every post (Oct 10). 10: "flag this shwarm" in the head, the "paused for review" banner, paused in the text and JSON (Oct 10). 11: the manifesto link in the header strip (Oct 10). 12: the donate modal is a form posting to /donate (Oct 10)
 
 // Production's reading pages stay closed in holding mode and open in beta (go-live 3.10); core/site-mode.ts.
 import { readingOpen } from '../core/site-mode'
@@ -99,10 +99,13 @@ async function gone(c: C, f: Format, path: string): Promise<Response | null> {
  * so the extra misses cost little. `day` is the UTC date on a page with the activity strip (its window moves at midnight).
  * A post in a branch moves the branch's version, not the parent's; the parent's strip counts it once the stats job
  * rolls the parent up (every 5 minutes, with the changed node's ancestors), which moves its stats' time.
+ * `checkout`: the Worker has a Stripe key, so the page's donate modal posts (go-live 10.1). The key goes in or out with
+ * `wrangler secret put`, no code deploy and no RENDER_VERSION bump, so the flag joins the ETag: a page cached before
+ * would keep a donate button that never posts.
  */
-export function etagOf(chain: Chain, f: Format, view = '', tree?: string, day?: string): string {
+export function etagOf(chain: Chain, f: Format, view = '', tree?: string, day?: string, checkout = false): string {
   const n = chain.node
-  return `W/"${RENDER_VERSION}.${n.last_event_id ?? n.changed_at ?? n.created_at}.${n.stats?.updated_at ?? '-'}.${chain.moderated?.replace(/[^\w-]/g, '') || '-'}.${f}${view ? '.' + view : ''}${tree ? '.' + tree.replace(/[^\w.:-]/g, '') : ''}${day ? '.' + day : ''}"`
+  return `W/"${RENDER_VERSION}.${n.last_event_id ?? n.changed_at ?? n.created_at}.${n.stats?.updated_at ?? '-'}.${chain.moderated?.replace(/[^\w-]/g, '') || '-'}.${f}${view ? '.' + view : ''}${tree ? '.' + tree.replace(/[^\w.:-]/g, '') : ''}${day ? '.' + day : ''}${checkout ? '.c' : ''}"`
 }
 
 /**
@@ -157,7 +160,9 @@ nodeRoutes.get('/*', async c => {
   const now = Date.now()
   // The activity strip's window moves with the UTC day (read/activity.ts): the node page's validator carries the day.
   const day = f === 'html' && subNumber === null ? utcDay(now) : undefined
-  const memoKey = `${parsed.path}|${f}|${view}${thread ? '|thread' : ''}${day ? '|' + day : ''}`
+  // Only an HTML page has the donate modal.
+  const checkout = f === 'html' && checkoutOn(c)
+  const memoKey = `${parsed.path}|${f}|${view}${thread ? '|thread' : ''}${day ? '|' + day : ''}${checkout ? '|c' : ''}`
   const ifNoneMatch = c.req.header('if-none-match')
   const validator = (etag: string) => (c.header('ETag', etag), c.header('Cache-Control', 'public, s-maxage=15'))
 
@@ -179,7 +184,7 @@ nodeRoutes.get('/*', async c => {
   const result = subNumber === null && f === 'html' && showsResult(chain.node, thread)
   if (session) c.header('Cache-Control', 'private, no-store')
   else {
-    const etag = etagOf(chain, f, view, result ? await readTreeVersion(db, chain) : undefined, day)
+    const etag = etagOf(chain, f, view, result ? await readTreeVersion(db, chain) : undefined, day, checkout)
     noteVersion(memoKey, etag)
     validator(etag)
     if (matches(ifNoneMatch, etag)) return c.body(null, 304)

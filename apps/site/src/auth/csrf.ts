@@ -33,7 +33,7 @@ export async function formTokenOk(secret: string, binding: string, token: unknow
 }
 
 /** Paths that prove themselves another way and take server-to-server POSTs, which carry no Origin header:
- *  /hooks/* check HTTP basic auth with their own secret; /unsubscribe checks an HMAC-signed token (RFC 8058 one-click). */
+ *  /hooks/* check their own secret (HTTP basic auth, or Stripe's HMAC signature); /unsubscribe checks an HMAC-signed token (RFC 8058 one-click). */
 export const selfAuthenticated = (path: string) => path.startsWith('/hooks/') || path === '/unsubscribe'
 
 /** Middleware: same-origin check on every write. Form-token checks happen in each handler, which knows the binding. */
