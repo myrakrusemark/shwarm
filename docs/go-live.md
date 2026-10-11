@@ -2,15 +2,15 @@
 
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
-**Now (Claude):** shwarm.org is in beta, v0.2.4, with phase 9 built: flags, the admin console behind Cloudflare Access, the public moderation log, the security review's fixes; the abuse drill (9.7) is done. 9.6 waits only on an outside person with the staging address for 48 hours. Next: phase 10.
+**Now (Claude):** shwarm.org is in beta, v0.2.4, with phase 9 built: flags, the admin console behind Cloudflare Access, the public moderation log, the security review's fixes; the abuse drill (9.7) is done. 9.6 waits only on an outside person with the staging address for 48 hours. Phase 10: donations (10.1) work on staging in Stripe's test mode; production needs a tag and the live keys. Next: 10.2.
 **Now (Myra):** the "Needs Myra" list below; the tracker page shows only that list and the progress.
-**Last updated:** 2026-10-10.
+**Last updated:** 2026-10-11.
 
 ### Needs Myra
 
 Only what waits on Myra. Claude adds an item when something needs her and removes it once it's settled; her answers land in `tracker/replies.json` under the item's id. Shwarm cards that wait on her approval show on the page by themselves.
 
-- [m-stripe-test] **Stripe test keys on staging (10.1):** in the shwarm Stripe account, test mode: (1) Developers → API keys, copy the secret key (sk_test_…) and in apps/site run `npx wrangler secret put STRIPE_SECRET_KEY --env staging`; (2) Developers → Webhooks → add endpoint `https://shwarm-staging.myrakrusemark.workers.dev/hooks/stripe` with the events checkout.session.completed, checkout.session.async_payment_succeeded and invoice.paid, then copy its signing secret (whsec_…) and run `npx wrangler secret put STRIPE_WEBHOOK_SECRET --env staging`. Tell Claude when both are in; Claude deploys and runs the $5 test.
+- [m-stripe-live] **donations on shwarm.org (10.1's last part), when you're ready:** push the next `v*` tag so production gets the donations code, then in the shwarm Stripe account in live mode (once Stripe has verified it): (1) copy the live secret key (sk_live_…) and in apps/site run `npx wrangler secret put STRIPE_SECRET_KEY`; (2) Workbench → Webhooks → add a destination `https://shwarm.org/hooks/stripe` with the same three events, copy its signing secret and run `npx wrangler secret put STRIPE_WEBHOOK_SECRET`. Set the webhook secret first, or the first gift's record fails and has to be resent. Tell Claude when both are in.
 - [m-ash] **when you're ready, Ash's pen test (9.6's last part):** send Claude Ash's email for the staging allow-list, and send Ash the staging password and the brief yourself. No rush.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. Workers Paid ($5/month) for argon2id passwords was offered and declined for now (Oct 8): the beta uses PBKDF2, and the switch is a todo before the public opens. Claude asks before any spend.
@@ -859,9 +859,10 @@ Functional changes Myra has chosen, held until after launch so they don't muddy 
 
 ### Phase 10: money and legal (2 days, plus lead time)
 
-**10.1 Donations** · doing
+**10.1 Donations** · done
 - *(Oct 8: the shwarm Stripe account is set up and submitted for verification by Myra. Keys and the webhook get wired in this step.)*
 - *(Oct 10: built and tested, not deployed. The modal posts to `/donate`, which opens Stripe Checkout, once or monthly; `/hooks/stripe` checks Stripe's signature and records each paid session and each later month in the `donation` table (migration 0024); `/donate/thanks` after paying. Without `STRIPE_SECRET_KEY` the modal says checkout opens soon and `/donate` is a 404, so production doesn't change. Left: Myra puts the Stripe test keys on staging and makes the staging webhook (m-stripe-test), then Claude deploys staging and runs the $5 test in test mode; then live keys and a live webhook on production. Builder's defaults: [open #109](open-questions.md#109-donations-the-builders-defaults).)*
+- *(Oct 11: done on staging in Stripe's test mode (the Sandbox). Myra set both secrets; Claude made the webhook destination (checkout.session.completed, checkout.session.async_payment_succeeded, invoice.paid). Myra's $5 one-time test payment went through to the thanks page; its first delivery failed because the signing secret wasn't set yet, and once it was, a resend from Stripe recorded it (donation row 1: $5, once). Left for production: a release tag, then live keys and a live webhook (m-stripe-live).)*
 - **what:** Myra makes a separate Stripe account for shwarm under her existing login (A13). Claude wires the donate modal to Stripe Checkout: once or monthly, preset or custom amount, an optional note, and the supporters-list opt-in; a webhook records completed payments; the modal and terms say payments go to Myra Krusemark and aren't tax-deductible.
 - **who:** both · **needs:** A2, A13, 1.11
 - **done when:** a $5 test donation shows in Stripe, and decisions.md records the path.
