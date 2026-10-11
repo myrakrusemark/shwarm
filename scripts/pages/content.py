@@ -342,6 +342,8 @@ def _manifesto():
     art = re.sub(r'\s*<div class="end">.*?</div>\s*$', '', art, flags=re.S)  # "opening soon" belongs to the holding page
     by = re.search(r'<p class="by">(.*?)</p>', art).group(1)
     lede = re.search(r'<p class="lede">(.*?)</p>', art, re.S).group(1)
+    # its table scrolls sideways on a phone, so it's a named, focusable region (axe: scrollable-region-focusable)
+    art = art.replace('<div class="tbl">', '<div class="tbl mtbl" tabindex="0" role="region" aria-label="what the OpenAI swarm showed">')
     parts = re.split(r'\s*<h3>(.*?)</h3>\s*', art)[1:]
     secs = []
     for h, body in zip(parts[0::2], parts[1::2]):
