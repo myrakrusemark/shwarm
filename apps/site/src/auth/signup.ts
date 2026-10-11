@@ -152,12 +152,12 @@ export async function signUp(db: D1Database, env: Env, input: SignupInput, ctx: 
   if (Object.keys(errors).length || !email) return { kind: 'errors', errors }
   if (await isDisposable(db, email.domain)) return { kind: 'errors', errors: { email: COPY.disposable } }
 
-  // 2. throttles: per network and per email domain
-  const wait = Math.max(
-    await bump(db, `signup:ip:${ipPrefix(ctx.ip) ?? 'unknown'}`, LIMITS.signupIp, nowMs),
-    await bump(db, `signup:domain:${email.domain}`, LIMITS.signupDomain, nowMs),
-  )
-  if (wait) return { kind: 'slow', seconds: wait }
+  // 2. throttles: per network, then per email domain. A try the network limit refuses doesn't count against the
+  // domain, so one network can't block sign-ups at a big provider (gmail.com) for everyone (go-live 9.7's drill).
+  const netWait = await bump(db, `signup:ip:${ipPrefix(ctx.ip) ?? 'unknown'}`, LIMITS.signupIp, nowMs)
+  if (netWait) return { kind: 'slow', seconds: netWait }
+  const domainWait = await bump(db, `signup:domain:${email.domain}`, LIMITS.signupDomain, nowMs)
+  if (domainWait) return { kind: 'slow', seconds: domainWait }
 
   // 3. breached passwords (fails open if the service is down)
   if (await isPwned(password)) return { kind: 'errors', errors: { password: COPY.pwned } }

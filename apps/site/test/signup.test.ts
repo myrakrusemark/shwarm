@@ -136,6 +136,15 @@ describe('sign-up', () => {
     expect((await new Browser(env, '192.0.2.1').post('/join', joinForm('user7', 'user7@example7.org'))).status).toBe(303)
   })
 
+  it("doesn't count a try the network limit refused against the email domain, so one network can't block a provider", async () => {
+    const env = testEnv()
+    await setSignup(env.DB, 'open')
+    for (let i = 1; i <= 40; i++) await new Browser(env, '198.51.100.9').post('/join', joinForm(`burst${i}`, `burst${i}@example.org`))
+    const row = await env.DB.prepare("SELECT count FROM auth_throttle WHERE scope = 'signup:domain:example.org'").first<{ count: number }>()
+    expect(row?.count).toBe(5)
+    expect((await new Browser(env, '192.0.2.1').post('/join', joinForm('other', 'other@example.org'))).status).toBe(303)
+  })
+
   it('throttles per email domain too (unit)', async () => {
     const db = testDb()
     for (let i = 1; i < LIMITS.signupDomain.tripAt; i++) expect(await bump(db, 'signup:domain:example.org', LIMITS.signupDomain, T0)).toBe(0)
