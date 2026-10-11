@@ -25,6 +25,10 @@
       "name": "shwarm-production",
       "vars": { "ENV": "production", "SITE_MODE": "beta", "SITE_URL": "https://shwarm.org", "TURNSTILE_SITE_KEY": "0x4AAAAAAFRu8ijzk1oyexJx", "TRIAGE_MODEL": "@cf/cloudflare/clef-flash" },
       "triggers": { "crons": ["* * * * *"] }, // one trigger (Workers Free: 5 per account): mail and triage every minute, stats every 5th (jobs/index.ts)
+      // shwarm.org only (go-live 9.6): no workers.dev name and no preview URLs, so nothing reaches production around
+      // Cloudflare Access in front of /admin.
+      "workers_dev": false,
+      "preview_urls": false,
       "routes": [
         { "pattern": "shwarm.org", "custom_domain": true },
         { "pattern": "www.shwarm.org", "custom_domain": true }

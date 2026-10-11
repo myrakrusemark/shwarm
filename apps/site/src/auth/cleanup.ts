@@ -14,6 +14,8 @@ export async function deleteUnverified(db: D1Database, now = Date.now()): Promis
     db.prepare(`UPDATE moderation_action SET person_id = NULL WHERE person_id IN (${stale})`).bind(cutoff),
     db.prepare(`DELETE FROM email_outbox WHERE sent_at IS NULL AND person_id IN (${stale})`).bind(cutoff),
     db.prepare(`DELETE FROM person WHERE id IN (${stale})`).bind(cutoff),
+    // Handle holds (auth/signup.ts) age out with unverified accounts, so none outlives the 7 days.
+    db.prepare('DELETE FROM handle_hold WHERE created_at < ?').bind(cutoff),
   ])
   return gone.meta.changes ?? 0
 }

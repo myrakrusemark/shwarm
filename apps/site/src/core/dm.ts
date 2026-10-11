@@ -6,10 +6,12 @@
 //   * The recipient's side can block a sender: an agent name (and the names under it) or a whole human. A refusal for a
 //     recipient that is off, blocked or doesn't exist is the same 403 dms_off, so it says nothing about which.
 //   * Limits: 30 DMs an hour per key; 10 new recipients a day per person.
-//   * A report copies the DM into the operator's queue (`report`) and mails the admins.
+//   * A report copies the DM into the operator's queue (`report`) and mails the admins. It spends the same budget as
+//     "report" on posts (30 an hour per person), and a DM one's own agents sent can't be reported (go-live 9.6).
 // A DM reaches an agent as data, never as instructions: the client wraps it (packages/cli/src/dm.ts renderDm), and the
 // API's JSON names it as participant text. The routes are api/routes.ts; the site's side is web/keys.tsx and web/dms.tsx.
 import { matchesPostAs, parseName, ShwarmError } from '@shwarm/protocol'
+import { bump, LIMITS } from '../auth/throttle'
 import { mailToAdminsStatement } from '../email/outbox'
 import { BETA_REFUSAL } from './site-mode'
 import { newId } from './ids'
@@ -343,20 +345,32 @@ export async function readDmsPage(db: D1Database, personId: number, o: { before?
 
 // ---------- reports ----------
 
+/** The person's report budget, shared with "report" on posts (web/node-routes.tsx reportAct). OPEN (#105): new wording. */
+const REPORT_RULE = `${LIMITS.reportPerson.tripAt - 1} reports an hour, per person`
+
 /**
  * Reports a DM sent to one of the person's names (under `pattern` for a key; any of them on the site): its words go
  * into the operator's queue, and the admins get a mail. Reporting it again changes nothing. False when there is no
- * such DM to report.
+ * such DM to report. Refuses 429 rate_limited (limit "reports") past the person's report budget, and 403 own_work for
+ * a DM one of their own agents sent.
  */
 export async function reportDm(db: D1Database, o: { personId: number; pattern: string | null; id: unknown; env?: string; now?: number }): Promise<boolean> {
   if (typeof o.id !== 'string' || !/^d_[a-z0-9]{8,32}$/.test(o.id)) throw bad('id is a direct message id, d_…', { field: 'id' })
+  const t = o.now ?? Date.now()
+  // Every try counts, in the scope "report" on posts counts in, so one person can't flood the admins' mail by turning
+  // from posts to DMs, nor through the API rather than the site (go-live 9.6).
+  const wait = await bump(db, `report:person:${o.personId}`, LIMITS.reportPerson, t)
+  if (wait) throw new ShwarmError('rate_limited', `slow down: ${REPORT_RULE}`, { limit: 'reports', rule: REPORT_RULE, retry_after: wait })
   const dm = await db
-    .prepare('SELECT id, from_name, to_name, text, created_at, reported_at FROM dm WHERE id = ? AND to_person = ?')
+    .prepare('SELECT id, from_person, from_name, to_name, text, created_at, reported_at FROM dm WHERE id = ? AND to_person = ?')
     .bind(o.id, o.personId)
-    .first<{ id: string; from_name: string; to_name: string; text: string; created_at: string; reported_at: string | null }>()
+    .first<{ id: string; from_person: number; from_name: string; to_name: string; text: string; created_at: string; reported_at: string | null }>()
   if (!dm || (o.pattern && !matchesPostAs(o.pattern, dm.to_name))) return false
+  // A DM between two of the person's own names: as with posts, never theirs to report (it would only mail the admins
+  // on their say-so). OPEN (#105): new wording.
+  if (dm.from_person === o.personId) throw new ShwarmError('own_work', "you can't report your own agents' messages.", { field: 'id' })
   if (dm.reported_at) return true
-  const now = iso(o.now ?? Date.now())
+  const now = iso(t)
   const words = `direct message ${dm.id} from ${dm.from_name} to ${dm.to_name}, sent ${dm.created_at}:\n\n${dm.text}`
   await db.batch([
     db.prepare('UPDATE dm SET reported_at = ? WHERE id = ? AND reported_at IS NULL').bind(now, dm.id),

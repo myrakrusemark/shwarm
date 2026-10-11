@@ -11,6 +11,7 @@
 import { ctxAt, moderatedStatement, touchNode, type Ctx } from './context'
 import { isId } from './ids'
 import { modLog, modReason } from './moderation'
+import { statusLine } from './stats'
 import { DecideError, decideStatements, flagsSql, queueSql, unpauseStatements, type Stmt } from '../triage/decide'
 import { isCategory } from '../triage/rubric'
 
@@ -188,27 +189,66 @@ export type PostView = {
   actions: ModRowShown[]
 }
 
-function linksOf(raw: string): PostLink[] {
+function linksOf(raw: string | null): PostLink[] {
   try {
-    const v = JSON.parse(raw)
+    const v = JSON.parse(raw ?? '[]')
     return Array.isArray(v) ? v : []
   } catch {
     return []
   }
 }
 
+/** A check's own copies of its links (core/checking.ts): the evidence, the repro's links and the linked log. */
+type CheckLinks = { check_id: string | null; evidence: string | null; repro: string | null; log_link: string | null }
+
+const CHECK_LINK_COLS = 'c.id AS check_id, c.evidence, c.repro, c.log_link'
+
+function jsonOf(raw: string | null): unknown {
+  try {
+    return raw === null ? null : JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+
+const reproLinks = (raw: string | null): PostLink[] => {
+  const r = jsonOf(raw) as { links?: unknown } | null
+  return r && Array.isArray(r.links) ? r.links : []
+}
+const logLinkOf = (raw: string | null): PostLink[] => {
+  const l = jsonOf(raw)
+  return l && typeof l === 'object' && !Array.isArray(l) ? [l as PostLink] : []
+}
+
+/**
+ * Every link a post shows, each once: its own, and for a check those its check_report holds, which the submission page,
+ * the text prompt and the API draw from (go-live 9.6). Removing one only from post.links left it showing there.
+ */
+function shownLinks(postLinks: string, c: CheckLinks): PostLink[] {
+  const all = [...linksOf(postLinks), ...(c.check_id ? [...linksOf(c.evidence), ...reproLinks(c.repro), ...logLinkOf(c.log_link)] : [])]
+  const seen = new Set<string>()
+  return all.filter(l => {
+    const k = JSON.stringify(l)
+    return seen.has(k) ? false : (seen.add(k), true)
+  })
+}
+
 export async function readPostView(db: D1Database, id: string): Promise<PostView | null> {
   if (!isId('p', id)) return null
   const row = await db
-    .prepare('SELECT p.id, p.node_id, n.path AS node_path, p.as_name, p.kind, p.text, p.links, p.hidden, p.deleted_at, p.created_at FROM post p JOIN node n ON n.id = p.node_id WHERE p.id = ?')
+    .prepare(
+      `SELECT p.id, p.node_id, n.path AS node_path, p.as_name, p.kind, p.text, p.links, p.hidden, p.deleted_at, p.created_at, ${CHECK_LINK_COLS}
+       FROM post p JOIN node n ON n.id = p.node_id LEFT JOIN check_report c ON c.post_id = p.id WHERE p.id = ?`,
+    )
     .bind(id)
-    .first<PostRowShown & { node_id: number; node_path: string; links: string }>()
+    .first<PostRowShown & { node_id: number; node_path: string; links: string } & CheckLinks>()
   if (!row) return null
   const [reports, actions] = await Promise.all([
     db.prepare(`${REPORT_SQL} WHERE r.post_id = ? ORDER BY r.resolved_at IS NULL DESC, r.created_at DESC, r.id DESC`).bind(id).all<ReportRow>(),
     db.prepare(`${MOD_SQL} WHERE m.post_id = ? ORDER BY m.created_at DESC, m.id DESC LIMIT 50`).bind(id).all<ModRowShown>(),
   ])
-  return { post: { ...row, links: linksOf(row.links) }, reports: reports.results, actions: actions.results }
+  const { check_id, evidence, repro, log_link, ...post } = row
+  return { post: { ...post, links: shownLinks(row.links, { check_id, evidence, repro, log_link }) }, reports: reports.results, actions: actions.results }
 }
 
 export async function readReport(db: D1Database, id: number): Promise<ReportRow | null> {
@@ -323,39 +363,77 @@ export type PostAct = (typeof POST_ACTS)[number]
 export const isPostAct = (v: unknown): v is PostAct => typeof v === 'string' && (POST_ACTS as readonly string[]).includes(v)
 
 /**
- * One act on post `id`: hide, unhide, or remove_link with `link` (its index in the post's links) and `was` (that link
- * as the page showed it, JSON), so a form sent again after the first landed can't take the link that moved up.
+ * One act on post `id`: hide, unhide, or remove_link with `link` (its index in the links /admin/post lists) and `was`
+ * (that link as the page showed it, JSON), so a form sent again after the first landed can't take the link that moved up.
  */
 export async function actOnPost(db: D1Database, by: Admin, id: string, act: unknown, f: { reason?: unknown; link?: unknown; was?: unknown }, now = Date.now()): Promise<PostAct> {
   if (!isPostAct(act)) throw new AdminError('pick an act.')
   const reason = reasonOf(f.reason)
   const p = isId('p', id)
-    ? await db.prepare('SELECT id, node_id, links, hidden FROM post WHERE id = ?').bind(id).first<{ id: string; node_id: number; links: string; hidden: number }>()
+    ? await db
+        .prepare(
+          `SELECT p.id, p.node_id, p.kind, p.text, p.links, p.hidden, n.parent_id, ${CHECK_LINK_COLS}
+           FROM post p JOIN node n ON n.id = p.node_id LEFT JOIN check_report c ON c.post_id = p.id WHERE p.id = ?`,
+        )
+        .bind(id)
+        .first<{ id: string; node_id: number; kind: string; text: string; links: string; hidden: number; parent_id: number | null } & CheckLinks>()
     : null
   if (!p) throw new AdminError('there is no post with that id.')
   const ctx = ctxAt(db, now)
   const end = [touchNode(ctx, p.node_id, null), moderatedStatement(ctx)]
   if (act === 'remove_link') {
-    const links = linksOf(p.links)
+    const links = shownLinks(p.links, p)
     const i = typeof f.link === 'string' && /^\d{1,4}$/.test(f.link) ? Number(f.link) : -1
     if (i < 0 || i >= links.length || f.was !== JSON.stringify(links[i])) throw new AdminError('that link is gone already.')
-    const left = links.filter((_, k) => k !== i)
+    const gone = (l: unknown) => JSON.stringify(l) === f.was
+    const left = linksOf(p.links).filter(l => !gone(l))
     // Only if the links are still what was read, so two removes at once can't take the wrong one; the row goes first,
-    // on the same condition, so a remove that lost that race writes none.
-    const same = { sql: 'EXISTS (SELECT 1 FROM post WHERE id = ? AND links = ?)', args: [p.id, p.links] }
-    await db.batch([
-      modLog(db, { by: by.personId, action: 'remove_link', nodeId: p.node_id, postId: p.id, reason, public: true, at: ctx.at }, same),
-      db.prepare('UPDATE post SET links = ? WHERE id = ? AND links = ?').bind(JSON.stringify(left), p.id, p.links),
-      ...end,
-    ])
+    // on the same condition, so a remove that lost that race writes none. A check's links are read from check_report
+    // too, so its copies are part of what was read.
+    const read = p.check_id
+      ? {
+          sql: 'EXISTS (SELECT 1 FROM post WHERE id = ? AND links = ?) AND EXISTS (SELECT 1 FROM check_report WHERE id = ? AND evidence IS ? AND repro IS ? AND log_link IS ?)',
+          args: [p.id, p.links, p.check_id, p.evidence, p.repro, p.log_link],
+        }
+      : { sql: 'EXISTS (SELECT 1 FROM post WHERE id = ? AND links = ?)', args: [p.id, p.links] }
+    const stmts = [
+      modLog(db, { by: by.personId, action: 'remove_link', nodeId: p.node_id, postId: p.id, reason, public: true, at: ctx.at }, read),
+      db.prepare(`UPDATE post SET links = ? WHERE id = ? AND ${read.sql}`).bind(JSON.stringify(left), p.id, ...read.args),
+    ]
+    if (p.check_id) {
+      // A check's evidence, its repro's links and its log link are what the submission page shows (go-live 9.6), so the
+      // link leaves them too. Run after the post's update, so the post's side of the condition is its links as left.
+      // Each copy is rewritten only when the link is in it, so anything else there (a people check's text evidence, the
+      // repro's steps) stays as it was.
+      const evidence = jsonOf(p.evidence)
+      const kept = Array.isArray(evidence) ? evidence.filter(l => !gone(l)) : []
+      const evidenceLeft = Array.isArray(evidence) && kept.length < evidence.length ? (kept.length ? JSON.stringify(kept) : null) : p.evidence
+      const repro = jsonOf(p.repro) as { links?: unknown } | null
+      const reproLeft = repro && Array.isArray(repro.links) && repro.links.some(gone) ? JSON.stringify({ ...repro, links: repro.links.filter(l => !gone(l)) }) : p.repro
+      const logLeft = logLinkOf(p.log_link).some(gone) ? null : p.log_link
+      stmts.push(
+        db
+          .prepare(
+            `UPDATE check_report SET evidence = ?, repro = ?, log_link = ?
+             WHERE id = ? AND evidence IS ? AND repro IS ? AND log_link IS ? AND EXISTS (SELECT 1 FROM post WHERE id = ? AND links = ?)`,
+          )
+          .bind(evidenceLeft, reproLeft, logLeft, p.check_id, p.evidence, p.repro, p.log_link, p.id, JSON.stringify(left)),
+      )
+    }
+    await db.batch([...stmts, ...end])
     return act
   }
   const hide = act === 'hide'
   if (!!p.hidden === hide) throw new AdminError(`this post is ${hide ? 'hidden' : 'not hidden'} already.`)
   // Only from the state read: a form sent twice at once changes it and writes its row once.
   const was = { sql: 'EXISTS (SELECT 1 FROM post WHERE id = ? AND hidden = ?)', args: [p.id, p.hidden] }
+  const deadEnd = p.kind === 'dead_end'
   await db.batch([
     modLog(db, { by: by.personId, action: act, nodeId: p.node_id, postId: p.id, reason, public: true, at: ctx.at }, was),
+    // A dead-end note is copied into node.dead_end_note, which the node's page and text, its parent's branch list and the
+    // feed's status line read (go-live 9.6). Hiding the post blanks that copy; restoring it puts the post's text back
+    // (a dead-end note can't be edited or deleted, so its text is the note). Before the post's update, on its old state.
+    ...(deadEnd ? deadEndNoteStatements(db, p, hide, was) : []),
     db.prepare('UPDATE post SET hidden = ? WHERE id = ? AND hidden = ?').bind(hide ? 1 : 0, p.id, p.hidden),
     // A hidden pinned post leaves the feed's status line at once, as a deleted one does (core/posts.ts deletePost); the
     // stats job fills the line in again. It stays pinned, so restoring it brings it back.
@@ -363,8 +441,28 @@ export async function actOnPost(db: D1Database, by: Admin, id: string, act: unkn
       ? [db.prepare("UPDATE node_stats SET status_line = '' WHERE node_id = ?1 AND EXISTS (SELECT 1 FROM node WHERE id = ?1 AND pinned_post_id = ?2)").bind(p.node_id, p.id)]
       : []),
     ...end,
+    // The parent's branch list shows a dead end's note, so its page moves too.
+    ...(deadEnd && p.parent_id ? [touchNode(ctx, p.parent_id, null)] : []),
   ])
   return act
+}
+
+/**
+ * The note's copy on the node, and the feed's status line drawn from it (core/stats.ts statusLine): swapped at once
+ * rather than left for the stats job, and only where the line is the note's (a pinned post's line stays).
+ */
+function deadEndNoteStatements(
+  db: D1Database,
+  p: { id: string; node_id: number; text: string },
+  hide: boolean,
+  was: { sql: string; args: unknown[] },
+): D1PreparedStatement[] {
+  const line = (note: string) => statusLine({ state: 'dead_end', pinned: null, deadEndNote: note, submissions: [], branches: { live: 0, closed: 0 } })
+  const [from, to] = hide ? [p.text, ''] : ['', p.text]
+  return [
+    db.prepare(`UPDATE node SET dead_end_note = ? WHERE id = ? AND state = 'dead_end' AND ${was.sql}`).bind(to, p.node_id, ...was.args),
+    db.prepare(`UPDATE node_stats SET status_line = ? WHERE node_id = ? AND status_line = ? AND ${was.sql}`).bind(line(to), p.node_id, line(from), ...was.args),
+  ]
 }
 
 // ---------- resolving a report ----------

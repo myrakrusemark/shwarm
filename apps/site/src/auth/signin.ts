@@ -7,7 +7,7 @@ import { parseEmail } from './email'
 import { hashPassword, PBKDF2_ITERATIONS, verifyPassword } from './password'
 import { createSession, ipPrefix, sessionId, type Session } from './session'
 import { openStepUp, STEP_UP_MS, stepUpOpen } from './stepup'
-import { blockedFor, bump, clearThrottle, LIMITS, recentCount, stamp } from './throttle'
+import { clearThrottle, LIMITS, stamp, type Limit } from './throttle'
 import { newToken } from './tokens'
 
 // Well-formed, current settings, matches no password: verifying against it costs what a real check costs.
@@ -38,41 +38,81 @@ export const KNOWN_NETWORK_DAYS = 30 // IP-derived data is kept 30 days (#61)
  * elsewhere can't keep the owner out, and a guesser gains nothing unless they're on the owner's own network.
  * OPEN (open-questions #70): the trade-off; a password reset still gets anyone in.
  */
-async function familiar(db: D1Database, addr: string, ip: string | null, now: number): Promise<boolean> {
+async function familiar(db: D1Database, addr: string, ip: string | null, atNet: Reserved, now: number): Promise<boolean> {
   const net = ipPrefix(ip)
-  if (!net || (await recentCount(db, netScope(addr, ip), LIMITS.authAddr, now))) return false
+  // this try is already counted for the network (reserve), so clean means it's the only one
+  if (!net || atNet.count !== 1) return false
   const row = await db.prepare('SELECT window_start FROM auth_throttle WHERE scope = ?').bind(knownScope(addr, net)).first<{ window_start: string }>()
   return !!row && now - Date.parse(row.window_start) < KNOWN_NETWORK_DAYS * 86_400_000
 }
 
-/** The shared core of sign-in and step-up: throttle check, password check, backoff on failure. */
+const iso = (ms: number) => new Date(ms).toISOString()
+
+type Reserved = { count: number; blocked_until: string | null }
+
+/**
+ * Counts this try in `scope` before its password is checked, and says in the same statement where the scope stands
+ * (go-live 9.6). Reading the count first and bumping it after let concurrent guesses all pass the read before any
+ * bump landed, so a burst got far past the limit. Same windows and blocks as bump() (throttle.ts), except a blocked
+ * scope still counts the try (only the count moves): count > tripAt means it was blocked before this try, and
+ * count === tripAt means this try blocks it.
+ */
+async function reserve(db: D1Database, scope: string, limit: Limit, now: number): Promise<Reserved> {
+  const row = await db
+    .prepare(
+      `INSERT INTO auth_throttle (scope, count, window_start, blocked_until) VALUES (?1, 1, ?2, CASE WHEN 1 >= ?5 THEN ?4 END)
+       ON CONFLICT (scope) DO UPDATE SET
+         count = CASE WHEN blocked_until > ?2 THEN count + 1 WHEN blocked_until IS NOT NULL OR window_start <= ?3 THEN 1 ELSE count + 1 END,
+         window_start = CASE WHEN blocked_until > ?2 THEN window_start WHEN blocked_until IS NOT NULL OR window_start <= ?3 THEN ?2 ELSE window_start END,
+         blocked_until = CASE
+           WHEN blocked_until > ?2 THEN blocked_until
+           WHEN blocked_until IS NOT NULL OR window_start <= ?3 THEN CASE WHEN 1 >= ?5 THEN ?4 END
+           WHEN count + 1 >= ?5 THEN ?4
+         END
+       RETURNING count, blocked_until`,
+    )
+    .bind(scope, iso(now), iso(now - limit.windowMs), iso(now + limit.blockMs), limit.tripAt)
+    .first<Reserved>()
+  return row!
+}
+
+/** A right password was never a miss: takes back its reserved count, and the block it tripped if no one else's count holds it. */
+async function refund(db: D1Database, scope: string, limit: Limit) {
+  await db
+    .prepare('UPDATE auth_throttle SET count = count - 1, blocked_until = CASE WHEN count - 1 < ? THEN NULL ELSE blocked_until END WHERE scope = ? AND count > 0')
+    .bind(limit.tripAt, scope)
+    .run()
+}
+
+/** Seconds to wait after a reservation; 0 when the scope isn't blocked. */
+const waitOf = (r: Reserved, now: number) => (r.blocked_until && Date.parse(r.blocked_until) > now ? Math.ceil((Date.parse(r.blocked_until) - now) / 1000) : 0)
+
+/** The shared core of sign-in and step-up: the try counted, the password checked, a right one's count taken back. */
 async function checkPassword(db: D1Database, pepper: string, person: Person | null, addr: string, password: string, ip: string | null, now: number): Promise<PasswordCheck> {
   const ipS = ipScope(ip)
-  const ipWait = await blockedFor(db, ipS, now)
-  if (ipWait) return { kind: 'slow', seconds: ipWait }
-  const addrWait = await blockedFor(db, addr, now)
+  const netS = netScope(addr, ip)
+  const atIp = await reserve(db, ipS, LIMITS.authIp, now)
+  if (atIp.count > LIMITS.authIp.tripAt) return { kind: 'slow', seconds: waitOf(atIp, now) }
+  const atAddr = await reserve(db, addr, LIMITS.authAddr, now)
+  const atNet = await reserve(db, netS, LIMITS.authAddr, now)
+  const addrWait = atAddr.count > LIMITS.authAddr.tripAt ? waitOf(atAddr, now) : 0
   // The password is checked even while the address is blocked, so a blocked try takes the same time and
   // gets the same answer whether or not the address has an account.
   const tooLong = password.length > MAX_INPUT
   const v = await verifyPassword(tooLong ? '' : password, person?.password_hash ?? DUMMY_HASH, pepper)
   const right = v.ok && !tooLong && !!person && person.status === 'active'
-  if (addrWait && !(right && (await familiar(db, addr, ip, now)))) {
-    if (!right) {
-      await bump(db, ipS, LIMITS.authIp, now)
-      await bump(db, netScope(addr, ip), LIMITS.authAddr, now)
-    }
+  if (addrWait && !(right && (await familiar(db, addr, ip, atNet, now)))) {
+    // a wrong password stays counted; a right one from an unfamiliar network waits, but was never a miss
+    if (right) for (const [s, l] of [[ipS, LIMITS.authIp], [addr, LIMITS.authAddr], [netS, LIMITS.authAddr]] as const) await refund(db, s, l)
     return { kind: 'slow', seconds: addrWait }
   }
   if (!right || !person) {
-    const slow = Math.max(
-      await bump(db, ipS, LIMITS.authIp, now),
-      await bump(db, addr, LIMITS.authAddr, now),
-      await bump(db, netScope(addr, ip), LIMITS.authAddr, now),
-    )
+    const slow = Math.max(waitOf(atIp, now), waitOf(atAddr, now), waitOf(atNet, now))
     return slow ? { kind: 'slow', seconds: slow } : { kind: 'bad' }
   }
+  await refund(db, ipS, LIMITS.authIp)
   await clearThrottle(db, addr)
-  await clearThrottle(db, netScope(addr, ip))
+  await clearThrottle(db, netS)
   const net = ipPrefix(ip)
   if (net) await stamp(db, knownScope(addr, net), now)
   if (v.needsRehash) {

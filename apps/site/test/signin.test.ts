@@ -3,6 +3,7 @@ import { pruneThrottle } from '../src/auth/cleanup'
 import { hashPassword } from '../src/auth/password'
 import { safeNext } from '../src/auth/request'
 import { readSession, sessionId } from '../src/auth/session'
+import { signIn as signInNow } from '../src/auth/signin'
 import { addPerson, T0 } from './d1'
 import { body, Browser, fakeFetch, GOOD_PASSWORD, linkIn, mails, pepper, sameShape, testEnv, type TestEnv } from './browser'
 
@@ -166,6 +167,16 @@ describe('sign in', () => {
     expect((await signIn(new Browser(env, '203.0.113.32'), 'myra@example.org')).status).toBe(429)
     vi.setSystemTime(T0 + 16 * MIN)
     expect((await signIn(new Browser(env, '203.0.113.33'), 'myra@example.org')).status).toBe(303)
+  })
+
+  it("takes back the count of a right password, so sign-ins never use up the network's tries", async () => {
+    const env = testEnv()
+    await member(env, 'myra')
+    const signInRight = () => signInNow(env.DB, pepper, 'myra@example.org', GOOD_PASSWORD, { ip: '203.0.113.9', ua: null })
+    expect((await Promise.all(Array.from({ length: 10 }, signInRight))).every(r => r.kind === 'ok')).toBe(true)
+    for (let i = 0; i < 15; i++) expect((await signInRight()).kind).toBe('ok')
+    // 25 sign-ins later, 19 wrong tries from that network still answer "doesn't match"
+    for (let i = 1; i <= 19; i++) expect((await signInNow(env.DB, pepper, `p${i % 5}@example.org`, 'wrong', { ip: '203.0.113.9', ua: null })).kind).toBe('bad')
   })
 
   it('refuses a suspended account with the same answer as a wrong password', async () => {

@@ -9,6 +9,7 @@
 // OPEN (#104): every line of wording here is new.
 import { Hono, type Context } from 'hono'
 import { useContext, type FC } from 'hono/jsx'
+import { ShwarmError } from '@shwarm/protocol'
 import { formOf, postedTokenOk, sessionOf, who, type AuthContext } from '../auth/request'
 import { signInHref } from '../auth/return-to'
 import type { Session } from '../auth/session'
@@ -132,7 +133,20 @@ dms.post('/dms', async c => {
   const db = c.env.DB
   if ((f.do !== 'report' && f.do !== 'block') || !isId('d', f.id)) return sendError(c, { status: 400, text: 'that form asked for nothing we know.' }, 'html')
   const back = (done: string) => c.redirect(`/dms?${isId('d', f.before) ? `before=${f.before}&` : ''}done=${done}`, 303)
-  if (f.do === 'report') return back((await reportDm(db, { personId: s.personId, pattern: null, id: f.id, env: c.env.ENV })) ? 'reported' : 'gone')
+  if (f.do === 'report') {
+    try {
+      return back((await reportDm(db, { personId: s.personId, pattern: null, id: f.id, env: c.env.ENV })) ? 'reported' : 'gone')
+    } catch (e) {
+      // Past the report budget (shared with posts), or a DM one of their own agents sent, which has no report link
+      // here; only a hand-made form gets this far (go-live 9.6). OPEN (#105): new wording.
+      if (!(e instanceof ShwarmError)) throw e
+      if (e.code === 'rate_limited') return sendError(c, { status: 429, text: "you've sent a lot of reports this hour.", wait: Number(e.details.retry_after) || 60 }, 'html')
+      // Any other refusal keeps its own status, so a 400 from reportDm isn't shown as "not allowed".
+      const status = e.status
+      if (status === 400 || status === 403) return sendError(c, { status, heading: "that didn't work", text: e.message }, 'html')
+      throw e
+    }
+  }
   // Block the sender of a DM to one of the person's names, for all their names (the bare handle covers them).
   const dm = await db.prepare('SELECT from_name FROM dm WHERE id = ? AND to_person = ?').bind(f.id, s.personId).first<{ from_name: string }>()
   if (!dm || humanOf(dm.from_name) === '@' + s.handle) return back('gone')

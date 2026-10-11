@@ -258,6 +258,75 @@ describe('sign-up', () => {
     expect(mails(env.DB)).toHaveLength(before) // no "you already have an account" mail either
   })
 
+  it('holds a handle the same 7 days whether or not the address has an account (go-live 9.6)', async () => {
+    const env = testEnv()
+    await setSignup(env.DB, 'open')
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(T0)
+    await new Browser(env, '192.0.2.1').post('/join', joinForm('victim', 'victim@example.org'))
+    const held = new Browser(env, '192.0.2.2') // types an address that has an account
+    const pending = new Browser(env, '192.0.2.3') // types a new one
+    await held.post('/join', joinForm('squat_a', 'victim@example.org'))
+    await pending.post('/join', joinForm('squat_b', 'nobody@example.org'))
+    expect(person(env, 'squat_a')).toBeUndefined()
+    let net = 0
+    const tryFrom = (h: string) => new Browser(env, `198.51.${++net}.9`).post('/join', joinForm(h, `third${net}@example.org`))
+    const taken = async (h: string) => {
+      const r = await tryFrom(h)
+      return r.status === 400 && (await body(r)).includes('that handle is taken')
+    }
+    expect([await taken('squat_a'), await taken('squat_b')]).toEqual([true, true])
+    // each browser can send the form again, and the clock that frees the handle doesn't restart
+    const cookies = [held.jar.get('__Host-shwarm-pend'), pending.jar.get('__Host-shwarm-pend')]
+    vi.setSystemTime(T0 + 6 * 86_400_000)
+    expect((await held.post('/join', joinForm('squat_a', 'victim@example.org'))).status).toBe(303)
+    expect((await pending.post('/join', joinForm('squat_b', 'nobody@example.org'))).status).toBe(303)
+    expect([held.jar.get('__Host-shwarm-pend'), pending.jar.get('__Host-shwarm-pend')]).toEqual(cookies)
+    vi.setSystemTime(T0 + 7 * 86_400_000 - 1000)
+    expect([await taken('squat_a'), await taken('squat_b')]).toEqual([true, true])
+    // both free at the same moment, without waiting for the hourly cleanup
+    vi.setSystemTime(T0 + 7 * 86_400_000 + 1000)
+    expect([(await tryFrom('squat_a')).status, (await tryFrom('squat_b')).status]).toEqual([303, 303])
+    expect(env.DB.raw.prepare('SELECT COUNT(*) AS n FROM handle_hold').get().n).toBe(0)
+  })
+
+  it("moves a browser's claim on a handle between a hold and a pending account, keeping its clock", async () => {
+    const env = testEnv()
+    await setSignup(env.DB, 'open')
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(T0)
+    await new Browser(env, '192.0.2.1').post('/join', joinForm('victim', 'victim@example.org'))
+    const b = new Browser(env, '192.0.2.2')
+    await b.post('/join', joinForm('coolname', 'victim@example.org'))
+    vi.setSystemTime(T0 + 86_400_000)
+    expect((await b.post('/join', joinForm('coolname', 'mine@example.org'))).status).toBe(303)
+    expect(person(env, 'coolname')).toMatchObject({ email: 'mine@example.org', created_at: new Date(T0).toISOString() })
+    expect(env.DB.raw.prepare('SELECT COUNT(*) AS n FROM handle_hold').get().n).toBe(0)
+    vi.setSystemTime(T0 + 2 * 86_400_000)
+    expect((await b.post('/join', joinForm('coolname', 'Victim+again@example.org'))).status).toBe(303)
+    expect(person(env, 'coolname')).toBeUndefined()
+    expect(env.DB.raw.prepare('SELECT handle, created_at FROM handle_hold').all()).toEqual([{ handle: 'coolname', created_at: new Date(T0).toISOString() }])
+    expect(mails(env.DB).filter(m => m.to_email === 'mine@example.org')).toEqual([]) // the unsent verify mail went with the account
+  })
+
+  it('slows "send it again" at the same press whether or not the address has an account (go-live 9.6)', async () => {
+    const env = testEnv()
+    await setSignup(env.DB, 'open')
+    await new Browser(env, '192.0.2.1').post('/join', joinForm('victim', 'victim@example.org'))
+    const held = new Browser(env, '192.0.2.2')
+    const pending = new Browser(env, '192.0.2.3')
+    await held.post('/join', joinForm('squat_a', 'victim@example.org'))
+    await pending.post('/join', joinForm('squat_b', 'nobody@example.org'))
+    for (const b of [held, pending]) for (let i = 0; i < 3; i++) expect((await b.post('/check-email')).status).toBe(303)
+    const [x, y] = [await held.post('/check-email'), await pending.post('/check-email')]
+    expect([x.status, y.status]).toEqual([429, 429])
+    expect(x.headers.get('retry-after')).toBe(y.headers.get('retry-after'))
+    // only the new address gets verify links
+    expect(mails(env.DB).filter(m => m.template === 'verify').map(m => m.to_email)).toEqual([
+      'victim@example.org', 'nobody@example.org', 'nobody@example.org', 'nobody@example.org', 'nobody@example.org',
+    ])
+  })
+
   it('does its writes after the response when there is an ExecutionContext', async () => {
     const env = testEnv()
     await setSignup(env.DB, 'open')

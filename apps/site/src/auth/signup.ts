@@ -7,8 +7,11 @@
 // "check your email" page says it's waiting. So that page does show whether an address is invited: the
 // trade-off Myra chose. It depends only on the allow-list, never on whether the address has an account. The
 // writes run after the response where the runtime allows, so the time taken doesn't tell the cases apart.
-import { handleProblem, toBase64url } from '@shwarm/protocol'
+// An address that has an account still holds the handle (handle_hold) as long as a new account would, so a later
+// "that handle is taken" doesn't tell them apart either (go-live 9.6).
+import { handleProblem } from '@shwarm/protocol'
 import { mailStatement } from '../email/outbox'
+import { UNVERIFIED_DAYS } from './cleanup'
 import { formToken, formTokenOk } from './csrf'
 import { isDisposable, parseEmail } from './email'
 import { hashPassword, isPwned, passwordProblem } from './password'
@@ -66,10 +69,14 @@ export const cleanName = (s: string) => s.replace(/[\x00-\x1f\x7f​-‏‪-‮�
 
 // The pending-account cookie: "<handle>.<mac over the handle and the account's creation time>". It proves this
 // browser made that pending account, so signing up again here with the same handle replaces it (table B), and
-// it lets "send it again" find the account. The other cases set one with a random mac, so the response looks
-// the same either way. (Not over the id: the id is picked when the account is written, after the response.)
+// it lets "send it again" find the account. An address that already has an account gets one signed the same way
+// over its handle hold, so the response looks the same either way. (Not over the id: the id is picked when the
+// account is written, after the response.)
 const pendMac = (env: Env, p: { handle: string; created_at: string }) => formToken(env.CSRF_SECRET, `pend:${p.handle}:${p.created_at}`)
-const randomMac = () => toBase64url(crypto.getRandomValues(new Uint8Array(32)))
+const pendOk = async (env: Env, p: { handle: string; created_at: string }, cookie: string | undefined) => {
+  const pend = readPend(cookie)
+  return !!pend && pend.handle === p.handle && (await formTokenOk(env.CSRF_SECRET, `pend:${p.handle}:${p.created_at}`, pend.mac))
+}
 
 export function readPend(cookie: string | undefined): { handle: string; mac: string } | null {
   const m = cookie ? /^([a-z0-9_]{2,32})\.([A-Za-z0-9_-]{43})$/.exec(cookie) : null
@@ -86,8 +93,29 @@ export async function pendingAccount(db: D1Database, env: Env, handle: string, c
     .first<Pending>()
   if (!p) return null
   if (ctx.sessionPersonId === p.id) return p
-  const pend = readPend(ctx.pend)
-  return pend && pend.handle === handle && (await formTokenOk(env.CSRF_SECRET, `pend:${p.handle}:${p.created_at}`, pend.mac)) ? p : null
+  return (await pendOk(env, p, ctx.pend)) ? p : null
+}
+
+type Hold = { id: number; handle: string; created_at: string }
+
+const holdOf = (db: D1Database, handle: string) => db.prepare('SELECT id, handle, created_at FROM handle_hold WHERE handle = ?').bind(handle).first<Hold>()
+
+/**
+ * Before the handle is checked: an unverified account (as auth/cleanup.ts deletes them) or a hold past its 7 days
+ * goes now, so either frees the handle at the same moment, not whenever the hourly cleanup next runs. Only this
+ * handle's account; stale holds of any handle, since nothing else removes them.
+ */
+async function sweepStale(db: D1Database, handle: string, nowMs: number) {
+  const cutoff = new Date(nowMs - UNVERIFIED_DAYS * 86_400_000).toISOString()
+  const stale = 'SELECT id FROM person WHERE handle = ? AND email_verified_at IS NULL AND created_at < ?'
+  const any = await db.prepare(`${stale} UNION ALL SELECT id FROM handle_hold WHERE created_at < ? LIMIT 1`).bind(handle, cutoff, cutoff).first()
+  if (!any) return
+  await db.batch([
+    db.prepare(`UPDATE moderation_action SET person_id = NULL WHERE person_id IN (${stale})`).bind(handle, cutoff),
+    db.prepare(`DELETE FROM email_outbox WHERE sent_at IS NULL AND person_id IN (${stale})`).bind(handle, cutoff),
+    db.prepare(`DELETE FROM person WHERE id IN (${stale})`).bind(handle, cutoff),
+    db.prepare('DELETE FROM handle_hold WHERE created_at < ?').bind(cutoff),
+  ])
 }
 
 /** Whether this account joined from an address off the allow-list and is waiting for shwarm to open (signup_wait). */
@@ -138,9 +166,13 @@ export async function signUp(db: D1Database, env: Env, input: SignupInput, ctx: 
   const hash = await hashPassword(password, env.PASSWORD_PEPPER)
 
   // 4. the handle. Handles are public, so this answer may differ; nothing after it may depend on the address.
+  // A hold (step 5) takes it like an account does; this browser's own pending account or hold doesn't.
+  await sweepStale(db, handle, nowMs)
   const mine = await pendingAccount(db, env, handle, ctx)
+  const hold = await holdOf(db, handle)
+  const myHold = hold && (await pendOk(env, hold, ctx.pend)) ? hold : null
   const taken = await db.prepare('SELECT id FROM person WHERE handle = ?').bind(handle).first<{ id: number }>()
-  if (taken && taken.id !== mine?.id) return { kind: 'errors', errors: { handle: COPY.handleTaken } }
+  if ((taken && taken.id !== mine?.id) || (hold && !myHold)) return { kind: 'errors', errors: { handle: COPY.handleTaken } }
 
   // 5. which case is this? Each one does the same reads and gets the same answer.
   const owner = await db
@@ -152,32 +184,63 @@ export async function signUp(db: D1Database, env: Env, input: SignupInput, ctx: 
   const termsVersion = (await setting<string>(db, 'terms_version')) ?? '0'
   const waiting = !open && !invited
   const defer: Defer = ctx.defer ?? (work => work().then(() => {}))
-  const decoy: SignupResult = { kind: 'sent', pend: `${handle}.${randomMac()}`, waiting }
+  // Replacing this browser's earlier claim on the handle (a pending account or a hold) keeps its creation time, so
+  // re-sending the form never restarts the 7-day clock that frees the handle (table B).
+  const created_at = mine?.created_at ?? myHold?.created_at ?? now
+  const sent: SignupResult = { kind: 'sent', pend: `${handle}.${await pendMac(env, { handle, created_at })}`, waiting }
+  const claim = { handle, created_at, replaces: mine?.id, replacesHold: myHold?.id }
 
   if (owner && owner.id !== mine?.id) {
+    // No account, but the handle is held for this browser just as a new account would hold it (go-live 9.6).
     await defer(() =>
-      mailStatement(db, {
+      holdHandle(db, claim, mailStatement(db, {
         to: owner.email, template: 'signup_existing', stream: 'account', personId: owner.id,
         payload: { handle: owner.handle, verified: owner.email_verified_at !== null, signin: `${ctx.origin}/signin`, forgot: `${ctx.origin}/forgot` },
-      }, now).run(),
+      }, now)),
     )
-    return decoy
+    return sent
   }
-  // 6. make the account. Replacing this browser's pending one keeps its creation time, so re-sending the form
-  // never restarts the 7-day clock that frees the handle (table B).
-  const created_at = mine?.created_at ?? now
+  // 6. make the account.
   await defer(() =>
-    createAccount(db, { handle, displayName, email: email.email, norm: email.norm, hash, termsVersion, created_at, replaces: mine?.id, waiting }, ctx.origin, nowMs, {
+    createAccount(db, { ...claim, displayName, email: email.email, norm: email.norm, hash, termsVersion, waiting }, ctx.origin, nowMs, {
       secret: env.CSRF_SECRET, next: ctx.next,
     }),
   )
-  return { kind: 'sent', pend: `${handle}.${await pendMac(env, { handle, created_at })}`, waiting }
+  return sent
+}
+
+/** A claim on a handle, and the claim this browser made on it before (`replaces`: a pending account; `replacesHold`: a hold). */
+type Claim = { handle: string; created_at: string; replaces?: number; replacesHold?: number }
+
+/** The earlier claim goes: a pending account with its unsent mail (its signup_wait row goes with it), or a hold. */
+function releaseClaim(db: D1Database, c: Claim): D1PreparedStatement[] {
+  const stmts: D1PreparedStatement[] = []
+  if (c.replaces) {
+    stmts.push(db.prepare('DELETE FROM email_outbox WHERE person_id = ? AND sent_at IS NULL').bind(c.replaces))
+    stmts.push(db.prepare('DELETE FROM person WHERE id = ? AND email_verified_at IS NULL').bind(c.replaces))
+  }
+  if (c.replacesHold) stmts.push(db.prepare('DELETE FROM handle_hold WHERE id = ?').bind(c.replacesHold))
+  return stmts
+}
+
+/** The hold (replacing this browser's earlier claim) and the "you already have an account" mail, in one batch. */
+async function holdHandle(db: D1Database, c: Claim, mail: D1PreparedStatement) {
+  try {
+    await db.batch([
+      ...releaseClaim(db, c),
+      db.prepare('INSERT INTO handle_hold (handle, created_at) SELECT ?1, ?2 WHERE NOT EXISTS (SELECT 1 FROM person WHERE handle = ?1)').bind(c.handle, c.created_at),
+      mail,
+    ])
+  } catch (e) {
+    // Lost a race for the handle, as in createAccount: the visitor already has the page, and no mail comes.
+    if (!String((e as Error)?.message ?? e).includes('handle_hold.handle')) throw e
+  }
 }
 
 /** `waiting`: off the allow-list while sign-up is invite-only, so it goes on signup_wait (decided Oct 10). */
-type NewAccount = { handle: string; displayName: string; email: string; norm: string; hash: string; termsVersion: string; created_at: string; replaces?: number; waiting: boolean }
+type NewAccount = Claim & { displayName: string; email: string; norm: string; hash: string; termsVersion: string; waiting: boolean }
 
-/** The account (replacing this browser's pending one, whose signup_wait row goes with it), its verify link and the mail, in one batch. */
+/** The account (replacing this browser's earlier claim on the handle), its verify link and the mail, in one batch. */
 async function createAccount(db: D1Database, a: NewAccount, origin: string, nowMs: number, back: { secret: string; next?: string }) {
   const now = new Date(nowMs).toISOString()
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -185,11 +248,7 @@ async function createAccount(db: D1Database, a: NewAccount, origin: string, nowM
     const p = { id: (max?.id ?? 0) + 1, handle: a.handle, email: a.email }
     const { token, stmt } = await newToken(db, p.id, 'verify', nowMs)
     const signedNext = await verifyNext(back.secret, token, back.next)
-    const stmts: D1PreparedStatement[] = []
-    if (a.replaces) {
-      stmts.push(db.prepare('DELETE FROM email_outbox WHERE person_id = ? AND sent_at IS NULL').bind(a.replaces))
-      stmts.push(db.prepare('DELETE FROM person WHERE id = ? AND email_verified_at IS NULL').bind(a.replaces))
-    }
+    const stmts = releaseClaim(db, a)
     stmts.push(
       db
         .prepare(
@@ -234,7 +293,12 @@ export async function resendVerify(db: D1Database, env: Env, ctx: { ip: string |
   }
   const pend = readPend(ctx.pend)
   if (!p && pend) p = await pendingAccount(db, env, pend.handle, { pend: ctx.pend })
-  if (!p) return 0
+  if (!p) {
+    // A hold (an address that already has an account) counts presses as a pending account does, so the 429 comes
+    // at the same press either way (go-live 9.6). No mail.
+    const hold = pend ? await holdOf(db, pend.handle) : null
+    return hold && (await pendOk(env, hold, ctx.pend)) ? bump(db, `resend:hold:${hold.id}`, LIMITS.resendPerson, nowMs) : 0
+  }
   const wait = await bump(db, `resend:person:${p.id}`, LIMITS.resendPerson, nowMs)
   if (wait) return wait
   const { token, stmt } = await newToken(db, p.id, 'verify', nowMs)

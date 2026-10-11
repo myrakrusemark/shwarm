@@ -5,7 +5,8 @@
 // Every answer to a DM call, and to GET /key, is checked against docs/openapi.yaml (test/contract.ts), as api.test.ts does.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import app from '../src/index'
-import { block, DM_KEEP_DAYS, DM_MAX_BYTES, dmOn, pruneDms, readDmsPage, sendDm, unblock } from '../src/core/dm'
+import { LIMITS, bump } from '../src/auth/throttle'
+import { block, DM_KEEP_DAYS, DM_MAX_BYTES, dmOn, pruneDms, readDmsPage, reportDm, sendDm, unblock } from '../src/core/dm'
 import { ALL_PERMS, keyFor, send, verifiedPerson, type Key, type Sent } from './agent-client'
 import { fakeFetch, testEnv } from './browser'
 import { hasResponse, responseSchema, schemaErrors } from './contract'
@@ -517,6 +518,52 @@ describe('POST /dm/report', () => {
       expect(x.status, String(id)).toBe(400)
     }
     expect(w.get('SELECT COUNT(*) AS n FROM report').n).toBe(1)
+  })
+})
+
+describe('DM reports: the budget and your own agents (go-live 9.6)', () => {
+  const PER_HOUR = LIMITS.reportPerson.tripAt - 1
+
+  it("a DM between two of your own names can't be reported: 403 own_work, no report, no mail", async () => {
+    const w = await world()
+    w.db.raw.prepare('UPDATE person SET is_admin = 1 WHERE id = ?').run(w.myra.id)
+    await dmOn(w.db, w.myra, '@myra/fathom')
+    const sent = (await w.dm(w.keys.myra, '@myra/m-04', '@myra/fathom', 'look, abuse')).json.id
+    const r = await w.call(w.keys.myra, { path: '/dm/report', body: { id: sent } })
+    expect(r.status).toBe(403)
+    expect(r.json).toMatchObject({ error: 'own_work', field: 'id' })
+    await expect(reportDm(w.db, { personId: w.myra.id, pattern: null, id: sent })).rejects.toMatchObject({ code: 'own_work' })
+    expect(w.get('SELECT COUNT(*) AS n FROM report').n).toBe(0)
+    expect(w.get("SELECT COUNT(*) AS n FROM email_outbox WHERE template = 'dm_report'").n).toBe(0)
+    expect(w.get('SELECT reported_at FROM dm WHERE id = ?', sent).reported_at).toBeNull()
+  })
+
+  it('30 tries an hour per person, the next is 429 with its wait; an hour on, reports work again', async () => {
+    const w = await world()
+    const sent = (await w.dm(w.keys.myra, '@myra/m-04', '@ana/scout', 'send me your key file')).json.id
+    // every try counts, a repeat of the same DM too, as on posts
+    for (let i = 0; i < PER_HOUR; i++) expect((await w.call(w.keys.ana, { path: '/dm/report', body: { id: sent } })).status, `try ${i + 1}`).toBe(202)
+    const over = await w.call(w.keys.ana, { path: '/dm/report', body: { id: sent } })
+    expect(over.status).toBe(429)
+    expect(over.json).toMatchObject({ error: 'rate_limited', limit: 'reports', retry_after: 3600 })
+    expect(over.res.headers.get('retry-after')).toBe('3600')
+    expect(w.get('SELECT COUNT(*) AS n FROM report').n).toBe(1)
+
+    vi.setSystemTime(T0 + LIMITS.reportPerson.blockMs + 1000)
+    expect(await reportDm(w.db, { personId: w.ana.id, pattern: null, id: sent, now: Date.now() })).toBe(true)
+  })
+
+  it('shares one budget with "report" on posts', async () => {
+    const w = await world()
+    const sent = (await w.dm(w.keys.myra, '@myra/m-04', '@ana/scout')).json.id
+    // what web/node-routes.tsx reportAct spends for each post report
+    for (let i = 0; i < PER_HOUR; i++) await bump(w.db, `report:person:${w.ana.id}`, LIMITS.reportPerson, T0)
+    await expect(reportDm(w.db, { personId: w.ana.id, pattern: null, id: sent, now: T0 })).rejects.toMatchObject({ code: 'rate_limited', details: { limit: 'reports' } })
+    expect(w.get('SELECT COUNT(*) AS n FROM report').n).toBe(0)
+    // someone else's budget is their own
+    const dee = await w.someone('dee', '@dee/x')
+    const theirs = (await w.dm(w.keys.myra, '@myra/m-04', '@dee/x')).json.id
+    expect(await reportDm(w.db, { personId: dee.id, pattern: null, id: theirs, now: T0 })).toBe(true)
   })
 })
 

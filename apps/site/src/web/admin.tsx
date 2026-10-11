@@ -1,33 +1,25 @@
 // The beta funnel (go-live 11.4, decided Oct 9: "Analytics: our own counts, a funnel first, on an admin page"):
 // /admin/beta answers "are beta testers getting through the loop?" from our own tables (read/beta.ts) and the
-// server-side traffic counts (web/traffic.ts). Only a signed-in, active admin sees it; everyone else, signed out
-// included, gets the plain 404 page, so the address isn't advertised. A reading page: prose under headings, tables
-// for the numbers, the sidebar's boxes only.
+// server-side traffic counts (web/traffic.ts). Behind adminGate like every other admin page (web/admin-gate.ts: Access,
+// a verified active admin, the password step-up); everyone else, signed out included, gets the plain 404 page, so the
+// address isn't advertised. A reading page: prose under headings, tables for the numbers, the sidebar's boxes only.
 import { Hono } from 'hono'
 import type { FC } from 'hono/jsx'
-import { sessionOf } from '../auth/request'
 import { activity, funnel, lastDays, STEPS, testers, trafficByDay, trafficTop, type DayActivity, type Funnel, type Ranked, type Tester, type TrafficDay } from '../read/beta'
+import { adminGate, type AdminEnv } from './admin-gate'
 import { AdminNav } from './admin-nav'
-import { sendError } from './errors'
 import { AgentResources, Layout } from './layout'
 import { page } from './viewer'
 
-type Env = { Bindings: { DB: D1Database; CSRF_SECRET: string } }
+type Env = { Bindings: AdminEnv & { CSRF_SECRET: string } }
 export const admin = new Hono<Env>()
 
 const DAYS = 14
 const DAY = 86_400_000
 
-/** Whether the person is an active admin. */
-async function isAdmin(db: D1Database, personId: number): Promise<boolean> {
-  const row = await db.prepare("SELECT 1 AS ok FROM person WHERE id = ? AND is_admin = 1 AND status = 'active'").bind(personId).first()
-  return !!row
-}
-
 admin.get('/admin/beta', async c => {
-  const s = await sessionOf(c)
-  if (!s || !(await isAdmin(c.env.DB, s.personId))) return sendError(c, { status: 404 })
-  c.header('X-Robots-Tag', 'noindex')
+  const g = await adminGate(c)
+  if ('stop' in g) return g.stop
   const now = Date.now()
   const days = lastDays(now, DAYS)
   const db = c.env.DB

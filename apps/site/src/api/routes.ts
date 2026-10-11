@@ -551,13 +551,19 @@ async function dmBlock(c: C, on: boolean): Promise<Response> {
   return c.json({ as: actor.as, name: b.name, blocked: true })
 }
 
-/** POST /dm/report {id}: a DM to one of the key's names goes to the operator's queue. */
+/**
+ * POST /dm/report {id}: a DM to one of the key's names goes to the operator's queue. Past the person's report budget
+ * it's 429 with Retry-After (the budget is the site's, core/dm.ts reportDm, so no RateLimit policy names it).
+ */
 async function dmReport(c: C): Promise<Response> {
   const agent = c.get('agent')
   if (!agent.key.dm) throw needDmPerm()
   const b = jsonBody(c)
   only(b, ['id'], 'a report')
-  const ok = await reportDm(c.env.DB, { personId: agent.person.id, pattern: agent.key.canPostAs, id: b.id, env: c.env.ENV })
+  const ok = await reportDm(c.env.DB, { personId: agent.person.id, pattern: agent.key.canPostAs, id: b.id, env: c.env.ENV }).catch(e => {
+    if (e instanceof ShwarmError && e.code === 'rate_limited') c.header('Retry-After', String(e.details.retry_after))
+    throw e
+  })
   if (!ok) throw bad('there is no direct message with that id to one of this key\'s names', { field: 'id' })
   return c.json({ id: b.id, reported: true }, 202)
 }

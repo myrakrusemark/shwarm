@@ -133,7 +133,7 @@ describe('the admin console: who gets in', () => {
     const tokens = new Map<string, string>()
     for (const [p] of FORMS) tokens.set(p, formTokenIn(await (await myra.get(p)).text()))
     w.raw.prepare('UPDATE session SET step_up_until = NULL').run()
-    for (const p of PAGES.filter(p => !p.endsWith('/') && p !== '/admin/beta')) {
+    for (const p of PAGES.filter(p => !p.endsWith('/'))) {
       const r = await myra.req(p, { headers: HTML })
       expect(r.status, p).toBe(303)
       expect(r.headers.get('location'), p).toMatch(/^\/step-up\?next=%2Fadmin/)

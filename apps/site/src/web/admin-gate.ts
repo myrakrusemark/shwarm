@@ -1,16 +1,18 @@
 // The gate in front of every /admin page and form (go-live 9.4). Three layers:
 //   1. Cloudflare Access, when it is set up (ACCESS_AUD and ACCESS_TEAM in the env): the request must carry Access's
-//      signed header (Cf-Access-Jwt-Assertion). Access checks Myra's hardware key before the request reaches us. The
-//      JWT itself is checked at Cloudflare's edge; here a missing header is refused, so a request that went around
-//      Access (a workers.dev name) gets nowhere. OPEN: verifying the JWT's signature here too (Access's JWKS) is 9.6's.
+//      signed header (Cf-Access-Jwt-Assertion), and the Worker checks it (go-live 9.6, web/access-jwt.ts): the
+//      signature against the team's keys, our application's aud, our team's iss, not expired. Access asks for the
+//      emailed code before the request reaches us; checking the token here means a request that went around Access,
+//      or carries a made-up header, gets nowhere. ACCESS_AUD without ACCESS_TEAM lets no one in.
 //   2. A signed-in, verified session of an active admin. Anyone else gets the plain 404, so the address isn't
-//      advertised (as /admin/beta does).
+//      advertised.
 //   3. The password step-up (A5) for every page and act: an admin act changes other people's accounts and content.
 // Every admin act writes a moderation_action row (core/moderation.ts); this file only decides who gets in.
 import type { Context } from 'hono'
 import { sessionOf } from '../auth/request'
 import type { Session } from '../auth/session'
 import { requireStepUp } from '../auth/stepup'
+import { accessTokenOk } from './access-jwt'
 import { sendError } from './errors'
 
 export type AdminEnv = { DB: D1Database; ACCESS_AUD?: string; ACCESS_TEAM?: string }
@@ -29,7 +31,8 @@ export async function isAdmin(db: D1Database, personId: number): Promise<boolean
 export async function adminGate<E extends { Bindings: AdminEnv }>(c: Context<E>, o: { stepUp?: boolean } = {}): Promise<{ session: Session } | { stop: Response }> {
   c.header('X-Robots-Tag', 'noindex')
   c.header('Cache-Control', 'private, no-store')
-  if (c.env.ACCESS_AUD && !c.req.header('cf-access-jwt-assertion')) return { stop: await sendError(c, { status: 404 }) }
+  const aud = c.env.ACCESS_AUD
+  if (aud && !(await accessTokenOk(c.req.header('cf-access-jwt-assertion'), { aud, team: c.env.ACCESS_TEAM }))) return { stop: await sendError(c, { status: 404 }) }
   const s = await sessionOf(c)
   if (!s || !s.verified || !(await isAdmin(c.env.DB, s.personId))) return { stop: await sendError(c, { status: 404 }) }
   if (o.stepUp !== false) {

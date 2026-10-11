@@ -51,7 +51,7 @@ app.use('*', async (c, next) => {
   c.header('X-Frame-Options', 'DENY')
   c.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
   // Search engines stay out until launch day (go-live 3.10): every response in every mode but open, errors, redirects,
-  // the agent API and /healthz included. Files under static/ are served before the Worker runs; static/_headers covers them.
+  // the agent API and /healthz included. Files under static/ are served before the Worker runs; static/_headers covers them, and gives them the headers above too (keep the two in step).
   if (siteModeOf(c.env) !== 'open') c.header('X-Robots-Tag', 'noindex')
   c.header('Content-Security-Policy', "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com")
 })

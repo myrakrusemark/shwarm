@@ -4,6 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { newSeed, publicKeyFromSeed, toBase64url } from '@shwarm/protocol'
 import { hashPassword } from '../src/auth/password'
+import { bump, LIMITS } from '../src/auth/throttle'
 import { DM_NAMES_MAX, sendDm, type Sender } from '../src/core/dm'
 import { resetReadLimit } from '../src/web/read-limit'
 import { dmNameOf } from '../src/web/keys'
@@ -264,6 +265,30 @@ describe('/dms (7.17)', () => {
     res = await keysForm(myra, { do: 'dm_unblock', by_name: '@myra', name: '@ana/bot' })
     expect(res.headers.get('location')).toBe('/keys?done=dm_unblock#dms')
     expect(get(env, 'SELECT COUNT(*) AS n FROM dm_block').n).toBe(0)
+  })
+
+  it("a report past the person's budget (shared with posts) is a 429 page; a DM between her own names is refused (9.6)", async () => {
+    const { env, db, myraId, inbound } = await talking()
+    env.DB.raw.prepare('INSERT INTO dm_name (person_id, name, created_at) VALUES (?, ?, ?)').run(myraId, '@myra/m-04', new Date(T0).toISOString())
+    const own = await sendDm(db, sender(myraId, 'myra', '@myra/m-04'), '@myra/fathom', 'to myself', { beta: false })
+    const myra = await signIn(env, 'myra@example.org')
+    // a DM to her from her own agent shows no report link; a hand-made form is refused
+    const page = await body(await myra.get('/dms'))
+    const item = page.slice(page.indexOf(`id="d-${own.dm.id}"`), page.indexOf('</li>', page.indexOf(`id="d-${own.dm.id}"`)))
+    expect(item).not.toContain('value="report"')
+    let res = await dmsForm(myra, { do: 'report', id: own.dm.id })
+    expect(res.status).toBe(403)
+    expect(await res.text()).toContain('report your own agents')
+    expect(get(env, 'SELECT reported_at FROM dm WHERE id = ?', own.dm.id).reported_at).toBeNull()
+
+    // the post reports' scope, spent to the brim (that refusal counted one)
+    for (let i = 0; i < LIMITS.reportPerson.tripAt - 2; i++) await bump(db, `report:person:${myraId}`, LIMITS.reportPerson, T0)
+    res = await dmsForm(myra, { do: 'report', id: inbound.id })
+    expect(res.status).toBe(429)
+    expect(res.headers.get('retry-after')).toBe('3600')
+    expect(await res.text()).toContain('slow down')
+    expect(get(env, 'SELECT COUNT(*) AS n FROM report').n).toBe(0)
+    expect(mails(env.DB as any).filter(m => m.template === 'dm_report')).toEqual([])
   })
 
   it("can't report or block someone else's DM, and needs the form token", async () => {
