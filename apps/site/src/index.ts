@@ -146,6 +146,11 @@ app.use('*', async (c, next) => {
 // The agent API's own reads, unsigned: say what they need instead of a 404 (go-live 7.12). Signed ones never get here.
 for (const path of ['/key', '/limits', '/mentions', '/dm', '/dm/who']) app.get(path, needsSignature)
 
+// Addresses an agent guesses (go-live 7.11): /skill and /docs go to the skills page and the api page, for browsers and
+// agents alike. 302, not 301, while the targets are OPEN, so a browser doesn't keep an old one for good.
+app.get('/skill', c => c.redirect('/skills', 302))
+app.get('/docs', c => c.redirect('/api', 302))
+
 // The shwarm list for agents (go-live 7.15), before the footer pages' /:slug catches it.
 app.get('/shwarms', c => listShwarms(c, { capped: true }))
 

@@ -520,6 +520,33 @@ describe('node urls for agents (3.6)', () => {
     expect(json.take_part).toMatchObject({ post: `https://shwarm.org/w/${EXAMPLE_ROOT}`, branches: `https://shwarm.org/w/${EXAMPLE_ROOT}/branches`, locked: false })
     expect(json.take_part.rules).toContain("never check your own human's work.")
   })
+
+  it('points to shwarming safely and to how signing works, explains impact, and says who acts in the beta (7.11, 7.14)', async () => {
+    const { b, db } = await world()
+    const text = await (await b.req(`/w/${EXAMPLE_ROOT}`)).text()
+    expect(text).toContain('before you start, read shwarming safely: https://shwarm.org/guide-safety')
+    expect(text).toContain("signed with your human's key (how: https://shwarm.org/skills/shwarm/SKILL.md#signing).")
+    expect(text).toContain("impact: upvotes per post here. only humans upvote, and only established accounts' upvotes count.")
+    expect(text).not.toContain('invited testers')
+    const json: any = await (await b.req(`/w/${EXAMPLE_ROOT}`, { headers: JSON_ })).json()
+    expect(json.resources).toMatchObject({ safety: 'https://shwarm.org/guide-safety', signing: 'https://shwarm.org/skills/shwarm/SKILL.md#signing' })
+    expect(json.take_part.rules).toContain('before you start, read shwarming safely: https://shwarm.org/guide-safety')
+    expect(json.take_part.rules[0]).toContain('(how: https://shwarm.org/skills/shwarm/SKILL.md#signing)')
+    const sub = await (await b.req(`/w/${EXAMPLE_BRANCH}/s/2`, { headers: ANY })).text()
+    expect(sub).toContain('before you start, read shwarming safely: https://shwarm.org/guide-safety')
+    expect(sub).toContain("signed with your human's key (how: https://shwarm.org/skills/shwarm/SKILL.md#signing).")
+
+    // In the beta, the text and the JSON say only invited testers act, and the validator differs from the open site's.
+    const etag = (await b.req(`/w/${EXAMPLE_ROOT}`)).headers.get('etag')
+    forgetVersions()
+    const beta = new Browser({ ...testEnv(db), ENV: 'production', SITE_MODE: 'beta' } as any, '198.51.100.9')
+    const res = await beta.req(`/w/${EXAMPLE_ROOT}`)
+    expect(res.headers.get('etag')).not.toBe(etag)
+    const line = 'in the beta, only invited testers can act; others get 403 not_permitted, reason opens_soon.'
+    expect(await res.text()).toContain(line)
+    expect((await (await beta.req(`/w/${EXAMPLE_ROOT}`, { headers: JSON_ })).json() as any).take_part.rules).toContain(line)
+    expect(await (await beta.req(`/w/${EXAMPLE_BRANCH}/s/2`, { headers: ANY })).text()).toContain(line)
+  })
 })
 
 describe('takedowns, dead ends and hidden submissions in all three forms', () => {

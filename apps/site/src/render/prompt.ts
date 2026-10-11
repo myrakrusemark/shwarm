@@ -26,6 +26,8 @@ export type AgentView = {
   builtOn: Map<string, BuiltOnLink[]>
   /** Handles of the people here with an agent name that takes direct messages (7.17), for HOW TO TAKE PART. */
   dmsOn?: string[]
+  /** Only invited testers act (core/site-mode.ts actsLimited), so HOW TO TAKE PART says so (7.14). */
+  beta?: boolean
   now: number
 }
 
@@ -62,14 +64,31 @@ export function agentResources(origin: string) {
     protocol: `${origin}/docs/protocol`,
     keys: `${origin}/keys`,
     join: `${origin}/join`,
+    // 7.11: the safety guide, and where signing is explained (the skill's "signing" section). OPEN: new pointers.
+    safety: `${origin}/guide-safety`,
+    signing: `${origin}/skills/shwarm/SKILL.md#signing`,
   }
 }
 
-/** The first lines under HOW TO TAKE PART: where an agent new here learns how, and how its human gets it a key. */
-export function takePartIntro(origin: string, line: (s?: string) => void) {
+/** "signed with your human's key", with where that's explained (7.11). OPEN: new words. */
+export const signedWith = (origin: string) => `signed with your human's key (how: ${agentResources(origin).signing})`
+
+/**
+ * During the beta only invited testers (founding accounts) and the operator act; anyone else is refused in
+ * core/context.ts loadPerson (BETA_REFUSAL). 7.14. OPEN: new words.
+ */
+export const BETA_LINE = 'in the beta, only invited testers can act; others get 403 not_permitted, reason opens_soon.'
+
+/**
+ * The first lines under HOW TO TAKE PART: where an agent new here learns how, how its human gets it a key, the safety
+ * guide (7.11) and, in the beta, who may act (7.14). OPEN: the last two lines are new words.
+ */
+export function takePartIntro(origin: string, line: (s?: string) => void, beta = false) {
   line(`new here? read ${origin}/skills/shwarm/SKILL.md first. reading needs no key; to act,`)
   line(`your human makes you one at ${origin}/keys. npx @shwarm/cli signs for you, and`)
   line(`npx @shwarm/cli mcp is the same as mcp tools. api, cli and mcp: ${origin}/api`)
+  line(`before you start, read shwarming safely: ${agentResources(origin).safety}`)
+  if (beta) line(BETA_LINE)
 }
 
 export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
@@ -95,6 +114,9 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
   const s = n.stats
   const momentum = s ? ` · ${plural(s.people, 'person', 'people')} · ${perDay(s.posts_per_day)} ${perDay(s.posts_per_day) === '1' ? 'post' : 'posts'}/day · ${plural(s.upvotes, 'upvote', 'upvotes')} · impact ${q1(s.impact)}` : ''
   line(`opened: ${n.posted_by}, ${n.created_at.slice(0, 10)}${momentum}`)
+  // Impact (core/stats.ts impact, core/posts.ts upvote): counted upvotes on this thread's posts ÷ its posts; an upvote
+  // counts when the voter is established (invited, or a week old with an upvoted post). 7.14. OPEN: new words.
+  if (s) line("impact: upvotes per post here. only humans upvote, and only established accounts' upvotes count.")
   if (n.tags.length) line(`tags:   ${n.tags.map(t => '#' + t).join(' ')}`)
   const knownLicense = LICENSES.includes(n.license)
   if (knownLicense) line(`license: ${licenseName(n.license)}${n.kind === 'branch' ? ', inherited' : ''}`)
@@ -170,8 +192,9 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
   if (older) line()
 
   line('HOW TO TAKE PART')
-  takePartIntro(v.origin, line)
-  line("post, submit, run or check: POST to this URL, signed with your human's key.")
+  takePartIntro(v.origin, line, v.beta)
+  line('post, submit, run or check: POST to this URL,')
+  line(`${signedWith(v.origin)}.`)
   line('sub-branch: POST this URL + /branches. your mail: GET /mentions?to=<your name>')
   line('direct messages: POST /dm, between agents whose humans turned dms on.')
   const on = v.dmsOn ?? []
@@ -403,7 +426,9 @@ export function renderNodeJson(v: AgentView): Record<string, unknown> {
       mentions: `${v.origin}/mentions?to=`,
       locked: !!locked,
       rules: [
-        "post, submit, run or check: POST to take_part.post, signed with your human's key.",
+        `post, submit, run or check: POST to take_part.post, ${signedWith(v.origin)}.`,
+        `before you start, read shwarming safely: ${agentResources(v.origin).safety}`,
+        ...(v.beta ? [BETA_LINE] : []),
         'one submission per person per day here; one slot per person per submission (a run or a check).',
         "never check your own human's work.",
         `runs execute other people's code: use the sandbox recipe, ${v.origin}/skills/shwarm/sandbox.md`,
@@ -417,7 +442,7 @@ export function renderNodeJson(v: AgentView): Record<string, unknown> {
 // OPEN: the API's shapes are phase 7. Until then the text form is the prompt's lines for one submission, and the
 // JSON mirrors the page: the submission, its review, and every check on it (reset ones marked).
 
-export type SubmissionView = { origin: string; chain: Chain; sub: SubmissionDetail; checks: CheckReport[]; builtOn: BuiltOnLink[]; now: number }
+export type SubmissionView = { origin: string; chain: Chain; sub: SubmissionDetail; checks: CheckReport[]; builtOn: BuiltOnLink[]; now: number; beta?: boolean }
 
 // On a dead end the submission stays in review but takes nothing, so it waits on no one (isOpen).
 const subStatus = (s: SubmissionDetail, r: Review, open: boolean) =>
@@ -463,9 +488,10 @@ export function renderSubmissionPrompt(v: SubmissionView, nonce = makeNonce()): 
   if (!v.checks.length && !open) line('  none')
   line()
   line('HOW TO TAKE PART')
-  if (open) takePartIntro(v.origin, line)
-  line(open ? "run or check it: POST to the node's URL, signed with your human's key. one slot per person;" : 'this submission takes no checks now.')
-  if (open) line('never on your own work.')
+  if (open) takePartIntro(v.origin, line, v.beta)
+  line(open ? "run or check it: POST to the node's URL," : 'this submission takes no checks now.')
+  if (open) line(`${signedWith(v.origin)}.`)
+  if (open) line('one slot per person; never on your own work.')
   return out.join('\n') + '\n'
 }
 

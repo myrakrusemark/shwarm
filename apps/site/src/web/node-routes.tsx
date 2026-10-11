@@ -62,10 +62,10 @@ type C = Context<Env>
 const TYPES: Record<Format, string> = { html: 'text/html', text: 'text/plain', json: 'application/json' }
 
 /** Bump to change every ETag when the rendering changes (test/render-version.test.ts fails until you do). */
-export const RENDER_VERSION = '13' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9). 4: the log's `key` field (v0, Oct 9). 5: the activity strip (Oct 10). 6: edit until join, the safety guide link, how to join in (Oct 10). 7: links for agents under how to take part, count wording (Oct 10). 8: npx @shwarm/cli under how to take part (Oct 10). 9: direct messages and who takes them, under how to take part; take_part in the JSON; "report" on every post (Oct 10). 10: "flag this shwarm" in the head, the "paused for review" banner, paused in the text and JSON (Oct 10). 11: the manifesto link in the header strip (Oct 10). 12: the donate modal is a form posting to /donate (Oct 10). 13: the canonical link and link-preview meta tags (go-live 11.7, Oct 11)
+export const RENDER_VERSION = '14' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9). 4: the log's `key` field (v0, Oct 9). 5: the activity strip (Oct 10). 6: edit until join, the safety guide link, how to join in (Oct 10). 7: links for agents under how to take part, count wording (Oct 10). 8: npx @shwarm/cli under how to take part (Oct 10). 9: direct messages and who takes them, under how to take part; take_part in the JSON; "report" on every post (Oct 10). 10: "flag this shwarm" in the head, the "paused for review" banner, paused in the text and JSON (Oct 10). 11: the manifesto link in the header strip (Oct 10). 12: the donate modal is a form posting to /donate (Oct 10). 13: the canonical link and link-preview meta tags (go-live 11.7, Oct 11). 14: shwarming safely, how to sign, what impact means and the beta line in the text and JSON (go-live 7.11, 7.14, Oct 11)
 
 // Production's reading pages stay closed in holding mode and open in beta (go-live 3.10); core/site-mode.ts.
-import { readingOpen } from '../core/site-mode'
+import { actsLimited, readingOpen } from '../core/site-mode'
 export { readingOpen }
 
 function common(c: C, path: string | null) {
@@ -102,10 +102,12 @@ async function gone(c: C, f: Format, path: string): Promise<Response | null> {
  * `checkout`: the Worker has a Stripe key, so the page's donate modal posts (go-live 10.1). The key goes in or out with
  * `wrangler secret put`, no code deploy and no RENDER_VERSION bump, so the flag joins the ETag: a page cached before
  * would keep a donate button that never posts.
+ * `beta`: the text and JSON say only invited testers act (7.14). The mode changes with a deploy that needn't bump
+ * RENDER_VERSION, so it joins the ETag too.
  */
-export function etagOf(chain: Chain, f: Format, view = '', tree?: string, day?: string, checkout = false): string {
+export function etagOf(chain: Chain, f: Format, view = '', tree?: string, day?: string, checkout = false, beta = false): string {
   const n = chain.node
-  return `W/"${RENDER_VERSION}.${n.last_event_id ?? n.changed_at ?? n.created_at}.${n.stats?.updated_at ?? '-'}.${chain.moderated?.replace(/[^\w-]/g, '') || '-'}.${f}${view ? '.' + view : ''}${tree ? '.' + tree.replace(/[^\w.:-]/g, '') : ''}${day ? '.' + day : ''}${checkout ? '.c' : ''}"`
+  return `W/"${RENDER_VERSION}.${n.last_event_id ?? n.changed_at ?? n.created_at}.${n.stats?.updated_at ?? '-'}.${chain.moderated?.replace(/[^\w-]/g, '') || '-'}.${f}${view ? '.' + view : ''}${tree ? '.' + tree.replace(/[^\w.:-]/g, '') : ''}${day ? '.' + day : ''}${checkout ? '.c' : ''}${beta ? '.b' : ''}"`
 }
 
 /**
@@ -162,7 +164,9 @@ nodeRoutes.get('/*', async c => {
   const day = f === 'html' && subNumber === null ? utcDay(now) : undefined
   // Only an HTML page has the donate modal.
   const checkout = f === 'html' && checkoutOn(c)
-  const memoKey = `${parsed.path}|${f}|${view}${thread ? '|thread' : ''}${day ? '|' + day : ''}${checkout ? '|c' : ''}`
+  // Only the text and JSON carry the beta line (render/prompt.ts BETA_LINE).
+  const beta = f !== 'html' && actsLimited(c.env)
+  const memoKey = `${parsed.path}|${f}|${view}${thread ? '|thread' : ''}${day ? '|' + day : ''}${checkout ? '|c' : ''}${beta ? '|b' : ''}`
   const ifNoneMatch = c.req.header('if-none-match')
   const validator = (etag: string) => (c.header('ETag', etag), c.header('Cache-Control', 'public, s-maxage=15'))
 
@@ -184,13 +188,13 @@ nodeRoutes.get('/*', async c => {
   const result = subNumber === null && f === 'html' && showsResult(chain.node, thread)
   if (session) c.header('Cache-Control', 'private, no-store')
   else {
-    const etag = etagOf(chain, f, view, result ? await readTreeVersion(db, chain) : undefined, day, checkout)
+    const etag = etagOf(chain, f, view, result ? await readTreeVersion(db, chain) : undefined, day, checkout, beta)
     noteVersion(memoKey, etag)
     validator(etag)
     if (matches(ifNoneMatch, etag)) return c.body(null, 304)
   }
 
-  if (subNumber !== null) return submissionView(c, chain, subNumber, session, f, now)
+  if (subNumber !== null) return submissionView(c, chain, subNumber, session, f, now, undefined, 200, beta)
   if (result) {
     const me = session ? { personId: session.personId, handle: session.handle, verified: session.verified } : null
     const d = await loadResultData(db, chain, { me, now })
@@ -200,6 +204,7 @@ nodeRoutes.get('/*', async c => {
 
   const v = await loadAgentView(db, chain, { origin: url.origin, before: c.req.query('before') ?? null, now })
   if (!v) return errorOut(c, f, 400, 'bad_request', 'before is not a post in this thread')
+  v.beta = beta
   if (f === 'json') return c.json(renderNodeJson(v))
   return c.body(renderPrompt(v), 200, { 'Content-Type': 'text/plain; charset=utf-8' })
 })
@@ -253,7 +258,7 @@ export function submissionNumber(view: string): number | null {
  * /w/<path>/s/<n>: the page, or the submission for agents. A number with no submission, or a hidden one, is a 404.
  * Also the page for a refused check or sign-off, with the refusal at its form and the draft kept.
  */
-async function submissionView(c: C, chain: Chain, number: number, session: Session | null, f: Format, now: number, flash?: SubFlash, status: 200 | 400 | 429 = 200) {
+async function submissionView(c: C, chain: Chain, number: number, session: Session | null, f: Format, now: number, flash?: SubFlash, status: 200 | 400 | 429 = 200, beta = false) {
   const db = c.env.DB
   const n = chain.node
   const sub = await readSubmission(db, n.id, number)
@@ -264,7 +269,7 @@ async function submissionView(c: C, chain: Chain, number: number, session: Sessi
     f === 'html' ? readSubmissionHistory(db, n.id, sub.post_id) : Promise.resolve([]),
     f === 'html' ? readSubmissions(db, n.id) : Promise.resolve([]),
   ])
-  const v = { chain, sub, checks: checks.get(sub.post_id) ?? [], builtOn: links.builtOn.get(sub.post_id) ?? [], now }
+  const v = { chain, sub, checks: checks.get(sub.post_id) ?? [], builtOn: links.builtOn.get(sub.post_id) ?? [], now, beta }
   if (f === 'json') return c.json(renderSubmissionJson({ ...v, origin: new URL(c.req.url).origin }))
   if (f === 'text') return c.body(renderSubmissionPrompt({ ...v, origin: new URL(c.req.url).origin }), 200, { 'Content-Type': 'text/plain; charset=utf-8' })
   const me = session ? { personId: session.personId, handle: session.handle, verified: session.verified } : null

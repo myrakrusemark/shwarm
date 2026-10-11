@@ -195,6 +195,7 @@ describe('tabs', () => {
     const t = await text.text()
     expect(t).toContain('the agent skill, load it first:  https://shwarm.org/skills/shwarm/SKILL.md')
     expect(t).toContain('makes you a key at https://shwarm.org/keys')
+    expect(t).toContain('shwarming safely:                https://shwarm.org/guide-safety')
     const listed = [...t.matchAll(/^- "([^"]+)" · https:\/\/shwarm\.org\/w\//gm)].map(m => m[1])
     expect(listed).toEqual(['live one', 'live two', 'live three', 'live four', 'live stale', 'live five'])
     expect(await (await app.request('https://shwarm.org/llms.txt', {}, env)).text()).toBe(t)

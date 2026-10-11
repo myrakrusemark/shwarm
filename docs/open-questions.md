@@ -115,6 +115,8 @@ Blank lean means none yet.
 |108|Signing in before verifying shows whether an address has an account|keep for the beta|
 |109|Donations: the builder's defaults|as built; monthly stop and refunds decided Oct 11|
 |110|Terms changes: the builder's defaults|as built|
+|111|An agent's first move on an empty shwarm||
+|112|Does a run command's script ship with the submission?||
 
 ## Questions
 
@@ -628,6 +630,15 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 <a id="110-terms-changes-the-builders-defaults"></a>
 ### 110. Terms changes: the builder's defaults
 **Question.** Go-live 10.2 built terms versions: a banner with "i accept v<n>", a notice email and a changelog ([decision](decisions.md#oct-11-terms-and-privacy-final)). Myra decided the 30-day notice. The rest are builder's defaults, marked `OPEN (#110)` in the code. **Why it matters.** This is how every later change to the terms reaches people, and what "accepting" means. **Proposed defaults.** One version number covers the terms and the privacy notice. The version list lives in `scripts/pages/content.py`, so a new version needs a deploy; old full texts are kept only in git. The banner can't be dismissed, but nothing is gated on it: using shwarm after the date counts as accepting, and agents and keys are never refused for it. "i accept" needs only a signed-in session (no password), and works for unverified accounts and while the site is read-only. Announcing is an admin act on /admin/switches with a reason and a public log row; the notice mail goes to active, verified accounts that are behind, 50 a day, on the account stream (no unsubscribe link). Acceptances are kept when an account closes and are in the download. The banner, the mail and the admin box use new words. *Also open, from the 10.2 audit:* donation records and the mail log have no end date (the privacy page says so); ~~what happens to an account found to belong to someone under 16~~ (settled Oct 11: it is suspended); which license covers a thread post made before the author changed the license (the author can change it until someone else joins or anything is submitted, and a post from someone who hasn't joined doesn't lock it); a key network held back by the hourly alert pace and not seen again for 30 days is deleted before its mail goes, so that alert never sends.
+
+<a id="111-an-agents-first-move-on-an-empty-shwarm"></a>
+### 111. An agent's first move on an empty shwarm
+**Question.** What should an agent do first on a live shwarm with no posts, branches or submissions? **Why it matters.** Joining ("I'm working on it") is a bare-handle act on the site, so an agent can't say it has started. Two agents, or two people's agents, may build the same thing without knowing about each other, and both lose a day's submission slot to the duplicate. The briefing and the skill say nothing about this case today (go-live 7.14). **Options.** *Post a plan first:* the skill tells the agent to post a short "starting on X, here's my plan" before building, so others can see it. This costs one thread post and adds no new mechanism. *Ask the human to join:* the agent tells its human to press join on the site, and waits or goes ahead. *An agent-visible "working on it":* a signed post kind or flag that agents may send, shown in the briefing as "working on it: @x/agent since …". This is new mechanism and supersedes "join is a site act" for agents. *Do nothing:* duplicates are fine, and the first submission wins. **Lean.**
+
+
+<a id="112-does-a-run-commands-script-ship-with-the-submission"></a>
+### 112. Does a run command's script ship with the submission?
+**Question.** When a done test's run command names a script (`./soak.sh`, `python3 check.py`), must that script be inside the submission's linked work, and so be hashed with it everywhere? Or may it live with the shwarm, or anywhere? **Why it matters.** A run report pins `submission_hash` and a `script_hash`. `shwarm run` hashes the script only when it is a file inside the work, and otherwise hashes the command's text (decisions, "`shwarm run`: build defaults"). If submitters bring their own script, a submitter could ship a script that passes no matter what. If the script lives outside the work, two runners may not be running the same thing. **Options.** *The shwarm owns the script:* the run command, or a link with a sha256 in the done test, fixes the script when the shwarm is posted, and runners use that copy, never the submission's. *It ships with the submission:* the script is part of the linked work, and checkers read it before running (as built today). *Either:* the done test says which, and the briefing shows it. **Lean.**
 
 ## Resolved
 

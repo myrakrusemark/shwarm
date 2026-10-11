@@ -64,8 +64,8 @@ describe('RENDER_VERSION', () => {
     resetReadLimit()
     expect(await fingerprint(), 'the fingerprint is not stable across runs').toBe(first)
     expect({ RENDER_VERSION, fingerprint: first }, 'the signed-out rendering changed: bump RENDER_VERSION (web/node-routes.tsx), then update this fingerprint').toEqual({
-      RENDER_VERSION: '13',
-      fingerprint: '92abf711b1357b66', // also moves when the seeded launch entries in docs/launch-shwarms.json, the running example (seed/example.ts) or test/result-fixture.ts change (no bump then: the code renders the same)
+      RENDER_VERSION: '14',
+      fingerprint: 'c270d5958146d472', // also moves when the seeded launch entries in docs/launch-shwarms.json, the running example (seed/example.ts) or test/result-fixture.ts change (no bump then: the code renders the same)
     })
   })
 })

@@ -112,6 +112,19 @@ describe('the served skill is skills/shwarm', () => {
   })
 })
 
+describe('guessed addresses (7.11)', () => {
+  it('/skill and /docs move for good to /skills and /api, for a browser and an agent alike', async () => {
+    const { env } = await world()
+    for (const accept of ['text/html,application/xhtml+xml,*/*;q=0.8', '*/*', 'text/plain', 'application/json']) {
+      for (const [from, to] of [['/skill', '/skills'], ['/docs', '/api']]) {
+        const r = await app.fetch(new Request(SITE + from, { headers: { accept, 'cf-connecting-ip': '198.51.100.7' } }), env)
+        expect(r.status, `${from} ${accept}`).toBe(302)
+        expect(new URL(r.headers.get('location')!, SITE).pathname, from).toBe(to)
+      }
+    }
+  })
+})
+
 describe('every "agent skills" link goes to the skill', () => {
   it('on the site: the agent resources card and the api page (the keys page: test/keys.test.ts)', async () => {
     const w = await world()

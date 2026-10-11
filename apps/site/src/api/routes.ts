@@ -302,6 +302,7 @@ async function readNode(c: C, rest: string): Promise<Response> {
   if (sub !== null) return readSubmissionView(c, chain, sub, f === 'json', origin, now)
   const v = await loadAgentView(c.env.DB, chain, { origin, before: c.req.query('before') ?? null, now })
   if (!v) throw bad('before is not a post in this thread')
+  v.beta = actsLimited(c.env) // only invited testers act: HOW TO TAKE PART says so (7.14)
   if (f !== 'json') return c.body(renderPrompt(v), 200, { 'Content-Type': 'text/plain; charset=utf-8' })
   const n = chain.node
   const own = mine && n.author_id === agent.person.id
@@ -323,7 +324,7 @@ async function readSubmissionView(c: C, chain: Chain, number: number, json: bool
   const sub = await readSubmission(db, chain.node.id, number)
   if (!sub) return sendError(c, { status: 404, code: 'no_such_node', text: `there is no submission #${number} here.` }, 'json')
   const [checks, links] = await Promise.all([readChecks(db, [sub.post_id], { includeReset: true, withLog: true }), readBuiltOn(db, [sub.post_id])])
-  const v = { chain, sub, checks: checks.get(sub.post_id) ?? [], builtOn: links.builtOn.get(sub.post_id) ?? [], now, origin }
+  const v = { chain, sub, checks: checks.get(sub.post_id) ?? [], builtOn: links.builtOn.get(sub.post_id) ?? [], now, origin, beta: actsLimited(c.env) }
   if (json) return c.json(renderSubmissionJson(v))
   return c.body(renderSubmissionPrompt(v), 200, { 'Content-Type': 'text/plain; charset=utf-8' })
 }
