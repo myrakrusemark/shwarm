@@ -1,4 +1,4 @@
-// Go-live 3.5: the public profile and the name view, on a staging-like database (the 94 launch shwarms and the
+// Go-live 3.5: the public profile and the name view, on a staging-like database (the 95 launch shwarms and the
 // running example from the seed plan), with the stats job run so the figures are real.
 import { readFileSync } from 'node:fs'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -26,7 +26,7 @@ const one = (db: DB, sql: string, ...a: unknown[]) => {
   return r && { ...r }
 }
 
-/** Staging as it is after go-live 3.1: @myra (not id 1), the 94 seeded lobbies and the running example. */
+/** Staging as it is after go-live 3.1: @myra (not id 1), the 95 seeded lobbies and the running example. */
 let template: string
 async function buildStaging(): Promise<string> {
   const db = testDb()
@@ -103,7 +103,7 @@ afterEach(() => {
 describe('/@myra', () => {
   it('renders the head, the three figures, working on and created, as in the mockup', async () => {
     const { env } = await staging()
-    const res = await get(env, '/@myra?all=1') // the example's rows sit below the 94 seeded ones (their pinned posts are newer)
+    const res = await get(env, '/@myra?all=1') // the example's rows sit below the 95 seeded ones (their pinned posts are newer)
     expect(res.status).toBe(200)
     const html = await body(res)
     expect(html).toContain('<title>@myra · shwarm</title>')
@@ -133,12 +133,12 @@ describe('/@myra', () => {
     const { env, db, myra } = await staging()
     const html = await body(await get(env, '/@myra?all=1'))
     const pub = "n.hidden = 0 AND (n.triage = 'clear' OR n.seeded = 1)"
-    // working on: every open node with her seat or her posts. 94 seeded seats, plus the branch.
+    // working on: every open node with her seat or her posts. 95 seeded seats, plus the branch.
     const working = one(db, `SELECT COUNT(*) AS n FROM node n WHERE ${pub} AND (EXISTS (SELECT 1 FROM seat s WHERE s.node_id = n.id AND s.person_id = ?1 AND s.left_at IS NULL) OR EXISTS (SELECT 1 FROM post p WHERE p.node_id = n.id AND p.person_id = ?1 AND p.hidden = 0))`, myra).n
-    expect(working).toBe(95)
+    expect(working).toBe(96)
     expect(html).toContain(`<div>${working}<small>working on</small></div>`)
     const week = one(db, `SELECT COUNT(*) AS n FROM post p JOIN node n ON n.id = p.node_id WHERE p.person_id = ? AND p.hidden = 0 AND p.created_at > ? AND ${pub}`, myra, iso(NOW - WEEK_MS)).n
-    expect(week).toBe(LIST.length + 3) // the 94 pinned sources posts, the reply and two submissions
+    expect(week).toBe(LIST.length + 3) // the 95 pinned sources posts, the reply and two submissions
     expect(html).toContain(`<div>${week}<small>posts this week</small></div>`)
     const mine = one(db, 'SELECT SUM(upvotes) AS u, SUM(posts) AS p FROM person_node_stats WHERE person_id = ?', myra)
     const site = one(db, 'SELECT SUM(upvotes) AS u, SUM(posts) AS p FROM node_stats')
@@ -164,9 +164,9 @@ describe('/@myra', () => {
     const short = await body(await get(env, '/@myra'))
     const rows = (h: string) => (h.split('<tbody>')[1].split('</tbody>')[0].match(/<tr>/g) ?? []).length
     expect(rows(short)).toBe(SHOWN)
-    expect(short).toContain('<a href="/@myra?all=1">show all 95</a>')
-    expect(short).toContain('<a href="/@myra?all=1">show all 94</a>') // created: the 94 seeded shwarms
-    expect(rows(await body(await get(env, '/@myra?all=1')))).toBe(95)
+    expect(short).toContain('<a href="/@myra?all=1">show all 96</a>')
+    expect(short).toContain('<a href="/@myra?all=1">show all 95</a>') // created: the 95 seeded shwarms
+    expect(rows(await body(await get(env, '/@myra?all=1')))).toBe(96)
   })
 
   it('has no email, password hash or other private data in the page', async () => {
@@ -241,7 +241,7 @@ describe('the name view', () => {
     expect(m07).toContain('found it. the neighbor lookup rounds toward zero')
     expect(m07).toContain('submission #2')
     const bare = await body(await get(env, '/@myra?as=@myra'))
-    expect(bare).toContain('where this pitch comes from:') // the 94 pinned sources posts, newest first
+    expect(bare).toContain('where this pitch comes from:') // the 95 pinned sources posts, newest first
     expect(bare).not.toContain("confirmed finn's diagnosis")
   })
 

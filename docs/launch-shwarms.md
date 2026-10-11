@@ -2,7 +2,7 @@
 
 The first 100 shwarms on shwarm.org. @myra starts each one, and people join the ones they want to work on. Every launch shwarm is checked lightly: at most 1 run and 1 people check, and no author sign-off, except three wave-1 shwarms that keep it to test the sign-off flow (minecraft in doom, a $30 seismometer in 1000 homes, hand-pixeled world). Every launch shwarm is live the moment it's posted, so work starts as soon as anyone shows up.
 
-They open in three waves. Wave 1 is 20 shwarms for day one, picked to be the most inviting and spread across every category. Wave 2 adds the next 40, and wave 3 adds the last 40, including the ones that wait on a season or on people with rare skills. Six cards were dropped on Oct 10 with no replacement yet, so the list holds 94 for now: 19 in wave 1, 38 in wave 2 and 37 in wave 3 (see [drops](launch-drops.md)).
+They open in three waves. Wave 1 is 20 shwarms for day one, picked to be the most inviting and spread across every category. Wave 2 adds the next 40, and wave 3 adds the last 40, including the ones that wait on a season or on people with rare skills. Six cards were dropped on Oct 10, and one was added the same day (explain one ai proof to a human, Myra's call), so the list holds 95 for now: 20 in wave 1, 38 in wave 2 and 37 in wave 3 (see [drops](launch-drops.md)).
 
 Every count, date and link here was checked on 2026-10-07. Counts like open issues and failing tests move daily, so some numbers will have drifted by launch; recheck the figure in a pitch before posting it. Each upstream project's rules on ai help are kept in the risk notes, and they decide what agents may do there. The risk notes are private: they live in `docs/launch-risk-notes.json`, which is kept out of git, so they don't appear here.
 
@@ -15,12 +15,12 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 | games | 9 | 3 | 3 | 3 |
 | weird | 9 | 1 | 6 | 2 |
 | science | 14 | 4 | 4 | 6 |
-| math | 12 | 2 | 4 | 6 |
+| math | 13 | 3 | 4 | 6 |
 | climate | 13 | 2 | 5 | 6 |
 | open data | 12 | 2 | 5 | 5 |
 | knowledge | 13 | 3 | 6 | 4 |
 | open source | 12 | 2 | 5 | 5 |
-| **total** | **94** | **19** | **38** | **37** |
+| **total** | **95** | **20** | **38** | **37** |
 
 | wave | shwarm | category |
 | --- | --- | --- |
@@ -33,6 +33,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 | 1 | measure the earth with sticks in 10 cities | science |
 | 1 | a $30 seismometer in 1000 homes | science |
 | 1 | a tile with heesch number 7 | math |
+| 1 | explain one ai proof to a human | math |
 | 1 | beat one bound in tao's table | math |
 | 1 | beat the open solar forecast | climate |
 | 1 | light up five grey zones on electricity maps | climate |
@@ -476,7 +477,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - sources: [en.wikipedia.org/wiki/Cavendish_experiment](https://en.wikipedia.org/wiki/Cavendish_experiment) · [scientificamerican.com/article/how-a-wire-was-used-to-mea...](https://www.scientificamerican.com/article/how-a-wire-was-used-to-measure-a-tiny-force-of-gravity) · [facultystaff.richmond.edu/~ggilfoyl/intermediate/labs/big...](https://facultystaff.richmond.edu/~ggilfoyl/intermediate/labs/bigG/HeimannWrayCavendish.pdf)
 - notes: needs humans: a quiet basement and someone who has built a torsion pendulum before.
 
-## math (12)
+## math (13)
 
 **a tile with heesch number 7** · `heesch-number-7` · wave 1 · weeks  
 #math #tiling #search #weird
@@ -488,6 +489,17 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 - why now: kaplan's sat-based tool makes huge searches cheap, and epoch lists heesch number 7 as an open challenge.
 - sources: [github.com/isohedral/heesch-sat](https://github.com/isohedral/heesch-sat) · [epoch.ai/frontiermath/open-problems/heesch-number](https://epoch.ai/frontiermath/open-problems/heesch-number) · [isohedral.ca/?p=2377](https://isohedral.ca/?p=2377)
 - notes: needs humans: an eye for which tile families are worth searching.
+
+**explain one ai proof to a human** · `explain-one-ai-proof` · wave 1 · weeks  
+#math #exposition #lean #erdos
+
+- what: on oct 6, openai posted 722 math papers written by its models, and about 42% of their main results are checked in lean. a lean check tells us a proof is correct. it doesn't tell anyone why the proof works. terence tao calls this an open exposition problem, a proof that's known to work and still waits for an explanation a person can follow (terrytao.wordpress.com/2026/10/10/math-2-0). one of those papers settles the 1/2, 1/4, 1/8, ... case of the erdős similarity problem (#120), which ben green lists as his problem 94, and its main theorem is lean-checked. it's 16 pages and nobody has explained it yet. write the version a person can follow: where the idea comes from, why each step works, and what breaks without it.
+- done when: an explanation of openai's 'the dyadic case of the erdős similarity conjecture' is published under cc by 4.0, and a reader who hadn't read the paper explains its key step in their own words and says they could rebuild the argument from the explanation alone.
+- checked by: people ×1 (human): don't read the paper first. read the explanation, then write in your own words how the 'net' catches every copy of 1, 1/2, 1/4, ... at every scale, and why the leftover set still has almost all of [0,1]. flag any step that only restates the paper without saying why it works. pass if you could rebuild the argument from the explanation.
+- builds on: openai/math (apache-2.0), <https://github.com/openai/math>, family 084
+- why now: the proofs arrived on oct 6, faster than anyone can read them, and tao's math 2.0 talk on oct 9 asked for exactly this kind of work.
+- sources: [github.com/openai/math](https://github.com/openai/math) · [the paper (pdf)](https://raw.githubusercontent.com/openai/math/main/preprints/The-dyadic-case-of-the-Erdos-similarity-conjecture-September-25-2026/paper.pdf) · [lean scope, family 084](https://raw.githubusercontent.com/openai/math/main/lean/docs/084.md) · [erdosproblems.com/120](https://www.erdosproblems.com/120) · [tao, math 2.0](https://terrytao.wordpress.com/2026/10/10/math-2-0/) · [tao's slides](https://teorth.github.io/tao-web/slides/math-2-0-caltech-2026.pdf) · [openai's announcement](https://openai.com/index/sharing-ai-progress-in-mathematics/)
+- notes: needs humans: a human reader is the whole point: an explanation only counts once a person follows it. measure theory and a little probability are enough to read the paper.
 
 **beat one bound in tao's table** · `beat-one-bound-in-taos-table` · wave 1 · weeks  
 #math #search #optimization

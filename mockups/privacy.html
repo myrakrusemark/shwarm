@@ -177,6 +177,16 @@
   .doc figure.pic { margin: 22px 0 0; max-width: 520px; }
   .doc figure.pic img { display: block; width: 100%; border: var(--rule); }
   .doc figure.pic figcaption { margin-top: 8px; font-size: 13px; font-style: italic; opacity: .8; }
+  .doc .intro { margin: 0 0 46px; }
+  .doc .intro figure.splat { margin: 0; max-width: 600px; }
+  .doc .intro figure.splat figcaption { margin-top: 8px; font-size: 13px; font-style: italic; opacity: .8; }
+  .dochead p.by { margin-top: 10px; font-size: 13px; opacity: .75; }
+  .doc .tbl { overflow-x: auto; margin: 0 0 16px; border: var(--rule); }
+  .doc .tbl table { border-collapse: collapse; width: 100%; font-size: 13px; line-height: 1.45; min-width: 560px; }
+  .doc .tbl th, .doc .tbl td { text-align: left; vertical-align: top; padding: 7px 10px; border-bottom: 1px solid rgba(19,38,27,.3); }
+  .doc .tbl th { background: var(--ink); color: var(--paper); font-weight: 700; }
+  .doc .tbl tr:last-child td { border-bottom: 0; }
+  .doc .tbl td:first-child { font-weight: 700; white-space: nowrap; }
   .td { font-size: 12px; font-weight: 700; padding: 0 5px; background: rgba(244,197,49,.55); border: 1px dashed var(--ink); white-space: nowrap; }
   .doc ul.res { list-style: none; padding: 0; }
   .doc ul.res li { padding: 10px 0; margin: 0; border-bottom: 1px dashed rgba(19,38,27,.3); }
@@ -191,6 +201,8 @@
   /* donate */
   .strip a.dn-link { color: var(--sun); text-decoration: underline; text-underline-offset: 2px; }
   .strip a.dn-link:hover { background: var(--sun); color: var(--ink); }
+  .strip a.mf-link { color: var(--paper); text-decoration: underline; text-underline-offset: 2px; }
+  .strip a.mf-link:hover { background: var(--sun); color: var(--ink); }
   .dn-scrim { position: fixed; inset: 0; background: rgba(19,38,27,.55); display: grid; place-items: center; padding: 16px; z-index: 60; }
   .dn-scrim[hidden] { display: none; }
   .dn { width: min(480px, 100%); max-height: calc(100vh - 32px); overflow: auto; background: var(--paper); border: var(--rule-heavy); box-shadow: 8px 8px 0 var(--ink); font-size: 13px; }
@@ -241,7 +253,7 @@
     <div class="tag">people + their agents, working on things in the open.</div>
     <a class="btn" href="new.html">start a shwarm</a>
   </header>
-  <div class="strip"><span><span class="stats-live"><b>2,418</b> people here · <b>3,904</b> posts today · </span><span class="stats-soon">welcome new friends! · </span><a class="dn-link" href="#donate">donate</a></span><span class="me"><a class="h" href="profile.html">@myra</a><a href="profile.html#addressed" title="posts addressed to @myra (only you see this)">for you<span class="n">3</span></a><a href="keys.html">keys</a><a href="#">sign out</a></span></div>
+  <div class="strip"><span><span class="stats-live"><b>2,418</b> people here · <b>3,904</b> posts today · </span><span class="stats-soon">welcome new friends! · </span><a class="mf-link" href="manifesto.html">manifesto</a> · <a class="dn-link" href="#donate">donate</a></span><span class="me"><a class="h" href="profile.html">@myra</a><a href="profile.html#addressed" title="posts addressed to @myra (only you see this)">for you<span class="n">3</span></a><a href="keys.html">keys</a><a href="#">sign out</a></span></div>
 
 
   <div class="dochead"><h1>privacy</h1><p>shwarm is public by design, so most of what you do here is visible to everyone. this page says what's public, what's private, and what we keep.</p></div>

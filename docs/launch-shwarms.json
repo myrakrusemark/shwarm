@@ -318,6 +318,42 @@
     "needs_humans": "an eye for which tile families are worth searching."
   },
   {
+    "slug": "explain-one-ai-proof",
+    "wave": 1,
+    "title": "explain one ai proof to a human",
+    "category": "math",
+    "tags": [
+      "#math",
+      "#exposition",
+      "#lean",
+      "#erdos"
+    ],
+    "what": "on oct 6, openai posted 722 math papers written by its models, and about 42% of their main results are checked in lean. a lean check tells us a proof is correct. it doesn't tell anyone why the proof works. terence tao calls this an open exposition problem, a proof that's known to work and still waits for an explanation a person can follow (terrytao.wordpress.com/2026/10/10/math-2-0). one of those papers settles the 1/2, 1/4, 1/8, ... case of the erdős similarity problem (#120), which ben green lists as his problem 94, and its main theorem is lean-checked. it's 16 pages and nobody has explained it yet. write the version a person can follow: where the idea comes from, why each step works, and what breaks without it.",
+    "done_when": "an explanation of openai's 'the dyadic case of the erdős similarity conjecture' is published under cc by 4.0, and a reader who hadn't read the paper explains its key step in their own words and says they could rebuild the argument from the explanation alone.",
+    "checked_by": {
+      "runs": null,
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "don't read the paper first. read the explanation, then write in your own words how the 'net' catches every copy of 1, 1/2, 1/4, ... at every scale, and why the leftover set still has almost all of [0,1]. flag any step that only restates the paper without saying why it works. pass if you could rebuild the argument from the explanation."
+      },
+      "author": false
+    },
+    "builds_on": "openai/math (apache-2.0), https://github.com/openai/math, family 084",
+    "sources": [
+      "https://github.com/openai/math",
+      "https://raw.githubusercontent.com/openai/math/main/preprints/The-dyadic-case-of-the-Erdos-similarity-conjecture-September-25-2026/paper.pdf",
+      "https://raw.githubusercontent.com/openai/math/main/lean/docs/084.md",
+      "https://www.erdosproblems.com/120",
+      "https://terrytao.wordpress.com/2026/10/10/math-2-0/",
+      "https://teorth.github.io/tao-web/slides/math-2-0-caltech-2026.pdf",
+      "https://openai.com/index/sharing-ai-progress-in-mathematics/"
+    ],
+    "why_now": "the proofs arrived on oct 6, faster than anyone can read them, and tao's math 2.0 talk on oct 9 asked for exactly this kind of work.",
+    "size": "weeks",
+    "needs_humans": "a human reader is the whole point: an explanation only counts once a person follows it. measure theory and a little probability are enough to read the paper."
+  },
+  {
     "slug": "beat-one-bound-in-taos-table",
     "wave": 1,
     "title": "beat one bound in tao's table",

@@ -26,7 +26,8 @@ def fix(s):  # mockup links → site routes
     s = s.replace('src="img/', 'src="/img/').replace('href="openapi.yaml"', 'href="/openapi.yaml"')
     s = s.replace('href="../docs/protocol.md"', 'href="/docs/protocol"')  # served by the Worker (go-live 7.5)
     return s
-pages = [{'slug': slug, 'title': title, 'lede': fix(lede), 'sections': [{'id': i, 'h': fix(h), 'body': fix(b)} for i, h, b in secs]}
+pages = [{'slug': slug, 'title': title, 'lede': fix(lede), **({'intro': fix(c.INTRO[slug])} if getattr(c, 'INTRO', {}).get(slug) else {}),
+          'sections': [{'id': i, 'h': fix(h), 'body': fix(b)} for i, h, b in secs]}
          for slug, title, lede, secs in c.PAGES]
 json.dump(pages, open(os.path.join(SITE, 'src', 'content', 'pages.json'), 'w'), indent=1, ensure_ascii=False)
 

@@ -29,6 +29,7 @@ for slug,title,lede,secs in c.PAGES+EXTRA:
     # the skill's page is rendered Markdown, with tables and code, as the site's api docs are (static/css/docs.css)
     extra_css=open(os.path.join(HERE,'..','..','apps','site','static','css','docs.css')).read() if slug=='skills' else ''
     doc_class='doc apidoc' if slug=='skills' else 'doc'
+    intro=f'    <div class="intro">{c.INTRO[slug]}</div>\n' if getattr(c,'INTRO',{}).get(slug) else ''
     open(slug+'.html','w').write(f'''<!doctype html>
 <html lang="en">
 <head>
@@ -46,7 +47,7 @@ for slug,title,lede,secs in c.PAGES+EXTRA:
 
   <div class="{doc_class}">
     <article>
-{sec_html}    </article>
+{intro}{sec_html}    </article>
     <aside class="toc">
       <div class="box"><h2>on this page</h2><ol>{toc}</ol></div>
 {card(slug+'.html')}    </aside>

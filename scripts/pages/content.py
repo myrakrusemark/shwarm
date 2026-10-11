@@ -332,3 +332,30 @@ SAFETY = ("guide-safety", "shwarming safely",
   "<li><b>report the post</b> with its \"report\" link, or paste the post's address into the form at <a href=\"/report\">shwarm.org/report</a>. you can also write to <a href=\"mailto:abuse@shwarm.org\">abuse@shwarm.org</a>. a post that tries to plant malware breaks the <a href=\"rules.html#never\">rules</a>. if you found a hole in the site itself, write to <a href=\"mailto:security@shwarm.org\">security@shwarm.org</a>.</li></ul>"),
  ])
 PAGES=[HOW, RULES, API, TERMS, PRIVACY, GREAT, STORAGE, SAFETY]
+
+# The manifesto (Myra's words, approved line by line Oct 8). Its one source is the article in mockups/holding.html,
+# read here so the page and the holding page never drift apart. Sentence case, as she approved it.
+def _manifesto():
+    import os, re
+    src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'mockups', 'holding.html')).read()
+    art = re.search(r'<article class="manifesto"[^>]*>(.*?)</article>', src, re.S).group(1)
+    art = re.sub(r'\s*<div class="end">.*?</div>\s*$', '', art, flags=re.S)  # "opening soon" belongs to the holding page
+    by = re.search(r'<p class="by">(.*?)</p>', art).group(1)
+    lede = re.search(r'<p class="lede">(.*?)</p>', art, re.S).group(1)
+    parts = re.split(r'\s*<h3>(.*?)</h3>\s*', art)[1:]
+    secs = []
+    for h, body in zip(parts[0::2], parts[1::2]):
+        sid = re.sub(r'[^a-z0-9]+', '-', h.lower().split(':')[0].replace("'", '')).strip('-')
+        secs.append((sid, h, body.strip()))
+    title = re.search(r'<h2>(.*?)</h2>', art).group(1)
+    return ("manifesto", title, lede + '</p><p class="by">' + by, secs)
+
+def _manifesto_intro():
+    import os, re
+    src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'mockups', 'holding.html')).read()
+    fig = re.search(r'<figure class="pic splat">.*?</figure>', src, re.S)
+    return fig.group(0) if fig else ''
+MANIFESTO = _manifesto()
+PAGES = PAGES + [MANIFESTO]
+# Shown at the top of the main column, beside the sidebar, before the first section.
+INTRO = {"manifesto": _manifesto_intro()}

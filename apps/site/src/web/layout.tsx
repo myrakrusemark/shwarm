@@ -41,7 +41,7 @@ const Header: FC<{ home?: boolean }> = ({ home }) => {
   )
 }
 
-// Launch mode (decided): stats are counted but hidden; the strip says "welcome new friends!".
+// Launch mode (decided): stats are counted but hidden; the strip says "welcome new friends!". The manifesto sits left of donate.
 const Strip: FC<{ showStats?: boolean; stats?: { people: number; posts: number } }> = ({ showStats, stats }) => (
   <div class="strip">
     <span>
@@ -50,7 +50,7 @@ const Strip: FC<{ showStats?: boolean; stats?: { people: number; posts: number }
       ) : (
         <span class="stats-soon">welcome new friends! · </span>
       )}
-      <a class="dn-link" href="#donate">donate</a>
+      <a class="mf-link" href="/manifesto">manifesto</a> · <a class="dn-link" href="#donate">donate</a>
     </span>
     <Me {...useContext(PageContext)} />
   </div>
