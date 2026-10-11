@@ -12,7 +12,7 @@ import { Hono } from 'hono'
 import type { FC } from 'hono/jsx'
 import type { ModAction } from '../core/moderation'
 import { readingOpen } from '../core/site-mode'
-import { parseSwitchReason, SWITCHES } from '../core/switches'
+import { parseSwitchReason, settingShown } from '../core/switches'
 import { HANDLE_SHOWN } from '../read/names'
 import { CLEARED_NODE, PUBLIC_NODE } from '../read/visibility'
 import { pickFormat } from './format'
@@ -102,7 +102,7 @@ function toRow(r: Raw): LogRow {
   let reason = r.reason
   const sw = r.action === 'setting' ? parseSwitchReason(r.reason) : null
   if (sw) {
-    target = { kind: 'switch', key: sw.key, name: SWITCHES[sw.key].name, value: sw.value }
+    target = { kind: 'switch', key: sw.key, name: settingShown(sw.key, sw.value).name, value: sw.value }
     reason = sw.reason
   } else if (r.post_id) target = { kind: 'post', node: r.node_path, nodeShown: r.node_shown === 1, shown: r.node_shown === 1 && r.post_hidden === 0 }
   else if (r.node_id !== null) target = { kind: 'node', path: r.node_path, shown: r.node_shown === 1 }
@@ -131,9 +131,11 @@ moderationLog.get('/moderation', async c => {
 const jsonRow = (r: LogRow) => ({ id: r.id, at: r.at, action: r.action, words: r.words, target: r.target, reason: r.reason, by: r.by })
 
 /** The target in words, for the text form. */
+const switchWords = (t: { key: string; value: unknown }) => settingShown(t.key as Parameters<typeof settingShown>[0], t.value).words
+
 function targetText(t: LogTarget): string {
   if (!t) return ''
-  if (t.kind === 'switch') return `${t.name} → ${SWITCHES[t.key as keyof typeof SWITCHES].words(t.value)}`
+  if (t.kind === 'switch') return `${t.name} → ${switchWords(t)}`
   if (t.kind === 'person') return t.name
   if (t.kind === 'post') return `a post in ${t.node ?? 'a shwarm'}${t.shown ? '' : ' (taken down)'}`
   return `${t.path ?? 'a shwarm'}${t.shown ? '' : ' (taken down)'}`
@@ -150,7 +152,7 @@ function asText(rows: LogRow[], older: number | null): string {
 
 const Target: FC<{ t: LogTarget; links: boolean }> = ({ t, links }) => {
   if (!t) return <>—</>
-  if (t.kind === 'switch') return <>{t.name}: {SWITCHES[t.key as keyof typeof SWITCHES].words(t.value)}</>
+  if (t.kind === 'switch') return <>{t.name}: {switchWords(t)}</>
   if (t.kind === 'person') return <>{t.name}</>
   const [node, nodeShown] = t.kind === 'node' ? [t.path, t.shown] : [t.node, t.nodeShown]
   // OPEN (#107): new wording, "(taken down)" and "a post in".

@@ -7,6 +7,7 @@ import { FLAG_LABEL, isFlagReason, unpauseCommand } from '../core/flags'
 import { isReason, REASON_LABEL } from '../core/reports'
 import { FORMER } from '../read/names'
 import { plural } from '../render/format'
+import { termsDate } from '../core/terms'
 import type { MailStream, MailTemplate } from './outbox'
 
 // A pre block keeps its line breaks in the HTML part too (quoted text people wrote).
@@ -365,6 +366,24 @@ function dailySummary(p: Record<string, unknown>, site: string): Draft {
   }
 }
 
+function termsNotice(p: Record<string, unknown>, site: string): Draft {
+  const version = text(p, 'version')
+  const effective = text(p, 'effective')
+  if (!/^[0-9][0-9.]{0,15}$/.test(version)) throw new MailRenderError('bad version')
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(effective) || Number.isNaN(Date.parse(effective))) throw new MailRenderError('bad effective date')
+  if (!Array.isArray(p.changes) || !p.changes.length || !p.changes.every(x => typeof x === 'string')) throw new MailRenderError('missing changes')
+  return {
+    subject: "shwarm's terms are changing",
+    blocks: [
+      hi(p),
+      `the terms and privacy notice change on ${termsDate(effective)} (v${version}). what changed:`,
+      ...(p.changes as string[]).map(x => `- ${printable(oneLine(x, 500))}`),
+      { href: siteLink(site, p.link) },
+      "if you keep using shwarm after that date, the new terms apply. you can accept them now from the banner when you sign in. if you don't agree, you can close your account from your profile.",
+    ],
+  }
+}
+
 const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string) => Draft> = {
   verify: (p, site) => ({
     subject: 'verify your email for shwarm',
@@ -454,6 +473,10 @@ const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string)
       'if you think this is a mistake, reply to this mail.',
     ],
   }),
+  // A new terms version is announced (go-live 10.2, web/admin-switches.tsx): what changed and when it takes effect. The
+  // payload is copied from the bundle when the row is queued (core/terms.ts noticePayload), so a retry sends the same
+  // mail. Account stream: no unsubscribe link. OPEN (#110): new wording.
+  terms_notice: (p, site) => termsNotice(p, site),
   // To the address the account had, as it closes (go-live 6.4): no link, since there's nothing left to sign in to.
   // OPEN (#86): these words wait on Myra's yes.
   account_closed: p => ({

@@ -1,6 +1,7 @@
 import { useContext, type Child, type FC } from 'hono/jsx'
 import { FORM_FIELD } from '../auth/request'
 import { joinHref, signInHref } from '../auth/return-to'
+import { termsDate } from '../core/terms'
 import { PageContext, type PageInfo } from './viewer'
 
 // Shared page chrome, ported 1:1 from the mockups (header strip, footer, donate modal, agent resources card).
@@ -82,6 +83,26 @@ const Me: FC<PageInfo> = ({ viewer: v, here }) =>
     </span>
   )
 
+// The terms banner (go-live 10.2): on every page for a signed-in viewer who hasn't accepted the announced terms
+// version (PageInfo.terms). It can't be dismissed; "i accept" (POST /terms/accept, web/terms-accept.tsx) clears it and
+// comes back to this page. Nothing is gated on it. OPEN (#110): new wording, the whole banner.
+const TermsBanner: FC = () => {
+  const { viewer, terms } = useContext(PageContext)
+  if (!viewer || !terms) return null
+  const on = terms.effective ? (Date.parse(`${terms.effective}T00:00:00Z`) > Date.now() ? ` change on ${termsDate(terms.effective)}` : ` changed on ${termsDate(terms.effective)}`) : ' change'
+  return (
+    <div class="terms-due" role="region" aria-label="new terms">
+      <p>the terms and privacy notice{on} (v{terms.version}). <a href="/terms#changelog">what changed</a></p>
+      <form method="post" action="/terms/accept">
+        <input type="hidden" name={FORM_FIELD} value={viewer.token} />
+        <input type="hidden" name="version" value={terms.version} />
+        <input type="hidden" name="next" value={terms.next} />
+        <button class="btn plain" type="submit">i accept v{terms.version}</button>
+      </form>
+    </div>
+  )
+}
+
 // The modal is a form (go-live 10.1): static/js/site.js keeps the hidden freq and amount in step with the buttons, and
 // POST /donate opens Stripe Checkout. data-checkout is there only when the Worker has a Stripe key (PageInfo.checkout);
 // without it the script keeps the form from posting and the button says checkout opens soon.
@@ -148,6 +169,7 @@ export const Layout: FC<{ title: string; description?: string; noindex?: boolean
       <div class="wrap">
         <Header home={home} />
         <Strip showStats={showStats} />
+        <TermsBanner />
         {children}
         <DonateModal />
         <Footer />

@@ -71,3 +71,15 @@ nav.crumbs, .branches .nm a, .compose .to, .compose .row .note, h1.title, .err-p
 
 /* The compose box sits on sun; moss text there is 3.9:1, so its "to" line is ink (go-live 3.8). */
 body .compose .to, body .compose .to a { color: var(--ink); }
+
+/* ---------- terms banner (go-live 10.2, layout.tsx TermsBanner) ----------
+   under the strip on every signed-in page while the viewer hasn't accepted the announced terms version. sun with the
+   heavy rule; its link is ink (sky on sun is 4.1:1) and the button paper, so both read on it. the text and the button
+   wrap onto two lines at 390 px instead of widening the page. the focus ring is ink: 9.8:1 on sun. */
+.terms-due { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 12px 0 0; padding: 10px 14px;
+  background: var(--sun); border: var(--rule-heavy); color: var(--ink); }
+.terms-due p { margin: 0; flex: 1 1 260px; min-width: 0; overflow-wrap: anywhere; }
+.terms-due a { color: var(--ink); }
+.terms-due form { margin: 0; }
+.terms-due .btn { white-space: normal; }
+.terms-due :where(a, button):focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }

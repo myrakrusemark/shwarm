@@ -110,7 +110,7 @@ function publicHalf(row: KeyRow): Uint8Array {
 /**
  * Takes the nonce for this key, or refuses a repeat. A nonce is kept until its `created` falls out of the 300 s window
  * (the second after created + 300, since `now` is read in whole seconds); after that the same nonce may come again,
- * since its old signature can't pass anyway. Pruning the dead rows is go-live 12.x's.
+ * since its old signature can't pass anyway. The hourly job deletes the dead rows (auth/cleanup.ts prunePlumbing).
  */
 async function takeNonce(db: D1Database, keyId: string, nonce: string, created: number, now: number): Promise<void> {
   const r = await db

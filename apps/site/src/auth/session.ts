@@ -11,8 +11,9 @@ const TOUCH_EVERY = 3_600_000 // write last_seen at most hourly
 /**
  * `verified`: the person's email is verified. Unverified accounts can read and sign in, nothing else (2.5).
  * `member`: a founding account or the operator, who may act while the site is in beta (core/site-mode.ts).
+ * `termsBehind`: the announced terms version when the person hasn't accepted it, else null (go-live 10.2, core/terms.ts).
  */
-export type Session = { id: string; personId: number; handle: string; stepUpUntil: string | null; verified: boolean; member: boolean }
+export type Session = { id: string; personId: number; handle: string; stepUpUntil: string | null; verified: boolean; member: boolean; termsBehind: string | null }
 
 const iso = (ms: number) => new Date(ms).toISOString()
 
@@ -75,16 +76,29 @@ export async function readSession(db: D1Database, token: string | undefined, now
   const id = await sessionId(token)
   const row = await db
     .prepare(
-      `SELECT s.id, s.person_id, s.last_seen_at, s.expires_at, s.step_up_until, p.handle, p.email_verified_at, p.founding, p.is_admin FROM session s
+      `SELECT s.id, s.person_id, s.last_seen_at, s.expires_at, s.step_up_until, p.handle, p.email_verified_at, p.founding, p.is_admin, p.terms_version,
+              (SELECT value FROM setting WHERE key = 'terms_version') AS terms_now FROM session s
        JOIN person p ON p.id = s.person_id WHERE s.id = ? AND p.status = 'active'`,
     )
     .bind(id)
-    .first<{ id: string; person_id: number; last_seen_at: string; expires_at: string; step_up_until: string | null; handle: string; email_verified_at: string | null; founding: number; is_admin: number }>()
+    .first<{ id: string; person_id: number; last_seen_at: string; expires_at: string; step_up_until: string | null; handle: string; email_verified_at: string | null; founding: number; is_admin: number; terms_version: string; terms_now: string | null }>()
   if (!row || Date.parse(row.expires_at) <= now) return null
   if (now - Date.parse(row.last_seen_at) > TOUCH_EVERY) {
     await db.prepare('UPDATE session SET last_seen_at = ?, expires_at = ? WHERE id = ?').bind(iso(now), iso(now + SESSION_DAYS * DAY), id).run()
   }
-  return { id, personId: row.person_id, handle: row.handle, stepUpUntil: row.step_up_until, verified: row.email_verified_at !== null, member: actsInBeta(row) }
+  return { id, personId: row.person_id, handle: row.handle, stepUpUntil: row.step_up_until, verified: row.email_verified_at !== null, member: actsInBeta(row), termsBehind: termsBehind(row) }
+}
+
+/** The announced terms version (the setting, JSON) when it differs from the person's, else null. Plain inequality, not an order. */
+function termsBehind(row: { terms_version: string; terms_now: string | null }): string | null {
+  if (row.terms_now === null) return null
+  let now: unknown
+  try {
+    now = JSON.parse(row.terms_now)
+  } catch {
+    return null // unreadable: no banner rather than a broken page
+  }
+  return typeof now === 'string' && now !== row.terms_version ? now : null
 }
 
 export async function endSession(db: D1Database, token: string | undefined) {

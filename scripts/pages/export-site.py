@@ -3,7 +3,7 @@
 
 The mockups stay the design source: run this after changing them or content.py.
   python3 scripts/pages/export-site.py
-Writes apps/site/static/css/site.css, apps/site/src/content/pages.json and copies images.
+Writes apps/site/static/css/site.css, apps/site/src/content/pages.json and terms.json, and copies images.
 """
 import importlib.util, json, os, re, shutil
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -30,6 +30,8 @@ pages = [{'slug': slug, 'title': title, 'lede': fix(lede), **({'intro': fix(c.IN
           'sections': [{'id': i, 'h': fix(h), 'body': fix(b)} for i, h, b in secs]}
          for slug, title, lede, secs in c.PAGES]
 json.dump(pages, open(os.path.join(SITE, 'src', 'content', 'pages.json'), 'w'), indent=1, ensure_ascii=False)
+# The terms versions (go-live 10.2), newest last: the site's banner, the notice mail and /admin/switches read them (src/core/terms.ts).
+json.dump(c.TERMS_VERSIONS, open(os.path.join(SITE, 'src', 'content', 'terms.json'), 'w'), indent=1, ensure_ascii=False)
 
 # 3. Images the pages and layout use.
 for name in ['shwarm-mark.png', 'shawarma.jpg', 'guide-storage.jpg']:

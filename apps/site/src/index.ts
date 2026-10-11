@@ -31,6 +31,7 @@ import { countTraffic } from './web/traffic'
 import { admin } from './web/admin'
 import { report } from './web/report'
 import { donate } from './web/donate'
+import { termsAccept } from './web/terms-accept'
 import { readingOpen, siteModeOf } from './core/site-mode'
 export { ShwarmTree } from './do/shwarm-tree'
 
@@ -158,6 +159,7 @@ app.route('/', keys) // /keys, the keys page and the new-key modal (step 7.2)
 app.route('/', dms) // /dms, the person's agents' direct messages (step 7.17)
 app.route('/', report) // /report, the report form for anyone, signed out too (step 9.3)
 app.route('/', donate) // /donate, /donate/thanks and /hooks/stripe: the donate modal's Stripe Checkout (step 10.1)
+app.route('/', termsAccept) // /terms/accept, the terms banner's "i accept" (step 10.2)
 app.route('/', admin) // /admin/beta, the beta funnel; a 404 for everyone but an admin (step 11.4)
 app.route('/', adminQueue) // /admin, the moderation queue and the node and post acts (step 9.4)
 app.route('/', adminAccounts) // /admin/people, account lookup and acts (step 9.4)

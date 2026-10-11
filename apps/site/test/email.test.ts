@@ -127,6 +127,43 @@ describe('sign_off_ready (go-live 5.4)', () => {
   })
 })
 
+describe('terms_notice (go-live 10.2)', () => {
+  const payload = { handle: 'myra', version: '0.2', effective: '2026-11-15', changes: ['terms: a notice period.', 'privacy: what a report keeps.'], link: '/terms#changelog' }
+
+  it('renders the version, the date, each change and the changelog link, on the account stream', () => {
+    const m = renderMail('terms_notice', payload, ctx)
+    expect(m.subject).toBe("shwarm's terms are changing")
+    expect(m.text).toContain('hi @myra,')
+    expect(m.text).toContain('the terms and privacy notice change on nov 15, 2026 (v0.2). what changed:')
+    expect(m.text).toContain('- terms: a notice period.\n\n- privacy: what a report keeps.')
+    expect(m.text).toContain(`${SITE}/terms#changelog`)
+    expect(m.html).toContain(`<a href="${SITE}/terms#changelog">`)
+    expect(m.text).toContain('if you keep using shwarm after that date, the new terms apply.')
+    expect(m.text).toContain('replies go to support@shwarm.org.')
+    expect(m.text).not.toContain('turn them off')
+    expect(m.text.replace(/https:\S+/g, '')).toBe(m.text.replace(/https:\S+/g, '').toLowerCase())
+    expect(m.text + m.html).not.toMatch(/[—–]/)
+  })
+
+  it('refuses a payload without its version, date or changes', () => {
+    for (const p of [{ version: undefined }, { version: '<b>' }, { effective: 'soon' }, { changes: [] }, { changes: 'x' }, { link: 'https://evil.example/terms' }])
+      expect(() => renderMail('terms_notice', { ...payload, ...p }, ctx)).toThrow(MailRenderError)
+  })
+
+  it('is sent by the sweep, and skipped for a suppressed address', async () => {
+    const e = { DB: testDb(), ENV: 'production', SITE_URL: SITE, RESEND_API_KEY: 're_key', MAIL_SECRET: 'mail-secret' } as any
+    const me = await addPerson(e.DB, 'myra')
+    const gone = await addPerson(e.DB, 'bounced')
+    e.DB.raw.prepare("INSERT INTO email_suppression (email_norm, reason, created_at) VALUES ('bounced@example.org', 'bounce', ?)").run(new Date(T0).toISOString())
+    const at = new Date(T0).toISOString()
+    await e.DB.batch([me, gone].map(personId => mailToPersonStatement(e.DB, { template: 'terms_notice', stream: 'account', personId, payload }, at)))
+    const sent: any[] = []
+    const f = (async (_url: string, init: RequestInit) => (sent.push(JSON.parse(String(init.body))), new Response('{"id":"re_1"}', { status: 200 }))) as unknown as typeof fetch
+    expect(await sweepOutbox(e, { now: T0, fetch: f })).toMatchObject({ sent: 1, skipped: 1 })
+    expect(sent.map(s => [s.to, s.subject])).toEqual([[['myra@example.org'], "shwarm's terms are changing"]])
+  })
+})
+
 describe('email keys', () => {
   it('normalizes plus-addresses and gmail dots', () => {
     expect(emailNorm('My.Name+shwarm@GoogleMail.com')).toBe('myname@gmail.com')

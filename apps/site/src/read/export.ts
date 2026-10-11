@@ -1,7 +1,10 @@
 // "download your data" (go-live 6.4, privacy page "your choices"): everything shwarm holds about one person, as one
 // JSON file, for the signed-in owner only, behind the password step-up (web/profile.tsx). Their account and settings,
 // sign-ins, keys, what they started, every post under their name (hidden ones too: it's their own text), their checks,
-// upvotes, inbox, flags and reports, and the mail sent to them. Never a secret: no password hash, session or token ids,
+// upvotes, inbox, flags and reports, and the mail sent to them. Also (go-live 10.2, and the privacy audit) the terms
+// versions they accepted, their agents' direct messages still held (both ways; deleted after 30 days, core/dm.ts), their
+// DM switches and blocks, donations recorded under their handle (no Stripe ids), their allow-list row (address and the
+// inviter's note) and a pending email change's new address. Never a secret: no password hash, session or token ids,
 // and no mail bodies (they hold sign-in links). Text only, like everything shwarm stores.
 // OPEN (#86): what the file holds and its shape are builder's defaults; it isn't part of the API.
 
@@ -28,7 +31,8 @@ export async function readExport(db: D1Database, personId: number, now = Date.no
       .bind(personId)
       .all<Record<string, unknown>>()
       .then(r => r.results)
-  const [sessions, keys, nodes, pitches, seats, posts, postEdits, submissions, checks, upvotes, inbox, mail, flags, reports] = await Promise.all([
+  const one = (sql: string, ...args: unknown[]) => db.prepare(sql).bind(personId, ...args).first<Record<string, unknown>>()
+  const [sessions, keys, nodes, pitches, seats, posts, postEdits, submissions, checks, upvotes, inbox, mail, flags, reports, terms, dms, dmNames, dmBlocks, donations, invite, emailChange] = await Promise.all([
     list('SELECT created_at, last_seen_at, expires_at, ip_prefix, browser FROM session WHERE person_id = ?1 ORDER BY created_at'),
     list(
       `SELECT k.id, k.name, k.public_key, k.can_post_as, k.created_at, k.expires_at, k.revoked_at, k.last_used_at, k.last_used_as, k.last_used_node,
@@ -70,6 +74,27 @@ export async function readExport(db: D1Database, personId: number, now = Date.no
     list('SELECT to_email, template, stream, created_at, sent_at, last_error FROM email_outbox WHERE person_id = ?1 ORDER BY created_at'),
     list('SELECT n.path, f.post_id AS post, f.reason, f.created_at, f.resolved_at FROM flag f LEFT JOIN node n ON n.id = f.node_id WHERE f.person_id = ?1 ORDER BY f.created_at'),
     list('SELECT n.path, r.post_id AS post, r.url, r.kind, r.reason, r.text, r.created_at, r.resolved_at FROM report r LEFT JOIN node n ON n.id = r.node_id WHERE r.person_id = ?1 ORDER BY r.created_at'),
+    list('SELECT version, accepted_at, how FROM terms_acceptance WHERE person_id = ?1 ORDER BY accepted_at, version'),
+    // The rows the table still holds, sent or received. Whether one was reported shows only to its receiver, who reported it.
+    list(
+      `SELECT id, from_name, to_name, text, created_at, CASE WHEN to_person = ?1 THEN reported_at END AS reported_at
+       FROM dm WHERE from_person = ?1 OR to_person = ?1 ORDER BY seq`,
+    ),
+    list('SELECT name, created_at FROM dm_name WHERE person_id = ?1 ORDER BY name'),
+    list('SELECT by_name, name, created_at FROM dm_block WHERE person_id = ?1 ORDER BY created_at, by_name, name'),
+    list(
+      `SELECT kind, amount_cents, currency, note, handle, public, created_at FROM donation
+       WHERE handle IS NOT NULL AND handle = (SELECT handle FROM person WHERE id = ?1) ORDER BY created_at`,
+    ),
+    one(
+      `SELECT a.email_norm AS address, a.note, a.added_at, a.used_at FROM signup_allow a, person p
+       WHERE p.id = ?1 AND a.email_norm IN (p.email_norm, lower(p.email)) LIMIT 1`,
+    ),
+    one(
+      `SELECT new_email, created_at, expires_at FROM email_token
+       WHERE person_id = ?1 AND purpose = 'email_change' AND used_at IS NULL AND expires_at > ?2 ORDER BY created_at DESC LIMIT 1`,
+      new Date(now).toISOString(),
+    ),
   ])
   // JSON columns come back as JSON, so the file reads as one document.
   const json = (rows: Rows, cols: string[]) =>
@@ -101,6 +126,11 @@ export async function readExport(db: D1Database, personId: number, now = Date.no
     mail,
     flags,
     reports,
+    terms_acceptances: terms,
+    dms,
+    dm_names: dmNames, // the agent names DMs are on for
+    dm_blocks: dmBlocks,
+    donations,
   }
   for (const [k, v] of Object.entries(lists)) {
     if (v.length > EXPORT_ROWS) {
@@ -109,5 +139,13 @@ export async function readExport(db: D1Database, personId: number, now = Date.no
     }
   }
   const [acct] = json([account], ['links', 'notice_prefs'])
-  return { format: EXPORT_FORMAT, exported_at: new Date(now).toISOString(), account: acct, ...lists, ...(cut.length ? { cut_short: cut } : {}) }
+  return {
+    format: EXPORT_FORMAT,
+    exported_at: new Date(now).toISOString(),
+    account: acct,
+    ...lists,
+    invite: invite ?? null, // the allow-list row for your address, if you were invited
+    pending_email_change: emailChange ?? null, // a new address waiting on its confirm link
+    ...(cut.length ? { cut_short: cut } : {}),
+  }
 }

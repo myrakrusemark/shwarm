@@ -266,6 +266,62 @@ describe('download your data (6.4)', () => {
     // no password hash, session id, token, or mail body
     expect(raw).not.toMatch(/pbkdf2|password_hash|"payload"|"id": "[0-9a-f]{64}"/)
     expect(raw).not.toContain('@kestrel') // only their own rows
+    for (const k of ['terms_acceptances', 'dms', 'dm_names', 'dm_blocks', 'donations']) expect(data[k], k).toEqual([])
+    expect(data.invite).toBeNull()
+    expect(data.pending_email_change).toBeNull()
+  })
+
+  it('also holds the terms versions accepted, agent DMs both ways, DM switches and blocks, donations, the invite and a pending email change', async () => {
+    const w = await closedWorld()
+    const env = testEnv(w.db)
+    const b = await signIn(env, 'marceline')
+    const run = (sql: string, ...a: unknown[]) => env.DB.raw.prepare(sql).run(...a)
+    const id = (h: string) => env.DB.raw.prepare('SELECT id FROM person WHERE handle = ?').get(h).id
+    const [me, lumpy] = [id('marceline'), id('lumpy')]
+    const at = (m: number) => new Date(T0 + m * MIN).toISOString()
+    run("INSERT INTO terms_acceptance (person_id, version, accepted_at, how) VALUES (?, '0.1', ?, 'signup')", me, at(0))
+    run("INSERT INTO terms_acceptance (person_id, version, accepted_at, how) VALUES (?, '0.1', ?, 'signup')", lumpy, at(0))
+    const dm = (dmId: string, from: number, fromName: string, to: number, toName: string, text: string, reported: string | null) =>
+      run('INSERT INTO dm (id, from_person, from_name, key_id, to_person, to_name, text, created_at, reported_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', dmId, from, fromName, 'k1', to, toName, text, at(1), reported)
+    dm('d_aaaaaaaa', me, '@marceline/scout', lumpy, '@lumpy/bot', 'hi from scout', at(2))
+    dm('d_bbbbbbbb', lumpy, '@lumpy/bot', me, '@marceline/scout', 'hi back', at(3))
+    dm('d_cccccccc', lumpy, '@lumpy/bot', lumpy, '@lumpy/other', 'not hers', null)
+    run('INSERT INTO dm_name (person_id, name, created_at) VALUES (?, ?, ?)', me, '@marceline/scout', at(0))
+    run('INSERT INTO dm_name (person_id, name, created_at) VALUES (?, ?, ?)', lumpy, '@lumpy/bot', at(0))
+    run('INSERT INTO dm_block (person_id, by_name, name, created_at) VALUES (?, ?, ?, ?)', me, '@marceline', '@spammer', at(0))
+    const gift = (stripe: string, handle: string | null, note: string) =>
+      run("INSERT INTO donation (stripe_id, kind, amount_cents, currency, note, handle, public, created_at) VALUES (?, 'once', 500, 'usd', ?, ?, 1, ?)", stripe, note, handle, at(4))
+    gift('cs_test_mine', 'marceline', 'keep going')
+    gift('cs_test_lumpy', 'lumpy', 'from lumpy')
+    gift('cs_test_anon', null, 'anonymous')
+    run("INSERT INTO signup_allow (email_norm, note, added_at) VALUES ('marceline@example.org', 'invited by myra', ?)", at(0))
+    run("INSERT INTO signup_allow (email_norm, note, added_at) VALUES ('lumpy@example.org', 'invited by bmo', ?)", at(0))
+    run("INSERT INTO email_token (id, person_id, purpose, new_email, created_at, expires_at) VALUES ('t-old', ?, 'email_change', 'old@example.org', ?, ?)", me, at(-120), at(-60))
+    run("INSERT INTO email_token (id, person_id, purpose, new_email, created_at, expires_at) VALUES ('t-new', ?, 'email_change', 'new@example.org', ?, ?)", me, at(0), at(24 * 60))
+
+    const res = await acct(b, 'marceline', { do: 'export' })
+    expect(res.status).toBe(200)
+    const raw = await res.text()
+    const data = JSON.parse(raw)
+    expect(data.terms_acceptances).toEqual([{ version: '0.1', accepted_at: at(0), how: 'signup' }])
+    expect(data.dms).toEqual([
+      { id: 'd_aaaaaaaa', from_name: '@marceline/scout', to_name: '@lumpy/bot', text: 'hi from scout', created_at: at(1), reported_at: null }, // lumpy's report isn't shown to her
+      { id: 'd_bbbbbbbb', from_name: '@lumpy/bot', to_name: '@marceline/scout', text: 'hi back', created_at: at(1), reported_at: at(3) },
+    ])
+    expect(data.dm_names).toEqual([{ name: '@marceline/scout', created_at: at(0) }])
+    expect(data.dm_blocks).toEqual([{ by_name: '@marceline', name: '@spammer', created_at: at(0) }])
+    expect(data.donations).toEqual([{ kind: 'once', amount_cents: 500, currency: 'usd', note: 'keep going', handle: 'marceline', public: 1, created_at: at(4) }])
+    expect(data.invite).toEqual({ address: 'marceline@example.org', note: 'invited by myra', added_at: at(0), used_at: null })
+    expect(data.pending_email_change).toEqual({ new_email: 'new@example.org', created_at: at(0), expires_at: at(24 * 60) })
+    // no Stripe ids, token ids or anyone else's rows
+    expect(raw).not.toMatch(/cs_test|t-new|t-old|old@example\.org|not hers|from lumpy|invited by bmo|k1"/)
+  })
+
+  it('past the window it asks for the password; five an hour; nobody else', async () => {
+    const w = await closedWorld()
+    const env = testEnv(w.db)
+    const b = await signIn(env, 'marceline')
+    expect((await acct(b, 'marceline', { do: 'export' })).status).toBe(200)
 
     // past the window it asks for the password, in the modal
     vi.setSystemTime(T0 + 3_600_000 + 11 * MIN)

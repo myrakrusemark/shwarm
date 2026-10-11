@@ -10,6 +10,7 @@
 // An address that has an account still holds the handle (handle_hold) as long as a new account would, so a later
 // "that handle is taken" doesn't tell them apart either (go-live 9.6).
 import { handleProblem } from '@shwarm/protocol'
+import { currentTermsVersion } from '../core/terms'
 import { mailStatement } from '../email/outbox'
 import { UNVERIFIED_DAYS } from './cleanup'
 import { formToken, formTokenOk } from './csrf'
@@ -181,7 +182,7 @@ export async function signUp(db: D1Database, env: Env, input: SignupInput, ctx: 
     .first<{ id: number; handle: string; email: string; email_verified_at: string | null }>()
   const open = (await setting<string>(db, 'signup')) === 'open'
   const invited = await db.prepare('SELECT 1 AS ok FROM signup_allow WHERE email_norm = ?').bind(email.norm).first()
-  const termsVersion = (await setting<string>(db, 'terms_version')) ?? '0'
+  const termsVersion = await currentTermsVersion(db) // a broken setting reads as '0' rather than refusing every sign-up
   const waiting = !open && !invited
   const defer: Defer = ctx.defer ?? (work => work().then(() => {}))
   // Replacing this browser's earlier claim on the handle (a pending account or a hold) keeps its creation time, so
@@ -256,6 +257,8 @@ async function createAccount(db: D1Database, a: NewAccount, origin: string, nowM
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(p.id, a.handle, a.displayName, a.email, a.norm, a.hash, a.termsVersion, now, now, a.created_at),
+      // the per-version record of what they accepted (go-live 10.2, 0025)
+      db.prepare("INSERT INTO terms_acceptance (person_id, version, accepted_at, how) VALUES (?, ?, ?, 'signup')").bind(p.id, a.termsVersion, now),
       stmt,
       verifyMail(db, p, token, origin, now, signedNext),
     )

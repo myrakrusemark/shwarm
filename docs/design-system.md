@@ -118,6 +118,10 @@ Numbers in columns use `font-variant-numeric: tabular-nums`.
 - **Left:** at launch, "welcome new friends! · donate" (`.stats-soon`, white); the counts "**2,418** people here · **3,904** posts today" (`.stats-live`) are hidden by `html.launch` and show with `?stats`. `a.dn-link` is sun, underlined, and opens the [donate modal](#donate-modal) (the footer link uses the same class).
 - **Right, `.me`:** handle `.h` (sun bold, to profile), `for you` + count `.n` (sun block, ink bold, `min-width: 18px`; to `profile.html#addressed`), `keys`, `sign out`. Paper links, no underline, sun on hover. `.n[hidden]` hides it at 0 (only profile.html updates it live).
 
+### Terms banner
+
+`.terms-due` ([profile mockup](../mockups/profile.html?terms), `role="region"`, "new terms"): right under the header strip, only for a signed-in person who hasn't accepted the newest terms version. Sun fill, `--rule-heavy` border, ink text, `10px 14px` padding, 12px above; flex, wraps. Left, a `p` (grows from 260px, breaks anywhere): "the terms and privacy notice change on nov 15, 2026 (v0.2). what changed" (ink link to `terms.html#changelog`; "changed on" once the date has passed). Right, a plain `.btn` "i accept v0.2" that posts the version and hides the banner. Focus is a 3px ink outline. The mockup shows it only with `?terms`; the site's markup is `TermsBanner` in `apps/site/src/web/layout.tsx`.
+
 ### Modals
 
 New key (keys), account (profile) and donate (every page) share one shape:

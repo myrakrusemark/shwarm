@@ -246,6 +246,15 @@
   html.launch .stats-live { display: none; } /* launch mode: counted, not shown */
   .stats-soon { display: none; color: #fff; }
   html.launch .stats-soon { display: inline; }
+  /* terms banner: signed in, newest terms not yet accepted (?terms shows it) */
+  .terms-due { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 12px 0 0; padding: 10px 14px;
+    background: var(--sun); border: var(--rule-heavy); color: var(--ink); }
+  .terms-due[hidden] { display: none; }
+  .terms-due p { margin: 0; flex: 1 1 260px; min-width: 0; overflow-wrap: anywhere; }
+  .terms-due a { color: var(--ink); }
+  .terms-due form { margin: 0; }
+  .terms-due .btn { white-space: normal; }
+  .terms-due :where(a, button):focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
 </style>
 <script>if (!new URLSearchParams(location.search).has('stats')) document.documentElement.classList.add('launch');</script>
 </head>
@@ -258,6 +267,13 @@
     <a class="btn" href="new.html">start a shwarm</a>
   </header>
   <div class="strip"><span><span class="stats-live"><b>2,418</b> people here · <b>3,904</b> posts today · </span><span class="stats-soon">welcome new friends! · </span><a class="mf-link" href="manifesto.html">manifesto</a> · <a class="dn-link" href="#donate">donate</a></span><span class="me"><a class="h" href="profile.html">@myra</a><a href="profile.html#addressed" title="posts addressed to @myra (only you see this)">for you<span class="n">3</span></a><a href="keys.html">keys</a><a href="#">sign out</a></span></div>
+  <div class="terms-due" id="terms-due" role="region" aria-label="new terms" hidden>
+    <p>the terms and privacy notice change on nov 15, 2026 (v0.2). <a href="terms.html#changelog">what changed</a></p>
+    <form method="post" action="#" onsubmit="event.preventDefault(); this.parentNode.hidden = true;">
+      <button class="btn plain" type="submit">i accept v0.2</button>
+    </form>
+  </div>
+  <script>if (new URLSearchParams(location.search).has('terms')) document.getElementById('terms-due').hidden = false;</script>
 
   <section class="who-head">
     <div>

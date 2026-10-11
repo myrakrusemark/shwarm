@@ -2,7 +2,8 @@
 // each one acts (core/settings.ts for read_only and pause_new_nodes, auth/signup.ts and auth/routes.tsx for signup).
 // A flip writes the setting and one public moderation_action row ('setting') in one batch. That row has no column for
 // the switch, so its reason starts with "<key>=<value>: " and the public log (web/moderation-log.tsx) reads it back.
-// The site mode is not here: SITE_MODE is a deploy-time var in wrangler.jsonc (core/site-mode.ts).
+// The site mode is not here: SITE_MODE is a deploy-time var in wrangler.jsonc (core/site-mode.ts). One setting that
+// isn't a two-valued switch is logged the same way: 'terms_version', raised by the console's terms box (go-live 10.2).
 
 export type SwitchKey = 'read_only' | 'pause_new_nodes' | 'signup'
 
@@ -25,6 +26,18 @@ export const SWITCHES: Record<SwitchKey, Switch> = {
 }
 
 export const isSwitch = (k: unknown): k is SwitchKey => typeof k === 'string' && Object.hasOwn(SWITCHES, k)
+
+/** Settings the console changes that aren't switches, logged as 'setting' rows like one (go-live 10.2, core/terms.ts). */
+export type SettingKey = 'terms_version'
+/** Their names in the console and the public log. OPEN (#110): new wording. */
+export const SETTING_NAMES: Record<SettingKey, string> = { terms_version: 'terms version' }
+export const isSettingKey = (k: unknown): k is SettingKey => typeof k === 'string' && Object.hasOwn(SETTING_NAMES, k)
+
+/** A logged key's name and a value in words, for a switch or one of the settings above. */
+export function settingShown(key: SwitchKey | SettingKey, value: unknown): { name: string; words: string } {
+  if (isSwitch(key)) return { name: SWITCHES[key].name, words: SWITCHES[key].words(value) }
+  return { name: SETTING_NAMES[key], words: `v${String(value)}` }
+}
 
 /** A switch's value as the code that reads it sees it: one of its two values, else the default. */
 export function switchValue(key: SwitchKey, stored: unknown): unknown {
@@ -57,18 +70,18 @@ export async function readSwitches(db: D1Database): Promise<Record<SwitchKey, un
 }
 
 /** The setting row write for a flip (an upsert: a missing row is made). */
-export function switchStatement(db: D1Database, key: SwitchKey, value: unknown, at: string): D1PreparedStatement {
+export function switchStatement(db: D1Database, key: SwitchKey | SettingKey, value: unknown, at: string): D1PreparedStatement {
   return db
     .prepare('INSERT INTO setting (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at')
     .bind(key, JSON.stringify(value), at)
 }
 
 /** The moderation_action reason for a flip: "read_only=true: <the admin's reason>". */
-export const switchReason = (key: SwitchKey, value: unknown, reason: string) => `${key}=${JSON.stringify(value)}: ${reason}`
+export const switchReason = (key: SwitchKey | SettingKey, value: unknown, reason: string) => `${key}=${JSON.stringify(value)}: ${reason}`
 
-/** A 'setting' row's reason read back: the switch, its new value and the admin's reason. Null when it isn't one. */
-export function parseSwitchReason(r: string): { key: SwitchKey; value: unknown; reason: string } | null {
-  const m = /^([a-z_]+)=("[a-z_]+"|true|false): ([\s\S]*)$/.exec(r)
-  if (!m || !isSwitch(m[1])) return null
+/** A 'setting' row's reason read back: the switch (or setting), its new value and the admin's reason. Null when it isn't one. */
+export function parseSwitchReason(r: string): { key: SwitchKey | SettingKey; value: unknown; reason: string } | null {
+  const m = /^([a-z_]+)=("[a-z0-9_.]+"|true|false): ([\s\S]*)$/.exec(r)
+  if (!m || !(isSwitch(m[1]) || isSettingKey(m[1]))) return null
   return { key: m[1], value: JSON.parse(m[2]), reason: m[3] }
 }

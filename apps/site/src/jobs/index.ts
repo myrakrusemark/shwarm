@@ -4,7 +4,7 @@
 // failing stats run can't stop the mail sweep, though they share the invocation's CPU budget.
 import type { MailEnv } from '../email/env'
 import { sweepTriage, type TriageEnv } from '../triage/run'
-import { deleteUnverified, pruneThrottle } from '../auth/cleanup'
+import { deleteUnverified, prunePlumbing, pruneReports, pruneThrottle, purgeNetworks } from '../auth/cleanup'
 import { pruneDms } from '../core/dm'
 import { sweepDigests } from './digest'
 import { sweepOutbox } from './mail'
@@ -52,12 +52,38 @@ export async function scheduled(event: ScheduledController, env: MailEnv & Triag
     ),
   )
   // Once an hour: unverified accounts older than 7 days and their handles go (table B); old throttle rows are pruned;
-  // direct messages older than 30 days are deleted (7.17).
+  // direct messages older than 30 days are deleted (7.17). Then, on their own so neither holds the other back (go-live
+  // 11.5): IP and browser data older than 30 days (#61), the signed-request plumbing that can no longer matter, and
+  // reports and flags a year after they were resolved.
   if (new Date(event.scheduledTime).getUTCMinutes() === 7) {
     ctx.waitUntil(
       Promise.all([deleteUnverified(env.DB), pruneThrottle(env.DB), pruneDms(env.DB)]).then(([gone, pruned, dms]) => {
         if (gone || pruned || dms) console.log('cleanup', JSON.stringify({ unverified_deleted: gone, throttle_pruned: pruned, dms_deleted: dms }))
       }),
+    )
+    ctx.waitUntil(
+      purgeNetworks(env.DB).then(
+        r => {
+          if (r.sessions || r.cleared || r.networks) console.log('networks', JSON.stringify(r))
+        },
+        e => console.error('network purge failed', e),
+      ),
+    )
+    ctx.waitUntil(
+      pruneReports(env.DB).then(
+        r => {
+          if (r.reports || r.flags) console.log('reports', JSON.stringify(r))
+        },
+        e => console.error('report prune failed', e),
+      ),
+    )
+    ctx.waitUntil(
+      prunePlumbing(env.DB).then(
+        r => {
+          if (r.idempotency || r.nonces || r.buckets) console.log('plumbing', JSON.stringify(r))
+        },
+        e => console.error('plumbing prune failed', e),
+      ),
     )
   }
 }

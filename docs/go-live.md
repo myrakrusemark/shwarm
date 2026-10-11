@@ -2,7 +2,7 @@
 
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
-**Now (Claude):** shwarm.org is in beta, v0.2.7, with phase 9 built: flags, the admin console behind Cloudflare Access, the public moderation log, the security review's fixes; the abuse drill (9.7) is done. 9.6 waits only on an outside person with the staging address for 48 hours. Phase 10: donations (10.1) are live on shwarm.org through Stripe Checkout. Next: 10.2.
+**Now (Claude):** shwarm.org is in beta, v0.2.7, with phase 9 built: flags, the admin console behind Cloudflare Access, the public moderation log, the security review's fixes; the abuse drill (9.7) is done. 9.6 waits only on an outside person with the staging address for 48 hours. Phase 10: donations (10.1) are live on shwarm.org through Stripe Checkout. 10.2: the v0.2 terms, privacy and rules pages and terms versions are built and on staging, waiting on Myra's read (m-terms-v02). Next: 10.5 (the license on the pages).
 **Now (Myra):** the "Needs Myra" list below; the tracker page shows only that list and the progress.
 **Last updated:** 2026-10-11.
 
@@ -10,6 +10,7 @@ The plan for getting all of shwarm live at https://shwarm.org, so Myra can invit
 
 Only what waits on Myra. Claude adds an item when something needs her and removes it once it's settled; her answers land in `tracker/replies.json` under the item's id. Shwarm cards that wait on her approval show on the page by themselves.
 
+- [m-terms-v02] **read the new terms, privacy and rules pages (10.2):** on staging at /terms, /privacy and /rules. They're v0.2, in effect Nov 15, with your four answers from today in them. Say yes, or change any line. Also open, no rush: what happens to an account found to be under 16, whether illegal content becomes a fifth "never allowed" rule, and the builder's defaults for terms changes ([#110](open-questions.md#110-terms-changes-the-builders-defaults)). After your yes, you announce v0.2 on staging's /admin/switches (it needs your password), check the banner and press accept; then the same on shwarm.org.
 - [m-ash] **when you're ready, Ash's pen test (9.6's last part):** send Claude Ash's email for the staging allow-list, and send Ash the staging password and the brief yourself. No rush.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. Workers Paid ($5/month) for argon2id passwords was offered and declined for now (Oct 8): the beta uses PBKDF2, and the switch is a todo before the public opens. Claude asks before any spend.
@@ -439,7 +440,8 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - **who:** both · **needs:** 2.6
 - **done when:** all five verify mails land in the inbox (not spam) with SPF, DKIM and DMARC passing, and the Outlook link still works after Safe Links has fetched it. (Repeated in 13.1.)
 
-**2.11 Beta terms and privacy drafts**
+**2.11 Beta terms and privacy drafts** · done
+- *(Oct 11: the drafts were made final in 10.2 (v0.2). The EU DSA contact line is on the terms. The UK Online Safety Act illegal-content risk assessment is [uk-osa-risk-assessment.md](uk-osa-risk-assessment.md), not linked from the site. It found that triage asks only about the four hard blocks on new shwarms and branches, so terrorism, CSAM links, hate and self-harm rest on reports and flags.)*
 - **what:** Claude drafts both in plain language from legal-todo sections 3–4: operator and address, contact (support@, abuse@, dmca@, /report), the license grant and builds-on, minimum age, agents and keys, moderation (honest about @myra reviewing at launch), copyright notices, runs and code at your own risk, donations (voluntary, not tax-deductible, how to cancel monthly, refunds), closing an account, no warranty, changes and the notice period; privacy with a draft data inventory, 30-day retention, data region, the one cookie and Turnstile, and subprocessors. Also one EU DSA contact line (email, languages) on the terms, and a short UK Online Safety Act illegal-content risk assessment (about an hour, kept in the repo). Open rows (A2, A3, A13) stay as marked placeholders. Labeled "beta · v0.1". (Not legal advice; A19 says whether a lawyer reviews before or after launch.)
 - **who:** Claude drafts; Myra reviews in her lane over the following weeks · **needs:** A4, A5, A7
 - **done when:** both drafts are on staging, combob-lint passes on the plain parts, and every "[to decide]" left points to a row still open on Myra's Now line.
@@ -867,7 +869,8 @@ Functional changes Myra has chosen, held until after launch so they don't muddy 
 - **who:** both · **needs:** A2, A13, 1.11
 - **done when:** a $5 test donation shows in Stripe, and decisions.md records the path.
 
-**10.2 Terms and privacy final for the beta**
+**10.2 Terms and privacy final for the beta** · doing
+- *(Oct 11: built and written, waiting on Myra's read. An audit checked the three pages against the code and decisions.md: 33 fixes, written up as v0.2, in effect from Nov 15, 2026 ([decision](decisions.md#oct-11-terms-and-privacy-final)). Myra decided the 30-day notice, stopping a monthly gift by mail, refunds within 30 days, and deleting reports and flags a year after they're resolved. Built: terms versions (`TERMS_VERSIONS` in content.py, the changelog on /terms, a banner with "i accept v<n>", the `terms_acceptance` table, an announce box on /admin/switches that mails every account behind, 50 a day); the hourly 30-day purge of networks and browsers (part of 11.5); the year-old report and flag prune; a fuller data download (direct messages, gifts, accepted terms, the invite row, a pending email change). No "[to decide]" is left; combob-lint passes on all three pages; 1142 tests pass. The builder's defaults are [open #110](open-questions.md#110-terms-changes-the-builders-defaults). Left: Myra reads the pages on staging (m-terms-v02); then v0.2 is announced on staging to check the banner and the recorded acceptance, then on production. A19 said no lawyer before the beta.)*
 - **what:** fill the 2.11 drafts with the data inventory and subprocessors from the real schema (Cloudflare, Resend, Anthropic, Sentry, the donations provider), the operator and address (0.10), the license (A2) and the donations path; set the effective date; the lawyer's changes if A19 = hold. A terms-version setting: when it goes up, signed-in people see a banner and a one-click "I accept v<n>", recorded per person; an email goes to every account the notice period before the effective date; the changelog is linked from both pages. The rules page matches A7 and the report link.
 - **who:** Claude; Myra approves every line · **needs:** 2.11, 0.10, A2, A3, A13, A19
 - **done when:** no "[to decide]" remains, combob-lint passes on the plain parts, Myra has approved both, and bumping the version on staging shows the banner and records acceptance.
@@ -912,6 +915,7 @@ Functional changes Myra has chosen, held until after launch so they don't muddy 
 - *(Oct 10: Myra said yes in review round 2 to the /admin/beta page and the privacy page line. The line is in scripts/pages/content.py and exported to the site; production shows it at the next deploy.)*
 
 **11.5 Housekeeping jobs**
+- *(Oct 11: the 30-day purge of IP and browser data (sessions and key networks), idempotency, nonce and rate-limit pruning, and the year-old report and flag prune are built and tested, in the hourly job at minute 7. Unverified accounts at 7 days were already there.)*
 - **what:** key expiry, email-token and nonce pruning, idempotency pruning, weekly disposable-domain refresh, IP and browser data purged after 30 days, unverified accounts purged after 7 days, re-running held triage.
 - **who:** Claude · **needs:** phases 2, 7, 8
 - **done when:** each job has a test and shows in the cron log.

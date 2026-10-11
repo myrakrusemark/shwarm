@@ -9,13 +9,18 @@
 // The site mode is SITE_MODE in wrangler.jsonc, a deploy-time var read synchronously all over (core/site-mode.ts), so
 // the page shows it and says how to change it rather than flipping it. OPEN: a deploy that changes it writes no log
 // row; the `site_mode` setting row (0002) is still unread.
+// The terms box (go-live 10.2) announces the newest bundled terms version (core/terms.ts): with a required reason, one
+// batch queues the notice mail to every active, verified account not on it (NOTICE_PER_DAY a day), raises the
+// 'terms_version' setting, which puts the banner on their signed-in pages, and writes the public 'setting' row. It
+// refuses a version that isn't bundled, isn't newer, or takes effect sooner than the notice period plus the mailing days.
 import { Hono, type Context } from 'hono'
 import type { FC } from 'hono/jsx'
 import { formToken } from '../auth/csrf'
 import { formOf, postedTokenOk, who, type AuthContext } from '../auth/request'
 import { modLog, modReason, MOD_REASON_MAX } from '../core/moderation'
 import { siteModeOf, type SiteMode } from '../core/site-mode'
-import { isSwitch, parseSwitchReason, parseSwitchValue, readSwitches, SWITCHES, switchReason, switchStatement, type SwitchKey } from '../core/switches'
+import { isSwitch, parseSwitchReason, parseSwitchValue, readSwitches, settingShown, SWITCHES, switchReason, switchStatement, type SwitchKey } from '../core/switches'
+import { announceRefusal, currentTermsVersion, latestTerms, mailingDays, notAnnounced, NOTICE_DAYS, noticeCount, noticeStatement, termsDate, termsEntry, type TermsVersion } from '../core/terms'
 import { HANDLE_SHOWN } from '../read/names'
 import { adminGate, type AdminEnv } from './admin-gate'
 import { AdminNav } from './admin-nav'
@@ -45,22 +50,29 @@ const MODES: Record<SiteMode, string> = {
 }
 
 type Recent = { id: number; reason: string; created_at: string; by: string }
+/** A switch, or the terms box. */
+type BoxKey = SwitchKey | 'terms_version'
 type View = {
   token: string
   values: Record<SwitchKey, unknown>
+  /** The announced terms version, the newest bundled one, and how many accounts announcing it would mail. */
+  terms: { current: string; next: TermsVersion; people: number }
   mode: SiteMode
   env: string
   recent: Recent[]
   /** After a flip: the switch, and whether it changed or already had that value. */
-  flash?: { key: SwitchKey; same: boolean }
+  flash?: { key: BoxKey; same: boolean }
   /** A refused form: the switch it was for, and why. */
-  error?: { key: SwitchKey; text: string; reason?: string }
+  error?: { key: BoxKey; text: string; reason?: string }
 }
 
 async function view(c: Context<Env>, sessionId: string, extra: Partial<View> = {}): Promise<View> {
   const db = c.env.DB
-  const [values, recent] = await Promise.all([
+  const next = latestTerms()
+  const [values, current, people, recent] = await Promise.all([
     readSwitches(db),
+    currentTermsVersion(db),
+    noticeCount(db, next.version),
     db
       .prepare(
         `SELECT m.id, m.reason, m.created_at, ${HANDLE_SHOWN('p')} AS by
@@ -71,7 +83,7 @@ async function view(c: Context<Env>, sessionId: string, extra: Partial<View> = {
       .all<Recent>()
       .then(r => r.results),
   ])
-  return { token: await formToken(c.env.CSRF_SECRET, sessionId), values, mode: siteModeOf(c.env), env: c.env.ENV ?? 'unknown', recent, ...extra }
+  return { token: await formToken(c.env.CSRF_SECRET, sessionId), values, terms: { current, next, people }, mode: siteModeOf(c.env), env: c.env.ENV ?? 'unknown', recent, ...extra }
 }
 
 adminSwitches.get(PATH, async c => {
@@ -80,7 +92,7 @@ adminSwitches.get(PATH, async c => {
   const done = c.req.query('done')
   const same = c.req.query('same')
   const k = done ?? same
-  return page(c, <SwitchesPage v={await view(c, g.session.id, isSwitch(k) ? { flash: { key: k, same: !done } } : {})} />)
+  return page(c, <SwitchesPage v={await view(c, g.session.id, isSwitch(k) || k === 'terms_version' ? { flash: { key: k, same: !done } } : {})} />)
 })
 
 adminSwitches.post(PATH, async c => {
@@ -91,6 +103,7 @@ adminSwitches.post(PATH, async c => {
   if (!(await postedTokenOk(c as unknown as AuthContext, w, f)))
     return sendError(c, { status: 403, heading: 'this form expired', text: 'go back, reload the page and try again.' }, 'html')
   const key = f.key
+  if (key === 'terms_version') return announceTerms(c, g.session, f)
   if (!isSwitch(key)) return sendError(c, { status: 400, text: 'that form asked for nothing we know.' }, 'html')
   const to = parseSwitchValue(key, f.value)
   if (!to) return sendError(c, { status: 400, text: 'that form asked for nothing we know.' }, 'html')
@@ -111,15 +124,39 @@ adminSwitches.post(PATH, async c => {
   return c.redirect(`${PATH}?done=${key}#${key}`, 303)
 })
 
+/** The terms box's form: announce the newest bundled version (go-live 10.2). */
+async function announceTerms(c: Context<Env>, session: { id: string; personId: number }, f: Record<string, string>) {
+  const db = c.env.DB
+  const version = f.value ?? ''
+  const reason = modReason(f.reason)
+  const current = await currentTermsVersion(db)
+  const people = await noticeCount(db, version)
+  // OPEN (#110): new wording.
+  const refused =
+    announceRefusal(version, current, people) ??
+    (reason ? null : (f.reason ?? '').trim() ? `keep the reason to ${MOD_REASON_MAX} characters.` : 'give a reason. it shows in the public log.')
+  const entry = termsEntry(version)
+  if (refused || !entry || !reason)
+    return page(c, <SwitchesPage v={await view(c, session.id, { error: { key: 'terms_version', text: refused ?? '', reason: f.reason } })} />, 400)
+  const at = new Date().toISOString()
+  // The mail and the log row go only while the setting isn't this version yet, and before it changes: a form sent twice
+  // at once mails and logs once.
+  await db.batch([
+    noticeStatement(db, entry, at),
+    modLog(db, { by: session.personId, action: 'setting', reason: switchReason('terms_version', version, reason), public: true, at }, notAnnounced(version)),
+    switchStatement(db, 'terms_version', version, at),
+  ])
+  return c.redirect(`${PATH}?done=terms_version#terms_version`, 303)
+}
+
 // ---------- the page ----------
 
 const Flash: FC<{ f: NonNullable<View['flash']>; v: View }> = ({ f, v }) => {
-  const s = SWITCHES[f.key]
-  const now = s.words(v.values[f.key])
+  const s = settingShown(f.key, f.key === 'terms_version' ? v.terms.current : v.values[f.key])
   // OPEN (#107): new wording.
   return (
     <p class="sw-flash" role="status">
-      {f.same ? `${s.name} was already ${now}. nothing changed.` : `${s.name} is now ${now}. it's in the public log.`}
+      {f.same ? `${s.name} was already ${s.words}. nothing changed.` : `${s.name} is now ${s.words}. it's in the public log.`}
     </p>
   )
 }
@@ -171,6 +208,50 @@ const ModeBox: FC<{ v: View }> = ({ v }) => (
   </section>
 )
 
+const TermsBox: FC<{ v: View }> = ({ v }) => {
+  const { current, next, people } = v.terms
+  const err = v.error?.key === 'terms_version' ? v.error : undefined
+  const due = next.version !== current
+  const days = mailingDays(people)
+  return (
+    <section class="box sw" id="terms_version">
+      {/* OPEN (#110): new wording, this box's copy. */}
+      <h2>terms version <span>· v{current}</span></h2>
+      <div class="sw-in">
+        <p>
+          people accept v{current}. the newest version in this deploy is v{next.version}, in effect from {termsDate(next.effective)}.
+        </p>
+        {due ? (
+          <>
+            <p>
+              announcing it emails {people === 1 ? '1 account' : `${people} accounts`}
+              {days > 1 ? ` over ${days} days` : ''}, and shows a banner to everyone signed in until they accept. it has to go out
+              at least {NOTICE_DAYS} days before it takes effect.
+            </p>
+            <form method="post" action={PATH}>
+              <input type="hidden" name="form_token" value={v.token} />
+              <input type="hidden" name="key" value="terms_version" />
+              <input type="hidden" name="value" value={next.version} />
+              <label for="r-terms_version">reason <span class="note">(shows in the public log)</span></label>
+              <input id="r-terms_version" name="reason" type="text" required maxlength={MOD_REASON_MAX} value={err?.reason ?? ''} aria-invalid={err ? 'true' : undefined} aria-describedby={err ? 'e-terms_version' : undefined} />
+              {err && <p class="err" id="e-terms_version">{err.text}</p>}
+              <div class="sw-go">
+                <span class="note">confirms with your password.</span>
+                <button class="btn" type="submit">announce v{next.version}</button>
+              </div>
+            </form>
+          </>
+        ) : (
+          <>
+            <p>nothing to announce. to change the terms, add a version to <code>TERMS_VERSIONS</code> in <code>scripts/pages/content.py</code>, export and deploy.</p>
+            {err && <p class="err" id="e-terms_version">{err.text}</p>}
+          </>
+        )}
+      </div>
+    </section>
+  )
+}
+
 const RecentBox: FC<{ rows: Recent[] }> = ({ rows }) => (
   <div class="box">
     {/* OPEN (#107): new wording. */}
@@ -182,7 +263,7 @@ const RecentBox: FC<{ rows: Recent[] }> = ({ rows }) => (
           return (
             <li>
               <span class="day">{r.created_at.slice(0, 16).replace('T', ' ')}</span> {r.by}:{' '}
-              {p ? <>{SWITCHES[p.key].name} {SWITCHES[p.key].words(p.value)}. {p.reason}</> : r.reason}
+              {p ? <>{settingShown(p.key, p.value).name} {settingShown(p.key, p.value).words}. {p.reason}</> : r.reason}
             </li>
           )
         })}
@@ -210,6 +291,7 @@ const SwitchesPage: FC<{ v: View }> = ({ v }) => (
         <SwitchBox k="pause_new_nodes" v={v} />
         <SwitchBox k="signup" v={v} />
         <ModeBox v={v} />
+        <TermsBox v={v} />
       </main>
       <aside>
         <RecentBox rows={v.recent} />

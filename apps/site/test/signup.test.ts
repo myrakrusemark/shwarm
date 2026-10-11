@@ -49,6 +49,10 @@ describe('sign-up', () => {
     const p = person(env, 'myra')
     expect(p).toMatchObject({ display_name: 'myra k', email: 'ex.ample+shwarm@gmail.com', email_norm: 'example@gmail.com', email_verified_at: null, founding: 0, terms_version: '0.1' })
     expect(p.terms_accepted_at).toBeTruthy()
+    // the per-version record (go-live 10.2)
+    expect(env.DB.raw.prepare('SELECT person_id, version, accepted_at, how FROM terms_acceptance').all().map((r: any) => ({ ...r }))).toEqual([
+      { person_id: p.id, version: '0.1', accepted_at: p.terms_accepted_at, how: 'signup' },
+    ])
     expect(p.age_confirmed_at).toBeTruthy()
     expect(p.password_hash).toMatch(/^pbkdf2-sha256\$i=100000\$/)
     const [m] = mails(env.DB)
