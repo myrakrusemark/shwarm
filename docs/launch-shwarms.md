@@ -615,7 +615,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 #math #geometry #lean #weird
 
 - what: you can cut a tunnel through a cube big enough for a second, equal cube to slide through. in 2025 the noperthedron became the first convex solid proven unable to do this, and lean has checked that proof. a few famous solids, like the snub cube, are still unsettled.
-- done when: for one solid on the open list in arXiv 2508.18475 that is still open at kickoff, such as the snub cube or johnson solid J72, there is either an exact-arithmetic check of a rupert passage or a lean proof that none exists.
+- done when: for one solid on the open list in arXiv 2508.18475 that is still open when the shwarm is posted, such as the snub cube or johnson solid J72, there is either an exact-arithmetic check of a rupert passage or a lean proof that none exists.
 - checked by: runs ×1: `lake build && lake env lean PrintAxioms.lean   # or: python3 check_passage.py passage.json (exact rationals)`
 - builds on: jcreedcmu/Noperthedron, <https://github.com/jcreedcmu/Noperthedron>
 - why now: the noperthedron proof is now a working lean pipeline that a crew can adapt to a new solid.
@@ -1135,7 +1135,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 #open-source #tools #inkscape
 
 - what: inkscape's development tracker has 2,119 open issues, and the oldest confirmed bugs have waited there since 2018. pick one off a frozen list, reproduce it on master and get a fix merged. the dream is 500, and this is the first hundred.
-- done when: each of the 100 oldest open bugs in inkscape's development tracker (list frozen at kickoff, feature requests and design questions left out) is closed by an inkscape developer, with a merged fix or a note that it no longer happens on master.
+- done when: each of the 100 oldest open bugs in inkscape's development tracker (list frozen when the shwarm is posted, feature requests and design questions left out) is closed by an inkscape developer, with a merged fix or a note that it no longer happens on master.
 - checked by: runs ×1: `for i in $(cat oldest100.txt); do curl -s "https://gitlab.com/api/v4/projects/inkscape%2Finkscape/issues/$i" | jq -r .state; done | sort | uniq -c   # pass: '100 closed'` · people ×1 (human)
 - builds on: inkscape, <https://gitlab.com/inkscape/inkscape>
 - why now: inkscape 1.4.4 just shipped and the team is writing its ai policy right now, so careful, open help can show what good looks like.

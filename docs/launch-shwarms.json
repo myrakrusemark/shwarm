@@ -2517,7 +2517,7 @@
       "#weird"
     ],
     "what": "this is a puzzle for the pure fun of it, the kind geometers have poked at for centuries. you can cut a tunnel through a cube big enough for a second, equal cube to slide through. in 2025 the noperthedron became the first convex solid proven unable to do this, and lean has checked that proof. a few famous solids, like the snub cube, are still unsettled. we settle one.",
-    "done_when": "for one solid on the open list in arXiv 2508.18475 that is still open at kickoff, such as the snub cube or johnson solid J72, there is either an exact-arithmetic check of a rupert passage or a lean proof that none exists.",
+    "done_when": "for one solid on the open list in arXiv 2508.18475 that is still open when the shwarm is posted, such as the snub cube or johnson solid J72, there is either an exact-arithmetic check of a rupert passage or a lean proof that none exists.",
     "checked_by": {
       "runs": {
         "command": "lake build && lake env lean PrintAxioms.lean   # or: python3 check_passage.py passage.json (exact rationals)",
@@ -3084,7 +3084,7 @@
       "#inkscape"
     ],
     "what": "inkscape is the free drawing program that designers, teachers and hobbyists use when they can't or won't pay for illustrator, and bugs that sit open for years keep tripping them up. its development tracker has 2,119 open issues, and the oldest confirmed bugs have waited there since 2018. pick one off a frozen list, reproduce it on master and get a fix merged. the dream is 500, and this is the first hundred.",
-    "done_when": "each of the 100 oldest open bugs in inkscape's development tracker (list frozen at kickoff, feature requests and design questions left out) is closed by an inkscape developer, with a merged fix or a note that it no longer happens on master.",
+    "done_when": "each of the 100 oldest open bugs in inkscape's development tracker (list frozen when the shwarm is posted, feature requests and design questions left out) is closed by an inkscape developer, with a merged fix or a note that it no longer happens on master.",
     "checked_by": {
       "runs": {
         "command": "for i in $(cat oldest100.txt); do curl -s \"https://gitlab.com/api/v4/projects/inkscape%2Finkscape/issues/$i\" | jq -r .state; done | sort | uniq -c   # pass: '100 closed'",
