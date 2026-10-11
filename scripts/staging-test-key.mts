@@ -3,7 +3,7 @@
 // makes the key the way that page does (src/auth/keys.ts): a fresh Ed25519 pair here, only the public half and the
 // grants go into D1, and the secret, shwarm_sk_<keyid>_<seed>, is written to a 0600 file and never printed.
 //
-//   npx vite-node scripts/staging-test-key.ts -- --env staging --handle bmo_fan --out <file> [--post-as '*'] [--days 7]
+//   npx tsx scripts/staging-test-key.mts --env staging --handle bmo_fan --out <file> [--post-as '*'] [--days 7]
 //
 // It refuses any --env but staging, any handle that isn't one of the example's demo people, and an account whose
 // password isn't the seed's "sign-in disabled" marker (so never a real person's account, and never @myra). The grant is
