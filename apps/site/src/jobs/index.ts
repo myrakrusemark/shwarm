@@ -1,10 +1,13 @@
 // Cron entry point. wrangler.jsonc has one trigger, every minute, in staging and production: Workers Free allows 5 cron
 // triggers per account, and production's deploy hit that limit with two (Oct 10). Each minute sweeps mail, triage and
-// cleanup; every fifth minute also runs stats. Each job is its own waitUntil and catches its own errors, so a slow or
-// failing stats run can't stop the mail sweep, though they share the invocation's CPU budget.
+// cleanup; every fifth minute also runs stats; once a night the backup, once a week the disposable-domain refresh. Each
+// job is its own waitUntil and catches its own errors, so a slow or failing stats run can't stop the mail sweep, though
+// they share the invocation's CPU budget and its 50 subrequests.
 import type { MailEnv } from '../email/env'
+import { refreshDisposable } from '../auth/disposable'
+import { backup, BACKUP_HOUR_UTC, BACKUP_MINUTE, type BackupEnv } from './backup'
 import { sweepTriage, type TriageEnv } from '../triage/run'
-import { deleteUnverified, prunePlumbing, pruneReports, pruneThrottle, purgeNetworks } from '../auth/cleanup'
+import { deleteUnverified, prunePlumbing, pruneReports, pruneThrottle, pruneTokens, purgeNetworks } from '../auth/cleanup'
 import { pruneDms } from '../core/dm'
 import { sweepDigests } from './digest'
 import { sweepOutbox } from './mail'
@@ -13,8 +16,9 @@ import { sendSummary } from './summary'
 
 export const MAIL_CRON = '* * * * *'
 
-export async function scheduled(event: ScheduledController, env: MailEnv & TriageEnv, ctx: ExecutionContext): Promise<void> {
-  if (new Date(event.scheduledTime).getUTCMinutes() % 5 === 0) {
+export async function scheduled(event: ScheduledController, env: MailEnv & TriageEnv & BackupEnv, ctx: ExecutionContext): Promise<void> {
+  const at = new Date(event.scheduledTime)
+  if (at.getUTCMinutes() % 5 === 0) {
     ctx.waitUntil(stats(env.DB, event.scheduledTime).catch(e => console.error('stats failed', e)))
     // The admins' daily summary (go-live 11.4): once a day, queued for the next minute's mail sweep.
     ctx.waitUntil(
@@ -54,8 +58,8 @@ export async function scheduled(event: ScheduledController, env: MailEnv & Triag
   // Once an hour: unverified accounts older than 7 days and their handles go (table B); old throttle rows are pruned;
   // direct messages older than 30 days are deleted (7.17). Then, on their own so neither holds the other back (go-live
   // 11.5): IP and browser data older than 30 days (#61), the signed-request plumbing that can no longer matter, and
-  // reports and flags a year after they were resolved.
-  if (new Date(event.scheduledTime).getUTCMinutes() === 7) {
+  // reports and flags a year after they were resolved, and emailed links an hour after they were used or expired.
+  if (at.getUTCMinutes() === 7) {
     ctx.waitUntil(
       Promise.all([deleteUnverified(env.DB), pruneThrottle(env.DB), pruneDms(env.DB)]).then(([gone, pruned, dms]) => {
         if (gone || pruned || dms) console.log('cleanup', JSON.stringify({ unverified_deleted: gone, throttle_pruned: pruned, dms_deleted: dms }))
@@ -83,6 +87,34 @@ export async function scheduled(event: ScheduledController, env: MailEnv & Triag
           if (r.idempotency || r.nonces || r.buckets) console.log('plumbing', JSON.stringify(r))
         },
         e => console.error('plumbing prune failed', e),
+      ),
+    )
+    ctx.waitUntil(
+      pruneTokens(env.DB).then(
+        n => {
+          if (n) console.log('tokens', JSON.stringify({ email_tokens: n }))
+        },
+        e => console.error('token prune failed', e),
+      ),
+    )
+  }
+  // Nightly at 03:17 UTC: the backup to R2 (go-live 11.1). Skipped, with a log line, without the BACKUPS binding.
+  if (at.getUTCHours() === BACKUP_HOUR_UTC && at.getUTCMinutes() === BACKUP_MINUTE) {
+    ctx.waitUntil(
+      backup(env, event.scheduledTime).then(
+        r => {
+          if (r) console.log('backup', JSON.stringify(r))
+        },
+        e => console.error('backup failed', e),
+      ),
+    )
+  }
+  // Mondays at 04:23 UTC: the domains the public disposable-email list gained this week (go-live 11.5).
+  if (at.getUTCDay() === 1 && at.getUTCHours() === 4 && at.getUTCMinutes() === 23) {
+    ctx.waitUntil(
+      refreshDisposable(env.DB).then(
+        r => console.log('disposable', JSON.stringify(r)),
+        e => console.error('disposable refresh failed', e),
       ),
     )
   }

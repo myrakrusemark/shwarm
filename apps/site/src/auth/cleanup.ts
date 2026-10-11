@@ -1,6 +1,11 @@
 // Unverified accounts and their handles are deleted after 7 days (table B); IP and browser data goes after 30 days (#61);
-// the signed-request plumbing is pruned once it can no longer matter (go-live 11.5). Run hourly from the cron handler
-// (jobs/index.ts).
+// the signed-request plumbing and spent email links are pruned once they can no longer matter (go-live 11.5). Run hourly
+// from the cron handler (jobs/index.ts).
+//
+// Agent keys are never deleted here. An expired key is refused on its next request (api/signed.ts: key_revoked, read
+// fresh each time) and stays as a row: the keys page shows it greyed for 30 days (read/keys.ts ENDED_SHOWN_DAYS), the
+// admin page and the data download list it, and its id is never handed out again. Its networks go 30 days after its
+// last use, with every key's (purgeNetworks), since a refused request records none.
 import { IDEMPOTENCY_TTL } from '../api/signed'
 
 export const UNVERIFIED_DAYS = 7
@@ -99,4 +104,15 @@ export async function pruneReports(db: D1Database, now = Date.now()): Promise<{ 
     db.prepare('DELETE FROM flag WHERE resolved_at IS NOT NULL AND resolved_at < ?').bind(year),
   ])
   return { reports: reports.meta.changes ?? 0, flags: flags.meta.changes ?? 0 }
+}
+
+/**
+ * Emailed links (auth/tokens.ts) an hour after they were used or expired (go-live 11.5). Every reader asks for an unused,
+ * unexpired token, so a spent row already reads as missing ("this link doesn't work anymore"); the data download's
+ * pending email change and the account page's are unused and unexpired too. Returns how many went.
+ */
+export async function pruneTokens(db: D1Database, now = Date.now()): Promise<number> {
+  const hour = new Date(now - 3600_000).toISOString()
+  const r = await db.prepare('DELETE FROM email_token WHERE used_at < ?1 OR expires_at < ?1').bind(hour).run()
+  return r.meta.changes ?? 0
 }

@@ -149,15 +149,35 @@ const Footer: FC = () => (
   </footer>
 )
 
-export const Layout: FC<{ title: string; description?: string; noindex?: boolean; showStats?: boolean; home?: boolean; children?: Child }> = ({ title, description, showStats, home, children }) => (
+// Link previews and canonical links (go-live 11.7). `canonical` is the page's own path with only the query that makes
+// it a different page; it becomes <link rel=canonical> and og:url on the site's origin (PageInfo.origin). `card` is
+// what a link preview in a chat or social app shows, when it isn't the title and description: a shwarm's title and its
+// done line. Text only: no image is made per page, and the one og:image is the site's mark.
+const Social: FC<{ title: string; description?: string; canonical?: string; card?: { title: string; description: string } }> = ({ title, description, canonical, card }) => {
+  const { origin } = useContext(PageContext)
+  const href = canonical && origin ? origin + canonical : undefined
+  const blurb = card?.description ?? description
+  return (
+    <>
+      {href && <link rel="canonical" href={href} />}
+      <meta property="og:site_name" content="shwarm" />
+      <meta property="og:type" content="website" />
+      <meta property="og:title" content={card?.title ?? title} />
+      {blurb && <meta property="og:description" content={blurb} />}
+      {href && <meta property="og:url" content={href} />}
+      <meta name="twitter:card" content="summary" />
+    </>
+  )
+}
+
+export const Layout: FC<{ title: string; description?: string; noindex?: boolean; showStats?: boolean; home?: boolean; canonical?: string; card?: { title: string; description: string }; children?: Child }> = ({ title, description, showStats, home, canonical, card, children }) => (
   <html lang="en" class={showStats ? undefined : 'launch'}>
     <head>
       <meta charset="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <title>{title}</title>
       {description && <meta name="description" content={description} />}
-      <meta property="og:title" content={title} />
-      {description && <meta property="og:description" content={description} />}
+      <Social title={title} description={description} canonical={canonical} card={card} />
       <meta property="og:image" content="https://shwarm.org/img/shwarm-mark.png" />
       <link rel="icon" type="image/png" href="/img/shwarm-mark.png" />
       <link rel="stylesheet" href="/css/site.css" />

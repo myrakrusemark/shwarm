@@ -892,7 +892,8 @@ Functional changes Myra has chosen, held until after launch so they don't muddy 
 
 ### Phase 11: ops (3 days)
 
-**11.1 Backups**
+**11.1 Backups** · doing
+- *(Oct 11: built, not yet proven. Myra said yes to two private R2 buckets (free tier): `shwarm-backups-staging` and `shwarm-backups`. Every night at 03:17 UTC `src/jobs/backup.ts` writes `d1/YYYY-MM-DD.sql.gz` (a restorable SQL dump of every base table) and a manifest (row counts, sha256), and deletes files more than 30 days old. `scripts/restore-backup.mjs` restores one into an empty, migrated database, staging unless `--i-mean-production`, and compares counts. The round trip is tested. Risk: Workers Free gives a cron run 10 ms of CPU; check the first staging run's CPU time. D1 Time Travel works on production.)*
 - **what:** D1 Time Travel; a nightly export of base tables to a private R2 bucket kept 30 days.
 - **who:** Claude · **needs:** 1.3
 - **done when:** three nightly exports exist.
@@ -914,18 +915,21 @@ Functional changes Myra has chosen, held until after launch so they don't muddy 
 - *(Oct 9: scoped to Myra's "our own counts, a funnel first" (decisions, Oct 9): no third-party analytics. Built: `/admin/beta`, a 404 for anyone but an active admin, with the loop funnel (all accounts and invited ones: invited, signed up, verified, first post, joined, first submission, first check, part of a pass), each tester's furthest step and last activity, 14 days of activity, and traffic. Traffic is counted on the server into `traffic_daily` (migration 0017): day, kind (page, prompt, json, api, other), the referring site's host, country and status class, with no IP, user agent, path or account id; staging and production only. A daily line about yesterday goes to the admins at 13:00 UTC on the account stream. Seed accounts and admins are left out of the funnel. Waiting on Myra: a look at the page on staging, and a yes on a line for the privacy page.)*
 - *(Oct 10: Myra said yes in review round 2 to the /admin/beta page and the privacy page line. The line is in scripts/pages/content.py and exported to the site; production shows it at the next deploy.)*
 
-**11.5 Housekeeping jobs**
+**11.5 Housekeeping jobs** · doing
+- *(Oct 11, later: used and expired email links are pruned hourly; the disposable-domain list refreshes Mondays at 04:23 UTC from the same CC0 list, adding only, never below 5,000 domains, never a domain a verified account uses. Expired keys were already refused on use; their rows stay for the keys page and the download. Held triage was already retried by the minute sweep. Every job has a test. Left: see each in the cron log after deploy.)*
 - *(Oct 11: the 30-day purge of IP and browser data (sessions and key networks), idempotency, nonce and rate-limit pruning, and the year-old report and flag prune are built and tested, in the hourly job at minute 7. Unverified accounts at 7 days were already there.)*
 - **what:** key expiry, email-token and nonce pruning, idempotency pruning, weekly disposable-domain refresh, IP and browser data purged after 30 days, unverified accounts purged after 7 days, re-running held triage.
 - **who:** Claude · **needs:** phases 2, 7, 8
 - **done when:** each job has a test and shows in the cron log.
 
-**11.6 Incident runbook**
+**11.6 Incident runbook** · doing
+- *(Oct 11: written in [runbook.md](runbook.md): the first ten minutes, read-only and the other switches (admin page and SQL), end all sessions, revoke all keys, all 11 secrets with what rotating each does (rotating PASSWORD_PEPPER breaks every password), telling people, the 72-hour rule, the CSAM steps, and restoring from the nightly backup. Every SQL statement was run against a test database. There's no sign-ups-off switch (a free Cloudflare WAF rule stands in). Left: Myra flips read-only on staging and rotates one secret (MAIL_SECRET is the gentlest) using only the runbook.)*
 - **what:** flip read-only, pause sign-ups, end all sessions, rotate secrets, revoke all agent keys, tell affected people, the 72-hour breach notice rule; the list of secrets and how to rotate each; the `wrangler d1 execute` recipes for the switches that have no admin UI (9.4); a short CSAM paragraph: hide, preserve, report to the NCMEC CyberTipline.
 - **who:** Claude writes; Myra tries it · **needs:** 9.4
 - **done when:** Myra has flipped read-only on staging and rotated one secret using only the runbook.
 
-**11.7 Robots, sitemap, link previews (should)**
+**11.7 Robots, sitemap, link previews (should)** · doing
+- *(Oct 11: built. robots.txt (staging disallows everything; production keeps crawlers out of account, admin and form pages), /sitemap.xml from public shwarms, branches and result pages plus the footer pages (capped at 5,000), canonical links, and text link previews (title, "done when: …"). Left: check a preview in Slack, Discord, Mastodon and Bluesky after the next production release; pages still send noindex until the site opens.)*
 - **what:** robots.txt (no /keys, account or admin), a sitemap from the database, per-shwarm social cards from title and done line, canonical URLs.
 - **who:** Claude · **needs:** 3.3
 - **done when:** a shwarm link previews correctly in Slack, Discord, Mastodon and Bluesky.

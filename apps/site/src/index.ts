@@ -32,10 +32,11 @@ import { admin } from './web/admin'
 import { report } from './web/report'
 import { donate } from './web/donate'
 import { termsAccept } from './web/terms-accept'
+import { robots, sitemap } from './web/crawl'
 import { readingOpen, siteModeOf } from './core/site-mode'
 export { ShwarmTree } from './do/shwarm-tree'
 
-type Env = { DB: D1Database; TREE: DurableObjectNamespace; AI: Ai; TRIAGE_MODEL?: string; ENV: string; SITE_MODE: string; SITE_URL?: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string; STRIPE_SECRET_KEY?: string; STRIPE_WEBHOOK_SECRET?: string }
+type Env = { DB: D1Database; TREE: DurableObjectNamespace; AI: Ai; TRIAGE_MODEL?: string; ENV: string; SITE_MODE: string; SITE_URL?: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string; STRIPE_SECRET_KEY?: string; STRIPE_WEBHOOK_SECRET?: string; BACKUPS?: R2Bucket }
 
 const app = new Hono<{ Bindings: Env }>()
 
@@ -100,6 +101,10 @@ app.get('/healthz', async c => {
   }
 })
 
+// robots.txt (go-live 11.7, web/crawl.ts): before the staging lock, so a crawler reads staging's "disallow everything"
+// instead of a 401, which it would take as leave to crawl.
+app.get('/robots.txt', robots)
+
 // Staging is private: a shared password (wrangler secret STAGING_PASSWORD). Health stays open for uptime checks,
 // and /hooks/* stay open because they check their own secret.
 app.use('*', async (c, next) => {
@@ -148,6 +153,9 @@ app.get('/shwarms', c => listShwarms(c, { capped: true }))
 app.get('/.well-known/security.txt', c =>
   c.text(['Contact: mailto:security@shwarm.org', 'Expires: 2027-10-01T00:00:00Z', 'Preferred-Languages: en', 'Canonical: https://shwarm.org/.well-known/security.txt', ''].join('\n')),
 )
+
+// The sitemap from the database (go-live 11.7, web/crawl.ts).
+app.get('/sitemap.xml', sitemap)
 
 // Account pages: join, sign in and out, emailed links, step-up (steps 2.5, 2.7, 2.8).
 app.route('/', auth)

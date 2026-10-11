@@ -21,7 +21,7 @@ export const pageShown = (p: Page, docs: boolean): Page => (docs ? p : { ...p, s
 export const DocPage: FC<{ page: Page; docs?: boolean }> = ({ page: p, docs = true }) => {
   const page = pageShown(p, docs)
   return (
-  <Layout title={`${page.title} · shwarm`} description={page.lede.replace(/<[^>]+>/g, '').slice(0, 200)}>
+  <Layout title={`${page.title} · shwarm`} description={page.lede.replace(/<[^>]+>/g, '').slice(0, 200)} canonical={`/${page.slug}`}>
     <div class="dochead"><h1>{page.title}</h1><p>{raw(page.lede)}</p></div>
     <div class="doc">
       <article id="main" tabindex={-1}>

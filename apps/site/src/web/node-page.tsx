@@ -80,6 +80,11 @@ export const subHref = (path: string, n: number) => `/w/${path}/s/${n}` // the s
 export const buildOnHref = (path: string) => `/new?builds_on=${encodeURIComponent(path)}`
 /** A shwarm's "edit": the create form filled in with it as it stands (decided Oct 10, '"edit" replaces re-pitch'). */
 export const editHref = (path: string) => `/new?edit=${encodeURIComponent(path)}`
+/**
+ * A shwarm's or branch's link preview (go-live 11.7, web/layout.tsx `card`): its title, and its done line as the
+ * description. OPEN: "done when: " is new wording; it waits on Myra's yes.
+ */
+export const doneCard = (n: { title: string; done_when: string }) => ({ title: showHidden(n.title), description: cut(`done when: ${showHidden(n.done_when)}`, 200) })
 export const Ago: FC<{ at: string | null; now: number; short?: boolean }> = ({ at, now, short }) => <span title={exact(at)}>{ago(at, now, short)}</span>
 const Imp: FC<{ q: number; ppd: number }> = ({ q, ppd }) => (
   <span class="imp" style={`--q:${q1(q)}`} title={`▲${q1(q)} per post · ${perDay(ppd)} posts a day`}>{perDay(ppd)}/day</span>
@@ -95,7 +100,7 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
   // A passed branch shows what passed it above the thread (no result page of its own: OPEN #81).
   const passed = isBranch && n.state === 'closed' ? d.subs.find(s => s.status === 'passed') : undefined
   return (
-    <Layout title={`${showHidden(n.title)} · shwarm`} description={cut(showHidden(n.what), 200)}>
+    <Layout title={`${showHidden(n.title)} · shwarm`} description={cut(showHidden(n.what), 200)} canonical={d.threadView ? `${nodeHref(n.path)}?thread=1` : nodeHref(n.path)} card={doneCard(n)}>
       <link rel="stylesheet" href="/css/node.css" />
       {passed && <link rel="stylesheet" href="/css/result.css" />}
       {isBranch ? (

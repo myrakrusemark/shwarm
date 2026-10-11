@@ -20,16 +20,23 @@ export type Viewer = { handle: string; verified: boolean; unread: number; token:
  * so join, post, check and "start a shwarm" say it opens soon instead. `checkout`: the Worker has a Stripe key, so the
  * donate modal posts to /donate (go-live 10.1); without one its button says checkout opens soon. `terms`: the viewer hasn't
  * accepted the announced terms version, so the layout shows the banner (go-live 10.2): the version, its effective date
- * ('2026-11-15', null when this deploy doesn't have it) and the page to come back to after "i accept".
+ * ('2026-11-15', null when this deploy doesn't have it) and the page to come back to after "i accept". `origin`: the site's
+ * own origin (siteOrigin), for the canonical link and og:url (go-live 11.7).
  */
-export type PageInfo = { viewer: Viewer | null; here?: string; opensSoon?: boolean; checkout?: boolean; terms?: { version: string; effective: string | null; next: string } }
+export type PageInfo = { viewer: Viewer | null; here?: string; opensSoon?: boolean; checkout?: boolean; terms?: { version: string; effective: string | null; next: string }; origin?: string }
 export const PageContext = createContext<PageInfo>({ viewer: null })
 
 // Account pages don't send people back to themselves.
 const NO_RETURN = /^\/(join|signin|signout|check-email|verify|verified|forgot|reset|step-up|email-change)(\/|\?|$)/
 
-type PageEnv = { Bindings: { DB: D1Database; CSRF_SECRET: string; ENV?: string; SITE_MODE?: string; STRIPE_SECRET_KEY?: string } }
+type PageEnv = { Bindings: { DB: D1Database; CSRF_SECRET: string; ENV?: string; SITE_MODE?: string; SITE_URL?: string; STRIPE_SECRET_KEY?: string } }
 const envOf = (c: Context) => c.env as PageEnv['Bindings']
+
+/** The site's own origin: SITE_URL when set (staging and production), else this request's. */
+export const siteOrigin = (c: Context) => {
+  const site = (c.env as { SITE_URL?: string } | undefined)?.SITE_URL
+  return site ? new URL(site).origin : new URL(c.req.url).origin
+}
 
 /** The Worker has a Stripe key, so the donate modal posts (go-live 10.1). A signed-out page's ETag carries it too (node-routes.tsx etagOf). */
 export const checkoutOn = (c: Context) => !!envOf(c).STRIPE_SECRET_KEY
@@ -65,6 +72,7 @@ export async function page<E extends PageEnv>(c: Context<E>, node: Child | Retur
     ...((await opensSoon(c)) ? { opensSoon: true } : {}),
     ...(checkoutOn(c) ? { checkout: true } : {}),
     ...(behind ? { terms: { version: behind, effective: termsEntry(behind)?.effective ?? null, next: back ?? '/' } } : {}),
+    origin: siteOrigin(c),
   }
   return c.html(html`<!doctype html>${<PageContext.Provider value={info}>{node as Child}</PageContext.Provider>}`, status)
 }

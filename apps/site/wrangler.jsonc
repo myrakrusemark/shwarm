@@ -19,7 +19,9 @@
       "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ShwarmTree"] }],
       // Triage's model (go-live 8.1): Workers AI, Clef-flash unless TRIAGE_MODEL says otherwise ('@cf/cloudflare/clef' is
       // the fallback). Not inherited from the top level, so each env names it; remote so `wrangler dev` reaches it too.
-      "ai": { "binding": "AI", "remote": true }
+      "ai": { "binding": "AI", "remote": true },
+      // The nightly backup (go-live 11.1, jobs/backup.ts): a private bucket, never public. Without it the job only logs.
+      "r2_buckets": [{ "binding": "BACKUPS", "bucket_name": "shwarm-backups-staging" }]
     },
     "production": {
       "name": "shwarm-production",
@@ -41,7 +43,9 @@
       "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ShwarmTree"] }],
       // Triage's model (go-live 8.1): Workers AI, Clef-flash unless TRIAGE_MODEL says otherwise ('@cf/cloudflare/clef' is
       // the fallback). Not inherited from the top level, so each env names it; remote so `wrangler dev` reaches it too.
-      "ai": { "binding": "AI", "remote": true }
+      "ai": { "binding": "AI", "remote": true },
+      // The nightly backup (go-live 11.1, jobs/backup.ts): a private bucket, never public. Without it the job only logs.
+      "r2_buckets": [{ "binding": "BACKUPS", "bucket_name": "shwarm-backups" }]
     }
   }
 }

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { prunePlumbing, pruneReports, purgeNetworks } from '../src/auth/cleanup'
+import { prunePlumbing, pruneReports, pruneTokens, purgeNetworks } from '../src/auth/cleanup'
+import { newToken, peekToken } from '../src/auth/tokens'
+import { readKeys } from '../src/read/keys'
 import { stagingWorld } from './node-fixture'
 import { createSession, readSession } from '../src/auth/session'
 import { ALERT_EVERY, recordUse, type Agent } from '../src/api/signed'
@@ -129,5 +131,42 @@ describe('reports and flags go a year after they were resolved (Myra, Oct 11)', 
     const left = (sql: string) => db.raw.prepare(sql).all().map((r: any) => r.resolved_at)
     expect(left('SELECT resolved_at FROM report ORDER BY id')).toEqual([iso(T0 + 300 * DAY), null])
     expect(left('SELECT resolved_at FROM flag ORDER BY id')).toEqual([null])
+  })
+})
+
+describe('emailed links go an hour after they were used or expired (go-live 11.5)', () => {
+  it('deletes spent tokens and keeps live ones, including a pending email change', async () => {
+    const w = await world()
+    const HOUR = 3600_000
+    const reset = await newToken(w.db, w.myra, 'reset', T0) // expires at T0 + 1h
+    const verify = await newToken(w.db, w.myra, 'verify', T0) // 7 days
+    const change = await newToken(w.db, w.myra, 'email_change', T0, 'myra2@example.org') // 24 hours
+    const used = await newToken(w.db, w.myra, 'verify', T0)
+    await w.db.batch([reset.stmt, verify.stmt, change.stmt, used.stmt])
+    w.db.raw.prepare('UPDATE email_token SET used_at = ? WHERE id = (SELECT id FROM email_token ORDER BY rowid DESC LIMIT 1)').run(iso(T0 + HOUR))
+
+    expect(await pruneTokens(w.db, T0 + 2 * HOUR)).toBe(0) // the reset expired, the verify was used, each only an hour ago
+    expect(await pruneTokens(w.db, T0 + 2 * HOUR + 1000)).toBe(2)
+    expect(w.all('SELECT purpose FROM email_token ORDER BY purpose')).toEqual([{ purpose: 'email_change' }, { purpose: 'verify' }])
+    expect(await peekToken(w.db, verify.token, 'verify', T0 + 2 * HOUR)).toBe(w.myra)
+    expect(await pruneTokens(w.db, T0 + 25 * HOUR + 1000)).toBe(1) // the email change, a day and an hour on
+    expect(await pruneTokens(w.db, T0 + 7 * DAY + HOUR + 1000)).toBe(1)
+    expect(w.all('SELECT id FROM email_token')).toEqual([])
+  })
+})
+
+describe('an expired key is kept, not deleted (go-live 11.5)', () => {
+  it("stays on the keys page for 30 days and in the table after; the hourly jobs leave its row alone, and its networks age out", async () => {
+    const w = await world()
+    w.db.raw.prepare('UPDATE agent_key SET expires_at = ? WHERE id = ?').run(iso(T0 + DAY), 'k1')
+    await recordUse(w.db, w.agent, '198.51.100.7', T0)
+    const later = T0 + 40 * DAY
+    await purgeNetworks(w.db, later)
+    await prunePlumbing(w.db, later)
+    await pruneTokens(w.db, later)
+    expect(w.all('SELECT id, expires_at, revoked_at FROM agent_key')).toEqual([{ id: 'k1', expires_at: iso(T0 + DAY), revoked_at: null }])
+    expect(w.all('SELECT ip_prefix FROM key_network')).toEqual([])
+    expect((await readKeys(w.db, w.myra, T0 + 2 * DAY)).map(k => [k.id, k.ended])).toEqual([['k1', true]])
+    expect(await readKeys(w.db, w.myra, T0 + 32 * DAY)).toEqual([])
   })
 })
