@@ -2,7 +2,7 @@
 
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
-**Now (Claude):** shwarm.org is in beta, v0.2.2. On main, waiting for v0.2.3: flags and the 3-flag pause (9.3 done). Next in phase 9: 9.4 the admin console, 9.5 the public moderation log.
+**Now (Claude):** shwarm.org is in beta, v0.2.3: flags and the 3-flag pause (9.3), the admin console (9.4, waiting on Myra's first act on staging) and the public moderation log (9.5). Next: 9.6 the security review, then 9.7 the abuse drill.
 **Now (Myra):** the "Needs Myra" list below; the tracker page shows only that list and the progress.
 **Last updated:** 2026-10-10.
 
@@ -10,7 +10,7 @@ The plan for getting all of shwarm live at https://shwarm.org, so Myra can invit
 
 Only what waits on Myra. Claude adds an item when something needs her and removes it once it's settled; her answers land in `tracker/replies.json` under the item's id. Shwarm cards that wait on her approval show on the page by themselves.
 
-- [m-admin-staging] **try the admin console on staging (9.4's done-when):** sign in on staging as @myra and open /admin/people?q=nomail_test. That account is staged: it never got its verify mail ("skipped: staging: not on the allow-list"). Fix it from there alone: "mark verified" (the address is example.invalid, so a resent mail can't arrive). Then try a switch on /admin/switches (read-only on, then off) and look at /moderation. Say done, or what was confusing.
+- [m-admin-staging] **try the admin console on staging (9.4's done-when):** sign in on staging as @myra and open /admin/people?q=nomail_test. That account is staged: it never got its verify mail ("skipped: staging: not on the allow-list"). Fix it from there alone: "mark verified" (the address is example.invalid, so a resent mail can't arrive). Then try a switch on /admin/switches (read-only on, then off) and look at /moderation. Say done, or what was confusing. (Oct 10: signed in, pages look good; left: press "mark verified" once, so an act writes on real D1.)
 - [m-access] **Cloudflare Access in front of /admin (free, your hardware key):** the admin console is being built for admins only, with your password. Access adds your hardware key in front of it, at Cloudflare's edge. Say yes and Claude sets up the Access application for shwarm.org/admin* through the Cloudflare API and adds ACCESS_AUD and ACCESS_TEAM to production, or say later.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. Workers Paid ($5/month) for argon2id passwords was offered and declined for now (Oct 8): the beta uses PBKDF2, and the switch is a todo before the public opens. Claude asks before any spend.
@@ -836,11 +836,12 @@ Functional changes Myra has chosen, held until after launch so they don't muddy 
 - **done when:** each action and switch works on staging and leaves a log row, and Myra resolves a staged "no verify mail" case from admin alone.
 - *(Oct 10: built, in-process. `/admin` (the queue: triage holds, flags, reports with copyright notices and DM reports; appeals aren't built, nothing writes them yet), `/admin/node`, `/admin/post`, `/admin/report` (hide or restore a node or post with a public 410 tombstone, remove a link, clear or block triage, unpause, resolve reports and flags), `/admin/people` (lookup by handle or email: verified state, mail and suppression, sessions, keys, flags and reports; resend verify, unsuppress, mark verified, end sessions, allow-list, founding, suspend and unsuspend with the author-gone rule and an account_suspended mail), `/admin/switches` (read-only, pause new nodes, sign-up open or allow-list; site mode shown, changed by deploy). Every page and act: an active admin only (404 for everyone else), the password step-up, the form token, a required reason, and one moderation_action row in the same batch (a form sent twice writes once). The Cloudflare Access header is checked when ACCESS_AUD is set (m-access); verifying its signature is 9.6's. Site 1073/1073. On staging (eea259c), with a staged account nomail_test whose verify mail was skipped. Left: Myra's run (m-admin-staging).)*
 
-**9.5 Public moderation log** · doing
+**9.5 Public moderation log** · done
 - **what:** action, target (tombstoned), category, date, who acted. No reporters, no removed text. A read-only list over moderation_action (A7 promises it).
 - **who:** Claude · **needs:** 9.4
 - **done when:** it's live and linked from the rules page.
 - *(Oct 10: built: `/moderation` lists the public rows newest first (date, action, target, reason, who acted), in HTML, JSON and text, 50 a page; a node never public shows only as "a shwarm (taken down)"; never private rows, reporters, removed text or emails. The rules page links it. Live once tagged.)*
+- *(Oct 10: live on shwarm.org in v0.2.3; the rules page links it; /admin answers 404 to the public; migration 0022 applied on production.)*
 
 **9.6 Security review**
 - **what:** XSS payloads in CI, CSRF, CSP, account enumeration, session handling, signature replay and host binding, grant bypass, bare-handle from a key, rate limits, secret scanning, headers; an OWASP ZAP baseline scan against staging, `pnpm audit` or osv-scanner, and semgrep with the default TypeScript rules; Claude runs a security review over the whole codebase and fixes every high.
