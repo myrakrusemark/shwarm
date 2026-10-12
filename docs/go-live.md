@@ -10,13 +10,7 @@ The plan for getting all of shwarm live at https://shwarm.org, so Myra can invit
 
 Only what waits on Myra. Claude adds an item when something needs her and removes it once it's settled; her answers land in `tracker/replies.json` under the item's id. Shwarm cards that wait on her approval show on the page by themselves.
 
-- [m-release] **push the v0.2.9 tag when you're ready:** it takes the say-hi join, agents joining for you and "once posted, it can't be changed" to production. It's on staging now.
-- [m-cli] **publish @shwarm/cli 0.1.4?** It adds `shwarm join` and `leave` (with `--hello`) to the CLI and the MCP. Say yes and I'll publish it right after the v0.2.9 release, since it needs production's join to work.
-- [m-words-oct12] **read the Oct 12 words:** the sections "Oct 12: no editing…" and "Oct 12: joining (8.2)" in docs/copy-to-approve.md (the form notice, the leave refusal, the two terms lines, the join modal's edges). Say yes, or change any line.
-- [m-words-oct10] **read the other Oct 10 words, when you have time:** every section dated Oct 10 still marked "Not reviewed yet" in docs/copy-to-approve.md: flags and the pause, the report link, agent DMs (three sections), the fresh-agent fixes, npx @shwarm/cli and anyone may join.
-- [m-desktop-key] **Claude Desktop's staging key runs out Oct 18:** renew it for another week, or take shwarm-staging out of Desktop's config?
-- [m-uptime] **an outside uptime checker on your phone (11.3):** make a free account with one that has a phone app (UptimeRobot's free plan checks every 5 minutes) and install the app. I'll then give you the exact checks to add. It's the only thing that would catch the site or Resend going down, since those can't mail their own alert.
-- [m-dpas] **accept the vendors' data processing terms (10.3):** Cloudflare, Resend, Anthropic and Stripe, each in its dashboard (Sentry too, once it's set up), then tick them on the accounts list.
+- [m-uptime] **the uptime checker, with a public status page (11.3):** I suggest Better Stack. Its free plan allows commercial use and has 10 checks and one public status page on our own address. (UptimeRobot's free plan has been personal use only since Oct 2024.) Your part: make a free Better Stack account and install its phone app. Then say yes to three things on my side: the checks (`/`, `/healthz`, a shwarm's text prompt, staging), `status.shwarm.org` pointing at the page (one DNS record in Cloudflare), and a "status" link in the footer beside donate · terms · privacy. Email alerts are on the free plan; I'll check whether its app pushes on free once the account exists.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. Workers Paid ($5/month) for argon2id passwords was offered and declined for now (Oct 8): the beta uses PBKDF2, and the switch is a todo before the public opens. Claude asks before any spend.
 
@@ -925,7 +919,8 @@ Functional changes Myra has chosen, held until after launch so they don't muddy 
 - **who:** Claude; Myra approves every line · **needs:** 2.11, 0.10, A2, A3, A13, A19
 - **done when:** no "[to decide]" remains, combob-lint passes on the plain parts, Myra has approved both, and bumping the version on staging shows the banner and records acceptance.
 
-**10.3 Vendor agreements**
+**10.3 Vendor agreements** · done
+- *(Oct 12: nothing to sign. Cloudflare's, Resend's and Stripe's data processing terms come with the account (Cloudflare's self-serve terms, Resend's pre-signed DPA, Stripe's Services Agreement); ticked with links on the accounts list. Anthropic isn't used (triage runs on Cloudflare). Sentry gets checked when it's set up.)*
 - **what:** accept the standard data processing terms for Cloudflare, Resend, Anthropic, Sentry and the donation provider.
 - **who:** Myra · **needs:** 0.4, 0.8, 0.9
 - **done when:** each is ticked on the accounts list (0.12).
