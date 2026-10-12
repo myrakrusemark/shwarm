@@ -28,7 +28,7 @@ import { isSigned } from './api/signed'
 import { errorHandler, needsSignature, notFoundHandler, sendError } from './web/errors'
 import { listShwarms } from './web/shwarm-list'
 import { forgetVersions } from './web/version-memo'
-import { countTraffic } from './web/traffic'
+import { countD1, countTraffic } from './web/traffic'
 import { admin } from './web/admin'
 import { report } from './web/report'
 import { donate } from './web/donate'
@@ -42,7 +42,9 @@ type Env = { DB: D1Database; TREE: DurableObjectNamespace; AI: Ai; TRIAGE_MODEL?
 
 const app = new Hono<{ Bindings: Env }>()
 
-// Traffic counts (go-live 11.4, web/traffic.ts): first, so it sees every answer. No IP, path or account is kept.
+// D1 rows read and written (go-live 11.3, web/traffic.ts countD1), on staging and production: first, so every query
+// counts. Then traffic counts (go-live 11.4, web/traffic.ts), so it sees every answer. No IP, path or account is kept.
+app.use('*', countD1())
 app.use('*', countTraffic())
 
 // Security headers on every response, and Date, which agents set their clocks by (go-live 7.3: a signature's `created`

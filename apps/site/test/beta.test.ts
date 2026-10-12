@@ -9,7 +9,7 @@ import app from '../src/index'
 import { hashPassword } from '../src/auth/password'
 import { renderMail } from '../src/email/templates'
 import { MAIL_CRON, scheduled } from '../src/jobs'
-import { sendSummary, summaryDay } from '../src/jobs/summary'
+import { dayUsage, sendSummary, summaryDay, USAGE_FLOOR } from '../src/jobs/summary'
 import { activity, daySummary, funnel, lastDays, STEPS, testers, through } from '../src/read/beta'
 import { countTraffic, referrerHost, resetTrafficLog, trafficKind, trafficRow } from '../src/web/traffic'
 import { addPerson, T0, testDb } from './d1'
@@ -356,5 +356,61 @@ describe('the daily summary', () => {
 
   it('refuses a payload it cannot use', () => {
     expect(() => renderMail('daily_summary', { day: 'yesterday', link: '/admin/beta' }, { siteUrl: 'https://shwarm.org', stream: 'account' })).toThrow()
+  })
+
+  // go-live 11.3: yesterday's usage, and what of it went over 3 times its 7-day average.
+  const usage = (db: any, day: string, r: number, w: number, e: number, t: number) =>
+    db.raw
+      .prepare('INSERT INTO site_stats_daily (day, d1_rows_read, d1_rows_written, emails_sent, triage_calls) VALUES (?, ?, ?, ?, ?)')
+      .run(day, r, w, e, t)
+
+  it("reads yesterday's usage and names what went over 3 times its 7-day average", async () => {
+    const { db } = await world()
+    usage(db, '2026-09-29', 9_000_000, 900_000, 900, 900) // 8 days before: not in the average
+    for (const d of ['2026-10-01', '2026-10-02', '2026-10-03']) usage(db, d, 0, 0, 10, 2) // before the d1 counts began
+    for (const d of ['2026-10-04', '2026-10-05', '2026-10-06']) usage(db, d, 100_000, 2_000, 10, 2)
+    usage(db, '2026-10-07', 400_000, 7_000, 31, 19)
+    expect(await dayUsage(db, '2026-10-07')).toEqual({
+      usage: { d1_rows_read: 400_000, d1_rows_written: 7_000, emails_sent: 31, triage_calls: 19 },
+      over: [
+        { what: 'd1_rows_read', n: 400_000, avg: 100_000 }, // the days d1 was counted only
+        { what: 'd1_rows_written', n: 7_000, avg: 2_000 },
+        { what: 'emails_sent', n: 31, avg: 10 }, // six days with a row
+        // triage_calls: 19 is over 3 times 2, but under its floor of 20
+      ],
+    })
+  })
+
+  it('needs 3 days of history and a floor before anything is over', async () => {
+    const { db } = await world()
+    usage(db, '2026-10-05', 1, 1, 1, 1)
+    usage(db, '2026-10-06', 1, 1, 1, 1)
+    usage(db, '2026-10-07', 10_000_000, 10_000_000, 1_000, 1_000)
+    expect((await dayUsage(db, '2026-10-07')).over).toEqual([]) // two days of history
+    usage(db, '2026-10-04', 1, 1, 1, 1)
+    expect((await dayUsage(db, '2026-10-07')).over.map(o => o.what)).toEqual(['d1_rows_read', 'd1_rows_written', 'emails_sent', 'triage_calls'])
+    db.raw.prepare("UPDATE site_stats_daily SET d1_rows_read = ?, emails_sent = ? WHERE day = '2026-10-07'").run(USAGE_FLOOR.d1_rows_read - 1, USAGE_FLOOR.emails_sent - 1)
+    expect((await dayUsage(db, '2026-10-07')).over.map(o => o.what)).toEqual(['d1_rows_written', 'triage_calls']) // under their floors
+    expect(await dayUsage(db, '2026-11-01')).toEqual({ usage: { d1_rows_read: 0, d1_rows_written: 0, emails_sent: 0, triage_calls: 0 }, over: [] })
+  })
+
+  it('puts the usage in the mail, and what went over in its subject', async () => {
+    const { db } = await world()
+    traffic(db)
+    for (const d of ['2026-10-04', '2026-10-05', '2026-10-06']) usage(db, d, 100_000, 2_000, 10, 10)
+    usage(db, '2026-10-07', 1_234_567, 3_000, 12, 3)
+    await sendSummary(db, 'production', at13 + 5 * 60_000)
+    const mail = renderMail('daily_summary', JSON.parse(summaries(db)[0].payload), { siteUrl: 'https://shwarm.org', stream: 'account' })
+    expect(mail.subject).toBe('shwarm yesterday: 140 requests, 2 sign-ups · usage high: d1 rows read')
+    expect(mail.text).toContain('over 3 times the 7-day average: d1 rows read 1,234,567 (average 100,000).')
+    expect(mail.text).toContain('usage: 1,234,567 d1 rows read and 3,000 written (as the worker counts them), 12 mails sent, 3 triage calls.')
+    // A quiet day: no "over", and d1 not yet counted says so. A mail queued before the usage line has none.
+    const quiet = { ...JSON.parse(summaries(db)[0].payload), usage: { d1_rows_read: 0, d1_rows_written: 0, emails_sent: 1, triage_calls: 0 }, over: [] }
+    const q = renderMail('daily_summary', quiet, { siteUrl: 'https://shwarm.org', stream: 'account' })
+    expect(q.subject).toBe('shwarm yesterday: 140 requests, 2 sign-ups')
+    expect(q.text).toContain('usage: d1 rows not counted, 1 mail sent, 0 triage calls.')
+    const { usage: _u, over: _o, ...old } = quiet
+    expect(renderMail('daily_summary', old, { siteUrl: 'https://shwarm.org', stream: 'account' }).text).not.toContain('usage:')
+    expect(renderMail('daily_summary', { ...quiet, over: [{ what: 'nope', n: 1, avg: 0 }] }, { siteUrl: 'https://shwarm.org', stream: 'account' }).subject).not.toContain('usage high')
   })
 })

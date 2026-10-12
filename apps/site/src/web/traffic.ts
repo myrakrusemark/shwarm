@@ -10,6 +10,7 @@
 // A counting error never touches the response: it's caught and logged once per isolate.
 import type { Context, MiddlewareHandler } from 'hono'
 import { isSigned } from '../api/signed'
+import { countsD1, flushUsage, tallied } from '../core/d1-usage'
 import { errorFormat, type Format } from './format'
 
 export type TrafficKind = 'page' | 'prompt' | 'json' | 'api' | 'other'
@@ -90,6 +91,21 @@ export function errorCountStatement(db: D1Database, now = Date.now()): D1Prepare
     .bind(errorBucket(now), new Date(start).toISOString(), ERROR_BUCKET_CAP)
 }
 
+// Resend send errors by hour (go-live 11.3), for the watchdog's error rate (jobs/watch.ts): one counter row per hour in
+// auth_throttle, 'watch:resend:2026-10-11T14', bumped by the outbox sweep (jobs/mail.ts) each time a call to Resend
+// fails, refusals and rate limits included. Written only on an error; pruned a day after the hour began, like the 5xx
+// rows. The sweep makes at most 20 calls a minute, so a bucket can't run away; the cap is a backstop.
+export const RESEND_BUCKET = 'watch:resend:'
+export const RESEND_BUCKET_CAP = 2_000
+export const resendBucket = (ms: number) => RESEND_BUCKET + new Date(ms).toISOString().slice(0, 13)
+
+export function resendErrorStatement(db: D1Database, now = Date.now()): D1PreparedStatement {
+  const start = Math.floor(now / 3_600_000) * 3_600_000
+  return db
+    .prepare('INSERT INTO auth_throttle (scope, count, window_start) VALUES (?, 1, ?) ON CONFLICT (scope) DO UPDATE SET count = count + 1 WHERE auth_throttle.count < ?')
+    .bind(resendBucket(now), new Date(start).toISOString(), RESEND_BUCKET_CAP)
+}
+
 let logged = false
 const quietly = (e: unknown) => {
   if (logged) return
@@ -116,6 +132,26 @@ export function countTraffic(): MiddlewareHandler<{ Bindings: { DB: D1Database; 
     } catch (e) {
       quietly(e)
     }
+  }
+}
+
+/**
+ * D1 usage (go-live 11.3, core/d1-usage.ts): on staging and production, every query after this middleware counts the
+ * rows it read and wrote, and the isolate's counts are written about once a minute, after the answer. Mounted before
+ * countTraffic in index.ts, so the traffic count's own write counts too.
+ */
+export function countD1(): MiddlewareHandler<{ Bindings: { DB: D1Database; ENV: string } }> {
+  return async (c, next) => {
+    if (countsD1(c.env)) {
+      const flush = flushUsage(c.env.DB)
+      if (flush) {
+        const ctx = executionCtx(c)
+        if (ctx) ctx.waitUntil(flush)
+        else await flush
+      }
+      c.env = { ...c.env, DB: tallied(c.env.DB) }
+    }
+    await next()
   }
 }
 

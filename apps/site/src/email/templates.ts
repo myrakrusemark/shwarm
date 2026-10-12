@@ -360,11 +360,24 @@ function dailySummary(p: Record<string, unknown>, site: string): Draft {
     `yesterday (${day}): ${n(total, 'request')} (pages ${count(r.page)}, prompts ${count(r.prompt)}, json ${count(r.json)}, api ${count(r.api)}${other}), ` +
     `${n(p.signups, 'sign-up')}, ${n(p.first_posts, 'first post')}, ${n(p.first_submissions, 'first submission')}, ${n(p.checks, 'check')}, ${n(p.passes, 'pass', 'passes')}.`
   const where = typeof p.env === 'string' && p.env !== 'production' && /^[a-z]{1,20}$/.test(p.env) ? ` ${p.env}` : ''
+  // Usage (go-live 11.3, jobs/summary.ts), when the payload has it: a mail queued before it was added has none.
+  const u = p.usage && typeof p.usage === 'object' ? (p.usage as Record<string, unknown>) : null
+  const g = (v: unknown) => count(v).toLocaleString('en-US')
+  const d1 = u && (count(u.d1_rows_read) || count(u.d1_rows_written)) ? `${g(u.d1_rows_read)} d1 rows read and ${g(u.d1_rows_written)} written (as the worker counts them)` : 'd1 rows not counted'
+  const usage = u ? `usage: ${d1}, ${n(u.emails_sent, 'mail')} sent, ${n(u.triage_calls, 'triage call')}.` : null
+  const over = (Array.isArray(p.over) ? p.over : []).filter(
+    (o): o is Record<string, unknown> => !!o && typeof o === 'object' && Object.hasOwn(USAGE_NAME, String((o as { what?: unknown }).what)),
+  )
+  // The same factor and window as jobs/summary.ts USAGE_FACTOR and USAGE_DAYS.
+  const high = over.length
+    ? `over 3 times the 7-day average: ${over.map(o => `${USAGE_NAME[String(o.what)]} ${g(o.n)} (average ${g(o.avg)})`).join(', ')}.`
+    : null
   return {
-    subject: `shwarm${where} yesterday: ${n(total, 'request')}, ${n(p.signups, 'sign-up')}`,
-    blocks: [hi(p), line, 'the beta funnel:', { href: siteLink(site, p.link) }],
+    subject: `shwarm${where} yesterday: ${n(total, 'request')}, ${n(p.signups, 'sign-up')}${over.length ? ` · usage high: ${over.map(o => USAGE_NAME[String(o.what)]).join(', ')}` : ''}`,
+    blocks: [hi(p), line, ...(high ? [high] : []), ...(usage ? [usage] : []), 'the beta funnel:', { href: siteLink(site, p.link) }],
   }
 }
+const USAGE_NAME: Record<string, string> = { d1_rows_read: 'd1 rows read', d1_rows_written: 'd1 rows written', emails_sent: 'mails sent', triage_calls: 'triage calls' }
 
 function termsNotice(p: Record<string, unknown>, site: string): Draft {
   const version = text(p, 'version')
@@ -393,6 +406,7 @@ const WATCH_NAME: Record<string, string> = {
   signups: 'sign-ups',
   errors: 'server errors',
   bounces: 'bounces',
+  resend_errors: 'resend errors',
 }
 function watchLine(a: Record<string, unknown>): string {
   const n = (k: string) => (Number.isSafeInteger(a[k]) && (a[k] as number) >= 0 ? (a[k] as number) : 0)
@@ -414,6 +428,8 @@ function watchLine(a: Record<string, unknown>): string {
       return `server errors: ${n('n')} 5xx answers in the last hour, over ${n('limit')}.`
     case 'bounces':
       return `bounces: ${n('n')} addresses bounced or complained in the last day, over ${n('limit')}.`
+    case 'resend_errors':
+      return `resend errors: ${n('n')} of ${plural(n('calls'), 'send', 'sends')} failed in the last day (${n('percent')}%), over ${n('limit')}%. the outbox rows' last_error says why.`
   }
   throw new MailRenderError('unknown alert')
 }

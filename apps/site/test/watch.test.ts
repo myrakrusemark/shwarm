@@ -17,11 +17,14 @@ import { HOLD_ALERT_EVERY_MS,
   pingTree,
   readFacts,
   readHealth,
+  RESEND_ALERT_EVERY_MS,
+  RESEND_MIN_ERRORS,
   SIGNUPS_PER_HOUR,
   watchdog,
   WATCH_MINUTE,
 } from '../src/jobs/watch'
-import { countTraffic, ERROR_BUCKET_CAP, errorCountStatement } from '../src/web/traffic'
+import { countTraffic, ERROR_BUCKET_CAP, errorCountStatement, resendErrorStatement } from '../src/web/traffic'
+import { sweepOutbox } from '../src/jobs/mail'
 import { Hono } from 'hono'
 import { addPerson, T0, testDb } from './d1'
 import { treeNamespace } from './tree'
@@ -290,6 +293,14 @@ describe('watchdog', () => {
       },
       new RegExp(`bounces: ${BOUNCES_PER_DAY + 1} addresses bounced or complained in the last day, over ${BOUNCES_PER_DAY}`),
     ],
+    [
+      'resend_errors',
+      async db => {
+        for (const at of [T0 - 20 * HOUR, T0 - 2 * HOUR, T0 - 5 * MIN]) await resendErrorStatement(db, at).run()
+        for (let i = 0; i < 100; i++) outbox(db, { created: T0 - 3 * HOUR, sendAfter: T0 - 3 * HOUR, sentAt: T0 - 3 * HOUR + i * 1000, providerId: `re_${i}` })
+      },
+      /resend errors: 3 of 103 sends failed in the last day \(3%\), over 2%/,
+    ],
   ]
 
   for (const [kind, setup, words] of cases) {
@@ -384,9 +395,79 @@ describe('watchdog', () => {
       signups_1h: SIGNUPS_PER_HOUR,
       errors_1h: ERRORS_PER_HOUR,
       bounces_24h: BOUNCES_PER_DAY,
+      resend_errors_24h: 2,
+      sent_24h: 1,
       mark: null,
     }
     expect(alertsFrom(f)).toEqual([])
+  })
+})
+
+describe('resend error rate', () => {
+  const facts = (errors: number, sent: number) => ({
+    outbox: { due: 0, oldest_due_s: null, failing: 0, oldest_failing_s: null, given_up_1h: 0, given_up_24h: 0 },
+    triage: { held: 0, oldest_held_s: null },
+    signups_1h: 0,
+    errors_1h: 0,
+    bounces_24h: 0,
+    resend_errors_24h: errors,
+    sent_24h: sent,
+    mark: null,
+  })
+
+  it('fires over 2% of the day\'s sends, and only with a few errors behind it', () => {
+    const kinds = (e: number, s: number) => alertsFrom(facts(e, s)).map(a => a.kind)
+    expect(kinds(RESEND_MIN_ERRORS - 1, 1)).toEqual([]) // 2 of 3 failed: too few to page on
+    expect(kinds(RESEND_MIN_ERRORS, 0)).toEqual(['resend_errors']) // every send failing
+    expect(kinds(3, 147)).toEqual([]) // exactly 2%
+    expect(kinds(3, 146)).toEqual(['resend_errors'])
+    expect(kinds(4, 500)).toEqual([]) // under 1%
+    expect(alertsFrom(facts(5, 45))).toEqual([{ kind: 'resend_errors', n: 5, calls: 50, percent: 10, limit: 2 }])
+  })
+
+  it('reads the errors of the last 24 hours and the mail sent in them', async () => {
+    const { db } = await world()
+    await resendErrorStatement(db, T0 - 25 * HOUR).run() // too old
+    await resendErrorStatement(db, T0 - 23 * HOUR - 30 * MIN).run() // 12:30 yesterday: the current hour and the 23 before it only
+    await resendErrorStatement(db, T0 - 23 * HOUR + 30 * MIN).run() // 13:30 yesterday
+    await resendErrorStatement(db, T0 - HOUR).run()
+    await resendErrorStatement(db, T0 - HOUR + MIN).run() // same hour
+    await resendErrorStatement(db, T0).run()
+    outbox(db, { created: T0 - 2 * HOUR, sendAfter: T0 - 2 * HOUR, sentAt: T0 - 2 * HOUR, providerId: 're_1' })
+    outbox(db, { created: T0 - 30 * HOUR, sendAfter: T0 - 30 * HOUR, sentAt: T0 - 25 * HOUR, providerId: 're_2' }) // too old
+    outbox(db, { created: T0 - 2 * HOUR, sendAfter: T0 - 2 * HOUR, sentAt: T0 - HOUR, lastError: 'failed: resend 422' }) // not sent
+    const f = await readFacts(db, T0)
+    expect({ errors: f.resend_errors_24h, sent: f.sent_24h }).toEqual({ errors: 4, sent: 1 })
+    expect(db.raw.prepare("SELECT scope, count FROM auth_throttle WHERE scope = 'watch:resend:2026-10-08T11'").get()).toEqual({ scope: 'watch:resend:2026-10-08T11', count: 2 })
+  })
+
+  it('reminds every 12 hours while the day stays over, not every hour', async () => {
+    const { db } = await world()
+    for (let i = 0; i < 3; i++) await resendErrorStatement(db, T0 - MIN).run()
+    expect((await watchdog({ DB: db, ENV: 'production' }, T0)).sent).toEqual(['resend_errors'])
+    db.raw.prepare("UPDATE email_outbox SET sent_at = ?, provider_id = 're_x' WHERE template = 'watchdog_alert'").run(iso(T0 + MIN))
+    expect((await watchdog({ DB: db, ENV: 'production' }, T0 + 2 * HOUR)).sent).toEqual([])
+    for (let i = 0; i < 3; i++) await resendErrorStatement(db, T0 + 11 * HOUR).run()
+    expect((await watchdog({ DB: db, ENV: 'production' }, T0 + RESEND_ALERT_EVERY_MS)).sent).toEqual(['resend_errors'])
+  })
+
+  it('the outbox sweep counts each failed call to resend, and nothing else', async () => {
+    const { db, myra } = await world()
+    const e = { DB: db, ENV: 'production', SITE_URL: SITE, RESEND_API_KEY: 're_key', MAIL_SECRET: 'mail-secret' } as any
+    const add = (template: string, payload: Record<string, unknown>) =>
+      db.raw
+        .prepare("INSERT INTO email_outbox (to_email, person_id, template, stream, payload, created_at, send_after) VALUES ('myra@example.org', ?, ?, 'account', ?, ?, ?)")
+        .run(myra, template, JSON.stringify(payload), iso(T0), iso(T0))
+    add('welcome', { handle: 'myra' })
+    add('welcome', { handle: 'myra' })
+    add('verify', { handle: 'myra' }) // no link: the template refuses it, which isn't resend's error
+    let calls = 0
+    const f = (async () => (++calls === 1 ? new Response('{"message":"internal"}', { status: 500 }) : new Response('{"id":"re_ok"}', { status: 200 }))) as unknown as typeof fetch
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    expect(await sweepOutbox(e, { now: T0, fetch: f })).toMatchObject({ sent: 1, retrying: 1, failed: 1 })
+    expect(db.raw.prepare("SELECT scope, count FROM auth_throttle WHERE scope LIKE 'watch:resend:%'").all()).toEqual([{ scope: 'watch:resend:2026-10-08T12', count: 1 }])
+    const r = await readFacts(db, T0)
+    expect({ errors: r.resend_errors_24h, sent: r.sent_24h }).toEqual({ errors: 1, sent: 1 })
   })
 })
 

@@ -392,7 +392,8 @@ export async function siteStale(db: D1Database, now = Date.now()): Promise<boole
  * people = distinct people who posted (themselves or by agent), joined or upvoted in the 24 hours up to then
  * (table B #44); posts = thread posts made that UTC day; shwarms = shwarms on the site (variants made before Oct 9 count
  * as shwarms).
- * The D1 usage columns stay as they are: D1 reports usage only through Cloudflare's analytics API.
+ * The D1 usage columns (d1_rows_read, d1_rows_written) stay as they are: the Worker adds to them as it goes
+ * (core/d1-usage.ts, go-live 11.3).
  */
 export async function rollupSite(db: D1Database, now = Date.now()): Promise<void> {
   const dayStart = Math.floor(now / DAY_MS) * DAY_MS

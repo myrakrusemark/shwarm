@@ -9,17 +9,25 @@
 // OPEN: every threshold below is the builder's default for the beta, and the words of the alert mail are new.
 import { mailToAdminsStatement } from '../email/outbox'
 import { SEED } from '../read/beta'
-import { errorBucket } from '../web/traffic'
+import { errorBucket, resendBucket } from '../web/traffic'
 
 export const OUTBOX_LATE_S = 5 * 60 // a due mail unsent this long, or a failing one written this long ago
 export const HOLD_LATE_S = 15 * 60 // a triage hold waiting on the operator this long
 export const SIGNUPS_PER_HOUR = 20 // more sign-ups than this in the last hour
 export const ERRORS_PER_HOUR = 10 // more 5xx answers than this in the last hour (10-minute buckets, web/traffic.ts)
 export const BOUNCES_PER_DAY = 3 // more bounce or complaint suppressions than this in the last day
+// Resend send errors (jobs/mail.ts, web/traffic.ts resendBucket) over the last RESEND_WINDOW_MS: more than
+// RESEND_ERROR_RATE of the calls made (errors plus mail sent), and at least RESEND_MIN_ERRORS of them, so one failure in
+// a quiet day's three mails doesn't page. A day, because the beta sends tens of mails a day, not hundreds an hour.
+export const RESEND_ERROR_RATE = 0.02
+export const RESEND_MIN_ERRORS = 3
+export const RESEND_WINDOW_MS = 24 * 3_600_000
 export const ALERT_EVERY_MS = 3_600_000 // each kind of alert at most once an hour
 // A hold that sits overnight would alert every hour and spend the day's cap before a worse alert came; triage already
 // mailed when it held the node, so its reminder comes every 12 hours.
 export const HOLD_ALERT_EVERY_MS = 12 * 3_600_000
+// The error rate is over a day, so it stays over for up to a day after a burst: it too reminds every 12 hours.
+export const RESEND_ALERT_EVERY_MS = 12 * 3_600_000
 export const MAILS_PER_DAY = 6 // watchdog mails a UTC day, all kinds together (Resend free: 100 sends a day, all mail)
 export const TREE_PING_MS = 2_000 // a tree that hasn't answered by then counts as down
 export const WATCH_MINUTE = 3 // the watchdog runs at minutes 3, 8, 13, …: apart from the stats run at 0, 5, 10, …
@@ -31,7 +39,7 @@ const MARK = 'watchdog' // meta row: { sent: { kind: iso }, day, mails }
 export type OutboxHealth = { due: number; oldest_due_s: number | null; failing: number; oldest_failing_s: number | null; given_up_1h: number; given_up_24h: number }
 export type TriageHealth = { held: number; oldest_held_s: number | null }
 export type Health = { outbox: OutboxHealth; triage: TriageHealth }
-export type Facts = Health & { signups_1h: number; errors_1h: number; bounces_24h: number; mark: string | null }
+export type Facts = Health & { signups_1h: number; errors_1h: number; bounces_24h: number; resend_errors_24h: number; sent_24h: number; mark: string | null }
 export type TreePing = { ok: boolean; ms: number }
 
 const iso = (ms: number) => new Date(ms).toISOString()
@@ -78,6 +86,13 @@ function watchStatements(db: D1Database, now: number): D1PreparedStatement[] {
     // Six 10-minute buckets: the current one and the five before it.
     db.prepare('SELECT COALESCE(SUM(count), 0) AS n FROM auth_throttle WHERE scope >= ? AND scope <= ?').bind(errorBucket(now - 50 * 60_000), errorBucket(now)),
     db.prepare("SELECT COUNT(*) AS n FROM email_suppression WHERE created_at >= ? AND reason IN ('bounce', 'complaint')").bind(iso(now - DAY)),
+    // Resend errors by hour, the current one and the 23 before it; mail sent in the same day (index email_outbox_sent).
+    db
+      .prepare(
+        `SELECT (SELECT COALESCE(SUM(count), 0) FROM auth_throttle WHERE scope >= ?1 AND scope <= ?2) AS errors,
+                (SELECT COUNT(*) FROM email_outbox WHERE provider_id IS NOT NULL AND sent_at >= ?3) AS sent`,
+      )
+      .bind(resendBucket(now - RESEND_WINDOW_MS + HOUR), resendBucket(now), iso(now - RESEND_WINDOW_MS)),
     db.prepare('SELECT value FROM meta WHERE key = ?').bind(MARK),
   ]
 }
@@ -108,8 +123,16 @@ export async function readHealth(db: D1Database, now = Date.now()): Promise<Heal
 /** What the watchdog reads: the health facts and its own, in one D1 batch. */
 export async function readFacts(db: D1Database, now = Date.now()): Promise<Facts> {
   const rs = await db.batch([...healthStatements(db, now), ...watchStatements(db, now)])
-  const [s, e, b, m] = rs.slice(3).map(first)
-  return { ...healthOf(rs, now), signups_1h: num(s.n), errors_1h: num(e.n), bounces_24h: num(b.n), mark: typeof m.value === 'string' ? m.value : null }
+  const [s, e, b, r, m] = rs.slice(3).map(first)
+  return {
+    ...healthOf(rs, now),
+    signups_1h: num(s.n),
+    errors_1h: num(e.n),
+    bounces_24h: num(b.n),
+    resend_errors_24h: num(r.errors),
+    sent_24h: num(r.sent),
+    mark: typeof m.value === 'string' ? m.value : null,
+  }
 }
 
 /**
@@ -180,7 +203,7 @@ const outboxLate = (h: Health) => (h.outbox.oldest_due_s ?? 0) > OUTBOX_LATE_S |
 
 // ---------- the watchdog ----------
 
-export type AlertKind = 'outbox_late' | 'outbox_given_up' | 'triage_hold_late' | 'signups' | 'errors' | 'bounces'
+export type AlertKind = 'outbox_late' | 'outbox_given_up' | 'triage_hold_late' | 'signups' | 'errors' | 'bounces' | 'resend_errors'
 export type Alert = { kind: AlertKind; [k: string]: number | string }
 
 const mins = (s: number | null) => Math.round((s ?? 0) / 60)
@@ -202,6 +225,9 @@ export function alertsFrom(f: Facts): Alert[] {
   if (f.signups_1h > SIGNUPS_PER_HOUR) out.push({ kind: 'signups', n: f.signups_1h, limit: SIGNUPS_PER_HOUR })
   if (f.errors_1h > ERRORS_PER_HOUR) out.push({ kind: 'errors', n: f.errors_1h, limit: ERRORS_PER_HOUR })
   if (f.bounces_24h > BOUNCES_PER_DAY) out.push({ kind: 'bounces', n: f.bounces_24h, limit: BOUNCES_PER_DAY })
+  const calls = f.resend_errors_24h + f.sent_24h
+  if (f.resend_errors_24h >= RESEND_MIN_ERRORS && f.resend_errors_24h > RESEND_ERROR_RATE * calls)
+    out.push({ kind: 'resend_errors', n: f.resend_errors_24h, calls, percent: Math.round((100 * f.resend_errors_24h) / calls), limit: Math.round(RESEND_ERROR_RATE * 100) })
   return out
 }
 
@@ -234,7 +260,7 @@ export async function watchdog(env: { DB: D1Database; ENV?: string }, now = Date
   const mark = parseMark(f.mark)
   const fresh = firing.filter(a => {
     const last = Date.parse(mark.sent[a.kind] ?? '')
-    const every = a.kind === 'triage_hold_late' ? HOLD_ALERT_EVERY_MS : ALERT_EVERY_MS
+    const every = a.kind === 'triage_hold_late' ? HOLD_ALERT_EVERY_MS : a.kind === 'resend_errors' ? RESEND_ALERT_EVERY_MS : ALERT_EVERY_MS
     return !(Number.isFinite(last) && now - last < every)
   })
   const result: WatchResult = { firing: firing.map(a => a.kind), sent: [], capped: false }

@@ -18,6 +18,7 @@ import { noticeOn, parsePrefs } from '../email/notices'
 import { NOTICE_TYPE, noticeLabel, unsubToken, unsubUrl } from '../email/unsubscribe'
 import { FORMER } from '../read/names'
 import { SEEN_NODE, UNBLOCKED_NODE } from '../read/visibility'
+import { resendErrorStatement } from '../web/traffic'
 
 export const RETRY_MINUTES = [1, 5, 30, 120] // waits after attempts 1–4; attempt 5 failing gives up
 export const MAX_ATTEMPTS = RETRY_MINUTES.length + 1
@@ -165,7 +166,13 @@ async function sendOne(env: MailEnv, row: Row, now: number, f: typeof fetch, out
     const mail = renderMail(row.template, shown, { siteUrl: env.SITE_URL, stream: row.stream as MailStream, unsubscribe })
     // Row ids start again at 1 when a database is made again, so the key carries created_at too.
     const key = `outbox-${env.ENV || 'dev'}-${row.id}-${row.created_at.replace(/\D/g, '')}`
-    const providerId = await sendViaResend(env.RESEND_API_KEY!, { to: row.to_email, ...mail, headers }, key, f)
+    // A failed call counts toward the watchdog's Resend error rate (go-live 11.3) before it's handled below.
+    const providerId = await sendViaResend(env.RESEND_API_KEY!, { to: row.to_email, ...mail, headers }, key, f).catch(async e => {
+      await resendErrorStatement(db, now)
+        .run()
+        .catch(c => console.error(`outbox: resend error not counted: ${c instanceof Error ? c.message : String(c)}`))
+      throw e
+    })
     const done = [
       db.prepare(`UPDATE email_outbox SET sent_at = ?, provider_id = ?, last_error = NULL, ${FORGET_CLOSED} WHERE id = ?`).bind(iso(now), providerId, row.id),
       db

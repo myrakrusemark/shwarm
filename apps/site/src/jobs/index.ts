@@ -5,6 +5,7 @@
 // failing stats run can't stop the mail sweep, though they share the invocation's CPU budget and its 50 subrequests.
 import type { MailEnv } from '../email/env'
 import { refreshDisposable } from '../auth/disposable'
+import { countsD1, flushUsage, tallied } from '../core/d1-usage'
 import { backup, BACKUP_HOUR_UTC, BACKUP_MINUTE, type BackupEnv } from './backup'
 import { sweepTriage, type TriageEnv } from '../triage/run'
 import { deleteUnverified, prunePlumbing, pruneReports, pruneThrottle, pruneTokens, purgeNetworks } from '../auth/cleanup'
@@ -19,6 +20,13 @@ export const MAIL_CRON = '* * * * *'
 
 export async function scheduled(event: ScheduledController, env: MailEnv & TriageEnv & BackupEnv, ctx: ExecutionContext): Promise<void> {
   const at = new Date(event.scheduledTime)
+  // On staging and production every job's D1 rows count toward the day's usage line (go-live 11.3, core/d1-usage.ts);
+  // the isolate's counts so far are written first, once a minute at most.
+  if (countsD1(env)) {
+    const flush = flushUsage(env.DB)
+    if (flush) ctx.waitUntil(flush)
+    env = { ...env, DB: tallied(env.DB) }
+  }
   if (at.getUTCMinutes() % 5 === 0) {
     ctx.waitUntil(stats(env.DB, event.scheduledTime).catch(e => console.error('stats failed', e)))
     // The admins' daily summary (go-live 11.4): once a day, queued for the next minute's mail sweep.

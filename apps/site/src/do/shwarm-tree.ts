@@ -6,20 +6,27 @@
 import { isErrorCode, ShwarmError } from '@shwarm/protocol'
 import { TreeEngine, treeName, type Command } from '../core/engine'
 import { actsLimited } from '../core/site-mode'
+import { countsD1, flushUsage, tallied } from '../core/d1-usage'
 
 type TreeEnv = { DB: D1Database; ENV?: string; SITE_MODE?: string }
 
 export class ShwarmTree {
   private engine: TreeEngine
 
+  private db: D1Database | null // the plain binding, for writing the D1 usage counts; null where they aren't kept
+
   constructor(
     readonly state: DurableObjectState,
     env: TreeEnv,
   ) {
-    this.engine = new TreeEngine(env.DB, Date.now, { beta: actsLimited(env) })
+    // Staging and production count the rows each command reads and writes (go-live 11.3, core/d1-usage.ts).
+    this.db = countsD1(env) ? env.DB : null
+    this.engine = new TreeEngine(this.db ? tallied(env.DB) : env.DB, Date.now, { beta: actsLimited(env) })
   }
 
   async fetch(req: Request): Promise<Response> {
+    const flush = this.db && flushUsage(this.db)
+    if (flush) typeof this.state.waitUntil === 'function' ? this.state.waitUntil(flush) : void flush
     // The health check's ping (go-live 11.3, jobs/watch.ts pingTree): answers at once, touching neither the queue nor D1.
     if (req.method === 'GET' && new URL(req.url).pathname === '/ping') return Response.json({ ok: true })
     if (req.method !== 'POST') return Response.json({ error: 'bad_request', message: 'POST a command' }, { status: 405 })

@@ -4,7 +4,8 @@ import app from '../src/index'
 const env = {
   ENV: 'test',
   SITE_MODE: 'holding',
-  DB: { prepare: () => ({ first: async () => ({ value: '1' }) }) },
+  // staging and production run first() as all() to count D1 rows (core/d1-usage.ts)
+  DB: { prepare: () => ({ first: async () => ({ value: '1' }), all: async () => ({ results: [{ value: '1' }], meta: {} }) }) },
 } as any
 
 describe('site', () => {
