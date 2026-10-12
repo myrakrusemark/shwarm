@@ -13,6 +13,10 @@
 // batch queues the notice mail to every active, verified account not on it (NOTICE_PER_DAY a day), raises the
 // 'terms_version' setting, which puts the banner on their signed-in pages, and writes the public 'setting' row. It
 // refuses a version that isn't bundled, isn't newer, or takes effect sooner than the notice period plus the mailing days.
+// The opening box (go-live 13.3) sends the one "shwarm is open" mail to everyone who joined while sign-up was allow-list
+// only (core/opening.ts): with a required reason, one batch queues it (OPENING_PER_DAY a day), marks their signup_wait
+// rows mailed and writes the public 'setting' row. It refuses while sign-up is allow-list only or the site mode isn't
+// open, so it can't go before shwarm opens.
 import { Hono, type Context } from 'hono'
 import type { FC } from 'hono/jsx'
 import { formToken } from '../auth/csrf'
@@ -20,6 +24,7 @@ import { formOf, postedTokenOk, who, type AuthContext } from '../auth/request'
 import { modLog, modReason, MOD_REASON_MAX } from '../core/moderation'
 import { siteModeOf, type SiteMode } from '../core/site-mode'
 import { isSwitch, parseSwitchReason, parseSwitchValue, readSwitches, settingShown, SWITCHES, switchReason, switchStatement, type SwitchKey } from '../core/switches'
+import { openingCount, openingDays, openingMailStatement, openingMarkStatement, openingRefusal, OPENING_PER_DAY, stillWaiting } from '../core/opening'
 import { announceRefusal, currentTermsVersion, latestTerms, mailingDays, notAnnounced, NOTICE_DAYS, noticeCount, noticeStatement, termsDate, termsEntry, type TermsVersion } from '../core/terms'
 import { HANDLE_SHOWN } from '../read/names'
 import { adminGate, type AdminEnv } from './admin-gate'
@@ -50,13 +55,16 @@ const MODES: Record<SiteMode, string> = {
 }
 
 type Recent = { id: number; reason: string; created_at: string; by: string }
-/** A switch, or the terms box. */
-type BoxKey = SwitchKey | 'terms_version'
+/** A switch, the terms box or the opening box. */
+type BoxKey = SwitchKey | 'terms_version' | 'opening_mail'
+const isBoxKey = (k: unknown): k is BoxKey => isSwitch(k) || k === 'terms_version' || k === 'opening_mail'
 type View = {
   token: string
   values: Record<SwitchKey, unknown>
   /** The announced terms version, the newest bundled one, and how many accounts announcing it would mail. */
   terms: { current: string; next: TermsVersion; people: number }
+  /** How many accounts the opening mail would reach now. */
+  opening: number
   mode: SiteMode
   env: string
   recent: Recent[]
@@ -69,10 +77,11 @@ type View = {
 async function view(c: Context<Env>, sessionId: string, extra: Partial<View> = {}): Promise<View> {
   const db = c.env.DB
   const next = latestTerms()
-  const [values, current, people, recent] = await Promise.all([
+  const [values, current, people, opening, recent] = await Promise.all([
     readSwitches(db),
     currentTermsVersion(db),
     noticeCount(db, next.version),
+    openingCount(db),
     db
       .prepare(
         `SELECT m.id, m.reason, m.created_at, ${HANDLE_SHOWN('p')} AS by
@@ -83,7 +92,7 @@ async function view(c: Context<Env>, sessionId: string, extra: Partial<View> = {
       .all<Recent>()
       .then(r => r.results),
   ])
-  return { token: await formToken(c.env.CSRF_SECRET, sessionId), values, terms: { current, next, people }, mode: siteModeOf(c.env), env: c.env.ENV ?? 'unknown', recent, ...extra }
+  return { token: await formToken(c.env.CSRF_SECRET, sessionId), values, terms: { current, next, people }, opening, mode: siteModeOf(c.env), env: c.env.ENV ?? 'unknown', recent, ...extra }
 }
 
 adminSwitches.get(PATH, async c => {
@@ -92,7 +101,7 @@ adminSwitches.get(PATH, async c => {
   const done = c.req.query('done')
   const same = c.req.query('same')
   const k = done ?? same
-  return page(c, <SwitchesPage v={await view(c, g.session.id, isSwitch(k) || k === 'terms_version' ? { flash: { key: k, same: !done } } : {})} />)
+  return page(c, <SwitchesPage v={await view(c, g.session.id, isBoxKey(k) ? { flash: { key: k, same: !done } } : {})} />)
 })
 
 adminSwitches.post(PATH, async c => {
@@ -104,6 +113,7 @@ adminSwitches.post(PATH, async c => {
     return sendError(c, { status: 403, heading: 'this form expired', text: 'go back, reload the page and try again.' }, 'html')
   const key = f.key
   if (key === 'terms_version') return announceTerms(c, g.session, f)
+  if (key === 'opening_mail') return sendOpening(c, g.session, f)
   if (!isSwitch(key)) return sendError(c, { status: 400, text: 'that form asked for nothing we know.' }, 'html')
   const to = parseSwitchValue(key, f.value)
   if (!to) return sendError(c, { status: 400, text: 'that form asked for nothing we know.' }, 'html')
@@ -149,9 +159,38 @@ async function announceTerms(c: Context<Env>, session: { id: string; personId: n
   return c.redirect(`${PATH}?done=terms_version#terms_version`, 303)
 }
 
+/** The opening box's form: the one "shwarm is open" mail to everyone waiting (go-live 13.3). */
+async function sendOpening(c: Context<Env>, session: { id: string; personId: number }, f: Record<string, string>) {
+  const db = c.env.DB
+  const reason = modReason(f.reason)
+  const [values, people] = await Promise.all([readSwitches(db), openingCount(db)])
+  // OPEN (#114): new wording.
+  const refused =
+    openingRefusal(values.signup, siteModeOf(c.env), people) ??
+    (reason ? null : (f.reason ?? '').trim() ? `keep the reason to ${MOD_REASON_MAX} characters.` : 'give a reason. it shows in the public log.')
+  if (refused || !reason)
+    return page(c, <SwitchesPage v={await view(c, session.id, { error: { key: 'opening_mail', text: refused ?? '', reason: f.reason } })} />, 400)
+  const at = new Date().toISOString()
+  // The mail and the log row go only while sign-up is open and someone is still unmarked, and before the marks: a form
+  // sent twice at once mails and logs once.
+  await db.batch([
+    openingMailStatement(db, at),
+    modLog(db, { by: session.personId, action: 'setting', reason: switchReason('opening_mail', String(people), reason), public: true, at }, stillWaiting()),
+    openingMarkStatement(db, at),
+  ])
+  return c.redirect(`${PATH}?done=opening_mail#opening_mail`, 303)
+}
+
 // ---------- the page ----------
 
 const Flash: FC<{ f: NonNullable<View['flash']>; v: View }> = ({ f, v }) => {
+  // OPEN (#114): new wording.
+  if (f.key === 'opening_mail')
+    return (
+      <p class="sw-flash" role="status">
+        the opening mail is queued, {OPENING_PER_DAY} a day. it's in the public log.
+      </p>
+    )
   const s = settingShown(f.key, f.key === 'terms_version' ? v.terms.current : v.values[f.key])
   // OPEN (#107): new wording.
   return (
@@ -252,6 +291,50 @@ const TermsBox: FC<{ v: View }> = ({ v }) => {
   )
 }
 
+const OpeningBox: FC<{ v: View }> = ({ v }) => {
+  const people = v.opening
+  const err = v.error?.key === 'opening_mail' ? v.error : undefined
+  const blocked = openingRefusal(v.values.signup, v.mode, people)
+  const days = openingDays(people)
+  const accounts = people === 1 ? '1 account' : `${people} accounts`
+  return (
+    <section class="box sw" id="opening_mail">
+      {/* OPEN (#114): new wording, this box's copy. */}
+      <h2>opening mail <span>· {people} waiting</span></h2>
+      <div class="sw-in">
+        <p>
+          people who joined while sign-up was allow-list only were told we'd email them when shwarm opens. this sends that one
+          mail: shwarm is open, sign in and find a shwarm to join. it goes to active, verified accounts that haven't had it.
+        </p>
+        {blocked ? (
+          <>
+            <p>{blocked}</p>
+            {err && <p class="err" id="e-opening_mail">{err.text}</p>}
+          </>
+        ) : (
+          <>
+            <p>
+              sending it emails {accounts}
+              {days > 1 ? ` over ${days} days, ${OPENING_PER_DAY} a day` : ''}.
+            </p>
+            <form method="post" action={PATH}>
+              <input type="hidden" name="form_token" value={v.token} />
+              <input type="hidden" name="key" value="opening_mail" />
+              <label for="r-opening_mail">reason <span class="note">(shows in the public log)</span></label>
+              <input id="r-opening_mail" name="reason" type="text" required maxlength={MOD_REASON_MAX} value={err?.reason ?? ''} aria-invalid={err ? 'true' : undefined} aria-describedby={err ? 'e-opening_mail' : undefined} />
+              {err && <p class="err" id="e-opening_mail">{err.text}</p>}
+              <div class="sw-go">
+                <span class="note">confirms with your password.</span>
+                <button class="btn" type="submit">send the opening mail</button>
+              </div>
+            </form>
+          </>
+        )}
+      </div>
+    </section>
+  )
+}
+
 const RecentBox: FC<{ rows: Recent[] }> = ({ rows }) => (
   <div class="box">
     {/* OPEN (#107): new wording. */}
@@ -292,6 +375,7 @@ const SwitchesPage: FC<{ v: View }> = ({ v }) => (
         <SwitchBox k="signup" v={v} />
         <ModeBox v={v} />
         <TermsBox v={v} />
+        <OpeningBox v={v} />
       </main>
       <aside>
         <RecentBox rows={v.recent} />

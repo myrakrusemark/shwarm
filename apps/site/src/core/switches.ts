@@ -4,6 +4,8 @@
 // the switch, so its reason starts with "<key>=<value>: " and the public log (web/moderation-log.tsx) reads it back.
 // The site mode is not here: SITE_MODE is a deploy-time var in wrangler.jsonc (core/site-mode.ts). One setting that
 // isn't a two-valued switch is logged the same way: 'terms_version', raised by the console's terms box (go-live 10.2).
+// So is one act that isn't a setting: 'opening_mail', the console's opening box queuing the "shwarm is open" mail
+// (go-live 13.3, core/opening.ts), its value the number of accounts it went to.
 
 export type SwitchKey = 'read_only' | 'pause_new_nodes' | 'signup'
 
@@ -28,14 +30,19 @@ export const SWITCHES: Record<SwitchKey, Switch> = {
 export const isSwitch = (k: unknown): k is SwitchKey => typeof k === 'string' && Object.hasOwn(SWITCHES, k)
 
 /** Settings the console changes that aren't switches, logged as 'setting' rows like one (go-live 10.2, core/terms.ts). */
-export type SettingKey = 'terms_version'
-/** Their names in the console and the public log. OPEN (#110): new wording. */
-export const SETTING_NAMES: Record<SettingKey, string> = { terms_version: 'terms version' }
+export type SettingKey = 'terms_version' | 'opening_mail'
+/** Their names in the console and the public log. OPEN (#110, #114): new wording. */
+export const SETTING_NAMES: Record<SettingKey, string> = { terms_version: 'terms version', opening_mail: 'the opening mail' }
 export const isSettingKey = (k: unknown): k is SettingKey => typeof k === 'string' && Object.hasOwn(SETTING_NAMES, k)
 
 /** A logged key's name and a value in words, for a switch or one of the settings above. */
 export function settingShown(key: SwitchKey | SettingKey, value: unknown): { name: string; words: string } {
   if (isSwitch(key)) return { name: SWITCHES[key].name, words: SWITCHES[key].words(value) }
+  // OPEN (#114): new wording.
+  if (key === 'opening_mail') {
+    const n = Number(value)
+    return { name: SETTING_NAMES[key], words: `queued for ${n === 1 ? '1 account' : `${Number.isSafeInteger(n) ? n : '?'} accounts`}` }
+  }
   return { name: SETTING_NAMES[key], words: `v${String(value)}` }
 }
 

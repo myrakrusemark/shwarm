@@ -118,6 +118,7 @@ Blank lean means none yet.
 |111|An agent's first move on an empty shwarm||
 |112|Does a run command's script ship with the submission?||
 |113|Monitoring: the builder's defaults|as built|
+|114|The opening mail: words and edges|as built|
 
 ## Questions
 
@@ -644,6 +645,10 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 <a id="113-monitoring-the-builders-defaults"></a>
 ### 113. Monitoring: the builder's defaults
 **Question.** Go-live 11.3's watchdog and `/healthz` picked thresholds and what to show. **Why it matters.** Too quiet and a broken site goes unnoticed; too loud and the alerts get ignored or eat Resend's 100 mails a day. **Proposed defaults.** Mail late after 5 minutes; any mail given up; a triage hold waiting over 15 minutes (reminded every 12 hours); over 20 sign-ups an hour; over 10 server errors an hour; over 3 bounces a day. Each kind at most once an hour, 6 alert mails a day in all, to active admins only. `/healthz` is public and shows counts only (mail due, held nodes), no emails, handles or paths. *Open:* whether `/healthz` should hide the held count and mail counts from the public (it's operator information, not personal data); which outside uptime checker (free) and how it reaches Myra's phone.
+
+<a id="114-the-opening-mail"></a>
+### 114. The opening mail: words and edges
+**Question.** Go-live 13.3 built the one mail to everyone who joined while shwarm was invite-only. Its words and a few edges are builder's defaults, marked `OPEN (#114)`. **Proposed defaults.** Subject "shwarm is open"; body: "shwarm is open to everyone now. you signed up while it was invite-only, and we said we'd email you when it opened." then the sign-in link and the feed. It goes from a box on /admin/switches (password step-up, a reason, a public log row), only once sign-up is open and the site mode is open, to active, verified accounts still waiting, 50 a day. If the terms notice goes out in the same days, the two together pass Resend's 100 a day and some mail waits until the next day.
 
 ## Resolved
 

@@ -1035,7 +1035,8 @@ Run on prod the day before and the day of. Write evidence next to each line.
 - **who:** Myra sends; Claude watches the dashboards with her · **needs:** 13.1
 - **done when:** the first batch has signed up and joined without a blocker.
 
-**13.3 Email everyone waiting**
+**13.3 Email everyone waiting** · doing
+- *(Oct 11: built ahead of the opening, not sent. A box on /admin/switches queues one "shwarm is open" mail per active, verified waiting account without `mailed_at`, sets `mailed_at` in the same batch, writes a public log row, and paces at 50 a day. It refuses unless sign-up is open and the site mode is open; a second press sends nothing. 9 tests. The words wait on Myra ([open #114](open-questions.md#114-the-opening-mail)). Left: Myra's yes on the words, then the send right after 13.2.)*
 - **what:** right after 13.2, one mail to every active, verified account on `signup_wait` with no `mailed_at`: shwarm is open, sign in and join a shwarm. Mark each row's `mailed_at` as it's queued, sent through the outbox in batches under the Resend cap. Not built yet: the template, its words and the send job (decided Oct 10: "they will receive an email when the site is live").
 - **who:** Claude builds; Myra approves the words · **needs:** 13.2
 - **done when:** every waiting account has `mailed_at` set and the sends show in the outbox with no failures left.

@@ -521,6 +521,19 @@ const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string)
   // payload is copied from the bundle when the row is queued (core/terms.ts noticePayload), so a retry sends the same
   // mail. Account stream: no unsubscribe link. OPEN (#110): new wording.
   terms_notice: (p, site) => termsNotice(p, site),
+  // To each account that joined while sign-up was allow-list only (signup_wait), once shwarm opens (go-live 13.3,
+  // core/opening.ts): the one mail they were promised. Account stream: no unsubscribe link. OPEN (#114): new wording.
+  opening_notice: (p, site) => ({
+    subject: 'shwarm is open',
+    blocks: [
+      hi(p),
+      "shwarm is open to everyone now. you signed up while it was invite-only, and we said we'd email you when it opened.",
+      'sign in here:',
+      { href: siteLink(site, p.link) },
+      'then find a shwarm to join:',
+      { href: siteLink(site, p.feed) },
+    ],
+  }),
   watchdog_alert: (p, site) => watchdogAlert(p, site),
   // To the address the account had, as it closes (go-live 6.4): no link, since there's nothing left to sign in to.
   // OPEN (#86): these words wait on Myra's yes.
