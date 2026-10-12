@@ -13,6 +13,7 @@ import type { Child, FC } from 'hono/jsx'
 import { errorFormat, type Format } from './format'
 import { Layout } from './layout'
 import { page, PageContext } from './viewer'
+import { reportError, type SentryEnv } from '../core/sentry'
 
 export type ErrorStatus = 400 | 401 | 403 | 404 | 405 | 410 | 413 | 429 | 500
 
@@ -121,6 +122,12 @@ export async function errorHandler(err: Error, c: Context): Promise<Response> {
     if (http.status < 500) return http.getResponse()
   }
   console.error(JSON.stringify({ at: 'onError', method: c.req.method, path: new URL(c.req.url).pathname, error: String(err?.stack ?? err) }))
+  // To Sentry with the route pattern only, never the path (core/sentry.ts says what goes and what doesn't).
+  try {
+    c.executionCtx.waitUntil(reportError(err, { source: 'request', route: c.req.routePath, method: c.req.method }, c.env as SentryEnv))
+  } catch {
+    // No execution context (some tests): nothing to report to.
+  }
   try {
     return await sendError(c, { status: 500 })
   } catch {
