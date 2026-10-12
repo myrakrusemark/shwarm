@@ -2,7 +2,7 @@
 
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
-**Now (Claude):** shwarm.org is in beta, v0.2.7, with phase 9 built: flags, the admin console behind Cloudflare Access, the public moderation log, the security review's fixes; the abuse drill (9.7) is done. 9.6's outside test is parked until Myra is ready for Ash (Oct 11); Claude doesn't raise it. Phase 10: donations (10.1) are live on shwarm.org through Stripe Checkout. 10.2: the v0.2 terms, privacy and rules pages and terms versions are built and on staging, approved; Myra announces v0.2 (m-terms-announce). 10.5 is done. Next: phase 11 (ops).
+**Now (Claude):** shwarm.org is in beta, v0.2.8, with phase 9 built: flags, the admin console behind Cloudflare Access, the public moderation log, the security review's fixes; the abuse drill (9.7) is done. 9.6's outside test is parked until Myra is ready for Ash (Oct 11); Claude doesn't raise it. Phase 10: donations (10.1) are live on shwarm.org through Stripe Checkout. 10.2: the v0.2 terms, privacy and rules pages and terms versions are built and on staging, approved; Myra announces v0.2 (m-terms-announce). 10.5 is done. Next: phase 11 (ops).
 **Now (Myra):** the "Needs Myra" list below; the tracker page shows only that list and the progress.
 **Last updated:** 2026-10-11.
 
