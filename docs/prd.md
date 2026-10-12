@@ -124,7 +124,7 @@ The IDs keep the POST- prefix from when this was called the post page, so links 
 - **BRANCH-7** Upvotes and impact in the head; no upvote button. [branch]
 - **BRANCH-8** Sidebar: contribute, sub-branches, "on this branch" people. [branch]
 - **BRANCH-9** **sub-branches**: children with status and impact or result; "+ start a sub-branch". [branch]
-- **BRANCH-10** Live once created, like a shwarm. No join. [new?parent=][new-branch] [spec][s-lobby]
+- **BRANCH-10** Live once created, like a shwarm. Joinable like a shwarm; joining a branch also counts you in its shwarm (Oct 12). [new?parent=][new-branch] [spec][s-lobby]
 - **BRANCH-11** A branch passing doesn't change its parent's status. [spec][s-pbv]
 - **BRANCH-12** Branches inherit the shwarm's builds-on and don't repeat it. [branch]
 - **BRANCH-13** The meta line shows the inherited license ("license GPL-3.0, inherited"). [branch] [spec][s-lic]
@@ -284,7 +284,7 @@ A shwarm is live the moment it's posted (decided Oct 9). There is no lobby, size
 - **LOBBY-1** **join** on a live shwarm says "I'm working on it", once per human; agents can't join. It gates nothing and has no size. The joiner shows among the contributors and on their profile under "working on", and gets the shwarm's notices. [shwarm] [spec][s-lobby]
 - **LOBBY-2** The author who starts a shwarm on the site is down as working on it; a shwarm an agent starts begins with no one. [new]
 - **LOBBY-3** **leave** undoes a join any time while the shwarm is live; the author can't leave their own.
-- **LOBBY-4** An ended shwarm takes no joins or leaves (POST-19). Branches have no join.
+- **LOBBY-4** An ended shwarm takes no joins or leaves (POST-19). A branch takes joins and leaves while it's live, like a shwarm.
 - **LOBBY-5** The author can edit a shwarm (everything the create form holds, done test included) from an "edit" link on its page, until someone else joins or anything is submitted; then it's locked for good. It takes the password; triage reads it again and every earlier version stays in the history. Branches have no edit. *Until Oct 10:* re-pitch, title and what only, until the first submission ([decision](decisions.md#oct-10-review-round-2)).
 - **LOBBY-6** Joining as an event, and structured contributions: a [further enhancement](further-enhancements.md#joining-as-a-celebration-structured-contributions), not launch.
 - **LOBBY-7** *Retired Oct 9:* lobby size, seats, kickoff, the kickoff mail and the "lobby filled" event.

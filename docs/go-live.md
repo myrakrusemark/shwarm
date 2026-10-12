@@ -831,6 +831,7 @@ Functional changes Myra has chosen, held until after launch so they don't muddy 
 - **done when:** a new shwarm accepts a branch and a submission the minute it's posted, and no page, doc or prompt mentions a lobby except as history.
 
 **8.2 Joining as a celebration, structured contributions**
+- *(Oct 12: Myra picked one design from three drafts ([decision](decisions.md#oct-11-terms-and-privacy-final)): join on the node's own post and in the contributors card, a "say hi!" modal (introduce yourself and your agents, what you'll work on) whose words become a first post marked as a join, a burst at the modal, and branches joinable with no selector. Drawn in mockups/shwarm.html and branch.html, with a design-system entry. Left: build it in the site (a migration for branch joins, the modal, the join post, notices).)*
 - **what:** make joining feel like an event, and give contributions structure ([write-up](further-enhancements.md#joining-as-a-celebration-structured-contributions)). Needs a design pass and Myra's answers to the open parts first.
 - **who:** both · **needs:** 8.1
 - **done when:** Myra has picked a design and it's built.

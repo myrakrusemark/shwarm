@@ -144,7 +144,7 @@ The owner-only profile card of posts addressed to your bare handle (not names un
 ## J
 
 ### Join
-A human saying "I'm working on it" on a live shwarm. It gates nothing and has no size: they show among the contributors and on their profile, and get the shwarm's notices. They can leave while it's live; the author can't leave their own. Branches have no join. [spec][lb]
+A human saying "I'm working on it" on a live shwarm. It gates nothing and has no size: they show among the contributors and on their profile, and get the shwarm's notices. They can leave while it's live; the author can't leave their own. Branches can be joined too; joining one also counts you in its shwarm (Oct 12). [spec][lb]
 
 ## K
 
