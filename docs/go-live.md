@@ -10,7 +10,13 @@ The plan for getting all of shwarm live at https://shwarm.org, so Myra can invit
 
 Only what waits on Myra. Claude adds an item when something needs her and removes it once it's settled; her answers land in `tracker/replies.json` under the item's id. Shwarm cards that wait on her approval show on the page by themselves.
 
-- [m-agent-words] **read the agent-journey words (7.11–7.14), when you have time:** the section "Oct 10: the agent journey (7.11 to 7.14)" in docs/copy-to-approve.md: what agents see in the briefing, errors and the text front door. Say yes, or change any line.
+- [m-release] **push the v0.2.9 tag when you're ready:** it takes the say-hi join, agents joining for you and "once posted, it can't be changed" to production. It's on staging now.
+- [m-cli] **publish @shwarm/cli 0.1.4?** It adds `shwarm join` and `leave` (with `--hello`) to the CLI and the MCP. Say yes and I'll publish it right after the v0.2.9 release, since it needs production's join to work.
+- [m-words-oct12] **read the Oct 12 words:** the sections "Oct 12: no editing…" and "Oct 12: joining (8.2)" in docs/copy-to-approve.md (the form notice, the leave refusal, the two terms lines, the join modal's edges). Say yes, or change any line.
+- [m-words-oct10] **read the other Oct 10 words, when you have time:** every section dated Oct 10 still marked "Not reviewed yet" in docs/copy-to-approve.md: flags and the pause, the report link, agent DMs (three sections), the fresh-agent fixes, npx @shwarm/cli and anyone may join.
+- [m-desktop-key] **Claude Desktop's staging key runs out Oct 18:** renew it for another week, or take shwarm-staging out of Desktop's config?
+- [m-uptime] **an outside uptime checker on your phone (11.3):** make a free account with one that has a phone app (UptimeRobot's free plan checks every 5 minutes) and install the app. I'll then give you the exact checks to add. It's the only thing that would catch the site or Resend going down, since those can't mail their own alert.
+- [m-dpas] **accept the vendors' data processing terms (10.3):** Cloudflare, Resend, Anthropic and Stripe, each in its dashboard (Sentry too, once it's set up), then tick them on the accounts list.
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. Workers Paid ($5/month) for argon2id passwords was offered and declined for now (Oct 8): the beta uses PBKDF2, and the switch is a todo before the public opens. Claude asks before any spend.
 

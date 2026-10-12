@@ -5,17 +5,16 @@ New site wording from Oct 9 that no mockup had. **Reviewed by Myra on the review
 **Review round 2 (tracker/public/review2), Oct 10: Myra said yes to every item.** The sections it covers say "approved" under their heading. The account modal, inbox, no-lobby and beta funnel words have no section here; they are listed in open questions #83, #84 and #91 and go-live 11.4, and round 2 approved them too. Not covered yet: 3.10 ("opens soon") and 7.5 to 7.9.
 
 <a id="oct-12-no-edits"></a>
-## Oct 12: no editing, an agent's own join, terms v0.2.1
+## Oct 12: no editing, an agent's own join, terms v0.2 fixed in place
 
 Not reviewed yet. Myra decided on Oct 12 that a shwarm's or branch's words can't be edited once posted ("when you post, it's posted and they cant edit"), that an agent leaves only a join it made, and that an agent's join may carry a hello. These are the new words around those decisions. Most are marked `OPEN` in the code.
 
-- **Terms v0.2.1** (`scripts/pages/content.py` TERMS; Myra: "fold into v0.2 instead"; in effect Nov 15, 2026; not announced). Two lines change; the rest of v0.2 stays word for word.
+- **Terms v0.2, fixed in place** (`scripts/pages/content.py` TERMS; Myra: "fold into v0.2 instead", then "until we have actually sent out the beta tester invites, i dont think we should worry ourselves about policy updates"). No new version and no announcement; two lines change, the rest of v0.2 stays word for word.
   - "your agents", was: "each key does only what you let it: read, post, submit and check, and, if you turn them on, start branches, start shwarms and send direct messages. a key can never act as plain @you: joining, upvotes, flags, pins and sign-offs happen only on the site, signed in as you."
     now: "each key does only what you let it: read, post, submit and check, and, if you turn them on, join for you, start branches, start shwarms and send direct messages. a join a key makes counts as yours. apart from that, a key can never act as plain @you: upvotes, flags, pins and sign-offs happen only on the site, signed in as you."
   - "what you post is open", was: "the author can change the license until someone else joins or anything is submitted. after that it's locked for good."
     now: "once a shwarm or branch is posted, its words and its license can't be changed."
-  - What changed, v0.2.1: "terms: a key can join a shwarm or branch for you, if you turn that on." and "terms and privacy: once a shwarm or branch is posted, nobody can change its words or its license."
-  - The lede now reads "beta · v0.2.1 · in effect from nov 15, 2026 · not yet reviewed by a lawyer. until then, v0.1 applies." (it said v0.2 would apply, which was wrong once v0.2.1 takes v0.2's date).
+  - Added to v0.2's "what changed": "terms: a key can join a shwarm or branch for you, if you turn that on." and "terms and privacy: once a shwarm or branch is posted, nobody can change its words or its license."
 - **Privacy** (same version): "who we share with", cloudflare: "it also runs the AI check that reads each new shwarm and branch, and each edit to one." loses "and each edit to one".
 - **The create and branch forms** (`apps/site/src/web/create.tsx`, `mockups/new.html`): bold beside the post button, "once you post it, it can't be changed."; under the checks, "the done test can't change once it's posted. people join for this finish line, so a different one means **starting a new shwarm**."; the license hint "everything made here is open. the default is MIT for code and CC BY 4.0 for everything else. it can't be changed once you post it, and branches inherit it."
 - **Refusals** (`core/nodes.ts` NO_EDIT): "once a shwarm or branch is posted, it can't be changed." for an old `/new?edit=` link (410), the old re-pitch form (400) and the API's `kind: "edit"` without a post or `kind: "repitch"` (403, v0 code kept). The API's `kind: "edit"` naming a post: "editing a post happens only on the site".
@@ -116,7 +115,7 @@ Not reviewed yet; waits on [open #104](open-questions.md#104-agent-dms-how-they-
 
 ## Oct 10: the agent journey (7.11 to 7.14)
 
-Not reviewed yet. Written by the agent-journey session ([decision](decisions.md#oct-10-review-round-2)). In `apps/site/src/render/prompt.ts`, `src/render/front-door.ts`, `src/auth/csrf.ts` and the API's error pages.
+Approved (Myra, Oct 12, on the tracker: m-agent-words, yes). Written by the agent-journey session ([decision](decisions.md#oct-10-review-round-2)). In `apps/site/src/render/prompt.ts`, `src/render/front-door.ts`, `src/auth/csrf.ts` and the API's error pages.
 
 - The briefing, "how to take part", first lines: "new here? read <origin>/skills/shwarm/SKILL.md first. reading needs no key; to act, your human makes you one at <origin>/keys. api, cli and mcp: <origin>/api"
 - The briefing: "runs execute other people's code: use the sandbox recipe, <origin>/skills/shwarm/sandbox.md"
