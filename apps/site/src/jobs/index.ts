@@ -15,11 +15,17 @@ import { sweepOutbox } from './mail'
 import { rollupSite, rollupStats, siteStale } from './stats'
 import { sendSummary } from './summary'
 import { watchdog, WATCH_MINUTE } from './watch'
+import { reportError, type SentryEnv } from '../core/sentry'
 
 export const MAIL_CRON = '* * * * *'
 
-export async function scheduled(event: ScheduledController, env: MailEnv & TriageEnv & BackupEnv, ctx: ExecutionContext): Promise<void> {
+export async function scheduled(event: ScheduledController, env: MailEnv & TriageEnv & BackupEnv & SentryEnv, ctx: ExecutionContext): Promise<void> {
   const at = new Date(event.scheduledTime)
+  // A job that fails is logged and, where SENTRY_DSN is set, reported to Sentry by its name (core/sentry.ts).
+  const failed = (job: string) => (e: unknown) => {
+    console.error(`${job} failed`, e)
+    ctx.waitUntil(reportError(e, { source: `cron:${job}`, route: job }, env))
+  }
   // On staging and production every job's D1 rows count toward the day's usage line (go-live 11.3, core/d1-usage.ts);
   // the isolate's counts so far are written first, once a minute at most.
   if (countsD1(env)) {
@@ -28,14 +34,14 @@ export async function scheduled(event: ScheduledController, env: MailEnv & Triag
     env = { ...env, DB: tallied(env.DB) }
   }
   if (at.getUTCMinutes() % 5 === 0) {
-    ctx.waitUntil(stats(env.DB, event.scheduledTime).catch(e => console.error('stats failed', e)))
+    ctx.waitUntil(stats(env.DB, event.scheduledTime).catch(failed('stats')))
     // The admins' daily summary (go-live 11.4): once a day, queued for the next minute's mail sweep.
     ctx.waitUntil(
       sendSummary(env.DB, env.ENV).then(
         day => {
           if (day) console.log('summary', JSON.stringify({ day }))
         },
-        e => console.error('summary failed', e),
+        failed('summary'),
       ),
     )
   }
@@ -48,14 +54,14 @@ export async function scheduled(event: ScheduledController, env: MailEnv & Triag
         r => {
           if (r.firing.length) console.log('watchdog', JSON.stringify(r))
         },
-        e => console.error('watchdog failed', e),
+        failed('watchdog'),
       ),
     )
   }
   ctx.waitUntil(
     sweepOutbox(env).then(r => {
       if (r.sent || r.skipped || r.retrying || r.failed) console.log('outbox', JSON.stringify(r))
-    }),
+    }, failed('outbox')),
   )
   // Triage retries and the A8 hold (go-live 8.1), apart from the mail so neither waits on the other. Its alerts go
   // out on the next minute's mail sweep.
@@ -64,7 +70,7 @@ export async function scheduled(event: ScheduledController, env: MailEnv & Triag
       r => {
         if (r.escalated || r.decided || r.errors) console.log('triage', JSON.stringify(r))
       },
-      e => console.error('triage sweep failed', e),
+      failed('triage-sweep'),
     ),
   )
   // The daily digest of mentions (go-live 6.3): from the day's digest time, a few people a minute. Its mail goes out on
@@ -74,7 +80,7 @@ export async function scheduled(event: ScheduledController, env: MailEnv & Triag
       r => {
         if (r.sent || r.passed) console.log('digest', JSON.stringify(r))
       },
-      e => console.error('digest sweep failed', e),
+      failed('digest-sweep'),
     ),
   )
   // Once an hour: unverified accounts older than 7 days and their handles go (table B); old throttle rows are pruned;
@@ -92,7 +98,7 @@ export async function scheduled(event: ScheduledController, env: MailEnv & Triag
         r => {
           if (r.sessions || r.cleared || r.networks) console.log('networks', JSON.stringify(r))
         },
-        e => console.error('network purge failed', e),
+        failed('network-purge'),
       ),
     )
     ctx.waitUntil(
@@ -100,7 +106,7 @@ export async function scheduled(event: ScheduledController, env: MailEnv & Triag
         r => {
           if (r.reports || r.flags) console.log('reports', JSON.stringify(r))
         },
-        e => console.error('report prune failed', e),
+        failed('report-prune'),
       ),
     )
     ctx.waitUntil(
@@ -108,7 +114,7 @@ export async function scheduled(event: ScheduledController, env: MailEnv & Triag
         r => {
           if (r.idempotency || r.nonces || r.buckets) console.log('plumbing', JSON.stringify(r))
         },
-        e => console.error('plumbing prune failed', e),
+        failed('plumbing-prune'),
       ),
     )
     ctx.waitUntil(
@@ -116,7 +122,7 @@ export async function scheduled(event: ScheduledController, env: MailEnv & Triag
         n => {
           if (n) console.log('tokens', JSON.stringify({ email_tokens: n }))
         },
-        e => console.error('token prune failed', e),
+        failed('token-prune'),
       ),
     )
   }
@@ -127,7 +133,7 @@ export async function scheduled(event: ScheduledController, env: MailEnv & Triag
         r => {
           if (r) console.log('backup', JSON.stringify(r))
         },
-        e => console.error('backup failed', e),
+        failed('backup'),
       ),
     )
   }
@@ -136,7 +142,7 @@ export async function scheduled(event: ScheduledController, env: MailEnv & Triag
     ctx.waitUntil(
       refreshDisposable(env.DB).then(
         r => console.log('disposable', JSON.stringify(r)),
-        e => console.error('disposable refresh failed', e),
+        failed('disposable-refresh'),
       ),
     )
   }
