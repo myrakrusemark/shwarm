@@ -55,24 +55,25 @@ describe('join: working on it (4.4, decided Oct 9)', () => {
     finn = await person(w.db, 'finn_irl')
     kes = await person(w.db, 'kestrel')
     await w.shwarm(site(myra)) // live at once
-    expect(await w.join(site(bmo), MID)).toEqual({ node: MID, joined: true })
+    expect(await w.join(site(bmo), MID)).toMatchObject({ node: MID, joined: true })
   })
 
   it('join a live shwarm with no limit: no kickoff, no event, no notice', async () => {
-    expect(await w.join(site(ana), MID)).toEqual({ node: MID, joined: true })
-    expect(await w.join(site(finn), MID)).toEqual({ node: MID, joined: true })
-    expect(await w.join(site(kes), MID)).toEqual({ node: MID, joined: true })
+    expect(await w.join(site(ana), MID)).toMatchObject({ node: MID, joined: true })
+    expect(await w.join(site(finn), MID)).toMatchObject({ node: MID, joined: true })
+    expect(await w.join(site(kes), MID)).toMatchObject({ node: MID, joined: true })
     expect(w.all('SELECT number FROM seat WHERE left_at IS NULL ORDER BY number').map(r => r.number)).toEqual([1, 2, 3, 4, 5])
     expect(w.events(MID)).toEqual([])
     expect(w.all("SELECT person_id FROM inbox_item WHERE kind = 'system'")).toEqual([])
     // a double click keeps the one join
-    expect(await w.join(site(ana), MID)).toEqual({ node: MID, joined: false })
-    // anyone but the author can leave; humans only; branches have none
-    expect(await w.run({ type: 'leave', actor: site(ana), input: { node: MID } })).toEqual({ node: MID })
+    expect(await w.join(site(ana), MID)).toMatchObject({ node: MID, joined: false })
+    // anyone but the author can leave; an agent only with the key's join permission (decided Oct 12)
+    expect(await w.run({ type: 'leave', actor: site(ana), input: { node: MID } })).toEqual({ node: MID, as: '@ana', left: true })
     await refused(w.run({ type: 'leave', actor: site(myra), input: { node: MID } }), 'bad_request')
-    await refused(w.join(agent(finn), MID), 'bare_handle_needs_human')
+    await refused(w.join(agent(finn), MID), 'not_permitted', { need: 'join', node: MID })
+    // branches are joined too (decided Oct 12), and count the joiner in the shwarm
     await w.branch(site(myra), MID)
-    await refused(w.join(site(ana), `${MID}/block-placement`), 'bad_request')
+    expect(await w.join(site(ana), `${MID}/block-placement`)).toMatchObject({ joined: true, nodes: [`${MID}/block-placement`, MID] })
   })
 
   it('a late joiner shows as working on it: among its contributors and on their profile', async () => {
@@ -518,7 +519,7 @@ describe('on the page', () => {
       expect(boxOf(await page(b), 'contributors')).toContain('value="join"')
     })
 
-    it('signed out, "join" goes to sign-in; unverified, it waits; the author has no leave; a branch and an ended shwarm offer none', async () => {
+    it('signed out, "join" goes to sign-in; unverified, it waits; the author has no leave; a branch offers it too; an ended shwarm offers none', async () => {
       const { env } = await world()
       const out = boxOf(await page(new Browser(env)), 'contributors')
       expect(out).toContain(`<a class="btn plain" href="/signin?next=%2Fw%2F${EXAMPLE_ROOT}">join</a>`)
@@ -530,7 +531,10 @@ describe('on the page', () => {
       expect(mine).not.toContain('value="leave"')
       const b = await signIn(env, 'ana')
       expect(boxOf(await page(b, `/w/${PLAIN}`), 'contributors')).toContain('value="join"') // a new launch shwarm is live too
-      expect(boxOf(await page(b, `/w/${EXAMPLE_ROOT}/block-placement`), 'on this branch')).not.toContain('join')
+      // a branch is joined too (decided Oct 12, "Branches can be joined")
+      const branch = boxOf(await page(b, `/w/${EXAMPLE_ROOT}/block-placement`), 'on this branch')
+      expect(branch).toContain('value="join"')
+      expect(branch).toContain("join to say you're working on this branch.")
       env.DB.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'x' WHERE path = ?").run(PLAIN)
       expect(boxOf(await page(b, `/w/${PLAIN}`), 'contributors')).not.toContain('join')
     })

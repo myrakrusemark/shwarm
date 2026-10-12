@@ -8,6 +8,7 @@ import {
   readChecks,
   readChildren,
   readContributors,
+  readJoins,
   readMySeat,
   readMyUpvotes,
   readNodeEdits,
@@ -32,7 +33,7 @@ export async function loadPageData(
 ): Promise<NodePageData> {
   const n = chain.node
   const mine = o.me?.personId === n.author_id
-  const [children, contributors, subs, thread, nodeEdits, activity, editable] = await Promise.all([
+  const [children, contributors, subs, thread, nodeEdits, activity, editable, joins] = await Promise.all([
     readChildren(db, n.id),
     readContributors(db, n),
     readSubmissions(db, n.id),
@@ -41,6 +42,7 @@ export async function loadPageData(
     readActivity(db, n.id, o.now),
     // Whether its author may still edit it (the "edit" link): nobody else joined and nothing was submitted (core/nodes.ts editLock).
     mine && o.me?.verified && n.kind !== 'branch' ? editLock(db, n).then(e => !e) : Promise.resolve(false),
+    readJoins(db, n), // the thread's quiet join lines (go-live 8.2)
   ])
   // Checks for the submissions on this page of the thread, and for the one in review (the head's status line).
   const shown = new Set<string>()
@@ -56,11 +58,11 @@ export async function loadPageData(
   const [checks, myUps, mySeat, myReports, myFlag] = await Promise.all([
     readChecks(db, [...shown]),
     o.me ? readMyUpvotes(db, o.me.personId, onPage) : Promise.resolve(new Map<string, boolean>()),
-    o.me && n.kind !== 'branch' ? readMySeat(db, n.id, o.me.personId) : Promise.resolve(null),
+    o.me ? readMySeat(db, n.id, o.me.personId) : Promise.resolve(null), // branches are joined too (decided Oct 12)
     o.me ? readMyReports(db, o.me.personId, onPage) : Promise.resolve(new Set<string>()),
     o.me && o.me.personId !== n.author_id ? flaggedBy(db, o.me.personId, n.id) : Promise.resolve(false),
   ])
-  return { chain, branches: children.branches, contributors, subs, checks, thread, myUps, mySeat, myReports, myFlag, nodeEdits, editable, activity, sort: o.sort, show: o.show, url: o.url, here: o.here, me: o.me, now: o.now }
+  return { chain, branches: children.branches, contributors, subs, checks, thread, myUps, mySeat, joins, myReports, myFlag, nodeEdits, editable, activity, sort: o.sort, show: o.show, url: o.url, here: o.here, me: o.me, now: o.now }
 }
 
 /** The prompt's and the JSON's data; null when ?before= doesn't name a post in this thread. */
@@ -78,7 +80,7 @@ export async function loadAgentView(db: D1Database, chain: Chain, o: { origin: s
   const listedSubs = [posts.pinned, ...posts.posts].filter(p => p?.kind === 'submission').map(p => p!.id)
   const [checks, links] = await Promise.all([readChecks(db, subIds), readBuiltOn(db, listedSubs)])
   const dmsOn = contributors.rows.filter(r => r.dms).map(r => r.handle)
-  return { origin: o.origin, chain, branches: children.branches, subs, checks, posts, builtOn: links.builtOn, dmsOn, now: o.now }
+  return { origin: o.origin, chain, branches: children.branches, subs, checks, posts, builtOn: links.builtOn, dmsOn, contributors, now: o.now }
 }
 
 /** How many key events the result page's log box lists, newest ones, oldest first. OPEN: not decided; 20. */

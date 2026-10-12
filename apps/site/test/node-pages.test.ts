@@ -419,7 +419,7 @@ describe('node urls for agents (3.6)', () => {
     env.DB.prepare = ((sql: string) => (seen.push(sql), prepare(sql))) as typeof env.DB.prepare
     const page = await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: HTML })
     expect(page.status).toBe(200)
-    expect(seen.length).toBeLessThanOrEqual(9)
+    expect(seen.length).toBeLessThanOrEqual(10) // 10: the thread's quiet join lines (go-live 8.2)
     seen.length = 0
     const prompt = await b.req(`/w/${EXAMPLE_BRANCH}`)
     expect(seen.length).toBeLessThanOrEqual(8) // 8: the contributors, for who takes dms (7.18)

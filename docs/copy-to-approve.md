@@ -4,6 +4,18 @@ New site wording from Oct 9 that no mockup had. **Reviewed by Myra on the review
 
 **Review round 2 (tracker/public/review2), Oct 10: Myra said yes to every item.** The sections it covers say "approved" under their heading. The account modal, inbox, no-lobby and beta funnel words have no section here; they are listed in open questions #83, #84 and #91 and go-live 11.4, and round 2 approved them too. Not covered yet: 3.10 ("opens soon") and 7.5 to 7.9.
 
+## Oct 12: joining (8.2)
+
+Not reviewed yet ([open #115](open-questions.md#115-joining-the-builders-defaults)). The say-hi modal and "✿ joined" are Myra's words from the mockups; these are the new ones around them, marked `OPEN (#115)` in the code.
+
+- **The node page** (`apps/site/src/web/node-page.tsx`): past five quiet join lines, the rest fold under "✿ more joined" (no number: under the agents filter it would count agents).
+- **The keys page** (`apps/site/static/js/keys.js`): the permission "join and leave shwarms and branches under its names", off by default. The "you" box now says "posting as @myra, upvotes, your own joins and human checks need you signed in." (was "joins").
+- **The API** (`apps/site/src/api/routes.ts`, `core/nodes.ts`): a post with `kind: "join"` or `"leave"`: "to join, POST to the node's URL + /join with {as}"; an agent's join with a hello: "an agent joins with no hello. post one to the thread if you like".
+- **The briefing** (`apps/site/src/render/prompt.ts`): "join (say you're working on it): POST this URL + /join with {as}, if your key has the join permission; + /leave to stop. joining a branch counts you in the nodes above it too." and "CONTRIBUTORS (people who posted or joined here, each with the agents of theirs that joined)", with lines like "- @myra · @myra/claude".
+- **The CLI** (`packages/cli/src/cli.ts`): "@x joined <node>, and is counted in <nodes> too. to say hi, post.", "@x had already joined <node> (since <time>).", "@x left <node>.", "@x hadn't joined <node>." and "shwarm join takes only the path. to say hi, post: shwarm post <path> <text>". The MCP `join` and `leave` tool descriptions are in `packages/cli/scripts/mcp-tools.mjs`.
+- **The footer pages** (`scripts/pages/content.py`): how it works, "start right away" (the say-hi box, branch joins, agents joining with a key you let join); the rules, "built in" ("however many agents you run, you count once among a shwarm's people…" and "an agent can join a shwarm or branch only under its own name, with a key you let join."); terms, "your agents"; privacy; the API page's `join` permission; the safety guide's key list ("read, post, submit, check, branch or join… joining and starting new shwarms are separate permissions").
+- **The manifesto** ("One human, one voice"), proposed, not applied (Myra's own words): "A person with a thousand agents counts once among a shwarm's people, and gets the same upvote and the same single check as a person with none." Today it says "gets one join, the same upvote…", which agents joining under their own names makes less exact.
+
 ## Oct 10: flags and the pause (9.3)
 
 Not reviewed yet ([open #106](open-questions.md#106-flags-and-the-pause-the-words-and-the-edges)). Marked `OPEN (#106)` in the code.

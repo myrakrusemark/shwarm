@@ -1,8 +1,9 @@
 // Go-live 7.7: the shwarm command (packages/cli) against the whole site in-process, as an agent's machine reaches it:
 // its requests signed by the CLI and verified by the Worker's pipeline, keys made as the keys page makes them. Covers
 // login --key and whoami, reads signed and public, post (with a link fetched and hashed by the CLI), submit, check,
-// branch, new, mentions and --follow, limits and log; the exit codes (CLI-16) for each kind of refusal; --as with no
-// path refused before anything reaches the site; and a signed post through staging's password lock on its own host.
+// branch, new, join and leave (go-live 8.2), mentions and --follow, limits and log; the exit codes (CLI-16) for each
+// kind of refusal; --as with no path refused before anything reaches the site; and a signed post through staging's
+// password lock on its own host.
 // Go-live 7.8: `shwarm run` from fixture accounts, with a real repo and the real `sh`: a run report that counts, own
 // work and a taken slot refused before anything runs, and a link with a wrong hash refused before anything runs; a
 // command that prints nothing posts its empty log; a branch under a passed shwarm is refused before anything runs.
@@ -211,6 +212,33 @@ describe('acting', () => {
     expect(made.code).toBe(0)
     expect(JSON.parse(made.out)).toMatchObject({ node: 'doom-block-building-speedruns', kind: 'shwarm', triage: 'held' })
     expect(JSON.parse(w.get('SELECT checks FROM node WHERE path = ?', 'doom-block-building-speedruns').checks)).toMatchObject({ author: false, people: { count: 3 } })
+  })
+})
+
+describe('joining (go-live 8.2)', () => {
+  it('joins a branch as an agent with the join permission, counted up to the shwarm; leaves it; exit 3 without the permission', async () => {
+    const w = await world()
+    const joiner = await keyFor(w.db, w.ana.id, { canPostAs: '@ana/*', grants: [{ node: '*', perms: ['read', 'post', 'join'] }] })
+    const j = await w.shwarm(['join', BRANCH, '--as', '@ana/scout', '--json'], { key: joiner })
+    expect(j.code).toBe(0)
+    const r = JSON.parse(j.out)
+    expect(schemaErrors('JoinResult', r)).toEqual([])
+    expect(r).toMatchObject({ node: BRANCH, url: `${SITE}/w/${BRANCH}`, as: '@ana/scout', joined: true, nodes: [BRANCH, ROOT] })
+    // the name shows among the shwarm's contributors, under its human
+    const node = JSON.parse((await w.shwarm(['read', ROOT, '--json'])).out)
+    expect(node.contributors.people).toContainEqual({ name: '@ana', agents: ['@ana/scout'] })
+    // joining again changes nothing, and says so
+    const again = await w.shwarm(['join', BRANCH, '--as', '@ana/scout'], { key: joiner })
+    expect(again).toMatchObject({ code: 0, err: '' })
+    expect(again.out).toContain(`@ana/scout had already joined ${BRANCH}`)
+    // leaving the branch keeps the name in the shwarm above it
+    const left = await w.shwarm(['leave', BRANCH, '--as', '@ana/scout'], { key: joiner })
+    expect(left).toEqual({ code: 0, out: `@ana/scout left ${BRANCH}.`, err: '' })
+    expect(w.get("SELECT count(*) AS n FROM agent_seat a JOIN node n ON n.id = a.node_id WHERE a.as_name = '@ana/scout' AND a.left_at IS NULL").n).toBe(1)
+    // a key without join: exit 3, the API's not_permitted naming what it needs
+    const no = await w.shwarm(['join', BRANCH, '--as', '@ana/scout', '--json'], { key: w.keys.ana })
+    expect(no.code).toBe(3)
+    expect(JSON.parse(no.out)).toMatchObject({ error: 'not_permitted', need: 'join' })
   })
 })
 

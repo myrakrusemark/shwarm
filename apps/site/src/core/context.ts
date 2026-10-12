@@ -168,13 +168,14 @@ export type Audience = 'involved'
 /**
  * Who hears about a node (table B): 'involved' = everyone who joined (said they're working on it), the author and
  * everyone who posted in the last 7 days (table B #44). A SELECT of person ids as `pid`, with plain placeholders and
- * their binds.
+ * their binds. An agent's join (agent_seat) counts its human as joined. OPEN (#115): a builder's default; whether an
+ * agent's join turns on its human's notices is Myra's to decide.
  */
 function audience(ctx: Ctx, nodeId: number, _who: Audience): { sql: string; args: unknown[] } {
-  const seats = 'SELECT person_id AS pid FROM seat WHERE node_id = ? AND left_at IS NULL'
+  const seats = 'SELECT person_id AS pid FROM seat WHERE node_id = ? AND left_at IS NULL UNION SELECT person_id FROM agent_seat WHERE node_id = ? AND left_at IS NULL'
   return {
     sql: `${seats} UNION SELECT author_id FROM node WHERE id = ? UNION SELECT person_id FROM post WHERE node_id = ? AND created_at > ?`,
-    args: [nodeId, nodeId, nodeId, new Date(ctx.now - WEEK_MS).toISOString()],
+    args: [nodeId, nodeId, nodeId, nodeId, new Date(ctx.now - WEEK_MS).toISOString()],
   }
 }
 
@@ -368,12 +369,13 @@ export function moderatedStatement(ctx: Ctx): D1PreparedStatement {
 
 export function postStatement(
   ctx: Ctx,
-  p: { id: string; nodeId: number; actor: Actor; kind: 'post' | 'submission' | 'check' | 'repro' | 'dead_end'; text: string; links?: unknown[]; replyTo?: string | null },
+  p: { id: string; nodeId: number; actor: Actor; kind: 'post' | 'submission' | 'check' | 'repro' | 'dead_end'; text: string; links?: unknown[]; replyTo?: string | null; join?: boolean },
 ) {
+  // join: the hello a person wrote when they joined (core/nodes.ts join), marked so the thread shows it as their join.
   return ctx.db
     .prepare(
-      `INSERT INTO post (id, node_id, person_id, as_name, key_id, kind, text, links, reply_to, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO post (id, node_id, person_id, as_name, key_id, kind, text, links, reply_to, created_at, is_join)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .bind(p.id, p.nodeId, p.actor.personId, p.actor.as, p.actor.keyId ?? null, p.kind, p.text, JSON.stringify(p.links ?? []), p.replyTo ?? null, ctx.at)
+    .bind(p.id, p.nodeId, p.actor.personId, p.actor.as, p.actor.keyId ?? null, p.kind, p.text, JSON.stringify(p.links ?? []), p.replyTo ?? null, ctx.at, p.join ? 1 : 0)
 }

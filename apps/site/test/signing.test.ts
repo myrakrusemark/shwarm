@@ -26,7 +26,7 @@ describe('openapi.yaml signs as the server verifies', () => {
     const ops = between('\npaths:\n', '\ncomponents:\n').split(/\n(?=    (?:get|post|put|patch|delete):)/)
     // calls that need a key; a public read may be signed too (`- {}` beside it), and then takes the same headers unasked
     const signed = ops.filter(op => op.includes('- agentKey: []') && !op.includes('- {}'))
-    expect(signed.map(op => /operationId: (\w+)/.exec(op)![1]).sort()).toEqual(['blockDm', 'createBranch', 'createShwarm', 'dmWho', 'getKey', 'getLimits', 'getMentions', 'postToNode', 'readDms', 'reportDm', 'sendDm', 'unblockDm'])
+    expect(signed.map(op => /operationId: (\w+)/.exec(op)![1]).sort()).toEqual(['blockDm', 'createBranch', 'createShwarm', 'dmWho', 'getKey', 'getLimits', 'getMentions', 'joinNode', 'leaveNode', 'postToNode', 'readDms', 'reportDm', 'sendDm', 'unblockDm'])
     for (const op of signed) {
       expect(op, op.slice(0, 40)).toContain("$ref: '#/components/parameters/SignatureInput'")
       expect(op, op.slice(0, 40)).toContain("$ref: '#/components/parameters/ContentDigest'")

@@ -44,7 +44,7 @@ function mcp(o: { key?: string | null; as?: string | null; answers?: (Response |
   return { ...s, server, rpc, call }
 }
 
-const TOOL_NAMES = ['find_shwarms', 'read_node', 'read_log', 'mentions', 'whoami', 'limits', 'post', 'submit', 'check_run', 'check_people', 'open_branch', 'start_shwarm', 'dm_send', 'dm_read', 'dm_who', 'dm_block', 'dm_unblock', 'dm_report']
+const TOOL_NAMES = ['find_shwarms', 'read_node', 'read_log', 'mentions', 'whoami', 'limits', 'post', 'submit', 'check_run', 'check_people', 'open_branch', 'start_shwarm', 'join', 'leave', 'dm_send', 'dm_read', 'dm_who', 'dm_block', 'dm_unblock', 'dm_report']
 
 describe('the handshake and the tool list', () => {
   it('answers initialize with the version asked for (or the newest), its tools, resources and prompts', async () => {
@@ -57,7 +57,7 @@ describe('the handshake and the tool list', () => {
     expect(m.calls).toHaveLength(0)
   })
 
-  it('lists the tools of prd-api §4 and limits, and none for the sign-off, upvotes, joins, flags, keys or variants (MCP-2)', async () => {
+  it('lists the tools of prd-api §4, limits, join and leave, and none for the sign-off, upvotes, flags, pins, keys or variants (MCP-2)', async () => {
     const { tools } = (await mcp().rpc('tools/list')).result
     expect(tools.map((t: { name: string }) => t.name)).toEqual(TOOL_NAMES)
     for (const t of tools) {
@@ -68,7 +68,14 @@ describe('the handshake and the tool list', () => {
       expect(Object.keys(t.inputSchema.properties), t.name).not.toContain('kind')
       expect(Object.keys(t.inputSchema.properties), t.name).not.toContain('slot')
     }
-    expect(tools.map((t: { name: string }) => t.name).join(' ')).not.toMatch(/sign|upvote|join|flag|key|account|donat|variant/)
+    expect(tools.map((t: { name: string }) => t.name).join(' ')).not.toMatch(/sign|upvote|flag|pin|key|account|donat|variant/)
+    // join and leave take a node and a name, nothing else (no hello: to say hi, an agent posts)
+    for (const n of ['join', 'leave']) {
+      const t = tools.find((x: { name: string }) => x.name === n)
+      expect(Object.keys(t.inputSchema.properties), n).toEqual(['node', 'as'])
+      expect(t.inputSchema.required, n).toEqual(['node'])
+      expect(t.description, n).toContain('join permission')
+    }
     const submit = tools.find((t: { name: string }) => t.name === 'submit')
     expect(submit.inputSchema.required).toEqual(['node', 'text', 'links', 'how_to_check'])
   })
@@ -76,7 +83,7 @@ describe('the handshake and the tool list', () => {
   it('is generated from docs/openapi.yaml, and the build fails when they drift apart (MCP-1)', () => {
     const script = new URL('../scripts/mcp-tools.mjs', import.meta.url).pathname
     expect(() => execFileSync(process.execPath, [script, '--check'], { stdio: 'pipe' })).not.toThrow()
-    expect(MCP_TOOLS.map(t => t.operation)).toEqual(['listShwarms', 'getNode', 'getNodeLog', 'getMentions', 'getKey', 'getLimits', 'postToNode', 'postToNode', 'postToNode', 'postToNode', 'createBranch', 'createShwarm', 'sendDm', 'readDms', 'dmWho', 'blockDm', 'unblockDm', 'reportDm'])
+    expect(MCP_TOOLS.map(t => t.operation)).toEqual(['listShwarms', 'getNode', 'getNodeLog', 'getMentions', 'getKey', 'getLimits', 'postToNode', 'postToNode', 'postToNode', 'postToNode', 'createBranch', 'createShwarm', 'joinNode', 'leaveNode', 'sendDm', 'readDms', 'dmWho', 'blockDm', 'unblockDm', 'reportDm'])
   })
 
   it('answers JSON-RPC mistakes as JSON-RPC errors', async () => {
@@ -129,6 +136,8 @@ describe('tools', () => {
       ['check_people', { node: 'minecraft-in-doom', as: '@myra', on: 'p_7c2q1xk9am', verdict: 'pass', log: 'ok' }],
       ['start_shwarm', { as: '@myra', title: 't', what: 'w', done_when: 'd', check: { author: true }, tags: ['games'] }],
       ['mentions', { to: '@myra' }],
+      ['join', { node: 'minecraft-in-doom', as: '@myra' }],
+      ['leave', { node: 'minecraft-in-doom', as: '@myra' }],
     ] as const) {
       const r = await m.call(name, args)
       expect(r.isError, name).toBe(true)
@@ -185,6 +194,35 @@ describe('tools', () => {
     expect([m.calls[3].method, new URL(m.calls[3].url).pathname, await m.calls[3].json()]).toEqual(['POST', '/w/minecraft-in-doom/branches', { ...spec, as: '@myra/m-04' }])
     await m.call('start_shwarm', { ...spec, tags: ['games'] })
     expect([new URL(m.calls[4].url).pathname, await m.calls[4].json()]).toEqual(['/shwarms', { ...spec, tags: ['games'], as: '@myra/m-04' }])
+  })
+})
+
+describe('join and leave (go-live 8.2)', () => {
+  const B = 'minecraft-in-doom/block-placement'
+  it('join signs a POST to <path>/join with the default name, and leave one to <path>/leave', async () => {
+    const joined = { node: B, url: `${SERVER}/w/${B}`, as: '@myra/m-04', joined: true, at: '2026-10-12T15:52:29.549Z', nodes: [B, 'minecraft-in-doom'] }
+    const m = mcp({ as: '@myra/m-04', answers: [Response.json(joined), Response.json({ node: B, url: `${SERVER}/w/${B}`, as: '@myra/m-05', left: true })] })
+    const r = await m.call('join', { node: `${SERVER}/w/${B}` })
+    expect(r.isError).toBeUndefined()
+    expect(JSON.parse(r.content[0].text)).toEqual(joined)
+    expect([m.calls[0].method, new URL(m.calls[0].url).pathname]).toEqual(['POST', `/w/${B}/join`])
+    expect(m.calls[0].headers.get('signature-input')).toContain('keyid="k7m2q9x4ab"')
+    expect(m.calls[0].headers.get('idempotency-key')).toMatch(/^[0-9a-f-]{36}$/)
+    expect(await m.calls[0].json()).toEqual({ as: '@myra/m-04' })
+    const l = await m.call('leave', { node: B, as: '@myra/m-05' })
+    expect(JSON.parse(l.content[0].text).left).toBe(true)
+    expect([m.calls[1].method, new URL(m.calls[1].url).pathname]).toEqual(['POST', `/w/${B}/leave`])
+    expect(await m.calls[1].json()).toEqual({ as: '@myra/m-05' })
+  })
+
+  it("refuses a submission before sending anything, and passes on the API's not_permitted", async () => {
+    const e = { error: 'not_permitted', message: "this key can't join here", need: 'join', node: B }
+    const m = mcp({ as: '@myra/m-04', answers: [Response.json(e, { status: 403 })] })
+    const sub = await m.call('join', { node: `${B}/s/2` })
+    expect(sub.isError).toBe(true)
+    expect(JSON.parse(sub.content[0].text).error).toBe('usage')
+    expect(m.calls).toHaveLength(0)
+    expect(await m.call('join', { node: B })).toEqual({ content: [{ type: 'text', text: JSON.stringify(e) }], isError: true })
   })
 })
 

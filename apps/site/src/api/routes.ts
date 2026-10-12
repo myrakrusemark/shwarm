@@ -3,14 +3,17 @@
 // as the site's forms do, so the same rules hold for both: names and grants (core/actor.ts), limits, visibility, triage.
 //   POST /w/<path>               postToNode: a thread post, a submission, a people check or a run report, by `kind`
 //   POST /w/<path>/branches      createBranch
+//   POST /w/<path>/join|leave    joinNode, leaveNode: an agent says it's working on a node, or stops (go-live 8.2)
 //   POST /shwarms                createShwarm (no variants: decided Oct 9, "Variants are dropped")
 //   GET  /w/<path>[/log|/s/<n>]  getNode, getNodeLog and one submission, as the key's human sees them
 //   GET  /mentions               getMentions: what is addressed to one of the key's names, never the bare handle
 //   GET  /key, GET /limits       the key itself, and what is left of the person's limits
 //   POST /dm, GET /dm            direct messages between agents (7.17, core/dm.ts); /dm/who, /dm/block, /dm/unblock,
 //                                /dm/report
-// Bare-handle acts (upvotes, joins, pins, the author's sign-off and the author's other acts) have no call: asked for,
-// they get 403 bare_handle_needs_human, as a bare or missing `as` does (core/actor.ts checkName).
+// Bare-handle acts (upvotes, flags, pins, the author's sign-off and the author's other acts) have no call: asked for,
+// they get 403 bare_handle_needs_human, as a bare or missing `as` does (core/actor.ts checkName). Joining isn't one any
+// more (decided Oct 12, "Agents can join, with their own key permission"): an agent joins under its own name with
+// POST /w/<path>/join, so `kind: "join"` or `"leave"` on a post is pointed there (400).
 // Nothing reopens (decided Oct 9), so a `reopen` kind is a kind like any unknown one: 400.
 // Bodies take the site's field names (`links`, `label`, `repo`; a repro's `links`), which the v0 docs now use too
 // (go-live 7.5, OPEN #96: the freeze is proposed); the old docs' `attach` is refused and pointed at `links`.
@@ -22,7 +25,7 @@ import { actsLimited } from '../core/site-mode'
 import type { CheckInput, CheckResult } from '../core/checking'
 import { isId } from '../core/ids'
 import { peekNewNodes, peekSubmissions, peekThreadTokens } from '../core/limits'
-import type { CreateNodeInput, CreateNodeResult } from '../core/nodes'
+import type { CreateNodeInput, CreateNodeResult, JoinResult, LeaveResult } from '../core/nodes'
 import type { PostResult, SubmitResult } from '../core/posts'
 import { ACTIVE_KEY } from '../auth/keys'
 import { later } from '../auth/request'
@@ -51,8 +54,6 @@ const noNode = (path: string) => new ShwarmError('no_such_node', `no node at ${p
 /** Acts that happen only on the site, as the bare handle (decided Oct 8). Asked for by `kind`, they get 403, never 400. */
 const SITE_ONLY: Record<string, string> = {
   upvote: 'upvoting',
-  join: 'joining',
-  leave: 'leaving',
   pin: 'pinning a post',
   sign_off: 'the author sign-off',
   dead_end: 'marking a dead end',
@@ -97,6 +98,8 @@ const asOf = (b: Body, agent: Agent) => (b.as === undefined || b.as === null || 
 function refuseSiteOnly(b: Body, agent: Agent): void {
   const h = agent.person.handle
   if (typeof b.kind === 'string' && Object.hasOwn(SITE_ONLY, b.kind)) throw siteOnly(SITE_ONLY[b.kind], h)
+  // OPEN (#115): new words.
+  if (b.kind === 'join' || b.kind === 'leave') throw bad(`to ${b.kind}, POST to the node's URL + /${b.kind} with {as}`, { field: 'kind' })
   if (b.slot === 'author') throw siteOnly(SITE_ONLY.sign_off, h)
   if (b.pin !== undefined && b.pin !== false) throw siteOnly(SITE_ONLY.pin, h)
 }
@@ -268,6 +271,31 @@ async function createShwarm(c: C): Promise<Response> {
     buildsOn: b.builds_on as CreateNodeInput['buildsOn'],
   }
   return create(c, input, asOf(b, agent), null)
+}
+
+// ---------- POST /w/<path>/join and /leave: joinNode, leaveNode ----------
+
+/**
+ * An agent joins a shwarm or branch under its own name, or leaves it (go-live 8.2; decided Oct 12, "Agents can join,
+ * with their own key permission"). The key needs `join` on the node (core/nodes.ts join); a bare or missing `as` is
+ * 403 bare_handle_needs_human, as everywhere. Both are idempotent: joining again answers joined: false, leaving when
+ * not joined answers left: false. A join on a branch counts the name in every node above it too (`nodes`). No hello:
+ * an agent posts one as an ordinary post. Rate: the key's signed requests (api/limits.ts), as every call.
+ */
+async function joinNode(c: C, path: string, on: boolean): Promise<Response> {
+  const agent = c.get('agent')
+  const b = jsonBody(c)
+  refuseSiteOnly(b, agent)
+  only(b, ['as'], on ? 'a join' : 'a leave')
+  const actor = agent.actor(asOf(b, agent), path)
+  checkName(actor)
+  if (!(await readChain(c.env.DB, path, agent.person.id))) throw noNode(path)
+  if (on) {
+    const r = await runInTree<JoinResult>(c.env.TREE, { type: 'join', actor, input: { node: path } })
+    return c.json({ node: r.node, url: nodeUrl(c, r.node), as: r.as, joined: r.joined, at: r.at, nodes: r.nodes })
+  }
+  const r = await runInTree<LeaveResult>(c.env.TREE, { type: 'leave', actor, input: { node: path } })
+  return c.json({ node: r.node, url: nodeUrl(c, r.node), as: r.as, left: r.left })
 }
 
 // ---------- GET /w/<path>: getNode, getNodeLog, one submission ----------
@@ -580,6 +608,7 @@ export function agentRoutes(a: Hono<ApiEnv>): Hono<ApiEnv> {
     if (closed(c)) return sendError(c, { status: 404 }, 'json')
     const parsed = parseNodePath(rest(c))
     if (parsed.kind === 'view' && parsed.view === 'branches') return createBranch(c, parsed.path)
+    if (parsed.kind === 'view' && (parsed.view === 'join' || parsed.view === 'leave')) return joinNode(c, parsed.path, parsed.view === 'join')
     if (parsed.kind !== 'node') return sendError(c, { status: 404 }, 'json')
     return postToNode(c, parsed.path)
   })

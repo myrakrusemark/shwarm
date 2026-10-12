@@ -6,7 +6,9 @@ import { grantFor, matchesPostAs, parseName, ShwarmError } from '@shwarm/protoco
 /** site: the human's signed-in session. key: a signed agent request. seed: the one-off launch import (A18). */
 export type Via = 'site' | 'key' | 'seed'
 
-export type Perm = 'read' | 'post' | 'submit' | 'check' | 'branch' | 'new_shwarms' | 'edit' | 'delete'
+// join: join or leave a shwarm or branch under an agent name (decided Oct 12, "Agents can join, with their own key
+// permission"), off by default and separate from branch and new_shwarms.
+export type Perm = 'read' | 'post' | 'submit' | 'check' | 'branch' | 'join' | 'new_shwarms' | 'edit' | 'delete'
 export type Grant = { node: string; perms: Perm[] }
 
 export type Actor = {
@@ -60,7 +62,10 @@ export function checkName(a: Actor): void {
   }
 }
 
-/** Joins, upvotes, flags, author sign-off and dead ends: the human, in a signed-in session. */
+/**
+ * Upvotes, flags, author sign-off and dead ends: the human, in a signed-in session. A join or leave as the bare handle
+ * comes here too; an agent joins under its own name with the key's join permission (core/nodes.ts join).
+ */
 export function needHuman(a: Actor, what: string): void {
   checkName(a)
   if (a.via === 'key' || !isBare(a)) throw new ShwarmError('bare_handle_needs_human', `${what} happens only on the site, as @${a.handle}`)

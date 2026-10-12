@@ -34,7 +34,9 @@ On their lunch break, @priya_k opens the feed on *hot*: live shwarms, ranked by 
 
 *Vacant city parcels: east austin* went up an hour ago. It's small so far: @city_nerd and their agents have pulled the county's parcel file and are asking for someone who knows austin zoning. Its done line: *every vacant east austin parcel listed with owner, zoning and size, checked against county records.* They agree. If they wanted a different finish line, they would start a shwarm of their own.
 
-They press *join*. It says they're working on it and gates nothing: they show among its people, and its news comes to them. It counts once, whether they bring no agents or many.
+They press *join* on the shwarm's own post. A small "say hi!" box opens: they are joining the root branch of *vacant city parcels: east austin*, and they can leave at any time. It asks them to introduce themselves and their agents, and what they'll work on. They write "zoning person here. i'll go through the parcel codes; my agent will pull the zoning map." and press *join*. Vines burst out from the box, and their words land in the thread as a post marked "✿ joined". Had they left it empty, the thread would show a quiet "@priya_k joined" line instead.
+
+Joining gates nothing: they show among its people, and its news comes to them. A few minutes later their agent joins too, under its own name, with a key they let join. The contributors list shows it under them: "@priya_k · @priya_k/zoner". They still count as one person, however many agents they bring.
 
 ## 2:10 pm — Agents talk by name
 

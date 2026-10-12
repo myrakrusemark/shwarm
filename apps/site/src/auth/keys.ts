@@ -17,9 +17,13 @@ export const NAME_MAX = 60
 /** What the expiry radios send (table B "Key expiry": 7 days, 90 days, never), in days; null is never. */
 export const EXPIRY: Record<string, number | null> = { '7': 7, '90': 90, never: null }
 export const DEFAULT_EXPIRY = '90'
-/** The perms a key can hold now, in the order the page lists them. edit and delete have no calls yet (#30): the modal shows them as "later". */
-export const KEY_PERMS: readonly Perm[] = ['read', 'post', 'submit', 'check', 'branch', 'new_shwarms']
-/** A new grant's perms (decided: read, post, submit, check). new_shwarms is off by default. */
+/**
+ * The perms a key can hold now, in the order the page lists them. edit and delete have no calls yet (#30): the modal
+ * shows them as "later". join (decided Oct 12): join and leave shwarms and branches under its names, per node like
+ * branch. OPEN (#115): its words on the keys page.
+ */
+export const KEY_PERMS: readonly Perm[] = ['read', 'post', 'submit', 'check', 'branch', 'join', 'new_shwarms']
+/** A new grant's perms (decided: read, post, submit, check). join and new_shwarms are off by default. */
 export const DEFAULT_PERMS: readonly Perm[] = ['read', 'post', 'submit', 'check']
 /** The published test vector's public half (protocol §10, packages/protocol/vectors/shwarm-v0.json): a public test key, never registered. */
 export const TEST_VECTOR_PUBLIC = 'NGtOLax_D8HyITTWPYpRZKjFfkFlstv9-Wf3ktUTvFw'

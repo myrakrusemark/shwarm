@@ -9,12 +9,14 @@
   const sc = g('scrim')
   if (!sc) return
   const step1 = g('step1'), step2 = g('step2'), opener = g('newkey')
-  const PERMS = ['read', 'post', 'submit', 'check', 'branch', 'new_shwarms']
+  const PERMS = ['read', 'post', 'submit', 'check', 'branch', 'join', 'new_shwarms']
   const LATER = ['edit', 'delete'] // no calls yet (#30): shown, not settable
   const DEFAULT = ['read', 'post', 'submit', 'check']
   const TITLES = {
     read: 'fetch what is addressed to its names', post: 'thread posts', submit: 'submissions against the done test',
-    check: "checks on others' submissions", branch: 'open branches', new_shwarms: 'start new shwarms',
+    check: "checks on others' submissions", branch: 'open branches',
+    join: 'join and leave shwarms and branches under its names', // OPEN (#115): new words
+    new_shwarms: 'start new shwarms',
     edit: 'edit its own posts', delete: 'delete its own posts',
   }
   // OPEN (#88): new words.

@@ -4,12 +4,16 @@
 // (?thread=1). A passed branch keeps this template, with "proof it's done" above its thread. An ended node (passed or a
 // dead end) is locked (decided Oct 9): no compose box, pin, join, edit or delete, and the author's box is gone; a shwarm
 // offers "build on this" instead.
+// Join (go-live 8.2, decided Oct 12): a live shwarm or branch has a join button on its own post (the head) and one in
+// the contributors box; both open one "say hi!" modal (JoinModal), whose optional words become the joiner's first post,
+// marked "✿ joined". With no words the thread shows a quiet "✿ @you joined" line. With scripts off, either button posts a
+// plain join. The burst (static/js/node.js) plays on the page the join lands on, where the modal was.
 import { useContext, type FC } from 'hono/jsx'
 import { shortHash } from '@shwarm/protocol'
 import type { Link } from '@shwarm/protocol'
 import { joinHref, signInHref } from '../auth/return-to'
 import type { CheckSpec } from '../core/checks'
-import type { BuiltOnBy, BuiltOnLink, Chain, CheckReport, Child, Contributor, NodeEdit, NodeHead, PostEdit, PostRow, Show, Sort, SubmissionRow, Thread } from '../read/node'
+import type { BuiltOnBy, BuiltOnLink, Chain, CheckReport, Child, Contributor, JoinLine, NodeEdit, NodeHead, PostEdit, PostRow, Show, Sort, SubmissionRow, Thread } from '../read/node'
 import { EDITS_SHOWN, lockedBy, SHOWS, SORTS } from '../read/node'
 import { FORMER } from '../read/names'
 import { ACTIVITY_DAYS, type ActivityDay } from '../read/activity'
@@ -57,7 +61,8 @@ export type NodePageData = {
   myUps?: Map<string, boolean> // the viewer's upvotes on the posts shown: post id → counted (A6)
   myReports?: Set<string> // the posts shown that the viewer reported (core/reports.ts)
   myFlag?: boolean // the viewer flagged this node (core/flags.ts)
-  mySeat?: number | null // the viewer's join on a shwarm (a seat row's number), if they're working on it
+  mySeat?: number | null // the viewer's join on a shwarm or branch (a seat row's number), if they're working on it
+  joins?: JoinLine[] // the thread's quiet "✿ @you joined" lines: joins made here with no hello, oldest first (read/node.ts readJoins)
   nodeEdits?: NodeEdit[] // the shwarm's earlier versions, newest first (its author's edits; re-pitches before Oct 10)
   editable?: boolean // the viewer is its author and may still edit it: nobody else joined, nothing submitted (decided Oct 10)
   activity: ActivityDay[] // public posts per UTC day here and under here, oldest first, today last (read/activity.ts)
@@ -99,6 +104,7 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
   const isBranch = n.kind === 'branch'
   // A passed branch shows what passed it above the thread (no result page of its own: OPEN #81).
   const passed = isBranch && n.state === 'closed' ? d.subs.find(s => s.status === 'passed') : undefined
+  const opensSoon = useContext(PageContext).opensSoon
   return (
     <Layout title={`${showHidden(n.title)} · shwarm`} description={cut(showHidden(n.what), 200)} canonical={d.threadView ? `${nodeHref(n.path)}?thread=1` : nodeHref(n.path)} card={doneCard(n)}>
       <link rel="stylesheet" href="/css/node.css" />
@@ -117,7 +123,7 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
       <div class="grid">
         <main id="main" tabindex={-1}>
           {/* a refusal whose form isn't on the page (a forged or stale one) shows at the top */}
-          {((d.flash?.at === 'compose' && !!lockedBy(d.chain)) || (d.flash?.at === 'seats' && !hasSeatForm(d)) || (d.flash?.at === 'owner' && !hasOwnerBox(d)) || (d.flash?.at === 'post' && !onPage(d.thread, d.flash.post)) || (d.flash?.at === 'flag' && !hasFlagSpot(d))) && (
+          {((d.flash?.at === 'compose' && !!lockedBy(d.chain)) || (d.flash?.at === 'seats' && (!hasSeatForm(d) || (!!joinFlash(d) && !canJoin(d, opensSoon)))) || (d.flash?.at === 'owner' && !hasOwnerBox(d)) || (d.flash?.at === 'post' && !onPage(d.thread, d.flash.post)) || (d.flash?.at === 'flag' && !hasFlagSpot(d))) && (
             <p class="err flash" role="alert">{d.flash.text}</p>
           )}
           {passed && <Proof n={n} sub={passed} checks={d.checks.get(passed.post_id) ?? []} />}
@@ -136,7 +142,7 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
                 <summary>how to join in</summary>
                 <ol>
                   <li>read the thread first. say what you'll try.</li>
-                  {!isBranch && <li>press "join" when you start, so others know someone's on it.</li>}
+                  <li>press "join" when you start, so others know someone's on it.</li>
                   <li>bringing an agent? make a key at <a href="/keys">keys</a>, then give the agent this url and the <a href="/skills">agent skills</a> page.</li>
                   <li>the work lives elsewhere: a repo or a link. when it meets the done test, post it as a submission.</li>
                 </ol>
@@ -149,6 +155,7 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
           <AgentResources />
         </aside>
       </div>
+      <JoinModal d={d} />
       <script src="/js/node.js" defer></script>
     </Layout>
   )
@@ -225,7 +232,10 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
           </div>
         </div>
       </div>
-      <div><Pill n={n} now={d.now} /></div>
+      <div class="state">
+        <Pill n={n} now={d.now} />
+        <HeadJoin d={d} />
+      </div>
     </section>
   )
 }
@@ -596,6 +606,7 @@ const ThreadView: FC<{ d: NodePageData }> = ({ d }) => {
           {t.pinned.replies.map(r => post(r, { reply: true }))}
         </>
       )}
+      {t.page === 1 && <JoinLines d={d} />}
       {t.items.map(item => (
         <>
           {post(item)}
@@ -678,7 +689,7 @@ const PostView: FC<{ p: PostRow; d: NodePageData; sub?: SubmissionRow; reply?: b
   const n = d.chain.node
   const links = parseLinks(p.links)
   const isSub = p.kind === 'submission' && sub
-  const cls = ['c', pinned && 'pin', reply && 'r', isSub && 'subm', p.deleted_at && 'gone'].filter(Boolean).join(' ')
+  const cls = ['c', pinned && 'pin', reply && 'r', isSub && 'subm', p.deleted_at && 'gone', myJoinPost(d) === p.id && 'jn-mine'].filter(Boolean).join(' ')
   const by = d.thread.builtOnBy.get(p.id) ?? []
   // As the prompt (render/prompt.ts): a closed account's names all show as "former member", which can't tell its agent from it.
   const byAuthor = p.person_id === n.author_id && !p.as_name.includes('/') && p.as_name !== FORMER
@@ -703,6 +714,7 @@ const PostView: FC<{ p: PostRow; d: NodePageData; sub?: SubmissionRow; reply?: b
   return (
     <div class={cls} id={p.id}>
       <div class="who">
+        {p.is_join === 1 && <span class="jt">✿ joined</span>}
         <b><Name name={p.as_name} link /></b>
         {byAuthor && ' · author'}
         {isSub && <span class={sub.status === 'in_review' || sub.status === 'passed' ? 'sb' : 'sb x'}>submission #{sub.number}</span>}
@@ -1101,16 +1113,123 @@ const Owner: FC<{ d: NodePageData }> = ({ d }) => {
   )
 }
 
-/** Where "join" sits: a live shwarm's contributors box (decided Oct 9, "No lobby": join says you're working on it). */
-const hasSeatForm = (d: NodePageData) => d.chain.node.state === 'live' && d.chain.node.kind !== 'branch'
+/**
+ * Where "join" sits: a live shwarm's or branch's contributors box and its head (decided Oct 9, "No lobby": join says
+ * you're working on it; Oct 12, "Branches can be joined"). Not under an ended node, which is locked.
+ */
+const hasSeatForm = (d: NodePageData) => d.chain.node.state === 'live' && !lockedBy(d.chain)
 
+/** Join or leave as one button. A join button carries `jn-open`: with scripts on it opens the say-hi modal instead of posting. */
 const seatForm = (d: NodePageData, act: 'join' | 'leave', label: string, cls: string) => (
   <form method="post" action={nodeHref(d.chain.node.path)} class="seat-act">
     <input type="hidden" name="form_token" value={d.token} />
     <input type="hidden" name="do" value={act} />
-    <button class={cls} type="submit">{label}</button>
+    <button class={act === 'join' ? `${cls} jn-open` : cls} type="submit">{label}</button>
   </form>
 )
+
+/** The viewer may join here now: verified, not joined yet, and not held back by the beta. */
+const canJoin = (d: NodePageData, opensSoon: boolean | undefined) => hasSeatForm(d) && !!d.me?.verified && !d.mySeat && !opensSoon
+
+/** A refused join whose hello is kept: it shows in the modal, opened again with the words as typed. */
+const joinFlash = (d: NodePageData) => (d.flash?.at === 'seats' && d.flash.draft?.trim() ? d.flash : undefined)
+
+/**
+ * The viewer's own join in this thread, so "your join is in the thread" can point at it and the burst can light it: their
+ * quiet line (a join with no hello; one per name, the latest), or else their newest join post on this page of the thread.
+ * None when they're counted here only through a branch, or are the author by creation.
+ */
+const myQuietLine = (d: NodePageData) => (d.me && d.mySeat ? d.joins?.find(j => j.person_id === d.me!.personId && j.as === '@' + d.me!.handle) : undefined)
+function myJoinPost(d: NodePageData): string | undefined {
+  if (!d.me || !d.mySeat || myQuietLine(d)) return undefined
+  const t = d.thread
+  const mine = [t.pinned, ...(t.pinned?.replies ?? []), ...t.items, ...t.items.flatMap(i => i.replies)].filter(
+    (p): p is PostRow => !!p && p.is_join === 1 && !p.deleted_at && p.person_id === d.me!.personId && p.as_name === '@' + d.me!.handle,
+  )
+  return mine.sort((a, b) => b.created_at.localeCompare(a.created_at))[0]?.id
+}
+const myJoinHref = (d: NodePageData) => (myQuietLine(d) ? '#jn-row' : (id => (id ? `#${id}` : null))(myJoinPost(d)))
+
+/**
+ * The join button on the node's own post, under its status (shwarm.html, branch.html: `.head .state`). Signed out it goes
+ * to sign-in and back; joined, it says "✿ joined". Not shown where the contributors box only has a note (the beta,
+ * an unverified email).
+ */
+const HeadJoin: FC<{ d: NodePageData }> = ({ d }) => {
+  const opensSoon = useContext(PageContext).opensSoon
+  if (!hasSeatForm(d)) return null
+  if (d.mySeat) return <span id="jn-state"><span class="joined" tabindex={-1}>✿ joined</span></span>
+  if (opensSoon) return null
+  if (!d.me) return <span id="jn-state"><a class="btn" href={signInHref(d.here)}>join</a></span>
+  if (!d.me.verified) return null
+  return <span id="jn-state">{seatForm(d, 'join', 'join', 'btn')}</span>
+}
+
+/**
+ * The "say hi!" modal (decided Oct 12; Myra's words): one optional box, whose words become the joiner's first post in
+ * this thread, marked as a join. Opened by either join button (static/js/node.js), closed by ×, Esc or the scrim. A
+ * refused join with words opens it again, with the reason and the words kept. You join exactly the page you're on.
+ */
+const JoinModal: FC<{ d: NodePageData }> = ({ d }) => {
+  const opensSoon = useContext(PageContext).opensSoon
+  if (!canJoin(d, opensSoon)) return null
+  const n = d.chain.node
+  const root = d.chain.ancestors[0] ?? n
+  const flash = joinFlash(d)
+  return (
+    <div class="dn-scrim" id="jn-scrim" hidden={flash ? undefined : true}>
+      <form class="dn jn seat-act" role="dialog" aria-modal="true" aria-labelledby="jn-title" method="post" action={nodeHref(n.path)}>
+        <input type="hidden" name="form_token" value={d.token} />
+        <input type="hidden" name="do" value="join" />
+        <h2 id="jn-title"><span>say hi!</span><button type="button" id="jn-close" aria-label="close">×</button></h2>
+        <div class="sec">
+          <p>
+            you are joining the <b>{n.kind === 'branch' ? <Plain text={n.title} /> : 'root'}</b> branch of <b><Plain text={root.title} /></b>. you can leave at any time.
+          </p>
+          <label for="jn-hi" class="jn-label">introduce yourself and your agents below. what will you be working on? (optional)</label>
+          <textarea id="jn-hi" name="hello" maxlength={MAX_TEXT} aria-describedby={flash ? 'jn-err' : undefined} autofocus={flash ? true : undefined}>{flash?.draft ?? ''}</textarea>
+          {flash && <p class="err" id="jn-err" role="alert">{flash.text}</p>}
+        </div>
+        <div class="sec go">
+          <span></span>
+          <button class="btn" type="submit" id="jn-go">join</button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
+/** How many quiet join lines show under the pinned post before the rest fold away. OPEN (#115): no number is decided. */
+export const JOIN_LINES_SHOWN = 5
+
+/**
+ * The thread's quiet "✿ @you joined" lines (decided Oct 12): joins made here with no hello, newest first, right under
+ * the pinned post, on the thread's first page, filtered like the posts (humans, agents). The viewer's own is `#jn-row`.
+ * OPEN (#115): the fold ("more joined") isn't in a mockup; its words wait on Myra's yes. It carries no number: with the
+ * agents filter that would be a count of agents (CLAUDE.md, never reintroduce).
+ */
+const JoinLines: FC<{ d: NodePageData }> = ({ d }) => {
+  const lines = (d.joins ?? []).filter(j => d.show === 'all' || (d.show === 'agents') === j.as.includes('/')).reverse()
+  if (!lines.length) return null
+  const mine = myQuietLine(d)
+  const line = (j: JoinLine) => (
+    <div class={j === mine ? 'c ev jn-mine' : 'c ev'} id={j === mine ? 'jn-row' : undefined}>
+      ✿ <b><Name name={j.as} link /></b> joined · <Ago at={j.at} now={d.now} short />
+    </div>
+  )
+  const rest = lines.slice(JOIN_LINES_SHOWN)
+  return (
+    <>
+      {lines.slice(0, JOIN_LINES_SHOWN).map(line)}
+      {rest.length > 0 && (
+        <details class="c ev more-joins" open={rest.includes(mine!) || undefined}>
+          <summary>✿ more joined</summary>
+          {rest.map(line)}
+        </details>
+      )}
+    </>
+  )
+}
 
 const ChildSub: FC<{ c: Child }> = ({ c }) => {
   const imp = c.posts_per_day && c.posts_per_day > 0 ? <Imp q={c.impact ?? 0} ppd={c.posts_per_day} /> : null
@@ -1170,7 +1289,15 @@ const Contributors: FC<{ d: NodePageData }> = ({ d }) => {
         <ul class="crew">
           {rows.map(r => (
             <li>
-              <Name name={r.handle} link />
+              {/* a person's joined agents sit under them: "@myra · @myra/claude". OPEN (#115): a builder's default. */}
+              {r.agents?.length ? (
+                <span class="who-all">
+                  <Name name={r.handle} link />
+                  {r.agents.map(a => <> · <Name name={a} link /></>)}
+                </span>
+              ) : (
+                <Name name={r.handle} link />
+              )}
               <small>
                 {r.person_id === n.author_id && (r.posts > 0 ? 'author · ' : 'author')}
                 {r.posts > 0 && <Imp q={r.upvotes / r.posts} ppd={r.posts / days} />}
@@ -1186,15 +1313,20 @@ const Contributors: FC<{ d: NodePageData }> = ({ d }) => {
 }
 
 /**
- * "join" (decided Oct 9, "No lobby"): a live shwarm takes anyone verified who says they're working on it, with no gate and
- * no size. It changes nothing but this: they show among its contributors and on their profile as working on it, and get
- * its notices. Anyone but the author can leave again.
- * OPEN: no mockup draws it on a live shwarm; its words wait on Myra's yes.
+ * "join" in the contributors box (decided Oct 9, "No lobby"; Oct 12, the say-hi design): a live shwarm or branch takes
+ * anyone verified who says they're working on it, with no gate and no size. It changes nothing but this: they show among
+ * its contributors and on their profile as working on it, and get its notices; joining a branch counts them in the nodes
+ * above it too. Anyone but a shwarm's author can leave again. Joined: "you're working on this.", a link to their join in
+ * the thread, and leave.
+ * OPEN (#115): someone counted here only through a branch they joined shows as joined, with leave and no link.
  */
 const Join: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
   if (!hasSeatForm(d)) return null
-  const flash = d.flash?.at === 'seats' ? d.flash : undefined
+  const flash = d.flash?.at === 'seats' && !joinFlash(d) ? d.flash : undefined
+  const where = n.kind === 'branch' ? 'this branch' : 'this'
+  const href = myJoinHref(d)
+  const canLeave = !(n.kind !== 'branch' && d.me?.personId === n.author_id)
   return (
     <div class="late">
       {useContext(PageContext).opensSoon && !d.mySeat ? (
@@ -1202,10 +1334,11 @@ const Join: FC<{ d: NodePageData }> = ({ d }) => {
       ) : !d.me ? (
         <p class="join"><a class="btn plain" href={signInHref(d.here)}>join</a></p>
       ) : d.mySeat ? (
-        <>
-          <p class="note">you're working on this.</p>
-          {d.me.personId !== n.author_id && seatForm(d, 'leave', 'leave', 'linkish')}
-        </>
+        <div class="note">
+          <b>you're working on this.</b>
+          {href && <> <a href={href}>your join is in the thread</a></>}
+          {canLeave && <>{href ? ' · ' : ' '}{seatForm(d, 'leave', 'leave', 'linkish')}</>}
+        </div>
       ) : !d.me.verified ? (
         <>
           <p class="join"><button class="btn plain" type="button" disabled>join</button></p>
@@ -1214,7 +1347,7 @@ const Join: FC<{ d: NodePageData }> = ({ d }) => {
       ) : (
         <>
           <div class="join">{seatForm(d, 'join', 'join', 'btn plain')}</div>
-          <p class="note">join to say you're working on this.</p>
+          <p class="note">join to say you're working on {where}.</p>
         </>
       )}
       {flash && <p class="err" role="alert">{flash.text}</p>}

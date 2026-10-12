@@ -63,7 +63,9 @@
 
 /* not in the mockup: the refusal next to the compose box, and "leave" under join (go-live 4.4, 4.5) */
 .compose .err, main > .err.flash { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 6px 0 0; }
-.late .linkish { font: inherit; font-size: 12px; background: none; border: 0; padding: 0; color: var(--ink); text-decoration: underline; cursor: pointer; }
+.late .linkish { font: inherit; font-size: 12px; background: none; border: 0; padding: 0; color: var(--sky); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.late .linkish:hover { background: var(--sun); color: var(--ink); }
+.late .linkish:focus-visible { outline: 3px solid var(--ink); }
 .compose .btn[aria-busy="true"] { opacity: .55; cursor: progress; }
 main > .err.flash { margin: 0 0 10px; }
 
@@ -127,6 +129,7 @@ main > .err.flash { margin: 0 0 10px; }
 .late .join { margin: 0 0 6px; }
 .late .note { margin: 0; }
 .late .seat-act { margin: 0; }
+.late div.note .seat-act { display: inline; }
 .late .err { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 6px 0 0; }
 
 /* not in the mockup: "how to join in" under the contribute url (Oct 10) */
@@ -157,3 +160,31 @@ main > .err.flash { margin: 0 0 10px; }
 .meta .flag .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 6px; }
 .meta .flag .err { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 6px 0 0; }
 .held.paused { font-weight: 700; }
+
+/* from shwarm.html and branch.html: join and the say-hi modal (go-live 8.2, decided Oct 12). a join button on the node's
+   own post and one in the contributors box, both open the modal; join posts, quiet join lines, the burst */
+.head .state { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+.head .state .seat-act { margin: 0; }
+.head .state .btn { font-size: 13px; padding: 4px 14px; box-shadow: 3px 3px 0 var(--ink); }
+.head .state .btn:hover { box-shadow: 1px 1px 0 var(--ink); }
+.head .state .btn[disabled] { opacity: .55; cursor: not-allowed; transform: none; }
+.joined { font-size: 12px; font-weight: 700; color: var(--moss); white-space: nowrap; }
+.jt { font-size: 10.5px; font-weight: 700; padding: 0 5px; background: var(--moss); color: var(--paper); margin-right: 4px; }
+.c.ev { font-size: 12px; padding: 6px 14px; background: rgba(92,154,62,.07); }
+.c.ev b { font-size: 12.5px; }
+.jn textarea { min-height: 96px; }
+.jn-label { display: block; font-size: 12.5px; margin: 0 0 6px; }
+.jn .sec > p:first-child { margin-bottom: 10px; }
+.jn .err { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 6px 0 0; }
+.jn .btn[aria-busy="true"] { cursor: progress; }
+.jn.leaving { animation: jn-out .3s ease-in forwards; }
+@keyframes jn-out { to { transform: scale(.94); opacity: 0; } }
+.burst { position: fixed; pointer-events: none; z-index: 70; font-weight: 700; line-height: 1; animation: fly var(--t, 1.2s) cubic-bezier(.15,.7,.3,1) var(--d, 0s) both; }
+@keyframes fly { from { transform: translate(-50%,-50%) scale(.4); opacity: 1; } 70% { opacity: 1; } to { transform: translate(calc(var(--dx) - 50%), calc(var(--dy) - 50%)) scale(1.15) rotate(var(--r)); opacity: 0; } }
+@keyframes glow { from { background: rgba(244,197,49,.6); } to { background: transparent; } }
+.glow { animation: glow 2.6s ease-out; }
+@media (prefers-reduced-motion: reduce) { .burst { display: none; } .glow, .jn.leaving { animation: none; } }
+/* not in the mockup: a person's joined agents beside them in contributors, and the fold under many join lines (OPEN #115) */
+.crew .who-all { min-width: 0; overflow-wrap: anywhere; }
+.c.ev.more-joins summary { cursor: pointer; }
+.c.ev.more-joins > .c.ev { padding: 4px 0 0; background: none; border: 0; }

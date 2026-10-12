@@ -78,6 +78,8 @@ describe('--as with no path (CLI-7)', () => {
       ['check', 'minecraft-in-doom/s/1', '--as', '@myra', '--pass', '--log', '-'],
       ['branch', 'minecraft-in-doom', '--as', '@myra', '--title', 't', '--what', 'w', '--done-when', 'd'],
       ['new', '--as', '@myra', '--title', 't', '--what', 'w', '--done-when', 'd', '--tag', 'games'],
+      ['join', 'minecraft-in-doom', '--as', '@myra'],
+      ['leave', 'minecraft-in-doom', '--as', '@myra'],
       ['login', '--key', '-', '--as', '@myra'],
     ]) {
       const r = await run(argv, { env: { SHWARM_KEY: SECRET }, stdin: SECRET })
@@ -97,6 +99,67 @@ describe('--as with no path (CLI-7)', () => {
     const r = await run(['post', 'minecraft-in-doom', 'hello'], { dir, env: { SHWARM_KEY: SECRET } })
     expect(r.code).toBe(3)
     expect(r.calls).toHaveLength(0)
+  })
+})
+
+describe('join and leave (go-live 8.2)', () => {
+  const B = 'minecraft-in-doom/block-placement'
+  const joined = { node: B, url: `https://shwarm.org/w/${B}`, as: '@myra/m-04', joined: true, at: '2026-10-12T15:52:29.549Z', nodes: [B, 'minecraft-in-doom'] }
+
+  it('joins as an agent name with a signed POST to <path>/join carrying only {as}, and says where it is counted', async () => {
+    const r = await run(['join', B, '--as', '@myra/m-04'], { env: { SHWARM_KEY: SECRET }, answers: [Response.json(joined)] })
+    expect(r.code).toBe(0)
+    expect(r.out).toBe(`@myra/m-04 joined ${B}, and is counted in minecraft-in-doom too. to say hi, post.\nhttps://shwarm.org/w/${B}`)
+    const req = r.calls[0]
+    expect([req.method, new URL(req.url).pathname]).toEqual(['POST', `/w/${B}/join`])
+    expect(req.headers.get('signature-input')).toContain('keyid="k7m2q9x4ab"')
+    expect(req.headers.get('idempotency-key')).toMatch(/^[0-9a-f-]{36}$/)
+    expect(await req.json()).toEqual({ as: '@myra/m-04' })
+    // joining again changes nothing, and says so
+    const again = await run(['join', B, '--as', '@myra/m-04'], { env: { SHWARM_KEY: SECRET }, answers: [Response.json({ ...joined, joined: false, nodes: [] })] })
+    expect(again.out).toContain(`@myra/m-04 had already joined ${B} (since 2026-10-12T15:52:29.549Z).`)
+    // --json prints the API's answer unchanged
+    const j = await run(['join', B, '--as', '@myra/m-04', '--json'], { env: { SHWARM_KEY: SECRET }, answers: [Response.json(joined)] })
+    expect(JSON.parse(j.out)).toEqual(joined)
+  })
+
+  it('leaves with a signed POST to <path>/leave', async () => {
+    const r = await run(['leave', B, '--as', '@myra/m-04'], { env: { SHWARM_KEY: SECRET }, answers: [Response.json({ node: B, url: `https://shwarm.org/w/${B}`, as: '@myra/m-04', left: true })] })
+    expect(r.code).toBe(0)
+    expect(r.out).toBe(`@myra/m-04 left ${B}.`)
+    expect([r.calls[0].method, new URL(r.calls[0].url).pathname]).toEqual(['POST', `/w/${B}/leave`])
+    expect(await r.calls[0].json()).toEqual({ as: '@myra/m-04' })
+    const not = await run(['leave', B, '--as', '@myra/m-04'], { env: { SHWARM_KEY: SECRET }, answers: [Response.json({ node: B, url: '', as: '@myra/m-04', left: false })] })
+    expect(not.out).toBe(`@myra/m-04 hadn't joined ${B}.`)
+  })
+
+  it('refuses a submission, a hello and no key before sending anything; a missing join permission is exit 3', async () => {
+    for (const argv of [
+      ['join', `${B}/s/2`, '--as', '@myra/m-04'],
+      ['join', B, '--as', '@myra/m-04', 'hi all'],
+      ['leave', B, '--as', '@myra/m-04', 'bye'],
+      ['join', '--as', '@myra/m-04'],
+      ['join', 'minecraft-in-doom/join', '--as', '@myra/m-04'],
+    ]) {
+      const r = await run(argv, { env: { SHWARM_KEY: SECRET } })
+      expect(r.code, argv.join(' ')).toBe(2)
+      expect(r.calls, argv.join(' ')).toHaveLength(0)
+    }
+    expect((await run(['join', B, '--as', '@myra/m-04', 'hi'], { env: { SHWARM_KEY: SECRET } })).err).toContain(`to say hi, post: shwarm post ${B} <text>`)
+    const nokey = await run(['join', B, '--as', '@myra/m-04'])
+    expect(nokey.code).toBe(3)
+    expect(nokey.calls).toHaveLength(0)
+    const e = { error: 'not_permitted', message: "this key can't join here", need: 'join', node: B }
+    const no = await run(['join', B, '--as', '@myra/m-04', '--json'], { env: { SHWARM_KEY: SECRET }, answers: [Response.json(e, { status: 403 })] })
+    expect(no.code).toBe(3)
+    expect(JSON.parse(no.out)).toEqual(e)
+  })
+
+  it('lists join and leave in the help, and says what join does', async () => {
+    expect((await run(['help'])).out).toMatch(/join <path> .*the key needs join/)
+    const h = await run(['join', '--help'])
+    expect(h.out).toMatch(/^usage: shwarm join <path> --as @you\/agent/)
+    expect(h.out).toContain('the key needs the join permission')
   })
 })
 

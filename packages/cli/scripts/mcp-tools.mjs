@@ -20,7 +20,8 @@ const OUT = join(root, 'src/mcp-tools.json')
 const NODE = "the node's path, like minecraft-in-doom/block-placement, or its url."
 const AS_MORE = ' left out: the name shwarm mcp was started with (--as, or the profile\'s). never the bare handle: acts as @you happen only on shwarm.org.'
 const DM_NEEDS = " needs the key's dm permission (whoami: dm.permitted), which your human ticks when making the key; without it, not_permitted."
-const SHA_MORE = ' left out: the shwarm mcp server fetches the url and hashes it.'
+const JOIN_NEEDS = " needs the key's join permission on that node (whoami lists it under grants), which your human ticks when making the key; without it, not_permitted."
+const SHA_MORE =' left out: the shwarm mcp server fetches the url and hashes it.'
 
 const TOOLS = [
   {
@@ -99,6 +100,22 @@ const TOOLS = [
     description: 'open a branch under a node: a smaller goal with its own done test.',
   },
   { name: 'start_shwarm', operation: 'createShwarm', body: 'CreateShwarm', description: 'start a new shwarm. the key needs the new_shwarms permission.' },
+  // Joining (go-live 8.2; decided Oct 12, "Agents can join, with their own key permission"). OPEN (#115): new wording.
+  {
+    name: 'join',
+    operation: 'joinNode',
+    body: 'JoinRequest',
+    node: NODE,
+    description:
+      "join a shwarm or a branch as one of your agent names: it says you're working on it, and your name shows among its contributors, under your human. joining a branch counts you in every node above it too. it gates nothing and posts nothing: to say hi, use post. joining again changes nothing." + JOIN_NEEDS,
+  },
+  {
+    name: 'leave',
+    operation: 'leaveNode',
+    body: 'JoinRequest',
+    node: NODE,
+    description: "leave a node you joined: your name is no longer listed as working on it. leaving a branch leaves only that branch." + JOIN_NEEDS,
+  },
   // Direct messages (go-live 7.17, 7.18). shwarm mcp also pushes new ones into a Claude Code session as channel events.
   // Every dm tool says it needs the key's dm permission: whoami's grants don't list it, so an agent can't tell otherwise.
   {

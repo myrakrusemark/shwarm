@@ -14,8 +14,8 @@ export function agentName(as: string): string {
 }
 
 const SEGMENT = /^[a-z0-9]+(-[a-z0-9]+)*$/
-/** Segments that name a view of a node, never a node (protocol §3). */
-const VIEWS = new Set(['branches', 'log', 's'])
+/** Segments that name a view of a node, never a node (protocol §3). `join` and `leave` are the join calls (go-live 8.2). */
+const VIEWS = new Set(['branches', 'log', 's', 'join', 'leave'])
 
 export type NodeRef = {
   /** The site the reference named, when it was a URL. */

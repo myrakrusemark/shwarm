@@ -2,8 +2,8 @@
 // MCP client reaches it: JSON-RPC lines in and out of the command, every call signed by the client library and
 // verified by the Worker's pipeline. Covers the handshake and the tool list; read_node giving the prompt the site
 // serves, and the Node JSON under `untrusted`; a post, a submission with a link the server hashed, a people check,
-// each body as openapi.yaml shapes it; mentions and limits; a bare `as` refused before anything reaches the site; the
-// API's refusal as a tool error; the node resource and the skill prompt.
+// each body as openapi.yaml shapes it; join and leave (go-live 8.2); mentions and limits; a bare `as` refused before
+// anything reaches the site; the API's refusal as a tool error; the node resource and the skill prompt.
 import { createHash } from 'node:crypto'
 import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -95,7 +95,7 @@ describe('shwarm mcp against the Worker', () => {
     const r = await w.mcp([{ method: 'tools/list' }, w.call('read_node', { node: EXAMPLE_ROOT }), w.call('read_node', { node: `${SITE}/w/${EXAMPLE_BRANCH}`, format: 'json' }), w.call('read_log', { node: EXAMPLE_BRANCH, filter: 'all' })])
     expect(r.code).toBe(0)
     expect(r.byId(0).result.serverInfo).toMatchObject({ name: 'shwarm' })
-    expect(r.byId(1).result.tools.map((t: { name: string }) => t.name)).toEqual(['find_shwarms', 'read_node', 'read_log', 'mentions', 'whoami', 'limits', 'post', 'submit', 'check_run', 'check_people', 'open_branch', 'start_shwarm', 'dm_send', 'dm_read', 'dm_who', 'dm_block', 'dm_unblock', 'dm_report'])
+    expect(r.byId(1).result.tools.map((t: { name: string }) => t.name)).toEqual(['find_shwarms', 'read_node', 'read_log', 'mentions', 'whoami', 'limits', 'post', 'submit', 'check_run', 'check_people', 'open_branch', 'start_shwarm', 'join', 'leave', 'dm_send', 'dm_read', 'dm_who', 'dm_block', 'dm_unblock', 'dm_report'])
     const prompt = result(r.byId(2))
     expect(prompt.isError).toBe(false)
     // the same prompt, but for the data markers' nonce, which is new on every render
@@ -153,6 +153,25 @@ describe('shwarm mcp against the Worker', () => {
     expect(refused.isError).toBe(true)
     expect(JSON.parse(refused.text)).toMatchObject({ error: 'not_permitted', need: 'new_shwarms' })
     expect(w.reached.map(x => `${x.method} ${x.path}`)).toEqual(['POST /shwarms'])
+  })
+
+  it('joins and leaves as an agent with the join permission (go-live 8.2); a key without it gets not_permitted', async () => {
+    const w = await world()
+    const kai = await verifiedPerson(w.db, 'kai')
+    const kaiKey = await keyFor(w.db, kai.id, { canPostAs: '@kai/*', grants: [{ node: '*', perms: ['read', 'post', 'join'] }] })
+    // calls in one session run side by side, so each step is its own session
+    const j = await w.mcp([w.call('join', { node: `${SITE}/w/${EXAMPLE_BRANCH}` })], { key: kaiKey, as: '@kai/geo' })
+    const joined = JSON.parse(result(j.byId(1)).text)
+    expect(schemaErrors('JoinResult', joined)).toEqual([])
+    expect(joined).toMatchObject({ node: EXAMPLE_BRANCH, as: '@kai/geo', joined: true, nodes: [EXAMPLE_BRANCH, EXAMPLE_ROOT] })
+    expect(JSON.parse(w.reached.at(-1)!.body)).toEqual({ as: '@kai/geo' })
+    const l = await w.mcp([w.call('leave', { node: EXAMPLE_BRANCH })], { key: kaiKey, as: '@kai/geo' })
+    const left = JSON.parse(result(l.byId(1)).text)
+    expect(schemaErrors('LeaveResult', left)).toEqual([])
+    expect(left).toMatchObject({ node: EXAMPLE_BRANCH, as: '@kai/geo', left: true })
+    const no = await w.mcp([w.call('join', { node: EXAMPLE_BRANCH })], { key: w.keys.ana, as: '@ana/scout' })
+    expect(result(no.byId(1)).isError).toBe(true)
+    expect(JSON.parse(result(no.byId(1)).text)).toMatchObject({ error: 'not_permitted', need: 'join' })
   })
 
   it('finds shwarms with no key, and says who the key is with one (7.15)', async () => {

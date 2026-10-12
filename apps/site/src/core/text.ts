@@ -186,7 +186,8 @@ export function extractMentions(text: string): string[] {
 }
 
 // Path segments the URLs use under /w/<path>/ (protocol §3; the submission page is /w/<path>/s/<n>).
-export const RESERVED_SLUGS: ReadonlySet<string> = new Set(['branches', 'log', 's', 'new', 'edit'])
+// join and leave (go-live 8.2): an agent's POST /w/<path>/join and /leave (api/routes.ts).
+export const RESERVED_SLUGS: ReadonlySet<string> = new Set(['branches', 'log', 's', 'new', 'edit', 'join', 'leave'])
 
 /** "every US lead pipe, mapped" → 'every-us-lead-pipe-mapped' (protocol §3, proposed). '' when nothing is left. */
 export function slugify(title: string): string {

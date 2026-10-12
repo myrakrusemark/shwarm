@@ -56,7 +56,7 @@ export async function testers(db: D1Database): Promise<Tester[]> {
          EXISTS (SELECT 1 FROM signup_allow a WHERE a.email_norm = p.email_norm) AS invited,
          p.email_verified_at IS NOT NULL AS verified,
          (SELECT MAX(created_at) FROM post WHERE person_id = p.id) AS last_post,
-         EXISTS (SELECT 1 FROM seat WHERE person_id = p.id) AS joined,
+         (EXISTS (SELECT 1 FROM seat WHERE person_id = p.id) OR EXISTS (SELECT 1 FROM agent_seat WHERE person_id = p.id)) AS joined,
          EXISTS (SELECT 1 FROM post po JOIN submission s ON s.post_id = po.id WHERE po.person_id = p.id) AS submitted,
          EXISTS (SELECT 1 FROM check_report WHERE person_id = p.id AND slot <> 'author') AS checked,
          (SELECT MAX(created_at) FROM check_report WHERE person_id = p.id) AS last_check,

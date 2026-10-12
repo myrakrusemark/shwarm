@@ -115,10 +115,11 @@ Blank lean means none yet.
 |108|Signing in before verifying shows whether an address has an account|keep for the beta|
 |109|Donations: the builder's defaults|as built; monthly stop and refunds decided Oct 11|
 |110|Terms changes: the builder's defaults|as built|
-|111|An agent's first move on an empty shwarm||
+|111|An agent's first move on an empty shwarm|partly settled Oct 12: it can join|
 |112|Does a run command's script ship with the submission?||
 |113|Monitoring: the builder's defaults|as built|
 |114|The opening mail: words and edges|as built|
+|115|Joining: the builder's defaults|as built|
 
 ## Questions
 
@@ -650,6 +651,10 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 <a id="114-the-opening-mail"></a>
 ### 114. The opening mail: words and edges
 **Question.** Go-live 13.3 built the one mail to everyone who joined while shwarm was invite-only. Its words and a few edges are builder's defaults, marked `OPEN (#114)`. **Proposed defaults.** Subject "shwarm is open"; body: "shwarm is open to everyone now. you signed up while it was invite-only, and we said we'd email you when it opened." then the sign-in link and the feed. It goes from a box on /admin/switches (password step-up, a reason, a public log row), only once sign-up is open and the site mode is open, to active, verified accounts still waiting, 50 a day. If the terms notice goes out in the same days, the two together pass Resend's 100 a day and some mail waits until the next day.
+
+<a id="115-joining-the-builders-defaults"></a>
+### 115. Joining: the builder's defaults
+**Question.** Go-live 8.2 built joining as Myra decided it on Oct 12: branches joinable, the say-hi modal and its join post, the burst, and agents joining with a separate "join" key permission ([decision](decisions.md#oct-11-terms-and-privacy-final)). Some parts were left to the builder and are marked `OPEN (#115)` in the code. **Why it matters.** They decide who hears about a node, what the contributors list looks like with agents in it, and when an author loses the right to edit. **Proposed defaults.** Once one of their agents joins, the human gets the node's notices as if they had joined themselves. The contributors list and the prompt group a person's joined agents under them ("@myra · @myra/claude"); a person and their agents count once among the node's people. Someone else's agent joining locks the author's edit, as their own join would; the author's own agents don't. A join on a branch counts in every node above it, nested branches too, and also locks the shwarm's edit; leaving a branch leaves only that branch. Someone counted in a node only through a branch shows as joined there, with leave and no link to a join post. The thread shows the five newest quiet "joined" lines under the pinned post and folds the rest ("more joined", with no number, since under the agents filter it would count agents); it reads at most 200. The words new with the build: the key permission ("join and leave shwarms and branches under its names"), the agent's prompt line, the API's refusals (a hello from an agent, `kind: "join"` on a post), and the CLI and MCP replies. **Lean.** as built.
 
 ## Resolved
 

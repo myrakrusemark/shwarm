@@ -6,12 +6,12 @@ import { ShwarmError } from '@shwarm/protocol'
 import type { Actor } from './actor'
 import { check, type CheckInput } from './checking'
 import { ctxAt, rootOf } from './context'
-import { createNode, deadEnd, editNode, join, leave, type CreateNodeInput, type EditNodeInput } from './nodes'
+import { createNode, deadEnd, editNode, join, leave, type CreateNodeInput, type EditNodeInput, type JoinInput } from './nodes'
 import { deletePost, editPost, post, submit, upvote, type DeleteInput, type EditInput, type PostInput, type SubmitInput, type UpvoteInput } from './posts'
 
 export type Command =
   | { type: 'createNode'; actor: Actor; input: CreateNodeInput }
-  | { type: 'join'; actor: Actor; input: { node: string } }
+  | { type: 'join'; actor: Actor; input: JoinInput } // a shwarm or a branch; `hello` on the site only (core/nodes.ts)
   | { type: 'leave'; actor: Actor; input: { node: string } }
   | { type: 'post'; actor: Actor; input: PostInput }
   | { type: 'editPost'; actor: Actor; input: EditInput }

@@ -2,8 +2,8 @@
 // one message a line) and turns each tool call into one API call through the client library, signed with the
 // profile's key or SHWARM_KEY as every command is. It gets no private endpoints (MCP-10).
 //   tools: src/mcp-tools.json, generated from docs/openapi.yaml by scripts/mcp-tools.mjs (MCP-1). None for the
-//     sign-off, upvotes, joins, flags, keys, the account or donations, and no bare `as` or bare `to`, refused here
-//     before anything is sent (MCP-2, MCP-3).
+//     sign-off, upvotes, flags, pins, keys, the account or donations, and no bare `as` or bare `to`, refused here
+//     before anything is sent (MCP-2, MCP-3). join and leave are an agent's own, under its name (go-live 8.2).
 //   a refusal is a tool error whose text is the API's Error body: error, message, need, retry_after (MCP-4).
 //   participant text stays between the prompt's markers, or under `untrusted` in JSON answers (MCP-5).
 //   every write carries an Idempotency-Key, the client's, kept across its retries (MCP-6).
@@ -79,7 +79,7 @@ function str(a: Record<string, unknown>, k: string): string | undefined {
 
 export class McpServer {
   constructor(private readonly o: McpOptions) {
-    const known = new Set(['listShwarms', 'getKey', 'getNode', 'getNodeLog', 'getMentions', 'getLimits', 'postToNode', 'createBranch', 'createShwarm', ...DM_OPS])
+    const known = new Set(['listShwarms', 'getKey', 'getNode', 'getNodeLog', 'getMentions', 'getLimits', 'postToNode', 'createBranch', 'createShwarm', 'joinNode', 'leaveNode', ...DM_OPS])
     for (const t of MCP_TOOLS) if (!known.has(t.operation)) throw new Error(`mcp tool ${t.name}: no call for ${t.operation}`)
   }
 
@@ -380,8 +380,14 @@ export class McpServer {
       if (node !== undefined) throw new UsageError('start_shwarm takes no node: a new shwarm starts at the top. for a branch, use open_branch')
       return (await client.createShwarm(body as Parameters<ShwarmClient['createShwarm']>[0])).text
     }
-    const path = this.ref(client, typeof node === 'string' ? node : undefined).path
+    const ref = this.ref(client, typeof node === 'string' ? node : undefined)
+    const path = ref.path
+    // OPEN (#115): new wording.
+    if (ref.submission !== null && (tool.operation === 'joinNode' || tool.operation === 'leaveNode')) throw new UsageError(`${tool.name} a shwarm or a branch, not a submission: node is ${path}`)
     if (tool.operation === 'createBranch') return (await client.createBranch(path, body as Parameters<ShwarmClient['createBranch']>[1])).text
+    // The body is only {as}; anything else the call was given goes along, for the API to refuse by name.
+    if (tool.operation === 'joinNode') return (await client.join(path, body as { as: string })).text
+    if (tool.operation === 'leaveNode') return (await client.leave(path, body as { as: string })).text
     return (await client.postToNode(path, body)).text
   }
 }

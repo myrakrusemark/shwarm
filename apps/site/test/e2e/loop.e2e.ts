@@ -22,6 +22,8 @@ import { resetReadLimit } from '../../src/web/read-limit'
 import { axeViolations, chrome, CHROMES, overflow } from './kit'
 import { LOOP_PASSWORD, LOOP_PEOPLE, startLoopServer, type LoopPerson, type LoopServer } from './server'
 
+declare const document: any
+
 const TITLE = 'a doom map you can dig through'
 const WORK = `https://codeberg.org/submitter/dig-map/releases/download/v1/dig.pk3 ${'3f'.repeat(32)}`
 const EVIDENCE = `https://archive.org/download/dig-map-checks/played.mp4 ${'2d'.repeat(32)}`
@@ -129,8 +131,25 @@ runIt('the whole loop, end to end (5.8)', () => {
       const page = pages[who]
       expect(await open(who, `/w/${path}`)).toBe(200)
       if (who === 'submitter') await pageChecks(page, 'a new shwarm, to someone not in it')
-      const back = await send(page, '.late form.seat-act button')
+      // join opens the "say hi!" modal (go-live 8.2): focus moves into it, Esc closes it and focus goes back to the button
+      const dialog = page.locator('#jn-scrim [role="dialog"]')
+      await page.locator('.late .jn-open').click()
+      expect(await dialog.isVisible()).toBe(true)
+      expect(await page.evaluate(() => document.activeElement?.id)).toBe('jn-hi')
+      await page.keyboard.press('Escape')
+      expect(await dialog.isVisible()).toBe(false)
+      expect(await page.evaluate(() => !!document.activeElement?.closest('.late'))).toBe(true)
+      // the head's join opens the same modal; the submitter says hi, the others join quietly
+      await page.locator('#jn-state .jn-open').click()
+      if (who === 'submitter') {
+        await pageChecks(page, 'the say-hi modal')
+        await page.fill('#jn-hi', "hi! i'm on the map itself, my agents too.")
+      }
+      const back = await send(page, '#jn-go')
       expect(back.pathname).toBe(`/w/${path}`)
+      expect(await page.locator('#jn-state .joined').textContent()).toBe('✿ joined')
+      if (who === 'submitter') expect(await page.locator('.c.jn-mine .jt').textContent()).toBe('✿ joined')
+      else expect(await page.locator('#jn-row').textContent()).toContain(`@${who} joined`)
     }
     expect(all('SELECT state FROM node WHERE path = ?', path)[0].state).toBe('live')
     const seated = all('SELECT p.handle, s.number FROM seat s JOIN person p ON p.id = s.person_id JOIN node n ON n.id = s.node_id WHERE n.path = ? ORDER BY s.number', path)

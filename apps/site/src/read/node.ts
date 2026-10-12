@@ -46,11 +46,11 @@ export function visibility(n: { hidden: number; triage: string; seeded: number; 
 
 const SEGMENT = /^[a-z0-9]+(-[a-z0-9]+)*$/
 /** Segments that name a view of a node, never a node (protocol §3; core/text.ts RESERVED_SLUGS). */
-export const RESERVED_VIEWS = new Set(['branches', 'log', 's'])
+export const RESERVED_VIEWS = new Set(['branches', 'log', 's', 'join', 'leave'])
 
 export type ParsedPath = { kind: 'node'; path: string } | { kind: 'view'; path: string; view: string } | { kind: 'bad' }
 
-/** Splits what follows /w/ into a node path, or a node path plus a reserved view (branches, log, s/<n>). */
+/** Splits what follows /w/ into a node path, or a node path plus a reserved view (branches, log, s/<n>, join, leave). */
 export function parseNodePath(rest: string): ParsedPath {
   if (!rest || rest.length > MAX_PATH + 20) return { kind: 'bad' }
   const parts = rest.split('/')
@@ -284,7 +284,10 @@ export async function readChildren(db: D1Database, nodeId: number): Promise<{ br
 
 // ---------- who joined ----------
 
-/** The viewer's join on this node (a seat row's number: "join" says you're working on it), or null when they haven't. */
+/**
+ * The viewer's join on this node (a seat row's number: "join" says you're working on it), or null when they haven't. A
+ * seat counted through a join on one of its branches counts (core/nodes.ts join).
+ */
 export async function readMySeat(db: D1Database, nodeId: number, personId: number): Promise<number | null> {
   const r = await db.prepare('SELECT number FROM seat WHERE node_id = ? AND person_id = ? AND left_at IS NULL').bind(nodeId, personId).first<{ number: number }>()
   return r?.number ?? null
@@ -292,42 +295,93 @@ export async function readMySeat(db: D1Database, nodeId: number, personId: numbe
 
 // ---------- contributors ----------
 
-/** dms: one of their agent names takes direct messages (7.17), for "dms on" in an agent's briefing. */
-export type Contributor = { person_id: number; handle: string; posts: number; upvotes: number; dms?: boolean }
+/**
+ * dms: one of their agent names takes direct messages (7.17), for "dms on" in an agent's briefing. agents: the person's
+ * agent names that joined here (agent_seat), oldest join first, shown under them ("@myra · @myra/claude").
+ */
+export type Contributor = { person_id: number; handle: string; posts: number; upvotes: number; dms?: boolean; agents?: string[] }
 export const CONTRIBUTORS_SHOWN = 7
 
 /**
  * People who posted here (person_node_stats, filled by the stats job; agents rolled up into their human), most
  * counted upvotes first (table B #65), and the author always (3.4: "author included"). The people who joined (said
  * they're working on it) but haven't posted yet follow, in the order they joined (go-live 4.4; they count among its
- * people, table B #44).
+ * people, table B #44). An agent's join (agent_seat) brings its human into the list, with the agent's name under them
+ * (`agents`). OPEN (#115): grouping a person's agents under them is a builder's default.
  */
 export async function readContributors(db: D1Database, n: NodeHead): Promise<{ rows: Contributor[]; total: number }> {
-  const seats = `UNION ALL SELECT s.person_id, 0, 0, s.joined_at FROM seat s WHERE s.node_id = ?1 AND s.left_at IS NULL
-           AND NOT EXISTS (SELECT 1 FROM person_node_stats y WHERE y.node_id = ?1 AND y.person_id = s.person_id AND y.posts > 0)`
+  const seats = `UNION ALL SELECT j.person_id, 0, 0, MIN(j.joined_at) FROM (
+             SELECT person_id, joined_at FROM seat WHERE node_id = ?1 AND left_at IS NULL
+             UNION ALL SELECT person_id, joined_at FROM agent_seat WHERE node_id = ?1 AND left_at IS NULL) j
+           WHERE NOT EXISTS (SELECT 1 FROM person_node_stats y WHERE y.node_id = ?1 AND y.person_id = j.person_id AND y.posts > 0)
+           GROUP BY j.person_id`
+  // A person's agents that joined here, oldest join first, as JSON (none for a closed account's: its names show as one).
+  const agents = (pid: string) => `(SELECT json_group_array(as_name) FROM (SELECT a.as_name FROM agent_seat a
+             WHERE a.node_id = ?1 AND a.person_id = ${pid} AND a.left_at IS NULL ORDER BY a.joined_at, a.as_name LIMIT 50))`
   const { results } = await db
     .prepare(
-      `SELECT person_id, handle, posts, upvotes, dms, total FROM (
-         SELECT x.person_id, ${HANDLE_SHOWN('p')} AS handle, x.posts, x.upvotes, COUNT(*) OVER () AS total,
+      `SELECT c.person_id, c.handle, c.posts, c.upvotes, c.dms, c.total, CASE WHEN c.status = 'closed' THEN '[]' ELSE ${agents('c.person_id')} END AS agents FROM (
+         SELECT x.person_id, ${HANDLE_SHOWN('p')} AS handle, p.status, x.posts, x.upvotes, COUNT(*) OVER () AS total,
                 p.status = 'active' AND EXISTS (SELECT 1 FROM dm_name z WHERE z.person_id = x.person_id) AS dms,
                 ROW_NUMBER() OVER (ORDER BY x.upvotes DESC, x.posts DESC, x.joined_at, x.person_id) AS rk
          FROM (SELECT person_id, posts, upvotes, NULL AS joined_at FROM person_node_stats WHERE node_id = ?1 AND posts > 0 ${seats}) x
-         JOIN person p ON p.id = x.person_id)
-       WHERE rk <= ?2 OR person_id = ?3 ORDER BY rk`,
+         JOIN person p ON p.id = x.person_id) c
+       WHERE c.rk <= ?2 OR c.person_id = ?3 ORDER BY c.rk`,
     )
     .bind(n.id, CONTRIBUTORS_SHOWN, n.author_id)
-    .all<Omit<Contributor, 'dms'> & { dms: number; total: number }>()
+    .all<Omit<Contributor, 'dms' | 'agents'> & { dms: number; total: number; agents: string }>()
   let total = results[0]?.total ?? 0
-  const rows: Contributor[] = results.map(({ total: _, dms, ...r }) => ({ ...r, dms: dms === 1 }))
+  const withAgents = (r: Contributor, raw: string | null | undefined): Contributor => {
+    const names = JSON.parse(raw ?? '[]') as string[]
+    return names.length ? { ...r, agents: names } : r
+  }
+  const rows: Contributor[] = results.map(({ total: _, dms, agents: a, ...r }) => withAgents({ ...r, dms: dms === 1 }, a))
   if (!rows.some(r => r.person_id === n.author_id)) {
     const on = await db
-      .prepare("SELECT 1 AS ok FROM person p WHERE p.id = ? AND p.status = 'active' AND EXISTS (SELECT 1 FROM dm_name z WHERE z.person_id = p.id)")
-      .bind(n.author_id)
-      .first()
-    rows.push({ person_id: n.author_id, handle: n.author, posts: 0, upvotes: 0, dms: !!on })
+      .prepare(
+        `SELECT p.status = 'active' AND EXISTS (SELECT 1 FROM dm_name z WHERE z.person_id = p.id) AS ok,
+                CASE WHEN p.status = 'closed' THEN '[]' ELSE ${agents('p.id')} END AS agents FROM person p WHERE p.id = ?2`,
+      )
+      .bind(n.id, n.author_id)
+      .first<{ ok: number; agents: string }>()
+    rows.push(withAgents({ person_id: n.author_id, handle: n.author, posts: 0, upvotes: 0, dms: on?.ok === 1 }, on?.agents))
     total++
   }
   return { rows, total }
+}
+
+// ---------- joins in the thread ----------
+
+/**
+ * A join made on this node with no hello (decided Oct 12, "Joining as a celebration"): the thread's quiet "✿ @you
+ * joined" line. `as` is the name that joined (the bare handle from the site, an agent name through a key), `at` when.
+ */
+export type JoinLine = { as: string; person_id: number; at: string }
+/** How many quiet join lines a thread reads, newest first. OPEN (#115): no cap is decided. */
+export const JOIN_LINES = 200
+
+/**
+ * The thread's quiet join lines, oldest first: every join made on this node itself (not one counted here through a
+ * join on a branch, through_id) that has no join post (post.is_join) from the same join, whether the name is still
+ * here or left since. Nothing is stored for them: they're read from the seats. The author's own seat, made with the
+ * shwarm, isn't a join. A closed account's lines are left out, as its name would show only as "former member".
+ */
+export async function readJoins(db: D1Database, n: Pick<NodeHead, 'id' | 'author_id' | 'created_at'>): Promise<JoinLine[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT j.as_name AS "as", j.person_id, j.joined_at AS at FROM (
+         SELECT '@' || p.handle AS as_name, s.person_id, s.joined_at FROM seat s JOIN person p ON p.id = s.person_id
+         WHERE s.node_id = ?1 AND s.through_id IS NULL AND p.status <> 'closed'
+           AND NOT (s.person_id = ?2 AND s.joined_at = ?3)
+         UNION ALL
+         SELECT a.as_name, a.person_id, a.joined_at FROM agent_seat a JOIN person p ON p.id = a.person_id
+         WHERE a.node_id = ?1 AND a.through_id IS NULL AND p.status <> 'closed') j
+       WHERE NOT EXISTS (SELECT 1 FROM post x WHERE x.node_id = ?1 AND x.is_join = 1 AND x.person_id = j.person_id AND x.as_name = j.as_name AND x.created_at = j.joined_at)
+       ORDER BY j.joined_at DESC, j.as_name LIMIT ?4`,
+    )
+    .bind(n.id, n.author_id, n.created_at, JOIN_LINES)
+    .all<JoinLine>()
+  return results.reverse()
 }
 
 // ---------- submissions and checks ----------
@@ -467,6 +521,7 @@ export type PostRow = {
   edited_at: string | null
   deleted_at: string | null // deleted by its poster: a tombstone, with no text or links left
   ups: number
+  is_join?: number // 1: the hello its poster wrote when they joined (core/nodes.ts join), shown as "✿ joined"
 }
 
 export type ThreadItem = PostRow & { replies: PostRow[] }
@@ -570,7 +625,7 @@ export async function readPosts(db: D1Database, ids: string[]): Promise<PostRow[
   if (!ids.length) return []
   const { results } = await db
     .prepare(
-      `SELECT p.id, ${NAME_SHOWN('p.as_name')} AS as_name, p.person_id, p.kind, p.text, p.links, p.reply_to, p.created_at, p.edited_at, p.deleted_at, 0 AS ups
+      `SELECT p.id, ${NAME_SHOWN('p.as_name')} AS as_name, p.person_id, p.kind, p.text, p.links, p.reply_to, p.created_at, p.edited_at, p.deleted_at, 0 AS ups, p.is_join
        FROM post p WHERE p.id IN (SELECT value FROM json_each(?)) AND p.hidden = 0`,
     )
     .bind(JSON.stringify(ids))
@@ -739,7 +794,7 @@ export type PromptPost = PostRow & {
   check_exit: number | null
 }
 
-const PROMPT_POST_SQL = `SELECT p.id, ${NAME_SHOWN('p.as_name')} AS as_name, p.person_id, p.kind, p.text, p.links, p.reply_to, p.created_at, p.edited_at, p.deleted_at,
+const PROMPT_POST_SQL = `SELECT p.id, ${NAME_SHOWN('p.as_name')} AS as_name, p.person_id, p.kind, p.text, p.links, p.reply_to, p.created_at, p.edited_at, p.deleted_at, p.is_join,
     (SELECT COUNT(*) FROM upvote u WHERE u.post_id = p.id AND u.counted = 1) AS ups,
     s.number, s.how_to_check, c.slot AS check_slot, c.verdict AS check_verdict, cs.number AS check_on, c.repro AS check_repro,
     c.exit_code AS check_exit

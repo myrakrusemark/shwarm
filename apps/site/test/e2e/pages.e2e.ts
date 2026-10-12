@@ -237,7 +237,7 @@ runIt('every page in a real browser (3.8)', () => {
               await page.keyboard.press(key)
               expect(await inside(), `${key} after a click on the title stays inside`).toBe(true)
             }
-            await page.locator('.dn .sec p').first().click()
+            await page.locator('#dn-scrim .dn .sec p').first().click()
             await page.keyboard.press('Shift+Tab')
             expect(await inside(), 'Shift+Tab after a click on the text stays inside').toBe(true)
             const o = await overflow(page)

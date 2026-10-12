@@ -59,9 +59,10 @@ describe('actor and permissions', () => {
     await refused(w.run({ type: 'submit', actor: scoped, input: { node: BP, text: 'x', links: WORK, howToCheck: 'y' } }), 'not_permitted', { need: 'submit', node: BP })
   })
 
-  it('keeps bare-handle acts on the site: joins, sign-off, dead ends', async () => {
+  it('keeps bare-handle acts on the site: sign-off, dead ends; an agent joins only under its own name, with join', async () => {
     await w.shwarm(site(myra))
-    await refused(w.join(agent(kestrel), MID), 'bare_handle_needs_human')
+    await refused(w.join(agent(kestrel), MID), 'not_permitted', { need: 'join', node: MID })
+    await refused(w.join({ ...agent(kestrel, 'm-04', ['join']), as: '@kestrel' }, MID), 'bare_handle_needs_human')
     await w.join(site(kestrel), MID)
     await refused(w.run({ type: 'deadEnd', actor: agent(myra), input: { node: MID, note: 'x' } }), 'bare_handle_needs_human')
     const s = await w.submit(agent(kestrel), MID)
@@ -204,9 +205,9 @@ describe('creating nodes', () => {
 describe('join and leave: working on it (decided Oct 9, "No lobby")', () => {
   it('joins a live shwarm with no gate and no size: no kickoff, no event, no notice', async () => {
     await w.shwarm(site(myra))
-    expect(await w.join(site(kestrel), MID)).toEqual({ node: MID, joined: true })
-    expect(await w.join(site(finn), MID)).toEqual({ node: MID, joined: true })
-    expect(await w.join(site(lumpy), MID)).toEqual({ node: MID, joined: true })
+    expect(await w.join(site(kestrel), MID)).toMatchObject({ node: MID, joined: true })
+    expect(await w.join(site(finn), MID)).toMatchObject({ node: MID, joined: true })
+    expect(await w.join(site(lumpy), MID)).toMatchObject({ node: MID, joined: true })
     expect(w.all('SELECT person_id FROM seat WHERE left_at IS NULL ORDER BY number').map(r => r.person_id)).toEqual([myra.id, kestrel.id, finn.id, lumpy.id])
     expect(w.node(MID)).toMatchObject({ state: 'live' })
     expect(w.events(MID)).toEqual([])
@@ -217,11 +218,11 @@ describe('join and leave: working on it (decided Oct 9, "No lobby")', () => {
   it('lets people leave and join again any time while it is live, not the author; joins are idempotent', async () => {
     await w.shwarm(site(myra))
     await w.join(site(kestrel), MID)
-    expect(await w.join(site(kestrel), MID)).toEqual({ node: MID, joined: false })
-    expect(await w.run({ type: 'leave', actor: site(kestrel), input: { node: MID } })).toEqual({ node: MID })
+    expect(await w.join(site(kestrel), MID)).toMatchObject({ node: MID, joined: false })
+    expect(await w.run({ type: 'leave', actor: site(kestrel), input: { node: MID } })).toEqual({ node: MID, as: '@kestrel', left: true })
     expect(w.get('SELECT left_at FROM seat WHERE person_id = ?', kestrel.id).left_at).toBeTruthy()
     await refused(w.run({ type: 'leave', actor: site(myra), input: { node: MID } }), 'bad_request')
-    expect(await w.join(site(kestrel), MID)).toEqual({ node: MID, joined: true })
+    expect(await w.join(site(kestrel), MID)).toMatchObject({ node: MID, joined: true })
     expect(w.get('SELECT number, left_at FROM seat WHERE person_id = ?', kestrel.id)).toEqual({ number: 2, left_at: null })
   })
 
@@ -229,9 +230,11 @@ describe('join and leave: working on it (decided Oct 9, "No lobby")', () => {
     await w.shwarm(site(myra))
     expect((await w.submit(agent(kestrel), MID)).number).toBe(1)
     await w.branch(site(myra), MID)
-    await refused(w.join(site(lumpy), BP), 'bad_request')
-    await refused(w.run({ type: 'leave', actor: site(lumpy), input: { node: BP } }), 'bad_request')
-    await refused(w.join(agent(lumpy), MID), 'bare_handle_needs_human')
+    // branches are joined too (decided Oct 12; test/join.test.ts)
+    expect(await w.join(site(lumpy), BP)).toMatchObject({ node: BP, joined: true, nodes: [BP, MID] })
+    // an agent joins under its own name only with the key's join permission (decided Oct 12)
+    await refused(w.join(agent(lumpy), MID), 'not_permitted', { need: 'join', node: MID })
+    await refused(w.join({ ...agent(lumpy, 'm', ['join']), as: '@lumpy' }, MID), 'bare_handle_needs_human')
     await w.deadEnd(myra, MID)
     await refused(w.join(site(lumpy), MID), 'shwarm_closed')
     await refused(w.run({ type: 'leave', actor: site(kestrel), input: { node: MID } }), 'shwarm_closed')

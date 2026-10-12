@@ -85,7 +85,9 @@ export async function readProfile(db: D1Database, personId: number, o: { owner: 
     db
       .prepare(
         `WITH mine AS (SELECT node_id, MAX(created_at) AS last_post, SUM(created_at > ?2) AS n7 FROM post WHERE person_id = ?1 AND hidden = 0 GROUP BY node_id),
-              seats AS (SELECT node_id, joined_at FROM seat WHERE person_id = ?1 AND left_at IS NULL),
+              seats AS (SELECT node_id, MIN(joined_at) AS joined_at FROM (
+                SELECT node_id, joined_at FROM seat WHERE person_id = ?1 AND left_at IS NULL
+                UNION ALL SELECT node_id, joined_at FROM agent_seat WHERE person_id = ?1 AND left_at IS NULL) GROUP BY node_id),
               ids AS (SELECT node_id FROM mine WHERE n7 > 0 UNION SELECT node_id FROM seats UNION SELECT id FROM node WHERE author_id = ?1)
          SELECT n.id, n.path, n.kind, n.title, n.state, n.in_review, n.created_at, ${UP_TITLE}, ${WAITING('?4')},
                 m.last_post, COALESCE(m.n7, 0) AS n7, s.joined_at, st.posts, st.upvotes

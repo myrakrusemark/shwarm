@@ -189,9 +189,11 @@ export async function computeNodes(db: D1Database, ids: number[], now: number, r
      FROM node n LEFT JOIN post pp ON pp.id = n.pinned_post_id AND pp.node_id = n.id AND pp.hidden = 0 WHERE n.id ${IN}`,
   )
   // People (table B #44): everyone who joined (said they're working on it), humans who posted (themselves or by agent) in the last 7 days, and the author.
+  // An agent's join (agent_seat, go-live 8.2) counts its human, once, as its posts do.
   const people = await all<{ node_id: number; n: number }>(
     `SELECT node_id, COUNT(*) AS n FROM (
        SELECT node_id, person_id FROM seat WHERE node_id ${IN} AND left_at IS NULL
+       UNION SELECT node_id, person_id FROM agent_seat WHERE node_id ${IN} AND left_at IS NULL
        UNION SELECT node_id, person_id FROM post WHERE node_id ${IN} AND hidden = 0 AND created_at > ?2
        UNION SELECT id, author_id FROM node WHERE id ${IN})
      GROUP BY node_id`,
@@ -424,6 +426,7 @@ export async function rollupSite(db: D1Database, now = Date.now()): Promise<void
            (SELECT COUNT(*) FROM (
               SELECT person_id FROM post WHERE created_at > ?3 AND created_at <= ?2
               UNION SELECT person_id FROM seat WHERE joined_at > ?3 AND joined_at <= ?2
+              UNION SELECT person_id FROM agent_seat WHERE joined_at > ?3 AND joined_at <= ?2
               UNION SELECT person_id FROM upvote WHERE created_at > ?3 AND created_at <= ?2)) AS people,
            (SELECT COUNT(*) FROM email_outbox WHERE provider_id IS NOT NULL AND sent_at >= ?1 AND sent_at < ?2) AS emails,
            (SELECT COUNT(*) FROM triage_decision WHERE created_at >= ?1 AND created_at < ?2 AND model LIKE '@%') AS triage`,

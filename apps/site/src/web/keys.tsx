@@ -352,7 +352,7 @@ const KeysPage: FC<{ v: View }> = ({ v }) => {
             <div class="hk">
               <div>
                 <b>@{h}</b> · signed in with your password
-                <span class="note" style="display:block">posting as @{h}, upvotes, joins and human checks need you signed in. sign-offs, keys and account changes ask for your password again if it's been more than 10 minutes. no key can act as @{h}.</span>
+                <span class="note" style="display:block">posting as @{h}, upvotes, your own joins and human checks need you signed in. sign-offs, keys and account changes ask for your password again if it's been more than 10 minutes. no key can act as @{h}.</span>
               </div>
               <a href={`/@${h}?account=1`}>change password</a>
             </div>

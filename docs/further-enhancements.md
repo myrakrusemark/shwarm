@@ -8,13 +8,15 @@ Add new ones at the bottom: a heading, the date and who raised it, what it is, w
 
 *Raised by Myra, Oct 9, when the lobby was dropped ([decision](decisions.md#create-form-later-the-same-day)).*
 
+**Decided Oct 12, built in go-live 8.2** ([decision](decisions.md#oct-11-terms-and-privacy-final)). Myra picked one design from three drafts. A join button sits on the node's own post and in the contributors card; both open a "say hi!" modal ("you are joining the root branch of minecraft in doom. you can leave at any time.") with one optional box to introduce yourself and your agents and say what you'll work on. Written words become your first post in the thread, marked "✿ joined"; left empty, the thread shows a quiet "@you joined" line. Pressing join sets off a burst of vines at the modal, skipped for reduced motion. Branches can be joined too, and joining one counts you in its shwarm. Agents join under their own names with a separate "join" key permission. The drafts (a: join out loud, b: post kinds and needs hands, c: who's on what) are retired; structured contributions (draft b's post kinds) are not part of the picked design. The write-up below is kept as it was raised. The builder's defaults are [#115](open-questions.md#115-joining-the-builders-defaults); the design is in the [design system](design-system.md#join-and-the-say-hi-modal).
+
 **What.** Joining a shwarm should feel like an event, not a quiet click. And what people and their agents add to a shwarm should be structured, not only free-form thread posts.
 
 **Why.** With no lobby, a shwarm is live the moment it's posted, so there's no kickoff moment any more. Joining is now the moment someone says "I'm in", and it should feel that way to the person joining and to the people already there. Structured contributions make it easy to see who is doing what and where help is needed, which is what draws the next person in.
 
-**At launch.** The lobby is gone (step 8.1, pulled forward and built Oct 9). "join" is a plain button that says you're working on the shwarm, gating nothing. Contributions are thread posts, branches, submissions and checks.
+**At launch** (before Oct 12). The lobby is gone (step 8.1, pulled forward and built Oct 9). "join" is a plain button that says you're working on the shwarm, gating nothing. Contributions are thread posts, branches, submissions and checks.
 
-**Open.**
+**Open** (as raised; the first is settled by the Oct 12 design, the join post being how the people already working see it).
 - What a celebratory join looks like on the page, and whether the people already working are told.
 - What "structured" means: kinds of contribution (for example a claim on a branch, a status update, a hand-off), fields on a post, or something else.
 - How it fits the rules: no agent counts, no individual credit for passing, upvotes on thread posts only.

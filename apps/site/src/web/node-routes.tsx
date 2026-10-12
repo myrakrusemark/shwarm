@@ -38,6 +38,7 @@ import {
 } from '../read/node'
 import { renderNodeJson, renderPrompt, renderSubmissionJson, renderSubmissionPrompt } from '../render/prompt'
 import type { SubmitInput, SubmitResult } from '../core/posts'
+import type { JoinResult } from '../core/nodes'
 import { loadAgentView, loadPageData, loadResultData } from '../read/views'
 import { BAD_FILTER, logFilter, readLog, renderLogJson } from '../read/log'
 import { readTreeVersion } from '../read/result'
@@ -62,7 +63,7 @@ type C = Context<Env>
 const TYPES: Record<Format, string> = { html: 'text/html', text: 'text/plain', json: 'application/json' }
 
 /** Bump to change every ETag when the rendering changes (test/render-version.test.ts fails until you do). */
-export const RENDER_VERSION = '15' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9). 4: the log's `key` field (v0, Oct 9). 5: the activity strip (Oct 10). 6: edit until join, the safety guide link, how to join in (Oct 10). 7: links for agents under how to take part, count wording (Oct 10). 8: npx @shwarm/cli under how to take part (Oct 10). 9: direct messages and who takes them, under how to take part; take_part in the JSON; "report" on every post (Oct 10). 10: "flag this shwarm" in the head, the "paused for review" banner, paused in the text and JSON (Oct 10). 11: the manifesto link in the header strip (Oct 10). 12: the donate modal is a form posting to /donate (Oct 10). 13: the canonical link and link-preview meta tags (go-live 11.7, Oct 11). 14: shwarming safely, how to sign, what impact means and the beta line in the text and JSON (go-live 7.11, 7.14, Oct 11). 15: the 7.14 review: the beta line before the keys page, a run's pass rule and where it runs, a license off the list, the note in the JSON, "shwarms or branches" (Oct 11)
+export const RENDER_VERSION = '17' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9). 4: the log's `key` field (v0, Oct 9). 5: the activity strip (Oct 10). 6: edit until join, the safety guide link, how to join in (Oct 10). 7: links for agents under how to take part, count wording (Oct 10). 8: npx @shwarm/cli under how to take part (Oct 10). 9: direct messages and who takes them, under how to take part; take_part in the JSON; "report" on every post (Oct 10). 10: "flag this shwarm" in the head, the "paused for review" banner, paused in the text and JSON (Oct 10). 11: the manifesto link in the header strip (Oct 10). 12: the donate modal is a form posting to /donate (Oct 10). 13: the canonical link and link-preview meta tags (go-live 11.7, Oct 11). 14: shwarming safely, how to sign, what impact means and the beta line in the text and JSON (go-live 7.11, 7.14, Oct 11). 15: the 7.14 review: the beta line before the keys page, a run's pass rule and where it runs, a license off the list, the note in the JSON, "shwarms or branches" (Oct 11). 16: joins (go-live 8.2): CONTRIBUTORS with each person's joined agents, the join line under how to take part, join posts marked, contributors and take_part.join/leave in the JSON (Oct 12). 17: the join page (go-live 8.2): join in the head and on branches, the say-hi modal, "✿ joined" posts and quiet join lines, agents under their person in contributors (Oct 12)
 
 // Production's reading pages stay closed in holding mode and open in beta (go-live 3.10); core/site-mode.ts.
 import { actsLimited, readingOpen } from '../core/site-mode'
@@ -382,7 +383,7 @@ async function submissionPost(c: C, path: string, number: number, session: Sessi
 // POST /w/<path> (go-live 4.4–4.8, 5.1, 5.6): the page's forms, picked by the `do` field. post: a thread post or reply
 // as the bare handle, pinned as "status update" when the author ticks it. edit, delete: one of your own plain posts.
 // upvote: the ▲ on a post, either way. submit: the compose box's submit mode, which lands on the new submission's page.
-// join, leave: say you're working on a live shwarm, or stop. dead_end (with a note): the author's own box, behind the
+// join (with the say-hi modal's optional hello), leave: say you're working on a live shwarm or branch, or stop. dead_end (with a note): the author's own box, behind the
 // password. Editing a shwarm is the /new form's (web/create.tsx, /new?edit=<path>; re-pitch is retired, decided Oct 10).
 // Nothing reopens (decided Oct 9). Each runs in the shwarm's tree (do/shwarm-tree.ts), then goes back to the page (303). A refusal re-renders the page with the reason next to the form and the draft kept.
 // Signed out, it goes to sign-in and back.
@@ -516,13 +517,20 @@ nodeRoutes.post('/*', async c => {
       const r = await runInTree<SubmitResult>(c.env.TREE, { type: 'submit', actor, input })
       return c.redirect(`${back}/s/${r.number}`, 303)
     }
+    if (act === 'join') {
+      // The say-hi modal's words (go-live 8.2): core posts them as a join post; empty, the thread shows a quiet line.
+      const hello = (f.hello ?? '').trim()
+      const r = await runInTree<JoinResult>(c.env.TREE, { type: 'join', actor, input: { node: parsed.path, ...(hello ? { hello } : {}) } })
+      return c.redirect(r.post ? `${back}#${r.post}` : back, 303)
+    }
     await runInTree(c.env.TREE, { type: act, actor, input: { node: parsed.path } })
     return c.redirect(back, 303)
   } catch (e) {
     if (!(e instanceof ShwarmError)) throw e
     const at =
       act === 'post' || act === 'submit' ? 'compose' : act === 'dead_end' ? 'owner' : act === 'edit' || act === 'delete' || act === 'upvote' ? 'post' : 'seats'
-    const draft = act === 'post' || act === 'submit' || act === 'edit' ? f.text ?? '' : act === 'dead_end' ? f.note : undefined
+    // A refused join keeps the say-hi words, and the page opens the modal again with them.
+    const draft = act === 'post' || act === 'submit' || act === 'edit' ? f.text ?? '' : act === 'dead_end' ? f.note : act === 'join' && (f.hello ?? '').trim() ? f.hello : undefined
     // A refused upvote, edit or delete shows under its post; a refused pinned post keeps its box ticked.
     if (act === 'edit' || act === 'delete' || act === 'upvote') Object.assign(kept, { post: f.post })
     if (act === 'post' && f.pin === '1') Object.assign(kept, { pin: true })
