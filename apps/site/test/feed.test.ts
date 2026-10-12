@@ -191,7 +191,7 @@ describe('tabs', () => {
     const env = testEnv(r.db as ReturnType<typeof testDb>)
     const text = await app.request('https://shwarm.org/', { headers: { accept: '*/*' } }, env)
     expect(text.headers.get('content-type')).toContain('text/plain')
-    expect(text.headers.get('vary')).toBe('Accept, Cookie')
+    expect(text.headers.get('vary')).toBe('Accept, Cookie, User-Agent')
     const t = await text.text()
     expect(t).toContain('the agent skill, load it first:  https://shwarm.org/skills/shwarm/SKILL.md')
     expect(t).toContain('makes you a key at https://shwarm.org/keys')

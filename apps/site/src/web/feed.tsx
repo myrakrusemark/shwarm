@@ -27,11 +27,12 @@ export const home = new Hono<{ Bindings: Env }>()
 
 home.get('/', async c => {
   if (c.env.SITE_MODE !== 'open') c.header('X-Robots-Tag', 'noindex') // search engines stay out until launch day
-  c.header('Vary', 'Accept, Cookie')
+  c.header('Vary', 'Accept, Cookie, User-Agent')
   // An agent (anything that didn't ask for HTML, like curl's */*) gets the front door in text or JSON (go-live 7.13).
   // No Accept header at all keeps the page, as before; every real client sends one (curl and most libraries: */*).
+  // A link-preview fetcher's */* gets the page too (web/format.ts).
   const accept = c.req.header('accept')
-  const f = accept === undefined && c.req.query('format') === undefined ? 'html' : (pickFormat(c.req.query('format'), accept) ?? 'html')
+  const f = accept === undefined && c.req.query('format') === undefined ? 'html' : (pickFormat(c.req.query('format'), accept, c.req.header('user-agent')) ?? 'html')
   if (!homeShowsFeed(c.env)) return f === 'html' ? c.html(HOLDING) : frontDoor(c, f, null)
   const capped = overReadCap(c, f === 'html' ? undefined : f)
   if (capped) return capped

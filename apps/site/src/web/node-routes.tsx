@@ -71,7 +71,7 @@ import { actsLimited, readingOpen } from '../core/site-mode'
 export { readingOpen }
 
 function common(c: C, path: string | null) {
-  c.header('Vary', 'Accept, Cookie')
+  c.header('Vary', 'Accept, Cookie, User-Agent') // User-Agent: a link-preview fetcher gets the page (web/format.ts)
   if (c.env.SITE_MODE !== 'open') c.header('X-Robots-Tag', 'noindex')
   if (path) {
     const base = `${new URL(c.req.url).origin}/w/${path}`
@@ -130,7 +130,7 @@ export const nodeRoutes = new Hono<Env>()
 
 nodeRoutes.get('/*', async c => {
   const url = new URL(c.req.url)
-  const format = pickFormat(c.req.query('format'), c.req.header('accept'))
+  const format = pickFormat(c.req.query('format'), c.req.header('accept'), c.req.header('user-agent'))
   const f: Format = format ?? 'text'
   common(c, null)
   if (!readingOpen(c.env)) return notFound(c, f)

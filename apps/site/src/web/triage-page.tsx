@@ -124,14 +124,14 @@ triagePage.get('/triage', async c => {
   // As the footer pages: no Accept and no ?format= is a browser-ish request and gets the page; curl's */* gets text.
   const format = c.req.query('format')
   const accept = c.req.header('accept')
-  const f = accept === undefined && format === undefined ? 'html' : (pickFormat(format, accept) ?? 'html')
+  const f = accept === undefined && format === undefined ? 'html' : (pickFormat(format, accept, c.req.header('user-agent')) ?? 'html')
   const capped = overReadCap(c, f)
   if (capped) return capped
   const before = beforeOf(c.req.query('before'))
   const { rows, more } = await readDecisions(c.env.DB, before)
   const older = more ? rows[rows.length - 1].id : null
   const model = modelOf(c.env)
-  c.header('Vary', 'Accept')
+  c.header('Vary', 'Accept, User-Agent')
   // Public and the same for everyone, so it may be cached briefly; page() makes a signed-in page private.
   c.header('Cache-Control', 'public, s-maxage=60')
   if (f === 'json') return c.json({ ...promptOf(model), decisions: rows, older: older === null ? null : `/triage?format=json&before=${older}` })

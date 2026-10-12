@@ -196,10 +196,11 @@ app.route('/', skills) // /skills and the skill's files, /skills/shwarm/SKILL.md
 app.get('/:slug{[a-z0-9-]+}', (c, next) => {
   const doc = findPage(c.req.param('slug'))
   if (!doc) return next()
-  // An agent asking for text (curl's */* too) gets the page as plain text; a request with no Accept still gets html.
+  // An agent asking for text (curl's */* too) gets the page as plain text; a request with no Accept still gets html, and
+  // so does a link-preview fetcher's */* (web/format.ts).
   const accept = c.req.header('accept')
-  const f = accept === undefined && c.req.query('format') === undefined ? 'html' : pickFormat(c.req.query('format'), accept)
-  c.header('Vary', 'Accept')
+  const f = accept === undefined && c.req.query('format') === undefined ? 'html' : pickFormat(c.req.query('format'), accept, c.req.header('user-agent'))
+  c.header('Vary', 'Accept, User-Agent')
   if (f === 'text') return c.text(docText(pageShown(doc, readingOpen(c.env)), new URL(c.req.url).origin))
   return page(c, DocPage({ page: doc, docs: readingOpen(c.env) }))
 })

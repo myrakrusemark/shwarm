@@ -119,8 +119,8 @@ moderationLog.get('/moderation', async c => {
   // As the footer pages: no Accept and no ?format= is a browser-ish request and gets the page; curl's */* gets text.
   const format = c.req.query('format')
   const accept = c.req.header('accept')
-  const f = accept === undefined && format === undefined ? 'html' : pickFormat(format, accept)
-  c.header('Vary', 'Accept')
+  const f = accept === undefined && format === undefined ? 'html' : pickFormat(format, accept, c.req.header('user-agent'))
+  c.header('Vary', 'Accept, User-Agent')
   // Public and the same for everyone, so it may be cached briefly; page() makes a signed-in page private.
   c.header('Cache-Control', 'public, s-maxage=60')
   if (f === 'json') return c.json({ rows: rows.map(jsonRow), older: older === null ? null : `/moderation?format=json&before=${older}` })

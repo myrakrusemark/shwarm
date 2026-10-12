@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
 import { ROBOTS_DISALLOW, sitemapNodes } from '../src/web/crawl'
 import { PAGES } from '../src/web/doc'
+import { pickFormat, previewFetcher } from '../src/web/format'
 import { READ_BURST, resetReadLimit } from '../src/web/read-limit'
 import { forgetVersions } from '../src/web/version-memo'
 import { T0 } from './d1'
@@ -162,6 +163,50 @@ describe('link previews and canonical links', () => {
     expect(meta(html, 'og:title')).toBe('a &quot;quoted&quot; &lt;b&gt;title&lt;/b&gt;')
     expect(meta(html, 'og:description')).toBe('done when: it says &quot;done&quot; &amp; &lt;i&gt;means it&lt;/i&gt;')
     expect(html).not.toContain('<b>title</b>')
+  })
+
+  // What each service sent, or would send (Oct 12): Cardyb sent no Accept at all to production; the rest */*.
+  const FETCHERS: [string, Record<string, string>][] = [
+    ['Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)', { accept: '*/*' }],
+    ['Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)', { accept: '*/*' }],
+    ['http.rb/5.1.1 (Mastodon/4.3.0; +https://mastodon.social/) Bot', { accept: 'text/html' }],
+    ['Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Bluesky Cardyb/1.1; +mailto:support@bsky.app) Chrome/W.X.Y.Z Safari/537.36', {}],
+    ['Twitterbot/1.0', { accept: '*/*' }],
+    ['facebookexternalhit/1.1', {}],
+  ]
+
+  it('a link-preview fetcher gets the page with its card, not the text prompt, at the bare address', async () => {
+    const w = await stagingWorld()
+    const b = new Browser(testEnv(w.db))
+    for (const [ua, headers] of FETCHERS) {
+      const res = await b.req(`/w/${PLAIN}`, { headers: { ...headers, 'user-agent': ua } })
+      expect(res.headers.get('content-type'), ua).toMatch(/^text\/html/)
+      expect(res.headers.get('vary'), ua).toContain('User-Agent')
+      const html = await body(res)
+      expect(meta(html, 'og:description'), ua).toMatch(/^done when: /)
+      expect(canonical(html), ua).toBe(`https://shwarm.org/w/${PLAIN}`)
+    }
+    // The home page and a footer page, which also answer */* with text.
+    const slack = { accept: '*/*', 'user-agent': FETCHERS[0][0] }
+    expect((await b.req('/', { headers: slack })).headers.get('content-type')).toMatch(/^text\/html/)
+    expect(canonical(await body(await b.req('/rules', { headers: slack })))).toBe('https://shwarm.org/rules')
+  })
+
+  it('an agent still gets the text prompt, and a fetcher gets text or JSON when it asks by name', async () => {
+    const w = await stagingWorld()
+    const b = new Browser(testEnv(w.db))
+    const curl = await b.req(`/w/${PLAIN}`, { headers: { accept: '*/*', 'user-agent': 'curl/8.9.1' } })
+    expect(curl.headers.get('content-type')).toBe('text/plain; charset=utf-8')
+    const ua = FETCHERS[0][0]
+    expect((await b.req(`/w/${PLAIN}`, { headers: { accept: 'text/plain', 'user-agent': ua } })).headers.get('content-type')).toBe('text/plain; charset=utf-8')
+    expect((await b.req(`/w/${PLAIN}?format=json`, { headers: { 'user-agent': ua } })).headers.get('content-type')).toMatch(/^application\/json/)
+    expect(pickFormat(undefined, '*/*', ua)).toBe('html')
+    expect(pickFormat(undefined, 'text/*', ua)).toBe('html')
+    expect(pickFormat(undefined, 'text/plain;q=0.5, */*', ua)).toBe('html') // the wildcard ranks first: nothing named
+    expect(pickFormat(undefined, '*/*;q=0.5, application/json', ua)).toBe('json')
+    expect(pickFormat(undefined, '*/*', 'python-requests/2.32')).toBe('text')
+    expect(previewFetcher('Mozilla/5.0 (X11; Linux x86_64) Firefox/140.0')).toBe(false)
+    expect(previewFetcher(undefined)).toBe(false)
   })
 
   it('footer pages have a canonical link; other pages don’t', async () => {
