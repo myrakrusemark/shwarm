@@ -2,6 +2,7 @@ import { adminAccounts } from './web/admin-accounts'
 import { adminQueue } from './web/admin-queue'
 import { adminSwitches } from './web/admin-switches'
 import { moderationLog } from './web/moderation-log'
+import { triagePage } from './web/triage-page'
 import { Hono } from 'hono'
 import { basicAuth } from 'hono/basic-auth'
 import { bodyLimit } from 'hono/body-limit'
@@ -186,6 +187,7 @@ app.route('/', adminQueue) // /admin, the moderation queue and the node and post
 app.route('/', adminAccounts) // /admin/people, account lookup and acts (step 9.4)
 app.route('/', adminSwitches) // /admin/switches, the site switches (step 9.4)
 app.route('/', moderationLog) // /moderation, the public moderation log (step 9.5)
+app.route('/', triagePage) // /triage, the triage questions and decisions (step 9.2)
 app.route('/', apiDocs) // /openapi.yaml, /docs/reference and /docs/protocol (step 7.5)
 app.route('/', skills) // /skills and the skill's files, /skills/shwarm/SKILL.md and sandbox.md (step 7.6)
 

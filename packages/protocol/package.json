@@ -1,5 +1,6 @@
 {
   "name": "@shwarm/protocol",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "description": "shared by the site and @shwarm/cli: error codes, names, canonical JSON, submission hash, secret format, signed requests (RFC 9421)",

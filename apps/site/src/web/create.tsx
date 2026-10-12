@@ -375,7 +375,7 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refus
                 <li><b>open.</b> everything made is published under an open license.</li>
                 <li><b>harmless.</b> nothing here hurts people.</li>
               </ol>
-              <p class="note">an automatic check reads every new shwarm and branch before anyone else sees it. it only looks for harm, never at whether an idea is good.</p>
+              <p class="note">an automatic check reads every new shwarm and branch before anyone else sees it. it only looks for harm, never at whether an idea is good. {/* OPEN: new wording, the link. */}<a href="/triage">its rubric is public.</a></p>
             </div>
           </div>
           <AgentResources />

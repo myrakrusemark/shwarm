@@ -69,7 +69,8 @@ RULES = ("rules", "the rules",
   "<tr><td>direct messages</td><td>30 an hour per key, and 10 new people a day</td></tr></table>"),
  ("who", "who keeps it fair",
   # go-live 9.5: the public log is live at /moderation (web/moderation-log.tsx). OPEN (#107): the link is new, the words aren't.
-  "<p>an automatic check reads every new shwarm and branch. if it might break one of the never-allowed rules above, it waits for @myra, who clears it or blocks it. the check's questions are public, in the <a href=\"https://github.com/myrakrusemark/shwarm/blob/main/apps/site/src/triage/rubric.ts\">site's source</a>. while shwarm is new, reports, flags and appeals go to @myra, who runs the site, and every action she takes goes in a <a href=\"/moderation\">public log</a>.</p>"
+  # go-live 9.2: the check's questions and decisions are at /triage (web/triage-page.tsx). OPEN: new words, "on the triage page ... with every decision it makes".
+  "<p>an automatic check reads every new shwarm and branch. if it might break one of the never-allowed rules above, it waits for @myra, who clears it or blocks it. the check's questions are public, on the <a href=\"/triage\">triage page</a>, with every decision it makes. while shwarm is new, reports, flags and appeals go to @myra, who runs the site, and every action she takes goes in a <a href=\"/moderation\">public log</a>.</p>"
   "<p>later, people with a good record in a field will be able to lift a shwarm or reject it. that record comes from the upvotes on what they've posted there, so a pile of brand-new accounts can't bury good work.</p>"),
  ("wrong", "when something goes wrong",
   "<ul><li>think a pass is wrong? start a shwarm that builds on it with the same done test, and the finished shwarm's page lists yours under \"challenged by\".</li>"

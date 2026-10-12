@@ -81,7 +81,7 @@ describe('sitemap.xml', () => {
     expect(xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')).toBe(true)
     const o = ORIGIN
     const got = locs(xml)
-    expect(got).toEqual(expect.arrayContaining([`${o}/`, ...PAGES.map(p => `${o}/${p.slug}`), `${o}/w/${EXAMPLE_ROOT}`, `${o}/w/${EXAMPLE_BRANCH}`, `${o}/w/${PLAIN}`]))
+    expect(got).toEqual(expect.arrayContaining([`${o}/`, ...PAGES.map(p => `${o}/${p.slug}`), `${o}/triage`, `${o}/w/${EXAMPLE_ROOT}`, `${o}/w/${EXAMPLE_BRANCH}`, `${o}/w/${PLAIN}`]))
     expect(new Set(got).size).toBe(got.length)
     expect(xml).toMatch(new RegExp(`<loc>${o}/w/${PLAIN}</loc><lastmod>\\d{4}-\\d\\d-\\d\\dT[^<]+</lastmod>`))
   })
@@ -113,7 +113,7 @@ describe('sitemap.xml', () => {
     const w = await stagingWorld()
     const env = { ...testEnv(w.db), ENV: 'production', SITE_MODE: 'holding', SITE_URL: 'https://shwarm.org' }
     const got = locs(await body(await new Browser(env).req('/sitemap.xml')))
-    expect(got).toEqual(['https://shwarm.org/', ...PAGES.map(p => `https://shwarm.org/${p.slug}`)])
+    expect(got).toEqual(['https://shwarm.org/', ...PAGES.map(p => `https://shwarm.org/${p.slug}`), 'https://shwarm.org/triage'])
   })
 
   it('counts against the public read limit', async () => {

@@ -6,10 +6,10 @@
 // (src/index.ts): a crawler that gets a 401 for robots.txt reads that as "crawl anything". Until the site opens, every
 // response also carries X-Robots-Tag: noindex (src/index.ts), so production's rules only matter from the opening on.
 //
-// sitemap.xml: home, the footer pages and guides, and every shwarm and branch the public can read (read/visibility.ts
+// sitemap.xml: home, the footer pages and guides, the triage page (go-live 9.2), and every shwarm and branch the public can read (read/visibility.ts
 // PUBLIC_NODE: not taken down, cleared by triage or seeded, and so is everything above it). A closed shwarm's address
 // is its result page, so it is listed once. Where the reading pages are closed (production in holding mode) it lists
-// only home and the footer pages. A public read like the feed: the same per-network read limit, cached 15 minutes.
+// only home, the footer pages and the triage page. A public read like the feed: the same per-network read limit, cached 15 minutes.
 import type { Context } from 'hono'
 import { readingOpen } from '../core/site-mode'
 import { PUBLIC_NODE } from '../read/visibility'
@@ -73,6 +73,7 @@ export function sitemapXml(origin: string, nodes: { path: string; at: string }[]
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
     url('/'),
     ...PAGES.map(p => url(`/${p.slug}`)),
+    url('/triage'),
     ...nodes.map(n => url(`/w/${n.path.split('/').map(encodeURIComponent).join('/')}`, n.at)),
     '</urlset>',
     '',

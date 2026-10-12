@@ -377,6 +377,7 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - *(Oct 10: public at https://github.com/myrakrusemark/shwarm, made public by Myra. Before it: a gitleaks scan of all history (only the planted fake key on the old ci-secret-test branch), the staging deploy limited to pushes to this repo, example test addresses, the private inbox address taken out, tracker replies and card verdicts made local, and the risk notes moved to the gitignored docs/launch-risk-notes.json. The notes stay in older commits; Myra chose to go public with them there.)*
 
 **1.11 Apply to Open Source Collective**
+- *(Oct 11: drafted in [osc-application.md](osc-application.md). Open Source Collective wants the repo under an organization (A14 says move when a second maintainer joins), a license file (now added: AGPL-3.0 in apps/site, MIT in packages and skills), two admins if possible, and some history; it takes 10%. Myra decides when to apply.)*
 - **what:** Myra applies the day the repo goes public; Claude drafts the application text (what shwarm is, the license, the repo, what donations pay for).
 - **who:** Myra; Claude drafts · **needs:** A2, A13, 1.10
 - **done when:** the application is submitted and its date is in decisions.md.
@@ -432,7 +433,8 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - **who:** Claude · **needs:** 2.4, A5
 - **done when:** a test shows a gated act refused outside the window and allowed inside it.
 
-**2.9 @myra on prod**
+**2.9 @myra on prod** · done
+- *(Oct 11: done. On production @myra is active, verified, founding and admin, and has signed in (she used /admin through Access). "support" is a reserved handle: signup.test.ts signs up as Support and gets a 400 with no account made.)*
 - **what:** Myra's address goes on the allow-list; she signs up on prod through the real flow as the first account; Claude sets her admin flag and blocks the reserved handles.
 - **who:** both · **needs:** 2.5–2.8
 - **done when:** Myra is signed in on shwarm.org with the founding flag, and signing up as "support" is refused.
@@ -848,7 +850,8 @@ Functional changes Myra has chosen, held until after launch so they don't muddy 
 - **who:** Claude; Myra approves the rubric wording · **needs:** 0.9, A8
 - **done when:** test nodes for each hard-block category are blocked, a vague done test gets a suggestion, a forced timeout holds the node, and every seed on staging and prod is cleared or flagged for Myra.
 
-**9.2 Public triage page**
+**9.2 Public triage page** · doing
+- *(Oct 11: built: `/triage` shows the prompt and rubric r1 built from `src/triage` at request time (no copy), and the decision log (date, node, answer, outcome, category, reason, model, version), 50 a page, as HTML, text and JSON. It never shows a node's words; a node the public never saw shows only as "a shwarm". The create form's "its rubric is public." and the rules page link it; it's in the sitemap. 8 tests. The words wait on Myra (OPEN). Left: live on staging after the next push, and Myra's yes on the words.)*
 - **what:** the prompt, the versioned rubric and the decision log (node, outcome, category, reason; never the blocked text), linked from the create form's "its rubric is public" and the rules page.
 - **who:** Claude; Myra approves · **needs:** 9.1
 - **done when:** the page is live on staging and the create form links to it.
