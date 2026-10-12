@@ -22,7 +22,8 @@ main .box + .box { margin-top: 18px; }
 .grp li { padding: 2px 0; display: flex; gap: 8px; }
 .reset .ck { opacity: .4; }
 .hist { list-style: none; margin: 0; padding: 0; font-size: 12.5px; }
-.hist li { padding: 6px 12px; border-bottom: 1px dashed rgba(19,38,27,.3); display: flex; justify-content: space-between; gap: 8px; }
+.hist li { padding: 6px 12px; border-bottom: 1px dashed rgba(19,38,27,.3); display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.hist li .stp { flex-shrink: 0; }
 .hist li:last-child { border-bottom: 0; }
 @media (max-width: 860px) { .sub-head { grid-template-columns: 1fr; } }
 

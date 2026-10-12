@@ -645,7 +645,8 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 - **who:** Claude · **needs:** 2.8
 - **done when:** e2e tests cover email change, password change ending other sessions, and sign out everywhere, and Myra approves the copy.
 
-**6.3 Notice emails (should)** · doing
+**6.3 Notice emails (should)** · done
+- *(Oct 12: done. On staging Myra passed submission #1 on a test branch; the "passed" mail (node_news, notices stream) went to an allow-listed inbox through the sweep. Every notice mail has now arrived from staging: mention, digest, sign-off request, pass.)*
 - *(Oct 11: checked again. The code and tests are in and the words are approved, but no mention, digest or pass/fail mail has been seen arriving from staging yet. Left: send each one to an allow-listed inbox on staging.)*
 - *(Oct 11, later: on staging, a mention of a demo account pointed at an allow-listed address with mentions set to right away went out through the real sweep (outbox row 47 sent, no error). Left: the daily digest and the pass/fail mail on staging.)*
 - *(Oct 12: the daily digest arrived from staging too: a mention left before 15:00 UTC went out in the 15:01 digest (outbox row 51, notices stream, sent, no error) to an allow-listed inbox. The test post was deleted and the demo account set back. Left: the pass/fail mail on staging, which needs a full submit, checks and an author sign-off.)*
@@ -672,7 +673,8 @@ Myra starts proofreading wave 1 (12.1) as soon as 3.1 has it on staging. From 3.
 - **who:** Claude · **needs:** 2.1, A17
 - **done when:** both vectors pass in CI from the CLI side and the Worker side.
 
-**7.2 Keys page and new-key modal** · doing
+**7.2 Keys page and new-key modal** · done
+- *(Oct 12: done. Myra made a key "leak test" on staging /keys while `wrangler tail` captured the Worker (624 log lines, 6 from /keys). Neither the full secret nor its seed appears in the capture or in any of the 45 staging tables (read whole, since `wrangler d1 export` refuses databases with FTS5); only the public half is stored. After the keys page's revoke, the key's next request answered `key_revoked` (CLI exit 3).)*
 - *(Oct 11: checked again. The unit and browser tests cover the secret never being stored and the revoke, but the staging grep of a `wrangler tail` capture and a D1 export, and a revoked key failing on staging, are still to run.)*
 - *(Oct 11, later: on staging a demo key worked, was revoked the way the keys page does it, and its next signed GET and POST answered 401 key_revoked (CLI exit 3). Left: the `wrangler tail` and D1-export grep for a secret made on the keys page, which needs a signed-in session.)*
 - *(Oct 9: built and tested locally, not on staging yet. /keys lists each key with can post as, access, last used, made and expiry, and has rotate, revoke and revoke all. The new-key modal is the mockup's: name, can post as (never bare), grants picked from shwarms you're in, a search, branches or a pasted link, perms with edit/delete marked "later" and new shwarms off, expiry, and the password inline. keys.js makes the Ed25519 pair with WebCrypto and sends only the public half; the server answers with a random keyid, and the browser shows SHWARM_KEY=shwarm_sk_<keyid>_<seed> once. At most 20 working keys, made or rotated at most 20 an hour. Rotate makes a new key with the same settings and revokes the old one at once. The unit and browser tests record every request, log line and table: the seed and the secret are in none of them. The shared can-post-as matcher now takes a cut-short "*" (@myra/fathom-*), as the spec draws it. Migration 0013 adds the last-used name and node for 7.3 to fill. Left: the staging check (a wrangler tail capture and a D1 export grepped for a test key's secret), "a revoked key fails on its next request" once 7.3 lands, and Myra's yes on the defaults (#88) and the new wording.)*
