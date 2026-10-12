@@ -1,0 +1,316 @@
+[
+ {
+  "slug": "bot-beats-freedoom",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "checked_by.runs.command",
+    "old": "prints whether the exit was reached and the time)",
+    "new": "prints whether the exit was reached and the time, and exits 0 only when all eight demos reach the exit)",
+    "why": "states the pass rule; replay.py ships with the submission, so the rule has to be in the words."
+   },
+   {
+    "field": "checked_by.people.instructions",
+    "old": "flag any wall clipping, god mode or other cheat",
+    "new": "note any wall clipping, god mode or other cheat",
+    "why": "\"flag\" is also the site's moderation button. optional: this check is for a human, so the audit's own explain-one-ai-proof call would let \"flag\" stand."
+   }
+  ]
+ },
+ {
+  "slug": "kart-race-on-the-moon",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "license (site edit; the card has no license field)",
+    "old": "MIT+CC-BY-4.0",
+    "new": "CC-BY-SA-4.0",
+    "why": "the done test needs the track under cc-by-sa 4.0, and supertuxkart's licensing page lists cc-by-sa 4.0 first among the licenses it takes for art (checked: supertuxkart.net/Licensing). cc-by-sa 4.0 is on the A2 list, so it can be picked directly. other way: drop \"under cc-by-sa 4.0\" from done_when and keep the default."
+   }
+  ],
+  "note": "builds_on: no change. a node holds one upstream and takes its license; supertuxkart's code is gpl-3.0-or-later (checked: stk-code COPYING), so making it the structured builds_on would make the shwarm gpl-3.0 and clash with the cc-by-sa track. keep the text in the pinned post and set the license as above. the lroc dtm's license is not verified."
+ },
+ {
+  "slug": "minecraft-in-doom",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "checked_by.runs.command",
+    "old": "prints min and average fps)",
+    "new": "prints min and average fps, and exits non-zero if the minimum is under 60)",
+    "why": "pass rule for bench.sh: the done test says it holds 60 fps."
+   },
+   {
+    "field": "checked_by.runs.command",
+    "old": "prints whether each reached the exit)",
+    "new": "prints whether each reached the exit, and exits non-zero if any map's demo doesn't)",
+    "why": "pass rule for demos.sh."
+   },
+   {
+    "field": "checked_by.runs.command",
+    "old": "lists, per map, any wall that isn't built from blocks or can't be dug out)",
+    "new": "lists, per map, any wall that isn't built from blocks or can't be dug out, and exits non-zero with fewer than 10 recipes, fewer than 4 new monster classes, or any wall listed)",
+    "why": "pass rule for audit.sh, from the done test's numbers."
+   },
+   {
+    "field": "checked_by.runs.command",
+    "old": "./license-scan.sh mcdoom.pk3",
+    "new": "./license-scan.sh mcdoom.pk3 (exits non-zero if any file in the mod isn't from freedoom or under an open license)",
+    "why": "license-scan.sh had no description at all, so production shows nothing for it."
+   }
+  ],
+  "note": "builds_on: no change. a node holds one upstream (protocol §8), so freedoom (bsd-3-clause, checked) can't sit beside uzdoom (gpl-3.0, checked) in the structured field; it stays named in the pinned post, and the done test already asks for only freedoom and open assets."
+ },
+ {
+  "slug": "a-seismometer-in-1000-homes",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "checked_by.runs.command",
+    "old": "and counts live stations, homes and countries)",
+    "new": "and counts live stations, homes and countries; it exits 0 only at 1000 or more homes in 20 or more countries and 20 or more matched magnitude 4+ quakes, each seen at 2 or more stations within 60 seconds of usgs's origin time)",
+    "why": "pass rule, from the done test."
+   }
+  ]
+ },
+ {
+  "slug": "the-hand-drawn-world",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "checked_by.runs.command",
+    "old": "30 drawings, 30 people, 5 countries, open licenses)",
+    "new": "30 drawings, 30 people, 5 countries, open licenses; it exits 0 only when every count is met and each drawing's average error is under 25 meters)",
+    "why": "optional. the audit found only the template gap (A6, no license line for odbl), but this is the same missing pass rule as the others."
+   }
+  ]
+ },
+ {
+  "slug": "where-am-i-ask-the-birds",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "done_when",
+    "old": "hidden from the model until scoring,",
+    "new": "hidden from the model until scoring by a scorer who builds no model here, named in the thread before recording starts, who posts the set's sha256 when collecting closes,",
+    "why": "says who gathers and holds the hidden set. this is a proposal, not a decision: the other way is a branch \"gather and hold the hidden set\". the people check already asks to confirm it."
+   },
+   {
+    "field": "checked_by.runs.command",
+    "old": "checks that the model's sha256 was posted before the hidden set was released to the scorer run)",
+    "new": "checks that the model's sha256 was posted before the hidden set was released to the scorer run; it exits 0 only when the median error is under 500 km over at least 200 recordings by at least 50 people in at least 20 countries)",
+    "why": "pass rule, from the done test."
+   }
+  ]
+ },
+ {
+  "slug": "trappist-1-blind-search",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "checked_by.runs.command",
+    "old": "python check_periods.py",
+    "new": "python check_periods.py (compares the seven periods the notebook found with luger et al. 2017, and exits 0 only when all seven are within 0.1%)",
+    "why": "the run had no description, so check_periods.py was unexplained. the words in brackets become runs.description on import."
+   }
+  ]
+ },
+ {
+  "slug": "heesch-number-7",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "checked_by.runs.command",
+    "old": "./sat -show -maxlevel 9 tile.txt -o out.txt && ./report out.txt",
+    "new": "./sat -show -maxlevel 9 tile.txt -o out.txt && ./report out.txt | grep -Eq 'with Hc = ([7-9]|[1-9][0-9])$' (sat and report are heesch-sat's own tools; this exits 0 only when report lists a non-tiler with a hole-free heesch number of at least 7)",
+    "why": "the audit was wrong that ./report isn't part of heesch-sat: it is (src/report.cpp, and the readme shows its output, e.g. \"1 with Hc = 2\"). what was missing is the pass rule; report always exits 0, so the grep makes it fail below 7. -maxlevel 9 is above the 8 coronas needed to tell 7 apart from inconclusive."
+   }
+  ]
+ },
+ {
+  "slug": "beat-one-bound-in-taos-table",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "checked_by.runs.command",
+    "old": "python3 verify.py certificate.json   # the submission's own checker; must print the new bound",
+    "new": "gh pr view <the pull request's url> --json state --jq .state | grep -qx MERGED && python3 verify.py certificate.json   # verify.py is the submission's own checker; it prints the new bound and exits 0 only when the certificate gives a bound better than the table's",
+    "why": "the done test needs the pull request merged, and nothing checked that. gh pr view takes a pull request url."
+   },
+   {
+    "field": "why_now",
+    "old": "the table is nine months old and still getting fresh records",
+    "new": "the table started in january 2026 and is still getting fresh records",
+    "why": "\"nine months old\" goes out of date. tao's announcement is dated jan 22, 2026 (from the source url). why_now isn't locked, so this can change any time."
+   },
+   {
+    "field": "builds_on",
+    "old": "teorth/optimizationproblems, https://github.com/teorth/optimizationproblems",
+    "new": "teorth/optimizationproblems (apache 2.0) https://github.com/teorth/optimizationproblems",
+    "why": "optional, same pattern as latexml and libreoffice: a merged pull request goes in under the repo's license, apache-2.0 (checked on github), not the default mit + cc by 4.0. production's builds_on is null today because the text names no license."
+   }
+  ]
+ },
+ {
+  "slug": "beat-the-open-solar-forecast",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "done_when",
+    "old": "scores at least 10% lower overall mae than the current default gradient boosting model on scripts/run_evaluation.py, using no data from after forecast time.",
+    "new": "scores at least 10% lower overall mae than the default gradient boosting model at commit c07ad74 (0.1906 kw in its readme), so under 0.1715 kw on the first \"MAE:\" line scripts/run_evaluation.py prints, using no data from after forecast time.",
+    "why": "pins the moving baseline. c07ad7402598979a7cd3c2eab7430098a3d56e78 is main's head today (sep 6, 2026), and its readme gives 0.1906 kw across all horizons (both checked)."
+   },
+   {
+    "field": "checked_by.runs.command",
+    "old": "git clone <fork> && cd open-source-quartz-solar-forecast && pip install -e . && python scripts/run_evaluation.py",
+    "new": "git clone <fork> && cd open-source-quartz-solar-forecast && pip install -e . && python scripts/run_evaluation.py | tee eval.txt && awk '/^MAE:/ && !n {m=$2; n=1} END {exit !(n && m < 0.1715)}' eval.txt",
+    "why": "run_evaluation.py always exits 0 and prints \"MAE: <x> kw\" twice (night included first, then without); the awk fails unless the first one is under 0.1715. it also fails if no MAE line was printed."
+   },
+   {
+    "field": "checked_by.people",
+    "old": null,
+    "new": {
+     "count": 1,
+     "human": false,
+     "instructions": "read the pull request's feature and data code and confirm no input uses data timestamped after the forecast time. note anything that does."
+    },
+    "why": "\"no data from after forecast time\" was in the done test but nothing checked it. human: false is a guess; Myra picks."
+   }
+  ]
+ },
+ {
+  "slug": "light-up-grey-zones",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "done_when",
+    "old": "parsers for five zones that show no live data today",
+    "new": "parsers for five zones that showed no live data on 2026-10-10, the day this shwarm opened,",
+    "why": "\"today\" moves. 2026-10-10 is the open date on production. a list of which zones were grey that day would make it firmer; i didn't make one."
+   },
+   {
+    "field": "checked_by.runs.command",
+    "old": "uv run test_parser <ZONE_KEY>  # once per zone",
+    "new": "for z in <the five zone keys named in the submission>; do uv run test_parser \"$z\" || exit 1; done",
+    "why": "runs all five in one command. test_parser raises on a bad result (checked in test_parser.py), so it exits non-zero. cloning master already shows the parsers are merged."
+   }
+  ]
+ },
+ {
+  "slug": "pfas-in-your-tap",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "done_when",
+    "old": "every water system in the final ucmr 5 release is either joined to a polygon in epa's water system service area boundaries, version 3.0,",
+    "new": "every water system in the final ucmr 5 release (ucmr5-occurrence-data.zip, sha256 ff8a6bf937823cdd75295d02f662966e8473eececb47190c406b9de53b2b6389) is either joined to a polygon in epa's water system service area boundaries, the 3_0 folder of github.com/USEPA/ORD_SAB_Model at commit 7cc92a9538d7fe9762bce5c59361dd55cb56ffa4,",
+    "why": "the repo calls 3_0 both \"3.0\" and \"3.1\", and epa reuses the zip's path, so pin both. the commit exists (sep 24, 2026, checked on github); the zip's sha256 is from @myra/claude's post in the thread, not re-checked here."
+   },
+   {
+    "field": "checked_by.runs.command",
+    "old": "python join_check.py --ucmr5 final --sab v3.0",
+    "new": "python join_check.py --ucmr5 final --sab v3.0 (join_check.py ships with the submission; it joins every system in the pinned ucmr 5 file to the pinned 3_0 boundaries and exits 0 only when each one is joined or listed as unmatched with a reason)",
+    "why": "answers the thread's question about where join_check.py comes from, and states the pass rule."
+   }
+  ]
+ },
+ {
+  "slug": "where-the-grocery-stores-went",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "checked_by.runs.count",
+    "old": 1,
+    "new": 2,
+    "why": "the done test says two people rerun to identical counts. one slot per person per submission makes the two runs two different people."
+   },
+   {
+    "field": "checked_by.runs.command",
+    "old": "python build_counts.py && sha256sum out/county_year.csv",
+    "new": "python build_counts.py && echo \"<the sha256 posted in the submission>  out/county_year.csv\" | sha256sum -c -",
+    "why": "sha256sum alone always exits 0. sha256sum -c fails when the rebuilt table differs from the submitted one."
+   }
+  ]
+ },
+ {
+  "slug": "caption-vital-article-videos",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "done_when",
+    "old": "all 202 videos used in the level-3 vital articles have an english timed text track on wikimedia commons, or a note that the clip has no speech plus a one-line description.",
+    "new": "all 202 videos the level-3 vital articles used on 2026-10-10 have an english timed text track on wikimedia commons, or, on the file's commons page, a note that the clip has no speech plus a one-line description.",
+    "why": "says where the note goes and fixes the list in time. 2026-10-10 is the open date; i couldn't check that the count was 202 on that date, so whoever counted it should confirm (or the submission posts the list it used)."
+   }
+  ]
+ },
+ {
+  "slug": "teach-latexml-25-packages",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "checked_by.runs.command",
+    "old": "gh search issues --repo brucemiller/LaTeXML --label packages --state closed --closed '>=START_DATE' --json number | jq length",
+    "new": "test \"$(gh search issues --repo brucemiller/LaTeXML --label packages --state closed --closed '>=2026-10-10' --limit 100 --json number --jq length)\" -ge 25",
+    "why": "START_DATE was never set (2026-10-10 is the open date), and jq length always exits 0. test fails below 25. gh's own --jq drops the jq dependency. the \"packages\" label exists (checked)."
+   },
+   {
+    "field": "checked_by.people.instructions",
+    "old": "for each closed issue, run latexml",
+    "new": "for each closed issue, confirm it was closed by a merged pull request from someone in this shwarm, then run latexml",
+    "why": "the search counts every closed issue; \"by merged pull requests from the crew\" is checked here."
+   },
+   {
+    "field": "license (site edit; the card has no license field)",
+    "old": "MIT+CC-BY-4.0",
+    "new": "CC0-1.0",
+    "why": "latexml's LICENSE says it is in the public domain (nist work) and \"may be considered equivalent to\" cc0 (checked). merged work takes latexml's terms. the import passes nothing on from \"public domain\", so this has to be picked on the site edit. Myra decides."
+   }
+  ]
+ },
+ {
+  "slug": "all-of-linux-in-rust",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "done_when",
+    "old": "listed when the shwarm opens,",
+    "new": "listed in this shwarm's pinned post of the frozen list with its sha256,",
+    "why": "the list was never posted. post the pkgstats top-100 snapshot as text with its sha256 first, then put that sha256 in place of the words. i couldn't check whether pkgstats keeps dated snapshots, so the list will be as of the day it's posted, not opening day."
+   },
+   {
+    "field": "builds_on",
+    "old": "asterinas https://github.com/asterinas/asterinas and the uutils tools https://github.com/uutils",
+    "new": {
+     "name": "asterinas",
+     "url": "https://github.com/asterinas/asterinas",
+     "license": "MPL-2.0"
+    },
+    "why": "asterinas is mpl-2.0 (checked; uutils/coreutils is mit). a node holds one upstream, and the kernel is the core of it. catch: mpl-2.0 isn't on the A2 list or the import's open-upstream list (launch.ts marks that list OPEN), so the seed import refuses it; the site's edit form takes it. needs Myra's yes on mpl-2.0 as an open upstream license."
+   }
+  ]
+ },
+ {
+  "slug": "libreoffice-screen-reader-labels",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "checked_by.runs.command",
+    "old": "cat lo/solenv/sanitizers/ui/*.suppr lo/solenv/sanitizers/ui/modules/*.suppr | wc -l   # pass: under 1700",
+    "new": "test \"$(cat lo/solenv/sanitizers/ui/*.suppr lo/solenv/sanitizers/ui/modules/*.suppr | wc -l)\" -lt 1700",
+    "why": "the old one only printed the count. both globs match files on master today (checked)."
+   },
+   {
+    "field": "builds_on",
+    "old": "libreoffice, https://git.libreoffice.org/core",
+    "new": {
+     "name": "libreoffice",
+     "url": "https://git.libreoffice.org/core",
+     "license": "MPL-2.0"
+    },
+    "why": "libreoffice.org/about-us/licenses: \"made available subject to the terms of the Mozilla Public License v2.0\" (checked). same catch as asterinas: mpl-2.0 needs Myra's yes, and only the site edit takes it today."
+   }
+  ]
+ }
+]
