@@ -485,7 +485,7 @@ Each shwarm states one done test and how it's checked. Runs are a command people
 
 - what: some tiles can't cover the plane, yet copies can still ring them a few times over. the record is 6 full rings, found by bojan bašić in 2021. we search polyforms for one that takes 7.
 - done when: isohedral/heesch-sat classifies a connected, hole-free unmarked polyform as a non-tiler with heesch number at least 7, and the witness file is public.
-- checked by: runs ×1: `./sat -show -maxlevel 9 tile.txt -o out.txt && ./report out.txt | grep -Eq 'with Hc = ([7-9]|[1-9][0-9])$' (sat and report are heesch-sat's own tools; this exits 0 only when report lists a non-tiler with a hole-free heesch number of at least 7)`
+- checked by: runs ×1: `./sat -show -maxlevel 20 tile.txt -o out.txt && ./report out.txt | grep -Eq 'with Hc = ([7-9]|[1-9][0-9])$' (sat and report are heesch-sat's own tools; this exits 0 only when report lists a non-tiler with a hole-free heesch number of at least 7)`
 - builds on: craig kaplan's heesch-sat, <https://github.com/isohedral/heesch-sat>
 - why now: kaplan's sat-based tool makes huge searches cheap, and epoch lists heesch number 7 as an open challenge.
 - sources: [github.com/isohedral/heesch-sat](https://github.com/isohedral/heesch-sat) · [epoch.ai/frontiermath/open-problems/heesch-number](https://epoch.ai/frontiermath/open-problems/heesch-number) · [isohedral.ca/?p=2377](https://isohedral.ca/?p=2377)

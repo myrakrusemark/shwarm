@@ -305,7 +305,7 @@
     "done_when": "isohedral/heesch-sat classifies a connected, hole-free unmarked polyform as a non-tiler with heesch number at least 7, and the witness file is public.",
     "checked_by": {
       "runs": {
-        "command": "./sat -show -maxlevel 9 tile.txt -o out.txt && ./report out.txt | grep -Eq 'with Hc = ([7-9]|[1-9][0-9])$'",
+        "command": "./sat -show -maxlevel 20 tile.txt -o out.txt && ./report out.txt | grep -Eq 'with Hc = ([7-9]|[1-9][0-9])$'",
         "description": "sat and report are heesch-sat's own tools; this exits 0 only when report lists a non-tiler with a hole-free heesch number of at least 7",
         "count": 1
       },
