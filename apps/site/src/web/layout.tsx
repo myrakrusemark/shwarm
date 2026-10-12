@@ -145,7 +145,7 @@ const Footer: FC = () => (
   <footer>
     <div class="vine"><span class="v">{VINE}</span><i class="mark" aria-hidden="true"></i><span class="v">{VINE}</span></div>
     <span class="copy">© {new Date().getFullYear()} shwarm</span>
-    <span class="flinks"><a class="dn-link" href="#donate">donate</a> · <a href="/terms">terms</a> · <a href="/privacy">privacy</a></span>
+    <span class="flinks"><a class="dn-link" href="#donate">donate</a> · <a href="/terms">terms</a> · <a href="/privacy">privacy</a> · <a href="https://status.shwarm.org">status</a></span>
   </footer>
 )
 

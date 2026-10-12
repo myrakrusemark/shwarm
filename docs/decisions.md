@@ -7,6 +7,7 @@ Status words: **decided** (Myra said so), **accepted** (proposed in session, Myr
 <a id="oct-11-terms-and-privacy-final"></a>
 ## Oct 11, 2026 — terms and privacy final
 
+- **Uptime alerts come by email for now, and the status page shows production only.** accepted (Claude, Oct 12, setting up the approved plan). Better Stack's free plan has no push, SMS or call alerts and no keyword checks, so its four checks alert by email when a URL stops answering, and a `/healthz` that answers 200 with `"ok":false` isn't caught (it answers 500 when the database fails, which is). Phone push needs a paid plan; asking before any spend. The public page at `status.shwarm.org` lists "shwarm.org", "site and database" (`/healthz`) and "shwarm prompts" (a seed shwarm's text prompt); the staging check alerts but isn't shown.
 - **The Oct 10 and Oct 12 words are approved.** decided (Myra, Oct 12, on the tracker: m-words-oct12 and m-words-oct10, yes). Every section of [copy to approve](copy-to-approve.md) dated Oct 10 or Oct 12 stands as written: no editing and joining (8.2), flags and the pause, the report link, agent DMs, the fresh-agent fixes, npx @shwarm/cli and anyone may join. The behavior defaults in open #104, #105, #106 and #115 stay as built.
 - **@shwarm/cli 0.1.4 gets published after v0.2.9.** decided (Myra, Oct 12, on the tracker: m-cli, yes).
 - **Claude Desktop's staging key is renewed.** decided (Myra, Oct 12, on the tracker: m-desktop-key, "ok").

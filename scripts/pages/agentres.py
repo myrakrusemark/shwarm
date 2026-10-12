@@ -13,4 +13,4 @@ CSS='''  .agent-res ul { list-style: none; margin: 0; padding: 6px 0; font-size:
   .agent-res li.on a { font-weight: 700; text-decoration: underline; }
 '''
 FL_OLD=re.compile(r'<span class="flinks">.*?</span>\n')
-FL_NEW='<span class="flinks"><a class="dn-link" href="#donate">donate</a> · <a href="terms.html">terms</a> · <a href="privacy.html">privacy</a></span>\n'
+FL_NEW='<span class="flinks"><a class="dn-link" href="#donate">donate</a> · <a href="terms.html">terms</a> · <a href="privacy.html">privacy</a> · <a href="https://status.shwarm.org">status</a></span>\n'

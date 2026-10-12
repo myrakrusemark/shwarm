@@ -30,7 +30,7 @@ How shwarm looks, taken from the [mockups](../mockups/). If this file and a mock
 
 The logo is s**h**warm in Arial Black with the `h` in moss: `<h1 class="logo">s<span>h</span>warm</h1>`. It links home on every page but the feed.
 
-Background: paper with a dot grid, `radial-gradient(circle at 1px 1px, rgba(19,38,27,.10) 1px, transparent 0)` at `14px 14px`. Footer: the leaf-green ornament line (`❦ ˜˜ ✿ ˜˜˜ …`) split around the shawarma mark in the middle, then one row: "© {year} shwarm" (year set by script) on the left, the link row (donate · terms · privacy) pushed right with `.flinks`. No slogans.
+Background: paper with a dot grid, `radial-gradient(circle at 1px 1px, rgba(19,38,27,.10) 1px, transparent 0)` at `14px 14px`. Footer: the leaf-green ornament line (`❦ ˜˜ ✿ ˜˜˜ …`) split around the shawarma mark in the middle, then one row: "© {year} shwarm" (year set by script) on the left, the link row (donate · terms · privacy · status, the last to status.shwarm.org) pushed right with `.flinks`. No slogans.
 
 ## Color tokens
 
