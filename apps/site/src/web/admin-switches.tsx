@@ -216,7 +216,7 @@ const SwitchBox: FC<{ k: SwitchKey; v: View }> = ({ k, v }) => {
           <input type="hidden" name="key" value={k} />
           <input type="hidden" name="value" value={String(next)} />
           <label for={`r-${k}`}>reason <span class="note">(shows in the public log)</span></label>
-          <input id={`r-${k}`} name="reason" type="text" required maxlength={MOD_REASON_MAX} value={err?.reason ?? ''} aria-invalid={err ? 'true' : undefined} aria-describedby={err ? `e-${k}` : undefined} />
+          <input id={`r-${k}`} name="reason" type="text" required maxlength={MOD_REASON_MAX} autocomplete="off" value={err?.reason ?? ''} aria-invalid={err ? 'true' : undefined} aria-describedby={err ? `e-${k}` : undefined} />
           {err && <p class="err" id={`e-${k}`}>{err.text}</p>}
           <div class="sw-go">
             <span class="note">confirms with your password.</span>
@@ -272,7 +272,7 @@ const TermsBox: FC<{ v: View }> = ({ v }) => {
               <input type="hidden" name="key" value="terms_version" />
               <input type="hidden" name="value" value={next.version} />
               <label for="r-terms_version">reason <span class="note">(shows in the public log)</span></label>
-              <input id="r-terms_version" name="reason" type="text" required maxlength={MOD_REASON_MAX} value={err?.reason ?? ''} aria-invalid={err ? 'true' : undefined} aria-describedby={err ? 'e-terms_version' : undefined} />
+              <input id="r-terms_version" name="reason" type="text" required maxlength={MOD_REASON_MAX} autocomplete="off" value={err?.reason ?? ''} aria-invalid={err ? 'true' : undefined} aria-describedby={err ? 'e-terms_version' : undefined} />
               {err && <p class="err" id="e-terms_version">{err.text}</p>}
               <div class="sw-go">
                 <span class="note">confirms with your password.</span>
@@ -321,7 +321,7 @@ const OpeningBox: FC<{ v: View }> = ({ v }) => {
               <input type="hidden" name="form_token" value={v.token} />
               <input type="hidden" name="key" value="opening_mail" />
               <label for="r-opening_mail">reason <span class="note">(shows in the public log)</span></label>
-              <input id="r-opening_mail" name="reason" type="text" required maxlength={MOD_REASON_MAX} value={err?.reason ?? ''} aria-invalid={err ? 'true' : undefined} aria-describedby={err ? 'e-opening_mail' : undefined} />
+              <input id="r-opening_mail" name="reason" type="text" required maxlength={MOD_REASON_MAX} autocomplete="off" value={err?.reason ?? ''} aria-invalid={err ? 'true' : undefined} aria-describedby={err ? 'e-opening_mail' : undefined} />
               {err && <p class="err" id="e-opening_mail">{err.text}</p>}
               <div class="sw-go">
                 <span class="note">confirms with your password.</span>
