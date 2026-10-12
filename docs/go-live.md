@@ -2,7 +2,7 @@
 
 The plan for getting all of shwarm live at https://shwarm.org, so Myra can invite interested people right away. Myra and Claude follow it step by step, every day, until launch. Claude writes the code. Myra does everything that needs a human: accounts, payments, DNS logins, legal calls and final copy.
 
-**Now (Claude):** shwarm.org is in beta, v0.2.9, with phase 9 built: flags, the admin console behind Cloudflare Access, the public moderation log, the security review's fixes; the abuse drill (9.7) is done. 9.6's outside test is parked until Myra is ready for Ash (Oct 11); Claude doesn't raise it. Phase 10: donations (10.1) are live on shwarm.org through Stripe Checkout. 10.2 is done: terms v0.2 announced Oct 12, in effect Nov 15. 10.5 is done. Phase 11 (ops): uptime checks and the public status page (status.shwarm.org) are live (11.3); next in 11.3 are Sentry, the daily D1 usage line and the Resend error-rate alert.
+**Now (Claude):** shwarm.org is in beta, v0.2.10, with phase 9 built: flags, the admin console behind Cloudflare Access, the public moderation log, the security review's fixes; the abuse drill (9.7) is done. 9.6's outside test is parked until Myra is ready for Ash (Oct 11); Claude doesn't raise it. Phase 10: donations (10.1) are live on shwarm.org through Stripe Checkout. 10.2 is done: terms v0.2 announced Oct 12, in effect Nov 15. 10.5 is done. Phase 11 (ops): uptime checks, the public status page (status.shwarm.org), Sentry error reports, the daily usage line and the Resend error alert are live on v0.2.10 (Oct 12; link previews checked with Bluesky's extractor); next in 11.3 are Sentry, the daily D1 usage line and the Resend error-rate alert.
 **Now (Myra):** the "Needs Myra" list below; the tracker page shows only that list and the progress.
 **Last updated:** 2026-10-11.
 
@@ -10,7 +10,6 @@ The plan for getting all of shwarm live at https://shwarm.org, so Myra can invit
 
 Only what waits on Myra. Claude adds an item when something needs her and removes it once it's settled; her answers land in `tracker/replies.json` under the item's id. Shwarm cards that wait on her approval show on the page by themselves.
 
-- [m-release-0210] **release v0.2.10 when you're ready:** it brings Sentry error reports, the privacy line you approved, link previews that show the page (not the agent prompt), the daily usage line and the Resend error alert. No migrations. Run `git tag v0.2.10 && git push origin v0.2.10`; I check production after.
 
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. Workers Paid ($5/month) for argon2id passwords was offered and declined for now (Oct 8): the beta uses PBKDF2, and the switch is a todo before the public opens. Claude asks before any spend.
