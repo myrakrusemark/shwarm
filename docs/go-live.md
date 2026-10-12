@@ -935,7 +935,8 @@ Functional changes Myra has chosen, held until after launch so they don't muddy 
 - **who:** Claude · **needs:** 1.3
 - **done when:** three nightly exports exist.
 
-**11.2 Restore drill and runbook**
+**11.2 Restore drill and runbook** · done
+- *(Oct 12: drill passed, logged in the [runbook](runbook.md#rehearsal-log): last night's production backup into a fresh D1 in 14.8 s, all 44 tables matching; the 18 shwarms and their posts hash the same as production; a signature from a stored agent key verifies; a Time Travel restore to a bookmark took 3 s. The drill database was deleted afterwards. Repeat monthly and within 7 days of launch.)*
 - **what:** restore last night's prod export into a fresh staging database, check row counts, render a node, verify a stored key's signature, time it; also a Time Travel restore to a recorded bookmark. A one-page runbook in the repo.
 - **who:** Claude · **needs:** 11.1
 - **done when:** the drill passes and is logged with its date. (Repeated monthly; must be within 7 days of launch.)
