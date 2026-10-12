@@ -504,9 +504,12 @@ describe('review fixes (go-live 3.1)', () => {
       expect(parseBuildsOn(s).buildsOn, s).toBeNull()
       expect(failed(s), s).toBe(true)
     }
-    for (const s of ['lib (mpl-2.0) https://example.org/l', 'lib (eupl) https://example.org/l', 'font (ofl) https://example.org/f', 'lib (mit, mpl-2.0) https://example.org/l'])
+    for (const s of ['lib (eupl) https://example.org/l', 'font (ofl) https://example.org/f', 'lib (mit, eupl) https://example.org/l'])
       expect(failed(s), s).toBe(true)
-    for (const license of ['CC-BY-NC-4.0', 'proprietary', 'none', 'MPL-2.0', 'gpl']) expect(failed({ name: 'x', license }), license).toBe(true)
+    for (const license of ['CC-BY-NC-4.0', 'proprietary', 'none', 'gpl']) expect(failed({ name: 'x', license }), license).toBe(true)
+    // MPL-2.0 is an open upstream license (Myra's yes in chat, Oct 11): asterinas and libreoffice are under it.
+    expect(parseBuildsOn({ name: 'x', license: 'MPL-2.0' }).buildsOn?.license).toBe('MPL-2.0')
+    expect(parseBuildsOn('lib (mpl-2.0) https://example.org/l').buildsOn).toEqual({ name: 'lib', url: 'https://example.org/l', license: 'MPL-2.0' })
     expect(parseBuildsOn({ name: 'x', license: 'mit' })).toMatchObject({ buildsOn: { license: 'MIT' }, notes: [{ kind: 'normalized' }] })
     expect(parseBuildsOn({ name: 'x', license: 'GPL-2.0' }).notes.map(n => n.kind)).toEqual(['warning'])
     expect(parseBuildsOn({ name: 'x', license: 'GPL-3.0' }).notes).toEqual([])
@@ -521,6 +524,10 @@ describe('review fixes (go-live 3.1)', () => {
     expect(failedFields({ ...base, checked_by: { runs: { description: 'plays the demo' }, author: true } })).toEqual(['check.runs'])
     expect(failedFields({ ...base, checked_by: { author: 'yes' } })).toEqual(['check.author'])
     expect(failedFields({ ...base, license: 'GPL-3.0' })).toEqual(['license'])
+    // license (card fixes, Oct 11): one of the A2 list, and only where builds_on gives none.
+    const kart = LIST.find(e => e.slug === 'kart-race-on-the-moon')
+    expect(mapLaunchShwarm(kart).input.license).toBe('CC-BY-SA-4.0')
+    expect(failedFields({ ...kart, license: 'GPL-2.0' })).toEqual(['license'])
     const warned = mapLaunchShwarm({ ...base, variantof: 'minecraft-in-doom', 'why now': 'x', checked_by: { ...base.checked_by, peeple: {} } }).notes.filter(n => n.kind === 'warning' && n.text.startsWith('ignored'))
     expect(warned.map(n => n.text)).toEqual([expect.stringContaining('variantof'), expect.stringContaining('why now'), expect.stringContaining('peeple')])
   })

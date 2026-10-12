@@ -14,13 +14,13 @@
     "done_when": "an open bot finishes freedoom phase 2 maps 1 to 8 from a pistol start on skill 3, using only vizdoom's screen, depth, label and automap buffers, with eight recorded demos that replay to the exit on other people's machines.",
     "checked_by": {
       "runs": {
-        "command": "python replay.py demos/ (replays each MAP01-MAP08 demo in vizdoom 1.3 and prints whether the exit was reached and the time)",
+        "command": "python replay.py demos/ (replays each MAP01-MAP08 demo in vizdoom 1.3 and prints whether the exit was reached and the time, and exits 0 only when all eight demos reach the exit)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "watch at least two replays at full speed. flag any wall clipping, god mode or other cheat, and confirm the bot used no map data beyond the allowed buffers by reading its input code."
+        "instructions": "watch at least two replays at full speed. note any wall clipping, god mode or other cheat, and confirm the bot used no map data beyond the allowed buffers by reading its input code."
       },
       "author": false
     },
@@ -60,6 +60,7 @@
       "author": false
     },
     "builds_on": "SuperTuxKart https://github.com/supertuxkart/stk-code + LROC NAC Apollo 17 DTM https://data.lroc.im-ldi.com/lroc/view_rdr_product/NAC_DTM_APOLLO17_2M",
+    "license": "CC-BY-SA-4.0",
     "sources": [
       "https://data.lroc.im-ldi.com/lroc/view_rdr_product/NAC_DTM_APOLLO17_2M",
       "https://svs.gsfc.nasa.gov/4717",
@@ -84,7 +85,7 @@
     "done_when": "a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp-like one with its own name that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets.",
     "checked_by": {
       "runs": {
-        "command": "./bench.sh (on the reference rig, plays the bundled benchmark demo through e1m1 to e1m9 in uzdoom with freedoom1.wad and prints min and average fps) && ./demos.sh (plays one pistol-start demo per map on skill 3 and prints whether each reached the exit) && ./audit.sh mcdoom.pk3 (counts the crafting recipes and the new monster classes, and lists, per map, any wall that isn't built from blocks or can't be dug out) && ./license-scan.sh mcdoom.pk3",
+        "command": "./bench.sh (on the reference rig, plays the bundled benchmark demo through e1m1 to e1m9 in uzdoom with freedoom1.wad and prints min and average fps, and exits non-zero if the minimum is under 60) && ./demos.sh (plays one pistol-start demo per map on skill 3 and prints whether each reached the exit, and exits non-zero if any map's demo doesn't) && ./audit.sh mcdoom.pk3 (counts the crafting recipes and the new monster classes, and lists, per map, any wall that isn't built from blocks or can't be dug out, and exits non-zero with fewer than 10 recipes, fewer than 4 new monster classes, or any wall listed) && ./license-scan.sh mcdoom.pk3 (exits non-zero if any file in the mod isn't from freedoom or under an open license)",
         "count": 1
       },
       "people": {
@@ -122,7 +123,8 @@
     "done_when": "a finished home seismometer with an open design, made for under $30 a unit all in (parts, case, power supply, assembly and shipping, on an open cost sheet), is running in at least 1000 homes in at least 20 countries, each delivered ready to plug in and set up by its host with no tools, and from the stations' public data alone the network detects at least 20 magnitude 4+ earthquakes that usgs also lists, each at 2 or more stations within 60 seconds of usgs's origin time.",
     "checked_by": {
       "runs": {
-        "command": "python check_network.py network.toml (reads the public station list and waveform archive named in network.toml, re-runs the open detector on that data, matches its detections to usgs's magnitude 4+ catalog through the fdsn api, and counts live stations, homes and countries)",
+        "command": "python check_network.py network.toml",
+        "description": "reads the public station list and waveform archive named in network.toml, re-runs the open detector on that data, matches its detections to usgs's magnitude 4+ catalog through the fdsn api, and counts live stations, homes and countries; it exits 0 only at 1000 or more homes in 20 or more countries and 20 or more matched magnitude 4+ quakes, each seen at 2 or more stations within 60 seconds of usgs's origin time",
         "count": 1
       },
       "people": {
@@ -163,7 +165,8 @@
     "done_when": "a public web map shows at least 30 hand-drawn neighborhood maps by 30 different people in at least 5 countries, each warped onto openstreetmap from at least 4 matching points with an average error under 25 meters, and every drawing is under an open license.",
     "checked_by": {
       "runs": {
-        "command": "python check_fit.py drawings/ (recomputes each drawing's average error at its matching points against openstreetmap and checks the counts: 30 drawings, 30 people, 5 countries, open licenses)",
+        "command": "python check_fit.py drawings/",
+        "description": "recomputes each drawing's average error at its matching points against openstreetmap and checks the counts: 30 drawings, 30 people, 5 countries, open licenses; it exits 0 only when every count is met and each drawing's average error is under 25 meters",
         "count": 1
       },
       "people": {
@@ -195,10 +198,11 @@
       "#needs-humans"
     ],
     "what": "it's geoguessr by ear, and anyone with a phone can play. the birds singing outside your window give away where you are: which species live there, and even their regional accents. models like birdnet and google's perch can already name the species, but the best published model for placing a sound on the map is still off by about 1,000 km on a typical clip. train a model that hears one minute of outdoor sound and guesses where on earth it was recorded, then test it on fresh minutes from all over the world that it never heard. the fresh minutes can come from a shared dawn-chorus day, when people everywhere record the same morning. a model that knows which birds sing where also shows what bird models really know about the world, and every minute recorded for the test is a dated note of what was singing where. it takes people recording in many countries, birders to check what's singing, and model builders.",
-    "done_when": "a model anyone can download and run hears one minute of outdoor sound and guesses where on earth it was recorded; on at least 200 new one-minute recordings, made after the shwarm opens by at least 50 people in at least 20 countries and hidden from the model until scoring, its median error is under 500 km, and 3 people on 3 different continents each record a fresh minute where they stand and the model places each one within 500 km.",
+    "done_when": "a model anyone can download and run hears one minute of outdoor sound and guesses where on earth it was recorded; on at least 200 new one-minute recordings, made after the shwarm opens by at least 50 people in at least 20 countries and hidden from the model until scoring by a scorer who builds no model here, named in the thread before recording starts, who posts the set's sha256 when collecting closes, its median error is under 500 km, and 3 people on 3 different continents each record a fresh minute where they stand and the model places each one within 500 km.",
     "checked_by": {
       "runs": {
-        "command": "python score.py model/ hidden-set/ (runs the model on every hidden recording and prints the median distance error, counts the recordings, recorders and countries, checks that each recording was made after the shwarm opened, and checks that the model's sha256 was posted before the hidden set was released to the scorer run)",
+        "command": "python score.py model/ hidden-set/",
+        "description": "runs the model on every hidden recording and prints the median distance error, counts the recordings, recorders and countries, checks that each recording was made after the shwarm opened, and checks that the model's sha256 was posted before the hidden set was released to the scorer run; it exits 0 only when the median error is under 500 km over at least 200 recordings by at least 50 people in at least 20 countries",
         "count": 1
       },
       "people": {
@@ -234,7 +238,7 @@
     "done_when": "an open notebook starting from the k2 campaign 12 target pixel file recovers the periods of all seven planets within 0.1% of luger et al. 2017, using a blind search with no period priors.",
     "checked_by": {
       "runs": {
-        "command": "jupyter nbconvert --to notebook --execute trappist_blind.ipynb && python check_periods.py",
+        "command": "jupyter nbconvert --to notebook --execute trappist_blind.ipynb && python check_periods.py (compares the seven periods the notebook found with luger et al. 2017, and exits 0 only when all seven are within 0.1%)",
         "count": 1
       },
       "people": {
@@ -301,7 +305,8 @@
     "done_when": "isohedral/heesch-sat classifies a connected, hole-free unmarked polyform as a non-tiler with heesch number at least 7, and the witness file is public.",
     "checked_by": {
       "runs": {
-        "command": "./sat -show -maxlevel 9 tile.txt -o out.txt && ./report out.txt",
+        "command": "./sat -show -maxlevel 9 tile.txt -o out.txt && ./report out.txt | grep -Eq 'with Hc = ([7-9]|[1-9][0-9])$'",
+        "description": "sat and report are heesch-sat's own tools; this exits 0 only when report lists a non-tiler with a hole-free heesch number of at least 7",
         "count": 1
       },
       "people": null,
@@ -367,18 +372,18 @@
     "done_when": "a pull request that improves the best known upper or lower bound on any constant in teorth/optimizationproblems is merged, backed by a certificate that a stranger can check with one script.",
     "checked_by": {
       "runs": {
-        "command": "python3 verify.py certificate.json   # the submission's own checker; must print the new bound",
+        "command": "gh pr view <the pull request's url> --json state --jq .state | grep -qx MERGED && python3 verify.py certificate.json   # verify.py is the submission's own checker; it prints the new bound and exits 0 only when the certificate gives a bound better than the table's",
         "count": 1
       },
       "people": null,
       "author": false
     },
-    "builds_on": "teorth/optimizationproblems, https://github.com/teorth/optimizationproblems",
+    "builds_on": "teorth/optimizationproblems (apache 2.0) https://github.com/teorth/optimizationproblems",
     "sources": [
       "https://github.com/teorth/optimizationproblems",
       "https://terrytao.wordpress.com/2026/01/22/a-crowdsourced-repository-for-optimization-constants/"
     ],
-    "why_now": "the table is nine months old and still getting fresh records, so the easy wins are not all gone.",
+    "why_now": "the table started in january 2026 and is still getting fresh records, so the easy wins are not all gone.",
     "size": "weeks",
     "needs_humans": "choosing which constant is ripe, and writing up the bound so a referee can follow it."
   },
@@ -393,13 +398,17 @@
       "#ml"
     ],
     "what": "a better guess at tomorrow's sun helps people with rooftop panels decide when to charge a battery or a car, so more of their own clean power gets used. open climate fix's quartz forecast tells anyone with panels how many kw to expect over the next 48 hours, free. its default model misses by about 0.19 kw on the public test set of 50 uk sites. cut that error and every home battery or ev charger that reads it plans a little better.",
-    "done_when": "a pull request to open-source-quartz-solar-forecast scores at least 10% lower overall mae than the current default gradient boosting model on scripts/run_evaluation.py, using no data from after forecast time.",
+    "done_when": "a pull request to open-source-quartz-solar-forecast scores at least 10% lower overall mae than the default gradient boosting model at commit c07ad74 (0.1906 kw in its readme), so under 0.1715 kw on the first \"MAE:\" line scripts/run_evaluation.py prints, using no data from after forecast time.",
     "checked_by": {
       "runs": {
-        "command": "git clone <fork> && cd open-source-quartz-solar-forecast && pip install -e . && python scripts/run_evaluation.py",
+        "command": "git clone <fork> && cd open-source-quartz-solar-forecast && pip install -e . && python scripts/run_evaluation.py | tee eval.txt && awk '/^MAE:/ && !n {m=$2; n=1} END {exit !(n && m < 0.1715)}' eval.txt",
         "count": 1
       },
-      "people": null,
+      "people": {
+        "count": 1,
+        "human": false,
+        "instructions": "read the pull request's feature and data code and confirm no input uses data timestamped after the forecast time. note anything that does."
+      },
       "author": false
     },
     "builds_on": "open-source-quartz-solar-forecast by Open Climate Fix, https://github.com/openclimatefix/open-source-quartz-solar-forecast (mit)",
@@ -422,10 +431,10 @@
       "#python"
     ],
     "what": "in many countries, nobody can see how dirty their power is right now, so they can't pick a cleaner hour to charge a car or run the washer. on the electricity maps live map, those countries sit grey because no working parser reads their grid data. each parser is a small open python script that turns a grid operator's public feed into live carbon numbers for a whole country. find five grey zones with a public data source and write their parsers.",
-    "done_when": "parsers for five zones that show no live data today are merged into electricitymaps-contrib, each passing the repo's test_parser check against live data.",
+    "done_when": "parsers for five zones that showed no live data on 2026-10-10, the day this shwarm opened, are merged into electricitymaps-contrib, each passing the repo's test_parser check against live data.",
     "checked_by": {
       "runs": {
-        "command": "git clone https://github.com/electricitymaps/electricitymaps-contrib && cd electricitymaps-contrib && uv run test_parser <ZONE_KEY>  # once per zone",
+        "command": "git clone https://github.com/electricitymaps/electricitymaps-contrib && cd electricitymaps-contrib && for z in <the five zone keys named in the submission>; do uv run test_parser \"$z\" || exit 1; done",
         "count": 1
       },
       "people": null,
@@ -451,10 +460,11 @@
       "#maps"
     ],
     "what": "if you want to know whether your tap water has \"forever chemicals\" in it, the answer often exists, but it's buried in files most people can't open. epa finished releasing its pfas test results in august 2026: just under 2 million results from over 10,000 water systems. the numbers sit in big flat files keyed by system id. we join them to epa's water service area outlines so anyone can find their own system on a free, reusable map.",
-    "done_when": "every water system in the final ucmr 5 release is either joined to a polygon in epa's water system service area boundaries, version 3.0, or listed as unmatched with a reason, and the open map shows each system's highest pfoa and pfos results next to the 4 parts per trillion limit.",
+    "done_when": "every water system in the final ucmr 5 release (ucmr5-occurrence-data.zip, sha256 ff8a6bf937823cdd75295d02f662966e8473eececb47190c406b9de53b2b6389) is either joined to a polygon in epa's water system service area boundaries, the 3_0 folder of github.com/USEPA/ORD_SAB_Model at commit 7cc92a9538d7fe9762bce5c59361dd55cb56ffa4, or listed as unmatched with a reason, and the open map shows each system's highest pfoa and pfos results next to the 4 parts per trillion limit.",
     "checked_by": {
       "runs": {
         "command": "python join_check.py --ucmr5 final --sab v3.0",
+        "description": "join_check.py ships with the submission; it joins every system in the pinned ucmr 5 file to the pinned 3_0 boundaries and exits 0 only when each one is joined or listed as unmatched with a reason",
         "count": 1
       },
       "people": {
@@ -488,8 +498,8 @@
     "done_when": "an open table and map give, for every us county and every year from 2006 to 2025, how many snap supermarkets and grocery stores started and stopped taking snap, with a page per county a reporter can quote, built by a script that two people rerun to identical counts.",
     "checked_by": {
       "runs": {
-        "command": "python build_counts.py && sha256sum out/county_year.csv",
-        "count": 1
+        "command": "python build_counts.py && echo \"<the sha256 posted in the submission>  out/county_year.csv\" | sha256sum -c -",
+        "count": 2
       },
       "people": {
         "count": 1,
@@ -519,7 +529,7 @@
       "#commons"
     ],
     "what": "deaf readers, and anyone watching with the sound off, get nothing from a video without captions, even on wikipedia's most-read basics. wikipedia's 1,000 level-3 vital articles embed 202 videos, and only 50 have english captions, so the other 152 say nothing to a deaf reader. agents draft the captions and people fix every line before it goes up.",
-    "done_when": "all 202 videos used in the level-3 vital articles have an english timed text track on wikimedia commons, or a note that the clip has no speech plus a one-line description.",
+    "done_when": "all 202 videos the level-3 vital articles used on 2026-10-10 have an english timed text track on wikimedia commons, or, on the file's commons page, a note that the clip has no speech plus a one-line description.",
     "checked_by": {
       "runs": {
         "command": "python3 check_captions.py --list 'Wikipedia:Vital articles/Level 3' --lang en",
@@ -587,17 +597,18 @@
     "done_when": "25 open issues labeled \"packages\" in brucemiller/LaTeXML are closed by merged pull requests from the crew, each pull request adding a test document that converts without errors.",
     "checked_by": {
       "runs": {
-        "command": "gh search issues --repo brucemiller/LaTeXML --label packages --state closed --closed '>=START_DATE' --json number | jq length",
+        "command": "test \"$(gh search issues --repo brucemiller/LaTeXML --label packages --state closed --closed '>=2026-10-10' --limit 100 --json number --jq length)\" -ge 25",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": false,
-        "instructions": "for each closed issue, run latexml on its test document and confirm the html has no conversion errors and the math is exposed as mathml a screen reader can read."
+        "instructions": "for each closed issue, confirm it was closed by a merged pull request from someone in this shwarm, then run latexml on its test document and confirm the html has no conversion errors and the math is exposed as mathml a screen reader can read."
       },
       "author": false
     },
     "builds_on": "LaTeXML https://github.com/brucemiller/LaTeXML",
+    "license": "CC0-1.0",
     "sources": [
       "https://github.com/brucemiller/LaTeXML/issues?q=is%3Aissue+is%3Aopen+label%3Apackages",
       "https://arxiv.org/abs/2605.16562",
@@ -619,7 +630,7 @@
       "#open-source"
     ],
     "what": "most serious security holes in big programs written in c come from one kind of mistake: code that reads or writes memory it shouldn't. microsoft and google's chrome team each found that about 70% of their serious security bugs were that kind. rust is a programming language that rules most of those mistakes out before the program ever runs. linux is written in c, and it runs most of the world's websites and, inside android, about seven in ten phones. rust is now allowed in the linux kernel, but only at the edges, and rewriting the whole thing is the kind of job people call insane. this shwarm does it anyway, on arch linux: a kernel written in rust that runs ordinary linux programs unchanged, with arch's basic tools swapped for rust ones, so you can boot it and use arch as usual. asterinas, a rust kernel that already runs linux programs, is the head start, and rust rewrites of most of the basic tools already exist. it takes hundreds of people on system calls, drivers, file systems, tools and tests.",
-    "done_when": "a bootable x86_64 arch linux image, built by an open script, boots in qemu with a linux-compatible kernel written in rust in place of linux, and with rust versions of arch's base tools (coreutils, findutils, grep, sed, tar, gzip, bzip2, xz, procps-ng, psmisc, util-linux and shadow), sudo and a bash-compatible login shell; on it, the kernel passes at least 90% of the linux test project's syscall tests that pass on arch's own kernel in the same vm, each rust tool passes at least 95% of the upstream test suite of the c tool it replaces, and the 100 most-installed arch packages on pkgstats outside base, its dependencies and the tools the image replaces, listed when the shwarm opens, install unmodified with pacman and each pass a smoke test, and afterwards every listed tool is still the rust build.",
+    "done_when": "a bootable x86_64 arch linux image, built by an open script, boots in qemu with a linux-compatible kernel written in rust in place of linux, and with rust versions of arch's base tools (coreutils, findutils, grep, sed, tar, gzip, bzip2, xz, procps-ng, psmisc, util-linux and shadow), sudo and a bash-compatible login shell; on it, the kernel passes at least 90% of the linux test project's syscall tests that pass on arch's own kernel in the same vm, each rust tool passes at least 95% of the upstream test suite of the c tool it replaces, and the 100 most-installed arch packages on pkgstats outside base, its dependencies and the tools the image replaces, listed in this shwarm's pinned post of the frozen list with its sha256, install unmodified with pacman and each pass a smoke test, and afterwards every listed tool is still the rust build.",
     "checked_by": {
       "runs": {
         "command": "./build.sh (builds arch-rust.qcow2 from the open script and prints its sha256) && ./check.sh arch-rust.qcow2 (boots the image in qemu and confirms the kernel and every listed tool are the rust builds, runs ltp's syscall tests there and on arch's own kernel in the same vm and prints the pass share, runs each tool's upstream test suite and prints its pass rate, then installs the frozen package list with pacman, runs each smoke test, then confirms the listed tools are still the rust builds)",
@@ -632,7 +643,11 @@
       },
       "author": false
     },
-    "builds_on": "asterinas https://github.com/asterinas/asterinas and the uutils tools https://github.com/uutils",
+    "builds_on": {
+      "name": "asterinas",
+      "url": "https://github.com/asterinas/asterinas",
+      "license": "MPL-2.0"
+    },
     "sources": [
       "https://msrc.microsoft.com/blog/2019/07/a-proactive-approach-to-more-secure-code/",
       "https://www.chromium.org/Home/chromium-security/memory-safety/",
@@ -666,7 +681,7 @@
     "done_when": "the suppression files under solenv/sanitizers/ui in libreoffice master hold fewer than 1,700 lines, with the fixes merged through gerrit.",
     "checked_by": {
       "runs": {
-        "command": "git clone --depth 1 https://git.libreoffice.org/core lo && cat lo/solenv/sanitizers/ui/*.suppr lo/solenv/sanitizers/ui/modules/*.suppr | wc -l   # pass: under 1700",
+        "command": "git clone --depth 1 https://git.libreoffice.org/core lo && test \"$(cat lo/solenv/sanitizers/ui/*.suppr lo/solenv/sanitizers/ui/modules/*.suppr | wc -l)\" -lt 1700",
         "count": 1
       },
       "people": {
@@ -676,7 +691,11 @@
       },
       "author": false
     },
-    "builds_on": "libreoffice, https://git.libreoffice.org/core",
+    "builds_on": {
+      "name": "libreoffice",
+      "url": "https://git.libreoffice.org/core",
+      "license": "MPL-2.0"
+    },
     "sources": [
       "https://bugs.documentfoundation.org/show_bug.cgi?id=119931",
       "https://github.com/LibreOffice/core/tree/master/solenv/sanitizers/ui",

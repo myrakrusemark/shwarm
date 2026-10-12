@@ -13,12 +13,12 @@ exports[`mapping the launch list > snapshots of a few mapped entries > bot-beats
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "watch at least two replays at full speed. flag any wall clipping, god mode or other cheat, and confirm the bot used no map data beyond the allowed buffers by reading its input code.",
+        "instructions": "watch at least two replays at full speed. note any wall clipping, god mode or other cheat, and confirm the bot used no map data beyond the allowed buffers by reading its input code.",
       },
       "runs": {
         "command": "python replay.py demos/",
         "count": 1,
-        "description": "replays each MAP01-MAP08 demo in vizdoom 1.3 and prints whether the exit was reached and the time",
+        "description": "replays each MAP01-MAP08 demo in vizdoom 1.3 and prints whether the exit was reached and the time, and exits 0 only when all eight demos reach the exit",
       },
     },
     "doneWhen": "an open bot finishes freedoom phase 2 maps 1 to 8 from a pistol start on skill 3, using only vizdoom's screen, depth, label and automap buffers, with eight recorded demos that replay to the exit on other people's machines.",
@@ -44,7 +44,7 @@ why now: vizdoom 1.3.1 shipped in september 2026, and full single-player doom le
     {
       "field": "check.runs",
       "kind": "changed",
-      "text": "command split: "python replay.py demos/", and the words in brackets went to runs.description: "replays each MAP01-MAP08 demo in vizdoom 1.3 and prints whether the exit was reached and the time"",
+      "text": "command split: "python replay.py demos/", and the words in brackets went to runs.description: "replays each MAP01-MAP08 demo in vizdoom 1.3 and prints whether the exit was reached and the time, and exits 0 only when all eight demos reach the exit"",
     },
     {
       "field": "builds_on",
@@ -144,7 +144,7 @@ exports[`mapping the launch list > snapshots of a few mapped entries > minecraft
       "runs": {
         "command": "./bench.sh && ./demos.sh && ./audit.sh mcdoom.pk3 && ./license-scan.sh mcdoom.pk3",
         "count": 1,
-        "description": "on the reference rig, plays the bundled benchmark demo through e1m1 to e1m9 in uzdoom with freedoom1.wad and prints min and average fps; plays one pistol-start demo per map on skill 3 and prints whether each reached the exit; counts the crafting recipes and the new monster classes, and lists, per map, any wall that isn't built from blocks or can't be dug out",
+        "description": "on the reference rig, plays the bundled benchmark demo through e1m1 to e1m9 in uzdoom with freedoom1.wad and prints min and average fps, and exits non-zero if the minimum is under 60; plays one pistol-start demo per map on skill 3 and prints whether each reached the exit, and exits non-zero if any map's demo doesn't; counts the crafting recipes and the new monster classes, and lists, per map, any wall that isn't built from blocks or can't be dug out, and exits non-zero with fewer than 10 recipes, fewer than 4 new monster classes, or any wall listed; exits non-zero if any file in the mod isn't from freedoom or under an open license",
       },
     },
     "doneWhen": "a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp-like one with its own name that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets.",
@@ -170,7 +170,7 @@ why now: uzdoom 5.0.3 shipped in september 2026 while gzdoom itself has had no r
     {
       "field": "check.runs",
       "kind": "changed",
-      "text": "command split: "./bench.sh && ./demos.sh && ./audit.sh mcdoom.pk3 && ./license-scan.sh mcdoom.pk3", and the words in brackets went to runs.description: "on the reference rig, plays the bundled benchmark demo through e1m1 to e1m9 in uzdoom with freedoom1.wad and prints min and average fps; plays one pistol-start demo per map on skill 3 and prints whether each reached the exit; counts the crafting recipes and the new monster classes, and lists, per map, any wall that isn't built from blocks or can't be dug out"",
+      "text": "command split: "./bench.sh && ./demos.sh && ./audit.sh mcdoom.pk3 && ./license-scan.sh mcdoom.pk3", and the words in brackets went to runs.description: "on the reference rig, plays the bundled benchmark demo through e1m1 to e1m9 in uzdoom with freedoom1.wad and prints min and average fps, and exits non-zero if the minimum is under 60; plays one pistol-start demo per map on skill 3 and prints whether each reached the exit, and exits non-zero if any map's demo doesn't; counts the crafting recipes and the new monster classes, and lists, per map, any wall that isn't built from blocks or can't be dug out, and exits non-zero with fewer than 10 recipes, fewer than 4 new monster classes, or any wall listed; exits non-zero if any file in the mod isn't from freedoom or under an open license"",
     },
     {
       "field": "builds_on",
@@ -303,10 +303,10 @@ exports[`mapping the launch list > snapshots of a few mapped entries > where-am-
       "runs": {
         "command": "python score.py model/ hidden-set/",
         "count": 1,
-        "description": "runs the model on every hidden recording and prints the median distance error, counts the recordings, recorders and countries, checks that each recording was made after the shwarm opened, and checks that the model's sha256 was posted before the hidden set was released to the scorer run",
+        "description": "runs the model on every hidden recording and prints the median distance error, counts the recordings, recorders and countries, checks that each recording was made after the shwarm opened, and checks that the model's sha256 was posted before the hidden set was released to the scorer run; it exits 0 only when the median error is under 500 km over at least 200 recordings by at least 50 people in at least 20 countries",
       },
     },
-    "doneWhen": "a model anyone can download and run hears one minute of outdoor sound and guesses where on earth it was recorded; on at least 200 new one-minute recordings, made after the shwarm opens by at least 50 people in at least 20 countries and hidden from the model until scoring, its median error is under 500 km, and 3 people on 3 different continents each record a fresh minute where they stand and the model places each one within 500 km.",
+    "doneWhen": "a model anyone can download and run hears one minute of outdoor sound and guesses where on earth it was recorded; on at least 200 new one-minute recordings, made after the shwarm opens by at least 50 people in at least 20 countries and hidden from the model until scoring by a scorer who builds no model here, named in the thread before recording starts, who posts the set's sha256 when collecting closes, its median error is under 500 km, and 3 people on 3 different continents each record a fresh minute where they stand and the model places each one within 500 km.",
     "kind": "shwarm",
     "slug": "where-am-i-ask-the-birds",
     "tags": [
@@ -325,11 +325,6 @@ why now: in 2025 a team at umass amherst published the first big test of placing
       "field": "what",
       "kind": "changed",
       "text": "why_now appended as a last paragraph, "why now: in 2025 a team at umass amherst publish…"",
-    },
-    {
-      "field": "check.runs",
-      "kind": "changed",
-      "text": "command split: "python score.py model/ hidden-set/", and the words in brackets went to runs.description: "runs the model on every hidden recording and prints the median distance error, counts the recordings, recorders and countries, checks that each recording was made after the shwarm opened, and checks that the model's sha256 was posted before the hidden set was released to the scorer run"",
     },
     {
       "field": "pinned post",

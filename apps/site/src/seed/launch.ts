@@ -20,6 +20,7 @@ export type LaunchShwarm = {
   }
   lobby?: number // no longer read: every shwarm is live once it's posted (decided Oct 9, "No lobby")
   builds_on?: string | { name: string; url?: string; license: string } | null
+  license?: string // one of the A2 list, for a shwarm with no builds_on (card fixes, Oct 11: kart race on the moon, latexml)
   sources?: string[]
   why_now?: string | null
   size?: string
@@ -40,7 +41,7 @@ export type MappedShwarm = {
 }
 
 // Every field launch-shwarms.json may hold (table B). Anything else is reported, never dropped quietly.
-const KNOWN_FIELDS = new Set(['slug', 'wave', 'title', 'category', 'tags', 'what', 'done_when', 'checked_by', 'lobby', 'builds_on', 'sources', 'why_now', 'size', 'needs_humans', 'risk_notes', 'variant_of'])
+const KNOWN_FIELDS = new Set(['slug', 'wave', 'title', 'category', 'tags', 'what', 'done_when', 'checked_by', 'lobby', 'builds_on', 'license', 'sources', 'why_now', 'size', 'needs_humans', 'risk_notes', 'variant_of'])
 const KNOWN_CHECK = new Set(['runs', 'people', 'author'])
 const KNOWN_RUNS = new Set(['command', 'count', 'description'])
 const KNOWN_PEOPLE = new Set(['count', 'human', 'instructions'])
@@ -158,6 +159,7 @@ const LICENSE_PATTERNS: { re: RegExp; id: (m: RegExpMatchArray) => string; assum
   { re: /\blgpl(?:[ -]?v?(2\.1|3)(?:\.0)?)?(?:-or-later|\+)?\b/, id: m => `LGPL-${m[1] === '2.1' ? '2.1' : '3.0'}`, assumed: m => (m[1] ? undefined : 'version 3.0') },
   { re: /\bgpl(?:[ -]?v?([23])(?:\.0)?)?(?:-or-later|\+)?\b/, id: m => (m[1] === '2' ? 'GPL-2.0' : 'GPL-3.0'), assumed: m => (m[1] ? undefined : 'version 3.0') },
   { re: /\bapache(?:[ -]?(?:license[ -]?)?(2\.0))?\b/, id: () => 'Apache-2.0', assumed: m => (m[1] ? undefined : 'version 2.0') },
+  { re: /\bmpl(?:[ -]?(2\.0))?\b/, id: () => 'MPL-2.0', assumed: m => (m[1] ? undefined : 'version 2.0') },
   { re: /\bmit\b/, id: () => 'MIT' },
   { re: /\bbsd[ -]?2[ -]?clause\b/, id: () => 'BSD-2-Clause' },
   { re: /\bbsd(?:[ -]?(3)[ -]?clause)?\b/, id: () => 'BSD-3-Clause', assumed: m => (m[1] ? undefined : 'the 3-clause form') },
@@ -186,7 +188,7 @@ export function findLicenses(text: string): FoundLicense[] {
 const NOT_OPEN_RE = /\bcc[ -]?by(?:[ -]?sa)?[ -]?n[cd]\b|\bnon[ -]?commercial\b|\bno[ -]?deriv(?:ative)?s?\b/
 // License names the table above doesn't read. Named alone, they fail instead of leaving the default license in place.
 const UNKNOWN_LICENSE_RE =
-  /\b(?:mpl|eupl|isc|unlicense|epl|cddl|artistic[ -]licen[cs]e|zlib|wtfpl|ofl|sil open font|osl|bsl|boost software|sspl|busl|business source|elastic licen[cs]e|commons clause|proprietary|all rights reserved|cc[ -]?by[ -]?[1-3]\.0|cc[ -]?by[ -]?sa[ -]?[1-3]\.0)\b/
+  /\b(?:eupl|isc|unlicense|epl|cddl|artistic[ -]licen[cs]e|zlib|wtfpl|ofl|sil open font|osl|bsl|boost software|sspl|busl|business source|elastic licen[cs]e|commons clause|proprietary|all rights reserved|cc[ -]?by[ -]?[1-3]\.0|cc[ -]?by[ -]?sa[ -]?[1-3]\.0)\b/
 
 /** A license term in the text that isn't open (non-commercial, no derivatives), if any. */
 export function notOpen(text: string): string | null {
@@ -200,8 +202,9 @@ export function unknownLicense(text: string): string | null {
 
 // What builds_on can carry: the A2 list, plus the open licenses the table above reads that aren't on it.
 // OPEN: which upstream licenses outside the A2 list count as open isn't decided; this is the short list the
-// launch text needs. Anything else is refused, so Myra decides it in the proofread.
-const OPEN_IDS = new Set([...LICENSES, 'GPL-2.0', 'LGPL-2.1', 'LGPL-3.0', 'BSD-2-Clause', 'BSD-3-Clause', 'ODbL-1.0', 'DbCL-1.0'])
+// launch text needs. Anything else is refused, so Myra decides it in the proofread. MPL-2.0: Myra's yes in chat,
+// Oct 11 (asterinas and libreoffice are under it).
+const OPEN_IDS = new Set([...LICENSES, 'GPL-2.0', 'LGPL-2.1', 'LGPL-3.0', 'BSD-2-Clause', 'BSD-3-Clause', 'ODbL-1.0', 'DbCL-1.0', 'MPL-2.0'])
 
 /** One license a node can take from what was found: MIT with CC BY 4.0 is the A2 default pair. */
 function oneLicense(found: FoundLicense[]): { id: string; from: FoundLicense[] } | null {
@@ -428,9 +431,14 @@ export function mapLaunchShwarm(raw: unknown): MappedShwarm {
     for (const k of Object.keys(o)) if (!known.has(k)) notes.push({ field: at, kind: 'warning', text: `ignored: ${q(k)} isn't a field the import reads` })
   }
   extra(e, KNOWN_FIELDS, 'entry')
-  // OPEN: table B gives the JSON no license field; a shwarm takes the A2 default or its builds-on license. Refused
-  // rather than ignored, so a license written here never goes in quietly as another one.
-  if ('license' in e) fail('license', "license isn't a launch-shwarms.json field yet (table B); the shwarm takes the default or its builds-on license")
+  // license (card fixes, Oct 11, Myra's yes in chat): one of the A2 list, for a shwarm whose builds_on gives none. With a
+  // structured builds_on it's refused rather than ignored, since the upstream license wins (protocol §8), so a license written
+  // here never goes in quietly as another one.
+  let license: string | undefined
+  if ('license' in e) {
+    if (typeof e.license !== 'string' || !LICENSES.includes(e.license)) fail('license', `license is one of ${LICENSES.join(', ')}`)
+    else license = e.license
+  }
 
   const cb = e.checked_by
   const check: { runs?: { command: string; count: number; description?: string }; people?: { count: number; human: boolean; instructions?: string }; author: boolean } = { author: false }
@@ -486,6 +494,10 @@ export function mapLaunchShwarm(raw: unknown): MappedShwarm {
 
   const b = parseBuildsOn(e.builds_on)
   notes.push(...b.notes)
+  if (license && b.buildsOn) {
+    fail('license', `builds_on names ${b.buildsOn.license}, which the shwarm takes from the upstream; leave license out`)
+    license = undefined
+  } else if (license) notes.push({ field: 'license', kind: 'changed', text: `${license}, as the list sets it` })
 
   const sources: string[] = []
   if (e.sources !== undefined && e.sources !== null && !Array.isArray(e.sources)) fail('sources', 'sources must be a list of links')
@@ -508,6 +520,7 @@ export function mapLaunchShwarm(raw: unknown): MappedShwarm {
     check,
     tags,
     ...(b.buildsOn ? { buildsOn: b.buildsOn } : {}),
+    ...(license ? { license } : {}),
   }
   return { slug, wave: typeof e.wave === 'number' ? e.wave : null, input, pinned, notes }
 }
