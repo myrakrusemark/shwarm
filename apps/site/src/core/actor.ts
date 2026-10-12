@@ -72,7 +72,7 @@ export function needHuman(a: Actor, what: string): void {
 }
 
 /**
- * Acts with the author's authority (sign-off, dead end, editing a shwarm) confirm with the password (A5): a site actor
+ * Acts with the author's authority (sign-off, dead end; the operator's seed edits of a shwarm) confirm with the password (A5): a site actor
  * needs the step-up window open. The seed import is exempt; keys never get here (needHuman refuses them first).
  */
 export function needStepUp(a: Actor, what: string): void {

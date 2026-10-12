@@ -46,7 +46,8 @@ import { readTombstone } from '../read/tombstone'
 import { utcDay } from '../read/activity'
 import { sendError, waitText } from './errors'
 import { pickFormat, type Format } from './format'
-import { editHref, NodePage, type Flash } from './node-page'
+import { NodePage, type Flash } from './node-page'
+import { NO_EDIT } from '../core/nodes'
 import { ResultPage } from './result-page'
 import { SubmissionPage, type SubFlash } from './submission-page'
 import { overReadCap } from './read-limit'
@@ -63,7 +64,7 @@ type C = Context<Env>
 const TYPES: Record<Format, string> = { html: 'text/html', text: 'text/plain', json: 'application/json' }
 
 /** Bump to change every ETag when the rendering changes (test/render-version.test.ts fails until you do). */
-export const RENDER_VERSION = '18' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9). 4: the log's `key` field (v0, Oct 9). 5: the activity strip (Oct 10). 6: edit until join, the safety guide link, how to join in (Oct 10). 7: links for agents under how to take part, count wording (Oct 10). 8: npx @shwarm/cli under how to take part (Oct 10). 9: direct messages and who takes them, under how to take part; take_part in the JSON; "report" on every post (Oct 10). 10: "flag this shwarm" in the head, the "paused for review" banner, paused in the text and JSON (Oct 10). 11: the manifesto link in the header strip (Oct 10). 12: the donate modal is a form posting to /donate (Oct 10). 13: the canonical link and link-preview meta tags (go-live 11.7, Oct 11). 14: shwarming safely, how to sign, what impact means and the beta line in the text and JSON (go-live 7.11, 7.14, Oct 11). 15: the 7.14 review: the beta line before the keys page, a run's pass rule and where it runs, a license off the list, the note in the JSON, "shwarms or branches" (Oct 11). 16: joins (go-live 8.2): CONTRIBUTORS with each person's joined agents, the join line under how to take part, join posts marked, contributors and take_part.join/leave in the JSON (Oct 12). 17: the join page (go-live 8.2): join in the head and on branches, the say-hi modal, "✿ joined" posts and quiet join lines, agents under their person in contributors (Oct 12). 18: one join per person (Myra, Oct 12): contributors are people only, with "joined by @you/agent" when an agent made the join; the join rule says an agent joins for its human (Oct 12)
+export const RENDER_VERSION = '19' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9). 4: the log's `key` field (v0, Oct 9). 5: the activity strip (Oct 10). 6: edit until join, the safety guide link, how to join in (Oct 10). 7: links for agents under how to take part, count wording (Oct 10). 8: npx @shwarm/cli under how to take part (Oct 10). 9: direct messages and who takes them, under how to take part; take_part in the JSON; "report" on every post (Oct 10). 10: "flag this shwarm" in the head, the "paused for review" banner, paused in the text and JSON (Oct 10). 11: the manifesto link in the header strip (Oct 10). 12: the donate modal is a form posting to /donate (Oct 10). 13: the canonical link and link-preview meta tags (go-live 11.7, Oct 11). 14: shwarming safely, how to sign, what impact means and the beta line in the text and JSON (go-live 7.11, 7.14, Oct 11). 15: the 7.14 review: the beta line before the keys page, a run's pass rule and where it runs, a license off the list, the note in the JSON, "shwarms or branches" (Oct 11). 16: joins (go-live 8.2): CONTRIBUTORS with each person's joined agents, the join line under how to take part, join posts marked, contributors and take_part.join/leave in the JSON (Oct 12). 17: the join page (go-live 8.2): join in the head and on branches, the say-hi modal, "✿ joined" posts and quiet join lines, agents under their person in contributors (Oct 12). 18: one join per person (Myra, Oct 12): contributors are people only, with "joined by @you/agent" when an agent made the join; the join rule says an agent joins for its human (Oct 12). 19: the join rule names an agent's optional hello and that it leaves only a join it made (Myra, Oct 12); no "edit" on a shwarm's own words (Myra, Oct 12; signed-in only, so the signed-out fingerprint doesn't move)
 
 // Production's reading pages stay closed in holding mode and open in beta (go-live 3.10); core/site-mode.ts.
 import { actsLimited, readingOpen } from '../core/site-mode'
@@ -384,7 +385,8 @@ async function submissionPost(c: C, path: string, number: number, session: Sessi
 // as the bare handle, pinned as "status update" when the author ticks it. edit, delete: one of your own plain posts.
 // upvote: the ▲ on a post, either way. submit: the compose box's submit mode, which lands on the new submission's page.
 // join (with the say-hi modal's optional hello), leave: say you're working on a live shwarm or branch, or stop. dead_end (with a note): the author's own box, behind the
-// password. Editing a shwarm is the /new form's (web/create.tsx, /new?edit=<path>; re-pitch is retired, decided Oct 10).
+// password. Nobody edits a shwarm's or a branch's own words (decided Oct 12; it superseded "edit replaces re-pitch" of
+// Oct 10): once posted, they're fixed. Thread posts keep edit and delete.
 // Nothing reopens (decided Oct 9). Each runs in the shwarm's tree (do/shwarm-tree.ts), then goes back to the page (303). A refusal re-renders the page with the reason next to the form and the draft kept.
 // Signed out, it goes to sign-in and back.
 // POST /w/<path>/s/<n> (5.3, 5.5): check (a people check) and signoff (the author's, behind the password).
@@ -425,9 +427,9 @@ nodeRoutes.post('/*', async c => {
   const f = await formOf(c)
   if (!(await postedTokenOk(c as unknown as AuthContext, w, f))) return sendError(c, { status: 403, heading: 'this form expired', text: 'go back, reload the page and try again.' }, 'html')
   if (subNumber !== null) return submissionPost(c, parsed.path, subNumber, w.session, f)
-  // Re-pitch is retired (decided Oct 10, '"edit" replaces re-pitch'): a re-pitch form from an old tab goes to the edit
-  // form, which says whether this viewer may still edit it.
-  if (f.do === 'repitch') return c.redirect(editHref(parsed.path), 303)
+  // Re-pitch is retired (decided Oct 10), and so is editing a shwarm (decided Oct 12: once posted, a shwarm's or a
+  // branch's words are fixed): a re-pitch form from an old tab is refused with why. OPEN: the words wait on Myra's yes.
+  if (f.do === 'repitch') return errorOut(c, 'html', 400, 'bad_request', NO_EDIT)
   if (f.do === 'report') return reportAct(c, parsed.path, w.session, f, url)
   if (f.do === 'flag') return flagAct(c, parsed.path, w.session, f, url)
   const act = (ACTS as readonly string[]).includes(f.do) ? (f.do as Act) : null

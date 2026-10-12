@@ -18,10 +18,9 @@
 // a passed shwarm is challenged by building on it with the same done test; nothing enforces it).
 // /new?parent=<path>&from=<post id> is a post's "make it a branch" (go-live 4.8): the branch form, filled from the post.
 //
-// Edit mode (decided Oct 10, '"edit" replaces re-pitch'). /new?edit=<path> is a shwarm's "edit", for its author only:
-// the shwarm form filled in with the shwarm as it stands. Saving changes everything it holds and keeps the address
-// (core/nodes.ts editNode), until someone else joins or anything is submitted; then the form says why it's locked
-// instead. It acts with the author's authority, so it carries the inline password step-up (A5), as the sign-off does.
+// No edit mode (decided Oct 12; it superseded "edit replaces re-pitch" of Oct 10): once posted, a shwarm's or a
+// branch's words can't be changed, and the form says so next to its button. /new?edit=<path> (the old "edit") and a
+// form posted from an old edit tab get that refusal, never the form: nothing is changed and nothing new is made.
 import { Hono, type Context } from 'hono'
 import type { FC } from 'hono/jsx'
 import { ShwarmError } from '@shwarm/protocol'
@@ -29,15 +28,12 @@ import { formToken } from '../auth/csrf'
 import { formOf, FORM_FIELD, later, postedTokenOk, who, type AuthContext } from '../auth/request'
 import { signInHref } from '../auth/return-to'
 import { siteActor } from '../core/actor'
-import { inlineStepUp } from '../auth/signin'
-import { stepUpOpen } from '../auth/stepup'
-import { clientIp } from '../auth/request'
 import { isId } from '../core/ids'
-import { DEFAULT_RUNS, type CheckSpec } from '../core/checks'
-import { editLock, ENDED, LICENSES, needBranchable, type CreateNodeInput, type EditNodeInput, type EditNodeResult } from '../core/nodes'
+import { DEFAULT_RUNS } from '../core/checks'
+import { ENDED, LICENSES, NO_EDIT, needBranchable, type CreateNodeInput } from '../core/nodes'
 import { lockedError } from '../core/context'
 import { readSettings } from '../core/settings'
-import { lf, MAX_TEXT, MAX_TITLE } from '../core/text'
+import { MAX_TEXT, MAX_TITLE } from '../core/text'
 import { runInTree } from '../do/shwarm-tree'
 import { lockedBy, parseNodePath, readChain, type Chain, type NodeHead } from '../read/node'
 import { cut, licenseName } from '../render/format'
@@ -46,14 +42,14 @@ import { Plain, Text } from '../render/text'
 import { triageNew } from '../triage/run'
 import { sendError, waitText } from './errors'
 import { AgentResources, Layout } from './layout'
-import { editHref, nodeHref, StepUpField } from './node-page'
+import { nodeHref } from './node-page'
 import { OpensSoonPage } from './opens-soon'
 import { opensSoon, page } from './viewer'
 
 type Env = { Bindings: { DB: D1Database; TREE: DurableObjectNamespace; AI: Ai; TRIAGE_MODEL?: string; CSRF_SECRET: string; ENV: string; SITE_MODE: string; PASSWORD_PEPPER: string } }
 type C = Context<Env>
 
-/** The form's fields, as posted (and as shown again after a refusal). */
+/** The form's fields, as posted (and as shown again after a refusal). `edit` only marks a form from an old edit tab. */
 export type CreateForm = Partial<Record<
   'title' | 'what' | 'done_when' | 'c_runs' | 'command' | 'runs' | 'c_people' | 'people' | 'human' | 'instructions' | 'c_author' | 'tags' | 'license' | 'builds_on' | 'builds_on_name' | 'builds_on_license' | 'parent' | 'edit',
   string
@@ -61,10 +57,9 @@ export type CreateForm = Partial<Record<
 
 /**
  * What the form makes (go-live 4.3): a shwarm, with `upstream` when ?builds_on= names an ended shwarm (passed or a dead
- * end) this viewer can see; a branch under `chain.node`; or, in edit mode, the shwarm `chain.node` as it will stand
- * (decided Oct 10), with `upstream` as for a new one.
+ * end) this viewer can see; or a branch under `chain.node`.
  */
-export type Mode = { kind: 'shwarm'; upstream?: NodeHead | null } | { kind: 'branch'; chain: Chain } | { kind: 'edit'; chain: Chain; upstream?: NodeHead | null }
+export type Mode = { kind: 'shwarm'; upstream?: NodeHead | null } | { kind: 'branch'; chain: Chain }
 
 const FRESH: CreateForm = { c_author: 'on', runs: String(DEFAULT_RUNS), people: '2', license: LICENSES[0] }
 
@@ -101,25 +96,17 @@ export async function fieldsFromPost(db: D1Database, nodeId: number, id: string 
   return { ...FRESH, title: cut(first, MAX_TITLE), what: p.text }
 }
 
-/** A shwarm as the form holds it, for edit mode: every field filled in as it stands. */
-export function fieldsFromNode(n: NodeHead): CreateForm {
-  const sp = n.spec
-  const bo = n.builds_on
-  return {
-    title: n.title,
-    what: n.what,
-    done_when: n.done_when,
-    ...(sp.runs ? { c_runs: 'on', command: sp.runs.command, runs: String(sp.runs.count) } : { runs: String(DEFAULT_RUNS) }),
-    ...(sp.people
-      ? { c_people: 'on', people: String(sp.people.count), ...(sp.people.human ? { human: 'on' } : {}), instructions: sp.people.instructions ?? '' }
-      : { people: '2' }),
-    ...(sp.author ? { c_author: 'on' } : {}),
-    tags: n.tags.map(t => `#${t}`).join(' '),
-    license: n.license,
-    ...(!bo ? {} : 'node' in bo ? { builds_on: bo.node } : { builds_on: bo.url ?? '', builds_on_name: bo.name, builds_on_license: bo.license }),
-    edit: n.path,
-  }
-}
+/**
+ * Said next to the button on both forms (decided Oct 12): once posted, a shwarm's or a branch's words can't be changed.
+ * OPEN: the words wait on Myra's yes.
+ */
+const FIXED_NOTE = "once you post it, it can't be changed."
+/**
+ * The note under the checks (decided Oct 12, no editing): the done test is fixed once posted. OPEN: the words wait on
+ * Myra's yes; they replace "the done test locks once someone else joins or anything is submitted" (shwarm) and "the
+ * done test locks once it goes live … not editing this one" (branch).
+ */
+const LOCK_NOTE = <>the done test can't change once it's posted. people join for this finish line, so a different one means <b>starting a new shwarm</b>.</>
 
 /** The page's words that change with the mode, from mockups/new.html. */
 function wordsOf(mode: Mode) {
@@ -138,25 +125,7 @@ function wordsOf(mode: Mode) {
       go: 'start branch',
       place: BRANCH_PLACE,
       root,
-      // a branch keeps the words it was opened with (decided Oct 10)
-      lockNote: <>the done test locks once it goes live. people join for this finish line, so changing it means <b>starting a new shwarm</b>, not editing this one.</>,
-    }
-  }
-  // OPEN: edit mode's words wait on Myra's yes.
-  if (mode.kind === 'edit') {
-    const n = mode.chain.node
-    return {
-      page: `edit · ${showHidden(n.title)} · shwarm`,
-      heading: 'edit shwarm',
-      sub: "change any of it until someone else joins or anything is submitted. after that it's locked for good.",
-      pitchHint: 'what is this, why does it matter, and why now?',
-      oneTest: 'one done test per shwarm',
-      licHint: 'everything made here is open. its branches take the license too.',
-      goNote: "a quick automatic check runs again first. until it's done, usually within a minute, only you can see it. the version you replace stays in its history. confirms with your password.",
-      go: 'save changes',
-      place: PLACE,
-      root: null,
-      lockNote: <>the done test locks once someone else joins or anything is submitted. people join for this finish line, so after that, changing it means <b>starting a new shwarm</b>.</>,
+      lockNote: LOCK_NOTE,
     }
   }
   // OPEN (decided Oct 9, "No lobby"): the sub line, the license hint's "locks once you post it", the go note's last
@@ -167,27 +136,19 @@ function wordsOf(mode: Mode) {
     sub: 'a goal worth a crowd. it goes live as soon as you start it.',
     pitchHint: 'what is this, why does it matter, and why now?',
     oneTest: 'one done test per shwarm',
-    // OPEN (decided Oct 10, '"edit" replaces re-pitch'): "it locks once someone else joins or anything is submitted" and the lock note below
-    // replace "once you post it" and "once it goes live"; the words wait on Myra's yes.
-    licHint: 'everything made here is open. the default is MIT for code and CC BY 4.0 for everything else. it locks once someone else joins or anything is submitted, and branches inherit it.',
+    // OPEN (decided Oct 12, once posted it can't be changed): "it can't be changed once you post it" replaces "it locks
+    // once someone else joins or anything is submitted"; the words wait on Myra's yes.
+    licHint: "everything made here is open. the default is MIT for code and CC BY 4.0 for everything else. it can't be changed once you post it, and branches inherit it.",
     goNote: "a quick automatic check runs first. until it's done, usually within a minute, only you can see it. then it's live, and anyone can work on it.",
     go: 'start shwarm',
     place: PLACE,
     root: null,
-    lockNote: <>the done test locks once someone else joins or anything is submitted. people join for this finish line, so after that, changing it means <b>starting a new shwarm</b>.</>,
+    lockNote: LOCK_NOTE,
   }
 }
 
 const Crumbs: FC<{ mode: Mode }> = ({ mode }) => {
   if (mode.kind === 'shwarm') return null
-  if (mode.kind === 'edit')
-    return (
-      <nav class="crumbs" aria-label="breadcrumb">
-        <a href={nodeHref(mode.chain.node.path)}><Plain text={mode.chain.node.title} /></a>
-        <span>/</span>
-        edit
-      </nav>
-    )
   const up = [...mode.chain.ancestors, mode.chain.node]
   return (
     <nav class="crumbs" aria-label="breadcrumb">
@@ -203,23 +164,20 @@ const Crumbs: FC<{ mode: Mode }> = ({ mode }) => {
 }
 
 /**
- * The form in its mode. `refused`: why this parent takes no branch right now (a closed or dead-end node), or why this
- * shwarm can't be edited, shown in place of the form. `steppedUp`: the password was entered in the last 10 minutes, so
- * edit mode doesn't ask for it.
+ * The form in its mode. `refused`: why this parent takes no branch right now (a closed or dead-end node), or why
+ * nothing can be edited (an old edit link), shown in place of the form.
  */
-export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refused?: string; verified: boolean; mode?: Mode; steppedUp?: boolean }> = ({
+export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refused?: string; verified: boolean; mode?: Mode }> = ({
   token,
   v = FRESH,
   error,
   refused,
   verified,
   mode = { kind: 'shwarm' },
-  steppedUp,
 }) => {
   const on = (k: keyof CreateForm) => v[k] === 'on'
   const w = wordsOf(mode)
   const branch = mode.kind === 'branch' ? mode.chain.node : null
-  const editing = mode.kind === 'edit' ? mode.chain.node : null
   const upstream = mode.kind !== 'branch' ? mode.upstream : null
   return (
     <Layout title={w.page}>
@@ -236,7 +194,6 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refus
             <form method="post" action="/new" class="new">
               <input type="hidden" name={FORM_FIELD} value={token} />
               {branch && <input type="hidden" name="parent" value={branch.path} />}
-              {editing && <input type="hidden" name="edit" value={editing.path} />}
               <div class="box">
                 {branch && (
                   <div class="f" id="f-parent">
@@ -358,9 +315,8 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refus
                   )}
                 </div>
               </div>
-              {editing && <StepUpField id="e-pw" open={steppedUp} />}
               <div class="go">
-                <span class="note" id="go-note">{w.goNote}</span>
+                <span class="note" id="go-note">{w.goNote} <b id="fixed-note">{FIXED_NOTE}</b></span>
                 <button class="btn" type="submit" id="go">{w.go}</button>
               </div>
             </form>
@@ -451,16 +407,12 @@ export function shwarmPathOf(raw: string, origin: string): string | null {
   }
 }
 
-/**
- * The builds-on fields as createNode takes them: a shwarm path, an outside {name, url, license}, or null. An outside
- * project with no link (the API takes one) has only its name and license: edit mode fills those two fields and leaves
- * the link empty, so with `named` a name and a license and no link are kept as they are.
- */
-export async function buildsOnFromForm(f: CreateForm, origin: string, get: Fetch = fetch, named = false): Promise<CreateNodeInput['buildsOn']> {
+/** The builds-on fields as createNode takes them: a shwarm path, an outside {name, url, license}, or null. */
+export async function buildsOnFromForm(f: CreateForm, origin: string, get: Fetch = fetch): Promise<CreateNodeInput['buildsOn']> {
   const raw = (f.builds_on ?? '').trim()
   const typed = (f.builds_on_license ?? '').trim()
   const name = (f.builds_on_name ?? '').trim()
-  if (!raw) return named && name && typed ? { name, license: typed } : null
+  if (!raw) return null
   const path = shwarmPathOf(raw, origin)
   if (path !== null) return path
   const url = asUrl(raw)
@@ -501,7 +453,7 @@ async function shownNode(db: D1Database, raw: string, viewerId: number): Promise
   return p.kind === 'node' ? readChain(db, p.path, viewerId) : null
 }
 
-/** builds on as typed (or as the shwarm stands, in edit mode): the ended shwarm it names, when this viewer can see one. */
+/** builds on as typed: the ended shwarm it names, when this viewer can see one. */
 async function upstreamOf(db: D1Database, raw: string | undefined, viewerId: number, origin: string): Promise<NodeHead | null> {
   const path = raw ? shwarmPathOf(raw.trim(), origin) : null
   const up = path ? await shownNode(db, path, viewerId) : null
@@ -509,30 +461,15 @@ async function upstreamOf(db: D1Database, raw: string | undefined, viewerId: num
 }
 
 /**
- * The form's mode from ?parent= or ?edit= (or the posted parent or edit field), with why it's refused, if it is. Null
- * when the parent or the shwarm isn't there for this viewer: a 404, as on its own page. A ?variant= is ignored:
- * variants are dropped (decided Oct 9). Edit mode is its author's alone (`status` 403 for anyone else), and only while
- * core would take the edit (core/nodes.ts editLock).
+ * The form's mode from ?parent= (or the posted parent field), with why it's refused, if it is. Null when the parent
+ * isn't there for this viewer: a 404, as on its own page. A ?variant= is ignored: variants are dropped (decided Oct 9).
  */
 async function modeOf(
   db: D1Database,
-  q: { parent?: string; builds_on?: string; edit?: string },
+  q: { parent?: string; builds_on?: string },
   viewerId: number,
   origin: string,
-): Promise<{ mode: Mode; refused?: string; status?: 403 } | null> {
-  if (q.edit) {
-    const chain = await shownNode(db, q.edit, viewerId)
-    if (!chain) return null
-    const n = chain.node
-    // On the GET the chip follows the shwarm's own builds on; on a POST, the field as typed.
-    const upstream = await upstreamOf(db, q.builds_on ?? (n.builds_on && 'node' in n.builds_on ? n.builds_on.node : undefined), viewerId, origin)
-    const mode: Mode = { kind: 'edit', chain, upstream }
-    // OPEN: the words wait on Myra's yes.
-    // A branch says so to anyone (it has no edit at all); a shwarm's lock only to its author.
-    if (n.kind !== 'branch' && n.author_id !== viewerId) return { mode, refused: 'only its author edits a shwarm.', status: 403 }
-    const locked = await editLock(db, n)
-    return { mode, refused: locked ? sentence(locked) : undefined }
-  }
+): Promise<{ mode: Mode; refused?: string } | null> {
   if (q.parent) {
     const chain = await shownNode(db, q.parent, viewerId)
     return (
@@ -551,9 +488,8 @@ async function modeOf(
   return { mode: { kind: 'shwarm', upstream: await upstreamOf(db, q.builds_on, viewerId, origin) } }
 }
 
-/** Where this form lives: /new, or /new in its branch or edit mode. */
-const formHref = (mode: Mode) =>
-  mode.kind === 'branch' ? `/new?parent=${encodeURIComponent(mode.chain.node.path)}` : mode.kind === 'edit' ? editHref(mode.chain.node.path) : '/new'
+/** Where this form lives: /new, or /new in its branch mode. */
+const formHref = (mode: Mode) => (mode.kind === 'branch' ? `/new?parent=${encodeURIComponent(mode.chain.node.path)}` : '/new')
 
 const PAUSED = 'new shwarms and branches are paused for a moment. posting, joining and checking still work.'
 
@@ -566,15 +502,11 @@ create.get('/new', async c => {
   const w = await who(c as unknown as AuthContext)
   const url = new URL(c.req.url)
   if (!w.session) return c.redirect(signInHref(url.pathname + url.search), 303)
-  const q = { parent: c.req.query('parent'), builds_on: c.req.query('builds_on'), edit: c.req.query('edit') }
+  // The old "edit" link (retired Oct 12): no form, just why. Nothing is read from the node it names.
+  if (c.req.query('edit') !== undefined) return noEdit(c as C, w.session.verified)
+  const q = { parent: c.req.query('parent'), builds_on: c.req.query('builds_on') }
   const m = await modeOf(c.env.DB, q, w.session.personId, url.origin)
   if (!m) return noNode(c as C)
-  if (m.mode.kind === 'edit') {
-    // Not paused with new nodes: an edit makes none. A refusal shows in place of the form.
-    const token = m.refused ? undefined : await formToken(c.env.CSRF_SECRET, w.session.id)
-    const v = fieldsFromNode(m.mode.chain.node)
-    return page(c, <NewPage token={token} v={v} refused={m.refused} verified={w.session.verified} mode={m.mode} steppedUp={stepUpOpen(w.session, Date.now())} />, m.status ?? 200)
-  }
   // Paused (setting pause_new_nodes, kept on in production until triage runs there): say so before the form is filled.
   if (!m.refused && (await readSettings(c.env.DB, ['pause_new_nodes'])).pause_new_nodes === true)
     return page(c, <NewPage refused={PAUSED} verified={w.session.verified} mode={m.mode} />)
@@ -591,62 +523,8 @@ create.get('/new', async c => {
   return page(c, <NewPage token={token} v={v} refused={m.refused} verified={w.session.verified} mode={m.mode} />)
 })
 
-/**
- * Edit mode's save (decided Oct 10): the form as one edit of the shwarm, behind the inline password step-up, then back
- * to its page. Same words again change nothing and go back too. New words are checked like a new node's, after the
- * response (as a create is).
- */
-async function saveEdit(
-  c: C,
-  n: NodeHead,
-  f: CreateForm,
-  password: string | undefined,
-  session: NonNullable<Awaited<ReturnType<typeof who>>['session']>,
-  origin: string,
-  now: number,
-  again: (error: string, status: 400 | 429) => Promise<Response>,
-): Promise<Response> {
-  try {
-    const check = checkFromForm(f) as { runs?: { command: string; description?: string } }
-    // The form has no field for a run command's description (seeded shwarms have them): kept while the command stays.
-    const was: CheckSpec = n.spec
-    if (check.runs && was.runs?.description && lf(check.runs.command).trim() === lf(was.runs.command)) check.runs.description = was.runs.description
-    // An outside project left as it was keeps its stored name, link and license: no new lookup renames it.
-    const bo = n.builds_on
-    const kept =
-      bo && !('node' in bo) && (f.builds_on ?? '').trim() === (bo.url ?? '') && (f.builds_on_name ?? '').trim() === bo.name && (f.builds_on_license ?? '').trim() === bo.license
-    const buildsOn = kept ? { name: bo.name, ...(bo.url ? { url: bo.url } : {}), license: bo.license } : await buildsOnFromForm(f, origin, fetch, true)
-    const input: EditNodeInput = {
-      node: n.path,
-      title: (f.title ?? '').trim(),
-      what: (f.what ?? '').trim(),
-      doneWhen: (f.done_when ?? '').trim(),
-      check,
-      tags: parseTagField(f.tags),
-      license: buildsOn ? undefined : f.license,
-      buildsOn,
-    }
-    // Only the author gets here (modeOf), so only the author is asked for the password.
-    const s = await inlineStepUp(c.env.DB, c.env.PASSWORD_PEPPER, session, password, clientIp(c), now)
-    if ('refuse' in s) {
-      if (s.wait) c.header('Retry-After', String(s.wait))
-      return again(s.refuse, s.status)
-    }
-    const actor = siteActor({ id: session.personId, handle: session.handle }, { steppedUp: true })
-    const r = await runInTree<EditNodeResult>(c.env.TREE, { type: 'editNode', actor, input })
-    if (r.edited && r.triage === 'pending') await later(c, () => triageNew(c.env, n.path))
-    return c.redirect(nodeHref(n.path), 303)
-  } catch (e) {
-    if (!(e instanceof ShwarmError)) throw e
-    if (e.code === 'rate_limited') {
-      const wait = Number(e.details.retry_after) || 60
-      c.header('Retry-After', String(wait))
-      // OPEN (#79): the words wait on Myra's yes.
-      return again(`slow down: you can edit it again in ${waitText(wait)}.`, 429)
-    }
-    return again(sentence(e), 400)
-  }
-}
+/** An old edit link or edit form (decided Oct 12): refused, 410, with why. Nothing is changed and nothing is made. */
+const noEdit = (c: C, verified: boolean) => page(c, <NewPage refused={NO_EDIT} verified={verified} />, 410)
 
 create.post('/new', async (c: C) => {
   if (await opensSoon(c)) return page(c, <OpensSoonPage />, 403)
@@ -655,19 +533,18 @@ create.post('/new', async (c: C) => {
   const raw = await formOf(c)
   const f = formFields(raw)
   const session = w.session
+  // A form from an old edit tab (retired Oct 12) changes nothing, and never falls through to making a new shwarm.
+  if (f.edit !== undefined) return noEdit(c, session.verified)
   const origin = new URL(c.req.url).origin
   // builds_on too, so a refused form that builds on an ended shwarm comes back with its chip and the license picker hidden.
-  const m = await modeOf(c.env.DB, { parent: f.parent, builds_on: f.builds_on, edit: f.edit }, session.personId, origin)
+  const m = await modeOf(c.env.DB, { parent: f.parent, builds_on: f.builds_on }, session.personId, origin)
   if (!m) return noNode(c)
   const mode = m.mode
   if (!(await postedTokenOk(c as unknown as AuthContext, w, raw))) return c.redirect(formHref(mode), 303)
-  const now = Date.now()
   const again = async (error: string, status: 400 | 429) =>
-    page(c, <NewPage token={await formToken(c.env.CSRF_SECRET, session.id)} v={f} error={error} verified={session.verified} mode={mode} steppedUp={stepUpOpen(session, now)} />, status)
-  // The parent changed since the form was shown (live, now closed), or the shwarm can't be edited any more (someone
-  // joined): the page says so, without the form.
-  if (m.refused) return page(c, <NewPage refused={m.refused} verified={session.verified} mode={mode} />, m.status ?? 400)
-  if (mode.kind === 'edit') return saveEdit(c, mode.chain.node, f, raw.password, session, origin, now, again)
+    page(c, <NewPage token={await formToken(c.env.CSRF_SECRET, session.id)} v={f} error={error} verified={session.verified} mode={mode} />, status)
+  // The parent changed since the form was shown (live, now closed): the page says so, without the form.
+  if (m.refused) return page(c, <NewPage refused={m.refused} verified={session.verified} mode={mode} />, 400)
   try {
     const text = { title: (f.title ?? '').trim(), what: (f.what ?? '').trim(), doneWhen: (f.done_when ?? '').trim(), check: checkFromForm(f) }
     let input: CreateNodeInput

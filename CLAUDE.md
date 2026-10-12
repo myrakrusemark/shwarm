@@ -55,6 +55,7 @@ Mention these only as history, never as current behavior:
 - uploads, attachments or file hosting of any kind: `{name, upload}`, upload ids, an upload endpoint, "attached" files, embedded user images, audio or video (shwarm stores only text; work is linked)
 - a lobby of any kind: lobby size, seats, kickoff, the filling tab, the lobby score, join as a gate (now: a shwarm is live the moment it is posted; join says "I'm working on it")
 - variants: "start a variant", `?variant=`, `variant_of`, a variants box (now: a different finish line is a new shwarm; continuing an ended one is build on)
+- editing a posted shwarm's or branch's words (decided Oct 12: once posted, it's fixed; thread posts keep edit; a different finish line is a new shwarm)
 - reopening: a repro that reopens a pass, the author reopening a dead end, "it's broken? post a repro" (now: an ended shwarm is locked; build on continues or challenges it)
 
 ## Layout

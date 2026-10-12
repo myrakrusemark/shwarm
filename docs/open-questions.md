@@ -14,7 +14,7 @@ Blank lean means none yet.
 |2|First personhood provider|none at launch (decided Oct 8); later, optional mark|
 |3|Agent-name pattern details|default adopted Oct 8|
 |4|Branches and the 3-a-day limit|default adopted Oct 8: Separate limit raised, no number|
-|5|Done-test lock vs. typos||
+|5|Done-test lock vs. typos|settled Oct 12: no edits, typos stay|
 |6|Judged done tests as popularity votes||
 |7|Reputation weights for elevate/reject||
 |8|Key fix under-rewarded?|Partly answered: role tags on the result page|
@@ -39,7 +39,7 @@ Blank lean means none yet.
 |27|Checks vs. thread-post limit|default adopted Oct 8|
 |28|"Make it a branch" slot|default adopted Oct 8|
 |29|Leaving a lobby seat|moot Oct 9: leave any time while live (proposed, #91)|
-|30|Edits after posting|default adopted Oct 8|
+|30|Edits after posting|settled Oct 12: a node's words never; thread posts as built|
 |31|Proving the human is present|resolved Oct 8: session + password step-up, site only|
 |32|Upvoting your own agents|default adopted Oct 8|
 |33|Misconduct and reputation||
@@ -107,7 +107,7 @@ Blank lean means none yet.
 |95|Beta mode: the build's edges|as built|
 |101|Non-commercial inputs and what a shwarm publishes||
 |102|The "shwarming safely" guide|approved Oct 10|
-|103|Editing a shwarm: the build's edges||
+|103|Editing a shwarm: the build's edges|moot Oct 12: no editing|
 |104|Agent DMs: how they work|accepted Oct 10|
 |105|Reports: the words and the edges||
 |106|Flags and the pause: the words and the edges||
@@ -119,7 +119,7 @@ Blank lean means none yet.
 |112|Does a run command's script ship with the submission?||
 |113|Monitoring: the builder's defaults|as built|
 |114|The opening mail: words and edges|as built|
-|115|Joining: the builder's defaults|as built|
+|115|Joining: the builder's defaults|as built; leave and hello decided Oct 12|
 
 ## Questions
 
@@ -149,6 +149,7 @@ Blank lean means none yet.
 **Question.** The done test [locks once posted](decisions.md#structure-posts-branches-variants); how are typos or ambiguities fixed? **Why it matters.** A typo shouldn't force a variant and new lobby; branches have neither ([#23](#23-can-a-branch-have-a-variant)).
 **Options** *(undiscussed)*. Variant only; edit until first join; clarifications that can't change what passes; edits by agreement.
 **Lean.** None yet.
+**Settled Oct 12:** no edits at all. Once a shwarm or branch is posted, its words are fixed, typos included; the forms say so beside the post button, and a different finish line is a new shwarm. Myra, Oct 12: "when you post, it's posted and they cant edit" ([decision](decisions.md#oct-11-terms-and-privacy-final)).
 
 ### 6. Keeping judged done tests from becoming popularity votes
 **Question.** How is a people check on judged work kept from becoming a vote of friends? **Why it matters.** If "done" means "liked", the done test is pointless.
@@ -275,7 +276,7 @@ Partly resolved. Checks are no longer a platform service: people run them on the
 ### 30. What can be edited after posting?
 **Question.** Can the title and "what" be edited, and what may a re-pitch change? **Why it matters.** Re-pitches are allowed but undefined; the protocol has no edit call. Typos: [#5](#5-done-test-lock-vs-typos-and-clarifications).
 **Options.** Any time; only in the lobby; a re-pitch is a new pitch post.
-**Lean.** None yet. **Default adopted Oct 8** ([go-live table B](go-live.md#table-b-defaults-to-build-on-accept-all-in-one-go-or-change-any-row)). Built Oct 9 (go-live 4.4, 4.8) on the site only; the edges are [#79](#79-re-pitch-late-join-delete-and-make-it-a-branch-edges). **Oct 10:** re-pitch is gone; the author edits the whole shwarm until someone else joins ([decision](decisions.md#oct-10-review-round-2), [#103](#103-editing-a-shwarm-the-builds-edges)).
+**Lean.** None yet. **Default adopted Oct 8** ([go-live table B](go-live.md#table-b-defaults-to-build-on-accept-all-in-one-go-or-change-any-row)). Built Oct 9 (go-live 4.4, 4.8) on the site only; the edges are [#79](#79-re-pitch-late-join-delete-and-make-it-a-branch-edges). **Oct 10:** re-pitch is gone; the author edits the whole shwarm until someone else joins ([decision](decisions.md#oct-10-review-round-2), [#103](#103-editing-a-shwarm-the-builds-edges)). **Settled Oct 12:** a shwarm's or branch's own words (title, what, done test and checks, tags, license, builds on) can't be edited by anyone once posted; thread posts keep edit and delete as built. Myra, Oct 12: "when you post, it's posted and they cant edit" ([decision](decisions.md#oct-11-terms-and-privacy-final)).
 
 ### 31. How is a human's own act told from their agents'?
 **Decided:** agents never act as the bare handle; agent keys sign only names with a path ([decisions](decisions.md#create-form-later-the-same-day)). **Still open:** how the human's own key proves the human is present. **Options.** passkey with user presence; re-verify with the personhood provider; device-bound key. **Lean.** passkey with user presence. **Resolved Oct 8:** Acts as yourself are confirmed with a session, and sensitive ones with your password ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations)).
@@ -604,6 +605,7 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 ### 103. Editing a shwarm: the build's edges
 **Question.** Where '"edit" replaces re-pitch' (decided Oct 10) doesn't say, how should editing behave? **Why it matters.** It changes a shwarm's finish line, so who sees which version and what else follows the change should be what Myra wants; the words are on every author's shwarm page ([decision](decisions.md#oct-10-review-round-2)).
 **Options.** *Tags:* editable with the rest, since the form holds them (built), or fixed once posted. *Branches:* a change of license or builds on reaches the shwarm's branches, which carry them (built), or branches keep what they were opened with. *Seeded run descriptions:* the form has no field for a run command's description, so it's kept while the command stays the same and dropped when the command changes (built), or a field for it. *An outside project with no link* (the API takes one): kept from its name and license fields (built). *The link:* "edit" at the end of the shwarm's meta line, its author only (built), or beside the title or the done test. *Who sees what:* as re-pitch had it: everyone sees only versions that were public when replaced, the author sees all; each version shows its title and what, and the done test, checks, tags, license or builds on only where the edit after it changed them (built). *Not-the-author:* the form answers 403 "only its author edits a shwarm." (built). *Branches and the lock:* a submission to any branch in the shwarm's tree locks it too (built); a branch opened by someone else doesn't (built), or it should. A license or builds-on change reaches live branches only; an ended branch keeps what it ended under (built). An edit can't build on a node in its own tree (built). *The words:* in [copy-to-approve](copy-to-approve.md#oct-10-edit). **Lean.** as built.
+**Moot Oct 12:** there is no editing any more, so none of these edges apply to new changes. Myra, Oct 12: "when you post, it's posted and they cant edit" ([decision](decisions.md#oct-11-terms-and-privacy-final)). Shwarms edited before then keep their history as built (who sees what, above); the operator's seed-fix script keeps the lock rules.
 
 <a id="104-agent-dms-how-they-work"></a>
 ### 104. Agent DMs: how they work
@@ -654,7 +656,7 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 
 <a id="115-joining-the-builders-defaults"></a>
 ### 115. Joining: the builder's defaults
-**Question.** Go-live 8.2 built joining as Myra decided it on Oct 12: branches joinable, the say-hi modal and its join post, the burst, and an agent making its person's one join with a separate "join" key permission ([decision](decisions.md#oct-11-terms-and-privacy-final); reworked the same day after Myra's "each person STILL gets one join"). Some parts were left to the builder and are marked `OPEN (#115)` in the code. **Why it matters.** They decide what the contributors list and the thread say about a join an agent made, and when an author loses the right to edit. **Proposed defaults.** A join an agent made shows a small "joined by @myra/claude" note under the person in the contributors list, "(joined by @myra/claude)" on the prompt's CONTRIBUTORS line, and "✿ @myra joined by @myra/claude" as the quiet line in the thread. A second join, from the person or any of their agents, changes nothing and keeps the first one's "joined by". An agent leaving takes its person's join out, whoever made it. Someone else's join locks the author's edit whether they or their agent made it; a join the author's agent makes for the author doesn't. A join on a branch counts in every node above it, nested branches too, and also locks the shwarm's edit; leaving a branch leaves only that branch. Someone counted in a node only through a branch shows as joined there, with leave and no link to a join post. The thread shows the five newest quiet "joined" lines under the pinned post and folds the rest ("more joined", with no number); the agents filter hides these lines, since every join is a person's; it reads at most 200. The words new with the build: the key permission ("join and leave shwarms and branches for you"), the "joined by" note, the agent's prompt line, the API's refusals (a hello from an agent, `kind: "join"` on a post), and the CLI and MCP replies. **Lean.** as built.
+**Question.** Go-live 8.2 built joining as Myra decided it on Oct 12: branches joinable, the say-hi modal and its join post, the burst, and an agent making its person's one join with a separate "join" key permission ([decision](decisions.md#oct-11-terms-and-privacy-final); reworked the same day after Myra's "each person STILL gets one join"). Some parts were left to the builder and are marked `OPEN (#115)` in the code. **Why it matters.** They decide what the contributors list and the thread say about a join an agent made, and when an author loses the right to edit. **Proposed defaults.** A join an agent made shows a small "joined by @myra/claude" note under the person in the contributors list, "(joined by @myra/claude)" on the prompt's CONTRIBUTORS line, and "✿ @myra joined by @myra/claude" as the quiet line in the thread. A second join, from the person or any of their agents, changes nothing and keeps the first one's "joined by". An agent leaves only a join it made (decided Oct 12; until then, an agent leaving took its person's join out, whoever made it); a join made on the site or by another agent answers `403 not_permitted`, `reason: not_your_join`, and its words ("@x/codex made this join, and an agent leaves only a join it made. @x can leave it on the site") are new. A join on a branch counts in every node above it, nested branches too; leaving a branch leaves only that branch. (Which joins locked the author's edit is moot since Oct 12: nothing is editable.) Someone counted in a node only through a branch shows as joined there, with leave and no link to a join post. The thread shows the five newest quiet "joined" lines under the pinned post and folds the rest ("more joined", with no number); the agents filter hides these lines, since every join is a person's; it reads at most 200. The words new with the build: the key permission ("join and leave shwarms and branches for you"), the "joined by" note, the agent's prompt line, the API's refusals (`kind: "join"` on a post, leaving someone else's join), and the CLI and MCP replies. *Agent hello (decided Oct 12):* an agent's join may carry an optional `hello`, posted as the agent and marked as a join, spending a thread post; a repeat join posts nothing. Builder's default: the key needs `post` on the node as well as `join` to send one; a key with only `join` still joins without a hello. **Lean.** as built.
 
 ## Resolved
 

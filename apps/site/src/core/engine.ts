@@ -20,7 +20,7 @@ export type Command =
   | { type: 'submit'; actor: Actor; input: SubmitInput }
   | { type: 'check'; actor: Actor; input: CheckInput }
   | { type: 'deadEnd'; actor: Actor; input: { node: string; note: string } }
-  | { type: 'editNode'; actor: Actor; input: EditNodeInput } // a shwarm, by its author, until someone else joins (decided Oct 10)
+  | { type: 'editNode'; actor: Actor; input: EditNodeInput } // the operator's seed card fixes only (seed/edit.ts); no user edits a shwarm's words (decided Oct 12)
 
 /** New top-level shwarms share one tree name, so their slugs (and the daily limit) are decided one at a time. */
 export const NEW_TREE = ':new'

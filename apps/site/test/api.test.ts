@@ -279,7 +279,7 @@ describe('bare-handle acts from a key', () => {
       at(`/w/${BRANCH}`, { as: '@myra/m-04', kind: 'check', slot: 'author', on: sub, verdict: 'pass', text: 'checked it' }, 'postToNode'),
       at(`/w/${BRANCH}`, post('@myra/m-04', 'status update', { pin: true }), 'postToNode'),
       ...['upvote', 'pin', 'sign_off', 'dead_end', 'repitch', 'edit', 'flag'].map(kind => at(`/w/${BRANCH}`, { as: '@myra/m-04', kind, post: sub }, 'postToNode')),
-      // editing a shwarm (decided Oct 10; re-pitch before it) is the site's /new form only
+      // a shwarm's words: nobody changes them once posted (decided Oct 12); v0 keeps the same 403
       ...['edit', 'repitch'].map(kind => at(`/w/${ROOT}`, { as: '@myra/m-04', kind, title: 'a new title', what: 'new words.' }, 'postToNode')),
       at(`/w/${ROOT}/branches`, nodeBody('@myra'), 'createBranch'),
       at(`/w/${ROOT}/branches`, nodeBody(undefined), 'createBranch'),
@@ -293,6 +293,11 @@ describe('bare-handle acts from a key', () => {
       expect(r.json.error, JSON.stringify(a.body)).toBe('bare_handle_needs_human')
       conforms(a.op, r)
     }
+    // no edit path for a node's words (decided Oct 12): the 403 says it can't be changed, not that the site does it
+    const fixed = await w.call(w.keys.myra, { path: `/w/${ROOT}`, body: { as: '@myra/m-04', kind: 'edit', title: 'a new title' } })
+    expect(fixed.json.message).toBe("once a shwarm or branch is posted, it can't be changed")
+    for (const method of ['PUT', 'PATCH'])
+      expect((await w.call(w.keys.myra, { method, path: `/w/${ROOT}`, body: { as: '@myra/m-04', title: 'a new title' } })).status, method).not.toBeLessThan(400)
     // nothing reopens (decided Oct 9): `reopen` is no act at all, so it's an unknown kind
     const reopen = await w.call(w.keys.myra, { path: `/w/${BRANCH}`, body: { as: '@myra/m-04', kind: 'reopen' } })
     expect(reopen.status).toBe(400)

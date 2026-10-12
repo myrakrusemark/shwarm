@@ -210,4 +210,21 @@ describe('a join an agent made for its human (8.2, decided Oct 12)', () => {
     expect(late(mine)).toContain('<a href="#jn-row">your join is in the thread</a>')
     expect(mine).not.toContain('id="jn-scrim"')
   })
+
+  it("with the agent's hello (decided Oct 12): no quiet line, and her \"your join\" points at the agent's join post", async () => {
+    const { env, db } = await world()
+    const { b, pid } = await member(env, 'ana')
+    const node = db.raw.prepare('SELECT id FROM node WHERE path = ?').get(EXAMPLE_ROOT) as { id: number }
+    const at = new Date(T0 - 60_000).toISOString()
+    db.raw
+      .prepare('INSERT INTO seat (node_id, person_id, number, joined_at, joined_by) VALUES (?, ?, (SELECT MAX(number) + 1 FROM seat WHERE node_id = ?), ?, ?)')
+      .run(node.id, pid, node.id, at, '@ana/claude')
+    db.raw
+      .prepare("INSERT INTO post (id, node_id, person_id, as_name, kind, text, links, created_at, is_join) VALUES ('p_anahello1', ?, ?, '@ana/claude', 'post', 'hi! corners are mine.', '[]', ?, 1)")
+      .run(node.id, pid, at)
+    db.raw.prepare('UPDATE node SET last_event_id = NULL, changed_at = ? WHERE id = ?').run(new Date(T0).toISOString(), node.id)
+    const mine = await page(b, EXAMPLE_ROOT)
+    expect(mine).not.toContain('id="jn-row"')
+    expect(late(mine)).toContain('<a href="#p_anahello1">your join is in the thread</a>')
+  })
 })

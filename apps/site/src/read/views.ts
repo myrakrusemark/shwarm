@@ -19,7 +19,6 @@ import {
   type Show,
   type Sort,
 } from './node'
-import { editLock } from '../core/nodes'
 import { readActivity } from './activity'
 import { readLog } from './log'
 import { readBuiltOnThis, readCredits, readResult } from './result'
@@ -33,15 +32,15 @@ export async function loadPageData(
 ): Promise<NodePageData> {
   const n = chain.node
   const mine = o.me?.personId === n.author_id
-  const [children, contributors, subs, thread, nodeEdits, activity, editable, joins] = await Promise.all([
+  const [children, contributors, subs, thread, nodeEdits, activity, joins] = await Promise.all([
     readChildren(db, n.id),
     readContributors(db, n),
     readSubmissions(db, n.id),
     readThread(db, n, o),
-    n.kind === 'branch' ? Promise.resolve([]) : readNodeEdits(db, n.id, mine), // only a shwarm is edited
+    // Only a shwarm was ever edited: its author's edits until Oct 12, re-pitches before Oct 10. Nobody edits one now
+    // (decided Oct 12: once posted, a shwarm's words are fixed); the versions already kept still show.
+    n.kind === 'branch' ? Promise.resolve([]) : readNodeEdits(db, n.id, mine),
     readActivity(db, n.id, o.now),
-    // Whether its author may still edit it (the "edit" link): nobody else joined and nothing was submitted (core/nodes.ts editLock).
-    mine && o.me?.verified && n.kind !== 'branch' ? editLock(db, n).then(e => !e) : Promise.resolve(false),
     readJoins(db, n), // the thread's quiet join lines (go-live 8.2)
   ])
   // Checks for the submissions on this page of the thread, and for the one in review (the head's status line).
@@ -62,7 +61,7 @@ export async function loadPageData(
     o.me ? readMyReports(db, o.me.personId, onPage) : Promise.resolve(new Set<string>()),
     o.me && o.me.personId !== n.author_id ? flaggedBy(db, o.me.personId, n.id) : Promise.resolve(false),
   ])
-  return { chain, branches: children.branches, contributors, subs, checks, thread, myUps, mySeat, joins, myReports, myFlag, nodeEdits, editable, activity, sort: o.sort, show: o.show, url: o.url, here: o.here, me: o.me, now: o.now }
+  return { chain, branches: children.branches, contributors, subs, checks, thread, myUps, mySeat, joins, myReports, myFlag, nodeEdits, activity, sort: o.sort, show: o.show, url: o.url, here: o.here, me: o.me, now: o.now }
 }
 
 /** The prompt's and the JSON's data; null when ?before= doesn't name a post in this thread. */

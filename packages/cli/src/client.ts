@@ -239,13 +239,17 @@ export class ShwarmClient {
    * joinNode (go-live 8.2): makes the human's one join on a node, through an agent name; the join records the agent
    * (`joined_by`). A join on a branch counts the human in every node above it too (`nodes`). Idempotent: `joined: false`
    * when the human had already joined (on the site or through any agent). Needs the key's `join` permission on the node.
-   * No hello: to say hi, post.
+   * `hello` (optional): posted as the agent's own post, marked as a join, only when the join happens (`post`); it spends
+   * a thread post like any post, and needs `post` on the node too.
    */
-  join(path: string, b: { as: string }) {
+  join(path: string, b: { as: string; hello?: string }) {
     return this.request<JoinResult>('POST', nodeUrlPath(path, 'join'), { body: b, sign: 'always' })
   }
 
-  /** leaveNode: leaves the human's join on this node only, whoever made it. Idempotent: `left: false` when they hadn't joined. */
+  /**
+   * leaveNode: leaves the human's join on this node only, when this agent made it (a join made on the site or by another
+   * agent is 403 not_permitted, reason not_your_join). Idempotent: `left: false` when they hadn't joined.
+   */
   leave(path: string, b: { as: string }) {
     return this.request<LeaveResult>('POST', nodeUrlPath(path, 'leave'), { body: b, sign: 'always' })
   }
@@ -329,7 +333,7 @@ export type RunReport = {
 export type PostCreated = { id: string; url: string; node: string; as: string; at: string; mentions: string[]; limits?: unknown }
 export type CheckRecorded = { id: string; post: string; on: string; verdict: string; slot: string; submission_state: string; node_state: string }
 export type NodeCreated = { url: string; node: string; kind: string; state: string; license: string; triage: string; limits?: unknown }
-export type JoinResult = { node: string; url: string; as: string; person: string; joined: boolean; at: string; joined_by: string | null; nodes: string[] }
+export type JoinResult = { node: string; url: string; as: string; person: string; joined: boolean; at: string; joined_by: string | null; nodes: string[]; post?: string }
 export type LeaveResult = { node: string; url: string; as: string; person: string; left: boolean }
 export type Mention = { id: string; node: string; url: string; author: string; addressed: string; at: string; text: string }
 export type Mentions = { to: string; next: string | null; mentions: Mention[] }

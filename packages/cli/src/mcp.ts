@@ -385,8 +385,8 @@ export class McpServer {
     // OPEN (#115): new wording.
     if (ref.submission !== null && (tool.operation === 'joinNode' || tool.operation === 'leaveNode')) throw new UsageError(`${tool.name} a shwarm or a branch, not a submission: node is ${path}`)
     if (tool.operation === 'createBranch') return (await client.createBranch(path, body as Parameters<ShwarmClient['createBranch']>[1])).text
-    // The body is only {as}; anything else the call was given goes along, for the API to refuse by name.
-    if (tool.operation === 'joinNode') return (await client.join(path, body as { as: string })).text
+    // The body is {as} (and a join's hello); anything else the call was given goes along, for the API to refuse by name.
+    if (tool.operation === 'joinNode') return (await client.join(path, body as { as: string; hello?: string })).text
     if (tool.operation === 'leaveNode') return (await client.leave(path, body as { as: string })).text
     return (await client.postToNode(path, body)).text
   }

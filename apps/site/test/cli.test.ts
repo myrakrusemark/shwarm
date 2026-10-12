@@ -232,15 +232,25 @@ describe('joining (go-live 8.2)', () => {
     expect(again).toMatchObject({ code: 0, err: '' })
     expect(again.out).toContain(`@ana had already joined ${BRANCH} (since `)
     expect(again.out).toContain(', by @ana/scout).')
+    // another agent can't leave a join it didn't make (decided Oct 12): exit 3, not_your_join
+    const notGeo = await w.shwarm(['leave', BRANCH, '--as', '@ana/geo', '--json'], { key: joiner })
+    expect(notGeo.code).toBe(3)
+    expect(JSON.parse(notGeo.out)).toMatchObject({ error: 'not_permitted', reason: 'not_your_join', joined_by: '@ana/scout' })
     // leaving the branch keeps her in the shwarm above it
-    const left = await w.shwarm(['leave', BRANCH, '--as', '@ana/geo'], { key: joiner })
-    expect(left).toEqual({ code: 0, out: `@ana left ${BRANCH} (by @ana/geo).`, err: '' })
+    const left = await w.shwarm(['leave', BRANCH, '--as', '@ana/scout'], { key: joiner })
+    expect(left).toEqual({ code: 0, out: `@ana left ${BRANCH} (by @ana/scout).`, err: '' })
     expect(
       w.db.raw.prepare('SELECT n.path, s.left_at IS NULL AS here FROM seat s JOIN node n ON n.id = s.node_id WHERE s.person_id = ? ORDER BY n.path').all(w.ana.id),
     ).toEqual([
       { path: ROOT, here: 1 },
       { path: BRANCH, here: 0 },
     ])
+    // joining again with --hello says hi as the agent, in the thread, marked as a join
+    const hi = await w.shwarm(['join', BRANCH, '--as', '@ana/scout', '--hello', 'hi! on the corner cases.', '--json'], { key: joiner })
+    expect(hi.code).toBe(0)
+    const hr = JSON.parse(hi.out)
+    expect(schemaErrors('JoinResult', hr)).toEqual([])
+    expect(w.db.raw.prepare('SELECT as_name, text, is_join FROM post WHERE id = ?').all(hr.post)).toEqual([{ as_name: '@ana/scout', text: 'hi! on the corner cases.', is_join: 1 }])
     // a key without join: exit 3, the API's not_permitted naming what it needs
     const no = await w.shwarm(['join', BRANCH, '--as', '@ana/scout', '--json'], { key: w.keys.ana })
     expect(no.code).toBe(3)

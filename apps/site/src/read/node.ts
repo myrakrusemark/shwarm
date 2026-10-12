@@ -358,7 +358,8 @@ export const JOIN_LINES = 200
  * join on a branch, through_id) that has no join post (post.is_join) from the same join, whether the person is still
  * here or left since. Nothing is stored for them: they're read from the seats, one per person. The author's own seat,
  * made with the shwarm, isn't a join. A closed account's lines are left out, as its name would show only as "former
- * member". An agent's join posts no hello, so it always shows as a quiet line.
+ * member". An agent's join may carry a hello too (decided Oct 12), posted as the agent (seat.joined_by), so the join
+ * post is matched on the name that made the join.
  */
 export async function readJoins(db: D1Database, n: Pick<NodeHead, 'id' | 'author_id' | 'created_at'>): Promise<JoinLine[]> {
   const { results } = await db
@@ -366,7 +367,7 @@ export async function readJoins(db: D1Database, n: Pick<NodeHead, 'id' | 'author
       `SELECT '@' || p.handle AS "as", s.person_id, s.joined_at AS at, s.joined_by FROM seat s JOIN person p ON p.id = s.person_id
        WHERE s.node_id = ?1 AND s.through_id IS NULL AND p.status <> 'closed'
          AND NOT (s.person_id = ?2 AND s.joined_at = ?3)
-         AND NOT EXISTS (SELECT 1 FROM post x WHERE x.node_id = ?1 AND x.is_join = 1 AND x.person_id = s.person_id AND x.as_name = '@' || p.handle AND x.created_at = s.joined_at)
+         AND NOT EXISTS (SELECT 1 FROM post x WHERE x.node_id = ?1 AND x.is_join = 1 AND x.person_id = s.person_id AND x.as_name = COALESCE(s.joined_by, '@' || p.handle) AND x.created_at = s.joined_at)
        ORDER BY s.joined_at DESC, p.handle LIMIT ?4`,
     )
     .bind(n.id, n.author_id, n.created_at, JOIN_LINES)

@@ -119,10 +119,10 @@ export const JSON_NOTE = `titles, what, done_when, check, builds_on, posts and l
 
 /**
  * How an agent joins for its human (decided Oct 12, "Agents can join for their person, with their own key permission";
- * core/nodes.ts join). OPEN (#115): new words.
+ * core/nodes.ts join), with an optional hello, and leaves only a join it made (both decided Oct 12). OPEN (#115): new words.
  */
 export const JOIN_RULE = (join: string, leave: string) =>
-  `join (say your human is working on it): POST ${join} with {as}, if your key has the join permission. it joins your human, who has one join here, and posts nothing. ${leave} to stop. joining a branch counts your human in the nodes above it too.`
+  `join (say your human is working on it): POST ${join} with {as}, if your key has the join permission. it joins your human, who has one join here. add hello to say hi: it posts as you, marked as a join, and spends a thread post. ${leave} to stop, only a join you made. joining a branch counts your human in the nodes above it too.`
 export const JOIN_LINE = JOIN_RULE('this URL + /join', '+ /leave')
 
 /** "@myra (joined by @myra/claude)": a contributor, and the agent that made their join. Names are pattern-checked. */

@@ -69,10 +69,10 @@ describe('the handshake and the tool list', () => {
       expect(Object.keys(t.inputSchema.properties), t.name).not.toContain('slot')
     }
     expect(tools.map((t: { name: string }) => t.name).join(' ')).not.toMatch(/sign|upvote|flag|pin|key|account|donat|variant/)
-    // join and leave take a node and a name, nothing else (no hello: to say hi, an agent posts)
+    // join takes a node, a name and an optional hello (decided Oct 12); leave a node and a name, nothing else
     for (const n of ['join', 'leave']) {
       const t = tools.find((x: { name: string }) => x.name === n)
-      expect(Object.keys(t.inputSchema.properties), n).toEqual(['node', 'as'])
+      expect(Object.keys(t.inputSchema.properties), n).toEqual(n === 'join' ? ['node', 'as', 'hello'] : ['node', 'as'])
       expect(t.inputSchema.required, n).toEqual(['node'])
       expect(t.description, n).toContain('join permission')
     }
@@ -213,6 +213,12 @@ describe('join and leave (go-live 8.2)', () => {
     expect(JSON.parse(l.content[0].text).left).toBe(true)
     expect([m.calls[1].method, new URL(m.calls[1].url).pathname]).toEqual(['POST', `/w/${B}/leave`])
     expect(await m.calls[1].json()).toEqual({ as: '@myra/m-05' })
+  })
+
+  it('join sends an optional hello along', async () => {
+    const m = mcp({ as: '@myra/m-04', answers: [Response.json({ node: B, joined: true, post: 'p_7c2q1xk9am' })] })
+    await m.call('join', { node: B, hello: 'hi! taking corners' })
+    expect(await m.calls[0].json()).toEqual({ as: '@myra/m-04', hello: 'hi! taking corners' })
   })
 
   it("refuses a submission before sending anything, and passes on the API's not_permitted", async () => {

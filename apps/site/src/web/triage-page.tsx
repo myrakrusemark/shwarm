@@ -212,8 +212,9 @@ const TriagePage: FC<{ model: string; rows: DecisionRow[]; older: number | null;
             <>
               <section id="how">
                 <h2>how it works</h2>
+                {/* OPEN (decided Oct 12, no editing): "or edits one" dropped; waits on Myra's yes. */}
                 <div class="body">
-                  <p>when someone posts a shwarm or branch, or edits one, a model reads it before anyone else sees it. it answers one question: does this aim at one of the hard blocks below? a "no" makes it public. a "yes" or "unsure" sends it to @myra, who clears it or blocks it. if the model doesn't answer within 10 minutes, it goes to @myra too.</p>
+                  <p>when someone posts a shwarm or branch, a model reads it before anyone else sees it. it answers one question: does this aim at one of the hard blocks below? a "no" makes it public. a "yes" or "unsure" sends it to @myra, who clears it or blocks it. if the model doesn't answer within 10 minutes, it goes to @myra too.</p>
                   <p>the check only looks for harm. it never judges whether an idea is good, small, odd or too ambitious.</p>
                   <p>the model is <code>{model}</code>, run by cloudflare. this is version <code>{RUBRIC_VERSION}</code> of its questions. each decision below names the version it was made under.</p>
                 </div>

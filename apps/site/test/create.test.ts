@@ -55,10 +55,10 @@ describe('create form (4.2)', () => {
     const page = await body(await b.get('/new'))
     expect(page).toContain('>start shwarm</button>')
     expect(page).toContain('a goal worth a crowd. it goes live as soon as you start it.')
-    // editable until someone else joins (decided Oct 10, '"edit" replaces re-pitch')
-    expect(page).toContain('it locks once someone else joins or anything is submitted, and branches inherit it.')
-    expect(page).toContain("then it's live, and anyone can work on it.")
-    expect(page).toContain('the done test locks once someone else joins or anything is submitted. people join for this finish line, so after that, changing it means <b>starting a new shwarm</b>.')
+    // fixed once posted (decided Oct 12: no editing a shwarm's words), and the form says so by its button
+    expect(page).toContain("it can't be changed once you post it, and branches inherit it.")
+    expect(page).toContain(`then it's live, and anyone can work on it. <b id="fixed-note">once you post it, it can't be changed.</b>`)
+    expect(page).toContain("the done test can't change once it's posted. people join for this finish line, so a different one means <b>starting a new shwarm</b>.")
     expect(page).not.toMatch(/lobby|seat|variant/)
     // a lobby field sent anyway (an old tab) changes nothing
     const res = await create(b, { ...HELLO, lobby: '7' })

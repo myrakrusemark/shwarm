@@ -9,8 +9,8 @@
 // Seeded launch shwarms (seeded = 1) are public while 'pending' (read/visibility.ts), so triage never hides one:
 // a no clears it; a yes or unsure leaves it 'pending' and alerts Myra once; 5 errors alert once and stop retrying.
 // No node is called again once it has a model answer under the current rubric, in its current round.
-// A round starts when the node is made, and again when its author edits a shwarm (core/nodes.ts editNode sets
-// triage_since and puts a cleared node back to 'pending'): answers, errors and the 10 minutes count from it, and an
+// A round starts when the node is made, and again when the operator's seed card fixes edit a shwarm (seed/edit.ts; no
+// user edits one since Oct 12; core/nodes.ts editNode sets triage_since and puts a cleared node back to 'pending'): answers, errors and the 10 minutes count from it, and an
 // answer from an earlier round never moves the node.
 //
 // Each outcome is one D1 batch, outside the shwarm tree (triage only ever moves a node out of 'pending', guarded by
@@ -310,8 +310,7 @@ export async function sweepTriage(env: TriageEnv, o: { now?: number; timeoutMs?:
 }
 
 /**
- * The hook after a create (web/create.tsx; branches in 4.3 call it the same way) and after an edit (web/create.tsx,
- * edit mode), run after the response. A failure here is only logged: the node stays 'pending' and the sweep picks it up.
+ * The hook after a create (web/create.tsx; branches in 4.3 call it the same way), run after the response. A failure here is only logged: the node stays 'pending' and the sweep picks it up.
  */
 export async function triageNew(env: TriageEnv, path: string): Promise<Outcome | null> {
   try {

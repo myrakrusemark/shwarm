@@ -248,7 +248,7 @@
             </div>
           </div>
           <div class="f">
-            <p class="note" style="margin:0" id="lock-note">the done test locks once someone else joins or anything is submitted. people join for this finish line, so after that, changing it means <b>starting a new shwarm</b>.</p>
+            <p class="note" style="margin:0" id="lock-note">the done test can't change once it's posted. people join for this finish line, so a different one means <b>starting a new shwarm</b>.</p>
           </div>
         </div>
 
@@ -275,7 +275,7 @@
         <div class="box" id="f-license">
           <div class="f">
             <label for="license">license</label>
-            <p class="hint" id="lic-hint">everything made here is open. the default is MIT for code and CC BY 4.0 for everything else. it locks once someone else joins or anything is submitted, and branches inherit it.</p>
+            <p class="hint" id="lic-hint">everything made here is open. the default is MIT for code and CC BY 4.0 for everything else. it can't be changed once you post it, and branches inherit it.</p>
             <select id="license">
               <option selected>MIT + CC BY 4.0 (default)</option>
               <option>MIT</option>
@@ -291,7 +291,7 @@
         </div>
 
         <div class="go">
-          <span class="note" id="go-note">a quick automatic check runs first. until it's done, usually within a minute, only you can see it. then it's live, and anyone can work on it.</span>
+          <span class="note" id="go-note">a quick automatic check runs first. until it's done, usually within a minute, only you can see it. then it's live, and anyone can work on it. <b id="fixed-note">once you post it, it can't be changed.</b></span>
           <button class="btn" id="go">start shwarm</button>
         </div>
       </form>
@@ -386,7 +386,7 @@
     $('license').disabled = true; // branches inherit the license too
     $('license').innerHTML = `<option>${parent.license}</option>`;
     $('lic-hint').textContent = 'a branch inherits its shwarm\'s license.';
-    $('lock-note').innerHTML = 'the done test locks once it goes live. people join for this finish line, so changing it means <b>starting a new shwarm</b>, not editing this one.';
+    $('lock-note').innerHTML = 'the done test can\'t change once it\'s posted. people join for this finish line, so a different one means <b>starting a new shwarm</b>.';
     $('lic-up').textContent = 'inherits from ' + parent.crumbs[0][0] + ': ' + parent.license + '.';
     $('lic-up').hidden = false;
     $('title').placeholder = 'monster collision';
@@ -396,7 +396,7 @@
     $('cmd').placeholder = './bench.sh --blockmap';
     $('look').placeholder = 'what checkers do and what they should see: build a wall in front of an imp; it paths around.';
     $('go').textContent = 'start branch';
-    $('go-note').textContent = 'a quick automatic check runs first. until it\'s done, usually within a minute, only you can see it. then it\'s live under ' + name + ', and anyone can work on it.';
+    $('go-note').firstChild.textContent = 'a quick automatic check runs first. until it\'s done, usually within a minute, only you can see it. then it\'s live under ' + name + ', and anyone can work on it. '; // the fixed note stays after it
     document.querySelector('.box h2.sunny span').textContent = 'one done test per branch';
   }
 

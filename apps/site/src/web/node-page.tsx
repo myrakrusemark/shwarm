@@ -63,8 +63,7 @@ export type NodePageData = {
   myFlag?: boolean // the viewer flagged this node (core/flags.ts)
   mySeat?: number | null // the viewer's join on a shwarm or branch (a seat row's number), if they're working on it
   joins?: JoinLine[] // the thread's quiet "✿ @you joined" lines: joins made here with no hello, oldest first (read/node.ts readJoins)
-  nodeEdits?: NodeEdit[] // the shwarm's earlier versions, newest first (its author's edits; re-pitches before Oct 10)
-  editable?: boolean // the viewer is its author and may still edit it: nobody else joined, nothing submitted (decided Oct 10)
+  nodeEdits?: NodeEdit[] // the shwarm's earlier versions, newest first (its author's edits until Oct 12; re-pitches before Oct 10)
   activity: ActivityDay[] // public posts per UTC day here and under here, oldest first, today last (read/activity.ts)
   sort: Sort
   show: Show
@@ -83,8 +82,6 @@ export const nodeHref = (path: string) => `/w/${path}`
 export const subHref = (path: string, n: number) => `/w/${path}/s/${n}` // the submission page (go-live 5.2)
 /** An ended shwarm's "build on this": the create form with builds-on filled in (go-live 4.3; decided Oct 9, passed or a dead end). */
 export const buildOnHref = (path: string) => `/new?builds_on=${encodeURIComponent(path)}`
-/** A shwarm's "edit": the create form filled in with it as it stands (decided Oct 10, '"edit" replaces re-pitch'). */
-export const editHref = (path: string) => `/new?edit=${encodeURIComponent(path)}`
 /**
  * A shwarm's or branch's link preview (go-live 11.7, web/layout.tsx `card`): its title, and its done line as the
  * description. OPEN: "done when: " is new wording; it waits on Myra's yes.
@@ -212,8 +209,6 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
           {s && s.posts_per_day > 0 && <> · {perDay(s.posts_per_day)} posts/day</>}
           {n.changed_at && <> · last activity <Ago at={n.changed_at} now={d.now} /></>}
           {isBranch && <> · license {licenseName(n.license)}, inherited</>}
-          {/* OPEN: no mockup draws it; its place and word wait on Myra's yes. */}
-          {d.editable && <> · <a class="edit-it" href={editHref(n.path)}>edit</a></>}
           <FlagNode d={d} />
         </div>
         <div class="pitch">
@@ -245,7 +240,8 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
  * written (the version before it was replaced then, or the shwarm was started), its title and what, and whatever else
  * that edit changed (done test, checks, license, builds on, tags). The author sees every version; everyone else only
  * those that were public when replaced (read/node.ts readNodeEdits). Versions a re-pitch replaced (before Oct 10) show
- * the same way. OPEN (#79): no mockup draws it; "edited" and the rows wait on Myra's yes.
+ * the same way. Nobody edits a shwarm now (decided Oct 12: once posted, its words are fixed), so only shwarms edited
+ * before that have versions to show. OPEN (#79): no mockup draws it; "edited" and the rows wait on Myra's yes.
  */
 const EditHistory: FC<{ n: NodeHead; edits: NodeEdit[]; now: number }> = ({ n, edits, now }) => {
   const shown = edits.slice(0, EDITS_SHOWN)
@@ -1144,7 +1140,9 @@ function myJoinPost(d: NodePageData): string | undefined {
   if (!d.me || !d.mySeat || myQuietLine(d)) return undefined
   const t = d.thread
   const mine = [t.pinned, ...(t.pinned?.replies ?? []), ...t.items, ...t.items.flatMap(i => i.replies)].filter(
-    (p): p is PostRow => !!p && p.is_join === 1 && !p.deleted_at && p.person_id === d.me!.personId && p.as_name === '@' + d.me!.handle,
+    // Their own hello, or the hello an agent of theirs sent with the join it made for them (decided Oct 12).
+    (p): p is PostRow =>
+      !!p && p.is_join === 1 && !p.deleted_at && p.person_id === d.me!.personId && (p.as_name === '@' + d.me!.handle || p.as_name.startsWith('@' + d.me!.handle + '/')),
   )
   return mine.sort((a, b) => b.created_at.localeCompare(a.created_at))[0]?.id
 }

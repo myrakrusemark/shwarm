@@ -5,9 +5,11 @@
 // Nothing reopens (decided Oct 9, "Continuing an ended shwarm is always build on"): an ended node is locked
 // (context.ts needLive), and anyone carries a passed or dead-end shwarm on by starting a shwarm that builds on it.
 // Nodes reopened before that keep their 'reopened' audit rows and their passes on record.
-// Until someone else joins or anything is submitted, the author may edit a shwarm: everything the /new form holds, the
-// old version kept in node_edit (editNode; it replaced re-pitch, decided Oct 10). "In review" is a flag on live, not a
-// state. "join" says you're working on a shwarm or a branch; it gates nothing (except that it locks a shwarm's words).
+// Once posted, a shwarm's or a branch's own words are fixed (decided Oct 12; it superseded "edit replaces re-pitch" of
+// Oct 10): title, what, done test and checks, license, builds on, tags. No user can edit them, on the site or through the
+// API. editNode stays for the operator's seed card fixes alone (seed/edit.ts, scripts/edit-launch.ts); versions it or an
+// author's edit before Oct 12 replaced stay in node_edit and still show. "In review" is a flag on live, not a state.
+// "join" says you're working on a shwarm or a branch; it gates nothing.
 // Variants are dropped (decided Oct 9): none are made. Rows made before that keep kind 'variant' and their
 // variant_of_id, and read as plain shwarms; nothing reads variant_of_id. Old 'lobby' rows went live in migration 0016.
 import { ShwarmError } from '@shwarm/protocol'
@@ -259,7 +261,10 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
   }
 }
 
-/** join's input. hello: what a person wrote in the "say hi!" modal (empty or missing: no post). Site only. */
+/**
+ * join's input. hello: what a person wrote in the "say hi!" modal, or an agent's hello through a key (empty or missing:
+ * no post).
+ */
 export type JoinInput = { node: string; hello?: string | null }
 
 export type JoinResult = {
@@ -271,6 +276,7 @@ export type JoinResult = {
   joined_by: string | null // the agent that made the person's join ('@myra/claude'), null when they joined on the site
   nodes: string[] // the nodes this join counted the person in: the node itself first, then each node above it they weren't in
   post?: string // the hello's post id, marked as a join (post.is_join)
+  posts_left?: number // with a hello: whole thread posts left here after it, as a post's limits say
 }
 
 /** A seat as join reads it. */
@@ -290,7 +296,11 @@ const above = (path: string) => path.split('/').slice(0, -1).map((_, i, a) => a.
  *   - Through a key, an agent makes that same one join for its human (decided Oct 12, "Agents can join for their
  *     person, with their own key permission"; Myra: "each person STILL gets one join. they just can allow their agent to
  *     choose it"): the key needs `join` on the node, and the name is an agent name, never the bare handle. The seat is
- *     the human's, and records the agent that made it (seat.joined_by). No hello: an agent's join posts nothing.
+ *     the human's, and records the agent that made it (seat.joined_by). The agent may say hi too (decided Oct 12, Myra:
+ *     an agent's join may carry an optional hello): the hello is the agent's own post (as_name the agent), marked as a
+ *     join, and spends a thread post like any post, with the same text cap, limits, mentions and beta gate. It is
+ *     posted only when the join happens: a repeat join posts nothing. OPEN (#115): the key needs `post` on the node
+ *     for a hello as well as `join`, a builder's call (a hello is a post).
  * A join on a branch also counts the person in every node above it, up to the shwarm (decided: "joining a branch also
  * counts you in its parent shwarm", whoever made the join; nested branches the same, a builder's call), each such seat
  * naming the branch (through_id). A seat above that already stands is left as it is; one left earlier is taken again;
@@ -308,9 +318,8 @@ export async function join(ctx: Ctx, a: Actor, inp: JoinInput): Promise<JoinResu
   await needLive(ctx, n)
   const raw = inp.hello
   const said = raw !== undefined && raw !== null && !(typeof raw === 'string' && !raw.trim())
-  // OPEN (#115): new words.
-  if (said && viaKey) throw bad('an agent joins with no hello. post one to the thread if you like', { field: 'hello' })
   const hello = said ? needText(raw, 'hello') : null
+  if (hello !== null && viaKey) authorize(a, 'post', n.path) // a hello is a post (OPEN #115: a builder's call)
   const by = viaKey ? a.as : null
   const human = '@' + person.handle
 
@@ -353,15 +362,17 @@ export async function join(ctx: Ctx, a: Actor, inp: JoinInput): Promise<JoinResu
     seated.push(u.path)
   }
   let postId: string | undefined
+  let postsLeft: number | undefined
   if (hello !== null) {
     const bucket = await takeThreadToken(ctx.db, { personId: person.id, handle: person.handle, nodeId: n.id, path: n.path }, ctx.now)
     postId = newId('p')
     const m = await mentionStatements(ctx, { postId, text: hello, node: n, actor: a })
     stmts.push(postStatement(ctx, { id: postId, nodeId: n.id, actor: a, kind: 'post', text: hello, join: true }), ...m.stmts, bucket.stmt)
+    postsLeft = bucket.left
   }
   stmts.push(touchNode(ctx, n.id, postId ?? null)) // the contributors box (and a hello) show signed out
   await ctx.db.batch(stmts)
-  return { node: n.path, as: a.as, person: human, joined: true, at: ctx.at, joined_by: by, nodes: seated, ...(postId ? { post: postId } : {}) }
+  return { node: n.path, as: a.as, person: human, joined: true, at: ctx.at, joined_by: by, nodes: seated, ...(postId ? { post: postId, posts_left: postsLeft } : {}) }
 }
 
 export type LeaveResult = { node: string; as: string; person: string; left: boolean }
@@ -369,8 +380,10 @@ export type LeaveResult = { node: string; as: string; person: string; left: bool
 /**
  * Stop working on a shwarm or a branch: undoes "join", any time while it's live, for that node only (decided Oct 12:
  * leaving a branch leaves only that branch; the seats above it stay). The author can't leave their own shwarm (table B
- * #29). An agent with the key's join permission leaves its human's seat, by the same rules, whoever made the join.
- * Leaving when not joined changes nothing (left: false).
+ * #29). An agent with the key's join permission leaves its human's seat, by the same rules, but only a join it made
+ * itself (decided Oct 12: seat.joined_by is that agent's name). A join the person made on the site, or another of their
+ * agents made, is the person's to leave on the site (or that agent's): not_permitted, reason not_your_join. Leaving
+ * when not joined changes nothing (left: false).
  */
 export async function leave(ctx: Ctx, a: Actor, inp: { node: string }): Promise<LeaveResult> {
   const viaKey = a.via === 'key'
@@ -382,12 +395,33 @@ export async function leave(ctx: Ctx, a: Actor, inp: { node: string }): Promise<
   await needLive(ctx, n)
   // OPEN: the words wait on Myra's yes.
   if (n.kind !== 'branch' && n.author_id === person.id) throw bad("the author can't leave their own shwarm")
+  if (viaKey) {
+    const seat = await ctx.db
+      .prepare('SELECT joined_by FROM seat WHERE node_id = ? AND person_id = ? AND left_at IS NULL')
+      .bind(n.id, person.id)
+      .first<{ joined_by: string | null }>()
+    // OPEN (#115): new words.
+    if (seat && seat.joined_by !== a.as)
+      throw new ShwarmError(
+        'not_permitted',
+        seat.joined_by
+          ? `${seat.joined_by} made this join, and an agent leaves only a join it made. @${person.handle} can leave it on the site`
+          : `@${person.handle} joined here on the site, and an agent leaves only a join it made. @${person.handle} can leave it on the site`,
+        { reason: 'not_your_join', joined_by: seat.joined_by, node: n.path },
+      )
+  }
   const res = await ctx.db.batch([
     ctx.db.prepare('UPDATE seat SET left_at = ? WHERE node_id = ? AND person_id = ? AND left_at IS NULL').bind(ctx.at, n.id, person.id),
     touchNode(ctx, n.id, null), // the contributors box shows signed out
   ])
   return { node: n.path, as: a.as, person: '@' + person.handle, left: !!res[0]?.meta?.changes }
 }
+
+/**
+ * The refusal anything that asks to change a shwarm's or a branch's own words gets (decided Oct 12): an old edit or
+ * re-pitch form, the API's `kind: "edit"`. OPEN: the words wait on Myra's yes.
+ */
+export const NO_EDIT = "once a shwarm or branch is posted, it can't be changed."
 
 export type EditNodeInput = {
   node: string
@@ -444,6 +478,9 @@ function sameSpec(stored: string, spec: unknown): boolean {
 }
 
 /**
+ * The operator's tool only (decided Oct 12: no user edits a shwarm's words once posted). Nothing on the site or in the API
+ * calls it; seed/edit.ts runs it as @myra for the launch shwarms' card fixes (scripts/edit-launch.ts). What follows is
+ * how it worked as the author's edit (Oct 10 to Oct 12), which it still does for that script.
  * Edit a shwarm (decided Oct 10, '"edit" replaces re-pitch'; it supersedes re-pitch): its author changes everything the
  * /new form holds (title, what, done test and its checks, tags, license, builds on) until someone other than the author
  * joins or anything is submitted, whichever comes first; after that its words are locked for good (EDITABLE). The

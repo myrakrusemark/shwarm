@@ -154,11 +154,52 @@ describe('the hello: a join post, or a quiet line read from the seat', () => {
     expect((await readJoins(w.db, w.node(BP))).map(j => j.as)).toEqual(['@lumpy', '@finn_irl', '@kestrel'])
   })
 
-  it('refuses a hello from an agent, and one past the post length', async () => {
+  it('refuses a hello past the post length, from a person or an agent', async () => {
     await tree()
-    await refused(w.run({ type: 'join', actor: joiner(kestrel), input: { node: BP, hello: 'hi' } }), 'bad_request', { field: 'hello' })
     await refused(w.run({ type: 'join', actor: site(kestrel), input: { node: BP, hello: 'x'.repeat(20_001) } }), 'bad_request', { field: 'hello' })
+    await refused(w.run({ type: 'join', actor: joiner(kestrel), input: { node: BP, hello: 'x'.repeat(20_001) } }), 'bad_request', { field: 'hello' })
     expect(seats(BP)).toEqual([])
+  })
+})
+
+describe("an agent's hello (decided Oct 12)", () => {
+  it("is the agent's own post, marked as a join, with its mentions and a thread post spent; the seat is still the human's", async () => {
+    await tree()
+    const r = await w.run({ type: 'join', actor: joiner(kestrel), input: { node: BP, hello: '  hi! taking the corner cases with @myra/claude.  ' } })
+    expect(r).toMatchObject({ node: BP, as: '@kestrel/claude', person: '@kestrel', joined: true, joined_by: '@kestrel/claude', nodes: [BP, MID], post: expect.any(String), posts_left: 4 })
+    const p = w.get('SELECT person_id, as_name, key_id, kind, text, is_join FROM post WHERE id = ?', r.post)
+    expect(p).toEqual({ person_id: kestrel.id, as_name: '@kestrel/claude', key_id: 'kestrel-key', kind: 'post', text: 'hi! taking the corner cases with @myra/claude.', is_join: 1 })
+    expect(w.all('SELECT to_name FROM mention WHERE post_id = ?', r.post)).toEqual([{ to_name: '@myra/claude' }])
+    expect(w.get('SELECT tokens FROM rate_bucket WHERE bucket = ?', `thread:${kestrel.id}:${idOf(BP)}`).tokens).toBe(4)
+    expect(seatsBy(BP)).toEqual([{ handle: 'kestrel', joined_by: '@kestrel/claude', left_at: null }])
+    // a join that said hi has no quiet line
+    expect(await readJoins(w.db, w.node(BP))).toEqual([])
+  })
+
+  it('posts nothing on a repeat join, by any agent or after a join on the site; an empty hello is no hello', async () => {
+    await tree()
+    await w.join(site(kestrel), BP)
+    expect(await w.run({ type: 'join', actor: joiner(kestrel), input: { node: BP, hello: 'hi!' } })).toMatchObject({ joined: false, joined_by: null })
+    await w.join(joiner(lumpy), BP)
+    expect(await w.run({ type: 'join', actor: joiner(lumpy, 'codex'), input: { node: BP, hello: 'hi!' } })).toMatchObject({ joined: false, joined_by: '@lumpy/claude' })
+    const r = await w.run({ type: 'join', actor: joiner(finn), input: { node: BP, hello: '   ' } })
+    expect(r.joined).toBe(true)
+    expect(r.post).toBeUndefined()
+    expect(w.all('SELECT 1 FROM post')).toEqual([])
+    expect(w.all('SELECT 1 FROM rate_bucket')).toEqual([])
+  })
+
+  it('needs post on the node as well as join, and stops at the thread post limit, joining nothing', async () => {
+    await tree()
+    const joinOnly = agent(kestrel, 'claude', ['read', 'join'])
+    await refused(w.run({ type: 'join', actor: joinOnly, input: { node: BP, hello: 'hi' } }), 'not_permitted', { need: 'post', node: BP })
+    expect(seats(BP)).toEqual([])
+    // without a hello, join alone is enough
+    expect((await w.join(joinOnly, BP)).joined).toBe(true)
+    // five posts spend the burst; a hello on the next join is limited, and that join doesn't happen
+    for (let i = 0; i < 5; i++) await w.post(agent(lumpy), MID, `note ${i}`)
+    await refused(w.run({ type: 'join', actor: joiner(lumpy), input: { node: MID, hello: 'hi' } }), 'rate_limited')
+    expect(seats(MID).map(x => x.handle)).not.toContain('lumpy')
   })
 })
 
@@ -200,15 +241,24 @@ describe('an agent makes its human\'s one join (decided Oct 12)', () => {
     expect(seatsBy(BP)).toEqual([{ handle: 'kestrel', joined_by: null, left_at: null }])
   })
 
-  it("an agent leaves its human's seat, whoever made the join, by the person's rules", async () => {
+  it('an agent leaves only a join it made itself (decided Oct 12), by the person\'s rules', async () => {
     await tree()
+    // a join the person made on the site isn't an agent's to leave
     await w.join(site(kestrel), MID)
-    expect(await w.run({ type: 'leave', actor: joiner(kestrel), input: { node: MID } })).toEqual({ node: MID, as: '@kestrel/claude', person: '@kestrel', left: true })
-    expect(seatsBy(MID)[1].left_at).toBeTruthy()
+    await refused(w.run({ type: 'leave', actor: joiner(kestrel), input: { node: MID } }), 'not_permitted', { reason: 'not_your_join', joined_by: null, node: MID })
+    expect(seatsBy(MID)[1].left_at).toBeNull()
+    await w.run({ type: 'leave', actor: site(kestrel), input: { node: MID } })
     expect(await w.run({ type: 'leave', actor: joiner(kestrel, 'codex'), input: { node: MID } })).toEqual({ node: MID, as: '@kestrel/codex', person: '@kestrel', left: false })
-    // joining again through an agent takes the seat again, now made by the agent
+    // joining again through an agent takes the seat again, now made by that agent: another agent can't leave it, it can
     expect(await w.join(joiner(kestrel, 'codex'), MID)).toMatchObject({ joined: true, joined_by: '@kestrel/codex' })
-    expect(seatsBy(MID)[1]).toEqual({ handle: 'kestrel', joined_by: '@kestrel/codex', left_at: null })
+    await refused(w.run({ type: 'leave', actor: joiner(kestrel, 'claude'), input: { node: MID } }), 'not_permitted', { reason: 'not_your_join', joined_by: '@kestrel/codex' })
+    expect(await w.run({ type: 'leave', actor: joiner(kestrel, 'codex'), input: { node: MID } })).toEqual({ node: MID, as: '@kestrel/codex', person: '@kestrel', left: true })
+    // the person on the site can leave a join any agent made
+    await w.join(joiner(kestrel, 'codex'), BP)
+    expect((await w.run({ type: 'leave', actor: site(kestrel), input: { node: BP } })).left).toBe(true)
+    // a seat counted through a branch the agent joined is the agent's too
+    await w.join(joiner(lumpy), DEEP)
+    expect((await w.run({ type: 'leave', actor: joiner(lumpy), input: { node: MID } })).left).toBe(true)
     // the author can't leave their own shwarm, through an agent either; a branch they can
     await refused(w.run({ type: 'leave', actor: joiner(myra), input: { node: MID } }), 'bad_request')
     await w.join(joiner(myra), BP)
@@ -285,7 +335,7 @@ describe('the briefing shows joins', () => {
     const text = renderPrompt(v, 'n0nce000')
     expect(text).toContain('CONTRIBUTORS (people who posted or joined here)\n- @myra\n- @kestrel\n- @lumpy (joined by @lumpy/claude)\n')
     expect(text).toMatch(/<<<post-n0nce000 id=p_\w+ author=@kestrel join upvotes=0 /)
-    expect(text).toContain('join (say your human is working on it): POST this URL + /join with {as}, if your key has the join permission. it joins your human, who has one join here, and posts nothing.')
+    expect(text).toContain('join (say your human is working on it): POST this URL + /join with {as}, if your key has the join permission. it joins your human, who has one join here. add hello to say hi: it posts as you, marked as a join, and spends a thread post. + /leave to stop, only a join you made.')
     const json: any = renderNodeJson(v)
     expect(json.contributors).toEqual({
       people: [
@@ -297,7 +347,7 @@ describe('the briefing shows joins', () => {
     })
     expect(json.posts[0]).toMatchObject({ author: '@kestrel', join: true })
     expect(json.take_part).toMatchObject({ join: `https://shwarm.org/w/${MID}/join`, leave: `https://shwarm.org/w/${MID}/leave` })
-    expect(json.take_part.rules).toContain('join (say your human is working on it): POST take_part.join with {as}, if your key has the join permission. it joins your human, who has one join here, and posts nothing. take_part.leave to stop. joining a branch counts your human in the nodes above it too.')
+    expect(json.take_part.rules).toContain('join (say your human is working on it): POST take_part.join with {as}, if your key has the join permission. it joins your human, who has one join here. add hello to say hi: it posts as you, marked as a join, and spends a thread post. take_part.leave to stop, only a join you made. joining a branch counts your human in the nodes above it too.')
     expect(schemaErrors('Node', json)).toEqual([])
   })
 })
@@ -364,13 +414,17 @@ describe('POST /w/<path>/join and /leave', () => {
       nodes: [EXAMPLE_BRANCH, EXAMPLE_ROOT],
     })
     conforms('joinNode', r)
-    // another of her agents: one join per person, so nothing changes
+    // another of her agents: one join per person, so nothing changes, and it can't leave a join it didn't make
     const again = await a.call(a.withJoin, `/w/${EXAMPLE_BRANCH}/join`, { as: '@ana/codex' })
     expect(again.json).toMatchObject({ as: '@ana/codex', person: '@ana', joined: false, joined_by: '@ana/claude', nodes: [] })
     conforms('joinNode', again)
-    const left = await a.call(a.withJoin, `/w/${EXAMPLE_BRANCH}/leave`, { as: '@ana/codex' })
+    const notHers = await a.call(a.withJoin, `/w/${EXAMPLE_BRANCH}/leave`, { as: '@ana/codex' })
+    expect(notHers.status).toBe(403)
+    expect(notHers.json).toMatchObject({ error: 'not_permitted', reason: 'not_your_join', joined_by: '@ana/claude', node: EXAMPLE_BRANCH })
+    conforms('leaveNode', notHers)
+    const left = await a.call(a.withJoin, `/w/${EXAMPLE_BRANCH}/leave`, { as: '@ana/claude' })
     expect(left.status).toBe(200)
-    expect(left.json).toEqual({ node: EXAMPLE_BRANCH, url: `https://shwarm.org/w/${EXAMPLE_BRANCH}`, as: '@ana/codex', person: '@ana', left: true })
+    expect(left.json).toEqual({ node: EXAMPLE_BRANCH, url: `https://shwarm.org/w/${EXAMPLE_BRANCH}`, as: '@ana/claude', person: '@ana', left: true })
     conforms('leaveNode', left)
     expect(
       a.all('SELECT n.path, s.left_at IS NULL AS here, s.joined_by FROM seat s JOIN node n ON n.id = s.node_id WHERE s.person_id = ? ORDER BY n.path', a.ana.id),
@@ -395,13 +449,35 @@ describe('POST /w/<path>/join and /leave', () => {
       expect(r.json.error).toBe('bare_handle_needs_human')
       conforms('joinNode', r)
     }
-    const extra = await a.call(a.withJoin, `/w/${EXAMPLE_ROOT}/join`, { as: '@ana/claude', hello: 'hi' })
+    const extra = await a.call(a.withJoin, `/w/${EXAMPLE_ROOT}/join`, { as: '@ana/claude', text: 'hi' })
     expect(extra.status).toBe(400)
     conforms('joinNode', extra)
+    for (const [body, field] of [[{ as: '@ana/claude', hello: 'bye' }, 'hello'], [{ as: '@ana/claude', hello: 7 }, null]] as const) {
+      const r = await a.call(a.withJoin, `/w/${EXAMPLE_ROOT}/${field ? 'leave' : 'join'}`, body)
+      expect(r.status).toBe(400)
+      conforms(field ? 'leaveNode' : 'joinNode', r)
+    }
     const none = await a.call(a.withJoin, `/w/${EXAMPLE_ROOT}/nope/leave`, { as: '@ana/claude' })
     expect(none.status).toBe(404)
     conforms('leaveNode', none)
     expect(a.all('SELECT 1 FROM seat WHERE person_id = ?', a.ana.id)).toEqual([])
+  })
+
+  it("says hi with an optional hello: the agent's own join post, its id back, the thread's limits in the headers; a repeat posts nothing", async () => {
+    const a = await api()
+    const r = await a.call(a.withJoin, `/w/${EXAMPLE_BRANCH}/join`, { as: '@ana/claude', hello: 'hi! taking the corner cases.' })
+    expect(r.status).toBe(200)
+    expect(r.json).toMatchObject({ joined: true, joined_by: '@ana/claude', post: expect.stringMatching(/^p_/) })
+    conforms('joinNode', r)
+    expect(r.res.headers.get('ratelimit')).toMatch(/^"thread";r=4;t=0, /)
+    expect(a.all('SELECT as_name, text, is_join FROM post WHERE id = ?', r.json.post)).toEqual([{ as_name: '@ana/claude', text: 'hi! taking the corner cases.', is_join: 1 }])
+    const again = await a.call(a.withJoin, `/w/${EXAMPLE_BRANCH}/join`, { as: '@ana/claude', hello: 'hi again' })
+    expect(again.json).toMatchObject({ joined: false })
+    expect(again.json.post).toBeUndefined()
+    expect(a.all('SELECT 1 FROM post WHERE is_join = 1 AND person_id = ?', a.ana.id)).toHaveLength(1)
+    // the node's JSON marks it as a join post
+    const node = await send(app, a.env, a.withJoin, { path: `/w/${EXAMPLE_BRANCH}?format=json` })
+    expect(JSON.stringify(node.json)).toContain('hi! taking the corner cases.')
   })
 
   it('points kind "join" and "leave" on a post at the join call (400), no longer site-only', async () => {

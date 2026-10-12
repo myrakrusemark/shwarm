@@ -109,7 +109,7 @@ describe('join and leave (go-live 8.2)', () => {
   it("joins for the human with a signed POST to <path>/join carrying only {as}, and says who joined, by whom and where it counts", async () => {
     const r = await run(['join', B, '--as', '@myra/m-04'], { env: { SHWARM_KEY: SECRET }, answers: [Response.json(joined)] })
     expect(r.code).toBe(0)
-    expect(r.out).toBe(`@myra joined ${B} (by @myra/m-04), and is counted in minecraft-in-doom too. to say hi, post.\nhttps://shwarm.org/w/${B}`)
+    expect(r.out).toBe(`@myra joined ${B} (by @myra/m-04), and is counted in minecraft-in-doom too.\nhttps://shwarm.org/w/${B}`)
     const req = r.calls[0]
     expect([req.method, new URL(req.url).pathname]).toEqual(['POST', `/w/${B}/join`])
     expect(req.headers.get('signature-input')).toContain('keyid="k7m2q9x4ab"')
@@ -123,6 +123,18 @@ describe('join and leave (go-live 8.2)', () => {
     // --json prints the API's answer unchanged
     const j = await run(['join', B, '--as', '@myra/m-04', '--json'], { env: { SHWARM_KEY: SECRET }, answers: [Response.json(joined)] })
     expect(JSON.parse(j.out)).toEqual(joined)
+  })
+
+  it('says hi with --hello (or - for standard input): sent as hello, and the answer links the post', async () => {
+    const r = await run(['join', B, '--as', '@myra/m-04', '--hello', 'hi! taking corners'], { env: { SHWARM_KEY: SECRET }, answers: [Response.json({ ...joined, post: 'p_7c2q1xk9am' })] })
+    expect(r.code).toBe(0)
+    expect(await r.calls[0].json()).toEqual({ as: '@myra/m-04', hello: 'hi! taking corners' })
+    expect(r.out).toBe(`@myra joined ${B} (by @myra/m-04), and is counted in minecraft-in-doom too. said hi as @myra/m-04.\nhttps://shwarm.org/w/${B}#p_7c2q1xk9am`)
+    const piped = await run(['join', B, '--as', '@myra/m-04', '--hello', '-'], { env: { SHWARM_KEY: SECRET }, stdin: 'hi from a pipe', answers: [Response.json({ ...joined, post: 'p_7c2q1xk9am' })] })
+    expect(await piped.calls[0].json()).toEqual({ as: '@myra/m-04', hello: 'hi from a pipe' })
+    // a repeat join posts nothing, and says so
+    const again = await run(['join', B, '--as', '@myra/m-04', '--hello', 'hi again'], { env: { SHWARM_KEY: SECRET }, answers: [Response.json({ ...joined, joined: false, nodes: [] })] })
+    expect(again.out).toContain(`@myra had already joined ${B} (since 2026-10-12T15:52:29.549Z, by @myra/m-04). the hello was not posted.`)
   })
 
   it('leaves with a signed POST to <path>/leave', async () => {
@@ -147,7 +159,7 @@ describe('join and leave (go-live 8.2)', () => {
       expect(r.code, argv.join(' ')).toBe(2)
       expect(r.calls, argv.join(' ')).toHaveLength(0)
     }
-    expect((await run(['join', B, '--as', '@myra/m-04', 'hi'], { env: { SHWARM_KEY: SECRET } })).err).toContain(`to say hi, post: shwarm post ${B} <text>`)
+    expect((await run(['join', B, '--as', '@myra/m-04', 'hi'], { env: { SHWARM_KEY: SECRET } })).err).toContain('to say hi, add --hello <text>')
     const nokey = await run(['join', B, '--as', '@myra/m-04'])
     expect(nokey.code).toBe(3)
     expect(nokey.calls).toHaveLength(0)

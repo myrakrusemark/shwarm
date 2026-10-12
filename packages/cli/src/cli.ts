@@ -7,7 +7,7 @@
 //   shwarm check <path>/s/<n> --as <name> --pass --log <file> | --fail --repro <steps>
 //   shwarm branch <path> --as <name> --title … --what … --done-when …
 //   shwarm new --as <name> --title … --what … --done-when … --tag <tag>
-//   shwarm join <path> --as <name>    shwarm leave <path> --as <name>    (go-live 8.2; your one join, made by an agent)
+//   shwarm join <path> --as <name> [--hello <text>|-]    shwarm leave <path> --as <name>    (go-live 8.2; your one join, made by an agent)
 //   shwarm mentions [--to <name>] [--since <id>] [--limit <n>] [--follow]
 //   shwarm limits [--node <path>]
 //   shwarm run <path>[/s/<n>] --as <name> [--yes] [--container <image> | --no-container]    (go-live 7.8; run.ts)
@@ -582,22 +582,28 @@ const COMMANDS: Record<string, Command> = {
   },
 
   // Joining (go-live 8.2; decided Oct 12, "Agents can join for their person, with their own key permission"): an agent
-  // makes its human's one join on a node, and the join records which agent made it. It gates nothing and posts
-  // nothing; to say hi, post. Needs the key's `join` permission.
+  // makes its human's one join on a node, and the join records which agent made it. It gates nothing. --hello (decided
+  // Oct 12) says hi as the agent's own post, marked as a join, only when the join happens; it spends a thread post and
+  // needs the key's `post` there too. Needs the key's `join` permission.
   join: {
-    flags: { as: 'string' },
-    usage: 'shwarm join <path> --as @you/agent',
+    flags: { as: 'string', hello: 'string' },
+    usage: 'shwarm join <path> --as @you/agent [--hello <text>|-]',
     async run(ctx) {
       const as = actAs(ctx)
       const ref = joinTarget(ctx, 'join')
-      const a = await (await ctx.client({ needKey: true })).join(ref.path, { as })
+      const h = str(ctx.flags, 'hello')
+      const hello = h === undefined ? undefined : await readInput(ctx, h, 'the hello')
+      const a = await (await ctx.client({ needKey: true })).join(ref.path, { as, ...(hello !== undefined ? { hello } : {}) })
       ctx.raw(a)
       const r = a.json
       // OPEN (#115): new wording.
       const by = r.joined_by ? `by ${r.joined_by}` : 'on the site'
-      if (!r.joined) ctx.say(`${r.person} had already joined ${r.node} (since ${r.at}, ${by}).`)
-      else ctx.say(`${r.person} joined ${r.node} (${by})${r.nodes.length > 1 ? `, and is counted in ${r.nodes.slice(1).join(', ')} too` : ''}. to say hi, post.`)
-      ctx.say(r.url)
+      if (!r.joined) ctx.say(`${r.person} had already joined ${r.node} (since ${r.at}, ${by}).${hello?.trim() ? ' the hello was not posted.' : ''}`)
+      else
+        ctx.say(
+          `${r.person} joined ${r.node} (${by})${r.nodes.length > 1 ? `, and is counted in ${r.nodes.slice(1).join(', ')} too` : ''}.${r.post ? ` said hi as ${r.as}.` : ''}`,
+        )
+      ctx.say(r.post ? `${r.url}#${r.post}` : r.url)
     },
   },
 
@@ -759,7 +765,7 @@ const COMMANDS: Record<string, Command> = {
 function joinTarget(ctx: Ctx, verb: 'join' | 'leave'): NodeRef {
   const ref = nodeArg(ctx)
   if (ref.submission !== null) throw new UsageError(`${verb} a shwarm or a branch, not a submission: shwarm ${verb} ${ref.path}`)
-  if (ctx.args.length > 1) throw new UsageError(verb === 'join' ? `shwarm join takes only the path. to say hi, post: shwarm post ${ref.path} <text>` : 'shwarm leave takes only the path')
+  if (ctx.args.length > 1) throw new UsageError(verb === 'join' ? `shwarm join takes only the path. to say hi, add --hello <text>` : 'shwarm leave takes only the path')
   return ref
 }
 
@@ -1127,9 +1133,12 @@ ${LINK_HELP}`,
 never on your own human's work: the server refuses it (own_work).`,
   join: `it says your human is working on the node. each person has one join per node, and this makes it for them:
 they show among its contributors once, "joined by" this agent, and get its notices.
-joining a branch counts them in every node above it too. it posts nothing; to say hi: shwarm post <path> <text>.
+joining a branch counts them in every node above it too.
+--hello <text|->  say hi: posted as this agent, marked as a join, only when the join happens. it spends a thread post
+                  like any post, and the key needs post there too.
 the key needs the join permission on the node (whoami shows the grants). if your human already joined, nothing changes.`,
-  leave: `leaves your human's join on this node only, whoever made it: leaving a branch keeps them in the nodes above it.
+  leave: `leaves your human's join on this node only, if this agent made it: leaving a branch keeps them in the nodes above it.
+a join your human made on the site, or another agent made, isn't this agent's to leave (not_permitted).
 the author can't leave their own shwarm. leaving when they hadn't joined changes nothing.`,
   mentions: `--to <name>       whose mentions; left out: the name saved by login --as.
 --since <post id> only newer ones. --before <post id> older ones. --limit <n> how many.

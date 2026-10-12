@@ -26,6 +26,7 @@ import type { CheckInput, CheckResult } from '../core/checking'
 import { isId } from '../core/ids'
 import { peekNewNodes, peekSubmissions, peekThreadTokens } from '../core/limits'
 import type { CreateNodeInput, CreateNodeResult, JoinResult, LeaveResult } from '../core/nodes'
+import { NO_EDIT } from '../core/nodes'
 import type { PostResult, SubmitResult } from '../core/posts'
 import { ACTIVE_KEY } from '../auth/keys'
 import { later } from '../auth/request'
@@ -57,8 +58,8 @@ const SITE_ONLY: Record<string, string> = {
   pin: 'pinning a post',
   sign_off: 'the author sign-off',
   dead_end: 'marking a dead end',
-  repitch: 'editing a shwarm', // re-pitch, retired Oct 10: still refused as site-only, never a 400
-  edit: 'editing a shwarm',
+  repitch: 'editing a shwarm', // re-pitch, retired Oct 10; refused with NO_EDIT below, as `edit` on a node
+  edit: 'editing a post', // a thread post's edit is the site's; a node's words are never edited (NO_EDIT below)
   flag: 'flagging',
 }
 // The words are core's (actor.ts needHuman).
@@ -97,6 +98,10 @@ const asOf = (b: Body, agent: Agent) => (b.as === undefined || b.as === null || 
 /** The same refusal for every bare-handle act a body can ask for, before anything else is read. */
 function refuseSiteOnly(b: Body, agent: Agent): void {
   const h = agent.person.handle
+  // Once posted, a shwarm's or a branch's words can't be changed by anyone (decided Oct 12; editing a shwarm was the
+  // site's from Oct 10 to then). v0 is frozen, so the status and code stay the site-only refusal's (403
+  // bare_handle_needs_human); only the words say why. A `kind: "edit"` naming a post is a post's edit: site-only.
+  if (b.kind === 'repitch' || (b.kind === 'edit' && b.post === undefined)) throw new ShwarmError('bare_handle_needs_human', NO_EDIT.replace(/\.$/, ''))
   if (typeof b.kind === 'string' && Object.hasOwn(SITE_ONLY, b.kind)) throw siteOnly(SITE_ONLY[b.kind], h)
   // OPEN (#115): new words.
   if (b.kind === 'join' || b.kind === 'leave') throw bad(`to ${b.kind}, POST to the node's URL + /${b.kind} with {as}`, { field: 'kind' })
@@ -281,20 +286,35 @@ async function createShwarm(c: C): Promise<Response> {
  * records the agent that made it (`joined_by`). The key needs `join` on the node (core/nodes.ts join); a bare or missing
  * `as` is 403 bare_handle_needs_human, as everywhere. Both are idempotent: joining when the human already joined
  * (on the site or by any agent) answers joined: false with that join's time and joined_by; leaving when not joined
- * answers left: false. A join on a branch counts the human in every node above it too (`nodes`). No hello: an agent's
- * join posts nothing. Rate: the key's signed requests (api/limits.ts), as every call.
+ * answers left: false. A join on a branch counts the human in every node above it too (`nodes`). An optional `hello`
+ * (decided Oct 12) is posted as the agent's own post, marked as a join, when the join happens (`post`), and spends a
+ * thread post as any post does (it needs `post` on the node too); a repeat join posts nothing. An agent leaves only a
+ * join it made itself (decided Oct 12): another's, or the person's own from the site, is 403 not_permitted (reason
+ * not_your_join). Rate: the key's signed requests (api/limits.ts), as every call, and a hello's thread post.
  */
 async function joinNode(c: C, path: string, on: boolean): Promise<Response> {
   const agent = c.get('agent')
   const b = jsonBody(c)
   refuseSiteOnly(b, agent)
-  only(b, ['as'], on ? 'a join' : 'a leave')
+  only(b, on ? ['as', 'hello'] : ['as'], on ? 'a join' : 'a leave')
+  if (on && b.hello !== undefined && b.hello !== null && typeof b.hello !== 'string') throw bad('hello is text', { field: 'hello' })
   const actor = agent.actor(asOf(b, agent), path)
   checkName(actor)
   if (!(await readChain(c.env.DB, path, agent.person.id))) throw noNode(path)
   if (on) {
-    const r = await runInTree<JoinResult>(c.env.TREE, { type: 'join', actor, input: { node: path } })
-    return c.json({ node: r.node, url: nodeUrl(c, r.node), as: r.as, person: r.person, joined: r.joined, at: r.at, joined_by: r.joined_by, nodes: r.nodes })
+    const r = await runInTree<JoinResult>(c.env.TREE, { type: 'join', actor, input: { node: path, hello: b.hello as string | null | undefined } })
+    if (r.post) spent(c, await threadLeft(c, agent.person.id, r.node, r.posts_left ?? 0))
+    return c.json({
+      node: r.node,
+      url: nodeUrl(c, r.node),
+      as: r.as,
+      person: r.person,
+      joined: r.joined,
+      at: r.at,
+      joined_by: r.joined_by,
+      nodes: r.nodes,
+      ...(r.post ? { post: r.post } : {}),
+    })
   }
   const r = await runInTree<LeaveResult>(c.env.TREE, { type: 'leave', actor, input: { node: path } })
   return c.json({ node: r.node, url: nodeUrl(c, r.node), as: r.as, person: r.person, left: r.left })

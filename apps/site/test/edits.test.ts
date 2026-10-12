@@ -1,6 +1,7 @@
 // Go-live 4.4, the rest, as no lobby left it (decided Oct 9): joining a live shwarm (working on it). Editing a shwarm
-// until someone else joins or anything is submitted (decided Oct 10, '"edit" replaces re-pitch'), with its history and
-// a new triage round, from the "edit" link on its page through the /new form.
+// (decided Oct 10) is gone for users (decided Oct 12: once posted, a shwarm's or a branch's words can't be changed): no
+// link, form mode or save, and the forms say so; versions kept before then still show. core's editNode stays as the
+// operator's seed card-fix tool (seed/edit.ts), and its rules are tested here as that tool runs them.
 // Go-live 4.8: editing any of your own plain posts (with "edited" and its history), deleting one (a tombstone), "make it
 // a branch" from a post, and no "claimed by" anywhere a page is drawn.
 import { readdirSync, readFileSync } from 'node:fs'
@@ -8,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { hashPassword } from '../src/auth/password'
 import { rollupStats } from '../src/jobs/stats'
 import { readContributors, readChain, readNodeEdits } from '../src/read/node'
-import type { EditNodeInput } from '../src/core/nodes'
+import { NO_EDIT, type EditNodeInput } from '../src/core/nodes'
 import { readProfile } from '../src/read/profile'
 import { EXAMPLE_ROOT } from '../src/seed/example'
 import { describeNode, nodeSql } from '../src/triage/decide'
@@ -97,7 +98,7 @@ describe('join: working on it (4.4, decided Oct 9)', () => {
 
 // ---------- core: edit (decided Oct 10, '"edit" replaces re-pitch') ----------
 
-describe('editing a shwarm until someone else joins or anything is submitted (decided Oct 10)', () => {
+describe("core editNode, the operator's seed card-fix tool only (no user edits since Oct 12): its Oct 10 rules", () => {
   let w: World
   let myra: P, ana: P
 
@@ -540,186 +541,66 @@ describe('on the page', () => {
     })
   })
 
-  describe('edit (decided Oct 10)', () => {
-    const unescape = (v: string) => v.replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
-    const attr = (tag: string, name: string) => {
-      const m = new RegExp(`\\s${name}="([^"]*)"`).exec(tag)
-      return m ? unescape(m[1]) : null
-    }
-    /** The fields a browser would send from the page's form.new, as it was filled in. */
-    function formValues(raw: string): Record<string, string> {
-      const at = raw.indexOf('<form method="post" action="/new"')
-      expect(at, 'the /new form').toBeGreaterThan(-1)
-      const form = raw.slice(at, raw.indexOf('</form>', at))
-      const out: Record<string, string> = {}
-      for (const [tag] of form.matchAll(/<input[^>]*>/g)) {
-        const name = attr(tag, 'name')
-        if (!name || attr(tag, 'type') === 'password') continue
-        if (attr(tag, 'type') === 'checkbox') {
-          if (/\schecked(=""|\s|\/?>)/.test(tag)) out[name] = 'on'
-        } else out[name] = attr(tag, 'value') ?? ''
+  describe("no editing a shwarm's or a branch's words (decided Oct 12)", () => {
+    it('no user edit path exists: no link, no form mode, no save; an old edit link, edit form or re-pitch form is refused and changes nothing', async () => {
+      const { env, q } = await world()
+      const before = q<{ id: number; title: string }>('SELECT id, title, what, done_when, checks, license, builds_on FROM node WHERE path = ?', PLAIN)
+      const nodes = q<{ n: number }>('SELECT COUNT(*) AS n FROM node').n
+      // the author of a shwarm nobody else joined, nothing submitted: what Oct 10 called editable
+      const author = await signIn(env, 'myra', { make: false })
+      for (const path of [PLAIN, `${EXAMPLE_ROOT}/block-placement`]) {
+        const html = await page(author, `/w/${path}`)
+        expect(html).not.toContain('/new?edit=')
+        expect(html).not.toContain('class="edit-it"')
       }
-      for (const [, at, text] of form.matchAll(/<textarea([^>]*)>([\s\S]*?)<\/textarea>/g)) out[attr(at, 'name')!] = unescape(text)
-      for (const [, at, opts] of form.matchAll(/<select([^>]*)>([\s\S]*?)<\/select>/g)) {
-        const name = attr(at, 'name')
-        const sel = /<option[^>]*value="([^"]*)"[^>]*selected/.exec(opts)
-        if (name && sel) out[name] = unescape(sel[1])
-      }
-      return out
-    }
-    const editPage = async (b: Browser, path = PLAIN) => b.req(`/new?edit=${encodeURIComponent(path)}`, { headers: HTML })
-    const save = async (b: Browser, change: Record<string, string>, path = PLAIN) => {
-      const fields = formValues(await (await editPage(b, path)).text())
-      return b.req('/new', { form: { ...fields, ...change } })
-    }
-
-    it('the author sees "edit" on the shwarm; it opens the form filled in; saving changes all of it behind the password', async () => {
-      const { env, q } = await world()
-      const before = q<{ id: number; title: string; what: string; done_when: string; checks: string; license: string }>('SELECT id, title, what, done_when, checks, license FROM node WHERE path = ?', PLAIN)
-      const b = await signIn(env, 'myra', { make: false })
-      let html = await page(b, `/w/${PLAIN}`)
-      expect(html).toContain(`<a class="edit-it" href="/new?edit=${PLAIN}">edit</a>`)
-      expect(html).not.toContain('re-pitch')
-      expect(html).toContain('<summary>mark it a dead end</summary>') // the author's own box keeps the dead end
-      expect(html).not.toContain('<summary>edited</summary>')
-      // the form, filled in as it stands
-      let res = await editPage(b)
-      expect(res.status).toBe(200)
-      html = await body(res)
-      expect(html).toContain('<h1 class="title" id="heading">edit shwarm</h1>')
-      expect(html).toContain(`<input type="hidden" name="edit" value="${PLAIN}"/>`)
-      expect(html).toContain(`value="${before.title}"`)
-      expect(html).toContain(`>${before.done_when}</textarea>`)
-      expect(html).toContain('<button class="btn" type="submit" id="go">save changes</button>')
-      expect(html).toContain('confirms with your password.')
-      expect(html).not.toContain('id="e-pw"') // signing in opened the 10-minute window
-      expect(repeatedIds(html)).toEqual([])
-      // saved untouched: nothing changes, and builds on keeps its stored name (no new github lookup renames it)
-      res = await save(b, {})
-      expect(res.status).toBe(303)
-      expect(q('SELECT COUNT(*) AS n FROM node_edit WHERE node_id = ?', before.id)).toEqual({ n: 0 })
-      // nor when the browser sends a textarea's line breaks as \r\n
-      expect(before.what).toContain('\n')
-      const crlf = Object.fromEntries(Object.entries(formValues(await (await editPage(b)).text())).map(([k, v]) => [k, v.replace(/\n/g, '\r\n')]))
-      expect((await b.req('/new', { form: crlf })).status).toBe(303)
-      expect(q('SELECT COUNT(*) AS n FROM node_edit WHERE node_id = ?', before.id)).toEqual({ n: 0 })
-      // once the window is closed, a save without the password is refused at the form, the new words kept
-      vi.setSystemTime(T0 + 11 * MIN)
-      expect(await body(await editPage(b))).toContain('<label class="pw" for="e-pw">password <input id="e-pw"')
-      res = await save(b, { title: 'a bot that beats freedoom, fast', done_when: 'it finishes map01 in under a minute.' })
-      expect(res.status).toBe(400)
-      html = await body(res)
-      expect(html).toContain('<p class="err top" role="alert">enter your password to confirm.</p>')
-      expect(html).toContain('value="a bot that beats freedoom, fast"')
-      expect(html).toContain('>it finishes map01 in under a minute.</textarea>')
-      // it builds on vizdoom (MIT, from github); dropping that, the license picked is the one it takes
-      expect(html).toContain('value="https://github.com/Farama-Foundation/ViZDoom"')
-      const nothing = { builds_on: '', builds_on_name: '', builds_on_license: '' }
-      res = await save(b, { title: 'a bot that beats freedoom, fast', done_when: 'it finishes map01 in under a minute.', ...nothing, license: 'GPL-3.0', password: GOOD_PASSWORD })
-      expect(res.status).toBe(303)
-      expect(res.headers.get('location')).toBe(`/w/${PLAIN}`)
-      expect(q('SELECT path, title, what, done_when, checks, license, builds_on FROM node WHERE path = ?', PLAIN)).toEqual({
-        path: PLAIN,
-        title: 'a bot that beats freedoom, fast',
-        what: before.what,
-        done_when: 'it finishes map01 in under a minute.',
-        checks: before.checks, // the run command's description, which the form doesn't show, is kept
-        license: 'GPL-3.0',
-        builds_on: null,
-      })
-      // the history shows the version it replaced, done test and license too
-      html = await page(b, `/w/${PLAIN}`)
-      expect(html).toContain('<summary>edited</summary>')
-      expect(html).toMatch(new RegExp(`<span class="note">started <span title="[^"]+">[^<]+</span></span><b>${before.title}</b>`))
-      const hist = html.slice(html.indexOf('<summary>edited</summary>'), html.indexOf('</details>', html.indexOf('<summary>edited</summary>')))
-      expect(hist).toContain('<h3>done when</h3>')
-      expect(hist).toContain('<div class="note">builds on ViZDoom</div>')
-      expect(hist).toContain('<div class="note">license MIT</div>')
-      expect(hist).not.toContain('<h3>checked by</h3>') // the checks didn't change
-      // the same words again: back to the page, nothing new in the history
-      res = await save(b, {})
-      expect(res.status).toBe(303)
-      expect(q('SELECT COUNT(*) AS n FROM node_edit WHERE node_id = ?', before.id)).toEqual({ n: 1 })
-      // a launch shwarm stays public while it's checked again (seeded, still pending)
-      expect(await body(await new Browser(env).req(`/w/${PLAIN}`, { headers: HTML }))).toContain('a bot that beats freedoom, fast')
-    })
-
-    it('words edited before triage cleared them never reach the signed-out page; the author still sees them', async () => {
-      const { env, q } = await world()
-      // a shwarm by a user (not seeded), still being checked
-      env.DB.raw.prepare("UPDATE node SET seeded = 0, triage = 'pending' WHERE path = ?").run(PLAIN)
-      const before = q<{ title: string; what: string }>('SELECT title, what FROM node WHERE path = ?', PLAIN)
-      const b = await signIn(env, 'myra', { make: false })
-      const res = await save(b, { title: 'speedrunning freedoom, together', what: 'new words.' })
-      expect(res.status).toBe(303)
-      env.DB.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = ?").run(PLAIN) // the new words clear
-      const out = await body(await new Browser(env).req(`/w/${PLAIN}`, { headers: HTML }))
-      expect(out).toContain('speedrunning freedoom, together')
-      expect(out).not.toContain('<summary>edited</summary>')
-      expect(out).not.toContain(before.title)
-      expect(out).not.toContain(before.what.split('\n')[0])
-      const mine = await page(b, `/w/${PLAIN}`)
-      expect(mine).toContain('<summary>edited</summary>')
-      expect(mine).toContain(`<b>${before.title}</b>`)
-    })
-
-    it("only its author: nobody else gets the link, and the form refuses them", async () => {
-      const { env, q } = await world()
-      const b = await signIn(env, 'ana')
-      expect(await page(b, `/w/${PLAIN}`)).not.toContain('href="/new?edit=')
-      const res = await editPage(b)
-      expect(res.status).toBe(403)
-      const html = await body(res)
-      expect(html).toContain('<p class="err top" role="alert">only its author edits a shwarm.</p>')
+      // the old edit link: refused, no form, nothing of the node read into it
+      let res = await author.req(`/new?edit=${PLAIN}`, { headers: HTML })
+      expect(res.status).toBe(410)
+      let html = await body(res)
+      expect(html).toContain(`<p class="err top" role="alert">${NO_EDIT}</p>`)
       expect(html).not.toContain('<form method="post" action="/new"')
-      // a forged save is refused the same way, and changes nothing
-      const author = await signIn(env, 'myra', { make: false })
-      const fields = formValues(await (await editPage(author)).text())
-      const forged = await b.req('/new', { form: { ...fields, form_token: formTokenIn(await page(b, `/w/${PLAIN}`)), title: 'mine now' } })
-      expect(forged.status).toBe(403)
-      expect(q('SELECT title FROM node WHERE path = ?', PLAIN)).not.toEqual({ title: 'mine now' })
-      // signed out, it goes to sign in
-      expect((await new Browser(env).req(`/new?edit=${PLAIN}`)).headers.get('location')).toBe(`/signin?next=${encodeURIComponent(`/new?edit=${PLAIN}`)}`)
-      expect((await editPage(b, 'no-such-shwarm')).status).toBe(404)
-    })
-
-    it("another person's join locks it for good, even after they leave; the dead end stays in the author's box", async () => {
-      const { env } = await world()
-      const author = await signIn(env, 'myra', { make: false })
-      const stale = formValues(await (await editPage(author)).text())
-      const b = await signIn(env, 'ana')
-      expect((await act(b, { do: 'join' }, `/w/${PLAIN}`)).status).toBe(303)
-      expect((await act(b, { do: 'leave' }, `/w/${PLAIN}`)).status).toBe(303)
-      const html = await page(author, `/w/${PLAIN}`)
-      expect(html).not.toContain('href="/new?edit=')
-      expect(html).toContain('<summary>mark it a dead end</summary>')
-      // the form says why, in place of the form
-      const form = await body(await editPage(author))
-      expect(form).toContain(`<p class="err top" role="alert">someone else joined ${PLAIN}. its words stay as they are.</p>`)
-      expect(form).not.toContain('<form method="post" action="/new"')
-      // a save from a page opened before the join is refused the same way
-      const res = await author.req('/new', { form: { ...stale, title: 'too late', password: GOOD_PASSWORD } })
+      expect(html).not.toContain(before.title)
+      // a save from an old edit tab, with the password: refused, the node unchanged, no new shwarm made from it
+      const token = formTokenIn(await page(author, '/new'))
+      const fields = { form_token: token, edit: PLAIN, title: 'mine now', what: 'new words.', done_when: 'it is done.', c_author: 'on', tags: '#games', license: 'MIT', password: GOOD_PASSWORD }
+      res = await author.req('/new', { form: fields })
+      expect(res.status).toBe(410)
+      expect(await body(res)).toContain(NO_EDIT)
+      expect(q('SELECT id, title, what, done_when, checks, license, builds_on FROM node WHERE path = ?', PLAIN)).toEqual(before)
+      expect(q('SELECT COUNT(*) AS n FROM node').n).toBe(nodes)
+      expect(q('SELECT COUNT(*) AS n FROM node_edit WHERE node_id = ?', before.id)).toEqual({ n: 0 })
+      // a re-pitch form from an old tab: refused with why
+      res = await act(author, { do: 'repitch', title: 'too late', what: 'new words.' }, `/w/${PLAIN}`)
       expect(res.status).toBe(400)
-      expect(await body(res)).toContain(`someone else joined ${PLAIN}. its words stay as they are.`)
-      // a re-pitch form from an old tab goes to the edit form, which says why
-      const old = await act(author, { do: 'repitch', title: 'too late', what: 'new words.' }, `/w/${PLAIN}`)
-      expect(old.status).toBe(303)
-      expect(old.headers.get('location')).toBe(`/new?edit=${PLAIN}`)
+      expect(await body(res)).toContain(NO_EDIT)
+      expect(q('SELECT title FROM node WHERE path = ?', PLAIN)).toEqual({ title: before.title })
     })
 
-    it('a submission locks it; a branch has no edit', async () => {
+    it('the create and branch forms say, by the button, that once posted it can\'t be changed', async () => {
       const { env } = await world()
-      const author = await signIn(env, 'myra', { make: false })
-      const b = await signIn(env, 'ana')
-      const sub = { do: 'submit', text: 'a first bot.', links: `https://codeberg.org/ana/bot/raw/branch/main/bot.py ${'4e'.repeat(32)}`, how_to_check: 'run it against freedoom map01.' }
-      expect((await act(b, sub, `/w/${PLAIN}`)).status).toBe(303)
-      expect(await page(author, `/w/${PLAIN}`)).not.toContain('href="/new?edit=')
-      expect(await body(await editPage(author))).toContain(`${PLAIN} has a submission. its words stay as they are.`)
-      // a branch: no link on its page, and the form says why
-      const branch = `${EXAMPLE_ROOT}/block-placement`
-      const mine = await signIn(env, 'myra', { make: false })
-      expect(await page(mine, `/w/${branch}`)).not.toContain('href="/new?edit=')
-      expect(await body(await editPage(mine, branch))).toContain('a branch keeps the words it was opened with.')
+      const b = await signIn(env, 'myra', { make: false })
+      for (const path of ['/new', `/new?parent=${EXAMPLE_ROOT}`]) {
+        const html = await body(await b.req(path, { headers: HTML }))
+        expect(html, path).toMatch(/<span class="note" id="go-note">[^<]*<b id="fixed-note">once you post it, it can't be changed.<\/b><\/span>/)
+        expect(html, path).toContain("the done test can't change once it's posted.")
+        expect(html, path).not.toContain('someone else joins or anything is submitted')
+        expect(html, path).not.toContain('id="e-pw"')
+      }
+    })
+
+    it("a shwarm edited before Oct 12 still shows its history: to everyone if the old words were public, else to its author alone", async () => {
+      const { env, q } = await world()
+      const n = q<{ id: number; title: string; created_at: string }>('SELECT id, title, created_at FROM node WHERE path = ?', PLAIN)
+      env.DB.raw
+        .prepare('INSERT INTO node_edit (node_id, by_name, title, what, edited_at, was_public) VALUES (?, ?, ?, ?, ?, 1), (?, ?, ?, ?, ?, 0)')
+        .run(n.id, '@myra', 'the words it started with', 'the first what.', iso(T0 - 2 * HOUR), n.id, '@myra', 'words never cleared', 'unseen.', iso(T0 - HOUR))
+      const out = await body(await new Browser(env).req(`/w/${PLAIN}`, { headers: HTML }))
+      expect(out).toContain('<summary>edited</summary>')
+      expect(out).toContain('<b>the words it started with</b>')
+      expect(out).not.toContain('words never cleared')
+      const mine = await page(await signIn(env, 'myra', { make: false }), `/w/${PLAIN}`)
+      expect(mine).toContain('<b>words never cleared</b>')
+      expect(mine).not.toContain('/new?edit=')
     })
   })
 
