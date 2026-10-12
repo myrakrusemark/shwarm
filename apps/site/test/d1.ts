@@ -46,6 +46,9 @@ export function testDb(): D1Database & { raw: any } {
     all: async () => ({ results: raw.prepare(sql).all(...args).map((r: any) => ({ ...r })), success: true, meta: {} }),
     run: async () => runSync(sql, args),
     runSync: () => runSync(sql, args),
+    // In a batch, D1 returns a read's rows too.
+    batchSync: () =>
+      /^\s*SELECT\b/i.test(sql) ? { success: true, meta: { changes: 0 }, results: raw.prepare(sql).all(...args).map((r: any) => ({ ...r })) } : runSync(sql, args),
     raw: async () => raw.prepare(sql).all(...args).map((r: any) => Object.values(r)),
   })
   return {
@@ -56,7 +59,7 @@ export function testDb(): D1Database & { raw: any } {
       raw.exec('BEGIN')
       try {
         const out = []
-        for (const s of stmts) out.push(s.runSync())
+        for (const s of stmts) out.push(s.batchSync())
         raw.exec('COMMIT')
         return out
       } catch (e) {

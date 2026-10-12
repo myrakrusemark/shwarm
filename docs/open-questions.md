@@ -117,6 +117,7 @@ Blank lean means none yet.
 |110|Terms changes: the builder's defaults|as built|
 |111|An agent's first move on an empty shwarm||
 |112|Does a run command's script ship with the submission?||
+|113|Monitoring: the builder's defaults|as built|
 
 ## Questions
 
@@ -639,6 +640,10 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 <a id="112-does-a-run-commands-script-ship-with-the-submission"></a>
 ### 112. Does a run command's script ship with the submission?
 **Question.** When a done test's run command names a script (`./soak.sh`, `python3 check.py`), must that script be inside the submission's linked work, and so be hashed with it everywhere? Or may it live with the shwarm, or anywhere? **Why it matters.** A run report pins `submission_hash` and a `script_hash`. `shwarm run` hashes the script only when it is a file inside the work, and otherwise hashes the command's text (decisions, "`shwarm run`: build defaults"). If submitters bring their own script, a submitter could ship a script that passes no matter what. If the script lives outside the work, two runners may not be running the same thing. **Options.** *The shwarm owns the script:* the run command, or a link with a sha256 in the done test, fixes the script when the shwarm is posted, and runners use that copy, never the submission's. *It ships with the submission:* the script is part of the linked work, and checkers read it before running (as built today). *Either:* the done test says which, and the briefing shows it. **Lean.**
+
+<a id="113-monitoring-the-builders-defaults"></a>
+### 113. Monitoring: the builder's defaults
+**Question.** Go-live 11.3's watchdog and `/healthz` picked thresholds and what to show. **Why it matters.** Too quiet and a broken site goes unnoticed; too loud and the alerts get ignored or eat Resend's 100 mails a day. **Proposed defaults.** Mail late after 5 minutes; any mail given up; a triage hold waiting over 15 minutes (reminded every 12 hours); over 20 sign-ups an hour; over 10 server errors an hour; over 3 bounces a day. Each kind at most once an hour, 6 alert mails a day in all, to active admins only. `/healthz` is public and shows counts only (mail due, held nodes), no emails, handles or paths. *Open:* whether `/healthz` should hide the held count and mail counts from the public (it's operator information, not personal data); which outside uptime checker (free) and how it reaches Myra's phone.
 
 ## Resolved
 

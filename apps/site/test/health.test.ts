@@ -10,7 +10,7 @@ const env = {
 describe('site', () => {
   it('reports health from D1', async () => {
     const res = await app.request('/healthz', {}, env)
-    expect(await res.json()).toEqual({ ok: true, env: 'test', schema: '1' })
+    expect(await res.json()).toMatchObject({ ok: true, env: 'test', schema: '1' })
   })
   it('serves the holding page with noindex on production', async () => {
     const res = await app.request('/', {}, { ...env, ENV: 'production' })

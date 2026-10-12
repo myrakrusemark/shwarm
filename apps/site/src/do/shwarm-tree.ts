@@ -20,6 +20,8 @@ export class ShwarmTree {
   }
 
   async fetch(req: Request): Promise<Response> {
+    // The health check's ping (go-live 11.3, jobs/watch.ts pingTree): answers at once, touching neither the queue nor D1.
+    if (req.method === 'GET' && new URL(req.url).pathname === '/ping') return Response.json({ ok: true })
     if (req.method !== 'POST') return Response.json({ error: 'bad_request', message: 'POST a command' }, { status: 405 })
     let cmd: Command
     try {

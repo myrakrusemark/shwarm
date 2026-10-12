@@ -73,6 +73,23 @@ export function countStatement(db: D1Database, r: TrafficRow): D1PreparedStateme
     .bind(r.day, r.kind, r.referrer, r.country, r.status_class)
 }
 
+// 5xx answers by 10-minute bucket (go-live 11.3), for the watchdog's "errors in the last hour" (jobs/watch.ts):
+// traffic_daily is by day only. A counter row in auth_throttle per bucket, 'watch:5xx:2026-10-11T14:3' (14:30–14:39
+// UTC), written only when an answer is a 5xx, so a healthy site writes none. pruneThrottle (auth/cleanup.ts) drops the
+// rows a day after their bucket began. A bucket stops counting at ERROR_BUCKET_CAP, so a run of errors (an outage, or
+// someone hitting a broken route) writes at most that many rows a bucket, 144 buckets a day, on D1's free write quota;
+// the watchdog's limit is far below it, so a capped count still alerts (it reads as "at least").
+export const ERROR_BUCKET = 'watch:5xx:'
+export const ERROR_BUCKET_CAP = 50
+export const errorBucket = (ms: number) => ERROR_BUCKET + new Date(ms).toISOString().slice(0, 15)
+
+export function errorCountStatement(db: D1Database, now = Date.now()): D1PreparedStatement {
+  const start = Math.floor(now / 600_000) * 600_000
+  return db
+    .prepare('INSERT INTO auth_throttle (scope, count, window_start) VALUES (?, 1, ?) ON CONFLICT (scope) DO UPDATE SET count = count + 1 WHERE auth_throttle.count < ?')
+    .bind(errorBucket(now), new Date(start).toISOString(), ERROR_BUCKET_CAP)
+}
+
 let logged = false
 const quietly = (e: unknown) => {
   if (logged) return
@@ -91,7 +108,8 @@ export function countTraffic(): MiddlewareHandler<{ Bindings: { DB: D1Database; 
     try {
       const row = trafficRow(c.req.raw, c.res)
       if (!row) return
-      const work = countStatement(c.env.DB, row).run().catch(quietly)
+      const db = c.env.DB
+      const work = (row.status_class === 5 ? db.batch([countStatement(db, row), errorCountStatement(db)]) : countStatement(db, row).run()).catch(quietly)
       const ctx = executionCtx(c)
       if (ctx) ctx.waitUntil(work)
       else await work

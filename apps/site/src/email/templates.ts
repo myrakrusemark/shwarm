@@ -384,6 +384,50 @@ function termsNotice(p: Record<string, unknown>, site: string): Draft {
   }
 }
 
+// The watchdog's alert (go-live 11.3, jobs/watch.ts): one line per alert, from counts only, then the admin queue.
+// OPEN: new wording, and every threshold it names.
+const WATCH_NAME: Record<string, string> = {
+  outbox_late: 'mail late',
+  outbox_given_up: 'mail given up',
+  triage_hold_late: 'triage hold waiting',
+  signups: 'sign-ups',
+  errors: 'server errors',
+  bounces: 'bounces',
+}
+function watchLine(a: Record<string, unknown>): string {
+  const n = (k: string) => (Number.isSafeInteger(a[k]) && (a[k] as number) >= 0 ? (a[k] as number) : 0)
+  const mins = (k: string) => plural(n(k), 'minute', 'minutes')
+  switch (a.kind) {
+    case 'outbox_late': {
+      const parts: string[] = []
+      if (n('due')) parts.push(`${plural(n('due'), 'mail is', 'mails are')} due and unsent, the oldest for ${mins('oldest_due_min')}`)
+      if (n('failing')) parts.push(`${plural(n('failing'), 'mail', 'mails')} failed an attempt and ${n('failing') === 1 ? 'waits' : 'wait'} to try again, the oldest written ${mins('oldest_failing_min')} ago`)
+      return `mail late: ${parts.join('; ') || 'the outbox is behind'}. the cron may have stopped, or resend is refusing the key.`
+    }
+    case 'outbox_given_up':
+      return `mail given up: the outbox gave up on ${plural(n('n'), 'mail', 'mails')} in the last hour. their last_error starts with "failed:".`
+    case 'triage_hold_late':
+      return `triage hold waiting: ${plural(n('n'), 'node waits', 'nodes wait')} for you, the oldest for ${mins('oldest_min')}.`
+    case 'signups':
+      return `sign-ups: ${n('n')} in the last hour, over ${n('limit')}.`
+    case 'errors':
+      return `server errors: ${n('n')} 5xx answers in the last hour, over ${n('limit')}.`
+    case 'bounces':
+      return `bounces: ${n('n')} addresses bounced or complained in the last day, over ${n('limit')}.`
+  }
+  throw new MailRenderError('unknown alert')
+}
+function watchdogAlert(p: Record<string, unknown>, site: string): Draft {
+  if (!Array.isArray(p.alerts) || !p.alerts.length || !p.alerts.every(a => a && typeof a === 'object' && Object.hasOwn(WATCH_NAME, String((a as { kind?: unknown }).kind))))
+    throw new MailRenderError('missing alerts')
+  const alerts = p.alerts as Record<string, unknown>[]
+  const where = typeof p.env === 'string' && p.env !== 'production' && /^[a-z]{1,20}$/.test(p.env) ? ` ${p.env}` : ''
+  return {
+    subject: `shwarm${where} needs a look: ${alerts.map(a => WATCH_NAME[String(a.kind)]).join(', ')}`,
+    blocks: [hi(p), ...alerts.map(watchLine), 'each of these mails at most once an hour. the queue:', { href: siteLink(site, p.link) }],
+  }
+}
+
 const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string) => Draft> = {
   verify: (p, site) => ({
     subject: 'verify your email for shwarm',
@@ -477,6 +521,7 @@ const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string)
   // payload is copied from the bundle when the row is queued (core/terms.ts noticePayload), so a retry sends the same
   // mail. Account stream: no unsubscribe link. OPEN (#110): new wording.
   terms_notice: (p, site) => termsNotice(p, site),
+  watchdog_alert: (p, site) => watchdogAlert(p, site),
   // To the address the account had, as it closes (go-live 6.4): no link, since there's nothing left to sign in to.
   // OPEN (#86): these words wait on Myra's yes.
   account_closed: p => ({

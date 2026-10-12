@@ -27,6 +27,7 @@ export type MailTemplate =
   | 'node_flag' // to the admins: someone flagged a shwarm or branch; the third from established accounts pauses it (go-live 9.3, core/flags.ts)
   | 'account_suspended' // to an account an admin suspended, with the reason (go-live 9.4, core/admin-accounts.ts)
   | 'terms_notice' // to every active, verified account: a new terms version and when it takes effect (go-live 10.2, web/admin-switches.tsx)
+  | 'watchdog_alert' // to the admins: mail late or given up, a triage hold waiting, a burst of sign-ups, 5xx or bounces (go-live 11.3, jobs/watch.ts)
 
 export type Mail = {
   to: string

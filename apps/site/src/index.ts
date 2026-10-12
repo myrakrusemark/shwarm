@@ -34,6 +34,7 @@ import { donate } from './web/donate'
 import { termsAccept } from './web/terms-accept'
 import { robots, sitemap } from './web/crawl'
 import { readingOpen, siteModeOf } from './core/site-mode'
+import { attention, healthExtras } from './jobs/watch'
 export { ShwarmTree } from './do/shwarm-tree'
 
 type Env = { DB: D1Database; TREE: DurableObjectNamespace; AI: Ai; TRIAGE_MODEL?: string; ENV: string; SITE_MODE: string; SITE_URL?: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string; STRIPE_SECRET_KEY?: string; STRIPE_WEBHOOK_SECRET?: string; BACKUPS?: R2Bucket }
@@ -90,11 +91,18 @@ app.use('*', async (c, next) => {
 
 // Health check: proves the Worker runs and can read D1. After the security headers, so they cover it too. A failure
 // is a plain JSON 500 for the uptime check, not the site's error page.
+// It also reports (go-live 11.3, jobs/watch.ts): the outbox (due and failing mail, the oldest of each, mail given up),
+// triage holds waiting on the operator, and a time-boxed ping to a ShwarmTree. Counts and ages only. None of them
+// changes the status: 200 means the site serves, and `attention` names what an uptime keyword check should page on.
 app.get('/healthz', async c => {
   c.header('Cache-Control', 'no-store')
+  const now = Date.now()
+  // Kept per isolate for 30 s (jobs/watch.ts HEALTH_CACHE_MS); never rejects.
+  const more = healthExtras(c.env, now)
   try {
     const row = await c.env.DB.prepare("SELECT value FROM meta WHERE key = 'schema'").first<{ value: string }>()
-    return c.json({ ok: true, env: c.env.ENV, schema: row?.value ?? null })
+    const { h, tree } = await more
+    return c.json({ ok: true, env: c.env.ENV, schema: row?.value ?? null, outbox: h?.outbox ?? null, triage: h?.triage ?? null, tree, attention: attention(h, tree) })
   } catch (err) {
     console.error(JSON.stringify({ at: 'healthz', error: String((err as Error)?.stack ?? err) }))
     return c.json({ ok: false, env: c.env.ENV }, 500)

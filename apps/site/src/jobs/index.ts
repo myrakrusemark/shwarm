@@ -1,8 +1,8 @@
 // Cron entry point. wrangler.jsonc has one trigger, every minute, in staging and production: Workers Free allows 5 cron
 // triggers per account, and production's deploy hit that limit with two (Oct 10). Each minute sweeps mail, triage and
-// cleanup; every fifth minute also runs stats; once a night the backup, once a week the disposable-domain refresh. Each
-// job is its own waitUntil and catches its own errors, so a slow or failing stats run can't stop the mail sweep, though
-// they share the invocation's CPU budget and its 50 subrequests.
+// cleanup; every fifth minute also runs stats, and the watchdog three minutes later (11.3); once a night the backup,
+// once a week the disposable-domain refresh. Each job is its own waitUntil and catches its own errors, so a slow or
+// failing stats run can't stop the mail sweep, though they share the invocation's CPU budget and its 50 subrequests.
 import type { MailEnv } from '../email/env'
 import { refreshDisposable } from '../auth/disposable'
 import { backup, BACKUP_HOUR_UTC, BACKUP_MINUTE, type BackupEnv } from './backup'
@@ -13,6 +13,7 @@ import { sweepDigests } from './digest'
 import { sweepOutbox } from './mail'
 import { rollupSite, rollupStats, siteStale } from './stats'
 import { sendSummary } from './summary'
+import { watchdog, WATCH_MINUTE } from './watch'
 
 export const MAIL_CRON = '* * * * *'
 
@@ -27,6 +28,19 @@ export async function scheduled(event: ScheduledController, env: MailEnv & Triag
           if (day) console.log('summary', JSON.stringify({ day }))
         },
         e => console.error('summary failed', e),
+      ),
+    )
+  }
+  // The watchdog (go-live 11.3, jobs/watch.ts): every 5 minutes, apart from the stats run, on staging and production
+  // only. It mails the admins about late or given-up mail, a triage hold waiting, or a burst of sign-ups, 5xx answers or
+  // bounces; each kind at most once an hour, and a few mails a day at most. Its mail goes on the next minute's sweep.
+  if (at.getUTCMinutes() % 5 === WATCH_MINUTE && (env.ENV === 'staging' || env.ENV === 'production')) {
+    ctx.waitUntil(
+      watchdog(env, event.scheduledTime).then(
+        r => {
+          if (r.firing.length) console.log('watchdog', JSON.stringify(r))
+        },
+        e => console.error('watchdog failed', e),
       ),
     )
   }
