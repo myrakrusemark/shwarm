@@ -4,19 +4,19 @@
 // Run from the repo root with vite-node (it ships with vitest, so nothing new to install; plain node can't load
 // core's extensionless imports):
 //
-//   npx vite-node scripts/seed-launch.ts -- --offline                     dry run against an empty database
-//   npx vite-node scripts/seed-launch.ts -- --target staging --dry-run    plan against staging, write nothing
-//   npx vite-node scripts/seed-launch.ts -- --target staging              plan, apply, check
-//   npx vite-node scripts/seed-launch.ts -- --target staging --replace    restore the pre-seed bookmark, then seed again
-//   npx vite-node scripts/seed-launch.ts -- --target production --allow-production --slugs a,b   (3.10 / 11.1 only)
+//   npx -y vite-node scripts/seed-launch.ts -- --offline                     dry run against an empty database
+//   npx -y vite-node scripts/seed-launch.ts -- --target staging --dry-run    plan against staging, write nothing
+//   npx -y vite-node scripts/seed-launch.ts -- --target staging              plan, apply, check
+//   npx -y vite-node scripts/seed-launch.ts -- --target staging --replace    restore the pre-seed bookmark, then seed again
+//   npx -y vite-node scripts/seed-launch.ts -- --target production --allow-production --slugs a,b   (3.10 / 11.1 only)
 //
 // --approved (go-live 3.10, 12.1) picks the slugs from proofreading instead: only wave-1 shwarms (--wave N or --wave all
 // for others) whose latest verdict in tracker/proof.json is approve, whose done test hasn't changed since (checked
 // against the git history of the list), and that aren't in docs/launch-drops.md. It prints what's ready, what isn't and
 // what's dropped. With --slugs too, every named slug must be ready. It never adds the running example.
 //
-//   npx vite-node scripts/seed-launch.ts -- --approved --offline          the list, and a dry run of it; no Cloudflare
-//   npx vite-node scripts/seed-launch.ts -- --target production --allow-production --approved            (from a terminal)
+//   npx -y vite-node scripts/seed-launch.ts -- --approved --offline          the list, and a dry run of it; no Cloudflare
+//   npx -y vite-node scripts/seed-launch.ts -- --target production --allow-production --approved            (from a terminal)
 //
 // How it reaches D1 without an admin endpoint: core runs against a local copy (node:sqlite, the test stand-in)
 // that holds what it needs to read from the target (@myra, settings, existing nodes). Each committed batch is

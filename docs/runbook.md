@@ -39,9 +39,9 @@ It checks the dump against its manifest, never touches production without `--i-m
 `scripts/seed-launch.ts` turns `docs/launch-shwarms.json` into core create commands as @myra (via seed), writes them as one `.sql` file under `apps/site/.wrangler/seed/`, and applies it with `wrangler d1 execute --file`. Run it from the repo root:
 
 ```
-npx vite-node scripts/seed-launch.ts -- --offline                    # dry run, empty database, no Cloudflare
-npx vite-node scripts/seed-launch.ts -- --target staging --dry-run   # what would change on staging
-npx vite-node scripts/seed-launch.ts -- --target staging             # import, then read it back
+npx -y vite-node scripts/seed-launch.ts -- --offline                    # dry run, empty database, no Cloudflare
+npx -y vite-node scripts/seed-launch.ts -- --target staging --dry-run   # what would change on staging
+npx -y vite-node scripts/seed-launch.ts -- --target staging             # import, then read it back
 ```
 
 The dry run lists every field it changed, normalized, dropped or couldn't parse, and exits 1 on any failure. A rerun skips slugs that are already there. Staging and local also get the running example (minecraft in doom, filled and live, with "block placement" and its thread) and six demo accounts that can't sign in; `--no-example` leaves them out. A remote file runs all or nothing, and the file starts with guards that stop it if staging changed since the plan.
@@ -60,9 +60,9 @@ Seeded nodes can't be deleted row by row: audit rows are append-only and point a
 `--approved` picks the slugs from proofreading instead of `--slugs`: wave 1 (or `--wave N`, `--wave all`), only cards whose latest verdict in `tracker/proof.json` is approve, whose done test (done when, checked by, builds on) hasn't changed in git since the approval, and that aren't in `docs/launch-drops.md`. It prints three lists (ready, not ready with the reason, dropped) and imports only the ready ones. With `--slugs` too, each named slug must be ready. It needs the full git history; in a shallow clone every approval reads as not ready.
 
 ```
-npx vite-node scripts/seed-launch.ts -- --approved --offline                                       # the lists, and a dry run; no Cloudflare
-npx vite-node scripts/seed-launch.ts -- --target production --allow-production --approved --dry-run  # against prod, writes nothing
-npx vite-node scripts/seed-launch.ts -- --target production --allow-production --approved            # from a terminal
+npx -y vite-node scripts/seed-launch.ts -- --approved --offline                                       # the lists, and a dry run; no Cloudflare
+npx -y vite-node scripts/seed-launch.ts -- --target production --allow-production --approved --dry-run  # against prod, writes nothing
+npx -y vite-node scripts/seed-launch.ts -- --target production --allow-production --approved            # from a terminal
 ```
 
 ## Incidents (go-live 11.6)
