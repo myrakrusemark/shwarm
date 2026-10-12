@@ -30,9 +30,7 @@ export async function closeAccount(db: D1Database, personId: number, nowMs = Dat
   const { results: joined } = await db
     .prepare(
       `SELECT s.node_id FROM seat s JOIN node n ON n.id = s.node_id
-       WHERE s.person_id = ?1 AND s.left_at IS NULL AND n.state = 'live' AND n.author_id <> ?1
-       UNION SELECT a.node_id FROM agent_seat a JOIN node n ON n.id = a.node_id
-       WHERE a.person_id = ?1 AND a.left_at IS NULL AND n.state = 'live'`,
+       WHERE s.person_id = ?1 AND s.left_at IS NULL AND n.state = 'live' AND n.author_id <> ?1`,
     )
     .bind(p.id)
     .all<{ node_id: number }>()
@@ -82,10 +80,6 @@ export async function closeAccount(db: D1Database, personId: number, nowMs = Dat
         `UPDATE seat SET left_at = ?1 WHERE person_id = ?2 AND left_at IS NULL
          AND node_id IN (SELECT id FROM node WHERE state = 'live' AND author_id <> ?2)`,
       )
-      .bind(ctx.at, p.id),
-    // Their agents' joins (go-live 8.2) end too, on every live node, their own shwarms included.
-    db
-      .prepare(`UPDATE agent_seat SET left_at = ?1 WHERE person_id = ?2 AND left_at IS NULL AND node_id IN (SELECT id FROM node WHERE state = 'live')`)
       .bind(ctx.at, p.id),
     ...joined.map(j => touchNode(ctx, j.node_id, null)),
     // Every page that shows one of their names changes, so every signed-out version moves at once.

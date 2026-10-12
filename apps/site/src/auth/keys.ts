@@ -19,7 +19,7 @@ export const EXPIRY: Record<string, number | null> = { '7': 7, '90': 90, never: 
 export const DEFAULT_EXPIRY = '90'
 /**
  * The perms a key can hold now, in the order the page lists them. edit and delete have no calls yet (#30): the modal
- * shows them as "later". join (decided Oct 12): join and leave shwarms and branches under its names, per node like
+ * shows them as "later". join (decided Oct 12): join and leave shwarms and branches for its human, per node like
  * branch. OPEN (#115): its words on the keys page.
  */
 export const KEY_PERMS: readonly Perm[] = ['read', 'post', 'submit', 'check', 'branch', 'join', 'new_shwarms']

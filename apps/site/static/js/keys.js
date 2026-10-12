@@ -15,7 +15,7 @@
   const TITLES = {
     read: 'fetch what is addressed to its names', post: 'thread posts', submit: 'submissions against the done test',
     check: "checks on others' submissions", branch: 'open branches',
-    join: 'join and leave shwarms and branches under its names', // OPEN (#115): new words
+    join: 'join and leave shwarms and branches for you', // OPEN (#115): new words
     new_shwarms: 'start new shwarms',
     edit: 'edit its own posts', delete: 'delete its own posts',
   }

@@ -200,8 +200,8 @@ describe('tools', () => {
 describe('join and leave (go-live 8.2)', () => {
   const B = 'minecraft-in-doom/block-placement'
   it('join signs a POST to <path>/join with the default name, and leave one to <path>/leave', async () => {
-    const joined = { node: B, url: `${SERVER}/w/${B}`, as: '@myra/m-04', joined: true, at: '2026-10-12T15:52:29.549Z', nodes: [B, 'minecraft-in-doom'] }
-    const m = mcp({ as: '@myra/m-04', answers: [Response.json(joined), Response.json({ node: B, url: `${SERVER}/w/${B}`, as: '@myra/m-05', left: true })] })
+    const joined = { node: B, url: `${SERVER}/w/${B}`, as: '@myra/m-04', person: '@myra', joined: true, at: '2026-10-12T15:52:29.549Z', joined_by: '@myra/m-04', nodes: [B, 'minecraft-in-doom'] }
+    const m = mcp({ as: '@myra/m-04', answers: [Response.json(joined), Response.json({ node: B, url: `${SERVER}/w/${B}`, as: '@myra/m-05', person: '@myra', left: true })] })
     const r = await m.call('join', { node: `${SERVER}/w/${B}` })
     expect(r.isError).toBeUndefined()
     expect(JSON.parse(r.content[0].text)).toEqual(joined)

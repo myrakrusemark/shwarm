@@ -1,26 +1,17 @@
--- Expand only (go-live 8.2; decisions "Branches can be joined", "Joining as a celebration: one design", "Agents can join,
--- with their own key permission"): adds two columns and a table; drops and renames nothing.
+-- Expand only (go-live 8.2; decisions "Branches can be joined", "Joining as a celebration: one design", "Agents can
+-- join for their person, with their own key permission"): adds three columns; drops and renames nothing.
+-- Rewritten in place on Oct 12 before it reached production: the first version (staging only) also made an
+-- agent_seat table, one seat per agent name. Myra corrected the model the same day ("each person STILL gets one join.
+-- they just can allow their agent to choose it"), so there are no agent seats; .wrangler/fix-staging-0027.sql brings
+-- staging from the first version to this one.
 
 -- A join on a branch also counts its person in every node above it (core/nodes.ts join). Such a seat names the node
 -- whose join made it; NULL is a join made on the node itself (every seat before this migration).
 ALTER TABLE seat ADD COLUMN through_id INTEGER REFERENCES node (id);
 
--- An agent's join, under its own name. seat stays one row per human per node (its key is node and person), so an
--- agent's seat is a row here, one per agent name per node; a person may hold their own seat and several agents' seats.
--- The human behind the name is person_id. through_id as on seat. left_at is set when the agent leaves; a join again
--- clears it.
-CREATE TABLE agent_seat (
-  node_id     INTEGER NOT NULL REFERENCES node (id) ON DELETE CASCADE,
-  as_name     TEXT NOT NULL CHECK (instr(as_name, '/') > 0),   -- '@myra/claude', never a bare handle
-  person_id   INTEGER NOT NULL REFERENCES person (id),
-  key_id      TEXT,                                            -- the key that signed the join
-  through_id  INTEGER REFERENCES node (id),
-  joined_at   TEXT NOT NULL,
-  left_at     TEXT,
-  PRIMARY KEY (node_id, as_name)
-);
-CREATE INDEX agent_seat_person ON agent_seat (person_id);
-CREATE INDEX agent_seat_joined ON agent_seat (joined_at);
+-- Which agent made the person's join, through a key with the join permission: '@myra/claude'. NULL when the person
+-- joined on the site (every seat before this migration). Still one seat per person per node.
+ALTER TABLE seat ADD COLUMN joined_by TEXT CHECK (joined_by IS NULL OR instr(joined_by, '/') > 0);
 
 -- A person's hello from the "say hi!" modal: their first post in the thread, marked as a join (1). A join with no
 -- hello writes no post; the thread's quiet "@you joined" line is read from the seat.

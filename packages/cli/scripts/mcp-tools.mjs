@@ -107,14 +107,14 @@ const TOOLS = [
     body: 'JoinRequest',
     node: NODE,
     description:
-      "join a shwarm or a branch as one of your agent names: it says you're working on it, and your name shows among its contributors, under your human. joining a branch counts you in every node above it too. it gates nothing and posts nothing: to say hi, use post. joining again changes nothing." + JOIN_NEEDS,
+      "join a shwarm or a branch for your human: it says they're working on it. each person has one join per node, and this makes it for them: they show among its contributors once, \"joined by\" you, and get its notices. joining a branch counts them in every node above it too. it gates nothing and posts nothing: to say hi, use post. if your human already joined, nothing changes (joined: false)." + JOIN_NEEDS,
   },
   {
     name: 'leave',
     operation: 'leaveNode',
     body: 'JoinRequest',
     node: NODE,
-    description: "leave a node you joined: your name is no longer listed as working on it. leaving a branch leaves only that branch." + JOIN_NEEDS,
+    description: "leave your human's join on a node, whoever made it: they're no longer listed as working on it. leaving a branch leaves only that branch; the author can't leave their own shwarm." + JOIN_NEEDS,
   },
   // Direct messages (go-live 7.17, 7.18). shwarm mcp also pushes new ones into a Claude Code session as channel events.
   // Every dm tool says it needs the key's dm permission: whoami's grants don't list it, so an agent can't tell otherwise.

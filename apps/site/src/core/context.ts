@@ -168,14 +168,13 @@ export type Audience = 'involved'
 /**
  * Who hears about a node (table B): 'involved' = everyone who joined (said they're working on it), the author and
  * everyone who posted in the last 7 days (table B #44). A SELECT of person ids as `pid`, with plain placeholders and
- * their binds. An agent's join (agent_seat) counts its human as joined. OPEN (#115): a builder's default; whether an
- * agent's join turns on its human's notices is Myra's to decide.
+ * their binds. A join an agent made for its human (seat.joined_by) is the human's own join, so it counts the same.
  */
 function audience(ctx: Ctx, nodeId: number, _who: Audience): { sql: string; args: unknown[] } {
-  const seats = 'SELECT person_id AS pid FROM seat WHERE node_id = ? AND left_at IS NULL UNION SELECT person_id FROM agent_seat WHERE node_id = ? AND left_at IS NULL'
+  const seats = 'SELECT person_id AS pid FROM seat WHERE node_id = ? AND left_at IS NULL'
   return {
     sql: `${seats} UNION SELECT author_id FROM node WHERE id = ? UNION SELECT person_id FROM post WHERE node_id = ? AND created_at > ?`,
-    args: [nodeId, nodeId, nodeId, nodeId, new Date(ctx.now - WEEK_MS).toISOString()],
+    args: [nodeId, nodeId, nodeId, new Date(ctx.now - WEEK_MS).toISOString()],
   }
 }
 

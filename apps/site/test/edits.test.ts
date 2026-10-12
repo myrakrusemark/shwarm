@@ -68,7 +68,7 @@ describe('join: working on it (4.4, decided Oct 9)', () => {
     // a double click keeps the one join
     expect(await w.join(site(ana), MID)).toMatchObject({ node: MID, joined: false })
     // anyone but the author can leave; an agent only with the key's join permission (decided Oct 12)
-    expect(await w.run({ type: 'leave', actor: site(ana), input: { node: MID } })).toEqual({ node: MID, as: '@ana', left: true })
+    expect(await w.run({ type: 'leave', actor: site(ana), input: { node: MID } })).toEqual({ node: MID, as: '@ana', person: '@ana', left: true })
     await refused(w.run({ type: 'leave', actor: site(myra), input: { node: MID } }), 'bad_request')
     await refused(w.join(agent(finn), MID), 'not_permitted', { need: 'join', node: MID })
     // branches are joined too (decided Oct 12), and count the joiner in the shwarm

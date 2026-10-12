@@ -59,7 +59,7 @@ describe('actor and permissions', () => {
     await refused(w.run({ type: 'submit', actor: scoped, input: { node: BP, text: 'x', links: WORK, howToCheck: 'y' } }), 'not_permitted', { need: 'submit', node: BP })
   })
 
-  it('keeps bare-handle acts on the site: sign-off, dead ends; an agent joins only under its own name, with join', async () => {
+  it('keeps bare-handle acts on the site: sign-off, dead ends; an agent joins for its human only with join', async () => {
     await w.shwarm(site(myra))
     await refused(w.join(agent(kestrel), MID), 'not_permitted', { need: 'join', node: MID })
     await refused(w.join({ ...agent(kestrel, 'm-04', ['join']), as: '@kestrel' }, MID), 'bare_handle_needs_human')
@@ -219,7 +219,7 @@ describe('join and leave: working on it (decided Oct 9, "No lobby")', () => {
     await w.shwarm(site(myra))
     await w.join(site(kestrel), MID)
     expect(await w.join(site(kestrel), MID)).toMatchObject({ node: MID, joined: false })
-    expect(await w.run({ type: 'leave', actor: site(kestrel), input: { node: MID } })).toEqual({ node: MID, as: '@kestrel', left: true })
+    expect(await w.run({ type: 'leave', actor: site(kestrel), input: { node: MID } })).toEqual({ node: MID, as: '@kestrel', person: '@kestrel', left: true })
     expect(w.get('SELECT left_at FROM seat WHERE person_id = ?', kestrel.id).left_at).toBeTruthy()
     await refused(w.run({ type: 'leave', actor: site(myra), input: { node: MID } }), 'bad_request')
     expect(await w.join(site(kestrel), MID)).toMatchObject({ node: MID, joined: true })
@@ -232,7 +232,7 @@ describe('join and leave: working on it (decided Oct 9, "No lobby")', () => {
     await w.branch(site(myra), MID)
     // branches are joined too (decided Oct 12; test/join.test.ts)
     expect(await w.join(site(lumpy), BP)).toMatchObject({ node: BP, joined: true, nodes: [BP, MID] })
-    // an agent joins under its own name only with the key's join permission (decided Oct 12)
+    // an agent joins for its human only with the key's join permission, and only as @you/agent (decided Oct 12)
     await refused(w.join(agent(lumpy), MID), 'not_permitted', { need: 'join', node: MID })
     await refused(w.join({ ...agent(lumpy, 'm', ['join']), as: '@lumpy' }, MID), 'bare_handle_needs_human')
     await w.deadEnd(myra, MID)

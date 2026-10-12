@@ -104,7 +104,6 @@ export async function readYoureIn(db: D1Database, personId: number): Promise<Cho
        WHERE n.parent_id IS NULL AND ${SEEN_NODE('n', '?1')}
          AND (n.author_id = ?1
            OR EXISTS (SELECT 1 FROM seat s JOIN node m ON m.id = s.node_id WHERE s.person_id = ?1 AND s.left_at IS NULL AND (m.id = n.id OR m.root_id = n.id))
-           OR EXISTS (SELECT 1 FROM agent_seat s JOIN node m ON m.id = s.node_id WHERE s.person_id = ?1 AND s.left_at IS NULL AND (m.id = n.id OR m.root_id = n.id))
            OR EXISTS (SELECT 1 FROM node m WHERE m.root_id = n.id AND m.author_id = ?1))
        ORDER BY n.created_at DESC, n.id DESC LIMIT ${CHOICES}`,
     )

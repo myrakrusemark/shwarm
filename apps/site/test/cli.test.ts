@@ -216,25 +216,31 @@ describe('acting', () => {
 })
 
 describe('joining (go-live 8.2)', () => {
-  it('joins a branch as an agent with the join permission, counted up to the shwarm; leaves it; exit 3 without the permission', async () => {
+  it("joins a branch for the agent's human with the join permission, counted up to the shwarm; leaves it; exit 3 without the permission", async () => {
     const w = await world()
     const joiner = await keyFor(w.db, w.ana.id, { canPostAs: '@ana/*', grants: [{ node: '*', perms: ['read', 'post', 'join'] }] })
     const j = await w.shwarm(['join', BRANCH, '--as', '@ana/scout', '--json'], { key: joiner })
     expect(j.code).toBe(0)
     const r = JSON.parse(j.out)
     expect(schemaErrors('JoinResult', r)).toEqual([])
-    expect(r).toMatchObject({ node: BRANCH, url: `${SITE}/w/${BRANCH}`, as: '@ana/scout', joined: true, nodes: [BRANCH, ROOT] })
-    // the name shows among the shwarm's contributors, under its human
+    expect(r).toMatchObject({ node: BRANCH, url: `${SITE}/w/${BRANCH}`, as: '@ana/scout', person: '@ana', joined: true, joined_by: '@ana/scout', nodes: [BRANCH, ROOT] })
+    // the human shows among the shwarm's contributors, once, joined by the agent
     const node = JSON.parse((await w.shwarm(['read', ROOT, '--json'])).out)
-    expect(node.contributors.people).toContainEqual({ name: '@ana', agents: ['@ana/scout'] })
-    // joining again changes nothing, and says so
-    const again = await w.shwarm(['join', BRANCH, '--as', '@ana/scout'], { key: joiner })
+    expect(node.contributors.people.filter((p: { name: string }) => p.name === '@ana')).toEqual([{ name: '@ana', joined_by: '@ana/scout' }])
+    // another of her agents joining changes nothing, and says so: one join per person
+    const again = await w.shwarm(['join', BRANCH, '--as', '@ana/geo'], { key: joiner })
     expect(again).toMatchObject({ code: 0, err: '' })
-    expect(again.out).toContain(`@ana/scout had already joined ${BRANCH}`)
-    // leaving the branch keeps the name in the shwarm above it
-    const left = await w.shwarm(['leave', BRANCH, '--as', '@ana/scout'], { key: joiner })
-    expect(left).toEqual({ code: 0, out: `@ana/scout left ${BRANCH}.`, err: '' })
-    expect(w.get("SELECT count(*) AS n FROM agent_seat a JOIN node n ON n.id = a.node_id WHERE a.as_name = '@ana/scout' AND a.left_at IS NULL").n).toBe(1)
+    expect(again.out).toContain(`@ana had already joined ${BRANCH} (since `)
+    expect(again.out).toContain(', by @ana/scout).')
+    // leaving the branch keeps her in the shwarm above it
+    const left = await w.shwarm(['leave', BRANCH, '--as', '@ana/geo'], { key: joiner })
+    expect(left).toEqual({ code: 0, out: `@ana left ${BRANCH} (by @ana/geo).`, err: '' })
+    expect(
+      w.db.raw.prepare('SELECT n.path, s.left_at IS NULL AS here FROM seat s JOIN node n ON n.id = s.node_id WHERE s.person_id = ? ORDER BY n.path').all(w.ana.id),
+    ).toEqual([
+      { path: ROOT, here: 1 },
+      { path: BRANCH, here: 0 },
+    ])
     // a key without join: exit 3, the API's not_permitted naming what it needs
     const no = await w.shwarm(['join', BRANCH, '--as', '@ana/scout', '--json'], { key: w.keys.ana })
     expect(no.code).toBe(3)

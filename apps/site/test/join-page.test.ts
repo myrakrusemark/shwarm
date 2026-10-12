@@ -1,7 +1,7 @@
 // Go-live 8.2, the site half: joining from the page (decided Oct 12, "Joining as a celebration: one design", "Branches
 // can be joined"). A join button on the node's own post and one in the contributors box, one "say hi!" modal with
 // Myra's words, the hello as a post marked "✿ joined" or a quiet "✿ @you joined" line, joined state and leave, branches,
-// a refused join keeping its words in the reopened modal, and a person's joined agents grouped under them.
+// a refused join keeping its words in the reopened modal, and a join an agent made for its human ("joined by").
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { hashPassword } from '../src/auth/password'
 import { MAX_TEXT } from '../src/core/text'
@@ -188,20 +188,26 @@ describe('joining from the modal (8.2)', () => {
   })
 })
 
-describe('agents in contributors and the thread (8.2)', () => {
-  it("a person's joined agents sit beside them, \"@ana · @ana/claude\"; an agent's join is a quiet line", async () => {
+describe('a join an agent made for its human (8.2, decided Oct 12)', () => {
+  it('shows the person once in contributors, "joined by @ana/claude", and as a quiet line; the page knows she joined', async () => {
     const { env, db } = await world()
     const { b, pid } = await member(env, 'ana')
     const node = db.raw.prepare('SELECT id FROM node WHERE path = ?').get(EXAMPLE_ROOT) as { id: number }
     const at = new Date(T0 - 60_000).toISOString()
-    db.raw.prepare('INSERT INTO agent_seat (node_id, as_name, person_id, key_id, through_id, joined_at) VALUES (?, ?, ?, NULL, NULL, ?)').run(node.id, '@ana/claude', pid, at)
+    db.raw
+      .prepare('INSERT INTO seat (node_id, person_id, number, joined_at, joined_by) VALUES (?, ?, (SELECT MAX(number) + 1 FROM seat WHERE node_id = ?), ?, ?)')
+      .run(node.id, pid, node.id, at, '@ana/claude')
     db.raw.prepare('UPDATE node SET last_event_id = NULL, changed_at = ? WHERE id = ?').run(new Date(T0).toISOString(), node.id)
     const html = await page(new Browser(env), EXAMPLE_ROOT)
-    expect(html).toContain('<span class="who-all"><a href="/@ana">@ana</a> · <a href="/@ana?as=%40ana/claude">@ana/claude</a></span>')
-    expect(html).toMatch(/<div class="c ev">✿ <b><a href="\/@ana\?as=%40ana\/claude">@ana\/claude<\/a><\/b> joined · /)
-    // filtered to humans, the agent's line is gone
-    expect(await body(await new Browser(env).req(`/w/${EXAMPLE_ROOT}?show=humans`, { headers: HTML }))).not.toContain('@ana/claude</a></b> joined')
-    // ana's own page still offers her join: her agent joining isn't her joining
-    expect(head(await page(b, EXAMPLE_ROOT))).toContain('jn-open')
+    expect(html).toContain('<span class="who-by"><a href="/@ana">@ana</a><span class="jb">joined by @ana/claude</span></span>')
+    expect(html).not.toContain('<a href="/@ana?as=%40ana/claude">')
+    expect(html).toMatch(/<div class="c ev">✿ <b><a href="\/@ana">@ana<\/a><\/b> joined by @ana\/claude · /)
+    // it's her join: filtered to agents, the line is gone
+    expect(await body(await new Browser(env).req(`/w/${EXAMPLE_ROOT}?show=agents`, { headers: HTML }))).not.toContain('<a href="/@ana">@ana</a></b> joined')
+    // her own page shows her joined, with leave, and nothing left to join
+    const mine = await page(b, EXAMPLE_ROOT)
+    expect(head(mine)).toContain('✿ joined')
+    expect(late(mine)).toContain('<a href="#jn-row">your join is in the thread</a>')
+    expect(mine).not.toContain('id="jn-scrim"')
   })
 })

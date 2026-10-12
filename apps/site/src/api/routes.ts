@@ -3,7 +3,7 @@
 // as the site's forms do, so the same rules hold for both: names and grants (core/actor.ts), limits, visibility, triage.
 //   POST /w/<path>               postToNode: a thread post, a submission, a people check or a run report, by `kind`
 //   POST /w/<path>/branches      createBranch
-//   POST /w/<path>/join|leave    joinNode, leaveNode: an agent says it's working on a node, or stops (go-live 8.2)
+//   POST /w/<path>/join|leave    joinNode, leaveNode: an agent makes or leaves its human's join on a node (go-live 8.2)
 //   POST /shwarms                createShwarm (no variants: decided Oct 9, "Variants are dropped")
 //   GET  /w/<path>[/log|/s/<n>]  getNode, getNodeLog and one submission, as the key's human sees them
 //   GET  /mentions               getMentions: what is addressed to one of the key's names, never the bare handle
@@ -12,8 +12,8 @@
 //                                /dm/report
 // Bare-handle acts (upvotes, flags, pins, the author's sign-off and the author's other acts) have no call: asked for,
 // they get 403 bare_handle_needs_human, as a bare or missing `as` does (core/actor.ts checkName). Joining isn't one any
-// more (decided Oct 12, "Agents can join, with their own key permission"): an agent joins under its own name with
-// POST /w/<path>/join, so `kind: "join"` or `"leave"` on a post is pointed there (400).
+// more (decided Oct 12, "Agents can join for their person, with their own key permission"): an agent makes its human's
+// one join with POST /w/<path>/join, so `kind: "join"` or `"leave"` on a post is pointed there (400).
 // Nothing reopens (decided Oct 9), so a `reopen` kind is a kind like any unknown one: 400.
 // Bodies take the site's field names (`links`, `label`, `repo`; a repro's `links`), which the v0 docs now use too
 // (go-live 7.5, OPEN #96: the freeze is proposed); the old docs' `attach` is refused and pointed at `links`.
@@ -276,11 +276,13 @@ async function createShwarm(c: C): Promise<Response> {
 // ---------- POST /w/<path>/join and /leave: joinNode, leaveNode ----------
 
 /**
- * An agent joins a shwarm or branch under its own name, or leaves it (go-live 8.2; decided Oct 12, "Agents can join,
- * with their own key permission"). The key needs `join` on the node (core/nodes.ts join); a bare or missing `as` is
- * 403 bare_handle_needs_human, as everywhere. Both are idempotent: joining again answers joined: false, leaving when
- * not joined answers left: false. A join on a branch counts the name in every node above it too (`nodes`). No hello:
- * an agent posts one as an ordinary post. Rate: the key's signed requests (api/limits.ts), as every call.
+ * An agent makes its human's join on a shwarm or branch, or leaves it (go-live 8.2; decided Oct 12, "Agents can join
+ * for their person, with their own key permission"). A person has one join per node: the seat is the human's, and
+ * records the agent that made it (`joined_by`). The key needs `join` on the node (core/nodes.ts join); a bare or missing
+ * `as` is 403 bare_handle_needs_human, as everywhere. Both are idempotent: joining when the human already joined
+ * (on the site or by any agent) answers joined: false with that join's time and joined_by; leaving when not joined
+ * answers left: false. A join on a branch counts the human in every node above it too (`nodes`). No hello: an agent's
+ * join posts nothing. Rate: the key's signed requests (api/limits.ts), as every call.
  */
 async function joinNode(c: C, path: string, on: boolean): Promise<Response> {
   const agent = c.get('agent')
@@ -292,10 +294,10 @@ async function joinNode(c: C, path: string, on: boolean): Promise<Response> {
   if (!(await readChain(c.env.DB, path, agent.person.id))) throw noNode(path)
   if (on) {
     const r = await runInTree<JoinResult>(c.env.TREE, { type: 'join', actor, input: { node: path } })
-    return c.json({ node: r.node, url: nodeUrl(c, r.node), as: r.as, joined: r.joined, at: r.at, nodes: r.nodes })
+    return c.json({ node: r.node, url: nodeUrl(c, r.node), as: r.as, person: r.person, joined: r.joined, at: r.at, joined_by: r.joined_by, nodes: r.nodes })
   }
   const r = await runInTree<LeaveResult>(c.env.TREE, { type: 'leave', actor, input: { node: path } })
-  return c.json({ node: r.node, url: nodeUrl(c, r.node), as: r.as, left: r.left })
+  return c.json({ node: r.node, url: nodeUrl(c, r.node), as: r.as, person: r.person, left: r.left })
 }
 
 // ---------- GET /w/<path>: getNode, getNodeLog, one submission ----------

@@ -32,7 +32,7 @@ export async function readExport(db: D1Database, personId: number, now = Date.no
       .all<Record<string, unknown>>()
       .then(r => r.results)
   const one = (sql: string, ...args: unknown[]) => db.prepare(sql).bind(personId, ...args).first<Record<string, unknown>>()
-  const [sessions, keys, nodes, pitches, seats, agentSeats, posts, postEdits, submissions, checks, upvotes, inbox, mail, flags, reports, terms, dms, dmNames, dmBlocks, donations, invite, emailChange] = await Promise.all([
+  const [sessions, keys, nodes, pitches, seats, posts, postEdits, submissions, checks, upvotes, inbox, mail, flags, reports, terms, dms, dmNames, dmBlocks, donations, invite, emailChange] = await Promise.all([
     list('SELECT created_at, last_seen_at, expires_at, ip_prefix, browser FROM session WHERE person_id = ?1 ORDER BY created_at'),
     list(
       `SELECT k.id, k.name, k.public_key, k.can_post_as, k.created_at, k.expires_at, k.revoked_at, k.last_used_at, k.last_used_as, k.last_used_node,
@@ -51,12 +51,8 @@ export async function readExport(db: D1Database, personId: number, now = Date.no
        FROM node_edit e JOIN node n ON n.id = e.node_id WHERE n.author_id = ?1 ORDER BY e.edited_at`,
     ),
     list(
-      `SELECT n.path, s.number, s.joined_at, s.left_at, t.path AS through FROM seat s JOIN node n ON n.id = s.node_id
+      `SELECT n.path, s.number, s.joined_at, s.left_at, t.path AS through, s.joined_by FROM seat s JOIN node n ON n.id = s.node_id
        LEFT JOIN node t ON t.id = s.through_id WHERE s.person_id = ?1 ORDER BY s.joined_at`,
-    ),
-    list(
-      `SELECT n.path, a.as_name, a.key_id, a.joined_at, a.left_at, t.path AS through FROM agent_seat a JOIN node n ON n.id = a.node_id
-       LEFT JOIN node t ON t.id = a.through_id WHERE a.person_id = ?1 ORDER BY a.joined_at`,
     ),
     list(
       `SELECT p.id, n.path, p.as_name, p.key_id, p.kind, p.text, p.links, p.reply_to, p.hidden, p.created_at, p.edited_at, p.deleted_at
@@ -123,8 +119,7 @@ export async function readExport(db: D1Database, personId: number, now = Date.no
     keys: json(keys, ['grants', 'networks']),
     nodes: json(nodes, ['checks', 'builds_on', 'tags']),
     pitch_edits: json(pitches, ['checks', 'tags', 'builds_on']), // earlier versions of your shwarms (edits; re-pitches before Oct 10)
-    seats, // through: the branch whose join counted you here (go-live 8.2)
-    agent_seats: agentSeats, // your agents' joins
+    seats, // through: the branch whose join counted you here; joined_by: the agent that made the join for you (go-live 8.2)
     posts: json(posts, ['links']),
     post_edits: json(postEdits, ['links']),
     submissions,

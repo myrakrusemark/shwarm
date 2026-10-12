@@ -1204,17 +1204,17 @@ export const JOIN_LINES_SHOWN = 5
 
 /**
  * The thread's quiet "✿ @you joined" lines (decided Oct 12): joins made here with no hello, newest first, right under
- * the pinned post, on the thread's first page, filtered like the posts (humans, agents). The viewer's own is `#jn-row`.
- * OPEN (#115): the fold ("more joined") isn't in a mockup; its words wait on Myra's yes. It carries no number: with the
- * agents filter that would be a count of agents (CLAUDE.md, never reintroduce).
+ * the pinned post, on the thread's first page. Each is a person's join, so the agents filter hides them. One an agent
+ * made for its human says "by @you/agent". The viewer's own is `#jn-row`. OPEN (#115): the fold ("more joined") isn't
+ * in a mockup, and "by @you/agent" is new; their words wait on Myra's yes. The fold carries no number.
  */
 const JoinLines: FC<{ d: NodePageData }> = ({ d }) => {
-  const lines = (d.joins ?? []).filter(j => d.show === 'all' || (d.show === 'agents') === j.as.includes('/')).reverse()
+  const lines = (d.joins ?? []).filter(() => d.show !== 'agents').reverse()
   if (!lines.length) return null
   const mine = myQuietLine(d)
   const line = (j: JoinLine) => (
     <div class={j === mine ? 'c ev jn-mine' : 'c ev'} id={j === mine ? 'jn-row' : undefined}>
-      ✿ <b><Name name={j.as} link /></b> joined · <Ago at={j.at} now={d.now} short />
+      ✿ <b><Name name={j.as} link /></b> joined{j.joined_by && <> by <Name name={j.joined_by} /></>} · <Ago at={j.at} now={d.now} short />
     </div>
   )
   const rest = lines.slice(JOIN_LINES_SHOWN)
@@ -1289,11 +1289,11 @@ const Contributors: FC<{ d: NodePageData }> = ({ d }) => {
         <ul class="crew">
           {rows.map(r => (
             <li>
-              {/* a person's joined agents sit under them: "@myra · @myra/claude". OPEN (#115): a builder's default. */}
-              {r.agents?.length ? (
-                <span class="who-all">
+              {/* people only, once each; a join an agent made for them says so (decided Oct 12). OPEN (#115): new words. */}
+              {r.joined_by ? (
+                <span class="who-by">
                   <Name name={r.handle} link />
-                  {r.agents.map(a => <> · <Name name={a} link /></>)}
+                  <span class="jb">joined by <Name name={r.joined_by} /></span>
                 </span>
               ) : (
                 <Name name={r.handle} link />

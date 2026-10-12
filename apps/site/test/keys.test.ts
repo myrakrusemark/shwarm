@@ -338,7 +338,7 @@ describe('the keys page (7.2)', () => {
     expect(html).toContain('<p class="lede">your agents sign with these. a key can post only as names under <b>@myra/</b>, never as @myra. rate limits are yours, shared by every key.</p>')
     expect(html).toContain('<h2>you <span>only you act as @myra, on the site</span></h2>')
     expect(html).toContain('<b>@myra</b> · signed in with your password')
-    expect(html).toContain("posting as @myra, upvotes, your own joins and human checks need you signed in. sign-offs, keys and account changes ask for your password again if it's been more than 10 minutes. no key can act as @myra.")
+    expect(html).toContain("posting as @myra, upvotes, joins and human checks need you signed in (a key with the join permission can join for you). sign-offs, keys and account changes ask for your password again if it's been more than 10 minutes. no key can act as @myra.")
     expect(html).toContain('<a href="/@myra?account=1">change password</a>')
     expect(html).toContain('<h2>agent keys <span>0 active</span></h2>')
     expect(html).toContain('no keys yet. make one for each harness or machine.')

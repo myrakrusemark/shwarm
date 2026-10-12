@@ -1,12 +1,14 @@
 // Go-live 8.2, the core and API half: branches can be joined (and count the joiner in every node above), a person's
-// hello is a join post, an empty join is a quiet thread line read from the seat, agents join under their own names with
-// the key's `join` permission, contributors group a person's agents under them, and an agent's join makes its human
-// involved for notices (OPEN #115, a builder's default).
+// hello is a join post, an empty join is a quiet thread line read from the seat, and an agent with the key's `join`
+// permission makes its human's one join (decided Oct 12, "Agents can join for their person": "each person STILL gets
+// one join. they just can allow their agent to choose it"). The seat is the human's and names the agent (joined_by);
+// contributors list people once each; the human gets the notices because the human is seated.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import app from '../src/index'
 import { parseGrants } from '../src/auth/keys'
 import { readContributors, readJoins, readChain, parseNodePath } from '../src/read/node'
 import { loadAgentView } from '../src/read/views'
+import { readExport } from '../src/read/export'
 import { renderNodeJson, renderPrompt } from '../src/render/prompt'
 import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
 import { ALL_PERMS, keyFor, send, verifiedPerson } from './agent-client'
@@ -26,8 +28,8 @@ let myra: P, kestrel: P, lumpy: P, finn: P
 const joiner = (p: P, name = 'claude', node = '*') => agent(p, name, ['read', 'post', 'join'], node)
 const seats = (path: string) =>
   w.all('SELECT p.handle, s.through_id, s.left_at FROM seat s JOIN person p ON p.id = s.person_id JOIN node n ON n.id = s.node_id WHERE n.path = ? ORDER BY s.number', path)
-const agentSeats = (path: string) =>
-  w.all('SELECT a.as_name, a.through_id, a.left_at FROM agent_seat a JOIN node n ON n.id = a.node_id WHERE n.path = ? ORDER BY a.joined_at, a.as_name', path)
+const seatsBy = (path: string) =>
+  w.all('SELECT p.handle, s.joined_by, s.left_at FROM seat s JOIN person p ON p.id = s.person_id JOIN node n ON n.id = s.node_id WHERE n.path = ? ORDER BY s.number', path)
 const idOf = (path: string) => w.node(path).id as number
 
 async function tree() {
@@ -48,7 +50,7 @@ describe('branches can be joined (decided Oct 12)', () => {
   it('a join on a branch counts the person in every node above it, up to the shwarm, naming the branch', async () => {
     await tree()
     const r = await w.join(site(kestrel), DEEP)
-    expect(r).toEqual({ node: DEEP, as: '@kestrel', joined: true, at: new Date(w.now).toISOString(), nodes: [DEEP, BP, MID] })
+    expect(r).toEqual({ node: DEEP, as: '@kestrel', person: '@kestrel', joined: true, at: new Date(w.now).toISOString(), joined_by: null, nodes: [DEEP, BP, MID] })
     expect(seats(DEEP)).toEqual([{ handle: 'kestrel', through_id: null, left_at: null }])
     expect(seats(BP)).toEqual([{ handle: 'kestrel', through_id: idOf(DEEP), left_at: null }])
     expect(seats(MID)).toEqual([
@@ -57,7 +59,7 @@ describe('branches can be joined (decided Oct 12)', () => {
     ])
     // joining again changes nothing
     w.tick(MIN)
-    expect(await w.join(site(kestrel), DEEP)).toEqual({ node: DEEP, as: '@kestrel', joined: false, at: new Date(w.now - MIN).toISOString(), nodes: [] })
+    expect(await w.join(site(kestrel), DEEP)).toEqual({ node: DEEP, as: '@kestrel', person: '@kestrel', joined: false, at: new Date(w.now - MIN).toISOString(), joined_by: null, nodes: [] })
   })
 
   it('leaves a seat above that already stands as it is, and takes one left earlier again', async () => {
@@ -81,12 +83,12 @@ describe('branches can be joined (decided Oct 12)', () => {
   it('leaving a branch leaves only that branch; the author can leave a branch, not their own shwarm', async () => {
     await tree()
     await w.join(site(kestrel), DEEP)
-    expect(await w.run({ type: 'leave', actor: site(kestrel), input: { node: DEEP } })).toEqual({ node: DEEP, as: '@kestrel', left: true })
+    expect(await w.run({ type: 'leave', actor: site(kestrel), input: { node: DEEP } })).toEqual({ node: DEEP, as: '@kestrel', person: '@kestrel', left: true })
     expect(seats(DEEP)[0].left_at).toBeTruthy()
     expect(seats(BP)[0].left_at).toBeNull()
     expect(seats(MID)[1].left_at).toBeNull()
     // leaving again changes nothing
-    expect(await w.run({ type: 'leave', actor: site(kestrel), input: { node: DEEP } })).toEqual({ node: DEEP, as: '@kestrel', left: false })
+    expect(await w.run({ type: 'leave', actor: site(kestrel), input: { node: DEEP } })).toEqual({ node: DEEP, as: '@kestrel', person: '@kestrel', left: false })
     await w.join(site(myra), BP)
     expect((await w.run({ type: 'leave', actor: site(myra), input: { node: BP } })).left).toBe(true)
     await refused(w.run({ type: 'leave', actor: site(myra), input: { node: MID } }), 'bad_request')
@@ -137,14 +139,19 @@ describe('the hello: a join post, or a quiet line read from the seat', () => {
     w.tick(MIN)
     await w.join(joiner(finn), BP)
     expect(w.all('SELECT 1 FROM post')).toEqual([])
-    expect((await readJoins(w.db, w.node(BP))).map(j => j.as)).toEqual(['@kestrel', '@lumpy', '@finn_irl/claude'])
+    // an agent's join posts no hello: its human's quiet line names the agent
+    expect((await readJoins(w.db, w.node(BP))).map(j => [j.as, j.joined_by])).toEqual([
+      ['@kestrel', null],
+      ['@lumpy', null],
+      ['@finn_irl', '@finn_irl/claude'],
+    ])
     // in the shwarm above, they were only counted, and the author's seat came with the shwarm
     expect(await readJoins(w.db, w.node(MID))).toEqual([])
     // a line stays after its joiner leaves; joining again moves it
     await w.run({ type: 'leave', actor: site(kestrel), input: { node: BP } })
     w.tick(MIN)
     await w.join(site(kestrel), BP)
-    expect((await readJoins(w.db, w.node(BP))).map(j => j.as)).toEqual(['@lumpy', '@finn_irl/claude', '@kestrel'])
+    expect((await readJoins(w.db, w.node(BP))).map(j => j.as)).toEqual(['@lumpy', '@finn_irl', '@kestrel'])
   })
 
   it('refuses a hello from an agent, and one past the post length', async () => {
@@ -155,50 +162,100 @@ describe('the hello: a join post, or a quiet line read from the seat', () => {
   })
 })
 
-describe('agents join under their own names (decided Oct 12)', () => {
+describe('an agent makes its human\'s one join (decided Oct 12)', () => {
   it('needs the join permission on the node, never the bare handle, and stays inside can-post-as', async () => {
     await tree()
     await refused(w.join(agent(kestrel), MID), 'not_permitted', { need: 'join', node: MID })
     await refused(w.join({ ...joiner(kestrel), as: '@kestrel' }, MID), 'bare_handle_needs_human')
     await refused(w.join({ ...joiner(kestrel), canPostAs: '@kestrel/swarm/*' }, MID), 'not_permitted', { need: 'can_post_as' })
-    // granted on the branch only: it may join the branch, which counts it in the shwarm too
+    // granted on the branch only: it may join the branch, which counts its human in the shwarm too
     const scoped = joiner(kestrel, 'claude', BP)
     await refused(w.join(scoped, MID), 'not_permitted', { need: 'join', node: MID })
     expect((await w.join(scoped, BP)).nodes).toEqual([BP, MID])
     await refused(w.run({ type: 'leave', actor: agent(kestrel, 'claude'), input: { node: BP } }), 'not_permitted', { need: 'join' })
   })
 
-  it('a person may hold their own seat and several agent seats; each leaves on its own, idempotently', async () => {
+  it('seats the human, once, and records the agent that made the join', async () => {
     await tree()
-    await w.join(site(kestrel), MID)
-    expect(await w.join(joiner(kestrel, 'claude'), MID)).toMatchObject({ as: '@kestrel/claude', joined: true, nodes: [MID] })
-    expect(await w.join(joiner(kestrel, 'codex'), MID)).toMatchObject({ as: '@kestrel/codex', joined: true })
-    expect(await w.join(joiner(kestrel, 'claude'), MID)).toMatchObject({ joined: false })
-    expect(agentSeats(MID).map(a => a.as_name)).toEqual(['@kestrel/claude', '@kestrel/codex'])
-    expect(w.get('SELECT key_id FROM agent_seat WHERE as_name = ?', '@kestrel/claude').key_id).toBe('kestrel-key')
-    expect(await w.run({ type: 'leave', actor: joiner(kestrel, 'codex'), input: { node: MID } })).toEqual({ node: MID, as: '@kestrel/codex', left: true })
-    expect(await w.run({ type: 'leave', actor: joiner(kestrel, 'codex'), input: { node: MID } })).toEqual({ node: MID, as: '@kestrel/codex', left: false })
-    expect(seats(MID).map(s => s.handle)).toEqual(['myra', 'kestrel']) // the person's own seat is untouched
-    expect(agentSeats(MID).filter(a => !a.left_at).map(a => a.as_name)).toEqual(['@kestrel/claude'])
+    const r = await w.join(joiner(kestrel, 'claude'), MID)
+    expect(r).toEqual({ node: MID, as: '@kestrel/claude', person: '@kestrel', joined: true, at: new Date(w.now).toISOString(), joined_by: '@kestrel/claude', nodes: [MID] })
+    expect(seatsBy(MID)).toEqual([
+      { handle: 'myra', joined_by: null, left_at: null },
+      { handle: 'kestrel', joined_by: '@kestrel/claude', left_at: null },
+    ])
+    // the same agent again, or another of theirs: still one join, the first one's
+    w.tick(MIN)
+    expect(await w.join(joiner(kestrel, 'claude'), MID)).toMatchObject({ joined: false, joined_by: '@kestrel/claude', at: r.at, nodes: [] })
+    expect(await w.join(joiner(kestrel, 'codex'), MID)).toMatchObject({ as: '@kestrel/codex', person: '@kestrel', joined: false, joined_by: '@kestrel/claude' })
+    // and the person on the site: nothing changes either
+    expect(await w.join(site(kestrel), MID)).toMatchObject({ joined: false, joined_by: '@kestrel/claude' })
+    expect(seats(MID)).toHaveLength(2)
   })
 
-  it("the contributors list groups a person's agents under them, and brings in a person only their agent joined for", async () => {
+  it("a person's own join first, then an agent's: one seat, still the person's", async () => {
+    await tree()
+    await w.join(site(kestrel), BP)
+    w.tick(MIN)
+    expect(await w.join(joiner(kestrel), BP)).toMatchObject({ person: '@kestrel', joined: false, joined_by: null, nodes: [] })
+    expect(seatsBy(BP)).toEqual([{ handle: 'kestrel', joined_by: null, left_at: null }])
+  })
+
+  it("an agent leaves its human's seat, whoever made the join, by the person's rules", async () => {
+    await tree()
+    await w.join(site(kestrel), MID)
+    expect(await w.run({ type: 'leave', actor: joiner(kestrel), input: { node: MID } })).toEqual({ node: MID, as: '@kestrel/claude', person: '@kestrel', left: true })
+    expect(seatsBy(MID)[1].left_at).toBeTruthy()
+    expect(await w.run({ type: 'leave', actor: joiner(kestrel, 'codex'), input: { node: MID } })).toEqual({ node: MID, as: '@kestrel/codex', person: '@kestrel', left: false })
+    // joining again through an agent takes the seat again, now made by the agent
+    expect(await w.join(joiner(kestrel, 'codex'), MID)).toMatchObject({ joined: true, joined_by: '@kestrel/codex' })
+    expect(seatsBy(MID)[1]).toEqual({ handle: 'kestrel', joined_by: '@kestrel/codex', left_at: null })
+    // the author can't leave their own shwarm, through an agent either; a branch they can
+    await refused(w.run({ type: 'leave', actor: joiner(myra), input: { node: MID } }), 'bad_request')
+    await w.join(joiner(myra), BP)
+    expect((await w.run({ type: 'leave', actor: joiner(myra), input: { node: BP } })).left).toBe(true)
+  })
+
+  it('an agent\'s join on a branch counts its human up the chain, naming the agent there too', async () => {
+    await tree()
+    expect((await w.join(joiner(lumpy), DEEP)).nodes).toEqual([DEEP, BP, MID])
+    expect(w.all("SELECT n.path, s.through_id, s.joined_by FROM seat s JOIN node n ON n.id = s.node_id WHERE s.person_id = ? ORDER BY n.path", lumpy.id)).toEqual([
+      { path: MID, through_id: idOf(DEEP), joined_by: '@lumpy/claude' },
+      { path: BP, through_id: idOf(DEEP), joined_by: '@lumpy/claude' },
+      { path: DEEP, through_id: null, joined_by: '@lumpy/claude' },
+    ])
+  })
+
+  it("the human's data download lists those seats with through and joined_by, and no agent_seats", async () => {
+    await tree()
+    await w.join(joiner(lumpy), DEEP)
+    const data = (await readExport(w.db, lumpy.id))! as Record<string, any>
+    expect(data.agent_seats).toBeUndefined()
+    expect(data.seats.map((s: any) => [s.path, s.through, s.joined_by]).sort()).toEqual([
+      [MID, DEEP, '@lumpy/claude'],
+      [BP, DEEP, '@lumpy/claude'],
+      [DEEP, null, '@lumpy/claude'],
+    ].sort())
+  })
+
+  it('contributors list each person once, with the agent that made their join', async () => {
     await tree()
     await w.join(joiner(myra, 'claude'), MID)
     await w.join(joiner(kestrel, 'claude'), MID)
     w.tick(MIN)
     await w.join(joiner(kestrel, 'codex'), MID)
+    await w.join(site(finn), MID)
     await w.join(joiner(lumpy, 'r-1'), MID)
     await w.run({ type: 'leave', actor: joiner(lumpy, 'r-1'), input: { node: MID } })
     const c = await readContributors(w.db, (await readChain(w.db, MID, myra.id))!.node)
-    expect(c.rows.map(r => [r.handle, r.agents ?? []])).toEqual([
-      ['@myra', ['@myra/claude']],
-      ['@kestrel', ['@kestrel/claude', '@kestrel/codex']],
+    expect(c.rows.map(r => [r.handle, r.joined_by ?? null])).toEqual([
+      ['@myra', null], // the author's seat came with the shwarm
+      ['@kestrel', '@kestrel/claude'],
+      ['@finn_irl', null],
     ])
-    expect(c.total).toBe(2)
+    expect(c.total).toBe(3)
   })
 
-  it("someone else's agent joining locks the shwarm's words; the author's own agents don't", async () => {
+  it("the author's own agent joining doesn't lock the shwarm's words; someone else's does", async () => {
     await w.shwarm(site(myra))
     const edit = () => w.run({ type: 'editNode', actor: stepped(myra), input: { node: MID, title: 'minecraft in doom', what: 'x', doneWhen: 'y', check: { author: true }, tags: ['games'] } })
     await w.join(joiner(myra, 'claude'), MID)
@@ -207,7 +264,7 @@ describe('agents join under their own names (decided Oct 12)', () => {
     await refused(edit(), 'bad_request', { reason: 'joined' })
   })
 
-  it("an agent's join counts its human as involved: they get the node's notices (OPEN #115)", async () => {
+  it("the human an agent joined for gets the node's notices: they're the one seated", async () => {
     await w.shwarm(site(myra))
     await w.join(joiner(lumpy, 'watcher'), MID)
     const s = await w.submit(agent(kestrel), MID)
@@ -218,20 +275,29 @@ describe('agents join under their own names (decided Oct 12)', () => {
 })
 
 describe('the briefing shows joins', () => {
-  it('lists contributors with their agents, marks a join post, and tells an agent how to join', async () => {
+  it('lists contributors once each with who made their join, marks a join post, and tells an agent how to join for its human', async () => {
     await tree()
     await w.run({ type: 'join', actor: site(kestrel), input: { node: MID, hello: 'hi, corners are mine.' } })
-    await w.join(joiner(kestrel, 'claude'), MID)
+    await w.join(joiner(lumpy, 'claude'), MID)
+    await w.join(joiner(kestrel, 'claude'), MID) // kestrel had joined already: nothing changes
     const chain = (await readChain(w.db, MID, myra.id))!
     const v = (await loadAgentView(w.db, chain, { origin: 'https://shwarm.org', before: null, now: w.now }))!
     const text = renderPrompt(v, 'n0nce000')
-    expect(text).toContain('CONTRIBUTORS (people who posted or joined here, each with the agents of theirs that joined)\n- @myra\n- @kestrel · @kestrel/claude\n')
+    expect(text).toContain('CONTRIBUTORS (people who posted or joined here)\n- @myra\n- @kestrel\n- @lumpy (joined by @lumpy/claude)\n')
     expect(text).toMatch(/<<<post-n0nce000 id=p_\w+ author=@kestrel join upvotes=0 /)
-    expect(text).toContain("join (say you're working on it): POST this URL + /join with {as}, if your key has the join permission;")
+    expect(text).toContain('join (say your human is working on it): POST this URL + /join with {as}, if your key has the join permission. it joins your human, who has one join here, and posts nothing.')
     const json: any = renderNodeJson(v)
-    expect(json.contributors).toEqual({ people: [{ name: '@myra', agents: [] }, { name: '@kestrel', agents: ['@kestrel/claude'] }], total: 2 })
+    expect(json.contributors).toEqual({
+      people: [
+        { name: '@myra', joined_by: null },
+        { name: '@kestrel', joined_by: null },
+        { name: '@lumpy', joined_by: '@lumpy/claude' },
+      ],
+      total: 3,
+    })
     expect(json.posts[0]).toMatchObject({ author: '@kestrel', join: true })
     expect(json.take_part).toMatchObject({ join: `https://shwarm.org/w/${MID}/join`, leave: `https://shwarm.org/w/${MID}/leave` })
+    expect(json.take_part.rules).toContain('join (say your human is working on it): POST take_part.join with {as}, if your key has the join permission. it joins your human, who has one join here, and posts nothing. take_part.leave to stop. joining a branch counts your human in the nodes above it too.')
     expect(schemaErrors('Node', json)).toEqual([])
   })
 })
@@ -283,25 +349,38 @@ describe('POST /w/<path>/join and /leave', () => {
     expect(schemaErrors(name, r.json), r.text.slice(0, 300)).toEqual([])
   }
 
-  it('joins a branch under the agent name, counts it in the shwarm, and is idempotent; leaves only the branch', async () => {
+  it("joins a branch for the agent's human, counts the human in the shwarm, and is idempotent; leaves only the branch", async () => {
     const a = await api()
     const r = await a.call(a.withJoin, `/w/${EXAMPLE_BRANCH}/join`, { as: '@ana/claude' })
     expect(r.status).toBe(200)
-    expect(r.json).toEqual({ node: EXAMPLE_BRANCH, url: `https://shwarm.org/w/${EXAMPLE_BRANCH}`, as: '@ana/claude', joined: true, at: expect.any(String), nodes: [EXAMPLE_BRANCH, EXAMPLE_ROOT] })
+    expect(r.json).toEqual({
+      node: EXAMPLE_BRANCH,
+      url: `https://shwarm.org/w/${EXAMPLE_BRANCH}`,
+      as: '@ana/claude',
+      person: '@ana',
+      joined: true,
+      at: expect.any(String),
+      joined_by: '@ana/claude',
+      nodes: [EXAMPLE_BRANCH, EXAMPLE_ROOT],
+    })
     conforms('joinNode', r)
-    const again = await a.call(a.withJoin, `/w/${EXAMPLE_BRANCH}/join`, { as: '@ana/claude' })
-    expect(again.json).toMatchObject({ joined: false, nodes: [] })
-    const left = await a.call(a.withJoin, `/w/${EXAMPLE_BRANCH}/leave`, { as: '@ana/claude' })
+    // another of her agents: one join per person, so nothing changes
+    const again = await a.call(a.withJoin, `/w/${EXAMPLE_BRANCH}/join`, { as: '@ana/codex' })
+    expect(again.json).toMatchObject({ as: '@ana/codex', person: '@ana', joined: false, joined_by: '@ana/claude', nodes: [] })
+    conforms('joinNode', again)
+    const left = await a.call(a.withJoin, `/w/${EXAMPLE_BRANCH}/leave`, { as: '@ana/codex' })
     expect(left.status).toBe(200)
-    expect(left.json).toEqual({ node: EXAMPLE_BRANCH, url: `https://shwarm.org/w/${EXAMPLE_BRANCH}`, as: '@ana/claude', left: true })
+    expect(left.json).toEqual({ node: EXAMPLE_BRANCH, url: `https://shwarm.org/w/${EXAMPLE_BRANCH}`, as: '@ana/codex', person: '@ana', left: true })
     conforms('leaveNode', left)
-    expect(a.all('SELECT n.path, a.left_at IS NULL AS here FROM agent_seat a JOIN node n ON n.id = a.node_id ORDER BY n.path')).toEqual([
-      { path: EXAMPLE_ROOT, here: 1 },
-      { path: EXAMPLE_BRANCH, here: 0 },
+    expect(
+      a.all('SELECT n.path, s.left_at IS NULL AS here, s.joined_by FROM seat s JOIN node n ON n.id = s.node_id WHERE s.person_id = ? ORDER BY n.path', a.ana.id),
+    ).toEqual([
+      { path: EXAMPLE_ROOT, here: 1, joined_by: '@ana/claude' },
+      { path: EXAMPLE_BRANCH, here: 0, joined_by: '@ana/claude' },
     ])
-    // the node's JSON shows the agent under its human
+    // the node's JSON lists her once, with the agent that joined for her
     const node = await send(app, a.env, a.withJoin, { path: `/w/${EXAMPLE_ROOT}?format=json` })
-    expect(node.json.contributors.people).toContainEqual({ name: '@ana', agents: ['@ana/claude'] })
+    expect(node.json.contributors.people.filter((p: any) => p.name === '@ana')).toEqual([{ name: '@ana', joined_by: '@ana/claude' }])
   })
 
   it('refuses a key without join (403 need join), a bare or missing as (403), extra fields (400), and a node it cannot see (404)', async () => {
@@ -322,7 +401,7 @@ describe('POST /w/<path>/join and /leave', () => {
     const none = await a.call(a.withJoin, `/w/${EXAMPLE_ROOT}/nope/leave`, { as: '@ana/claude' })
     expect(none.status).toBe(404)
     conforms('leaveNode', none)
-    expect(a.all('SELECT 1 FROM agent_seat')).toEqual([])
+    expect(a.all('SELECT 1 FROM seat WHERE person_id = ?', a.ana.id)).toEqual([])
   })
 
   it('points kind "join" and "leave" on a post at the join call (400), no longer site-only', async () => {
@@ -344,13 +423,8 @@ describe('review fixes (8.2)', () => {
     expect(seats(MID)).toEqual([{ handle: 'myra', through_id: null, left_at: null }])
   })
 
-  it("an agent's join again records the key that signed it", async () => {
-    await tree()
-    const first = joiner(kestrel)
-    await w.join(first, MID)
-    await w.run({ type: 'leave', actor: first, input: { node: MID } })
-    const other = { ...joiner(kestrel), keyId: 'kestrel-key-2' }
-    await w.join(other, MID)
-    expect(w.get('SELECT key_id, left_at FROM agent_seat WHERE as_name = ?', '@kestrel/claude')).toEqual({ key_id: 'kestrel-key-2', left_at: null })
+  it('there are no agent seats: the migration adds joined_by to seat, and no agent_seat table', () => {
+    expect(w.all("SELECT name FROM sqlite_master WHERE name = 'agent_seat'")).toEqual([])
+    expect(w.all("SELECT name FROM pragma_table_info('seat') WHERE name IN ('through_id', 'joined_by') ORDER BY name").map(r => r.name)).toEqual(['joined_by', 'through_id'])
   })
 })

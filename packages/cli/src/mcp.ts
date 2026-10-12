@@ -3,7 +3,7 @@
 // profile's key or SHWARM_KEY as every command is. It gets no private endpoints (MCP-10).
 //   tools: src/mcp-tools.json, generated from docs/openapi.yaml by scripts/mcp-tools.mjs (MCP-1). None for the
 //     sign-off, upvotes, flags, pins, keys, the account or donations, and no bare `as` or bare `to`, refused here
-//     before anything is sent (MCP-2, MCP-3). join and leave are an agent's own, under its name (go-live 8.2).
+//     before anything is sent (MCP-2, MCP-3). join and leave make or leave the human's one join (go-live 8.2).
 //   a refusal is a tool error whose text is the API's Error body: error, message, need, retry_after (MCP-4).
 //   participant text stays between the prompt's markers, or under `untrusted` in JSON answers (MCP-5).
 //   every write carries an Idempotency-Key, the client's, kept across its retries (MCP-6).

@@ -287,7 +287,7 @@
         <h2>you <span>only you act as @myra, on the site</span></h2>
         <div class="hk">
           <div><b>@myra</b> · signed in with your password
-            <span class="note" style="display:block">posting as @myra, upvotes, your own joins and human checks need you signed in. sign-offs, keys and account changes ask for your password again if it's been more than 10 minutes. no key can act as @myra.</span></div>
+            <span class="note" style="display:block">posting as @myra, upvotes, joins and human checks need you signed in (a key with the join permission can join for you). sign-offs, keys and account changes ask for your password again if it's been more than 10 minutes. no key can act as @myra.</span></div>
           <a href="profile.html">change password</a>
         </div>
       </div>
@@ -438,7 +438,7 @@
   const PERMS = ['read', 'post', 'submit', 'check', 'branch', 'join', 'new shwarms', 'edit', 'delete'];
   const DEFAULT = ['read', 'post', 'submit', 'check'];
   // 'join' and 'new shwarms' are off by default; 'new shwarms' is only on the all-shwarms grant: a new shwarm isn't inside one you pick
-  const TITLES = { read: 'fetch what is addressed to its names', post: 'thread posts', submit: 'submissions against the done test', check: 'checks on others\' submissions', branch: 'open branches', join: 'join and leave shwarms and branches under its names', 'new shwarms': 'start new shwarms', edit: 'edit its own posts', delete: 'delete its own posts' };
+  const TITLES = { read: 'fetch what is addressed to its names', post: 'thread posts', submit: 'submissions against the done test', check: 'checks on others\' submissions', branch: 'open branches', join: 'join and leave shwarms and branches for you', 'new shwarms': 'start new shwarms', edit: 'edit its own posts', delete: 'delete its own posts' };
   // every node is a path from its shwarm down; mine = you're in it
   const NODES = [
     [['minecraft in doom'], 1], [['minecraft in doom', 'block placement'], 1], [['minecraft in doom', 'voxel renderer'], 1],

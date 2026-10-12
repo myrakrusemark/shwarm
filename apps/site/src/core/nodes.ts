@@ -264,15 +264,17 @@ export type JoinInput = { node: string; hello?: string | null }
 
 export type JoinResult = {
   node: string
-  as: string // the name that joined: the bare handle on the site, an agent name through a key
-  joined: boolean // false: that name had already joined this node, so nothing changed
-  at: string // when it joined: now, or the standing join's time
-  nodes: string[] // the nodes this join counted the name in: the node itself first, then each node above it it wasn't in
+  as: string // the name that asked: the bare handle on the site, the agent name through a key
+  person: string // who is seated: always the human, '@myra'
+  joined: boolean // false: the person had already joined this node, so nothing changed
+  at: string // when the person joined: now, or the standing join's time
+  joined_by: string | null // the agent that made the person's join ('@myra/claude'), null when they joined on the site
+  nodes: string[] // the nodes this join counted the person in: the node itself first, then each node above it they weren't in
   post?: string // the hello's post id, marked as a join (post.is_join)
 }
 
-/** A seat or agent seat as join reads it. */
-type SeatState = { node_id: number; joined_at: string; left_at: string | null; through_id: number | null }
+/** A seat as join reads it. */
+type SeatState = { node_id: number; joined_at: string; left_at: string | null; through_id: number | null; joined_by: string | null }
 
 /** 'a/b/c' → ['a', 'a/b'] */
 const above = (path: string) => path.split('/').slice(0, -1).map((_, i, a) => a.slice(0, i + 1).join('/'))
@@ -280,19 +282,20 @@ const above = (path: string) => path.split('/').slice(0, -1).map((_, i, a) => a.
 /**
  * "join": say you're working on a shwarm or a branch (decided Oct 9, "No lobby"; Oct 12, "Branches can be joined").
  * It gates nothing and has no size: the joiner shows among its contributors and on their profile as working on it,
- * and gets its notices. Joining again changes nothing. An ended node is locked: it takes no joins (needLive).
- *   - On the site, a person joins as their bare handle: a seat row (the table the lobby used, one per person per node).
- *     What they wrote in the "say hi!" modal (`hello`) becomes their first post in the thread, marked as a join, and
- *     takes a thread post as any post does; with no hello there is no post, and the thread's quiet "@you joined" line
- *     is read from the seat (read/node.ts readJoins).
- *   - Through a key, an agent joins under its own name (decided Oct 12, "Agents can join, with their own key
- *     permission"): the key needs `join` on the node; never the bare handle. An agent_seat row, one per agent name, so
- *     a person may hold their own seat and several agents'. No hello: an agent posts its hello as an ordinary post.
- * A join on a branch also counts the name in every node above it, up to the shwarm (decided: "joining a branch also
- * counts you in its parent shwarm"; nested branches the same, a builder's call), each such seat naming the branch
- * (through_id). A seat above that already stands is left as it is; one left earlier is taken again; a paused node above
- * is skipped (it takes no writes). A join made on a
- * node where the name was only counted through a branch makes it a join of its own.
+ * and gets its notices. A person has one join per node (a seat row, the table the lobby used: one per person per node);
+ * joining again changes nothing. An ended node is locked: it takes no joins (needLive).
+ *   - On the site, a person joins as their bare handle. What they wrote in the "say hi!" modal (`hello`) becomes their
+ *     first post in the thread, marked as a join, and takes a thread post as any post does; with no hello there is no
+ *     post, and the thread's quiet "@you joined" line is read from the seat (read/node.ts readJoins).
+ *   - Through a key, an agent makes that same one join for its human (decided Oct 12, "Agents can join for their
+ *     person, with their own key permission"; Myra: "each person STILL gets one join. they just can allow their agent to
+ *     choose it"): the key needs `join` on the node, and the name is an agent name, never the bare handle. The seat is
+ *     the human's, and records the agent that made it (seat.joined_by). No hello: an agent's join posts nothing.
+ * A join on a branch also counts the person in every node above it, up to the shwarm (decided: "joining a branch also
+ * counts you in its parent shwarm", whoever made the join; nested branches the same, a builder's call), each such seat
+ * naming the branch (through_id). A seat above that already stands is left as it is; one left earlier is taken again;
+ * a paused node above is skipped (it takes no writes). A join made on a node where the person was only counted through a
+ * branch makes it a join of its own.
  */
 export async function join(ctx: Ctx, a: Actor, inp: JoinInput): Promise<JoinResult> {
   const viaKey = a.via === 'key'
@@ -308,6 +311,8 @@ export async function join(ctx: Ctx, a: Actor, inp: JoinInput): Promise<JoinResu
   // OPEN (#115): new words.
   if (said && viaKey) throw bad('an agent joins with no hello. post one to the thread if you like', { field: 'hello' })
   const hello = said ? needText(raw, 'hello') : null
+  const by = viaKey ? a.as : null
+  const human = '@' + person.handle
 
   const upPaths = above(n.path)
   const ups = upPaths.length
@@ -320,32 +325,25 @@ export async function join(ctx: Ctx, a: Actor, inp: JoinInput): Promise<JoinResu
       ).results
     : []
   const all = [{ id: n.id, path: n.path }, ...ups]
-  const table = viaKey ? 'agent_seat' : 'seat'
-  const who = viaKey ? 'as_name' : 'person_id'
-  const whoArg = viaKey ? a.as : person.id
   const { results: had } = await ctx.db
-    .prepare(`SELECT node_id, joined_at, left_at, through_id FROM ${table} WHERE ${who} = ?1 AND node_id IN (SELECT value FROM json_each(?2))`)
-    .bind(whoArg, JSON.stringify(all.map(x => x.id)))
+    .prepare('SELECT node_id, joined_at, left_at, through_id, joined_by FROM seat WHERE person_id = ?1 AND node_id IN (SELECT value FROM json_each(?2))')
+    .bind(person.id, JSON.stringify(all.map(x => x.id)))
     .all<SeatState>()
   const seatOf = new Map(had.map(r => [r.node_id, r]))
   const mine = seatOf.get(n.id)
-  if (mine && mine.left_at === null && mine.through_id === null) return { node: n.path, as: a.as, joined: false, at: mine.joined_at, nodes: [] }
+  if (mine && mine.left_at === null && mine.through_id === null)
+    return { node: n.path, as: a.as, person: human, joined: false, at: mine.joined_at, joined_by: mine.joined_by, nodes: [] }
 
-  const take = (x: { id: number }, through: number | null): D1PreparedStatement => {
-    if (seatOf.has(x.id) && viaKey) // the key that signed this join, as a first join records it
-      return ctx.db
-        .prepare('UPDATE agent_seat SET left_at = NULL, through_id = ?, joined_at = ?, key_id = ? WHERE node_id = ? AND as_name = ?')
-        .bind(through, ctx.at, a.keyId ?? null, x.id, a.as)
-    if (seatOf.has(x.id))
-      return ctx.db.prepare('UPDATE seat SET left_at = NULL, through_id = ?, joined_at = ? WHERE node_id = ? AND person_id = ?').bind(through, ctx.at, x.id, person.id)
-    if (viaKey)
-      return ctx.db
-        .prepare('INSERT INTO agent_seat (node_id, as_name, person_id, key_id, through_id, joined_at) VALUES (?, ?, ?, ?, ?, ?)')
-        .bind(x.id, a.as, person.id, a.keyId ?? null, through, ctx.at)
-    return ctx.db
-      .prepare('INSERT INTO seat (node_id, person_id, number, joined_at, through_id) VALUES (?, ?, (SELECT COALESCE(MAX(number), 0) + 1 FROM seat WHERE node_id = ?), ?, ?)')
-      .bind(x.id, person.id, x.id, ctx.at, through)
-  }
+  const take = (x: { id: number }, through: number | null): D1PreparedStatement =>
+    seatOf.has(x.id)
+      ? ctx.db
+          .prepare('UPDATE seat SET left_at = NULL, through_id = ?, joined_at = ?, joined_by = ? WHERE node_id = ? AND person_id = ?')
+          .bind(through, ctx.at, by, x.id, person.id)
+      : ctx.db
+          .prepare(
+            'INSERT INTO seat (node_id, person_id, number, joined_at, through_id, joined_by) VALUES (?, ?, (SELECT COALESCE(MAX(number), 0) + 1 FROM seat WHERE node_id = ?), ?, ?, ?)',
+          )
+          .bind(x.id, person.id, x.id, ctx.at, through, by)
   const seated = [n.path]
   const stmts: D1PreparedStatement[] = [take(n, null)]
   for (const u of ups) {
@@ -363,16 +361,16 @@ export async function join(ctx: Ctx, a: Actor, inp: JoinInput): Promise<JoinResu
   }
   stmts.push(touchNode(ctx, n.id, postId ?? null)) // the contributors box (and a hello) show signed out
   await ctx.db.batch(stmts)
-  return { node: n.path, as: a.as, joined: true, at: ctx.at, nodes: seated, ...(postId ? { post: postId } : {}) }
+  return { node: n.path, as: a.as, person: human, joined: true, at: ctx.at, joined_by: by, nodes: seated, ...(postId ? { post: postId } : {}) }
 }
 
-export type LeaveResult = { node: string; as: string; left: boolean }
+export type LeaveResult = { node: string; as: string; person: string; left: boolean }
 
 /**
  * Stop working on a shwarm or a branch: undoes "join", any time while it's live, for that node only (decided Oct 12:
  * leaving a branch leaves only that branch; the seats above it stay). The author can't leave their own shwarm (table B
- * #29). An agent leaves under its own name, with the key's join permission. Leaving when not joined changes nothing
- * (left: false).
+ * #29). An agent with the key's join permission leaves its human's seat, by the same rules, whoever made the join.
+ * Leaving when not joined changes nothing (left: false).
  */
 export async function leave(ctx: Ctx, a: Actor, inp: { node: string }): Promise<LeaveResult> {
   const viaKey = a.via === 'key'
@@ -383,14 +381,12 @@ export async function leave(ctx: Ctx, a: Actor, inp: { node: string }): Promise<
   const n = await loadNode(ctx, inp?.node)
   await needLive(ctx, n)
   // OPEN: the words wait on Myra's yes.
-  if (!viaKey && n.kind !== 'branch' && n.author_id === person.id) throw bad("the author can't leave their own shwarm")
+  if (n.kind !== 'branch' && n.author_id === person.id) throw bad("the author can't leave their own shwarm")
   const res = await ctx.db.batch([
-    viaKey
-      ? ctx.db.prepare('UPDATE agent_seat SET left_at = ? WHERE node_id = ? AND as_name = ? AND left_at IS NULL').bind(ctx.at, n.id, a.as)
-      : ctx.db.prepare('UPDATE seat SET left_at = ? WHERE node_id = ? AND person_id = ? AND left_at IS NULL').bind(ctx.at, n.id, person.id),
+    ctx.db.prepare('UPDATE seat SET left_at = ? WHERE node_id = ? AND person_id = ? AND left_at IS NULL').bind(ctx.at, n.id, person.id),
     touchNode(ctx, n.id, null), // the contributors box shows signed out
   ])
-  return { node: n.path, as: a.as, left: !!res[0]?.meta?.changes }
+  return { node: n.path, as: a.as, person: '@' + person.handle, left: !!res[0]?.meta?.changes }
 }
 
 export type EditNodeInput = {
@@ -408,16 +404,15 @@ export type EditNodeResult = { node: string; edited: boolean; at: string; triage
 /**
  * Whether a shwarm's words may still change (decided Oct 10, '"edit" replaces re-pitch'), as SQL on node `e`: live, not
  * blocked, nothing ever submitted to it or to any of its branches, and nobody but its author ever joined. A join stays in seat with left_at set
- * when the joiner leaves, so leaving doesn't unlock it; the author's own seat (made with the shwarm) doesn't count. Someone
- * else's agent joining counts (agent_seat), the author's own agents don't, and so does a join on one of its branches,
- * which counts the joiner here too (join). OPEN (#115): the last two are builder's calls.
+ * when the joiner leaves, so leaving doesn't unlock it; the author's own seat (made with the shwarm) doesn't count, nor
+ * one their agent made for them. A join on one of its branches counts the joiner here too (join), so it locks the words
+ * as well. OPEN (#115): that last is a builder's call.
  * Used inside the edit's batch too: a block from triage (which runs outside the tree) can land meanwhile.
  */
 export const EDITABLE = (e: string) =>
   `${e}.kind <> 'branch' AND ${e}.state = 'live' AND ${e}.triage <> 'blocked'
    AND NOT EXISTS (SELECT 1 FROM submission s JOIN node sb ON sb.id = s.node_id WHERE sb.id = ${e}.id OR sb.root_id = ${e}.id)
-   AND NOT EXISTS (SELECT 1 FROM seat j WHERE j.node_id = ${e}.id AND j.person_id <> ${e}.author_id)
-   AND NOT EXISTS (SELECT 1 FROM agent_seat j WHERE j.node_id = ${e}.id AND j.person_id <> ${e}.author_id)`
+   AND NOT EXISTS (SELECT 1 FROM seat j WHERE j.node_id = ${e}.id AND j.person_id <> ${e}.author_id)`
 
 /**
  * Why a node's words can't be edited any more, or null while they can: the refusal core gives, which the page and the
@@ -430,8 +425,7 @@ export async function editLock(db: D1Database, n: { id: number; path: string; ki
   const r = await db
     .prepare(
       `SELECT EXISTS (SELECT 1 FROM submission s JOIN node b ON b.id = s.node_id WHERE b.id = ?1 OR b.root_id = ?1) AS submitted,
-              EXISTS (SELECT 1 FROM seat j JOIN node n ON n.id = j.node_id WHERE j.node_id = ?1 AND j.person_id <> n.author_id)
-              OR EXISTS (SELECT 1 FROM agent_seat j JOIN node n ON n.id = j.node_id WHERE j.node_id = ?1 AND j.person_id <> n.author_id) AS joined`,
+              EXISTS (SELECT 1 FROM seat j JOIN node n ON n.id = j.node_id WHERE j.node_id = ?1 AND j.person_id <> n.author_id) AS joined`,
     )
     .bind(n.id)
     .first<{ submitted: number; joined: number }>()

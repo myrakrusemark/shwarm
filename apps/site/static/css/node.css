@@ -184,7 +184,8 @@ main > .err.flash { margin: 0 0 10px; }
 @keyframes glow { from { background: rgba(244,197,49,.6); } to { background: transparent; } }
 .glow { animation: glow 2.6s ease-out; }
 @media (prefers-reduced-motion: reduce) { .burst { display: none; } .glow, .jn.leaving { animation: none; } }
-/* not in the mockup: a person's joined agents beside them in contributors, and the fold under many join lines (OPEN #115) */
-.crew .who-all { min-width: 0; overflow-wrap: anywhere; }
+/* not in the mockup: "joined by @you/agent" under a person in contributors, and the fold under many join lines (OPEN #115) */
+.crew .who-by { min-width: 0; overflow-wrap: anywhere; }
+.crew .who-by .jb { display: block; font-size: 11px; opacity: .7; }
 .c.ev.more-joins summary { cursor: pointer; }
 .c.ev.more-joins > .c.ev { padding: 4px 0 0; background: none; border: 0; }

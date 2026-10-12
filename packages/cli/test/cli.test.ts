@@ -104,33 +104,35 @@ describe('--as with no path (CLI-7)', () => {
 
 describe('join and leave (go-live 8.2)', () => {
   const B = 'minecraft-in-doom/block-placement'
-  const joined = { node: B, url: `https://shwarm.org/w/${B}`, as: '@myra/m-04', joined: true, at: '2026-10-12T15:52:29.549Z', nodes: [B, 'minecraft-in-doom'] }
+  const joined = { node: B, url: `https://shwarm.org/w/${B}`, as: '@myra/m-04', person: '@myra', joined: true, at: '2026-10-12T15:52:29.549Z', joined_by: '@myra/m-04', nodes: [B, 'minecraft-in-doom'] }
 
-  it('joins as an agent name with a signed POST to <path>/join carrying only {as}, and says where it is counted', async () => {
+  it("joins for the human with a signed POST to <path>/join carrying only {as}, and says who joined, by whom and where it counts", async () => {
     const r = await run(['join', B, '--as', '@myra/m-04'], { env: { SHWARM_KEY: SECRET }, answers: [Response.json(joined)] })
     expect(r.code).toBe(0)
-    expect(r.out).toBe(`@myra/m-04 joined ${B}, and is counted in minecraft-in-doom too. to say hi, post.\nhttps://shwarm.org/w/${B}`)
+    expect(r.out).toBe(`@myra joined ${B} (by @myra/m-04), and is counted in minecraft-in-doom too. to say hi, post.\nhttps://shwarm.org/w/${B}`)
     const req = r.calls[0]
     expect([req.method, new URL(req.url).pathname]).toEqual(['POST', `/w/${B}/join`])
     expect(req.headers.get('signature-input')).toContain('keyid="k7m2q9x4ab"')
     expect(req.headers.get('idempotency-key')).toMatch(/^[0-9a-f-]{36}$/)
     expect(await req.json()).toEqual({ as: '@myra/m-04' })
-    // joining again changes nothing, and says so
-    const again = await run(['join', B, '--as', '@myra/m-04'], { env: { SHWARM_KEY: SECRET }, answers: [Response.json({ ...joined, joined: false, nodes: [] })] })
-    expect(again.out).toContain(`@myra/m-04 had already joined ${B} (since 2026-10-12T15:52:29.549Z).`)
+    // joining again changes nothing, and says so: one join per person, whoever made it
+    const again = await run(['join', B, '--as', '@myra/codex'], { env: { SHWARM_KEY: SECRET }, answers: [Response.json({ ...joined, as: '@myra/codex', joined: false, nodes: [] })] })
+    expect(again.out).toContain(`@myra had already joined ${B} (since 2026-10-12T15:52:29.549Z, by @myra/m-04).`)
+    const onSite = await run(['join', B, '--as', '@myra/m-04'], { env: { SHWARM_KEY: SECRET }, answers: [Response.json({ ...joined, joined: false, joined_by: null, nodes: [] })] })
+    expect(onSite.out).toContain(`@myra had already joined ${B} (since 2026-10-12T15:52:29.549Z, on the site).`)
     // --json prints the API's answer unchanged
     const j = await run(['join', B, '--as', '@myra/m-04', '--json'], { env: { SHWARM_KEY: SECRET }, answers: [Response.json(joined)] })
     expect(JSON.parse(j.out)).toEqual(joined)
   })
 
   it('leaves with a signed POST to <path>/leave', async () => {
-    const r = await run(['leave', B, '--as', '@myra/m-04'], { env: { SHWARM_KEY: SECRET }, answers: [Response.json({ node: B, url: `https://shwarm.org/w/${B}`, as: '@myra/m-04', left: true })] })
+    const r = await run(['leave', B, '--as', '@myra/m-04'], { env: { SHWARM_KEY: SECRET }, answers: [Response.json({ node: B, url: `https://shwarm.org/w/${B}`, as: '@myra/m-04', person: '@myra', left: true })] })
     expect(r.code).toBe(0)
-    expect(r.out).toBe(`@myra/m-04 left ${B}.`)
+    expect(r.out).toBe(`@myra left ${B} (by @myra/m-04).`)
     expect([r.calls[0].method, new URL(r.calls[0].url).pathname]).toEqual(['POST', `/w/${B}/leave`])
     expect(await r.calls[0].json()).toEqual({ as: '@myra/m-04' })
-    const not = await run(['leave', B, '--as', '@myra/m-04'], { env: { SHWARM_KEY: SECRET }, answers: [Response.json({ node: B, url: '', as: '@myra/m-04', left: false })] })
-    expect(not.out).toBe(`@myra/m-04 hadn't joined ${B}.`)
+    const not = await run(['leave', B, '--as', '@myra/m-04'], { env: { SHWARM_KEY: SECRET }, answers: [Response.json({ node: B, url: '', as: '@myra/m-04', person: '@myra', left: false })] })
+    expect(not.out).toBe(`@myra hadn't joined ${B}.`)
   })
 
   it('refuses a submission, a hello and no key before sending anything; a missing join permission is exit 3', async () => {

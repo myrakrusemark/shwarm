@@ -155,7 +155,7 @@ describe('shwarm mcp against the Worker', () => {
     expect(w.reached.map(x => `${x.method} ${x.path}`)).toEqual(['POST /shwarms'])
   })
 
-  it('joins and leaves as an agent with the join permission (go-live 8.2); a key without it gets not_permitted', async () => {
+  it("joins and leaves for the agent's human with the join permission (go-live 8.2); a key without it gets not_permitted", async () => {
     const w = await world()
     const kai = await verifiedPerson(w.db, 'kai')
     const kaiKey = await keyFor(w.db, kai.id, { canPostAs: '@kai/*', grants: [{ node: '*', perms: ['read', 'post', 'join'] }] })
@@ -163,12 +163,12 @@ describe('shwarm mcp against the Worker', () => {
     const j = await w.mcp([w.call('join', { node: `${SITE}/w/${EXAMPLE_BRANCH}` })], { key: kaiKey, as: '@kai/geo' })
     const joined = JSON.parse(result(j.byId(1)).text)
     expect(schemaErrors('JoinResult', joined)).toEqual([])
-    expect(joined).toMatchObject({ node: EXAMPLE_BRANCH, as: '@kai/geo', joined: true, nodes: [EXAMPLE_BRANCH, EXAMPLE_ROOT] })
+    expect(joined).toMatchObject({ node: EXAMPLE_BRANCH, as: '@kai/geo', person: '@kai', joined: true, joined_by: '@kai/geo', nodes: [EXAMPLE_BRANCH, EXAMPLE_ROOT] })
     expect(JSON.parse(w.reached.at(-1)!.body)).toEqual({ as: '@kai/geo' })
     const l = await w.mcp([w.call('leave', { node: EXAMPLE_BRANCH })], { key: kaiKey, as: '@kai/geo' })
     const left = JSON.parse(result(l.byId(1)).text)
     expect(schemaErrors('LeaveResult', left)).toEqual([])
-    expect(left).toMatchObject({ node: EXAMPLE_BRANCH, as: '@kai/geo', left: true })
+    expect(left).toMatchObject({ node: EXAMPLE_BRANCH, as: '@kai/geo', person: '@kai', left: true })
     const no = await w.mcp([w.call('join', { node: EXAMPLE_BRANCH })], { key: w.keys.ana, as: '@ana/scout' })
     expect(result(no.byId(1)).isError).toBe(true)
     expect(JSON.parse(result(no.byId(1)).text)).toMatchObject({ error: 'not_permitted', need: 'join' })

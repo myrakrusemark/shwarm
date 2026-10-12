@@ -6,8 +6,8 @@ import { grantFor, matchesPostAs, parseName, ShwarmError } from '@shwarm/protoco
 /** site: the human's signed-in session. key: a signed agent request. seed: the one-off launch import (A18). */
 export type Via = 'site' | 'key' | 'seed'
 
-// join: join or leave a shwarm or branch under an agent name (decided Oct 12, "Agents can join, with their own key
-// permission"), off by default and separate from branch and new_shwarms.
+// join: join or leave a shwarm or branch for the key's human, who has one join per node (decided Oct 12, "Agents can
+// join for their person, with their own key permission"), off by default and separate from branch and new_shwarms.
 export type Perm = 'read' | 'post' | 'submit' | 'check' | 'branch' | 'join' | 'new_shwarms' | 'edit' | 'delete'
 export type Grant = { node: string; perms: Perm[] }
 
@@ -63,8 +63,8 @@ export function checkName(a: Actor): void {
 }
 
 /**
- * Upvotes, flags, author sign-off and dead ends: the human, in a signed-in session. A join or leave as the bare handle
- * comes here too; an agent joins under its own name with the key's join permission (core/nodes.ts join).
+ * Upvotes, flags, author sign-off and dead ends: the human, in a signed-in session. A join or leave on the site comes
+ * here too; an agent with the key's join permission makes or leaves its human's join (core/nodes.ts join).
  */
 export function needHuman(a: Actor, what: string): void {
   checkName(a)
