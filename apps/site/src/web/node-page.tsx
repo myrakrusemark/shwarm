@@ -18,7 +18,7 @@ import { EDITS_SHOWN, lockedBy, SHOWS, SORTS } from '../read/node'
 import { FORMER } from '../read/names'
 import { ACTIVITY_DAYS, type ActivityDay } from '../read/activity'
 import { groupBySlot, isOpen, openReview, recordedStatus, review, waitingDays, type ReviewRow } from '../read/review'
-import { ago, cut, dayOf, exact, licenseName, monthDay, perDay, plural, q1, shortNum, triageNote } from '../render/format'
+import { ago, cut, dayOf, exact, licenseName, monthDay, perDay, q1, shortNum, triageNote } from '../render/format'
 import { showHidden } from '../render/hidden'
 import { MAX_TEXT, MAX_TITLE } from '../core/text'
 import { Command, LINK_REL, linkParts, Log, Name, Plain, tagHref, Text } from '../render/text'
@@ -28,13 +28,14 @@ import { FLAG_LABEL, FLAG_REASONS, PAUSE_AT } from '../core/flags'
 import { AgentResources, Layout } from './layout'
 import { InvitedSignIn, OPENS_SOON } from './opens-soon'
 import { PageContext } from './viewer'
+import { count, fill, fillx, w } from '../words'
 
 
 /** The author's own-eyes note (render/format.ts triageNote), with "the rules" as a link when it's blocked. */
 export const TriageNote = (p: { triage: string }) =>
   p.triage === 'blocked' ? (
     <p class="held">
-      blocked. see <a href="/rules">the rules</a>.
+      {fillx(w.node.blocked, { rules: <a href="/rules">{w.node.rulesLink}</a> })}
     </p>
   ) : (
     <p class="held">{triageNote(p)}</p>
@@ -86,10 +87,10 @@ export const buildOnHref = (path: string) => `/new?builds_on=${encodeURIComponen
  * A shwarm's or branch's link preview (go-live 11.7, web/layout.tsx `card`): its title, and its done line as the
  * description. OPEN: "done when: " is new wording; it waits on Myra's yes.
  */
-export const doneCard = (n: { title: string; done_when: string }) => ({ title: showHidden(n.title), description: cut(`done when: ${showHidden(n.done_when)}`, 200) })
+export const doneCard = (n: { title: string; done_when: string }) => ({ title: showHidden(n.title), description: cut(fill(w.node.cardDescription, { done: showHidden(n.done_when) }), 200) })
 export const Ago: FC<{ at: string | null; now: number; short?: boolean }> = ({ at, now, short }) => <span title={exact(at)}>{ago(at, now, short)}</span>
 const Imp: FC<{ q: number; ppd: number }> = ({ q, ppd }) => (
-  <span class="imp" style={`--q:${q1(q)}`} title={`▲${q1(q)} per post · ${perDay(ppd)} posts a day`}>{perDay(ppd)}/day</span>
+  <span class="imp" style={`--q:${q1(q)}`} title={fill(w.node.impTitle, { q: q1(q), ppd: perDay(ppd) })}>{fill(w.node.impPerDay, { ppd: perDay(ppd) })}</span>
 )
 export const humanOf = (name: string) => name.split('/')[0]
 /** Whether a post is on this page of the thread (the pinned post, the posts and their replies). */
@@ -103,16 +104,16 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
   const passed = isBranch && n.state === 'closed' ? d.subs.find(s => s.status === 'passed') : undefined
   const opensSoon = useContext(PageContext).opensSoon
   return (
-    <Layout title={`${showHidden(n.title)} · shwarm`} description={cut(showHidden(n.what), 200)} canonical={d.threadView ? `${nodeHref(n.path)}?thread=1` : nodeHref(n.path)} card={doneCard(n)}>
+    <Layout title={fill(w.node.pageTitle, { title: showHidden(n.title) })} description={cut(showHidden(n.what), 200)} canonical={d.threadView ? `${nodeHref(n.path)}?thread=1` : nodeHref(n.path)} card={doneCard(n)}>
       <link rel="stylesheet" href="/css/node.css" />
       {passed && <link rel="stylesheet" href="/css/result.css" />}
       {isBranch ? (
         <Crumbs chain={d.chain} />
       ) : d.threadView ? (
         // OPEN (#81): "back to the result" isn't in a mockup; it waits on Myra's yes.
-        <a class="back" href={nodeHref(n.path)}>← back to the result</a>
+        <a class="back" href={nodeHref(n.path)}>{w.node.backToResult}</a>
       ) : (
-        <a class="back" href="/">← back to hot</a>
+        <a class="back" href="/">{w.node.backToHot}</a>
       )}
       {n.visibility === 'author' && <TriageNote triage={n.triage} />}
       {n.paused === 1 && <PausedNote kind={n.kind} />}
@@ -130,20 +131,20 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
         <aside>
           <Owner d={d} />
           <div class="box you">
-            <h2 class="sunny">contribute</h2>
+            <h2 class="sunny">{w.node.contribute}</h2>
             <div class="in">
-              <span class="note">your url for this {isBranch ? 'branch' : 'shwarm'}</span>
-              <div class="url"><code id="w-url">{d.url}</code><button class="btn" id="w-copy" type="button">copy</button></div>
+              <span class="note">{fill(w.node.yourUrl, { kind: isBranch ? w.node.kindBranch : w.node.kindShwarm })}</span>
+              <div class="url"><code id="w-url">{d.url}</code><button class="btn" id="w-copy" type="button">{w.node.copy}</button></div>
               {/* Myra asked for basic steps under the url (Oct 10); the words wait on her yes. */}
               <details class="how-join">
-                <summary>how to join in</summary>
+                <summary>{w.node.howToJoin}</summary>
                 <ol>
-                  <li>read the thread first. say what you'll try.</li>
-                  <li>press "join" when you start, so others know someone's on it.</li>
-                  <li>bringing an agent? make a key at <a href="/keys">keys</a>, then give the agent this url and the <a href="/skills">agent skills</a> page.</li>
-                  <li>the work lives elsewhere: a repo or a link. when it meets the done test, post it as a submission.</li>
+                  <li>{w.node.howToJoin1}</li>
+                  <li>{w.node.howToJoin2}</li>
+                  <li>{fillx(w.node.howToJoin3, { keys: <a href="/keys">{w.node.keysLink}</a>, skills: <a href="/skills">{w.node.skillsLink}</a> })}</li>
+                  <li>{w.node.howToJoin4}</li>
                 </ol>
-                <p class="note">before your agent starts: read <a href="/guide-safety">shwarming safely</a>.</p>
+                <p class="note">{fillx(w.node.beforeAgent, { guide: <a href="/guide-safety">{w.node.safetyLink}</a> })}</p>
               </details>
             </div>
           </div>
@@ -161,7 +162,7 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
 // ---------- head ----------
 
 const Crumbs: FC<{ chain: Chain }> = ({ chain }) => (
-  <nav class="crumbs" aria-label="breadcrumb">
+  <nav class="crumbs" aria-label={w.node.breadcrumb}>
     {chain.ancestors.map(a => (
       <>
         <a href={nodeHref(a.path)}><Plain text={a.title} /></a>
@@ -173,11 +174,11 @@ const Crumbs: FC<{ chain: Chain }> = ({ chain }) => (
 )
 
 export const Pill: FC<{ n: { kind: string; state: string; in_review: number; live_at?: string | null }; now: number; short?: boolean }> = ({ n, now, short }) => {
-  if (n.state === 'closed') return <span class="st done">closed</span>
-  if (n.state === 'dead_end') return <span class="st dead">dead end</span>
-  if (short) return <span class="st live">live</span>
-  if (n.in_review) return <span class="st live">live · in review</span>
-  return <span class="st live">{n.kind === 'branch' ? 'live' : `live · day ${dayOf(n.live_at ?? null, now)}`}</span>
+  if (n.state === 'closed') return <span class="st done">{w.node.closed}</span>
+  if (n.state === 'dead_end') return <span class="st dead">{w.node.deadEnd}</span>
+  if (short) return <span class="st live">{w.node.live}</span>
+  if (n.in_review) return <span class="st live">{w.node.liveInReview}</span>
+  return <span class="st live">{n.kind === 'branch' ? w.node.live : fill(w.node.liveDay, { n: dayOf(n.live_at ?? null, now) })}</span>
 }
 
 const Head: FC<{ d: NodePageData }> = ({ d }) => {
@@ -187,40 +188,40 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
   const s = n.stats
   return (
     <section class={isBranch ? 'head' : 'head shwarm'}>
-      <div class="heat" title="upvotes on posts in this thread">
+      <div class="heat" title={w.node.heatTitle}>
         ▲<br />
         {shortNum(s?.upvotes ?? 0)}
-        <small>upvotes</small>
-        <span class="qbar" style={`--q:${q1(s?.impact ?? 0)}`} title={`▲${q1(s?.impact ?? 0)} per post`}></span>
+        <small>{w.node.upvotes}</small>
+        <span class="qbar" style={`--q:${q1(s?.impact ?? 0)}`} title={fill(w.node.perPost, { q: q1(s?.impact ?? 0) })}></span>
       </div>
       <div>
-        {isBranch && <div class="kicker">branch of <a href={nodeHref(parent.path)}><Plain text={parent.title} /></a></div>}
+        {isBranch && <div class="kicker">{fillx(w.node.branchOf, { parent: <a href={nodeHref(parent.path)}><Plain text={parent.title} /></a> })}</div>}
         <h1 class="title">
           <Text inline text={n.title} />
-          {s?.hot === 1 && <span class="hotb" title="upvotes in the last 24 hours are at least twice this thread's daily average">hot</span>}
+          {s?.hot === 1 && <span class="hotb" title={w.node.hotTitle}>{w.node.hot}</span>}
         </h1>
         {!isBranch && n.tags.length > 0 && (
           <div class="tags">{n.tags.map(t => <a class="t" href={tagHref(t)}>#{t}</a>)}</div>
         )}
         {!isBranch && <Builds n={n} />}
         <div class="meta">
-          {isBranch ? 'opened' : 'started'} by <Name name={n.posted_by} link /> <Ago at={n.created_at} now={d.now} />
-          {isBranch && s && <> · {plural(s.people, 'person', 'people')}</>}
-          {s && s.posts_per_day > 0 && <> · {perDay(s.posts_per_day)} posts/day</>}
-          {n.changed_at && <> · last activity <Ago at={n.changed_at} now={d.now} /></>}
-          {isBranch && <> · license {licenseName(n.license)}, inherited</>}
+          {fillx(isBranch ? w.node.openedBy : w.node.startedBy, { name: <Name name={n.posted_by} link />, ago: <Ago at={n.created_at} now={d.now} /> })}
+          {isBranch && s && <> · {count(w.node.people, s.people)}</>}
+          {s && s.posts_per_day > 0 && <> · {fill(w.node.postsPerDay, { n: perDay(s.posts_per_day) })}</>}
+          {n.changed_at && <> · {fillx(w.node.lastActivity, { ago: <Ago at={n.changed_at} now={d.now} /> })}</>}
+          {isBranch && <> · {fill(w.node.licenseInherited, { license: licenseName(n.license) })}</>}
           <FlagNode d={d} />
         </div>
         <div class="pitch">
           <div class="what">
-            <h3>what</h3>
+            <h3>{w.node.what}</h3>
             <Text text={n.what} />
             {(d.nodeEdits?.length ?? 0) > 0 && <EditHistory n={n} edits={d.nodeEdits!} now={d.now} />}
           </div>
           <div class="done">
-            <h3>done when</h3>
+            <h3>{w.node.doneWhen}</h3>
             <Text text={n.done_when} />
-            <h3>checked by</h3>
+            <h3>{w.node.checkedBy}</h3>
             <CheckedBy spec={n.spec} author={n.author} />
             <div class="stat"><StatusLine d={d} /></div>
             <BuildOnLink d={d} />
@@ -247,21 +248,21 @@ const EditHistory: FC<{ n: NodeHead; edits: NodeEdit[]; now: number }> = ({ n, e
   const shown = edits.slice(0, EDITS_SHOWN)
   return (
     <details class="hist">
-      <summary>edited</summary>
+      <summary>{w.node.edited}</summary>
       <ol>
         {shown.map(e => (
           <li>
-            <span class="note">{e.written_at ? 'edited' : 'started'} <Ago at={e.written_at ?? n.created_at} now={now} /></span>
+            <span class="note">{fillx(e.written_at ? w.node.editedAgo : w.node.startedAgo, { ago: <Ago at={e.written_at ?? n.created_at} now={now} /> })}</span>
             <b><Plain text={e.title} /></b>
             <Text text={e.what} />
-            {e.tags && <div class="note">tags {e.tags.map(t => `#${t}`).join(' ')}</div>}
-            {e.done_when !== undefined && <><h3>done when</h3><Text text={e.done_when} /></>}
-            {e.spec && <><h3>checked by</h3><CheckedBy spec={e.spec} author={n.author} /></>}
-            {e.builds_on !== undefined && <div class="note">builds on {e.builds_on ? ('node' in e.builds_on ? `/w/${e.builds_on.node}` : <Plain text={e.builds_on.name} />) : 'nothing'}</div>}
-            {e.license !== undefined && <div class="note">license {licenseName(e.license)}</div>}
+            {e.tags && <div class="note">{fill(w.node.editTags, { tags: e.tags.map(t => `#${t}`).join(' ') })}</div>}
+            {e.done_when !== undefined && <><h3>{w.node.doneWhen}</h3><Text text={e.done_when} /></>}
+            {e.spec && <><h3>{w.node.checkedBy}</h3><CheckedBy spec={e.spec} author={n.author} /></>}
+            {e.builds_on !== undefined && <div class="note">{fillx(w.node.editBuildsOn, { what: e.builds_on ? ('node' in e.builds_on ? `/w/${e.builds_on.node}` : <Plain text={e.builds_on.name} />) : w.node.editBuildsOnNothing })}</div>}
+            {e.license !== undefined && <div class="note">{fill(w.node.license, { license: licenseName(e.license) })}</div>}
           </li>
         ))}
-        {edits.length > EDITS_SHOWN && <li><span class="note">older versions aren't shown.</span></li>}
+        {edits.length > EDITS_SHOWN && <li><span class="note">{w.node.olderVersions}</span></li>}
       </ol>
     </details>
   )
@@ -270,24 +271,26 @@ const EditHistory: FC<{ n: NodeHead; edits: NodeEdit[]; now: number }> = ({ n, e
 /** builds on, with the license it brings; or just the license (A2: a license line on the shwarm page). */
 const Builds: FC<{ n: NodeHead }> = ({ n }) => {
   const bo = n.builds_on
-  if (!bo) return <div class="builds">license <b>{licenseName(n.license)}</b></div>
+  if (!bo) return <div class="builds">{fillx(w.node.license, { license: <b>{licenseName(n.license)}</b> })}</div>
   if ('node' in bo)
     return (
       <div class="builds">
-        builds on <a class="up" href={nodeHref(bo.node)}><b><Plain text={bo.title ?? bo.node} /></b>/w/{bo.node}</a> · license <b><Plain text={n.license} /></b>, from it
+        {fillx(w.node.buildsOnNode, { node: <a class="up" href={nodeHref(bo.node)}><b><Plain text={bo.title ?? bo.node} /></b>/w/{bo.node}</a>, license: <b><Plain text={n.license} /></b> })}
       </div>
     )
   const p = bo.url ? linkParts(bo.url) : null
   const shown = p ? p.text.replace(/^https?:\/\//, '') : null
   return (
     <div class="builds">
-      builds on{' '}
-      {p ? (
-        <a class="up" href={p.href} rel={LINK_REL}><b><Plain text={bo.name} /></b>{shown && <Plain text={shown} />}</a>
-      ) : (
-        <span class="up"><b><Plain text={bo.name} /></b></span>
-      )}{' '}
-      · license <b><Plain text={bo.license} /></b>, from <Plain text={bo.name} />
+      {fillx(w.node.buildsOnSource, {
+        source: p ? (
+          <a class="up" href={p.href} rel={LINK_REL}><b><Plain text={bo.name} /></b>{shown && <Plain text={shown} />}</a>
+        ) : (
+          <span class="up"><b><Plain text={bo.name} /></b></span>
+        ),
+        license: <b><Plain text={bo.license} /></b>,
+        name: <Plain text={bo.name} />,
+      })}
     </div>
   )
 }
@@ -296,35 +299,38 @@ export const CheckedBy: FC<{ spec: CheckSpec; author: string }> = ({ spec, autho
   <ul>
     {spec.runs && (
       <li>
-        <Command cmd={spec.runs.command} /> · {plural(spec.runs.count, 'run', 'runs')}, by people other than the submitter
+        <Command cmd={spec.runs.command} /> · {count(w.node.runsBy, spec.runs.count)}
         {spec.runs.description && <> · <Text inline text={spec.runs.description} /></>}
       </li>
     )}
     {spec.people && (
       <li>
-        {plural(spec.people.count, 'person', 'people')}
-        {spec.people.human && (spec.people.count === 1 ? ', a human' : ', at least one of them human')}
+        {count(w.node.people, spec.people.count)}
+        {spec.people.human && (spec.people.count === 1 ? w.node.oneHuman : w.node.someHuman)}
         {spec.people.instructions && <> · <Text inline text={spec.people.instructions} /></>}
       </li>
     )}
-    {spec.author && <li><Name name={author} link /> · author</li>}
+    {spec.author && <li><Name name={author} link /> · {w.node.author}</li>}
   </ul>
 )
 
 const StatusLine: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
-  if (n.state === 'dead_end') return <>dead end{n.dead_end_note && <>: <Text inline text={n.dead_end_note} /></>}</>
+  if (n.state === 'dead_end') return <>{n.dead_end_note ? fillx(w.node.statusDeadEndNote, { note: <Text inline text={n.dead_end_note} /> }) : w.node.statusDeadEnd}</>
   const sub = openReview(d.chain, d.subs)
   if (sub) {
     const r = review(n.spec, n.author, sub, d.checks.get(sub.post_id) ?? [])
     // "waiting on you" to the author (SUB-24), and how long it has waited on them (table B #57).
-    const onAuthor = r.waitingOn === 'author' ? (d.me?.personId === n.author_id ? 'waiting on you' : 'waiting on author') : null
+    const onAuthor = r.waitingOn === 'author' ? (d.me?.personId === n.author_id ? w.node.waitingOnYou : w.node.waitingOnAuthor) : null
     const days = onAuthor ? waitingDays(sub.ready_at, d.now) : null
     return (
       <>
-        in review: <a href={subHref(n.path, sub.number)}>submission #{sub.number}</a> · {r.done} of {plural(r.total, 'check', 'checks')}
-        {r.failed ? ' · a check failed' : onAuthor ? ` · ${onAuthor}` : r.waitingOn ? ' · waiting on checks' : ''}
-        {days && ` · ${plural(days, 'day', 'days')}`}
+        {fillx(w.node.inReview, {
+          submission: <a href={subHref(n.path, sub.number)}>{fill(w.node.submissionNumber, { n: sub.number })}</a>,
+          checks: count(w.node.checksDone, r.total, { done: r.done }),
+        })}
+        {r.failed ? ` · ${w.node.checkFailed}` : onAuthor ? ` · ${onAuthor}` : r.waitingOn ? ` · ${w.node.waitingOnChecks}` : ''}
+        {days && ` · ${count(w.node.days, days)}`}
       </>
     )
   }
@@ -336,8 +342,8 @@ const StatusLine: FC<{ d: NodePageData }> = ({ d }) => {
 /** "5 quick replies left, then 1 every 5 min", or the wait when they're used up (the bucket in core/limits.ts). */
 export function limitLine(l: NodePageData['limit']): string {
   if (!l) return ''
-  if (l.left < 1) return `next post in ${l.wait >= 60 ? `${Math.ceil(l.wait / 60)} min` : `${l.wait}s`}`
-  return `${l.left} quick ${l.left === 1 ? 'reply' : 'replies'} left, then 1 every 5 min`
+  if (l.left < 1) return fill(w.node.nextPostIn, { wait: l.wait >= 60 ? fill(w.node.waitMinutes, { n: Math.ceil(l.wait / 60) }) : fill(w.node.waitSeconds, { n: l.wait }) })
+  return count(w.node.quickReplies, l.left)
 }
 
 const Compose: FC<{ d: NodePageData }> = ({ d }) => {
@@ -348,8 +354,8 @@ const Compose: FC<{ d: NodePageData }> = ({ d }) => {
     return (
       <div class="compose locked">
         {/* OPEN (#106): new wording. */}
-        <div class="to">paused for review</div>
-        <p>nothing new can be posted here until the people who run shwarm look at it.</p>
+        <div class="to">{w.node.paused}</div>
+        <p>{w.node.pausedText}</p>
         {d.flash?.at === 'compose' && <p class="err" role="alert">{d.flash.text}</p>}
       </div>
     )
@@ -365,8 +371,8 @@ const Compose: FC<{ d: NodePageData }> = ({ d }) => {
   if (!d.me)
     return (
       <div class="compose">
-        <div class="to">posting needs an account</div>
-        <p><a href={signInHref(d.here)}>sign in</a> or <a href={joinHref(d.here)}>join</a> to post here. agents post to this url with a key.</p>
+        <div class="to">{w.node.needsAccount}</div>
+        <p>{fillx(w.node.signInToPost, { signIn: <a href={signInHref(d.here)}>{w.node.signIn}</a>, join: <a href={joinHref(d.here)}>{w.node.joinLink}</a> })}</p>
       </div>
     )
   const flash = d.flash?.at === 'compose' ? d.flash : undefined
@@ -374,25 +380,25 @@ const Compose: FC<{ d: NodePageData }> = ({ d }) => {
   if (!d.me.verified)
     return (
       <div class="compose">
-        <div class="to">posting as <b><Name name={'@' + d.me.handle} link /></b></div>
-        <textarea disabled aria-label="your post" placeholder="what did you find, what's stuck, what should happen next?"></textarea>
+        <div class="to">{fillx(w.node.postingAs, { name: <b><Name name={'@' + d.me.handle} link /></b> })}</div>
+        <textarea disabled aria-label={w.node.yourPost} placeholder={w.node.composePlaceholder}></textarea>
         <div class="row">
-          <span class="note">verify your email to post</span>
-          <button class="btn plain" type="button" disabled>post</button>
+          <span class="note">{w.node.verifyToPost}</span>
+          <button class="btn plain" type="button" disabled>{w.node.post}</button>
         </div>
       </div>
     )
   return (
     <form class="compose" method="post" action={nodeHref(d.chain.node.path)}>
       <input type="hidden" name="form_token" value={d.token} />
-      <div class="to">posting as <b><Name name={'@' + d.me.handle} link /></b></div>
-      <textarea name="text" required maxlength={MAX_TEXT} aria-label="your post" aria-describedby={flash && !inSubmit ? 'compose-err' : undefined} placeholder="what did you find, what's stuck, what should happen next?">{flash?.draft ?? ''}</textarea>
+      <div class="to">{fillx(w.node.postingAs, { name: <b><Name name={'@' + d.me.handle} link /></b> })}</div>
+      <textarea name="text" required maxlength={MAX_TEXT} aria-label={w.node.yourPost} aria-describedby={flash && !inSubmit ? 'compose-err' : undefined} placeholder={w.node.composePlaceholder}>{flash?.draft ?? ''}</textarea>
       {flash && !inSubmit && <p class="err" id="compose-err" role="alert">{flash.text}</p>}
       {d.me.personId === d.chain.node.author_id && <PinMode pinned={!!d.chain.node.pinned_post_id} checked={!inSubmit && flash?.pin} />}
       <SubmitMode flash={inSubmit ? flash : undefined} />
       <div class="row">
         <span class="note">{limitLine(d.limit)}</span>
-        <button class="btn plain" type="submit" name="do" value="post">post</button>
+        <button class="btn plain" type="submit" name="do" value="post">{w.node.post}</button>
       </div>
     </form>
   )
@@ -406,7 +412,7 @@ const Compose: FC<{ d: NodePageData }> = ({ d }) => {
  */
 export const PausedNote: FC<{ kind: string }> = ({ kind }) => (
   <p class="held paused" role="status">
-    paused for review. people flagged this {kind === 'branch' ? 'branch' : 'shwarm'}, so it takes nothing new until the people who run shwarm look at it. see <a href="/rules">the rules</a>.
+    {fillx(w.node.pausedNote, { kind: kind === 'branch' ? w.node.kindBranch : w.node.kindShwarm, rules: <a href="/rules">{w.node.rulesLink}</a> })}
   </p>
 )
 
@@ -422,30 +428,30 @@ const hasFlagSpot = (d: NodePageData) => !!d.me?.verified && d.me.personId !== d
  */
 const FlagNode: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
-  const word = n.kind === 'branch' ? 'branch' : 'shwarm'
-  if (!d.me) return <> · <a class="flag-it" href={signInHref(d.here)}>flag this {word}</a></>
+  const word = n.kind === 'branch' ? w.node.kindBranch : w.node.kindShwarm
+  if (!d.me) return <> · <a class="flag-it" href={signInHref(d.here)}>{fill(w.node.flagThis, { kind: word })}</a></>
   if (!hasFlagSpot(d)) return null
   const flash = d.flash?.at === 'flag' ? d.flash : undefined
-  if (d.myFlag) return <> · <span class="note flag-it" role={flash ? 'status' : undefined}>{flash ? flash.text : 'you flagged this'}</span></>
+  if (d.myFlag) return <> · <span class="note flag-it" role={flash ? 'status' : undefined}>{flash ? flash.text : w.node.youFlagged}</span></>
   const reason = flash?.fields?.reason
   return (
     <>
       {' · '}
       <details class="flag" open={flash ? true : undefined}>
-        <summary>flag this {word}</summary>
+        <summary>{fill(w.node.flagThis, { kind: word })}</summary>
         <form method="post" action={d.here} class="flag-act">
           <input type="hidden" name="form_token" value={d.token} />
           <input type="hidden" name="do" value="flag" />
           <fieldset>
-            <legend>what's wrong with this {word}?</legend>
+            <legend>{fill(w.node.flagWhatsWrong, { kind: word })}</legend>
             {FLAG_REASONS.map(r => (
               <label><input type="radio" name="reason" value={r} required checked={reason === r || undefined} /> {FLAG_LABEL[r]}</label>
             ))}
           </fieldset>
           {flash && <p class="err" role="alert">{flash.text}</p>}
           <div class="row">
-            <span class="note">only the people who run shwarm see who flagged it. {PAUSE_AT} flags from established accounts pause it until they look.</span>
-            <button class="btn plain" type="submit">flag it</button>
+            <span class="note">{fill(w.node.flagNote, { n: PAUSE_AT })}</span>
+            <button class="btn plain" type="submit">{w.node.flagIt}</button>
           </div>
         </form>
       </details>
@@ -459,20 +465,16 @@ const FlagNode: FC<{ d: NodePageData }> = ({ d }) => {
  * OPEN (#92): no mockup draws it; its words, and those for a branch under an ended node, wait on Myra's yes.
  */
 const Locked: FC<{ n: NodeHead; by: NodeHead }> = ({ n, by }) => {
-  const word = n.kind === 'branch' ? 'branch' : 'shwarm'
-  const was = by.state === 'closed' ? 'passed' : 'is a dead end'
+  const kind = n.kind === 'branch' ? w.node.kindBranch : w.node.kindShwarm
+  const passed = by.state === 'closed'
   return (
     <div class="compose locked">
-      <div class="to">locked</div>
+      <div class="to">{w.node.locked}</div>
       <p>
-        {by === n ? (
-          <>this {word} {was}, so it takes nothing new.</>
-        ) : (
-          <>
-            <a href={nodeHref(by.path)}><Plain text={by.title} /></a> {was}, so this {word} takes nothing new either.
-          </>
-        )}
-        {by.kind !== 'branch' && <> to carry it on, <a href={buildOnHref(by.path)}>build on it</a>.</>}
+        {by === n
+          ? fill(passed ? w.node.lockedPassed : w.node.lockedDeadEnd, { kind })
+          : fillx(passed ? w.node.lockedAbovePassed : w.node.lockedAboveDeadEnd, { node: <a href={nodeHref(by.path)}><Plain text={by.title} /></a>, kind })}
+        {by.kind !== 'branch' && fillx(w.node.lockedBuildOn, { link: <a href={buildOnHref(by.path)}>{w.node.buildOnIt}</a> })}
       </p>
     </div>
   )
@@ -486,7 +488,7 @@ const Locked: FC<{ n: NodeHead; by: NodeHead }> = ({ n, by }) => {
  */
 const PinMode: FC<{ pinned: boolean; checked?: boolean }> = ({ checked }) => (
   <label class="pin-it">
-    <input type="checkbox" name="pin" value="1" checked={checked || undefined} /> pin this message at the top of the thread
+    <input type="checkbox" name="pin" value="1" checked={checked || undefined} />{w.node.pinIt}
   </label>
 )
 
@@ -499,34 +501,35 @@ const SubmitMode: FC<{ flash?: Flash }> = ({ flash }) => {
   const f = flash?.fields ?? {}
   return (
     <details class="submit" open={flash ? true : undefined}>
-      <summary>submit work against the done test</summary>
-      <p class="note">the text above says what you did. a submission is frozen once posted, then checked.</p>
-      <label for="s-links">linked work</label>
-      <span class="note" id="s-links-n">one per line: a url and its sha256, or a repo, a full commit id and an optional path</span>
-      <textarea id="s-links" aria-describedby="s-links-n" name="links" rows={2} placeholder="https://codeberg.org/myra/doom-blocks/raw/branch/fixes/corner-fix.diff 3f9a6c1e…">{f.links ?? ''}</textarea>
-      <label for="s-built">built on <span class="note" id="s-built-n">· optional</span></label>
-      <span class="note">one per line: a post id (p_…) or a submission (#1), then why you used it</span>
-      <textarea id="s-built" aria-describedby="s-built-n" name="built_on" rows={2} placeholder="#1 the edge fix this goes on top of">{f.built_on ?? ''}</textarea>
-      <label for="s-how">how to check</label>
-      <span class="note" id="s-how-n">exact steps and the result to expect</span>
-      <textarea id="s-how" aria-describedby="s-how-n" name="how_to_check" rows={2} maxlength={MAX_TEXT} placeholder="load corner-repro.lmp, place 200 times on each corner of each chunk. expect 0 failures.">{f.how_to_check ?? ''}</textarea>
+      <summary>{w.node.submitWork}</summary>
+      <p class="note">{w.node.submitNote}</p>
+      <label for="s-links">{w.node.linkedWork}</label>
+      <span class="note" id="s-links-n">{w.node.linkedWorkNote}</span>
+      <textarea id="s-links" aria-describedby="s-links-n" name="links" rows={2} placeholder={w.node.linkedWorkPlaceholder}>{f.links ?? ''}</textarea>
+      <label for="s-built">{w.node.builtOnField} <span class="note" id="s-built-n">{w.node.optional}</span></label>
+      <span class="note">{w.node.builtOnNote}</span>
+      <textarea id="s-built" aria-describedby="s-built-n" name="built_on" rows={2} placeholder={w.node.builtOnPlaceholder}>{f.built_on ?? ''}</textarea>
+      <label for="s-how">{w.node.howToCheckField}</label>
+      <span class="note" id="s-how-n">{w.node.howToCheckNote}</span>
+      <textarea id="s-how" aria-describedby="s-how-n" name="how_to_check" rows={2} maxlength={MAX_TEXT} placeholder={w.node.howToCheckPlaceholder}>{f.how_to_check ?? ''}</textarea>
       <fieldset>
-        <legend>release <span class="note">· optional, shown on the result page if this passes</span></legend>
-        <label>name <input name="release_name" maxlength={RELEASE_CAPS.name} value={f.release_name ?? ''} /></label>
-        <label>version <input name="release_version" maxlength={RELEASE_CAPS.version} value={f.release_version ?? ''} /></label>
-        <label for="s-use">how to use</label>
+        <legend>{w.node.release} <span class="note">{w.node.releaseNote}</span></legend>
+        <label>{w.node.releaseName} <input name="release_name" maxlength={RELEASE_CAPS.name} value={f.release_name ?? ''} /></label>
+        <label>{w.node.releaseVersion} <input name="release_version" maxlength={RELEASE_CAPS.version} value={f.release_version ?? ''} /></label>
+        <label for="s-use">{w.node.releaseHowToUse}</label>
         <textarea id="s-use" name="release_how_to_use" rows={2} maxlength={RELEASE_CAPS.howToUse}>{f.release_how_to_use ?? ''}</textarea>
       </fieldset>
       {flash && <p class="err" role="alert">{flash.text}</p>}
       <div class="row">
-        <span class="note">one submission per person per day.</span>
-        <button class="btn" type="submit" name="do" value="submit">submit</button>
+        <span class="note">{w.node.submitLimit}</span>
+        <button class="btn" type="submit" name="do" value="submit">{w.node.submit}</button>
       </div>
     </details>
   )
 }
 
-const SHOW_LABEL: Record<Show, string> = { all: 'humans + agents', humans: 'humans', agents: 'agents' }
+const showLabel = (s: Show) => ({ all: w.node.showAll, humans: w.node.showHumans, agents: w.node.showAgents })[s]
+const sortLabel = (s: Sort) => ({ active: w.node.sortActive, new: w.node.sortNew, top: w.node.sortTop })[s]
 
 function query(d: NodePageData, o: { sort?: Sort; show?: Show; page?: number }): string {
   const sort = o.sort ?? d.sort
@@ -540,7 +543,7 @@ function query(d: NodePageData, o: { sort?: Sort; show?: Show; page?: number }):
   return s ? `?${s}` : nodeHref(d.chain.node.path)
 }
 
-const posts = (n: number) => `${n.toLocaleString('en-US')} ${n === 1 ? 'post' : 'posts'}`
+const posts = (n: number) => count(w.node.posts, n, { n: n.toLocaleString('en-US') })
 
 /**
  * The activity strip's words, its text alternative: "84 posts in the last 14 days, most on oct 6" (the latest of the
@@ -551,7 +554,7 @@ export function activityWords(days: ActivityDay[]): string | null {
   if (!total) return null
   const top = days.reduce((m, d) => (d.posts >= m.posts ? d : m))
   const one = days.filter(d => d.posts > 0).length === 1
-  return `${posts(total)} in the last ${ACTIVITY_DAYS} days, ${one ? 'on' : 'most on'} ${monthDay(top.day)}`
+  return fill(one ? w.node.activityOneDay : w.node.activityMostOn, { posts: posts(total), days: ACTIVITY_DAYS, day: monthDay(top.day) })
 }
 
 /**
@@ -567,7 +570,7 @@ export const Activity: FC<{ days: ActivityDay[] }> = ({ days }) => {
     <div class="activity">
       <span class="bars" aria-hidden="true">
         {days.map(d => (
-          <span style={`height:${d.posts ? Math.max(8, Math.round((100 * d.posts) / max)) : 0}%`} title={`${monthDay(d.day)}: ${posts(d.posts)}`}></span>
+          <span style={`height:${d.posts ? Math.max(8, Math.round((100 * d.posts) / max)) : 0}%`} title={fill(w.node.activityBar, { day: monthDay(d.day), posts: posts(d.posts) })}></span>
         ))}
       </span>
       <span>{words}</span>
@@ -583,17 +586,17 @@ const ThreadView: FC<{ d: NodePageData }> = ({ d }) => {
     <div class="thread">
       <Activity days={d.activity} />
       <div class="sorter">
-        sort:{' '}
+        {w.node.sort}{' '}
         {SORTS.map((s, i) => (
           <>
             {i > 0 && ' · '}
-            {s === d.sort ? <b>{s}</b> : <a href={query(d, { sort: s })}>{s}</a>}
+            {s === d.sort ? <b>{sortLabel(s)}</b> : <a href={query(d, { sort: s })}>{sortLabel(s)}</a>}
           </>
         ))}{' '}
-        · &nbsp;show:{' '}
+        · &nbsp;{w.node.show}{' '}
         <details>
-          <summary>{SHOW_LABEL[d.show]} ▾</summary>
-          <span class="opts">{SHOWS.map(s => (s === d.show ? <b>{SHOW_LABEL[s]}</b> : <a href={query(d, { show: s })}>{SHOW_LABEL[s]}</a>))}</span>
+          <summary>{showLabel(d.show)} ▾</summary>
+          <span class="opts">{SHOWS.map(s => (s === d.show ? <b>{showLabel(s)}</b> : <a href={query(d, { show: s })}>{showLabel(s)}</a>))}</span>
         </details>
       </div>
       {t.pinned && (
@@ -609,12 +612,12 @@ const ThreadView: FC<{ d: NodePageData }> = ({ d }) => {
           {item.replies.map(r => post(r, { reply: true }))}
         </>
       ))}
-      {!t.pinned && !t.items.length && <div class="empty">{t.page > 1 ? 'no older posts.' : d.show === 'all' ? 'no posts yet.' : `no posts from ${SHOW_LABEL[d.show]} yet.`}</div>}
+      {!t.pinned && !t.items.length && <div class="empty">{t.page > 1 ? w.node.noOlderPosts : d.show === 'all' ? w.node.noPostsYet : fill(w.node.noPostsFrom, { who: showLabel(d.show) })}</div>}
       {(t.more || t.page > 1) && (
         <div class="more">
-          {t.page > 1 && <a href={query(d, { page: t.page - 1 })}>← newer</a>}
+          {t.page > 1 && <a href={query(d, { page: t.page - 1 })}>{w.node.newer}</a>}
           {t.page > 1 && t.more && ' · '}
-          {t.more && <a href={query(d, { page: t.page + 1 })}>older posts →</a>}
+          {t.more && <a href={query(d, { page: t.page + 1 })}>{w.node.olderPosts}</a>}
         </div>
       )}
     </div>
@@ -638,7 +641,7 @@ export const parseLinks = (s: string | null): Link[] => {
  */
 export const LinkChip: FC<{ l: Link; compact?: boolean }> = ({ l, compact }) => {
   const { p, label, host } = linkView(l)
-  const print = 'sha256' in l ? `sha256 ${l.sha256.slice(0, 4)}…` : `commit ${l.commit.slice(0, 7)}`
+  const print = 'sha256' in l ? fill(w.node.linkSha, { hash: l.sha256.slice(0, 4) }) : fill(w.node.linkCommit, { hash: l.commit.slice(0, 7) })
   if (compact) {
     const where = host && <>{' '}<span class="note">(<Plain text={host} />)</span></>
     return p ? <><a href={p.href} rel={LINK_REL} title={print}><Plain text={label} /> ↗</a>{where}</> : <><span title={print}><Plain text={label} /></span>{where}</>
@@ -695,10 +698,10 @@ const PostView: FC<{ p: PostRow; d: NodePageData; sub?: SubmissionRow; reply?: b
       <div class={cls} id={p.id}>
         <div class="who">
           <b><Name name={p.as_name} link /></b>
-          {byAuthor && ' · author'} · <Ago at={p.created_at} now={d.now} short />
+          {byAuthor && ` · ${w.node.author}`} · <Ago at={p.created_at} now={d.now} short />
         </div>
         {/* OPEN (#79): the tombstone's words wait on Myra's yes. */}
-        <p class="note">this post was deleted.</p>
+        <p class="note">{w.node.deleted}</p>
         {flash && <p class="err" role="alert">{flash.text}</p>}
       </div>
     )
@@ -710,23 +713,23 @@ const PostView: FC<{ p: PostRow; d: NodePageData; sub?: SubmissionRow; reply?: b
   return (
     <div class={cls} id={p.id}>
       <div class="who">
-        {p.is_join === 1 && <span class="jt">✿ joined</span>}
+        {p.is_join === 1 && <span class="jt">{w.node.joined}</span>}
         <b><Name name={p.as_name} link /></b>
-        {byAuthor && ' · author'}
-        {isSub && <span class={sub.status === 'in_review' || sub.status === 'passed' ? 'sb' : 'sb x'}>submission #{sub.number}</span>}
-        {pinned ? <> · pinned · updated <Ago at={p.edited_at ?? p.created_at} now={d.now} short /></> : <> · <Ago at={p.created_at} now={d.now} short /></>}
+        {byAuthor && ` · ${w.node.author}`}
+        {isSub && <span class={sub.status === 'in_review' || sub.status === 'passed' ? 'sb' : 'sb x'}>{fill(w.node.submissionNumber, { n: sub.number })}</span>}
+        {pinned ? <> · {fillx(w.node.pinnedUpdated, { ago: <Ago at={p.edited_at ?? p.created_at} now={d.now} short /> })}</> : <> · <Ago at={p.created_at} now={d.now} short /></>}
       </div>
       {p.text && <Text text={p.text} addressed />}
       {isSub && <SubmissionParts d={d} sub={sub} links={links} builtOn={d.thread.builtOn.get(p.id) ?? []} />}
       <div class="acts">
         <Upvote p={p} d={d} />
-        {(!isSub || !shownInParts(sub)) && links.length > 0 && <> · linked: <Links links={links} /></>}
+        {(!isSub || !shownInParts(sub)) && links.length > 0 && <> · {fillx(w.node.linked, { links: <Links links={links} /> })}</>}
         {by.length > 0 && <> · <BuiltOnByView by={by} /></>}
         {/* shwarm.html: "make it a branch" on a post; the create form takes its text (go-live 4.8). Branches open only on a live node. */}
-        {p.kind === 'post' && !lockedBy(d.chain) && <> · <a href={makeBranchHref(n.path, p.id)}>make it a branch</a></>}
+        {p.kind === 'post' && !lockedBy(d.chain) && <> · <a href={makeBranchHref(n.path, p.id)}>{w.node.makeBranch}</a></>}
         {own && <> · <EditPost p={p} d={d} flash={editFlash} /></>}
         {own && <> · <DeletePost p={p} d={d} /></>}
-        {p.edited_at && <> · <History p={p} edits={d.thread.edits.get(p.id) ?? []} label={pinned ? 'edit history' : 'edited'} now={d.now} /></>}
+        {p.edited_at && <> · <History p={p} edits={d.thread.edits.get(p.id) ?? []} label={pinned ? w.node.editHistory : w.node.edited} now={d.now} /></>}
         <Report p={p} d={d} flash={reportFlash} />
       </div>
       {flash && !editFlash && !reportFlash && <p class="err" role="alert">{flash.text}</p>}
@@ -745,7 +748,7 @@ export const makeBranchHref = (path: string, post: string) => `/new?parent=${pat
  */
 const Upvote: FC<{ p: PostRow; d: NodePageData }> = ({ p, d }) => {
   if (useContext(PageContext).opensSoon) return <span class="up" title={OPENS_SOON.upvote}>▲ {p.ups}</span>
-  if (!d.me) return <a class="up" href={signInHref(d.here)} title="sign in to upvote">▲ {p.ups}</a>
+  if (!d.me) return <a class="up" href={signInHref(d.here)} title={w.node.signInToUpvote}>▲ {p.ups}</a>
   if (!d.me.verified || p.person_id === d.me.personId) return <span class="up">▲ {p.ups}</span>
   const mine = d.myUps?.get(p.id)
   const on = mine !== undefined
@@ -759,7 +762,7 @@ const Upvote: FC<{ p: PostRow; d: NodePageData }> = ({ p, d }) => {
         type="submit"
         class={on ? 'up on' : 'up'}
         aria-pressed={on ? 'true' : 'false'}
-        title={on ? (mine ? 'take back your upvote' : 'your upvote counts once your account is established. click to take it back') : 'upvote'}
+        title={on ? (mine ? w.node.takeBack : w.node.notCounted) : w.node.upvote}
       >
         ▲ {p.ups}
       </button>
@@ -775,16 +778,16 @@ const Upvote: FC<{ p: PostRow; d: NodePageData }> = ({ p, d }) => {
 const EditPost: FC<{ p: PostRow; d: NodePageData; flash?: Flash }> = ({ p, d, flash }) => {
   return (
     <details class="edit" open={flash ? true : undefined}>
-      <summary>edit</summary>
+      <summary>{w.node.edit}</summary>
       <form method="post" action={d.here} class="edit-act">
         <input type="hidden" name="form_token" value={d.token} />
         <input type="hidden" name="do" value="edit" />
         <input type="hidden" name="post" value={p.id} />
-        <textarea name="text" required maxlength={MAX_TEXT} aria-label="your post">{flash?.draft ?? p.text}</textarea>
+        <textarea name="text" required maxlength={MAX_TEXT} aria-label={w.node.yourPost}>{flash?.draft ?? p.text}</textarea>
         {flash && <p class="err" role="alert">{flash.text}</p>}
         <div class="row">
-          <span class="note">the version you replace stays in the edit history.</span>
-          <button class="btn plain" type="submit">save</button>
+          <span class="note">{w.node.editNote}</span>
+          <button class="btn plain" type="submit">{w.node.save}</button>
         </div>
       </form>
     </details>
@@ -799,14 +802,14 @@ const EditPost: FC<{ p: PostRow; d: NodePageData; flash?: Flash }> = ({ p, d, fl
  */
 const DeletePost: FC<{ p: PostRow; d: NodePageData }> = ({ p, d }) => (
   <details class="del">
-    <summary>delete</summary>
+    <summary>{w.node.delete}</summary>
     <form method="post" action={d.here} class="del-act">
       <input type="hidden" name="form_token" value={d.token} />
       <input type="hidden" name="do" value="delete" />
       <input type="hidden" name="post" value={p.id} />
       <div class="row">
-        <span class="note">it leaves a note that a post was here. replies stay. this can't be undone.</span>
-        <button class="btn plain" type="submit">delete it</button>
+        <span class="note">{w.node.deleteNote}</span>
+        <button class="btn plain" type="submit">{w.node.deleteIt}</button>
       </div>
     </form>
   </details>
@@ -821,29 +824,29 @@ const DeletePost: FC<{ p: PostRow; d: NodePageData }> = ({ p, d }) => (
  */
 const Report: FC<{ p: PostRow; d: NodePageData; flash?: Flash }> = ({ p, d, flash }) => {
   if (d.me && p.person_id === d.me.personId) return null
-  if (d.myReports?.has(p.id)) return <> · <span class="note">reported</span></>
-  if (!d.me?.verified) return <> · <a href={reportHref(`/w/${d.chain.node.path}#${p.id}`)}>report</a></>
+  if (d.myReports?.has(p.id)) return <> · <span class="note">{w.node.reported}</span></>
+  if (!d.me?.verified) return <> · <a href={reportHref(`/w/${d.chain.node.path}#${p.id}`)}>{w.node.report}</a></>
   const reason = flash?.fields?.reason
   return (
     <>
       {' · '}
       <details class="report" open={flash ? true : undefined}>
-        <summary>report</summary>
+        <summary>{w.node.report}</summary>
         <form method="post" action={d.here} class="report-act">
           <input type="hidden" name="form_token" value={d.token} />
           <input type="hidden" name="do" value="report" />
           <input type="hidden" name="post" value={p.id} />
           <fieldset>
-            <legend>what's wrong?</legend>
+            <legend>{w.node.reportWhatsWrong}</legend>
             {REASONS.map(r => (
               <label><input type="radio" name="reason" value={r} required checked={reason === r || undefined} /> {REASON_LABEL[r]}</label>
             ))}
           </fieldset>
-          <textarea name="text" maxlength={REPORT_TEXT_MAX} aria-label="what's wrong, in your words (optional)" placeholder="in your words (optional)">{flash?.draft ?? ''}</textarea>
+          <textarea name="text" maxlength={REPORT_TEXT_MAX} aria-label={w.node.reportTextLabel} placeholder={w.node.reportPlaceholder}>{flash?.draft ?? ''}</textarea>
           {flash && <p class="err" role="alert">{flash.text}</p>}
           <div class="row">
-            <span class="note">only the people who run shwarm see it.</span>
-            <button class="btn plain" type="submit">send report</button>
+            <span class="note">{w.node.reportNote}</span>
+            <button class="btn plain" type="submit">{w.node.sendReport}</button>
           </div>
         </form>
       </details>
@@ -869,12 +872,12 @@ const History: FC<{ p: PostRow; edits: PostEdit[]; label: string; now: number }>
           const from = edits[i + 1]?.edited_at ?? p.created_at
           return (
             <li>
-              <span class="note">{edits[i + 1] ? 'edited' : 'posted'} <Ago at={from} now={now} /></span>
+              <span class="note">{fillx(edits[i + 1] ? w.node.editedAgo : w.node.postedAgo, { ago: <Ago at={from} now={now} /> })}</span>
               <Text text={e.text} />
             </li>
           )
         })}
-        {edits.length > EDITS_SHOWN && <li><span class="note">older versions aren't shown.</span></li>}
+        {edits.length > EDITS_SHOWN && <li><span class="note">{w.node.olderVersions}</span></li>}
       </ol>
     </details>
   )
@@ -882,13 +885,14 @@ const History: FC<{ p: PostRow; edits: PostEdit[]; label: string; now: number }>
 
 const BuiltOnByView: FC<{ by: BuiltOnBy[] }> = ({ by }) => (
   <b>
-    built on by{' '}
-    {by.map((b, i) => (
-      <>
-        {i > 0 && ', '}
-        <a href={subHref(b.path, b.number)}>{b.same ? `#${b.number}` : <><Plain text={b.title} /> #{b.number}</>}</a>
-      </>
-    ))}
+    {fillx(w.node.builtOnBy, {
+      list: by.map((b, i) => (
+        <>
+          {i > 0 && ', '}
+          <a href={subHref(b.path, b.number)}>{b.same ? `#${b.number}` : <><Plain text={b.title} /> #{b.number}</>}</a>
+        </>
+      )),
+    })}
   </b>
 )
 
@@ -904,18 +908,23 @@ const SubmissionParts: FC<{ d: NodePageData; sub: SubmissionRow; links: Link[]; 
   const r = review(n.spec, n.author, sub, checks)
   // On a dead end a submission still in review takes no checks: its standing checks show, but no open slots and no link to check it.
   const open = isOpen(d.chain, sub)
-  const header = sub.status === 'in_review' ? `checks · ${r.done} of ${r.total}` : sub.status === 'superseded' ? (r.failed ? 'failed' : 'superseded') : sub.status
+  const header =
+    sub.status === 'in_review'
+      ? fill(w.node.checksHeader, { done: r.done, total: r.total })
+      : sub.status === 'superseded'
+        ? r.failed ? w.node.subFailed : w.node.subSuperseded
+        : sub.status === 'passed' ? w.node.subPassed : w.node.subFailed
   const right =
-    open ? `one per person · not ${humanOf(sub.as_name)}` : sub.status === 'in_review' ? '' : sub.status === 'superseded' ? `superseded by #${sub.superseded_number ?? '?'}` : sub.status === 'passed' ? `${r.done} of ${r.total} checks` : ''
+    open ? fill(w.node.onePerPerson, { who: humanOf(sub.as_name) }) : sub.status === 'in_review' ? '' : sub.status === 'superseded' ? fill(w.node.supersededBy, { n: sub.superseded_number ?? '?' }) : sub.status === 'passed' ? fill(w.node.checksOf, { done: r.done, total: r.total }) : ''
   const mine = d.me && d.me.personId === sub.person_id
   return (
     <>
       {(shownInParts(sub) || builtOn.length > 0) && (
       <div class="how">
-        {shownInParts(sub) && <><b>linked</b> <Links links={links} /></>}
+        {shownInParts(sub) && <><b>{w.node.linkedLabel}</b> <Links links={links} /></>}
         {builtOn.length > 0 && (
           <>
-            {shownInParts(sub) && ' · '}<b>built on</b>{' '}
+            {shownInParts(sub) && ' · '}<b>{w.node.builtOnLabel}</b>{' '}
             {builtOn.map((b, i) => (
               <>
                 {i > 0 && ', '}
@@ -927,15 +936,15 @@ const SubmissionParts: FC<{ d: NodePageData; sub: SubmissionRow; links: Link[]; 
         )}
       </div>
       )}
-      {shownInParts(sub) && <div class="how"><b>how to check</b> <Text inline text={sub.how_to_check} /></div>}
-      {sub.author_swap === 1 && <div class="how note">the author's own work: one more people check stands in for the author's sign-off.</div>}
+      {shownInParts(sub) && <div class="how"><b>{w.node.howToCheckLabel}</b> <Text inline text={sub.how_to_check} /></div>}
+      {sub.author_swap === 1 && <div class="how note">{w.node.authorSwap}</div>}
       <div class="checks">
         <div class="h"><b>{header}</b><span>{right}</span></div>
         <ul>{r.rows.filter(row => row.verdict !== 'waiting' || open).map(row => <CheckRowView row={row} n={n} sub={sub} />)}</ul>
         {open && (
           <div class="go">
-            <a href={subHref(n.path, sub.number)}>open submission #{sub.number} →</a>
-            {mine && <span class="note">you can't check it: it's {sub.as_name.includes('/') ? 'from your agent' : 'yours'}</span>}
+            <a href={subHref(n.path, sub.number)}>{fill(w.node.openSubmission, { n: sub.number })}</a>
+            {mine && <span class="note">{sub.as_name.includes('/') ? w.node.cantCheckAgent : w.node.cantCheckYours}</span>}
           </div>
         )}
       </div>
@@ -951,7 +960,7 @@ const runCmd = (spec: CheckSpec) => (spec.runs ? cut(spec.runs.command.split('\n
  * place, and a check an author's fail reset shows struck through.
  */
 export const CheckRowView: FC<{ row: ReviewRow; n: NodeHead; sub: SubmissionRow; page?: boolean }> = ({ row, n, sub, page }) => {
-  const slotWord = row.slot === 'people' ? 'person' : row.slot
+  const slotWord = { run: w.node.slotRun, people: w.node.slotPerson, author: w.node.slotAuthor }[row.slot]
   if (row.verdict === 'waiting')
     return (
       <li>
@@ -959,7 +968,7 @@ export const CheckRowView: FC<{ row: ReviewRow; n: NodeHead; sub: SubmissionRow;
         <span>
           {row.as ? <><Name name={row.as} link /> · </> : null}
           {slotWord}
-          {row.human && ', a human'} <span class="note">· waiting</span>
+          {row.human && w.node.oneHuman} <span class="note">{w.node.waiting}</span>
         </span>
       </li>
     )
@@ -982,33 +991,33 @@ export const CheckRowView: FC<{ row: ReviewRow; n: NodeHead; sub: SubmissionRow;
         {c.slot === 'run' && (
           <>
             {runCmd(n.spec) && <><code class="cmd"><Plain text={runCmd(n.spec)} /></code>{' '}</>}
-            exit {c.exit_code} on #{sub.number} ({shortHash(c.submission_hash ?? sub.hash)}){c.machine && <> · <Plain text={c.machine} /></>} ·{' '}
+            {fill(w.node.exitOn, { code: c.exit_code ?? '', n: sub.number, hash: shortHash(c.submission_hash ?? sub.hash) })}{c.machine && <> · <Plain text={c.machine} /></>} ·{' '}
             {logLink ? (
               <LinkChip l={logLink} compact={!page} />
             ) : inline ? (
               <details class="log">
-                <summary>signed log</summary>
+                <summary>{w.node.signedLog}</summary>
                 <Log text={c.log_text!} />
                 {/* OPEN (#76): no mockup draws the opened log; these words wait on Myra's yes. */}
-                <span class="note logmeta">check script {c.script_hash ? <code>{c.script_hash}</code> : 'not named'}{c.machine && <> · ran on <Plain text={c.machine} /></>}</span>
+                <span class="note logmeta">{fillx(w.node.checkScript, { script: c.script_hash ? <code>{c.script_hash}</code> : w.node.scriptNotNamed })}{c.machine && <> · {fillx(w.node.ranOn, { machine: <Plain text={c.machine} /> })}</>}</span>
               </details>
             ) : c.log_inline ? (
-              <a href={logHref}>signed log</a>
+              <a href={logHref}>{w.node.signedLog}</a>
             ) : (
-              'log'
+              w.node.log
             )}
           </>
         )}
         {c.slot !== 'run' && (
           <>
-            {c.text ? <Text inline text={c.text} /> : c.slot === 'author' ? (c.verdict === 'pass' ? 'signed off' : 'failed it') : c.verdict}
+            {c.text ? <Text inline text={c.text} /> : c.slot === 'author' ? (c.verdict === 'pass' ? w.node.signedOff : w.node.failedIt) : c.verdict === 'pass' ? w.node.verdictPass : w.node.verdictFail}
             {evidence.length > 0 && <> · <Links links={evidence} compact /></>}
           </>
         )}
         {c.verdict === 'fail' && repro?.links?.length ? <> · <Links links={repro.links} compact /></> : null}
-        {page && c.verdict === 'fail' && repro?.steps && repro.steps !== c.text && <> · repro: <Text inline text={repro.steps} /></>}
-        {c.slot === 'author' && humanOf(c.as_name) !== n.author && <span class="note"> · author gone, signed off by the operator</span>}
-        {c.reset_at && <span class="note"> · reset</span>}
+        {page && c.verdict === 'fail' && repro?.steps && repro.steps !== c.text && <> · {fillx(w.node.repro, { steps: <Text inline text={repro.steps} /> })}</>}
+        {c.slot === 'author' && humanOf(c.as_name) !== n.author && <span class="note"> · {w.node.authorGone}</span>}
+        {c.reset_at && <span class="note"> · {w.node.reset}</span>}
       </span>
     </li>
   )
@@ -1022,16 +1031,19 @@ export const Proof: FC<{ n: NodeHead; sub: SubmissionRow; checks: CheckReport[] 
   const r = review(n.spec, n.author, sub, checks)
   return (
     <div class="box proof">
-      <h2>proof it's done <span>submission #{sub.number} · {r.done} of {plural(r.total, 'check', 'checks')}</span></h2>
+      <h2>{w.node.proof} <span>{count(w.node.proofCounts, r.total, { number: sub.number, done: r.done })}</span></h2>
       {groupBySlot(r).map(g => {
         const rows = g.rows.filter(row => row.verdict !== 'waiting')
         if (!rows.length) return null
         const signed = rows.find((row): row is Extract<ReviewRow, { verdict: 'pass' | 'fail' }> => row.verdict === 'pass' && row.slot === 'author')
         const note =
-          g.slot === 'author' ? (signed ? `signed off ${monthDay(signed.check.created_at)}` : '') : `${g.done} of ${g.of}${g.slot === 'people' && r.need.human ? ' · one human' : ''}`
+          g.slot === 'author'
+            ? signed ? fill(w.node.signedOffOn, { date: monthDay(signed.check.created_at) }) : ''
+            : fill(g.slot === 'people' && r.need.human ? w.node.groupDoneHuman : w.node.groupDone, { done: g.done, of: g.of })
+        const label = { runs: w.node.groupRuns, people: w.node.groupPeople, author: w.node.groupAuthor }[g.label]
         return (
           <div class="grp">
-            <h4><span>{g.label}</span><span class="note">{note}</span></h4>
+            <h4><span>{label}</span><span class="note">{note}</span></h4>
             <ul>{rows.map(row => <CheckRowView row={row} n={n} sub={sub} />)}</ul>
           </div>
         )
@@ -1050,7 +1062,7 @@ export const Proof: FC<{ n: NodeHead; sub: SubmissionRow; checks: CheckReport[] 
 const BuildOnLink: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
   if (n.kind === 'branch' || n.state === 'live') return null
-  return <div class="alt"><a href={buildOnHref(n.path)}>build on this</a></div>
+  return <div class="alt"><a href={buildOnHref(n.path)}>{w.node.buildOnThis}</a></div>
 }
 
 /**
@@ -1062,7 +1074,7 @@ const BuildOnLink: FC<{ d: NodePageData }> = ({ d }) => {
 export const StepUpField: FC<{ id: string; open?: boolean; form?: string }> = ({ id, open, form }) =>
   open ? null : (
     <label class="pw" for={id}>
-      password <input id={id} type="password" name="password" autocomplete="current-password" required maxlength={1024} form={form} />
+      {w.node.password} <input id={id} type="password" name="password" autocomplete="current-password" required maxlength={1024} form={form} />
     </label>
   )
 
@@ -1083,24 +1095,24 @@ const Owner: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
   if (!hasOwnerBox(d)) return null
   const flash = d.flash?.at === 'owner' ? d.flash : undefined
-  const word = n.kind === 'branch' ? 'branch' : 'shwarm'
+  const kind = n.kind === 'branch' ? w.node.kindBranch : w.node.kindShwarm
   return (
     <div class="box owner" id="owner">
-      <h2 class="sunny">your {word} <span>only you see this</span></h2>
+      <h2 class="sunny">{fill(w.node.yourKind, { kind })} <span>{w.node.onlyYou}</span></h2>
       <div class="in">
         <details open={flash ? true : undefined}>
-          <summary>mark it a dead end</summary>
+          <summary>{w.node.markDeadEnd}</summary>
           <form method="post" action={nodeHref(n.path)} class="owner-act">
             <input type="hidden" name="form_token" value={d.token} />
             <input type="hidden" name="do" value="dead_end" />
-            <label for="o-note">why it stops here</label>
-            <span class="note" id="o-note-n">so nobody repeats it. the note shows on the {word}.</span>
+            <label for="o-note">{w.node.whyStops}</label>
+            <span class="note" id="o-note-n">{fill(w.node.whyStopsNote, { kind })}</span>
             <textarea id="o-note" name="note" required maxlength={MAX_TEXT} aria-describedby="o-note-n">{flash?.draft ?? ''}</textarea>
             <StepUpField id="o-dead-pw" open={d.steppedUp} />
             {flash && <p class="err" role="alert">{flash.text}</p>}
             <div class="row">
-              <span class="note">a dead end is locked: it takes nothing new, and it can't be undone. confirms with your password.</span>
-              <button class="btn plain" type="submit">mark dead end</button>
+              <span class="note">{w.node.deadEndNote}</span>
+              <button class="btn plain" type="submit">{w.node.markDeadEndButton}</button>
             </div>
           </form>
         </details>
@@ -1156,11 +1168,11 @@ const myJoinHref = (d: NodePageData) => (myQuietLine(d) ? '#jn-row' : (id => (id
 const HeadJoin: FC<{ d: NodePageData }> = ({ d }) => {
   const opensSoon = useContext(PageContext).opensSoon
   if (!hasSeatForm(d)) return null
-  if (d.mySeat) return <span id="jn-state"><span class="joined" tabindex={-1}>✿ joined</span></span>
+  if (d.mySeat) return <span id="jn-state"><span class="joined" tabindex={-1}>{w.node.joined}</span></span>
   if (opensSoon) return null
-  if (!d.me) return <span id="jn-state"><a class="btn" href={signInHref(d.here)}>join</a></span>
+  if (!d.me) return <span id="jn-state"><a class="btn" href={signInHref(d.here)}>{w.node.join}</a></span>
   if (!d.me.verified) return null
-  return <span id="jn-state">{seatForm(d, 'join', 'join', 'btn')}</span>
+  return <span id="jn-state">{seatForm(d, 'join', w.node.join, 'btn')}</span>
 }
 
 /**
@@ -1179,18 +1191,18 @@ const JoinModal: FC<{ d: NodePageData }> = ({ d }) => {
       <form class="dn jn seat-act" role="dialog" aria-modal="true" aria-labelledby="jn-title" method="post" action={nodeHref(n.path)}>
         <input type="hidden" name="form_token" value={d.token} />
         <input type="hidden" name="do" value="join" />
-        <h2 id="jn-title"><span>say hi!</span><button type="button" id="jn-close" aria-label="close">×</button></h2>
+        <h2 id="jn-title"><span>{w.node.sayHi}</span><button type="button" id="jn-close" aria-label={w.node.close}>×</button></h2>
         <div class="sec">
           <p>
-            you are joining the <b>{n.kind === 'branch' ? <Plain text={n.title} /> : 'root'}</b> branch of <b><Plain text={root.title} /></b>. you can leave at any time.
+            {fillx(w.node.joining, { branch: <b>{n.kind === 'branch' ? <Plain text={n.title} /> : w.node.joinRoot}</b>, shwarm: <b><Plain text={root.title} /></b> })}
           </p>
-          <label for="jn-hi" class="jn-label">introduce yourself and your agents below. what will you be working on? (optional)</label>
+          <label for="jn-hi" class="jn-label">{w.node.hiLabel}</label>
           <textarea id="jn-hi" name="hello" maxlength={MAX_TEXT} aria-describedby={flash ? 'jn-err' : undefined} autofocus={flash ? true : undefined}>{flash?.draft ?? ''}</textarea>
           {flash && <p class="err" id="jn-err" role="alert">{flash.text}</p>}
         </div>
         <div class="sec go">
           <span></span>
-          <button class="btn" type="submit" id="jn-go">join</button>
+          <button class="btn" type="submit" id="jn-go">{w.node.join}</button>
         </div>
       </form>
     </div>
@@ -1212,7 +1224,10 @@ const JoinLines: FC<{ d: NodePageData }> = ({ d }) => {
   const mine = myQuietLine(d)
   const line = (j: JoinLine) => (
     <div class={j === mine ? 'c ev jn-mine' : 'c ev'} id={j === mine ? 'jn-row' : undefined}>
-      ✿ <b><Name name={j.as} link /></b> joined{j.joined_by && <> by <Name name={j.joined_by} /></>} · <Ago at={j.at} now={d.now} short />
+      {j.joined_by
+        ? fillx(w.node.joinedLineBy, { name: <b><Name name={j.as} link /></b>, by: <Name name={j.joined_by} /> })
+        : fillx(w.node.joinedLine, { name: <b><Name name={j.as} link /></b> })}{' '}
+      · <Ago at={j.at} now={d.now} short />
     </div>
   )
   const rest = lines.slice(JOIN_LINES_SHOWN)
@@ -1221,7 +1236,7 @@ const JoinLines: FC<{ d: NodePageData }> = ({ d }) => {
       {lines.slice(0, JOIN_LINES_SHOWN).map(line)}
       {rest.length > 0 && (
         <details class="c ev more-joins" open={rest.includes(mine!) || undefined}>
-          <summary>✿ more joined</summary>
+          <summary>{w.node.moreJoined}</summary>
           {rest.map(line)}
         </details>
       )}
@@ -1244,10 +1259,10 @@ const ChildSub: FC<{ c: Child }> = ({ c }) => {
 const Branches: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
   const isBranch = n.kind === 'branch'
-  const word = isBranch ? 'sub-branch' : 'branch'
+  const kinds = isBranch ? w.node.subBranches : w.node.branches
   return (
     <div class="box">
-      <h2>{isBranch ? 'sub-branches' : 'branches'} <span>each has its own thread</span></h2>
+      <h2>{kinds} <span>{w.node.ownThread}</span></h2>
       {d.branches.length ? (
         <ul class="branches">
           {d.branches.map(b => (
@@ -1258,14 +1273,14 @@ const Branches: FC<{ d: NodePageData }> = ({ d }) => {
           ))}
         </ul>
       ) : (
-        <div class="in note">no {word}es yet.</div>
+        <div class="in note">{fill(w.node.noBranches, { kinds })}</div>
       )}
       {!lockedBy(d.chain) && (
         <div class="in" style="border-top:1px solid var(--ink)">
           {useContext(PageContext).opensSoon ? (
             <p class="note" style="margin:0;text-align:center">{OPENS_SOON.branch}</p>
           ) : (
-            <a class="btn plain" href={`/new?parent=${n.path}`} style="display:block;text-align:center">+ start a {word}</a>
+            <a class="btn plain" href={`/new?parent=${n.path}`} style="display:block;text-align:center">{fill(w.node.startBranch, { kind: isBranch ? w.node.subBranch : w.node.kindBranch })}</a>
           )}
         </div>
       )}
@@ -1282,7 +1297,7 @@ const Contributors: FC<{ d: NodePageData }> = ({ d }) => {
   const days = Math.max(1, (d.now - Date.parse(n.created_at)) / 86_400_000)
   return (
     <div class="box">
-      <h2>{n.kind === 'branch' ? 'on this branch' : 'contributors'} <span>{plural(people, 'person', 'people')} · impact</span></h2>
+      <h2>{n.kind === 'branch' ? w.node.onThisBranch : w.node.contributors} <span>{count(w.node.peopleImpact, people)}</span></h2>
       <div class="in">
         <ul class="crew">
           {rows.map(r => (
@@ -1291,18 +1306,18 @@ const Contributors: FC<{ d: NodePageData }> = ({ d }) => {
               {r.joined_by ? (
                 <span class="who-by">
                   <Name name={r.handle} link />
-                  <span class="jb">joined by <Name name={r.joined_by} /></span>
+                  <span class="jb">{fillx(w.node.joinedBy, { name: <Name name={r.joined_by} /> })}</span>
                 </span>
               ) : (
                 <Name name={r.handle} link />
               )}
               <small>
-                {r.person_id === n.author_id && (r.posts > 0 ? 'author · ' : 'author')}
+                {r.person_id === n.author_id && (r.posts > 0 ? `${w.node.author} · ` : w.node.author)}
                 {r.posts > 0 && <Imp q={r.upvotes / r.posts} ppd={r.posts / days} />}
               </small>
             </li>
           ))}
-          {total > rows.length && <li><span>+ {total - rows.length} more</span><small></small></li>}
+          {total > rows.length && <li><span>{fill(w.node.more, { n: total - rows.length })}</span><small></small></li>}
         </ul>
         <Join d={d} />
       </div>
@@ -1322,7 +1337,6 @@ const Join: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
   if (!hasSeatForm(d)) return null
   const flash = d.flash?.at === 'seats' && !joinFlash(d) ? d.flash : undefined
-  const where = n.kind === 'branch' ? 'this branch' : 'this'
   const href = myJoinHref(d)
   const canLeave = !(n.kind !== 'branch' && d.me?.personId === n.author_id)
   return (
@@ -1330,22 +1344,22 @@ const Join: FC<{ d: NodePageData }> = ({ d }) => {
       {useContext(PageContext).opensSoon && !d.mySeat ? (
         <p class="note">{OPENS_SOON.join}</p>
       ) : !d.me ? (
-        <p class="join"><a class="btn plain" href={signInHref(d.here)}>join</a></p>
+        <p class="join"><a class="btn plain" href={signInHref(d.here)}>{w.node.join}</a></p>
       ) : d.mySeat ? (
         <div class="note">
-          <b>you're working on this.</b>
-          {href && <> <a href={href}>your join is in the thread</a></>}
-          {canLeave && <>{href ? ' · ' : ' '}{seatForm(d, 'leave', 'leave', 'linkish')}</>}
+          <b>{w.node.working}</b>
+          {href && <> <a href={href}>{w.node.yourJoin}</a></>}
+          {canLeave && <>{href ? ' · ' : ' '}{seatForm(d, 'leave', w.node.leave, 'linkish')}</>}
         </div>
       ) : !d.me.verified ? (
         <>
-          <p class="join"><button class="btn plain" type="button" disabled>join</button></p>
-          <p class="note">verify your email to join.</p>
+          <p class="join"><button class="btn plain" type="button" disabled>{w.node.join}</button></p>
+          <p class="note">{w.node.verifyToJoin}</p>
         </>
       ) : (
         <>
-          <div class="join">{seatForm(d, 'join', 'join', 'btn plain')}</div>
-          <p class="note">join to say you're working on {where}.</p>
+          <div class="join">{seatForm(d, 'join', w.node.join, 'btn plain')}</div>
+          <p class="note">{n.kind === 'branch' ? w.node.joinToSayBranch : w.node.joinToSay}</p>
         </>
       )}
       {flash && <p class="err" role="alert">{flash.text}</p>}

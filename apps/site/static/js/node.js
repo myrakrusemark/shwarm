@@ -3,10 +3,11 @@
   const copy = document.getElementById('w-copy')
   const url = document.getElementById('w-url')
   if (!copy || !url) return
+  const W = window.W.node
   copy.addEventListener('click', () => {
     navigator.clipboard?.writeText(url.textContent).then(() => {
-      copy.textContent = 'copied'
-      setTimeout(() => { copy.textContent = 'copy' }, 1200)
+      copy.textContent = W.copied
+      setTimeout(() => { copy.textContent = W.copy }, 1200)
     })
   })
 })()
