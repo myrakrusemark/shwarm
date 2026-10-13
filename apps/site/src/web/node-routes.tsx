@@ -335,7 +335,7 @@ async function submissionPost(c: C, path: string, number: number, session: Sessi
   const sub = await readSubmission(db, n.id, number)
   if (!sub) return notFound(c, 'html', fill(w.node.noSubmission, { n: number }))
   const act = f.do === 'check' || f.do === 'signoff' ? f.do : null
-  if (!act) return errorOut(c, 'html', 400, 'bad_request', w.node.formUnknown)
+  if (!act) return errorOut(c, 'html', 400, 'bad_request', w.auth.unknownForm)
   const back = `/w/${path}/s/${number}`
   const now = Date.now()
   const flash = (text: string): SubFlash => ({ at: act, text, fields: { verdict: f.verdict ?? '', text: f.text ?? '', links: f.links ?? '' } })
@@ -426,7 +426,7 @@ nodeRoutes.post('/*', async c => {
   const signedIn = await who(c as unknown as AuthContext)
   if (!signedIn.session) return c.redirect(signInHref(back), 303)
   const f = await formOf(c)
-  if (!(await postedTokenOk(c as unknown as AuthContext, signedIn, f))) return sendError(c, { status: 403, heading: w.node.formExpired, text: w.node.formExpiredText }, 'html')
+  if (!(await postedTokenOk(c as unknown as AuthContext, signedIn, f))) return sendError(c, { status: 403, heading: w.auth.formExpired, text: w.auth.formExpiredRetry }, 'html')
   if (subNumber !== null) return submissionPost(c, parsed.path, subNumber, signedIn.session, f)
   // Re-pitch is retired (decided Oct 10), and so is editing a shwarm (decided Oct 12: once posted, a shwarm's or a
   // branch's words are fixed): a re-pitch form from an old tab is refused with why. OPEN: the words wait on Myra's yes.
@@ -434,7 +434,7 @@ nodeRoutes.post('/*', async c => {
   if (f.do === 'report') return reportAct(c, parsed.path, signedIn.session, f, url)
   if (f.do === 'flag') return flagAct(c, parsed.path, signedIn.session, f, url)
   const act = (ACTS as readonly string[]).includes(f.do) ? (f.do as Act) : null
-  if (!act) return errorOut(c, 'html', 400, 'bad_request', w.node.formUnknown)
+  if (!act) return errorOut(c, 'html', 400, 'bad_request', w.auth.unknownForm)
 
   const db = c.env.DB
   const session = signedIn.session

@@ -165,13 +165,13 @@ export const auth = {
   // the too many tries page: its name and heading, and the link under it
   tooManyTriesHeading: 'too many tries',
   backToShwarm: 'back to shwarm',
-  // a form that sat open too long: the page's name and heading (also on the profile, keys and messages pages)
+  // a form that sat open too long: the page's name and heading (also on the shwarm, profile, keys and messages pages)
   formExpired: 'this form expired',
   // the line under it on the account pages
   formExpiredText: 'go back, reload the page, and try again.',
-  // the line under it on the profile, keys and messages pages
+  // the line under it on the shwarm, profile, keys and messages pages
   formExpiredRetry: 'go back, reload the page and try again.',
-  // a made-up form on the profile, keys or messages page
+  // a made-up form on the shwarm, profile, keys or messages page
   unknownForm: 'that form asked for nothing we know.',
   // a form posted from another website (a plain text page)
   crossSite: 'this form came from another site, so it was refused.',

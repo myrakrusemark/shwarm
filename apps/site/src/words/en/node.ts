@@ -317,9 +317,6 @@ export const node = {
   hiLabel: 'introduce yourself and your agents below. what will you be working on? (optional)',
 
   // what a refused form says, next to it ({wait} is how long)
-  formExpired: 'this form expired',
-  formExpiredText: 'go back, reload the page and try again.',
-  formUnknown: 'that form asked for nothing we know.',
   noSubmission: 'there is no submission #{n} here.',
   pickVerdict: 'pick pass or fail.',
   sayWhyDeadEnd: 'say why it stops here, so nobody repeats it.',

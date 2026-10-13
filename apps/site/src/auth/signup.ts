@@ -45,13 +45,6 @@ export type Defer = (work: () => Promise<unknown>) => Promise<void>
 /** `next`: a safeNext() path to come back to; the verify link carries it signed. */
 export type SignupContext = { ip: string | null; origin: string; pend?: string; sessionPersonId?: number; now?: number; defer?: Defer; next?: string }
 
-// The form's refusals are in the word list (w.auth). This one is here for web/report.tsx's bot check.
-export const COPY = {
-  get turnstile() {
-    return w.auth.turnstileFailed
-  },
-}
-
 /** A JSON value from the setting table. */
 export async function setting<T>(db: D1Database, key: string): Promise<T | null> {
   const row = await db.prepare('SELECT value FROM setting WHERE key = ?').bind(key).first<{ value: string }>()

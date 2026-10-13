@@ -12,7 +12,6 @@ import type { FC } from 'hono/jsx'
 import { ShwarmError } from '@shwarm/protocol'
 import { clientIp, FORM_FIELD, formOf, pageToken, postedTokenOk, who, type AuthContext, type AuthEnv } from '../auth/request'
 import { ipPrefix } from '../auth/session'
-import { COPY } from '../auth/signup'
 import { bump, LIMITS } from '../auth/throttle'
 import { TURNSTILE_FIELD, turnstileOk } from '../auth/turnstile'
 import { CONTACT_MAX, REASON_LABEL, REASONS, reportForm, REPORT_TEXT_MAX, REPORT_URL_MAX } from '../core/reports'
@@ -117,7 +116,7 @@ report.post('/report', async c => {
   const values: Values = { url: f.url, reason: f.reason, text: f.text, contact: f.contact }
   const again = async (errors: Errors, status: 200 | 400 | 429 = 400, notice?: string) =>
     render(c, <ReportPage token={await pageToken(ac, me)} siteKey={c.env.TURNSTILE_SITE_KEY} handle={reporterOf(me)?.handle} values={values} errors={errors} notice={notice} />, status)
-  if (!(await turnstileOk(c.env, f[TURNSTILE_FIELD], clientIp(c)))) return again({ turnstile: COPY.turnstile })
+  if (!(await turnstileOk(c.env, f[TURNSTILE_FIELD], clientIp(c)))) return again({ turnstile: w.auth.turnstileFailed })
   // Per network, signed in or out: each report mails the admins.
   const wait = await bump(c.env.DB, `report:ip:${ipPrefix(clientIp(c)) ?? 'unknown'}`, LIMITS.reportIp)
   if (wait) {
