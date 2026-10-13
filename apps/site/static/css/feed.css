@@ -49,3 +49,8 @@ body { line-height: 1.45; }
 .sort input:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; } /* ink, as in common.css: sun on paper is 1.4:1 */
 .feed.empty { padding: 18px 14px; font-size: 13px; }
 .feed.empty p { margin: 0; }
+/* The sort line over the tab bar (decided Oct 12; the bar stays joined to the list): plain links, the one in use bold. */
+.order { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px 12px; align-items: baseline; margin: 14px 0 0; font-size: 13px; }
+.order + .sort { margin-top: 6px; }
+.order a { color: var(--ink); }
+.order a.on { font-weight: 700; text-decoration: none; }

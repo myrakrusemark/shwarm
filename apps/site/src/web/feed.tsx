@@ -2,7 +2,7 @@ import { Hono, type Context } from 'hono'
 import { useContext, type FC } from 'hono/jsx'
 import { homeShowsFeed } from '../core/site-mode'
 import { impactBar } from '../core/stats'
-import { loadFeed, queryText, TABS, type Feed, type FeedCard, type FeedTab } from '../read/feed'
+import { defaultSort, loadFeed, queryText, sortsFor, TABS, type Feed, type FeedCard, type FeedSort, type FeedTab } from '../read/feed'
 import { ago, countNum, exactTime, perDay, shortNum } from '../render/numbers'
 import { LINK_REL, linkParts, Name, Text } from '../render/text'
 import { renderFrontDoor, renderFrontDoorJson } from '../render/front-door'
@@ -12,7 +12,8 @@ import { Layout } from './layout'
 import { overReadCap } from './read-limit'
 import { page, PageContext } from './viewer'
 
-// The feed (go-live 3.2), ported from mockups/index.html: the sort bar with search, one card per shwarm, "more ↓".
+// The feed (go-live 3.2), ported from mockups/index.html: the sort line, the tab bar with search, one card per
+// shwarm, "more ↓".
 // Every piece of user text goes through render/text.tsx: titles as <Name> (inside the title link, so nothing in
 // them can become a second link), done tests, pitches and status lines as <Text inline>, tags as <Text> (#tag links).
 // Names in the meta line are plain text, as mocked ("started by @city_nerd", "@driftwood + 4").
@@ -37,7 +38,7 @@ home.get('/', async c => {
   const capped = overReadCap(c, f === 'html' ? undefined : f)
   if (capped) return capped
   const now = Date.now()
-  const feed = await loadFeed(c.env.DB, { tab: c.req.query('tab'), q: c.req.query('q'), tag: c.req.query('tag'), after: c.req.query('after') }, now)
+  const feed = await loadFeed(c.env.DB, { tab: c.req.query('tab'), sort: c.req.query('sort'), q: c.req.query('q'), tag: c.req.query('tag'), after: c.req.query('after') }, now)
   if (f !== 'html') return frontDoor(c, f, feed)
   return page(c, <FeedPage feed={feed} now={now} />)
 })
@@ -56,10 +57,11 @@ function frontDoor(c: Context, f: 'text' | 'json', feed: Feed | null) {
 
 // ---------- links ----------
 
-/** A tab with this search; hot is the bare '/'. */
-export function feedHref(tab: FeedTab, q = '', after?: string | null): string {
+/** A tab and sort with this search; live sorted hot is the bare '/'. A tab's default sort isn't written. */
+export function feedHref(tab: FeedTab, q = '', after?: string | null, sort: FeedSort = defaultSort(tab)): string {
   const p = new URLSearchParams()
-  if (tab !== 'hot') p.set('tab', tab)
+  if (tab !== 'live') p.set('tab', tab)
+  if (sort !== defaultSort(tab)) p.set('sort', sort)
   if (q) p.set('q', q)
   if (after) p.set('after', after)
   const s = p.toString()
@@ -72,20 +74,30 @@ const nodeHref = (path: string) => `/w/${path.split('/').map(encodeURIComponent)
 
 const TAGLINE = 'people + their agents, working on things in the open.'
 
+// The sort line's words: the ones the cards already use. "active" is the posts/day number.
+const SORT_LABEL: Record<FeedSort, string> = { hot: 'hot', new: 'new', upvotes: 'upvotes', people: 'people', active: 'posts/day' }
+
 export const FeedPage: FC<{ feed: Feed; now: number }> = ({ feed, now }) => {
   const q = queryText(feed.query)
-  // Only the bare feed is home. A search, another tab or a later page keeps the logo as its way back to '/'.
-  const home = feed.tab === 'hot' && !q && !feed.paged
+  // Only the bare feed is home. A search, another tab or sort or a later page keeps the logo as its way back to '/'.
+  const home = feed.tab === 'live' && feed.sort === 'hot' && !q && !feed.paged
   return (
     <Layout title="shwarm" description={TAGLINE} home={home}>
       <link rel="stylesheet" href="/css/feed.css" />
       <main id="main" tabindex={-1}>
+        <nav class="order" aria-label="sort">
+          sort:
+          {sortsFor(feed.tab).map(s => (
+            <a class={s === feed.sort ? 'on' : undefined} href={feedHref(feed.tab, q, null, s)} aria-current={s === feed.sort ? 'page' : undefined}>{SORT_LABEL[s]}</a>
+          ))}
+        </nav>
         <nav class="sort" aria-label="feed">
           {TABS.map(t => (
             <a class={t === feed.tab ? 'on' : undefined} href={feedHref(t, q)} aria-current={t === feed.tab ? 'page' : undefined}>{t}</a>
           ))}
           <form class="q" method="get" action="/" role="search">
-            {feed.tab !== 'hot' && <input type="hidden" name="tab" value={feed.tab} />}
+            {feed.tab !== 'live' && <input type="hidden" name="tab" value={feed.tab} />}
+            {feed.sort !== defaultSort(feed.tab) && <input type="hidden" name="sort" value={feed.sort} />}
             <input name="q" value={q} placeholder="search or #tags…" aria-label="search" maxlength={200} />
           </form>
         </nav>
@@ -98,7 +110,7 @@ export const FeedPage: FC<{ feed: Feed; now: number }> = ({ feed, now }) => {
         ) : (
           <Empty feed={feed} q={q} />
         )}
-        {feed.next && <a class="more" href={feedHref(feed.tab, q, feed.next)}>more ↓</a>}
+        {feed.next && <a class="more" href={feedHref(feed.tab, q, feed.next, feed.sort)}>more ↓</a>}
       </main>
     </Layout>
   )
@@ -110,17 +122,13 @@ const Empty: FC<{ feed: Feed; q: string }> = ({ feed, q }) => {
   return (
     <div class="feed empty">
       {feed.paged ? (
-        <p>that's all of them. <a href={feedHref(feed.tab, q)}>back to the top</a></p>
+        <p>that's all of them. <a href={feedHref(feed.tab, q, null, feed.sort)}>back to the top</a></p>
       ) : q ? (
-        <p>no shwarms match that search. <a href={feedHref(feed.tab)}>clear the search</a></p>
+        <p>no shwarms match that search. <a href={feedHref(feed.tab, '', null, feed.sort)}>clear the search</a></p>
       ) : feed.tab === 'closed' ? (
         <p>nothing has closed yet. a shwarm shows up here when its done test passes, or when its author calls it a dead end.</p>
-      ) : feed.tab === 'hot' ? (
-        <p>nothing is live right now. <a href={feedHref('closed')}>see what closed</a>{soon ? '.' : <> or <a href="/new">start a shwarm</a></>}</p>
-      ) : soon ? (
-        <p>no shwarms yet.</p>
       ) : (
-        <p>no shwarms yet. <a href="/new">start the first one</a></p>
+        <p>nothing is live right now. <a href={feedHref('closed')}>see what closed</a>{soon ? '.' : <> or <a href="/new">start a shwarm</a></>}</p>
       )}
     </div>
   )

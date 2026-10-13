@@ -28,7 +28,7 @@ const cards: FeedCard[] = [
   live({ title: 'minecraft in doom: survival', what: 'the original plays its maps straight through. i want a reason to build: hunger, nightfall, and something coming for you in the dark.', doneWhen: 'the minecraft in doom mod, plus hunger, a day/night cycle and monsters that spawn in the dark.', statusLine: 'no submission yet.', tags: ['weird', 'games', 'gzdoom'], postedBy: '@tallgrass', at: ago(120) }),
   live({ title: 'moss-powered clock', what: 'moss leaks a tiny current while it photosynthesizes. enough moss might run a clock.', doneWhen: 'a clock powered only by moss keeps time within a minute a day for a week.', statusLine: 'one seat left. it will keep time. probably.', tags: ['weird', 'biology', 'hardware'], postedBy: '@fern', at: ago(300) }),
 ]
-const feed: Feed = { tab: 'hot', query: { words: [], tags: [] }, cards, next: 'x', paged: false, searchFailed: false }
+const feed: Feed = { tab: 'live', sort: 'hot', query: { words: [], tags: [] }, cards, next: 'x', paged: false, searchFailed: false }
 const viewer = { handle: 'myra', verified: true, unread: 3, token: 't' }
 const el = jsx(PageContext.Provider as any, { value: { viewer, here: '/' } }, FeedPage({ feed, now: T0 }) as any)
 // The page and a copy of static/ side by side, with the site's root-relative links made relative.

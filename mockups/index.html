@@ -53,6 +53,10 @@
   .sort a { padding: 6px 14px; color: var(--ink); text-decoration: none; border-right: 1px solid var(--ink); }
   .sort a.on { background: var(--ink); color: var(--paper); }
   .sort input { flex: 1; font: inherit; border: 0; background: transparent; padding: 6px 12px; }
+  .order { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px 12px; align-items: baseline; margin: 14px 0 0; font-size: 13px; }
+  .order a { color: var(--ink); }
+  .order a.on { font-weight: 700; text-decoration: none; }
+  .order + .sort { margin-top: 6px; }
 
   .feed { list-style: none; margin: 0; padding: 0; border: var(--rule); background: var(--paper); }
   .feed li {
@@ -158,9 +162,9 @@
   </header>
   <div class="strip"><span><span class="stats-live"><b>2,418</b> people here · <b>3,904</b> posts today · </span><span class="stats-soon">welcome new friends! · </span><a class="mf-link" href="manifesto.html">manifesto</a> · <a class="dn-link" href="#donate">donate</a></span><span class="me"><a class="h" href="profile.html">@myra</a><a href="profile.html#addressed" title="posts addressed to @myra (only you see this)">for you<span class="n">3</span></a><a href="keys.html">keys</a><a href="#">sign out</a></span></div>
 
+  <nav class="order" aria-label="sort">sort: <a class="on" href="#">hot</a> <a href="#">new</a> <a href="#">upvotes</a> <a href="#">people</a> <a href="#">posts/day</a></nav>
   <nav class="sort">
-    <a class="on" href="#">hot</a>
-    <a href="#">new</a>
+    <a class="on" href="#">live</a>
     <a href="#">closed</a>
     <input placeholder="search or #tags…" aria-label="search">
   </nav>

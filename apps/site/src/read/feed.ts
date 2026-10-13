@@ -1,12 +1,13 @@
 import { OPEN_NODE } from './visibility'
-// The feed's queries (go-live 3.2): the four tabs, search, and cursor paging. SQL lives here, not in the page.
+// The feed's queries (go-live 3.2): the two tabs, their sorts, search, and cursor paging. SQL lives here, not in the
+// page.
 //
-// Tabs (spec "Feed ranking", table B #9, #24, #39; decided Oct 9, "No lobby": the filling tab and the lobby score are
-// dropped):
-//   hot      live shwarms by live score; no closed cards
-//   new      newest first
-//   closed   passed and dead ends, newest first
-// Search and #tags filter every tab; the tab's order stays.
+// Tabs say which shwarms, sorts say in what order (decided Oct 12, "The feed: two tabs and a sort"; before that the
+// tabs were hot, new and closed, and Oct 9's "No lobby" dropped filling):
+//   live     live shwarms. sorts: hot (live score, the default), new, upvotes, people, active (posts per day)
+//   closed   passed and dead ends. sorts: new (ended, newest first, the default), upvotes, people
+// The old ?tab=hot, ?tab=new and ?tab=filling still work: they read as live, sorted hot, new and hot.
+// Search and #tags filter every tab; the sort stays.
 //
 // Each list is ordered by (k1, k2 = created_at, id), all descending, and paged by keyset: the cursor holds the last
 // row's keys, so a page never repeats or skips a row because rows were added above it. The cursor is opaque to the
@@ -19,10 +20,25 @@ import { readSettings } from '../core/settings'
 import { WEEK_MS, rankingFrom, type Ranking } from '../core/stats'
 import { NAME_SHOWN } from './names'
 
-// OPEN: whether something like "needs hands" takes the filling tab's place is undecided.
-export const TABS = ['hot', 'new', 'closed'] as const
+export const TABS = ['live', 'closed'] as const
 export type FeedTab = (typeof TABS)[number]
-export const isTab = (t: unknown): t is FeedTab => typeof t === 'string' && (TABS as readonly string[]).includes(t)
+
+// OPEN: whether something like "needs hands" (fewest people first) joins these is undecided (open #39).
+export const SORTS = ['hot', 'new', 'upvotes', 'people', 'active'] as const
+export type FeedSort = (typeof SORTS)[number]
+const CLOSED_SORTS: readonly FeedSort[] = ['new', 'upvotes', 'people']
+
+/** The sorts a tab offers, its default first. */
+export const sortsFor = (tab: FeedTab): readonly FeedSort[] => (tab === 'live' ? SORTS : CLOSED_SORTS)
+export const defaultSort = (tab: FeedTab): FeedSort => sortsFor(tab)[0]
+
+/** The tab and sort a request asks for. Anything unknown is the default; the old tabs read as live (see the top). */
+export function feedView(tab: unknown, sort: unknown): { tab: FeedTab; sort: FeedSort } {
+  const t: FeedTab = tab === 'closed' ? 'closed' : 'live'
+  const asked = typeof sort === 'string' ? sort : tab === 'new' ? 'new' : undefined
+  const s = sortsFor(t).find(x => x === asked) ?? defaultSort(t)
+  return { tab: t, sort: s }
+}
 
 export const PAGE_SIZE = 20
 
@@ -88,7 +104,7 @@ export const queryText = (q: Query) => [...q.words, ...q.tags.map(t => `#${t}`)]
 // ---------- cursors ----------
 
 type Key = [number | string, string, number] // k1, created_at, id
-type Cursor = { t: FeedTab; k?: Key; at?: number }
+type Cursor = { t: FeedTab; s: FeedSort; k?: Key; at?: number }
 
 const b64 = (s: string) => btoa(String.fromCharCode(...new TextEncoder().encode(s))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 const unb64 = (s: string) => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)))
@@ -103,8 +119,8 @@ const isKey = (k: unknown): k is Key =>
   k[1].length <= 40 &&
   Number.isSafeInteger(k[2])
 
-/** The cursor for this tab, or null (start from the top) when it's missing, broken or for another tab. */
-export function decodeCursor(s: string | null | undefined, tab: FeedTab): Cursor | null {
+/** The cursor for this tab and sort, or null (start from the top) when it's missing, broken or for another list. */
+export function decodeCursor(s: string | null | undefined, tab: FeedTab, sort: FeedSort): Cursor | null {
   if (!s || s.length > 600 || !/^[A-Za-z0-9_-]+$/.test(s)) return null
   let c: any
   try {
@@ -112,12 +128,12 @@ export function decodeCursor(s: string | null | undefined, tab: FeedTab): Cursor
   } catch {
     return null
   }
-  if (!c || typeof c !== 'object' || c.t !== tab) return null
-  if (tab === 'hot') {
+  if (!c || typeof c !== 'object' || c.t !== tab || c.s !== sort) return null
+  if (sort === 'hot') {
     if (!Number.isSafeInteger(c.at) || c.at <= 0 || c.at > 8.64e15) return null // a time Date can hold
-    return isKey(c.k) ? { t: tab, at: c.at, k: c.k } : null
+    return isKey(c.k) ? { t: tab, s: sort, at: c.at, k: c.k } : null
   }
-  return isKey(c.k) ? { t: tab, k: c.k } : null
+  return isKey(c.k) ? { t: tab, s: sort, k: c.k } : null
 }
 
 // ---------- the lists ----------
@@ -146,6 +162,16 @@ const keyOf = (r: Row): Key => [r.k1, r.k2, r.id]
 // When a closed or dead-end shwarm ended: closed_at, set by a pass and by a dead end (never changed_at, which every
 // later post moves). created_at only stands in for a row with no closed_at, so the key never moves.
 const ENDED = 'COALESCE(n.closed_at, n.created_at)'
+
+const STATES: Record<FeedTab, string> = { live: "n.state = 'live'", closed: "n.state IN ('closed', 'dead_end')" }
+
+// The counted sorts read node_stats, as the cards do (a shwarm the stats job hasn't reached yet counts its author as
+// its one person). Most first; ties go newest first. new is created_at on live and ENDED on closed.
+const SORT_KEY: Partial<Record<FeedSort, string>> = {
+  upvotes: 'COALESCE(ns.upvotes, 0)',
+  people: 'COALESCE(ns.people, 1)',
+  active: 'COALESCE(ns.posts_per_day, 0)',
+}
 
 /**
  * The live score brought to one moment `at` (core/stats.ts scoreNow, in SQL): the job stores each score at its own
@@ -181,7 +207,7 @@ export type FeedCard = {
   at: string // the card's time: last change (live), ended (closed, dead end)
 }
 
-export type Feed = { tab: FeedTab; query: Query; cards: FeedCard[]; next: string | null; paged: boolean; searchFailed: boolean }
+export type Feed = { tab: FeedTab; sort: FeedSort; query: Query; cards: FeedCard[]; next: string | null; paged: boolean; searchFailed: boolean }
 
 type DetailRow = {
   id: number
@@ -276,13 +302,13 @@ function buildsOn(r: DetailRow): FeedCard['buildsOn'] {
 
 // ---------- the feed ----------
 
-export type FeedOptions = { tab?: string | null; q?: string | null; tag?: string | null; after?: string | null }
+export type FeedOptions = { tab?: string | null; sort?: string | null; q?: string | null; tag?: string | null; after?: string | null }
 
 /** One page of a tab: its cards, best first, and the cursor for the next page (null on the last). */
 export async function loadFeed(db: D1Database, opts: FeedOptions, now = Date.now()): Promise<Feed> {
-  const tab: FeedTab = isTab(opts.tab) ? opts.tab : 'hot'
+  const { tab, sort } = feedView(opts.tab, opts.sort)
   const query = parseQuery([opts.q ?? '', opts.tag ? `#${opts.tag}` : ''].join(' '))
-  const cursor = decodeCursor(opts.after, tab)
+  const cursor = decodeCursor(opts.after, tab, sort)
 
   const filter = { sql: '', args: [] as unknown[] }
   for (const t of query.tags) {
@@ -294,15 +320,14 @@ export async function loadFeed(db: D1Database, opts: FeedOptions, now = Date.now
     filter.args.push(ftsQuery(query.words))
   }
 
-  const base = { tab, query, paged: !!cursor }
+  const base = { tab, sort, query, paged: !!cursor }
   try {
-    if (tab === 'hot') return { ...base, ...(await hot(db, filter, cursor, now)), searchFailed: false }
-    const spec: ListSpec =
-      tab === 'new' ? { where: '1', k1: 'n.created_at' } : { where: "n.state IN ('closed', 'dead_end')", k1: ENDED }
+    if (sort === 'hot') return { ...base, ...(await hot(db, filter, cursor, now)), searchFailed: false }
+    const spec: ListSpec = { where: STATES[tab], k1: SORT_KEY[sort] ?? (tab === 'live' ? 'n.created_at' : ENDED) }
     const rows = await list(db, spec, filter, cursor?.k, PAGE_SIZE + 1)
     const page = rows.slice(0, PAGE_SIZE)
     const cards = await details(db, page.map(r => r.id))
-    const next = rows.length > PAGE_SIZE ? encodeCursor({ t: tab, k: keyOf(page[page.length - 1]) }) : null
+    const next = rows.length > PAGE_SIZE ? encodeCursor({ t: tab, s: sort, k: keyOf(page[page.length - 1]) }) : null
     return { ...base, cards: page.map(r => cards.get(r.id)).filter((c): c is FeedCard => !!c), next, searchFailed: false }
   } catch (e) {
     // A search FTS5 can't read shows as no results, never a 500. parseQuery should make this unreachable.
@@ -318,7 +343,7 @@ async function hot(db: D1Database, filter: { sql: string; args: unknown[] }, cur
   const at = cursor?.at && Math.abs(now - cursor.at) < WEEK_MS ? cursor.at : now
   const rows = await list(db, liveSpec(at, r), filter, cursor?.at === at ? cursor.k : undefined, PAGE_SIZE + 1)
   const page = rows.slice(0, PAGE_SIZE)
-  const next = rows.length > PAGE_SIZE ? encodeCursor({ t: 'hot', at, k: keyOf(page[page.length - 1]) }) : null
+  const next = rows.length > PAGE_SIZE ? encodeCursor({ t: 'live', s: 'hot', at, k: keyOf(page[page.length - 1]) }) : null
   const cards = await details(db, page.map(x => x.id))
   return { cards: page.map(x => cards.get(x.id)).filter((c): c is FeedCard => !!c), next }
 }
