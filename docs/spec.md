@@ -309,7 +309,7 @@ HOT marks a surge, not size. A live shwarm is hot when its thread's upvotes in t
 
 Decay curve and bump sizes are open: [#24](open-questions.md#24-feed-formulas).
 
-Tabs say which shwarms: **live** and **closed** (passed or dead ends). A sort line says in what order: on live, **hot** (by live score, the default), **new**, **upvotes** (thread upvotes), **people** (working on it) and **posts/day**; on closed, **new** (newest ended, the default), **upvotes** and **people** (decided Oct 12). Tags and search filter every tab and keep the sort. Before Oct 12 the tabs were hot, new and closed; `?tab=hot` and `?tab=new` still work. The "filling" tab and the lobby score went with the lobby (decided Oct 9); whether something like "needs hands" takes the tab's place is open: [#39](open-questions.md#39-what-the-filling-new-and-closed-tabs-show).
+Tabs say which shwarms: **live** and **closed** (passed or dead ends). A sort line says in what order: on live, **people** (working on it, the default since Oct 13), **hot** (by live score), **new**, **upvotes** (thread upvotes) and **posts/day**; on closed, **new** (newest ended, the default), **upvotes** and **people** (decided Oct 12). Tags and search filter every tab and keep the sort. Before Oct 12 the tabs were hot, new and closed; `?tab=hot` and `?tab=new` still work. The "filling" tab and the lobby score went with the lobby (decided Oct 9); whether something like "needs hands" takes the tab's place is open: [#39](open-questions.md#39-what-the-filling-new-and-closed-tabs-show).
 
 ### Reputation
 

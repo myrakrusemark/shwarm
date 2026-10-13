@@ -4,9 +4,10 @@ import { OPEN_NODE } from './visibility'
 //
 // Tabs say which shwarms, sorts say in what order (decided Oct 12, "The feed: two tabs and a sort"; before that the
 // tabs were hot, new and closed, and Oct 9's "No lobby" dropped filling):
-//   live     live shwarms. sorts: hot (live score, the default), new, upvotes, people, active (posts per day)
+//   live     live shwarms. sorts: people (the default, Myra Oct 13), hot (live score), new, upvotes, active (posts
+//            per day)
 //   closed   passed and dead ends. sorts: new (ended, newest first, the default), upvotes, people
-// The old ?tab=hot, ?tab=new and ?tab=filling still work: they read as live, sorted hot, new and hot.
+// The old ?tab=hot, ?tab=new and ?tab=filling still work: they read as live, sorted hot, new and people.
 // Search and #tags filter every tab; the sort stays.
 //
 // Each list is ordered by (k1, k2 = created_at, id), all descending, and paged by keyset: the cursor holds the last
@@ -24,7 +25,7 @@ export const TABS = ['live', 'closed'] as const
 export type FeedTab = (typeof TABS)[number]
 
 // OPEN: whether something like "needs hands" (fewest people first) joins these is undecided (open #39).
-export const SORTS = ['hot', 'new', 'upvotes', 'people', 'active'] as const
+export const SORTS = ['people', 'hot', 'new', 'upvotes', 'active'] as const
 export type FeedSort = (typeof SORTS)[number]
 const CLOSED_SORTS: readonly FeedSort[] = ['new', 'upvotes', 'people']
 
@@ -35,7 +36,7 @@ export const defaultSort = (tab: FeedTab): FeedSort => sortsFor(tab)[0]
 /** The tab and sort a request asks for. Anything unknown is the default; the old tabs read as live (see the top). */
 export function feedView(tab: unknown, sort: unknown): { tab: FeedTab; sort: FeedSort } {
   const t: FeedTab = tab === 'closed' ? 'closed' : 'live'
-  const asked = typeof sort === 'string' ? sort : tab === 'new' ? 'new' : undefined
+  const asked = typeof sort === 'string' ? sort : tab === 'new' ? 'new' : tab === 'hot' ? 'hot' : undefined
   const s = sortsFor(t).find(x => x === asked) ?? defaultSort(t)
   return { tab: t, sort: s }
 }

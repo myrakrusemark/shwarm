@@ -175,21 +175,21 @@ async function tabFixture() {
 describe('tabs', () => {
   it('hot: live by live score (brought to now), no closed cards', async () => {
     const { r } = await tabFixture()
-    expect(titles(await html(r.db, '/'))).toEqual(['live one', 'live two', 'live three', 'live four', 'live stale', 'live five'])
+    expect(titles(await html(r.db, '/?sort=hot'))).toEqual(['live one', 'live two', 'live three', 'live four', 'live stale', 'live five'])
   })
 
-  it('two tabs and a sort line (decided Oct 12); the old ?tab=hot and ?tab=filling read as live, sorted hot', async () => {
+  it('two tabs and a sort line (decided Oct 12); people first by default (Oct 13); the old ?tab=hot reads as live sorted hot', async () => {
     const { r } = await tabFixture()
     const h = await html(r.db, '/?tab=filling')
     expect(titles(h)).toEqual(titles(await html(r.db, '/')))
-    expect(titles(await html(r.db, '/?tab=hot'))).toEqual(titles(await html(r.db, '/')))
+    expect(titles(await html(r.db, '/?tab=hot'))).toEqual(titles(await html(r.db, '/?sort=hot')))
     expect([...h.matchAll(/<nav class="sort"[\s\S]*?<\/nav>/g)][0][0].match(/>(hot|new|live|closed|filling)<\/a>/g)).toEqual(['>live</a>', '>closed</a>'])
     const order = [...h.matchAll(/<nav class="order"[\s\S]*?<\/nav>/g)][0][0]
     expect([...order.matchAll(/href="([^"]+)"[^>]*>([^<]+)<\/a>/g)].map(m => [m[1], m[2]])).toEqual([
-      ['/', 'hot'],
+      ['/', 'people'],
+      ['/?sort=hot', 'hot'],
       ['/?sort=new', 'new'],
       ['/?sort=upvotes', 'upvotes'],
-      ['/?sort=people', 'people'],
       ['/?sort=active', 'posts/day'],
     ])
     const closed = await html(r.db, '/?tab=closed')
@@ -213,7 +213,7 @@ describe('tabs', () => {
     expect(t).toContain('makes you a key at https://shwarm.org/keys')
     expect(t).toContain('shwarming safely:                https://shwarm.org/guide-safety')
     const listed = [...t.matchAll(/^- "([^"]+)" · https:\/\/shwarm\.org\/w\//gm)].map(m => m[1])
-    expect(listed).toEqual(['live one', 'live two', 'live three', 'live four', 'live stale', 'live five'])
+    expect(listed).toEqual(['live stale', 'live five', 'live four', 'live three', 'live two', 'live one']) // most people first; all one person, so newest first
     expect(await (await app.request('https://shwarm.org/llms.txt', {}, env)).text()).toBe(t)
     const json: any = await (await app.request('https://shwarm.org/', { headers: { accept: 'application/json' } }, env)).json()
     expect(json.resources.skill).toBe('https://shwarm.org/skills/shwarm/SKILL.md')
@@ -263,7 +263,7 @@ describe('tabs', () => {
     expect(titles(await html(r.db, '/?tab=closed&sort=active'))).toEqual(['gone', 'given up'])
     expect(titles(await html(r.db, '/?tab=closed&sort=hot'))).toEqual(['gone', 'given up'])
     // a search keeps the sort
-    expect(await html(r.db, '/?sort=people&q=zebra')).toContain('<input type="hidden" name="sort" value="people"/>')
+    expect(await html(r.db, '/?sort=upvotes&q=zebra')).toContain('<input type="hidden" name="sort" value="upvotes"/>')
   })
 
   it('closed: passed and dead ends, newest first by when they ended', async () => {
@@ -314,8 +314,8 @@ describe('search', () => {
 
   it('a #tag filters every tab, from the box or a tag link', async () => {
     const r = await searchFixture()
-    expect(titles(await html(r.db, '/?q=%23weird'))).toEqual(['minecraft in doom', 'printer-motor orchestra', 'moss-powered clock'])
-    expect(titles(await html(r.db, '/?tag=weird'))).toEqual(['minecraft in doom', 'printer-motor orchestra', 'moss-powered clock'])
+    expect(titles(await html(r.db, '/?sort=hot&q=%23weird'))).toEqual(['minecraft in doom', 'printer-motor orchestra', 'moss-powered clock'])
+    expect(titles(await html(r.db, '/?sort=hot&tag=weird'))).toEqual(['minecraft in doom', 'printer-motor orchestra', 'moss-powered clock'])
     expect(titles(await html(r.db, '/?tab=new&q=%23weird'))).toEqual(['moss-powered clock', 'printer-motor orchestra', 'minecraft in doom'])
     expect(titles(await html(r.db, '/?tab=closed&q=%23weird'))).toEqual([])
     expect(titles(await html(r.db, '/?q=%23WEIRD+%23music'))).toEqual(['printer-motor orchestra']) // every tag must match
@@ -433,7 +433,7 @@ describe('cursor paging', () => {
     }
     const want = [...live].sort(byScore).map(x => x.title)
     const seen: string[] = []
-    let href: string | null = '/'
+    let href: string | null = '/?sort=hot'
     let pages = 0
     while (href) {
       const h = await html(r.db, href)

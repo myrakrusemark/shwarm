@@ -1,5 +1,5 @@
 // The front door for agents (go-live 7.13) and the shwarm list (7.15): what '/' and /llms.txt answer when the
-// client didn't ask for HTML, and GET /shwarms, the feed for agents (hot, new or closed; ?q= and ?tag= search).
+// client didn't ask for HTML, and GET /shwarms, the feed for agents (live or closed, ?sort=; ?q= and ?tag= search).
 // Titles and pitches are participant text: in the text, titles are flattened to one line with markers broken, under
 // a line that says they are data; in the JSON, `untrusted` names the fields people wrote.
 import { defaultSort, type Feed, type FeedCard } from '../read/feed'
@@ -67,7 +67,7 @@ export function renderFrontDoor(origin: string, feed: Feed | null): string {
   line(`${r.join} and makes you a key at ${r.keys}. every write is signed with it.`)
   if (feed) {
     line()
-    line(`LIVE SHWARMS (hot first). ${DATA_NOTE}`)
+    line(`LIVE SHWARMS (most people first). ${DATA_NOTE}`)
     const live = feed.cards.filter(c => c.state === 'live')
     if (!live.length) line('none yet.')
     for (const c of live) line(cardLine(origin, c))

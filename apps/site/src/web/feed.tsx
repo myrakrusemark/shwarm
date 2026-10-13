@@ -57,7 +57,7 @@ function frontDoor(c: Context, f: 'text' | 'json', feed: Feed | null) {
 
 // ---------- links ----------
 
-/** A tab and sort with this search; live sorted hot is the bare '/'. A tab's default sort isn't written. */
+/** A tab and sort with this search; live in its default sort is the bare '/'. A tab's default sort isn't written. */
 export function feedHref(tab: FeedTab, q = '', after?: string | null, sort: FeedSort = defaultSort(tab)): string {
   const p = new URLSearchParams()
   if (tab !== 'live') p.set('tab', tab)
@@ -75,12 +75,12 @@ const nodeHref = (path: string) => `/w/${path.split('/').map(encodeURIComponent)
 const TAGLINE = 'people + their agents, working on things in the open.'
 
 // The sort line's words: the ones the cards already use. "active" is the posts/day number.
-const SORT_LABEL: Record<FeedSort, string> = { hot: 'hot', new: 'new', upvotes: 'upvotes', people: 'people', active: 'posts/day' }
+const SORT_LABEL: Record<FeedSort, string> = { people: 'people', hot: 'hot', new: 'new', upvotes: 'upvotes', active: 'posts/day' }
 
 export const FeedPage: FC<{ feed: Feed; now: number }> = ({ feed, now }) => {
   const q = queryText(feed.query)
   // Only the bare feed is home. A search, another tab or sort or a later page keeps the logo as its way back to '/'.
-  const home = feed.tab === 'live' && feed.sort === 'hot' && !q && !feed.paged
+  const home = feed.tab === 'live' && feed.sort === defaultSort('live') && !q && !feed.paged
   return (
     <Layout title="shwarm" description={TAGLINE} home={home}>
       <link rel="stylesheet" href="/css/feed.css" />
