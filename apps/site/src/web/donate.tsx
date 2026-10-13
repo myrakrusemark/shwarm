@@ -17,6 +17,7 @@ import { bump, LIMITS } from '../auth/throttle'
 import { notFoundHandler, sendError } from './errors'
 import { Layout } from './layout'
 import { page } from './viewer'
+import { fill, fillx, w } from '../words'
 
 export type DonateEnv = AuthEnv & {
   SITE_URL?: string
@@ -49,7 +50,7 @@ export function checkoutParams(g: Gift, origin: string, cancelUrl: string): URLS
   p.set('line_items[0][quantity]', '1')
   p.set('line_items[0][price_data][currency]', 'usd')
   p.set('line_items[0][price_data][unit_amount]', String(g.amount * 100))
-  p.set('line_items[0][price_data][product_data][name]', 'donation to shwarm')
+  p.set('line_items[0][price_data][product_data][name]', w.pages.donateProduct)
   if (monthly) p.set('line_items[0][price_data][recurring][interval]', 'month')
   else p.set('submit_type', 'donate') // the pay button says "donate" (one-time payments only)
   // Stripe puts the session id in for {CHECKOUT_SESSION_ID}; URLSearchParams encodes the braces and Stripe decodes them.
@@ -84,7 +85,7 @@ function cancelUrlOf(c: Context<Env>, origin: string): string {
   return `${origin}/?donate=cancelled`
 }
 
-const refuse = (c: Context<Env>, text: string) => sendError(c, { status: 400, heading: "that didn't work", text })
+const refuse = (c: Context<Env>, text: string) => sendError(c, { status: 400, heading: w.pages.donateRefused, text })
 
 donate.post('/donate', async c => {
   const key = c.env.STRIPE_SECRET_KEY
@@ -92,13 +93,13 @@ donate.post('/donate', async c => {
   c.header('Cache-Control', 'no-store')
   // Per network, before anything else is read: each try opens a Checkout Session at Stripe.
   const wait = await bump(c.env.DB, `donate:ip:${ipPrefix(clientIp(c)) ?? 'unknown'}`, LIMITS.donateIp)
-  if (wait) return sendError(c, { status: 429, text: 'too many tries from your network.', wait })
+  if (wait) return sendError(c, { status: 429, text: w.pages.donateTooMany, wait })
   const f = await formOf(c)
-  if (f.freq !== 'once' && f.freq !== 'monthly') return refuse(c, 'pick once or monthly.')
+  if (f.freq !== 'once' && f.freq !== 'monthly') return refuse(c, w.pages.donatePickFreq)
   const amount = /^\d{1,6}$/.test(f.amount ?? '') ? Number(f.amount) : 0
-  if (amount < 1 || amount > AMOUNT_MAX) return refuse(c, `pick an amount from $1 to $${AMOUNT_MAX.toLocaleString('en-US')}, in whole dollars.`)
+  if (amount < 1 || amount > AMOUNT_MAX) return refuse(c, fill(w.pages.donatePickAmount, { max: AMOUNT_MAX.toLocaleString('en-US') }))
   const note = cleanNote(f.note)
-  if ([...note].length > NOTE_MAX) return refuse(c, `a note can be up to ${NOTE_MAX} characters.`)
+  if ([...note].length > NOTE_MAX) return refuse(c, fill(w.pages.donateNoteTooLong, { max: NOTE_MAX }))
   const pub = f.public === '1'
   // Only a verified account's handle: an unverified one is deleted after 7 days and its handle can go to someone else.
   const s = pub ? await sessionOf(c) : null
@@ -128,24 +129,24 @@ donate.post('/donate', async c => {
   if (!url) {
     return sendError(c, {
       status: 500,
-      heading: "checkout didn't open",
-      text: "we couldn't reach the payment page, so nothing was charged. try again in a minute.",
+      heading: w.pages.donateNoCheckout,
+      text: w.pages.donateNoCheckoutText,
     })
   }
   return c.redirect(url, 303)
 })
 
 const ThanksPage: FC = () => (
-  <Layout title="thank you · shwarm">
+  <Layout title={fill(w.pages.title, { page: w.pages.thanksTitle })}>
     {/* the account pages' narrow box, from auth.css */}
     <link rel="stylesheet" href="/css/auth.css" />
     <main id="main" tabindex={-1} class="auth err-page">
       <div class="box">
-        <h2>thank you</h2>
+        <h2>{w.pages.thanksTitle}</h2>
         <div class="in">
-          <p>your gift helps keep shwarm online. stripe emails you a receipt.</p>
-          <p>giving monthly? to stop, write to <a href={`mailto:${SUPPORT}`}>{SUPPORT}</a> and we'll cancel it.</p>
-          <p><a href="/">back to shwarm</a></p>
+          <p>{w.pages.thanksGift}</p>
+          <p>{fillx(w.pages.thanksMonthly, { email: <a href={`mailto:${SUPPORT}`}>{SUPPORT}</a> })}</p>
+          <p><a href="/">{w.pages.backToShwarm}</a></p>
         </div>
       </div>
     </main>

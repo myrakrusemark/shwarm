@@ -6,6 +6,7 @@ import { html } from 'hono/html'
 import type { FC } from 'hono/jsx'
 import { sha256, utf8 } from '@shwarm/protocol'
 import { Layout } from '../web/layout'
+import { fill, w } from '../words'
 import type { MailEnv } from './env'
 import { emailNorm } from './norm'
 import { noticeLabel, readUnsubToken } from './unsubscribe'
@@ -13,7 +14,7 @@ import { noticeLabel, readUnsubToken } from './unsubscribe'
 export const mailRoutes = new Hono<{ Bindings: MailEnv }>()
 
 const Page: FC<{ h: string; text: string; token?: string }> = ({ h, text, token }) => (
-  <Layout title="unsubscribe · shwarm">
+  <Layout title={w.email.unsubscribeTitle}>
     {/* the skip link in Layout lands here */}
     <main id="main" tabindex={-1}>
       <div class="dochead">
@@ -24,7 +25,7 @@ const Page: FC<{ h: string; text: string; token?: string }> = ({ h, text, token 
         {token && (
           <form method="post" action={`/unsubscribe?t=${token}`}>
             <input type="hidden" name="List-Unsubscribe" value="One-Click" />
-            <button class="btn" type="submit">unsubscribe</button>
+            <button class="btn" type="submit">{w.email.unsubscribeButton}</button>
           </form>
         )}
       </div>
@@ -34,30 +35,27 @@ const Page: FC<{ h: string; text: string; token?: string }> = ({ h, text, token 
 
 const page = (p: { h: string; text: string; token?: string }) => html`<!doctype html>${Page(p)}`
 
-const BAD_LINK = {
-  h: "this link doesn't work",
-  text: "it may be old or cut short. you can turn notices off in your account, or write to support@shwarm.org and we'll do it for you.",
-}
+const BAD_LINK = () => ({ h: w.email.badLinkHeading, text: w.email.badLinkText })
 
 mailRoutes.get('/unsubscribe', async c => {
   c.header('X-Robots-Tag', 'noindex')
-  if (!c.env.MAIL_SECRET) return c.html(page(BAD_LINK), 503)
+  if (!c.env.MAIL_SECRET) return c.html(page(BAD_LINK()), 503)
   const t = await readUnsubToken(c.env.MAIL_SECRET, c.req.query('t'))
-  if (!t) return c.html(page(BAD_LINK), 400)
+  if (!t) return c.html(page(BAD_LINK()), 400)
   const label = noticeLabel(t.type)
-  return c.html(page({ h: 'unsubscribe', text: `stop getting ${label} mails? other notices and account mail stay as they are.`, token: c.req.query('t') }))
+  return c.html(page({ h: w.email.unsubscribeHeading, text: fill(w.email.unsubscribeAsk, { label }), token: c.req.query('t') }))
 })
 
 // RFC 8058 one-click, and the button on the page above: the body must be List-Unsubscribe=One-Click.
 mailRoutes.post('/unsubscribe', async c => {
   c.header('X-Robots-Tag', 'noindex')
-  if (!c.env.MAIL_SECRET) return c.html(page(BAD_LINK), 503)
+  if (!c.env.MAIL_SECRET) return c.html(page(BAD_LINK()), 503)
   const type = c.req.header('content-type') ?? ''
   if (!/^(application\/x-www-form-urlencoded|multipart\/form-data)\b/i.test(type)) return c.text('expected List-Unsubscribe=One-Click', 400)
   const body = await c.req.parseBody().catch(() => ({}) as Record<string, unknown>)
   if (body['List-Unsubscribe'] !== 'One-Click') return c.text('expected List-Unsubscribe=One-Click', 400)
   const t = await readUnsubToken(c.env.MAIL_SECRET, c.req.query('t'))
-  if (!t) return c.html(page(BAD_LINK), 400)
+  if (!t) return c.html(page(BAD_LINK()), 400)
   // Turns off this one notice type; every other preference stays.
   await c.env.DB.prepare(
     `UPDATE person SET notice_prefs = json_set(CASE WHEN json_valid(notice_prefs) THEN notice_prefs ELSE '{}' END, ?, json('false')) WHERE id = ?`,
@@ -65,7 +63,7 @@ mailRoutes.post('/unsubscribe', async c => {
     .bind(`$.${t.type}`, t.personId)
     .run()
   const label = noticeLabel(t.type)
-  return c.html(page({ h: 'unsubscribed', text: `you won't get ${label} mails anymore. you can turn them back on in your account.` }))
+  return c.html(page({ h: w.email.unsubscribedHeading, text: fill(w.email.unsubscribedText, { label }) }))
 })
 
 /** Constant-time check of an HTTP basic auth header against one user and password. */

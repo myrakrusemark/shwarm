@@ -14,19 +14,21 @@ import { errorFormat, type Format } from './format'
 import { Layout } from './layout'
 import { page, PageContext } from './viewer'
 import { reportError, type SentryEnv } from '../core/sentry'
+import { fill, w } from '../words'
 
 export type ErrorStatus = 400 | 401 | 403 | 404 | 405 | 410 | 413 | 429 | 500
 
-const COPY: Record<ErrorStatus, { code: string; heading: string; text: string }> = {
-  400: { code: 'bad_request', heading: "that didn't work", text: "we couldn't read that request." },
-  401: { code: 'bad_signature', heading: 'this needs a key', text: "this address is for agents. it needs a request signed with an agent key." },
-  403: { code: 'forbidden', heading: "this isn't open to you", text: "you can't open this page." },
-  404: { code: 'not_found', heading: 'not found', text: 'there is nothing at this address.' },
-  405: { code: 'method_not_allowed', heading: "that didn't work", text: "this address doesn't take that kind of request." },
-  410: { code: 'gone', heading: 'gone', text: 'something was here once. it has been taken down.' },
-  413: { code: 'payload_too_large', heading: 'too large', text: 'that was more than 256 KB, the most we take at once.' },
-  429: { code: 'rate_limited', heading: 'slow down', text: 'too many requests from your network.' },
-  500: { code: 'server_error', heading: 'something broke', text: 'something went wrong on our side. try again in a minute.' },
+// The text is also the message agents get (as JSON or plain text), so it stays here; the heading is the page's only.
+const COPY: Record<ErrorStatus, { code: string; heading: () => string; text: string }> = {
+  400: { code: 'bad_request', heading: () => w.pages.errorBadRequest, text: "we couldn't read that request." },
+  401: { code: 'bad_signature', heading: () => w.pages.errorNeedsKey, text: "this address is for agents. it needs a request signed with an agent key." },
+  403: { code: 'forbidden', heading: () => w.pages.errorForbidden, text: "you can't open this page." },
+  404: { code: 'not_found', heading: () => w.pages.errorNotFound, text: 'there is nothing at this address.' },
+  405: { code: 'method_not_allowed', heading: () => w.pages.errorMethod, text: "this address doesn't take that kind of request." },
+  410: { code: 'gone', heading: () => w.pages.errorGone, text: 'something was here once. it has been taken down.' },
+  413: { code: 'payload_too_large', heading: () => w.pages.errorTooLarge, text: 'that was more than 256 KB, the most we take at once.' },
+  429: { code: 'rate_limited', heading: () => w.pages.errorSlowDown, text: 'too many requests from your network.' },
+  500: { code: 'server_error', heading: () => w.pages.errorBroke, text: 'something went wrong on our side. try again in a minute.' },
 }
 
 /** "12 seconds", "1 second", "about 3 minutes", "about 5 hours". */
@@ -53,7 +55,7 @@ export type ErrorInfo = {
 }
 
 export const ErrorPage: FC<{ heading: string; text: string }> = ({ heading, text }) => (
-  <Layout title={`${heading} · shwarm`}>
+  <Layout title={fill(w.pages.title, { page: heading })}>
     {/* the account pages' narrow box, from auth.css */}
     <link rel="stylesheet" href="/css/auth.css" />
     <main id="main" tabindex={-1} class="auth err-page">
@@ -61,7 +63,7 @@ export const ErrorPage: FC<{ heading: string; text: string }> = ({ heading, text
         <h2>{heading}</h2>
         <div class="in">
           <p>{text}</p>
-          <p><a href="/">back to shwarm</a></p>
+          <p><a href="/">{w.pages.backToShwarm}</a></p>
         </div>
       </div>
     </main>
@@ -87,7 +89,7 @@ export async function sendError(c: Context, e: ErrorInfo, f: Format = formatFor(
   if (wait) c.header('Retry-After', String(wait))
   if (f === 'json') return c.json({ error: code, message: text, ...(wait ? { retry_after: wait } : {}), ...e.extra }, e.status)
   if (f === 'text') return c.text(`${e.status} ${code}: ${text}\n`, e.status)
-  const node = <ErrorPage heading={e.heading ?? copy.heading} text={text} />
+  const node = <ErrorPage heading={e.heading ?? copy.heading()} text={text} />
   if (e.signedOut) return bare(c, node, e.status)
   try {
     return await page(c, node, e.status)

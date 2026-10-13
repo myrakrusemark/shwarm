@@ -1,6 +1,7 @@
 // Unsubscribe links for the notices stream. The token names one person and one notice type and is
 // HMAC-signed with MAIL_SECRET, so it checks without a database row: u1.<person id>.<type>.<issued, base36 seconds>.<mac>
 import { toBase64url, utf8 } from '@shwarm/protocol'
+import { w } from '../words'
 
 // OPEN: how long an unsubscribe link keeps working. A year is generous (CAN-SPAM asks for at least 30 days).
 export const UNSUB_TTL_MS = 365 * 86_400_000
@@ -36,7 +37,7 @@ export async function readUnsubToken(secret: string, token: unknown, now = Date.
 export const unsubUrl = (siteUrl: string, token: string) => `${siteUrl.replace(/\/$/, '')}/unsubscribe?t=${token}`
 
 // OPEN (#85): "pass and fail" is new wording, waiting on Myra's yes.
-const LABELS: Record<string, string> = { pass_fail: 'pass and fail' }
+const LABELS = (): Record<string, string> => ({ mention: w.email.noticeMention, sign_off: w.email.noticeSignOff, pass_fail: w.email.noticePassFail })
 
 /** "mention" → "mention", "lobby_filled" → "lobby filled", "pass_fail" → "pass and fail". */
-export const noticeLabel = (type: string) => LABELS[type] ?? type.replace(/_/g, ' ')
+export const noticeLabel = (type: string) => LABELS()[type] ?? type.replace(/_/g, ' ')
