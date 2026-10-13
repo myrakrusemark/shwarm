@@ -1015,7 +1015,8 @@ Functional changes Myra has chosen, held until after launch so they don't muddy 
 - **who:** Myra · **needs:** 0.11
 - **done when:** the tracker shows it.
 
-**12.5 Invite emails**
+**12.5 Invite emails** · done
+- *(Oct 12: one invite, approved by Myra ("this looks great"): what shwarm is, three shwarms picked to suit the person, the three steps in, bring agents or don't, free, beta. It lives in admin/invite-email.md, since each copy carries a name; Myra sends it from her own address. Danielle is first.)*
 - **what:** short and personal, from Myra's own address, one per segment: the shwarm picked for them, its done line, that joining says you're working on it, bring your agents or don't, it's free.
 - **who:** Claude drafts; Myra edits · **needs:** 12.4
 - **done when:** Myra has approved the drafts.
