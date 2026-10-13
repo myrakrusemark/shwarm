@@ -8,9 +8,10 @@ import { signInHref } from '../auth/return-to'
 import { MAX_TEXT } from '../core/text'
 import type { BuiltOnLink, Chain, CheckReport, HistoryRow, SubmissionDetail, SubmissionRow } from '../read/node'
 import { groupBySlot, isOpen, review, waitingDays, type Review, type ReviewRow } from '../read/review'
-import { cut, plural } from '../render/format'
+import { cut } from '../render/format'
 import { showHidden } from '../render/hidden'
 import { Name, Plain, Text } from '../render/text'
+import { count, fill, fillx, w } from '../words'
 import { AgentResources, Layout } from './layout'
 import { InvitedSignIn, OPENS_SOON } from './opens-soon'
 import { PageContext } from './viewer'
@@ -44,11 +45,11 @@ export type Pill = { cls: 'wait' | 'ok' | 'no' | ''; text: string }
  * OPEN: the wording others see ("waiting on author", "in review", "superseded", "reopened") isn't in a mockup yet.
  */
 export function pillOf(status: SubmissionRow['status'], waitingOnAuthor: boolean, mine: boolean, reopened = false): Pill {
-  if (status === 'passed') return reopened ? { cls: 'no', text: 'reopened' } : { cls: 'ok', text: 'approved' }
-  if (status === 'failed') return { cls: 'no', text: 'failed' }
-  if (status === 'superseded') return { cls: '', text: 'superseded' }
-  if (waitingOnAuthor) return { cls: 'wait', text: mine ? 'waiting on you' : 'waiting on author' }
-  return { cls: 'wait', text: 'in review' }
+  if (status === 'passed') return reopened ? { cls: 'no', text: w.submission.pillReopened } : { cls: 'ok', text: w.submission.pillApproved }
+  if (status === 'failed') return { cls: 'no', text: w.submission.pillFailed }
+  if (status === 'superseded') return { cls: '', text: w.submission.pillSuperseded }
+  if (waitingOnAuthor) return { cls: 'wait', text: mine ? w.submission.pillWaitingOnYou : w.submission.pillWaitingOnAuthor }
+  return { cls: 'wait', text: w.submission.pillInReview }
 }
 
 export const PillView: FC<{ p: Pill; id?: string }> = ({ p, id }) => <span class={p.cls ? `stp ${p.cls}` : 'stp'} id={id}>{p.text}</span>
@@ -65,31 +66,35 @@ export const SubmissionPage: FC<{ d: SubmissionPageData }> = ({ d }) => {
   const lost = d.flash && !(d.flash.at === 'check' ? forms.check : forms.signOff)
   const what = cut(showHidden(sub.text), 200)
   return (
-    <Layout title={`submission #${sub.number} · ${showHidden(n.title)} · shwarm`} description={what}>
+    <Layout title={fill(w.submission.pageTitle, { n: sub.number, title: showHidden(n.title) })} description={what}>
       <link rel="stylesheet" href="/css/node.css" />
       <link rel="stylesheet" href="/css/submission.css" />
-      <nav class="crumbs" aria-label="breadcrumb">
+      <nav class="crumbs" aria-label={w.submission.crumbsLabel}>
         {[...d.chain.ancestors, n].map(a => (
           <>
             <a href={nodeHref(a.path)}><Plain text={a.title} /></a>
             <span>/</span>
           </>
         ))}
-        submission #{sub.number}
+        {fill(w.submission.heading, { n: sub.number })}
       </nav>
       {n.visibility === 'author' && <TriageNote triage={n.triage} />}
       {/* A paused node takes no checks or sign-off (core/context.ts loadNode): say so above the forms that would be refused. */}
       {n.paused === 1 && <PausedNote kind={n.kind} />}
       <section class="sub-head">
         <div>
-          <h1>submission #{sub.number}</h1>
+          <h1>{fill(w.submission.heading, { n: sub.number })}</h1>
           <div class="meta">
-            to <a href={nodeHref(n.path)}><Plain text={n.title} /></a> · by <b><Name name={sub.as_name} link /></b> · <Ago at={sub.created_at} now={d.now} /> · version{' '}
-            <code title={`sha256 ${sub.hash}`}>{shortHash(sub.hash)}</code>
+            {fillx(w.submission.meta, {
+              node: <a href={nodeHref(n.path)}><Plain text={n.title} /></a>,
+              by: <b><Name name={sub.as_name} link /></b>,
+              when: <Ago at={sub.created_at} now={d.now} />,
+              version: <code title={fill(w.submission.hashTitle, { hash: sub.hash })}>{shortHash(sub.hash)}</code>,
+            })}
           </div>
-          <div class="quote"><b>done when</b><Text text={n.done_when} /></div>
+          <div class="quote"><b>{w.submission.doneWhen}</b><Text text={n.done_when} /></div>
           {sub.status === 'superseded' && sub.superseded_number !== null && (
-            <p class="note sup">superseded by <a href={subHref(n.path, sub.superseded_number)}>#{sub.superseded_number}</a>. its checks stay on the record.</p>
+            <p class="note sup">{fillx(w.submission.supersededBy, { link: <a href={subHref(n.path, sub.superseded_number)}>#{sub.superseded_number}</a> })}</p>
           )}
         </div>
         <div><PillView p={pill} id="status" /></div>
@@ -107,13 +112,13 @@ export const SubmissionPage: FC<{ d: SubmissionPageData }> = ({ d }) => {
           <div class="box side-node">
             <h2><Plain text={n.title} /></h2>
             <div class="in">
-              <p class="lbl"><b>checked by</b></p>
+              <p class="lbl"><b>{w.submission.checkedBy}</b></p>
               <CheckedBy spec={n.spec} author={n.author} />
-              <p class="note back"><a href={nodeHref(n.path)}>back to the {n.kind === 'branch' ? 'branch' : 'shwarm'} →</a></p>
+              <p class="note back"><a href={nodeHref(n.path)}>{n.kind === 'branch' ? w.submission.backToBranch : w.submission.backToShwarm}</a></p>
             </div>
           </div>
           <div class="box">
-            <h2>submissions</h2>
+            <h2>{w.submission.submissions}</h2>
             <ul class="hist">
               {d.subs.map(s => (
                 <li>
@@ -124,7 +129,7 @@ export const SubmissionPage: FC<{ d: SubmissionPageData }> = ({ d }) => {
                 </li>
               ))}
             </ul>
-            <div class="in rule"><p class="note">one submission per person per day.</p></div>
+            <div class="in rule"><p class="note">{w.submission.oneADay}</p></div>
           </div>
           <AgentResources />
         </aside>
@@ -164,11 +169,11 @@ function whichForms(d: SubmissionPageData, r: Review): { signOff: boolean; check
   const why = !me
     ? null
     : !me.verified
-      ? 'verify your email to check it.'
+      ? w.submission.verifyToCheck
       : mine
-        ? `you can't check it: it's ${sub.as_name.includes('/') ? 'from your agent' : 'yours'}.`
+        ? sub.as_name.includes('/') ? w.submission.cantCheckAgent : w.submission.cantCheckYours
         : holds
-          ? 'you have a check on it already.'
+          ? w.submission.alreadyChecked
           : null
   // A refused check comes back to its form with the draft, whatever kept the form off before.
   const refused = d.flash?.at === 'check' && !!me
@@ -181,15 +186,15 @@ const Submitted: FC<{ d: SubmissionPageData }> = ({ d }) => {
   const release = sub.release_title || sub.release_version
   return (
     <div class="box">
-      <h2>what was submitted</h2>
+      <h2>{w.submission.whatWasSubmitted}</h2>
       <div class="in">
         <Text text={sub.text} />
         <dl class="kv">
-          <dt>linked</dt>
-          <dd>{links.length ? <Links links={links} /> : <span class="note">nothing linked</span>}</dd>
+          <dt>{w.submission.linked}</dt>
+          <dd>{links.length ? <Links links={links} /> : <span class="note">{w.submission.nothingLinked}</span>}</dd>
           {d.builtOn.length > 0 && (
             <>
-              <dt>built on</dt>
+              <dt>{w.submission.builtOn}</dt>
               <dd>
                 {d.builtOn.map((b, i) => (
                   <>
@@ -202,26 +207,26 @@ const Submitted: FC<{ d: SubmissionPageData }> = ({ d }) => {
               </dd>
             </>
           )}
-          <dt>how to check</dt>
+          <dt>{w.submission.howToCheck}</dt>
           <dd><Text inline text={sub.how_to_check} /></dd>
           {release && (
             <>
-              <dt>release</dt>
+              <dt>{w.submission.release}</dt>
               <dd>
                 {sub.release_title && <Plain text={sub.release_title} />}
                 {sub.release_title && sub.release_version && ' · '}
-                {sub.release_version && <>version <Plain text={sub.release_version} /></>}
+                {sub.release_version && <>{fillx(w.submission.releaseVersion, { version: <Plain text={sub.release_version} /> })}</>}
               </dd>
             </>
           )}
           {sub.release_how_to_use && (
             <>
-              <dt>how to use</dt>
+              <dt>{w.submission.howToUse}</dt>
               <dd><Text text={sub.release_how_to_use} /></dd>
             </>
           )}
         </dl>
-        {sub.author_swap === 1 && <p class="note swap">the author's own work: one more people check stands in for the author's sign-off.</p>}
+        {sub.author_swap === 1 && <p class="note swap">{w.submission.authorSwap}</p>}
       </div>
     </div>
   )
@@ -231,10 +236,10 @@ const Submitted: FC<{ d: SubmissionPageData }> = ({ d }) => {
 function checksNote(d: SubmissionPageData, r: Review): string {
   const s = d.sub
   // OPEN (#76): "reopened by a repro" isn't in a mockup; only passes reopened before Oct 9 show it.
-  if (s.status === 'passed') return reopened(d, s) ? `${r.done} of ${r.total} · passed · reopened by a repro` : `${r.done} of ${r.total} · ${showHidden(d.chain.node.title)} is done`
-  if (s.status === 'failed') return 'reset · waiting for a new submission'
-  if (s.status === 'superseded') return `superseded by #${s.superseded_number ?? '?'}`
-  return `${r.done} of ${r.total}`
+  if (s.status === 'passed') return reopened(d, s) ? fill(w.submission.tallyReopened, { done: r.done, total: r.total }) : fill(w.submission.tallyDone, { done: r.done, total: r.total, title: showHidden(d.chain.node.title) })
+  if (s.status === 'failed') return w.submission.tallyReset
+  if (s.status === 'superseded') return fill(w.submission.tallySuperseded, { n: s.superseded_number ?? '?' })
+  return fill(w.submission.tally, { done: r.done, total: r.total })
 }
 
 const ChecksBox: FC<{ d: SubmissionPageData; r: Review; isAuthor: boolean }> = ({ d, r, isAuthor }) => {
@@ -245,25 +250,25 @@ const ChecksBox: FC<{ d: SubmissionPageData; r: Review; isAuthor: boolean }> = (
   const days = open && r.waitingOn === 'author' ? waitingDays(sub.ready_at, d.now) : null
   const authorNote = (): string => {
     const own = r.rows.find(x => x.slot === 'author' && x.verdict !== 'waiting')
-    if (own) return own.verdict === 'pass' ? 'passed' : isAuthor ? 'failed by you' : 'failed'
-    return days ? `waiting ${plural(days, 'day', 'days')}` : 'waiting'
+    if (own) return own.verdict === 'pass' ? w.submission.authorPassed : isAuthor ? w.submission.authorFailedByYou : w.submission.authorFailed
+    return days ? count(w.submission.authorWaitingDays, days) : w.submission.authorWaiting
   }
   return (
     <div class="box" id="checks">
-      <h2>checks <span>{checksNote(d, r)}</span></h2>
+      <h2>{w.submission.checks} <span>{checksNote(d, r)}</span></h2>
       {/* A submission that takes no checks now shows only the groups that hold one. */}
       {groupBySlot(r, reset).filter(g => open || g.rows.some(row => row.verdict !== 'waiting')).map(g => (
         <div class="grp">
           <h4>
             <span>{g.label}</span>
-            <span class="note">{g.slot === 'author' ? authorNote() : `${g.done} of ${g.of}`}</span>
+            <span class="note">{g.slot === 'author' ? authorNote() : fill(w.submission.tally, { done: g.done, total: g.of })}</span>
           </h4>
           <ul>
             {g.rows
               .filter(row => row.verdict !== 'waiting' || open)
               .map(row =>
                 row.verdict === 'waiting' && row.slot === 'author' && isAuthor ? (
-                  <li><span class="ck">○</span><span><b><Plain text={row.as ?? n.author} /></b> · you · the last check</span></li>
+                  <li><span class="ck">○</span><span>{fillx(w.submission.authorRowYou, { name: <b><Plain text={row.as ?? n.author} /></b> })}</span></li>
                 ) : (
                   <CheckRowView row={row} n={n} sub={sub} page />
                 ),
@@ -276,20 +281,20 @@ const ChecksBox: FC<{ d: SubmissionPageData; r: Review; isAuthor: boolean }> = (
 }
 
 /** What happened to this submission, from the audit log. OPEN: no mockup draws this box; the words wait on Myra's yes. */
-const HISTORY_WORD: Record<string, string> = {
-  submission: 'submitted',
-  check: 'checked',
-  signed_off: 'signed off',
-  passed: 'passed',
-  failed: 'failed the author check',
-  reopened: 'reopened by a repro', // before Oct 9 only: nothing reopens now
-}
+const historyWord = (): Record<string, string> => ({
+  submission: w.submission.historySubmitted,
+  check: w.submission.historyChecked,
+  signed_off: w.submission.historySignedOff,
+  passed: w.submission.historyPassed,
+  failed: w.submission.historyFailed,
+  reopened: w.submission.historyReopened, // before Oct 9 only: nothing reopens now
+})
 
 const History: FC<{ d: SubmissionPageData }> = ({ d }) => {
   if (!d.history.length) return null
   return (
     <div class="box">
-      <h2>history</h2>
+      <h2>{w.submission.history}</h2>
       <ul class="hist">
         {d.history.map(e => {
           // A check's detail starts with its verdict and slot ("pass · run · …"), words core writes; the rest can hold a runner's text.
@@ -297,8 +302,8 @@ const History: FC<{ d: SubmissionPageData }> = ({ d }) => {
           return (
             <li>
               <span>
-                {HISTORY_WORD[e.event] ?? e.event.replace('_', ' ')}
-                {e.by_name && <> by <Name name={e.by_name} link /></>}
+                {historyWord()[e.event] ?? e.event.replace('_', ' ')}
+                {e.by_name && <> {fillx(w.submission.historyBy, { name: <Name name={e.by_name} link /> })}</>}
                 {verdict && ` · ${verdict}`}
               </span>
               <span class="note"><Ago at={e.at} now={d.now} /></span>
@@ -323,12 +328,12 @@ const CheckForm: FC<{ d: SubmissionPageData; why: string | null }> = ({ d, why }
   const here = subHref(n.path, sub.number)
   return (
     <div class="box checkform" id="check">
-      <h2>check it <span>one check per person, never on their own work.</span></h2>
+      <h2>{w.submission.checkIt} <span>{w.submission.checkItRule}</span></h2>
       <div class="in">
         {useContext(PageContext).opensSoon ? (
           <p class="note">{OPENS_SOON.check} {OPENS_SOON.why}<InvitedSignIn /></p>
         ) : !d.me ? (
-          <p class="note"><a href={signInHref(here)}>sign in</a> to check it. agents send run reports with a key.</p>
+          <p class="note">{fillx(w.submission.signInToCheck, { link: <a href={signInHref(here)}>{w.submission.signIn}</a> })}</p>
         ) : why ? (
           <p class="note">{why}</p>
         ) : (
@@ -336,19 +341,19 @@ const CheckForm: FC<{ d: SubmissionPageData; why: string | null }> = ({ d, why }
             <input type="hidden" name="form_token" value={d.token} />
             <input type="hidden" name="do" value="check" />
             <fieldset class="verdict">
-              <legend>your check</legend>
-              <label><input type="radio" name="verdict" value="pass" required checked={v.verdict === 'pass' ? true : undefined} /> pass</label>
-              <label><input type="radio" name="verdict" value="fail" checked={v.verdict === 'fail' ? true : undefined} /> fail</label>
+              <legend>{w.submission.yourCheck}</legend>
+              <label><input type="radio" name="verdict" value="pass" required checked={v.verdict === 'pass' ? true : undefined} />{w.submission.checkPass}</label>
+              <label><input type="radio" name="verdict" value="fail" checked={v.verdict === 'fail' ? true : undefined} />{w.submission.checkFail}</label>
             </fieldset>
-            <label for="k-text">what you checked, or what fails and how to see it</label>
+            <label for="k-text">{w.submission.checkText}</label>
             <textarea id="k-text" name="text" rows={3} maxlength={MAX_TEXT}>{v.text ?? ''}</textarea>
-            <label for="k-links">links</label>
-            <span class="note" id="k-links-n">one per line: a url and its sha256, or a repo and a full commit id. a pass needs at least one: a recording or a rerun.</span>
+            <label for="k-links">{w.submission.links}</label>
+            <span class="note" id="k-links-n">{w.submission.linksNote}</span>
             <textarea id="k-links" name="links" rows={2} aria-describedby="k-links-n">{v.links ?? ''}</textarea>
             {f && <p class="err" role="alert">{f.text}</p>}
             <div class="row">
-              <span class="note">a pass needs evidence. a fail needs steps that show it failing.</span>
-              <button class="btn" type="submit">post check</button>
+              <span class="note">{w.submission.checkNeeds}</span>
+              <button class="btn" type="submit">{w.submission.postCheck}</button>
             </div>
           </form>
         )}
@@ -378,31 +383,31 @@ const SignOff: FC<{ d: SubmissionPageData }> = ({ d }) => {
   const draft = (verdict: 'pass' | 'fail') => (pick === verdict ? f?.fields.text ?? '' : '')
   return (
     <div class="box decide" id="decide">
-      <h2 class="sunny">your sign-off <span>only you see this</span></h2>
+      <h2 class="sunny">{w.submission.signOff} <span>{w.submission.onlyYou}</span></h2>
       <div class="in">
-        <p class="note first">everything else passed. it's your call whether this meets the done test.</p>
+        <p class="note first">{w.submission.yourCall}</p>
         {/* OPEN (#76): the operator's line isn't in a mockup; it waits on Myra's yes. */}
-        {d.operator && <p class="note">its author's account is gone, so you sign off as the operator.</p>}
+        {d.operator && <p class="note">{w.submission.asOperator}</p>}
         <input type="radio" name="pick" id="pick-pass" class="pick" checked={pick === 'pass' ? true : undefined} />
         <input type="radio" name="pick" id="pick-fail" class="pick" checked={pick === 'fail' ? true : undefined} />
         <div class="opts">
-          <label class="btn" for="pick-pass">pass</label>
-          <label class="btn plain" for="pick-fail">fail</label>
+          <label class="btn" for="pick-pass">{w.submission.pass}</label>
+          <label class="btn plain" for="pick-fail">{w.submission.fail}</label>
         </div>
         <form method="post" action={here} id="f-pass">
           {form('pass')}
-          <textarea name="text" aria-label="what you checked" maxlength={MAX_TEXT} placeholder="what you checked: ran it to y=-80, 62 fps the whole way…">{draft('pass')}</textarea>
+          <textarea name="text" aria-label={w.submission.passLabel} maxlength={MAX_TEXT} placeholder={w.submission.passPlaceholder}>{draft('pass')}</textarea>
           <StepUpField id="pw-pass" open={d.steppedUp} />
           {err('pass')}
-          <div class="row"><span class="note">passing closes {showHidden(n.title)} as done. confirms with your password.</span><button class="btn" type="submit">pass it</button></div>
+          <div class="row"><span class="note">{fill(w.submission.passNote, { title: showHidden(n.title) })}</span><button class="btn" type="submit">{w.submission.passIt}</button></div>
         </form>
         <form method="post" action={here} id="f-fail">
           {form('fail')}
-          <textarea name="text" aria-label="what fails and how to see it" maxlength={MAX_TEXT} placeholder="what fails and how to see it: at y=-120 it drops to 40 fps. steps…">{draft('fail')}</textarea>
-          <div class="warnline">failing resets every check on this done test. the runs and the people check start over, and the next submission begins from zero.</div>
+          <textarea name="text" aria-label={w.submission.failLabel} maxlength={MAX_TEXT} placeholder={w.submission.failPlaceholder}>{draft('fail')}</textarea>
+          <div class="warnline">{w.submission.failWarning}</div>
           <StepUpField id="pw-fail" open={d.steppedUp} />
           {err('fail')}
-          <div class="row"><span class="note">confirms with your password.</span><button class="btn plain" type="submit">fail it</button></div>
+          <div class="row"><span class="note">{w.submission.failNote}</span><button class="btn plain" type="submit">{w.submission.failIt}</button></div>
         </form>
       </div>
     </div>

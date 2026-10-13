@@ -40,6 +40,7 @@ import { cut, licenseName } from '../render/format'
 import { showHidden } from '../render/hidden'
 import { Plain, Text } from '../render/text'
 import { triageNew } from '../triage/run'
+import { fill, fillx, w } from '../words'
 import { sendError, waitText } from './errors'
 import { AgentResources, Layout } from './layout'
 import { nodeHref } from './node-page'
@@ -63,21 +64,21 @@ export type Mode = { kind: 'shwarm'; upstream?: NodeHead | null } | { kind: 'bra
 
 const FRESH: CreateForm = { c_author: 'on', runs: String(DEFAULT_RUNS), people: '2', license: LICENSES[0] }
 
-const PLACE = {
-  title: 'minecraft in doom',
-  what: "this one is for fun, and anyone can play it free: no copy of doom or minecraft needed…",
-  done: "a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp-like one with its own name that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets.",
-  command: './bench.sh && ./demos.sh && ./license-scan.sh mcdoom.pk3',
-  look: 'what checkers do and what they should see: play e1m1 and one later map from a pistol start for 15 minutes each, dig through a wall, craft something, no crash, no stutter.',
-}
+const place = () => ({
+  title: w.create.placeTitle,
+  what: w.create.placeWhat,
+  done: w.create.placeDone,
+  command: w.create.placeCommand,
+  look: w.create.placeLook,
+})
 // mockups/new.html's branch placeholders
-const BRANCH_PLACE: typeof PLACE = {
-  title: 'monster collision',
-  what: 'imps walk straight through placed blocks because the blockmap is only built at level load…',
-  done: "monsters can't walk through placed blocks, and placing one costs under 0.1 ms.",
-  command: './bench.sh --blockmap',
-  look: 'what checkers do and what they should see: build a wall in front of an imp; it paths around.',
-}
+const branchPlace = (): ReturnType<typeof place> => ({
+  title: w.create.branchPlaceTitle,
+  what: w.create.branchPlaceWhat,
+  done: w.create.branchPlaceDone,
+  command: w.create.branchPlaceCommand,
+  look: w.create.branchPlaceLook,
+})
 
 /**
  * "make it a branch" (go-live 4.8, mockups/shwarm.html): a plain post in the parent's thread fills the branch form, its
@@ -100,13 +101,13 @@ export async function fieldsFromPost(db: D1Database, nodeId: number, id: string 
  * Said next to the button on both forms (decided Oct 12): once posted, a shwarm's or a branch's words can't be changed.
  * OPEN: the words wait on Myra's yes.
  */
-const FIXED_NOTE = "once you post it, it can't be changed."
+const fixedNote = () => w.create.fixedNote
 /**
  * The note under the checks (decided Oct 12, no editing): the done test is fixed once posted. OPEN: the words wait on
  * Myra's yes; they replace "the done test locks once someone else joins or anything is submitted" (shwarm) and "the
  * done test locks once it goes live … not editing this one" (branch).
  */
-const LOCK_NOTE = <>the done test can't change once it's posted. people join for this finish line, so a different one means <b>starting a new shwarm</b>.</>
+const lockNote = () => <>{fillx(w.create.lockNote, { newShwarm: <b>{w.create.lockNoteNew}</b> })}</>
 
 /** The page's words that change with the mode, from mockups/new.html. */
 function wordsOf(mode: Mode) {
@@ -114,36 +115,36 @@ function wordsOf(mode: Mode) {
     const n = mode.chain.node
     const root = mode.chain.ancestors[0] ?? n
     return {
-      page: `new branch · ${showHidden(n.title)} · shwarm`,
-      heading: 'new branch',
-      sub: 'goes live as soon as you start it. the crew is already here.', // OPEN: mockups/new.html's "no lobby:" dropped; waits on Myra's yes
-      pitchHint: 'what is stuck or missing, and how this branch helps the parent get done.',
-      oneTest: 'one done test per branch',
-      licHint: "a branch inherits its shwarm's license.",
+      page: fill(w.create.branchPageTitle, { title: showHidden(n.title) }),
+      heading: w.create.branchHeading,
+      sub: w.create.branchSub, // OPEN: mockups/new.html's "no lobby:" dropped; waits on Myra's yes
+      pitchHint: w.create.branchPitchHint,
+      oneTest: w.create.branchOneTest,
+      licHint: w.create.branchLicHint,
       // OPEN (#77): the mockup's "goes live right away" predates triage; the check-first sentence is the shwarm form's.
-      goNote: `a quick automatic check runs first. until it's done, usually within a minute, only you can see it. then it's live under ${showHidden(n.title)}, and anyone can work on it.`,
-      go: 'start branch',
-      place: BRANCH_PLACE,
+      goNote: fill(w.create.branchGoNote, { title: showHidden(n.title) }),
+      go: w.create.branchGo,
+      place: branchPlace(),
       root,
-      lockNote: LOCK_NOTE,
+      lockNote: lockNote(),
     }
   }
   // OPEN (decided Oct 9, "No lobby"): the sub line, the license hint's "locks once you post it", the go note's last
   // sentence and the button lost their lobby words; the new words wait on Myra's yes.
   return {
-    page: 'new shwarm · shwarm',
-    heading: 'new shwarm',
-    sub: 'a goal worth a crowd. it goes live as soon as you start it.',
-    pitchHint: 'what is this, why does it matter, and why now?',
-    oneTest: 'one done test per shwarm',
+    page: w.create.pageTitle,
+    heading: w.create.heading,
+    sub: w.create.sub,
+    pitchHint: w.create.pitchHint,
+    oneTest: w.create.oneTest,
     // OPEN (decided Oct 12, once posted it can't be changed): "it can't be changed once you post it" replaces "it locks
     // once someone else joins or anything is submitted"; the words wait on Myra's yes.
-    licHint: "everything made here is open. the default is MIT for code and CC BY 4.0 for everything else. it can't be changed once you post it, and branches inherit it.",
-    goNote: "a quick automatic check runs first. until it's done, usually within a minute, only you can see it. then it's live, and anyone can work on it.",
-    go: 'start shwarm',
-    place: PLACE,
+    licHint: w.create.licHint,
+    goNote: w.create.goNote,
+    go: w.create.go,
+    place: place(),
     root: null,
-    lockNote: LOCK_NOTE,
+    lockNote: lockNote(),
   }
 }
 
@@ -151,14 +152,14 @@ const Crumbs: FC<{ mode: Mode }> = ({ mode }) => {
   if (mode.kind === 'shwarm') return null
   const up = [...mode.chain.ancestors, mode.chain.node]
   return (
-    <nav class="crumbs" aria-label="breadcrumb">
+    <nav class="crumbs" aria-label={w.create.crumbsLabel}>
       {up.map(n => (
         <>
           <a href={nodeHref(n.path)}><Plain text={n.title} /></a>
           <span>/</span>
         </>
       ))}
-      new branch
+      {w.create.branchHeading}
     </nav>
   )
 }
@@ -176,20 +177,20 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refus
   mode = { kind: 'shwarm' },
 }) => {
   const on = (k: keyof CreateForm) => v[k] === 'on'
-  const w = wordsOf(mode)
+  const t = wordsOf(mode)
   const branch = mode.kind === 'branch' ? mode.chain.node : null
   const upstream = mode.kind !== 'branch' ? mode.upstream : null
   return (
-    <Layout title={w.page}>
+    <Layout title={t.page}>
       <link rel="stylesheet" href="/css/new.css" />
       <Crumbs mode={mode} />
-      <h1 class="title" id="heading">{w.heading}</h1>
-      <div class="note" id="sub">{w.sub}</div>
+      <h1 class="title" id="heading">{t.heading}</h1>
+      <div class="note" id="sub">{t.sub}</div>
       <div class="grid">
         <main id="main" tabindex={-1}>
           {(error || refused) && <p class="err top" role="alert">{error ?? refused}</p>}
           {refused ? null : !verified ? (
-            <div class="box"><div class="f"><p class="note" style="margin:0">verify your email to start a shwarm. the link is in your inbox.</p></div></div>
+            <div class="box"><div class="f"><p class="note" style="margin:0">{w.create.verifyFirst}</p></div></div>
           ) : (
             <form method="post" action="/new" class="new">
               <input type="hidden" name={FORM_FIELD} value={token} />
@@ -197,106 +198,106 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refus
               <div class="box">
                 {branch && (
                   <div class="f" id="f-parent">
-                    <span class="lbl">helping reach</span>
-                    <div class="parent"><b><Plain text={branch.title} /> is done when</b><Text inline text={branch.done_when} /></div>
-                    <p class="hint">your branch doesn't have to finish the parent. it just has to move it closer.</p>
+                    <span class="lbl">{w.create.helpingReach}</span>
+                    <div class="parent"><b>{fillx(w.create.parentDoneWhen, { title: <Plain text={branch.title} /> })}</b><Text inline text={branch.done_when} /></div>
+                    <p class="hint">{w.create.helpingReachHint}</p>
                   </div>
                 )}
                 <div class="f">
-                  <label for="title">title</label>
-                  <input type="text" id="title" name="title" class="big" required maxlength={MAX_TITLE} placeholder={w.place.title} value={v.title ?? ''} />
+                  <label for="title">{w.create.title}</label>
+                  <input type="text" id="title" name="title" class="big" required maxlength={MAX_TITLE} placeholder={t.place.title} value={v.title ?? ''} />
                 </div>
               </div>
               <div class="box">
                 <div class="halves">
                   <div class="f">
-                    <label for="pitch">what</label>
-                    <p class="hint" id="pitch-hint">{w.pitchHint}</p>
-                    <textarea id="pitch" name="what" required maxlength={MAX_TEXT} aria-describedby="pitch-hint" placeholder={w.place.what}>{v.what ?? ''}</textarea>
+                    <label for="pitch">{w.create.what}</label>
+                    <p class="hint" id="pitch-hint">{t.pitchHint}</p>
+                    <textarea id="pitch" name="what" required maxlength={MAX_TEXT} aria-describedby="pitch-hint" placeholder={t.place.what}>{v.what ?? ''}</textarea>
                   </div>
                   <div class="f dt">
-                    <label for="done">done when</label>
-                    <p class="hint" id="done-hint">what is true when it's finished. people join for this as much as for the idea.</p>
-                    <textarea id="done" name="done_when" required maxlength={2000} aria-describedby="done-hint" placeholder={w.place.done}>{v.done_when ?? ''}</textarea>
+                    <label for="done">{w.create.doneWhen}</label>
+                    <p class="hint" id="done-hint">{w.create.doneHint}</p>
+                    <textarea id="done" name="done_when" required maxlength={2000} aria-describedby="done-hint" placeholder={t.place.done}>{v.done_when ?? ''}</textarea>
                   </div>
                 </div>
               </div>
               <div class="box">
-                <h2 class="sunny">how it's checked <span>{w.oneTest}</span></h2>
+                <h2 class="sunny">{w.create.howChecked} <span>{t.oneTest}</span></h2>
                 <div class="f">
                   {/* OPEN (#92): the mockup's "anyone can reopen a pass with a failing repro." is dropped (decided Oct 9: nothing reopens). */}
-                  <p class="hint">a submission passes when every check you pick passes. by default that's just you. each person can submit once a day here; one check per person per submission.</p>
+                  <p class="hint">{w.create.checksHint}</p>
                   <div class="chk">
                     <input type="checkbox" id="c-machine" name="c_runs" checked={on('c_runs')} />
                     <div class="body">
-                      <label for="c-machine"><b>runs</b></label>
-                      <span class="note">a command that exits 0 when the work is done. people other than the submitter run it on their own machines and post a signed run report: what they ran, on which version, and the log.</span>
+                      <label for="c-machine"><b>{w.create.runs}</b></label>
+                      <span class="note">{w.create.runsNote}</span>
                       <div class="row">
                         {/* A one-line field drops line breaks, so a command stored with them (agent API) is shown whole. */}
                         {(v.command ?? '').includes('\n') ? (
-                          <textarea id="cmd" name="command" aria-label="run command" maxlength={2000} style="min-height:52px" placeholder={w.place.command}>{v.command}</textarea>
+                          <textarea id="cmd" name="command" aria-label={w.create.runCommandLabel} maxlength={2000} style="min-height:52px" placeholder={t.place.command}>{v.command}</textarea>
                         ) : (
-                          <input type="text" id="cmd" name="command" aria-label="run command" maxlength={2000} placeholder={w.place.command} value={v.command ?? ''} />
+                          <input type="text" id="cmd" name="command" aria-label={w.create.runCommandLabel} maxlength={2000} placeholder={t.place.command} value={v.command ?? ''} />
                         )}
                       </div>
-                      <div class="row"><input type="number" id="n-runs" name="runs" min={1} max={50} aria-label="number of runs" value={v.runs ?? String(DEFAULT_RUNS)} /> runs, by different people</div>
+                      <div class="row">{fillx(w.create.runsCount, { number: <input type="number" id="n-runs" name="runs" min={1} max={50} aria-label={w.create.runsCountLabel} value={v.runs ?? String(DEFAULT_RUNS)} /> })}</div>
                     </div>
                   </div>
                   <div class="chk">
                     <input type="checkbox" id="c-people" name="c_people" checked={on('c_people')} />
                     <div class="body">
-                      <label for="c-people"><b>people</b></label>
-                      <span class="note">humans or agents post pass or fail, with evidence. one check per person, never on their own work.</span>
+                      <label for="c-people"><b>{w.create.people}</b></label>
+                      <span class="note">{w.create.peopleNote}</span>
                       <div class="row">
-                        <input type="number" id="n-people" name="people" min={1} max={50} aria-label="number of people" value={v.people ?? '2'} /> people
-                        <label><input type="checkbox" id="human" name="human" checked={on('human')} /> at least one human</label>
+                        {fillx(w.create.peopleCount, { number: <input type="number" id="n-people" name="people" min={1} max={50} aria-label={w.create.peopleCountLabel} value={v.people ?? '2'} /> })}
+                        <label><input type="checkbox" id="human" name="human" checked={on('human')} />{w.create.atLeastOneHuman}</label>
                       </div>
-                      <div class="row"><textarea id="look" name="instructions" aria-label="what checkers do" maxlength={4000} style="min-height:52px" placeholder={w.place.look}>{v.instructions ?? ''}</textarea></div>
+                      <div class="row"><textarea id="look" name="instructions" aria-label={w.create.whatCheckersDo} maxlength={4000} style="min-height:52px" placeholder={t.place.look}>{v.instructions ?? ''}</textarea></div>
                     </div>
                   </div>
                   <div class="chk">
                     <input type="checkbox" id="c-author" name="c_author" checked={on('c_author')} />
                     <div class="body">
-                      <label for="c-author"><b>author</b></label>
-                      <span class="note">you have the final say. you're notified only when a submission has passed everything else, and you never sign off on your own agents' work.</span>
+                      <label for="c-author"><b>{w.create.author}</b></label>
+                      <span class="note">{w.create.authorNote}</span>
                     </div>
                   </div>
                 </div>
                 <div class="f">
                   {/* OPEN (#69): variants are dropped, so this no longer says "starting a variant"; the words wait on Myra's yes. */}
-                  <p class="note" style="margin:0">{w.lockNote}</p>
+                  <p class="note" style="margin:0">{t.lockNote}</p>
                 </div>
               </div>
               {!branch && (
                 <div class="box" id="f-shwarm">
                   <div class="f">
-                    <label for="tags">tags</label>
-                    <p class="hint" id="tags-hint">how people find it. no categories, just tags.</p>
-                    <input type="text" id="tags" name="tags" required aria-describedby="tags-hint" placeholder="#weird #games #uzdoom" value={v.tags ?? ''} />
+                    <label for="tags">{w.create.tags}</label>
+                    <p class="hint" id="tags-hint">{w.create.tagsHint}</p>
+                    <input type="text" id="tags" name="tags" required aria-describedby="tags-hint" placeholder={w.create.tagsPlaceholder} value={v.tags ?? ''} />
                   </div>
                 </div>
               )}
               {!branch && (
                 <div class="box" id="f-builds">
                   <div class="f">
-                    <label for="upstream">builds on <span class="note" style="font-weight:400">· optional</span></label>
-                    <p class="hint" id="up-hint">an existing open project this extends: a passed shwarm, a github repo, or any other link. its license becomes this shwarm's.</p>
-                    <input type="text" id="upstream" name="builds_on" aria-describedby="up-hint" placeholder="https://github.com/… or a passed shwarm's link" autocomplete="off" value={v.builds_on ?? ''} />
+                    <label for="upstream">{w.create.buildsOn} <span class="note" style="font-weight:400">{w.create.optional}</span></label>
+                    <p class="hint" id="up-hint">{w.create.buildsOnHint}</p>
+                    <input type="text" id="upstream" name="builds_on" aria-describedby="up-hint" placeholder={w.create.buildsOnPlaceholder} autocomplete="off" value={v.builds_on ?? ''} />
                     {upstream && (
-                      <div class="picked" id="picked"><div><b><Plain text={upstream.title} /></b> <span>/w/{upstream.path} · license {licenseName(upstream.license)}</span></div></div>
+                      <div class="picked" id="picked"><div><b><Plain text={upstream.title} /></b> <span>{fill(w.create.pickedLine, { path: upstream.path, license: licenseName(upstream.license) })}</span></div></div>
                     )}
                     <div class="row two">
-                      <input type="text" name="builds_on_name" aria-label="its name (other links)" placeholder="its name (other links)" maxlength={200} value={v.builds_on_name ?? ''} />
-                      <input type="text" name="builds_on_license" aria-label="its license (other links)" placeholder="its license (other links), e.g. GPL-3.0" maxlength={100} value={v.builds_on_license ?? ''} />
+                      <input type="text" name="builds_on_name" aria-label={w.create.buildsOnName} placeholder={w.create.buildsOnName} maxlength={200} value={v.builds_on_name ?? ''} />
+                      <input type="text" name="builds_on_license" aria-label={w.create.buildsOnLicenseLabel} placeholder={w.create.buildsOnLicensePlaceholder} maxlength={100} value={v.builds_on_license ?? ''} />
                     </div>
-                    <p class="hint" style="margin:6px 0 0">github and shwarm links fill in their name and license by themselves.</p>
+                    <p class="hint" style="margin:6px 0 0">{w.create.buildsOnFillHint}</p>
                   </div>
                 </div>
               )}
               <div class="box" id="f-license">
                 <div class="f">
-                  <label for="license">license</label>
-                  <p class="hint" id="lic-hint">{w.licHint}</p>
+                  <label for="license">{w.create.license}</label>
+                  <p class="hint" id="lic-hint">{t.licHint}</p>
                   {branch ? (
                     // Branches inherit the license, so nothing is sent: the select is shown, not posted.
                     <select id="license" aria-describedby="lic-hint" disabled>
@@ -304,34 +305,35 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refus
                     </select>
                   ) : (
                     <select id="license" name="license" aria-describedby="lic-hint" hidden={upstream ? true : undefined}>
-                      {LICENSES.map((l, i) => <option value={l} selected={(v.license ?? LICENSES[0]) === l}>{licenseName(l)}{i === 0 ? ' (default)' : ''}</option>)}
+                      {LICENSES.map((l, i) => <option value={l} selected={(v.license ?? LICENSES[0]) === l}>{i === 0 ? fill(w.create.licenseDefault, { license: licenseName(l) }) : licenseName(l)}</option>)}
                     </select>
                   )}
-                  {branch && w.root && (
-                    <p class="note" id="lic-up" style="margin:6px 0 0">inherits from <Plain text={w.root.title} />: {licenseName(branch.license)}.</p>
+                  {branch && t.root && (
+                    <p class="note" id="lic-up" style="margin:6px 0 0">{fillx(w.create.inheritsFrom, { shwarm: <Plain text={t.root.title} />, license: licenseName(branch.license) })}</p>
                   )}
                   {upstream && (
-                    <p class="note" id="lic-up" style="margin:6px 0 0">takes the upstream license: whatever <Plain text={upstream.title} /> is published under.</p>
+                    <p class="note" id="lic-up" style="margin:6px 0 0">{fillx(w.create.takesUpstream, { shwarm: <Plain text={upstream.title} /> })}</p>
                   )}
                 </div>
               </div>
               <div class="go">
-                <span class="note" id="go-note">{w.goNote} <b id="fixed-note">{FIXED_NOTE}</b></span>
-                <button class="btn" type="submit" id="go">{w.go}</button>
+                <span class="note" id="go-note">{t.goNote} <b id="fixed-note">{fixedNote()}</b></span>
+                <button class="btn" type="submit" id="go">{t.go}</button>
               </div>
             </form>
           )}
         </main>
         <aside>
           <div class="box">
-            <h2>the rules <span>that's all of them</span></h2>
+            <h2>{w.create.rules} <span>{w.create.rulesAll}</span></h2>
             <div class="in">
               <ol class="rules">
-                <li><b>checkable.</b> say how anyone can tell it's done.</li>
-                <li><b>open.</b> everything made is published under an open license.</li>
-                <li><b>harmless.</b> nothing here hurts people.</li>
+                <li><b>{w.create.ruleCheckable}</b>{w.create.ruleCheckableText}</li>
+                <li><b>{w.create.ruleOpen}</b>{w.create.ruleOpenText}</li>
+                <li><b>{w.create.ruleHarmless}</b>{w.create.ruleHarmlessText}</li>
               </ol>
-              <p class="note">an automatic check reads every new shwarm and branch before anyone else sees it. it only looks for harm, never at whether an idea is good. {/* OPEN: new wording, the link. */}<a href="/triage">its rubric is public.</a></p>
+              {/* OPEN: new wording, the link. */}
+              <p class="note">{fillx(w.create.triageNote, { rubric: <a href="/triage">{w.create.triageRubric}</a> })}</p>
             </div>
           </div>
           <AgentResources />
@@ -348,7 +350,7 @@ const bad = (m: string) => new ShwarmError('bad_request', m)
 function whole(v: string | undefined, what: string, fallback?: number): number {
   if ((v === undefined || v.trim() === '') && fallback !== undefined) return fallback
   const n = Number(v)
-  if (!Number.isInteger(n)) throw bad(`${what} is a whole number`)
+  if (!Number.isInteger(n)) throw bad(fill(w.create.wholeNumber, { field: what }))
   return n
 }
 
@@ -358,8 +360,8 @@ export const parseTagField = (s: string | undefined) => (s ?? '').split(/[\s,]+/
 /** The form's check boxes as a check spec for parseCheckSpec. */
 export function checkFromForm(f: CreateForm): Record<string, unknown> {
   const check: Record<string, unknown> = { author: f.c_author === 'on' }
-  if (f.c_runs === 'on') check.runs = { command: f.command ?? '', count: whole(f.runs, 'runs', DEFAULT_RUNS) }
-  if (f.c_people === 'on') check.people = { count: whole(f.people, 'people', 2), human: f.human === 'on', instructions: f.instructions ?? '' }
+  if (f.c_runs === 'on') check.runs = { command: f.command ?? '', count: whole(f.runs, w.create.runs, DEFAULT_RUNS) }
+  if (f.c_people === 'on') check.people = { count: whole(f.people, w.create.people, 2), human: f.human === 'on', instructions: f.instructions ?? '' }
   return check
 }
 
@@ -416,11 +418,11 @@ export async function buildsOnFromForm(f: CreateForm, origin: string, get: Fetch
   const path = shwarmPathOf(raw, origin)
   if (path !== null) return path
   const url = asUrl(raw)
-  if (!url) throw bad('builds on is a link, or the path of a passed shwarm')
-  if (url.protocol !== 'https:' && url.protocol !== 'http:') throw bad('builds on is a web link')
+  if (!url) throw bad(w.create.buildsOnNotLink)
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') throw bad(w.create.buildsOnNotWeb)
   const gh = await githubRepo(url, get)
   const license = gh?.license ?? typed
-  if (!license) throw new ShwarmError('bad_license', gh ? `${gh.name} doesn't name a license on github. type the license it uses` : 'type the license the project you build on uses')
+  if (!license) throw new ShwarmError('bad_license', gh ? fill(w.create.githubNoLicense, { name: gh.name }) : w.create.typeLicense)
   return { name: gh?.name ?? (name || url.hostname + url.pathname.replace(/\/+$/, '')), url: gh?.url ?? url.toString(), license }
 }
 
@@ -491,9 +493,12 @@ async function modeOf(
 /** Where this form lives: /new, or /new in its branch mode. */
 const formHref = (mode: Mode) => (mode.kind === 'branch' ? `/new?parent=${encodeURIComponent(mode.chain.node.path)}` : '/new')
 
-const PAUSED = 'new shwarms and branches are paused for a moment. posting, joining and checking still work.'
+const paused = () => w.create.paused
 
-const noNode = (c: C) => sendError(c, { status: 404, code: 'no_such_node', text: 'there is no shwarm or branch at this address.' }, 'html')
+const noNode = (c: C) => sendError(c, { status: 404, code: 'no_such_node', text: w.create.noNode }, 'html')
+
+/** The refusal for a fourth new node today, read out here: in the handlers `w` is the viewer, not the word list. */
+const tooMany = (wait: number) => fill(w.create.rateLimited, { wait: waitText(wait) })
 
 create.get('/new', async c => {
   c.header('Cache-Control', 'private, no-store')
@@ -509,7 +514,7 @@ create.get('/new', async c => {
   if (!m) return noNode(c as C)
   // Paused (setting pause_new_nodes, kept on in production until triage runs there): say so before the form is filled.
   if (!m.refused && (await readSettings(c.env.DB, ['pause_new_nodes'])).pause_new_nodes === true)
-    return page(c, <NewPage refused={PAUSED} verified={w.session.verified} mode={m.mode} />)
+    return page(c, <NewPage refused={paused()} verified={w.session.verified} mode={m.mode} />)
   const token = await formToken(c.env.CSRF_SECRET, w.session.id)
   // Building on an ended shwarm starts from its done test (decided Oct 9): kept word for word, the new shwarm shows on the
   // result page as challenging the pass; changed, it's built on it. OPEN (#92): only "done when" is filled, not its checks.
@@ -570,7 +575,7 @@ create.post('/new', async (c: C) => {
     if (e.code === 'rate_limited') {
       const wait = Number(e.details.retry_after) || 3600
       c.header('Retry-After', String(wait))
-      return again(`that's 3 new shwarms and branches today, the most for one person. you can start another in ${waitText(wait)}.`, 429)
+      return again(tooMany(wait), 429)
     }
     return again(sentence(e), 400)
   }

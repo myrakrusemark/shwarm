@@ -5,6 +5,7 @@ import { impactBar } from '../core/stats'
 import { defaultSort, loadFeed, queryText, sortsFor, TABS, type Feed, type FeedCard, type FeedSort, type FeedTab } from '../read/feed'
 import { ago, countNum, exactTime, perDay, shortNum } from '../render/numbers'
 import { LINK_REL, linkParts, Name, Text } from '../render/text'
+import { count, fill, fillx, w } from '../words'
 import { renderFrontDoor, renderFrontDoorJson } from '../render/front-door'
 import { pickFormat } from './format'
 import { HOLDING } from './holding'
@@ -72,33 +73,32 @@ const nodeHref = (path: string) => `/w/${path.split('/').map(encodeURIComponent)
 
 // ---------- the page ----------
 
-const TAGLINE = 'people + their agents, working on things in the open.'
-
 // The sort line's words: the ones the cards already use. "active" is the posts/day number.
-const SORT_LABEL: Record<FeedSort, string> = { people: 'people', hot: 'hot', new: 'new', upvotes: 'upvotes', active: 'posts/day' }
+const sortLabel = (): Record<FeedSort, string> => ({ people: w.feed.sortPeople, hot: w.feed.sortHot, new: w.feed.sortNew, upvotes: w.feed.sortUpvotes, active: w.feed.sortActive })
+const tabLabel = (): Record<FeedTab, string> => ({ live: w.feed.tabLive, closed: w.feed.tabClosed })
 
 export const FeedPage: FC<{ feed: Feed; now: number }> = ({ feed, now }) => {
   const q = queryText(feed.query)
   // Only the bare feed is home. A search, another tab or sort or a later page keeps the logo as its way back to '/'.
   const home = feed.tab === 'live' && feed.sort === defaultSort('live') && !q && !feed.paged
   return (
-    <Layout title="shwarm" description={TAGLINE} home={home}>
+    <Layout title={w.feed.pageTitle} description={w.feed.description} home={home}>
       <link rel="stylesheet" href="/css/feed.css" />
       <main id="main" tabindex={-1}>
-        <nav class="order" aria-label="sort">
-          sort:
+        <nav class="order" aria-label={w.feed.sortLabel}>
+          {w.feed.sortBy}
           {sortsFor(feed.tab).map(s => (
-            <a class={s === feed.sort ? 'on' : undefined} href={feedHref(feed.tab, q, null, s)} aria-current={s === feed.sort ? 'page' : undefined}>{SORT_LABEL[s]}</a>
+            <a class={s === feed.sort ? 'on' : undefined} href={feedHref(feed.tab, q, null, s)} aria-current={s === feed.sort ? 'page' : undefined}>{sortLabel()[s]}</a>
           ))}
         </nav>
-        <nav class="sort" aria-label="feed">
+        <nav class="sort" aria-label={w.feed.tabsLabel}>
           {TABS.map(t => (
-            <a class={t === feed.tab ? 'on' : undefined} href={feedHref(t, q)} aria-current={t === feed.tab ? 'page' : undefined}>{t}</a>
+            <a class={t === feed.tab ? 'on' : undefined} href={feedHref(t, q)} aria-current={t === feed.tab ? 'page' : undefined}>{tabLabel()[t]}</a>
           ))}
           <form class="q" method="get" action="/" role="search">
             {feed.tab !== 'live' && <input type="hidden" name="tab" value={feed.tab} />}
             {feed.sort !== defaultSort(feed.tab) && <input type="hidden" name="sort" value={feed.sort} />}
-            <input name="q" value={q} placeholder="search or #tags…" aria-label="search" maxlength={200} />
+            <input name="q" value={q} placeholder={w.feed.searchPlaceholder} aria-label={w.feed.searchLabel} maxlength={200} />
           </form>
         </nav>
         {feed.cards.length ? (
@@ -110,7 +110,7 @@ export const FeedPage: FC<{ feed: Feed; now: number }> = ({ feed, now }) => {
         ) : (
           <Empty feed={feed} q={q} />
         )}
-        {feed.next && <a class="more" href={feedHref(feed.tab, q, feed.next, feed.sort)}>more ↓</a>}
+        {feed.next && <a class="more" href={feedHref(feed.tab, q, feed.next, feed.sort)}>{w.feed.more}</a>}
       </main>
     </Layout>
   )
@@ -122,13 +122,18 @@ const Empty: FC<{ feed: Feed; q: string }> = ({ feed, q }) => {
   return (
     <div class="feed empty">
       {feed.paged ? (
-        <p>that's all of them. <a href={feedHref(feed.tab, q, null, feed.sort)}>back to the top</a></p>
+        <p>{fillx(w.feed.endOfList, { link: <a href={feedHref(feed.tab, q, null, feed.sort)}>{w.feed.backToTop}</a> })}</p>
       ) : q ? (
-        <p>no shwarms match that search. <a href={feedHref(feed.tab, '', null, feed.sort)}>clear the search</a></p>
+        <p>{fillx(w.feed.noMatch, { link: <a href={feedHref(feed.tab, '', null, feed.sort)}>{w.feed.clearSearch}</a> })}</p>
       ) : feed.tab === 'closed' ? (
-        <p>nothing has closed yet. a shwarm shows up here when its done test passes, or when its author calls it a dead end.</p>
+        <p>{w.feed.noneClosed}</p>
       ) : (
-        <p>nothing is live right now. <a href={feedHref('closed')}>see what closed</a>{soon ? '.' : <> or <a href="/new">start a shwarm</a></>}</p>
+        <p>
+          {fillx(soon ? w.feed.noneLiveSoon : w.feed.noneLive, {
+            closed: <a href={feedHref('closed')}>{w.feed.seeClosed}</a>,
+            start: <a href="/new">{w.feed.startShwarm}</a>,
+          })}
+        </p>
       )}
     </div>
   )
@@ -147,12 +152,12 @@ const Tags: FC<{ tags: string[] }> = ({ tags }) => (
 )
 
 const BuildsOn: FC<{ b: NonNullable<FeedCard['buildsOn']> }> = ({ b }) => {
-  if (b.path) return <> · builds on <a class="up" href={nodeHref(b.path)}><Name name={b.name} /></a></>
+  if (b.path) return <> · {fillx(w.feed.buildsOn, { shwarm: <a class="up" href={nodeHref(b.path)}><Name name={b.name} /></a> })}</>
   const link = b.url ? linkParts(b.url) : null
   return link ? (
-    <> · builds on <a class="up" href={link.href} rel={LINK_REL}><Name name={b.name} /></a></>
+    <> · {fillx(w.feed.buildsOn, { shwarm: <a class="up" href={link.href} rel={LINK_REL}><Name name={b.name} /></a> })}</>
   ) : (
-    <> · builds on <Name name={b.name} /></>
+    <> · {fillx(w.feed.buildsOn, { shwarm: <Name name={b.name} /> })}</>
   )
 }
 
@@ -160,9 +165,9 @@ const BuildsOn: FC<{ b: NonNullable<FeedCard['buildsOn']> }> = ({ b }) => {
 const Heat: FC<{ card: FeedCard; mark: boolean }> = ({ card, mark }) => {
   const q = Math.round(impactBar(card.impact) * 10) / 10
   return (
-    <div class="heat" title="upvotes on posts in this thread">
-      ▲<br />{shortNum(card.upvotes)}<small>{card.upvotes === 1 ? 'upvote' : 'upvotes'}</small>
-      {mark && <span class="qbar" style={`--q:${q}`} title={`▲${(Math.round(card.impact * 10) / 10).toFixed(1)} per post`}></span>}
+    <div class="heat" title={w.feed.upvotesTitle}>
+      ▲<br />{shortNum(card.upvotes)}<small>{count(w.feed.upvotes, card.upvotes)}</small>
+      {mark && <span class="qbar" style={`--q:${q}`} title={fill(w.feed.impactTitle, { n: (Math.round(card.impact * 10) / 10).toFixed(1) })}></span>}
     </div>
   )
 }
@@ -178,7 +183,7 @@ const Title: FC<{ card: FeedCard }> = ({ card }) => (
   <>
     <a class="title" href={nodeHref(card.path)}><Name name={card.title} /></a>
     {card.hot && (
-      <span class="hotb" title={card.surge ? `thread upvotes today are ${card.surge.toFixed(1)}× its 7-day average` : 'thread upvotes today are well above its 7-day average'}>hot</span>
+      <span class="hotb" title={card.surge ? fill(w.feed.hotTitle, { times: card.surge.toFixed(1) }) : w.feed.hotTitleNoNumber}>{w.feed.hot}</span>
     )}
   </>
 )
@@ -190,22 +195,22 @@ export const Card: FC<{ card: FeedCard; now: number }> = ({ card, now }) => {
       <Heat card={card} mark={!dead} />
       <div>
         <Title card={card} />
-        <div class="done">Done when: <Text inline text={card.doneWhen} /></div>
+        <div class="done">{fillx(w.feed.doneWhen, { test: <Text inline text={card.doneWhen} /> })}</div>
         <Say card={card} />
         <div class="meta">
           <Tags tags={card.tags} />
           {dead ? (
-            <> · <Name name={card.postedBy} />{card.people > 1 && ` + ${countNum(card.people - 1)}`}</>
+            <> · <Name name={card.postedBy} />{card.people > 1 && fill(w.feed.deadOthers, { n: countNum(card.people - 1) })}</>
           ) : (
             <>
-              {card.buildsOn && <BuildsOn b={card.buildsOn} />} · {countNum(card.people)} {card.people === 1 ? 'person' : 'people'} · {perDay(card.postsPerDay)} posts/day
+              {card.buildsOn && <BuildsOn b={card.buildsOn} />} · {count(w.feed.people, card.people, { n: countNum(card.people) })} · {fill(w.feed.postsPerDay, { n: perDay(card.postsPerDay) })}
             </>
           )}{' '}
           · <Ago at={card.at} now={now} />
         </div>
       </div>
       <div class="right">
-        {card.state === 'live' ? <span class="st live">live</span> : card.state === 'closed' ? <span class="st done">closed</span> : <span class="st dead">dead end</span>}
+        {card.state === 'live' ? <span class="st live">{w.feed.live}</span> : card.state === 'closed' ? <span class="st done">{w.feed.closed}</span> : <span class="st dead">{w.feed.deadEnd}</span>}
       </div>
     </li>
   )

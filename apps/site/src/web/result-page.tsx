@@ -9,9 +9,10 @@ import type { Link } from '@shwarm/protocol'
 import type { Chain } from '../read/node'
 import type { LogPage, LogRow } from '../read/log'
 import type { BuiltOnThis, Credits, Result } from '../read/result'
-import { cut, licenseName, monthDay, plural, q1 } from '../render/format'
+import { cut, licenseName, monthDay, q1 } from '../render/format'
 import { showHidden } from '../render/hidden'
 import { LINK_REL, linkParts, Name, Plain, Text } from '../render/text'
+import { count, fill, fillx, w } from '../words'
 import { feedHref } from './feed'
 import { AgentResources, Layout } from './layout'
 import { buildOnHref, doneCard, linkView, nodeHref, parseLinks, Pill, Proof, subHref, type Me, TriageNote, PausedNote } from './node-page'
@@ -39,10 +40,10 @@ export const ResultPage: FC<{ d: ResultPageData }> = ({ d }) => {
   const challenged = d.builtOnThis.filter(b => b.challenges)
   const builtOn = d.builtOnThis.filter(b => !b.challenges)
   return (
-    <Layout title={`${showHidden(n.title)} · done · shwarm`} description={cut(showHidden(n.what), 200)} canonical={nodeHref(n.path)} card={doneCard(n)}>
+    <Layout title={fill(w.result.pageTitle, { title: showHidden(n.title) })} description={cut(showHidden(n.what), 200)} canonical={nodeHref(n.path)} card={doneCard(n)}>
       <link rel="stylesheet" href="/css/node.css" />
       <link rel="stylesheet" href="/css/result.css" />
-      <a class="back" href={feedHref('closed')}>← back to closed</a>
+      <a class="back" href={feedHref('closed')}>{w.result.backToClosed}</a>
       {n.visibility === 'author' && <TriageNote triage={n.triage} />}
       {/* A passed shwarm can be flagged from its thread (?thread=1) and paused (core/flags.ts): say so here too. */}
       {n.paused === 1 && <PausedNote kind={n.kind} />}
@@ -55,20 +56,20 @@ export const ResultPage: FC<{ d: ResultPageData }> = ({ d }) => {
           <LogBox d={d} />
           <p class="note thread-link">
             {/* OPEN (#92): "it's locked." replaces the mockup's "it stays open for repros…"; it waits on Myra's yes. */}
-            <a href={threadHref(n.path)}>read the whole thread ({plural(d.result.posts, 'post', 'posts')}) →</a> · it's locked.
+            {fillx(w.result.threadLine, { link: <a href={threadHref(n.path)}>{fill(w.result.readThread, { posts: count(w.result.posts, d.result.posts) })}</a> })}
           </p>
         </main>
         <aside>
           <div class="box next">
-            <h2 class="sunny">what's next</h2>
+            <h2 class="sunny">{w.result.whatsNext}</h2>
             <div class="in">
-              <a class="btn" href={buildOnHref(n.path)}>build on this</a>
+              <a class="btn" href={buildOnHref(n.path)}>{w.result.buildOnThis}</a>
               {/* OPEN (#92): the second sentence replaces the mockup's repro line; it waits on Myra's yes. */}
-              <p class="note">building on it starts a new shwarm that uses this result. think it doesn't really pass? build on it with the same done test.</p>
+              <p class="note">{w.result.buildOnNote}</p>
             </div>
           </div>
-          <NodeList title="challenged by" nodes={challenged} now={d.now} />
-          <NodeList title="built on this" nodes={builtOn} now={d.now} />
+          <NodeList title={w.result.challengedBy} nodes={challenged} now={d.now} />
+          <NodeList title={w.result.builtOnThis} nodes={builtOn} now={d.now} />
           <AgentResources />
         </aside>
       </div>
@@ -98,21 +99,20 @@ const DoneHead: FC<{ d: ResultPageData }> = ({ d }) => {
   return (
     <section class="done-head">
       <div>
-        <span class="donebadge">✓ done · {monthDay(n.closed_at)}</span>
+        <span class="donebadge">{fill(w.result.doneBadge, { date: monthDay(n.closed_at) })}</span>
         <h1><Text inline text={n.title} /></h1>
         <div class="meta">
-          started by <Name name={n.posted_by} link />
-          {days && <> · {plural(days, 'day', 'days')}, start to finish</>}
+          {fillx(w.result.startedBy, { name: <Name name={n.posted_by} link /> })}
+          {days && <> · {fill(w.result.startToFinish, { days: count(w.result.days, days) })}</>}
           {up && (
             <>
-              {' '}· builds on{' '}
-              {up.href ? <a class="up" href={up.href} rel={up.out ? LINK_REL : undefined}><Plain text={up.text} /></a> : <Plain text={up.text} />}
+              {' '}· {fillx(w.result.buildsOn, { shwarm: up.href ? <a class="up" href={up.href} rel={up.out ? LINK_REL : undefined}><Plain text={up.text} /></a> : <Plain text={up.text} /> })}
             </>
           )}
         </div>
-        <div class="passed"><b>done when · passed</b><Text text={n.done_when} /></div>
+        <div class="passed"><b>{w.result.doneWhenPassed}</b><Text text={n.done_when} /></div>
       </div>
-      <div><span class="st done">closed</span></div>
+      <div><span class="st done">{w.result.closed}</span></div>
     </section>
   )
 }
@@ -128,29 +128,29 @@ const ResultBox: FC<{ d: ResultPageData }> = ({ d }) => {
   const from = bo ? ('node' in bo ? bo.title ?? bo.node : bo.name) : null
   return (
     <div class="box result">
-      <h2 class="sunny">the result <span>submission #{sub.number}, the version that passed</span></h2>
+      <h2 class="sunny">{w.result.theResult} <span>{fill(w.result.theVersion, { n: sub.number })}</span></h2>
       <div class="in">
         <div>
           <h3><Plain text={sub.release_title || n.title} /></h3>
           <div class="sum"><Text text={sub.text} /></div>
-          <div class="src">from <a href={subHref(n.path, sub.number)}>submission #{sub.number}</a>, by <Name name={sub.as_name} link /></div>
+          <div class="src">{fillx(w.result.from, { link: <a href={subHref(n.path, sub.number)}>{fill(w.result.submissionNumber, { n: sub.number })}</a>, name: <Name name={sub.as_name} link /> })}</div>
           <dl class="kv">
-            <dt>version</dt>
+            <dt>{w.result.version}</dt>
             <dd>
               {sub.release_version && <><Plain text={sub.release_version} /> · </>}
-              <code title={`sha256 ${sub.hash}`}>{shortHash(sub.hash)}</code> · the exact build the checks ran
+              {fillx(w.result.exactBuild, { hash: <code title={fill(w.result.hashTitle, { full: sub.hash })}>{shortHash(sub.hash)}</code> })}
             </dd>
             {links.length > 0 && (
               <>
-                <dt>fingerprint</dt>
+                <dt>{w.result.fingerprint}</dt>
                 <dd>{links.map((l, i) => <>{i > 0 && <br />}<Print l={l} /></>)}</dd>
               </>
             )}
-            <dt>license</dt>
-            <dd><Plain text={licenseName(n.license)} />{from && <>, from <Plain text={from} /></>}</dd>
+            <dt>{w.result.license}</dt>
+            <dd><Plain text={licenseName(n.license)} />{from && <>{fillx(w.result.licenseFrom, { name: <Plain text={from} /> })}</>}</dd>
             {sub.release_how_to_use && (
               <>
-                <dt>how to use</dt>
+                <dt>{w.result.howToUse}</dt>
                 <dd><Text text={sub.release_how_to_use} /></dd>
               </>
             )}
@@ -162,11 +162,11 @@ const ResultBox: FC<{ d: ResultPageData }> = ({ d }) => {
               {links.map((l, i) => {
                 const v = linkView(l)
                 return v.p ? (
-                  <a class={i === 0 ? 'btn' : 'btn plain'} href={v.p.href} rel={LINK_REL}><Plain text={v.label} /> on <Plain text={v.host} /> ↗</a>
+                  <a class={i === 0 ? 'btn' : 'btn plain'} href={v.p.href} rel={LINK_REL}>{fillx(w.result.linkButton, { label: <Plain text={v.label} />, host: <Plain text={v.host} /> })}</a>
                 ) : null
               })}
             </div>
-            <p class="note">these links leave shwarm. shwarm keeps the text and the links; the files live where the crew put them.</p>
+            <p class="note">{w.result.linksLeave}</p>
           </>
         )}
       </div>
@@ -177,7 +177,11 @@ const ResultBox: FC<{ d: ResultPageData }> = ({ d }) => {
 /** One link's pin: "sha256 9c4e07b2…a71f · of mid-v1.pk3", or "commit e9b41d0 · of kestrel/mcdoom". */
 const Print: FC<{ l: Link }> = ({ l }) => {
   const label = <Plain text={linkView(l).label} />
-  return 'sha256' in l ? <>sha256 <code title={l.sha256}>{shortSha(l.sha256)}</code> · of {label}</> : <>commit <code title={l.commit}>{l.commit.slice(0, 7)}</code> · of {label}</>
+  return 'sha256' in l ? (
+    <>{fillx(w.result.printSha, { hash: <code title={l.sha256}>{shortSha(l.sha256)}</code>, name: label })}</>
+  ) : (
+    <>{fillx(w.result.printCommit, { commit: <code title={l.commit}>{l.commit.slice(0, 7)}</code>, name: label })}</>
+  )
 }
 
 const WhoMadeIt: FC<{ credits: Credits }> = ({ credits }) => {
@@ -188,15 +192,15 @@ const WhoMadeIt: FC<{ credits: Credits }> = ({ credits }) => {
         <td class="rk">{o.rank}</td>
         <td>{o.who}</td>
         <td class="n">{o.upvotes.toLocaleString('en-US')} ▲</td>
-        <td class="n"><span class="imp" style={`--q:${q1(q)}`} title={`▲${q1(q)} per post · ${plural(o.posts, 'post', 'posts')}`}>{o.posts.toLocaleString('en-US')}</span></td>
+        <td class="n"><span class="imp" style={`--q:${q1(q)}`} title={fill(w.result.impactTitle, { n: q1(q), posts: count(w.result.posts, o.posts) })}>{o.posts.toLocaleString('en-US')}</span></td>
       </tr>
     )
   }
   return (
     <div class="box">
-      <h2>who made it <span>ranked by impact</span></h2>
+      <h2>{w.result.whoMadeIt} <span>{w.result.rankedByImpact}</span></h2>
       <table class="credit">
-        <thead><tr><th></th><th>person and role</th><th class="n">upvotes</th><th class="n">▲ per post · posts</th></tr></thead>
+        <thead><tr><th></th><th>{w.result.personAndRole}</th><th class="n">{w.result.upvotes}</th><th class="n">{w.result.perPostPosts}</th></tr></thead>
         <tbody>
           {credits.rows.map(c =>
             row({
@@ -212,10 +216,10 @@ const WhoMadeIt: FC<{ credits: Credits }> = ({ credits }) => {
               ),
             }),
           )}
-          {credits.more && row({ rank: '', posts: credits.more.posts, upvotes: credits.more.upvotes, who: <>+ {credits.more.people} more</> })}
+          {credits.more && row({ rank: '', posts: credits.more.posts, upvotes: credits.more.upvotes, who: <>{fill(w.result.more, { n: credits.more.people })}</> })}
         </tbody>
       </table>
-      <div class="in rule"><p class="note">one row per person, their agents included. ranked by upvotes on their posts across the shwarm and its branches. yellow tags mark the decisive work.</p></div>
+      <div class="in rule"><p class="note">{w.result.creditNote}</p></div>
     </div>
   )
 }
@@ -231,16 +235,16 @@ const LogBox: FC<{ d: ResultPageData }> = ({ d }) => {
   const rows: LogRow[] = [...d.log.rows].reverse()
   return (
     <div class="box log-box">
-      <h2>log <span>every event, as recorded</span></h2>
+      <h2>{w.result.log} <span>{w.result.everyEvent}</span></h2>
       <table class="log">
-        <thead><tr><th>when (utc)</th><th>event</th><th>node</th><th>by</th><th>detail</th></tr></thead>
+        <thead><tr><th>{w.result.logWhen}</th><th>{w.result.logEvent}</th><th>{w.result.logNode}</th><th>{w.result.logBy}</th><th>{w.result.logDetail}</th></tr></thead>
         <tbody>
           {rows.map(e => (
             <tr>
               <td class="when">{monthDay(e.at, true)}</td>
               <td><span class={EV_CLASS[e.event] ?? 'ev'}>{e.event.replace('_', ' ')}</span></td>
               <td class="node"><Plain text={e.title} /></td>
-              <td class="by">{e.by ? <Name name={e.by} link /> : e.number !== null ? `submission #${e.number}` : '—'}</td>
+              <td class="by">{e.by ? <Name name={e.by} link /> : e.number !== null ? fill(w.result.submissionNumber, { n: e.number }) : '—'}</td>
               <td><a href={e.evidence}><Plain text={e.detail} /></a></td>
             </tr>
           ))}
@@ -248,8 +252,15 @@ const LogBox: FC<{ d: ResultPageData }> = ({ d }) => {
       </table>
       <div class="in rule foot">
         {/* OPEN (#81): "all" goes to the JSON; an HTML view of every event isn't decided. */}
-        <span class="note">showing {rows.length} of {plural(d.log.all, 'event', 'events')} · filter: <b>key events</b> · <a href={logHref(n.path, 'all')}>all</a></span>
-        <a href={logHref(n.path, 'all')}>full log (json) →</a>
+        <span class="note">
+          {fillx(w.result.logShowing, {
+            shown: rows.length,
+            total: count(w.result.events, d.log.all),
+            filter: <b>{w.result.keyEvents}</b>,
+            all: <a href={logHref(n.path, 'all')}>{w.result.all}</a>,
+          })}
+        </span>
+        <a href={logHref(n.path, 'all')}>{w.result.fullLog}</a>
       </div>
     </div>
   )
