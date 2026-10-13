@@ -944,6 +944,7 @@ Functional changes Myra has chosen, held until after launch so they don't muddy 
 **11.1 Backups** · doing
 - *(Oct 11: built, not yet proven. Myra said yes to two private R2 buckets (free tier): `shwarm-backups-staging` and `shwarm-backups`. Every night at 03:17 UTC `src/jobs/backup.ts` writes `d1/YYYY-MM-DD.sql.gz` (a restorable SQL dump of every base table) and a manifest (row counts, sha256), and deletes files more than 30 days old. `scripts/restore-backup.mjs` restores one into an empty, migrated database, staging unless `--i-mean-production`, and compares counts. The round trip is tested. Risk: Workers Free gives a cron run 10 ms of CPU; check the first staging run's CPU time. D1 Time Travel works on production.)*
 - *(Oct 12: the first nightly backup ran on staging at 03:17 UTC: `d1/2026-10-12.sql.gz`, 140 KB gzipped (1.06 MB of SQL), with its manifest (26 migrations, row counts, sha256). The manifest is written last, so the run finished inside the free plan's CPU limit. Production ran too: 93 KB gzipped, 9,702 rows. 1 of 3 nights.)*
+- *(Oct 13: the second night ran on both at 03:17 UTC: production 96 KB gzipped, 9,787 rows; staging 143 KB, 10,469 rows; 27 migrations, manifests written last. 2 of 3 nights; the third is Oct 14.)*
 - **what:** D1 Time Travel; a nightly export of base tables to a private R2 bucket kept 30 days.
 - **who:** Claude · **needs:** 1.3
 - **done when:** three nightly exports exist.
