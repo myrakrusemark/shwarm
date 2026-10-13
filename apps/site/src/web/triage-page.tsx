@@ -19,6 +19,7 @@ import { pickFormat } from './format'
 import { AgentResources, Layout } from './layout'
 import { overReadCap } from './read-limit'
 import { page } from './viewer'
+import { fill, fillx, w } from '../words'
 
 type Env = { Bindings: { DB: D1Database; CSRF_SECRET: string; ENV?: string; SITE_MODE?: string; TRIAGE_MODEL?: string } }
 export const triagePage = new Hono<Env>()
@@ -169,15 +170,15 @@ function asText(model: string, rows: DecisionRow[], older: number | null, first:
 // ---------- the page ----------
 
 const On: FC<{ r: DecisionRow; links: boolean }> = ({ r, links }) => {
-  if (!r.node) return <>a shwarm</>
-  if (!r.shown) return <>{r.node}<span class="mk"> (taken down)</span></>
+  if (!r.node) return <>{w.pages.aShwarm}</>
+  if (!r.shown) return <>{r.node}<span class="mk">{w.pages.takenDown}</span></>
   return links ? <a href={`/w/${r.node}`}>{r.node}</a> : <>{r.node}</>
 }
 
 const DecisionTable: FC<{ rows: DecisionRow[]; links: boolean }> = ({ rows, links }) => (
   <table class="adm modlog">
     {/* OPEN: new wording, the column names. */}
-    <thead><tr><th>date</th><th>on</th><th>answer</th><th>outcome</th><th>category</th><th>reason</th><th>by</th></tr></thead>
+    <thead><tr><th>{w.pages.colDate}</th><th>{w.pages.colOn}</th><th>{w.pages.colAnswer}</th><th>{w.pages.colOutcome}</th><th>{w.pages.colCategory}</th><th>{w.pages.colReason}</th><th>{w.pages.colBy}</th></tr></thead>
     <tbody>
       {rows.map(r => (
         <tr id={`t${r.id}`}>
@@ -196,70 +197,76 @@ const DecisionTable: FC<{ rows: DecisionRow[]; links: boolean }> = ({ rows, link
 
 const TriagePage: FC<{ model: string; rows: DecisionRow[]; older: number | null; first: boolean; links: boolean }> = ({ model, rows, older, first, links }) => {
   const toc: [string, string][] = first
-    ? [['how', 'how it works'], ['blocks', 'the hard blocks'], ['questions', 'the questions'], ['request', 'a whole request'], ['log', 'the decisions']]
-    : [['log', 'older decisions']]
+    ? [['how', w.pages.triageHow], ['blocks', w.pages.triageBlocks], ['questions', w.pages.triageQuestions], ['request', w.pages.triageRequest], ['log', w.pages.triageDecisions]]
+    : [['log', w.pages.triageOlder]]
   return (
     // OPEN: new wording, the whole page.
-    <Layout title="triage · shwarm" description="what the automatic check on every new shwarm and branch is asked, and every decision it and @myra made." canonical="/triage">
+    <Layout title={fill(w.pages.title, { page: w.pages.triageTitle })} description={w.pages.triageDescription} canonical="/triage">
       <link rel="stylesheet" href="/css/admin.css" />
       <div class="dochead">
-        <h1>triage</h1>
-        <p>the automatic check that reads every new shwarm and branch: what it's asked, word for word, and every decision it made. newest first.</p>
+        <h1>{w.pages.triageTitle}</h1>
+        <p>{w.pages.triageIntro}</p>
       </div>
       <div class="doc">
         <article id="main" tabindex={-1}>
           {first && (
             <>
               <section id="how">
-                <h2>how it works</h2>
+                <h2>{w.pages.triageHow}</h2>
                 {/* OPEN (decided Oct 12, no editing): "or edits one" dropped; waits on Myra's yes. */}
                 <div class="body">
-                  <p>when someone posts a shwarm or branch, a model reads it before anyone else sees it. it answers one question: does this aim at one of the hard blocks below? a "no" makes it public. a "yes" or "unsure" sends it to @myra, who clears it or blocks it. if the model doesn't answer within 10 minutes, it goes to @myra too.</p>
-                  <p>the check only looks for harm. it never judges whether an idea is good, small, odd or too ambitious.</p>
-                  <p>the model is <code>{model}</code>, run by cloudflare. this is version <code>{RUBRIC_VERSION}</code> of its questions. each decision below names the version it was made under.</p>
+                  <p>{w.pages.triageHowPosted}</p>
+                  <p>{w.pages.triageHowHarm}</p>
+                  <p>{fillx(w.pages.triageHowModel, { model: <code>{model}</code>, version: <code>{RUBRIC_VERSION}</code> })}</p>
                 </div>
               </section>
               <section id="blocks">
-                <h2>the hard blocks</h2>
+                <h2>{w.pages.triageBlocks}</h2>
                 <div class="body">
-                  <p>the same list the <a href="/rules">rules</a> give, as the model gets it:</p>
+                  <p>{fillx(w.pages.triageBlocksIntro, { rules: <a href="/rules">{w.pages.rulesLink}</a> })}</p>
                   <pre class="code">{RUBRIC}</pre>
                 </div>
               </section>
               <section id="questions">
-                <h2>the questions</h2>
+                <h2>{w.pages.triageQuestions}</h2>
                 <div class="body">
-                  <p>the model gets these exactly, every time. the first answers yes, no or unsure; the others score how likely each hard block is, which names the category.</p>
+                  <p>{w.pages.triageQuestionsIntro}</p>
                   <pre class="code">{JSON.stringify(triageQuestions(), null, 2)}</pre>
                 </div>
               </section>
               <section id="request">
-                <h2>a whole request</h2>
+                <h2>{w.pages.triageRequest}</h2>
                 <div class="body">
-                  <p>what the person wrote goes only in <code>state</code>, as data, never into a question. the words in angle brackets stand for theirs. a branch also gets <code>branch_of</code>, its parent's title.</p>
+                  <p>{fillx(w.pages.triageRequestIntro, { state: <code>state</code>, branchOf: <code>branch_of</code> })}</p>
                   <pre class="code">{JSON.stringify(clefRequest(model, EXAMPLE_NODE), null, 2)}</pre>
                 </div>
               </section>
             </>
           )}
           <section id="log">
-            <h2>{first ? 'the decisions' : 'older decisions'}</h2>
+            <h2>{first ? w.pages.triageDecisions : w.pages.triageOlder}</h2>
             <div class="body">
-              {first && <p>one row per answer. a shwarm or branch shows by its address, never by its words. one that was never public shows only as "a shwarm". a row by @myra is a decision she made by hand, with her reason.</p>}
-              {rows.length ? <DecisionTable rows={rows} links={links} /> : <p>{first ? 'no decisions yet.' : 'nothing older.'}</p>}
+              {first && <p>{w.pages.triageDecisionsIntro}</p>}
+              {rows.length ? <DecisionTable rows={rows} links={links} /> : <p>{first ? w.pages.triageEmpty : w.pages.nothingOlder}</p>}
               {(older !== null || !first) && (
                 <p class="modlog-more">
-                  {!first && <a href="/triage">newest</a>}
+                  {!first && <a href="/triage">{w.pages.newest}</a>}
                   {!first && older !== null && ' · '}
-                  {older !== null && <a href={`/triage?before=${older}`}>older decisions</a>}
+                  {older !== null && <a href={`/triage?before=${older}`}>{w.pages.triageOlder}</a>}
                 </p>
               )}
-              <p>the same is here for agents as json (<a href="/triage?format=json">?format=json</a>) and plain text (<a href="/triage?format=text">?format=text</a>). everything else @myra does is in the <a href="/moderation">moderation log</a>.</p>
+              <p>
+                {fillx(w.pages.triageAgents, {
+                  json: <a href="/triage?format=json">?format=json</a>,
+                  text: <a href="/triage?format=text">?format=text</a>,
+                  modlog: <a href="/moderation">{w.pages.triageModlogLink}</a>,
+                })}
+              </p>
             </div>
           </section>
         </article>
         <aside class="toc">
-          <div class="box"><h2>on this page</h2><ol>{toc.map(([id, h]) => <li><a href={`#${id}`}>{h}</a></li>)}</ol></div>
+          <div class="box"><h2>{w.pages.onThisPage}</h2><ol>{toc.map(([id, h]) => <li><a href={`#${id}`}>{h}</a></li>)}</ol></div>
           <AgentResources />
         </aside>
       </div>

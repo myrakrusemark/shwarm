@@ -20,6 +20,7 @@ import { FormExpiredPage, Turnstile } from './auth-pages'
 import { waitText } from './errors'
 import { Layout } from './layout'
 import { page } from './viewer'
+import { fill, fillx, w } from '../words'
 
 type Env = { Bindings: AuthEnv }
 type C = Context<Env>
@@ -34,28 +35,28 @@ const Err: FC<{ text?: string }> = ({ text }) => (text ? <p class="err" role="al
 export const ReportPage: FC<{ token: string; siteKey?: string; handle?: string; sent?: boolean; values?: Values; errors?: Errors; notice?: string }> = ({
   token, siteKey, handle, sent, values = {}, errors = {}, notice,
 }) => (
-  <Layout title="report something · shwarm">
+  <Layout title={fill(w.pages.title, { page: w.pages.reportTitle })}>
     <link rel="stylesheet" href="/css/auth.css" />
     <main id="main" tabindex={-1} class="auth report">
       <div class="box">
-        <h2>report something</h2>
-        {sent && <div class="msg ok" role="status">thanks. your report is in. the people who run shwarm read every one.</div>}
+        <h2>{w.pages.reportTitle}</h2>
+        {sent && <div class="msg ok" role="status">{w.pages.reportSent}</div>}
         {notice && <div class="msg ok" role="status">{notice}</div>}
         {errors.form && <div class="msg" role="alert">{errors.form}</div>}
         <div class="in">
-          <p>tell us about something on shwarm that breaks <a href="/rules">the rules</a> or the law. only the people who run shwarm see it.</p>
+          <p>{fillx(w.pages.reportIntro, { rules: <a href="/rules">{w.pages.reportRulesLink}</a> })}</p>
         </div>
         <form method="post" action="/report">
           <input type="hidden" name={FORM_FIELD} value={token} />
           <div class="f">
-            <label for="url">the address of what's wrong</label>
-            <p class="hint" id="url-hint">a shwarm, a branch or a post on shwarm. on a post, use its "report" link and this fills in.</p>
+            <label for="url">{w.pages.reportUrl}</label>
+            <p class="hint" id="url-hint">{w.pages.reportUrlHint}</p>
             <input id="url" name="url" type="text" value={values.url} maxlength={REPORT_URL_MAX} required aria-describedby="url-hint" aria-invalid={errors.url ? 'true' : undefined} spellcheck={false} autocapitalize="off" />
             <Err text={errors.url} />
           </div>
           <div class="f">
             <fieldset>
-              <legend class="lbl">what's wrong?</legend>
+              <legend class="lbl">{w.pages.reportReason}</legend>
               {REASONS.map(r => (
                 <label class="chk"><input type="radio" name="reason" value={r} required checked={values.reason === r || undefined} /> <span>{REASON_LABEL[r]}</span></label>
               ))}
@@ -63,23 +64,23 @@ export const ReportPage: FC<{ token: string; siteKey?: string; handle?: string; 
             <Err text={errors.reason} />
           </div>
           <div class="f">
-            <label for="text">in your words</label>
-            <p class="hint" id="text-hint">optional. up to {REPORT_TEXT_MAX} characters.</p>
+            <label for="text">{w.pages.reportText}</label>
+            <p class="hint" id="text-hint">{fill(w.pages.reportTextHint, { max: REPORT_TEXT_MAX })}</p>
             <textarea id="text" name="text" maxlength={REPORT_TEXT_MAX} aria-describedby="text-hint" aria-invalid={errors.text ? 'true' : undefined}>{values.text ?? ''}</textarea>
             <Err text={errors.text} />
           </div>
           <div class="f">
-            <label for="contact">your email</label>
+            <label for="contact">{w.pages.reportContact}</label>
             <p class="hint" id="contact-hint">
               {handle
-                ? `optional. you're signed in as @${handle}, so we can reach you through your account.`
-                : "optional, but we can't reply without it. it's never shown."}
+                ? fill(w.pages.reportContactSignedIn, { handle })
+                : w.pages.reportContactSignedOut}
             </p>
             <input id="contact" name="contact" type="email" value={values.contact} maxlength={CONTACT_MAX} autocomplete="email" aria-describedby="contact-hint" aria-invalid={errors.contact ? 'true' : undefined} spellcheck={false} autocapitalize="off" />
             <Err text={errors.contact} />
           </div>
           <Turnstile siteKey={siteKey} error={errors.turnstile} />
-          <div class="go"><span class="note">you can also write to <a href="mailto:abuse@shwarm.org">abuse@shwarm.org</a>.</span><button class="btn" type="submit">send report</button></div>
+          <div class="go"><span class="note">{fillx(w.pages.reportWriteTo, { email: <a href="mailto:abuse@shwarm.org">abuse@shwarm.org</a> })}</span><button class="btn" type="submit">{w.pages.reportSend}</button></div>
         </form>
       </div>
     </main>
@@ -99,34 +100,34 @@ const prefill = (v: string | undefined) => (v && v.length <= REPORT_URL_MAX && !
  * out). An unverified account is deleted after 7 days (auth/cleanup.ts), and report.person_id points at person, so a row
  * naming one would make that delete, and the whole hourly cleanup with it, fail.
  */
-const reporterOf = (w: { session: { personId: number; handle: string; verified: boolean } | null }) =>
-  w.session?.verified ? { personId: w.session.personId, handle: w.session.handle } : null
+const reporterOf = (me: { session: { personId: number; handle: string; verified: boolean } | null }) =>
+  me.session?.verified ? { personId: me.session.personId, handle: me.session.handle } : null
 
 report.get('/report', async c => {
-  const w = await who(c as unknown as AuthContext)
-  const token = await pageToken(c as unknown as AuthContext, w)
-  return render(c, <ReportPage token={token} siteKey={c.env.TURNSTILE_SITE_KEY} handle={reporterOf(w)?.handle} sent={c.req.query('sent') === '1'} values={{ url: prefill(c.req.query('url')) }} />)
+  const me = await who(c as unknown as AuthContext)
+  const token = await pageToken(c as unknown as AuthContext, me)
+  return render(c, <ReportPage token={token} siteKey={c.env.TURNSTILE_SITE_KEY} handle={reporterOf(me)?.handle} sent={c.req.query('sent') === '1'} values={{ url: prefill(c.req.query('url')) }} />)
 })
 
 report.post('/report', async c => {
   const ac = c as unknown as AuthContext
-  const w = await who(ac)
+  const me = await who(ac)
   const f = await formOf(c)
-  if (!(await postedTokenOk(ac, w, f))) return render(c, <FormExpiredPage />, 403)
+  if (!(await postedTokenOk(ac, me, f))) return render(c, <FormExpiredPage />, 403)
   const values: Values = { url: f.url, reason: f.reason, text: f.text, contact: f.contact }
   const again = async (errors: Errors, status: 200 | 400 | 429 = 400, notice?: string) =>
-    render(c, <ReportPage token={await pageToken(ac, w)} siteKey={c.env.TURNSTILE_SITE_KEY} handle={reporterOf(w)?.handle} values={values} errors={errors} notice={notice} />, status)
+    render(c, <ReportPage token={await pageToken(ac, me)} siteKey={c.env.TURNSTILE_SITE_KEY} handle={reporterOf(me)?.handle} values={values} errors={errors} notice={notice} />, status)
   if (!(await turnstileOk(c.env, f[TURNSTILE_FIELD], clientIp(c)))) return again({ turnstile: COPY.turnstile })
   // Per network, signed in or out: each report mails the admins.
   const wait = await bump(c.env.DB, `report:ip:${ipPrefix(clientIp(c)) ?? 'unknown'}`, LIMITS.reportIp)
   if (wait) {
     c.header('Retry-After', String(wait))
-    return again({ form: `too many reports from here. try again in ${waitText(wait)}.` }, 429)
+    return again({ form: fill(w.pages.reportTooMany, { wait: waitText(wait) }) }, 429)
   }
   try {
-    const by = reporterOf(w)
+    const by = reporterOf(me)
     const r = await reportForm(c.env.DB, { by, url: f.url, reason: f.reason, text: f.text, contact: f.contact, origin: new URL(c.req.url).origin, env: c.env.ENV })
-    if (r === 'already') return again({}, 200, 'you already reported this post.')
+    if (r === 'already') return again({}, 200, w.pages.reportAlready)
   } catch (e) {
     if (!(e instanceof ShwarmError)) throw e
     const field = e.details.field

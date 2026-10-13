@@ -1,4 +1,5 @@
 // Numbers and times as pages show them: "2.1k" upvotes, "1,210 posts/day", "2m ago".
+import { fill, w } from '../words'
 
 /**
  * Shortened for tight spots (the feed's upvote column): 940, 2.1k, 12k, 1.2m. Rounded down, so "1k" means at
@@ -31,18 +32,18 @@ export function ago(iso: string, now = Date.now()): string {
   const t = Date.parse(iso)
   if (!Number.isFinite(t)) return ''
   const s = Math.max(0, Math.floor((now - t) / 1000))
-  if (s < 60) return 'just now'
+  if (s < 60) return w.pages.justNow
   const m = Math.floor(s / 60)
-  if (m < 60) return `${m}m ago`
+  if (m < 60) return fill(w.pages.minutesAgo, { n: m })
   const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
+  if (h < 24) return fill(w.pages.hoursAgo, { n: h })
   const d = Math.floor(h / 24)
-  if (d < 365) return `${d}d ago`
-  return `${Math.floor(d / 365)}y ago`
+  if (d < 365) return fill(w.pages.daysAgo, { n: d })
+  return fill(w.pages.yearsAgo, { n: Math.floor(d / 365) })
 }
 
 /** The exact time for a title attribute: "2026-10-08 14:03 utc". */
 export const exactTime = (iso: string) => {
   const t = Date.parse(iso)
-  return Number.isFinite(t) ? new Date(t).toISOString().slice(0, 16).replace('T', ' ') + ' utc' : ''
+  return Number.isFinite(t) ? fill(w.pages.exactTime, { time: new Date(t).toISOString().slice(0, 16).replace('T', ' ') }) : ''
 }

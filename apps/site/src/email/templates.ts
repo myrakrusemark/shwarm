@@ -8,6 +8,7 @@ import { isReason, REASON_LABEL } from '../core/reports'
 import { FORMER } from '../read/names'
 import { plural } from '../render/format'
 import { termsDate } from '../core/terms'
+import { count as countOf, fill, w } from '../words'
 import type { MailStream, MailTemplate } from './outbox'
 
 // A pre block keeps its line breaks in the HTML part too (quoted text people wrote).
@@ -34,7 +35,7 @@ export function siteLink(siteUrl: string, link: unknown): string {
 }
 
 const HANDLE = /^[a-z0-9_]{2,32}$/
-const hi = (p: Record<string, unknown>) => (typeof p.handle === 'string' && HANDLE.test(p.handle) ? `hi @${p.handle},` : 'hi,')
+const hi = (p: Record<string, unknown>) => (typeof p.handle === 'string' && HANDLE.test(p.handle) ? fill(w.email.hi, { handle: p.handle }) : w.email.hiNoHandle)
 
 const num2 = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v.toFixed(2) : '?')
 const oneLine = (v: unknown, max = 120) => {
@@ -145,15 +146,13 @@ function signOffReady(p: Record<string, unknown>, site: string): Draft {
     }
   }
   return {
-    subject: `#${n} on ${title} is ready for your sign-off`,
+    subject: fill(w.email.signOffSubject, { n: n as number, title }),
     blocks: [
       hi(p),
-      p.only === true
-        ? `#${n} on ${title} is waiting on you. you're its only check.`
-        : `every other check on #${n} on ${title} has passed. yours is the last one.`,
-      'open the submission to pass it with what you checked, or fail it with a repro:',
+      fill(p.only === true ? w.email.signOffOnly : w.email.signOffLast, { n: n as number, title }),
+      w.email.signOffOpen,
       { href: siteLink(site, p.link) },
-      'nothing passes until you sign off. the work stays open to everyone meanwhile.',
+      w.email.signOffNothingPasses,
     ],
   }
 }
@@ -172,12 +171,12 @@ function mention(p: Record<string, unknown>, site: string): Draft {
   const by = nameOf(p.by)
   const title = titleOf(p)
   return {
-    subject: `${by} mentioned you on ${title}`,
+    subject: fill(w.email.mentionSubject, { by, title }),
     blocks: [
       hi(p),
-      `${by} mentioned you on ${title}:`,
-      quoted(`${by} wrote`, text(p, 'text')),
-      p.cut === true ? 'the post goes on. read it all and reply in its thread:' : 'reply in its thread:',
+      fill(w.email.mentionLine, { by, title }),
+      quoted(fill(w.email.wrote, { by }), text(p, 'text')),
+      p.cut === true ? w.email.mentionGoesOn : w.email.mentionReply,
       { href: siteLink(site, p.link) },
     ],
   }
@@ -196,15 +195,15 @@ function digest(p: Record<string, unknown>, site: string): Draft {
   if (!items.length) throw new MailRenderError('a digest with no items')
   const more = numberOf(p.more) ?? 0
   const total = items.length + more
-  const blocks: Block[] = [hi(p), total === 1 ? 'you were mentioned once since your last digest:' : `you were mentioned ${total} times since your last digest:`]
+  const blocks: Block[] = [hi(p), countOf(w.email.digestSince, total)]
   for (const i of items) {
     const by = nameOf(i.by)
     const t = [...String(i.text ?? '')]
-    blocks.push(`${by} on ${titleOf(i)}:`, quoted(`${by} wrote`, t.slice(0, DIGEST_CHARS).join('') + (t.length > DIGEST_CHARS ? ' …' : '')), { href: siteLink(site, i.link) })
+    blocks.push(fill(w.email.digestItem, { by, title: titleOf(i) }), quoted(fill(w.email.wrote, { by }), t.slice(0, DIGEST_CHARS).join('') + (t.length > DIGEST_CHARS ? ' …' : '')), { href: siteLink(site, i.link) })
   }
-  if (more && typeof p.handle === 'string' && HANDLE.test(p.handle)) blocks.push(`and ${more} more in your inbox:`, { href: `${base(site)}/@${p.handle}#addressed` })
-  blocks.push('this comes once a day. you can get each mention right away instead, in your account.')
-  return { subject: total === 1 ? 'you were mentioned on shwarm' : `you were mentioned ${total} times on shwarm`, blocks }
+  if (more && typeof p.handle === 'string' && HANDLE.test(p.handle)) blocks.push(fill(w.email.digestMore, { n: more }), { href: `${base(site)}/@${p.handle}#addressed` })
+  blocks.push(w.email.digestOnceADay)
+  return { subject: countOf(w.email.digestSubject, total), blocks }
 }
 
 /**
@@ -218,11 +217,11 @@ function nodeNews(p: Record<string, unknown>, site: string): Draft {
   const link = { href: siteLink(site, p.link) }
   if (p.event === 'passed') {
     if (n === null) throw new MailRenderError('bad number')
-    return { subject: `${title} passed`, blocks: [hi(p), `${title} passed on #${n}.`, 'see what passed:', link] }
+    return { subject: fill(w.email.passedSubject, { title }), blocks: [hi(p), fill(w.email.passedLine, { title, n }), w.email.passedSee, link] }
   }
   if (p.event === 'failed') {
     if (n === null) throw new MailRenderError('bad number')
-    return { subject: `#${n} on ${title} failed the author check`, blocks: [hi(p), `#${n} on ${title} failed the author check. every check starts over.`, 'see why:', link] }
+    return { subject: fill(w.email.failedSubject, { n, title }), blocks: [hi(p), fill(w.email.failedLine, { n, title }), w.email.failedSee, link] }
   }
   throw new MailRenderError('bad event')
 }
@@ -242,14 +241,12 @@ function keyNewNetwork(p: Record<string, unknown>, site: string): Draft {
   if (!Number.isFinite(at)) throw new MailRenderError('bad time')
   const when = new Date(at).toISOString().slice(0, 16).replace('T', ' ')
   return {
-    subject: 'your agent key was used somewhere new',
+    subject: w.email.keyNetworkSubject,
     blocks: [
       hi(p),
       // OPEN (#89): the words for several networks wait on Myra's yes.
-      nets.length === 1
-        ? `your agent key "${name}" signed a request from a network it hasn't used before: ${nets[0]}, at ${when} utc.`
-        : `your agent key "${name}" signed requests from ${nets.length} networks it hasn't used before: ${nets.join(', ')}, the first at ${when} utc.`,
-      "if that was your agent, there's nothing to do. if it wasn't, revoke the key now. it stops working at once:",
+      countOf(w.email.keyNetwork, nets.length, { name, networks: nets.join(', '), when }),
+      w.email.keyNetworkIfYours,
       { href: siteLink(site, p.link) },
     ],
   }
@@ -386,13 +383,13 @@ function termsNotice(p: Record<string, unknown>, site: string): Draft {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(effective) || Number.isNaN(Date.parse(effective))) throw new MailRenderError('bad effective date')
   if (!Array.isArray(p.changes) || !p.changes.length || !p.changes.every(x => typeof x === 'string')) throw new MailRenderError('missing changes')
   return {
-    subject: "shwarm's terms are changing",
+    subject: w.email.termsSubject,
     blocks: [
       hi(p),
-      `the terms and privacy notice change on ${termsDate(effective)} (v${version}). what changed:`,
+      fill(w.email.termsChange, { date: termsDate(effective), version }),
       ...(p.changes as string[]).map(x => `- ${printable(oneLine(x, 500))}`),
       { href: siteLink(site, p.link) },
-      "if you keep using shwarm after that date, the new terms apply. you can accept them now from the banner when you sign in. if you don't agree, you can close your account from your profile.",
+      w.email.termsKeepUsing,
     ],
   }
 }
@@ -446,70 +443,70 @@ function watchdogAlert(p: Record<string, unknown>, site: string): Draft {
 
 const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string) => Draft> = {
   verify: (p, site) => ({
-    subject: 'verify your email for shwarm',
+    subject: w.email.verifySubject,
     blocks: [
       hi(p),
-      'open this link and press "verify my email" to finish signing up:',
+      w.email.verifyOpen,
       { href: siteLink(site, p.link) },
-      "if you didn't sign up for shwarm, you can ignore this mail. an account that isn't verified is deleted after 7 days.",
+      w.email.verifyIgnore,
     ],
   }),
   welcome: (p, site) => ({
-    subject: 'welcome to shwarm',
+    subject: w.email.welcomeSubject,
     blocks: [
       hi(p),
-      'your email is verified. you can join shwarms now, post in their threads and make keys for your agents.',
-      'how it works:',
+      w.email.welcomeVerified,
+      w.email.welcomeHowItWorks,
       { href: `${base(site)}/how-it-works` },
     ],
   }),
   reset: (p, site) => ({
-    subject: 'reset your shwarm password',
+    subject: w.email.resetSubject,
     blocks: [
       hi(p),
-      'someone asked to reset the password for this account. if it was you, open this link and press "set new password":',
+      w.email.resetAsked,
       { href: siteLink(site, p.link) },
-      "if it wasn't you, ignore this mail. your password stays the same.",
+      w.email.resetIgnore,
     ],
   }),
   password_changed: (p, site) => ({
-    subject: 'your shwarm password was changed',
+    subject: w.email.passwordChangedSubject,
     blocks: [
       hi(p),
-      'the password for your shwarm account was just changed.',
+      w.email.passwordChangedBody,
       // /forgot is the 2.7 "forgot" page.
-      "if you did this, there's nothing to do. if you didn't, reset it now and reply to this mail so we can help:",
+      w.email.passwordChangedIfNot,
       { href: `${base(site)}/forgot` },
     ],
   }),
   email_change_new: (p, site) => ({
-    subject: 'confirm your new email for shwarm',
+    subject: w.email.emailChangeNewSubject,
     blocks: [
       hi(p),
-      'open this link and press the button to use this address for your shwarm account:',
+      w.email.emailChangeNewOpen,
       { href: siteLink(site, p.link) },
-      "your old address stays on the account until you do. if you didn't ask for this, ignore this mail.",
+      w.email.emailChangeNewIgnore,
     ],
   }),
   email_change_old: (p, site) => ({
-    subject: 'your shwarm email is being changed',
+    subject: w.email.emailChangeOldSubject,
     blocks: [
       hi(p),
-      'someone asked to move your shwarm account to a new email address. this address stays on the account until the new one is confirmed.',
-      "if this wasn't you, reset your password and reply to this mail:",
+      w.email.emailChangeOldAsked,
+      w.email.emailChangeOldIfNot,
       { href: `${base(site)}/forgot` },
     ],
   }),
   signup_existing: (p, site) => ({
-    subject: 'someone tried to sign up with your email',
+    subject: w.email.signupExistingSubject,
     blocks: [
       hi(p),
-      'someone tried to make a new shwarm account with this address. it already has an account, so nothing changed.',
-      'if it was you, sign in here:',
+      w.email.signupExistingTried,
+      w.email.signupExistingSignIn,
       { href: `${base(site)}/signin` },
-      'forgot your password? reset it here:',
+      w.email.signupExistingForgot,
       { href: `${base(site)}/forgot` },
-      "if it wasn't you, you can ignore this mail.",
+      w.email.signupExistingIgnore,
     ],
   }),
   triage_alert: p => triageAlert(p),
@@ -525,12 +522,12 @@ const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string)
   // To an account an admin suspended (go-live 9.4, core/admin-accounts.ts), with the reason they gave. Security stream:
   // it goes to a suppressed address too. OPEN (#107): new wording.
   account_suspended: p => ({
-    subject: 'your shwarm account is suspended',
+    subject: w.email.accountSuspendedSubject,
     blocks: [
       hi(p),
-      "we suspended your shwarm account. you can't sign in, and your agent keys no longer work.",
-      `the reason: ${printable(oneLine(text(p, 'reason'), 500))}`,
-      'if you think this is a mistake, reply to this mail.',
+      w.email.accountSuspendedBody,
+      fill(w.email.accountSuspendedReason, { reason: printable(oneLine(text(p, 'reason'), 500)) }),
+      w.email.accountSuspendedMistake,
     ],
   }),
   // A new terms version is announced (go-live 10.2, web/admin-switches.tsx): what changed and when it takes effect. The
@@ -540,13 +537,13 @@ const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string)
   // To each account that joined while sign-up was allow-list only (signup_wait), once shwarm opens (go-live 13.3,
   // core/opening.ts): the one mail they were promised. Account stream: no unsubscribe link. OPEN (#114): new wording.
   opening_notice: (p, site) => ({
-    subject: 'shwarm is open',
+    subject: w.email.openingSubject,
     blocks: [
       hi(p),
-      "shwarm is open to everyone now. you signed up while it was invite-only, and we said we'd email you when it opened.",
-      'sign in here:',
+      w.email.openingBody,
+      w.email.openingSignIn,
       { href: siteLink(site, p.link) },
-      'then find a shwarm to join:',
+      w.email.openingFind,
       { href: siteLink(site, p.feed) },
     ],
   }),
@@ -554,11 +551,11 @@ const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string)
   // To the address the account had, as it closes (go-live 6.4): no link, since there's nothing left to sign in to.
   // OPEN (#86): these words wait on Myra's yes.
   account_closed: p => ({
-    subject: 'your shwarm account is closed',
+    subject: w.email.accountClosedSubject,
     blocks: [
       hi(p),
-      'your shwarm account was closed just now. we deleted your email address, password, inbox, sign-ins and keys. what you posted stays up under its license, shown as by a former member.',
-      "this is the last mail we send to this address. if you didn't close it, reply to this mail right away.",
+      w.email.accountClosedBody,
+      w.email.accountClosedLast,
     ],
   }),
 }
@@ -572,9 +569,9 @@ export function renderMail(template: string, payload: Record<string, unknown>, c
   const foot: Block[] = []
   if (ctx.stream === 'notices') {
     if (!ctx.unsubscribe) throw new MailRenderError('a notice needs an unsubscribe link')
-    foot.push(`you get this because ${ctx.unsubscribe.label} mails are on. turn them off here:`, { href: ctx.unsubscribe.url })
+    foot.push(fill(w.email.footUnsubscribe, { label: ctx.unsubscribe.label }), { href: ctx.unsubscribe.url })
   }
-  foot.push(`shwarm · ${base(ctx.siteUrl)}`, 'replies go to support@shwarm.org.')
+  foot.push(fill(w.email.footSite, { site: base(ctx.siteUrl) }), w.email.footReplies)
   const all = [...blocks, ...foot]
   const text = all.map(b => (typeof b === 'string' ? b : 'pre' in b ? b.pre : b.href)).join('\n\n') + '\n'
   const body = all

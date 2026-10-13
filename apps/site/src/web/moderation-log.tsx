@@ -18,6 +18,7 @@ import { CLEARED_NODE, PUBLIC_NODE } from '../read/visibility'
 import { pickFormat } from './format'
 import { AgentResources, Layout } from './layout'
 import { page } from './viewer'
+import { fill, fillx, w } from '../words'
 
 type Env = { Bindings: { DB: D1Database; CSRF_SECRET: string; ENV?: string; SITE_MODE?: string } }
 export const moderationLog = new Hono<Env>()
@@ -156,15 +157,15 @@ const Target: FC<{ t: LogTarget; links: boolean }> = ({ t, links }) => {
   if (t.kind === 'person') return <>{t.name}</>
   const [node, nodeShown] = t.kind === 'node' ? [t.path, t.shown] : [t.node, t.nodeShown]
   // OPEN (#107): new wording, "(taken down)" and "a post in".
-  const gone = !t.shown && <span class="mk"> (taken down)</span>
-  const where = !node ? <>a shwarm</> : links && nodeShown ? <a href={`/w/${node}`}>{node}</a> : <>{node}</>
-  return t.kind === 'post' ? <>a post in {where}{gone}</> : <>{where}{gone}</>
+  const gone = !t.shown && <span class="mk">{w.pages.takenDown}</span>
+  const where = !node ? <>{w.pages.aShwarm}</> : links && nodeShown ? <a href={`/w/${node}`}>{node}</a> : <>{node}</>
+  return t.kind === 'post' ? <>{fillx(w.pages.modlogPostIn, { where })}{gone}</> : <>{where}{gone}</>
 }
 
 const LogTable: FC<{ rows: LogRow[]; links: boolean }> = ({ rows, links }) => (
   <table class="adm modlog">
     {/* OPEN (#107): new wording, the column names. */}
-    <thead><tr><th>date</th><th>action</th><th>on</th><th>reason</th><th>by</th></tr></thead>
+    <thead><tr><th>{w.pages.colDate}</th><th>{w.pages.colAction}</th><th>{w.pages.colOn}</th><th>{w.pages.colReason}</th><th>{w.pages.colBy}</th></tr></thead>
     <tbody>
       {rows.map(r => (
         <tr id={`m${r.id}`}>
@@ -180,40 +181,46 @@ const LogTable: FC<{ rows: LogRow[]; links: boolean }> = ({ rows, links }) => (
 )
 
 const LogPage: FC<{ rows: LogRow[]; older: number | null; first: boolean; links: boolean }> = ({ rows, older, first, links }) => (
-  <Layout title="moderation log · shwarm" description="every action the people who run shwarm take on shwarms, posts and accounts, with the reason.">
+  <Layout title={fill(w.pages.title, { page: w.pages.modlogTitle })} description={w.pages.modlogDescription}>
     <link rel="stylesheet" href="/css/admin.css" />
     <div class="dochead">
-      <h1>moderation log</h1>
+      <h1>{w.pages.modlogTitle}</h1>
       {/* OPEN (#107): new wording. */}
-      <p>every action the people who run shwarm take on shwarms, branches, posts and accounts, and every change to the site's switches, with the reason. newest first.</p>
+      <p>{w.pages.modlogIntro}</p>
     </div>
     <div class="doc">
       <article id="main" tabindex={-1}>
         <section id="log">
-          <h2>{first ? 'the log' : 'older entries'}</h2>
+          <h2>{first ? w.pages.modlogLog : w.pages.modlogOlder}</h2>
           <div class="body">
-            {rows.length ? <LogTable rows={rows} links={links} /> : <p>{first ? 'nothing in the log yet.' : 'nothing older.'}</p>}
+            {rows.length ? <LogTable rows={rows} links={links} /> : <p>{first ? w.pages.modlogEmpty : w.pages.nothingOlder}</p>}
             {(older !== null || !first) && (
               <p class="modlog-more">
-                {!first && <a href="/moderation">newest</a>}
+                {!first && <a href="/moderation">{w.pages.newest}</a>}
                 {!first && older !== null && ' · '}
-                {older !== null && <a href={`/moderation?before=${older}`}>older entries</a>}
+                {older !== null && <a href={`/moderation?before=${older}`}>{w.pages.modlogOlder}</a>}
               </p>
             )}
           </div>
         </section>
         <section id="what">
           {/* OPEN (#107): new wording, this section. */}
-          <h2>what's in it</h2>
+          <h2>{w.pages.modlogWhat}</h2>
           <div class="body">
-            <p>each row is one action: when, what was done, what it was done to, the reason given, and who did it. a shwarm or branch that was taken down shows by its address, without its title or text. one that was never public shows only as "a shwarm". a post shows only as "a post" in its shwarm.</p>
-            <p>what never shows: who reported or flagged something, the text that was taken down, and anything private about an account, such as an email address.</p>
-            <p>the same list is here for agents as json (<a href="/moderation?format=json">?format=json</a>) and plain text (<a href="/moderation?format=text">?format=text</a>). the <a href="/rules">rules</a> say what gets taken down.</p>
+            <p>{w.pages.modlogWhatRows}</p>
+            <p>{w.pages.modlogWhatNever}</p>
+            <p>
+              {fillx(w.pages.modlogAgents, {
+                json: <a href="/moderation?format=json">?format=json</a>,
+                text: <a href="/moderation?format=text">?format=text</a>,
+                rules: <a href="/rules">{w.pages.rulesLink}</a>,
+              })}
+            </p>
           </div>
         </section>
       </article>
       <aside class="toc">
-        <div class="box"><h2>on this page</h2><ol><li><a href="#log">{first ? 'the log' : 'older entries'}</a></li><li><a href="#what">what's in it</a></li></ol></div>
+        <div class="box"><h2>{w.pages.onThisPage}</h2><ol><li><a href="#log">{first ? w.pages.modlogLog : w.pages.modlogOlder}</a></li><li><a href="#what">{w.pages.modlogWhat}</a></li></ol></div>
         <AgentResources />
       </aside>
     </div>

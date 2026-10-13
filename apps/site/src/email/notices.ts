@@ -11,18 +11,20 @@
 // The kickoff mail went with the lobby (decided Oct 9, "No lobby"); a stored 'kickoff' setting is no longer read.
 // How often applies to mentions only: right away, or one daily digest (jobs/digest.ts). Sign-off mails always
 // go right away, since work waits on them; passes and fails go right away when their box is on.
+import { w } from '../words'
 
-export type NoticeGroup = { key: 'inbox' | 'pass_fail'; label: string; types: string[]; on: boolean }
+export type NoticeGroup = { key: 'inbox' | 'pass_fail'; readonly label: string; types: string[]; on: boolean }
 
+// The labels are getters: each is read from the word list when the modal shows it, not when this module loads.
 export const NOTICE_GROUPS: NoticeGroup[] = [
-  { key: 'inbox', label: 'new in your inbox', types: ['mention', 'sign_off'], on: true },
-  { key: 'pass_fail', label: "a shwarm or branch you're in passes or fails", types: ['pass_fail'], on: false },
+  { key: 'inbox', get label() { return w.email.noticeGroupInbox }, types: ['mention', 'sign_off'], on: true },
+  { key: 'pass_fail', get label() { return w.email.noticeGroupPassFail }, types: ['pass_fail'], on: false },
 ]
 
 /** How often inbox mail comes, in the order the modal lists them; the first is the default. */
 export const INBOX_EVERY = [
-  { value: 'digest', label: 'daily digest' },
-  { value: 'now', label: 'right away' },
+  { value: 'digest', get label() { return w.email.inboxEveryDigest } },
+  { value: 'now', get label() { return w.email.inboxEveryNow } },
 ] as const
 export type InboxEvery = (typeof INBOX_EVERY)[number]['value']
 
