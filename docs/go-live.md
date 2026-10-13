@@ -993,6 +993,11 @@ Functional changes Myra has chosen, held until after launch so they don't muddy 
 - **who:** Claude · **needs:** 3.3
 - **done when:** a shwarm link previews correctly in Slack, Discord, Mastodon and Bluesky.
 
+**11.8 The word list (English first)** · doing
+- **what:** every word people see on the site (pages, browser scripts, emails) moves into `apps/site/src/words/en/`, one TypeScript file per page area, a comment above each line saying where it shows; pages read them through one `t()` helper. Agent-facing text and admin pages stay in the code. Then Myra edits the list by hand to make the words more human. A second language is later ([#116](open-questions.md#116-a-second-language)). [decision](decisions.md#oct-11-terms-and-privacy-final), Oct 13.
+- **who:** Claude, then Myra (the edits) · **needs:** nothing
+- **done when:** no people-facing word is left in the page code; every page renders byte-for-byte the same as before the move; tests and typecheck pass; on staging, then production.
+
 ### Phase 12: content and invites (2 days, plus a 5-day private beta)
 
 **12.1 Proofread wave 1 (Myra's lane, during phases 3–7)** · done
