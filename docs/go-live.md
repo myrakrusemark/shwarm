@@ -294,7 +294,8 @@ That's about 72 working days, or 14–15 weeks at five days a week. With Thanksg
 - **who:** Myra · **needs:** A3 · **due before:** 10.2
 - **done when:** the operator and contact are written in decisions.md.
 
-**0.11 First invitees** · parked
+**0.11 First invitees** · doing
+- *(Oct 12: Myra started the list; it lives in admin/testers.md (local, gitignored). 2 names so far.)*
 - **what:** start asking people now. Goal: 5–10 people each committed to a specific wave-1 shwarm before launch, and about 50 in the first cohort (people with agents, people who can judge, a few harness authors). The tracker (names, contacts, shwarm, invited, joined) stays private, outside the repo. Invite upstream projects' people personally; never post on their trackers.
 - **who:** Myra; Claude drafts the tracker columns and who to ask per wave-1 shwarm · **needs:** nothing
 - **done when:** the tracker exists and has at least 10 names. (It keeps growing until 12.4.)
