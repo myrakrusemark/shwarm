@@ -20,6 +20,7 @@ import { ipPrefix } from './session'
 import { bump, LIMITS } from './throttle'
 import { signNext } from './request'
 import { newToken } from './tokens'
+import { fill, w } from '../words'
 
 export const DISPLAY_NAME_MAX = 50 // OPEN: no decided limit; 50 is easy to raise
 export const PEND_COOKIE = '__Host-shwarm-pend'
@@ -44,19 +45,11 @@ export type Defer = (work: () => Promise<unknown>) => Promise<void>
 /** `next`: a safeNext() path to come back to; the verify link carries it signed. */
 export type SignupContext = { ip: string | null; origin: string; pend?: string; sessionPersonId?: number; now?: number; defer?: Defer; next?: string }
 
+// The form's refusals are in the word list (w.auth). This one is here for web/report.tsx's bot check.
 export const COPY = {
-  handlePattern: 'use 2 to 32 lowercase letters, numbers or underscores.',
-  handleReserved: 'that handle is reserved. pick another one.',
-  handleTaken: 'that handle is taken. pick another one.',
-  displayName: `keep it to ${DISPLAY_NAME_MAX} characters.`,
-  email: "that doesn't look like an email address.",
-  disposable: "we can't take addresses from throwaway mail services.",
-  tooShort: 'use at least 10 characters.',
-  tooLong: 'use at most 128 characters.',
-  pwned: 'that password has turned up in a data breach. pick another one.',
-  age: 'you need to be 16 or older to join.',
-  terms: 'you need to agree to the terms to join.',
-  turnstile: "the bot check didn't go through. please try again.",
+  get turnstile() {
+    return w.auth.turnstileFailed
+  },
 }
 
 /** A JSON value from the setting table. */
@@ -140,18 +133,18 @@ export async function signUp(db: D1Database, env: Env, input: SignupInput, ctx: 
   const errors: Errors = {}
   const handle = (input.handle ?? '').trim().toLowerCase()
   const hp = handleProblem(handle)
-  if (hp) errors.handle = hp === 'reserved' ? COPY.handleReserved : COPY.handlePattern
+  if (hp) errors.handle = hp === 'reserved' ? w.auth.handleReserved : w.auth.handlePattern
   const displayName = cleanName(input.display_name ?? '')
-  if ([...displayName].length > DISPLAY_NAME_MAX) errors.display_name = COPY.displayName
+  if ([...displayName].length > DISPLAY_NAME_MAX) errors.display_name = fill(w.auth.displayNameTooLong, { max: DISPLAY_NAME_MAX })
   const email = parseEmail(input.email)
-  if (!email) errors.email = COPY.email
+  if (!email) errors.email = w.auth.emailBad
   const password = input.password ?? ''
   const pp = passwordProblem(password)
-  if (pp) errors.password = pp === 'too_short' ? COPY.tooShort : COPY.tooLong
-  if (!input.age) errors.age = COPY.age
-  if (!input.terms) errors.terms = COPY.terms
+  if (pp) errors.password = pp === 'too_short' ? w.auth.tooShort : w.auth.tooLong
+  if (!input.age) errors.age = w.auth.ageNeeded
+  if (!input.terms) errors.terms = w.auth.termsNeeded
   if (Object.keys(errors).length || !email) return { kind: 'errors', errors }
-  if (await isDisposable(db, email.domain)) return { kind: 'errors', errors: { email: COPY.disposable } }
+  if (await isDisposable(db, email.domain)) return { kind: 'errors', errors: { email: w.auth.disposable } }
 
   // 2. throttles: per network, then per email domain. A try the network limit refuses doesn't count against the
   // domain, so one network can't block sign-ups at a big provider (gmail.com) for everyone (go-live 9.7's drill).
@@ -161,7 +154,7 @@ export async function signUp(db: D1Database, env: Env, input: SignupInput, ctx: 
   if (domainWait) return { kind: 'slow', seconds: domainWait }
 
   // 3. breached passwords (fails open if the service is down)
-  if (await isPwned(password)) return { kind: 'errors', errors: { password: COPY.pwned } }
+  if (await isPwned(password)) return { kind: 'errors', errors: { password: w.auth.pwned } }
 
   // Hash before branching, so a new account and an existing address take about the same time.
   const hash = await hashPassword(password, env.PASSWORD_PEPPER)
@@ -173,7 +166,7 @@ export async function signUp(db: D1Database, env: Env, input: SignupInput, ctx: 
   const hold = await holdOf(db, handle)
   const myHold = hold && (await pendOk(env, hold, ctx.pend)) ? hold : null
   const taken = await db.prepare('SELECT id FROM person WHERE handle = ?').bind(handle).first<{ id: number }>()
-  if ((taken && taken.id !== mine?.id) || (hold && !myHold)) return { kind: 'errors', errors: { handle: COPY.handleTaken } }
+  if ((taken && taken.id !== mine?.id) || (hold && !myHold)) return { kind: 'errors', errors: { handle: w.auth.handleTaken } }
 
   // 5. which case is this? Each one does the same reads and gets the same answer.
   const owner = await db

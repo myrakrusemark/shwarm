@@ -47,7 +47,8 @@ import {
   type Profile,
   type WorkingRow,
 } from '../read/profile'
-import { ACCOUNT_STATUS, AccountModal, type AccountFlash, type AccountView } from './account'
+import { fill, fillx, w } from '../words'
+import { accountStatus, AccountModal, type AccountFlash, type AccountView } from './account'
 import { formatFor, sendError, waitText, type ErrorStatus } from './errors'
 import { Layout } from './layout'
 import { limitLine } from './node-page'
@@ -72,10 +73,9 @@ const dotted = (parts: (Child | false | null | undefined)[]) =>
 
 // A variant made before they were dropped (Oct 9) reads as a shwarm.
 const kindLabel = (r: { kind: string; up_title: string | null }, branchOf = false): Child =>
-  r.kind !== 'branch' ? 'shwarm' : r.up_title === null ? 'branch' : (
+  r.kind !== 'branch' ? w.profile.kindShwarm : r.up_title === null ? w.profile.kindBranch : (
     <>
-      {branchOf ? 'branch of ' : ''}
-      <Name name={r.up_title} />
+      {branchOf ? fillx(w.profile.branchOf, { name: <Name name={r.up_title} /> }) : <Name name={r.up_title} />}
     </>
   )
 
@@ -84,19 +84,19 @@ const kindLabel = (r: { kind: string; up_title: string | null }, branchOf = fals
  * To the owner, a node whose submission waits on their sign-off says "waiting on you" (PROF-9, as the mockup).
  */
 function stateLabel(r: { state: string; in_review: number; waiting?: number }): string {
-  if (r.state === 'closed') return 'passed'
-  if (r.state === 'dead_end') return 'dead end'
-  if (r.waiting) return 'waiting on you'
-  return r.in_review ? 'submission in review' : ''
+  if (r.state === 'closed') return w.profile.passed
+  if (r.state === 'dead_end') return w.profile.deadEnd
+  if (r.waiting) return w.profile.waitingOnYou
+  return r.in_review ? w.profile.inReview : ''
 }
 
 function badge(r: CreatedRow): { cls: string; text: string } {
   // Only the owner sees nodes that aren't public yet (A8).
-  if (!r.public) return r.triage === 'blocked' ? { cls: 'st dead', text: 'blocked' } : { cls: 'st wait', text: 'being checked' }
-  if (r.state === 'closed') return { cls: 'st done', text: 'passed' }
-  if (r.state === 'dead_end') return { cls: 'st dead', text: 'dead end' }
-  if (r.waiting) return { cls: 'st live', text: 'waiting on you' }
-  return { cls: 'st live', text: 'live' }
+  if (!r.public) return r.triage === 'blocked' ? { cls: 'st dead', text: w.profile.blocked } : { cls: 'st wait', text: w.profile.beingChecked }
+  if (r.state === 'closed') return { cls: 'st done', text: w.profile.passed }
+  if (r.state === 'dead_end') return { cls: 'st dead', text: w.profile.deadEnd }
+  if (r.waiting) return { cls: 'st live', text: w.profile.waitingOnYou }
+  return { cls: 'st live', text: w.profile.live }
 }
 
 const Imp: FC<{ figures: WorkingRow['figures'] }> = ({ figures }) => {
@@ -115,8 +115,8 @@ const WhoHead: FC<{ person: Person; head: Head; now: number; owner?: boolean }> 
         <h1 class="path"><Name name={`@${p.handle}`} /></h1>
         {/* OPEN: no "verified human" mark at launch. The account button is a link, so the modal opens without script too. */}
         <div class="meta">
-          {dotted([p.display_name ? <Name name={p.display_name} /> : null, <>joined <Ago at={p.created_at} now={now} /></>])}
-          {owner && <a class="acct" id="acct" href={`/@${p.handle}?account=1`} aria-haspopup="dialog">account</a>}
+          {dotted([p.display_name ? <Name name={p.display_name} /> : null, <>{fillx(w.profile.joined, { when: <Ago at={p.created_at} now={now} /> })}</>])}
+          {owner && <a class="acct" id="acct" href={`/@${p.handle}?account=1`} aria-haspopup="dialog">{w.profile.accountLink}</a>}
         </div>
         {p.about && <p class="about"><Text inline text={p.about} /></p>}
         {links.length > 0 && (
@@ -128,11 +128,11 @@ const WhoHead: FC<{ person: Person; head: Head; now: number; owner?: boolean }> 
         )}
       </div>
       <div class="stats">
-        <div>{head.workingMore ? `${head.workingOn}+` : head.workingOn}<small>working on</small></div>
-        <div>{head.postsThisWeek}<small>posts this week</small></div>
+        <div>{head.workingMore ? `${head.workingOn}+` : head.workingOn}<small>{w.profile.statWorkingOn}</small></div>
+        <div>{head.postsThisWeek}<small>{w.profile.statPostsThisWeek}</small></div>
         <div>
           ▲{head.perPost === null ? '–' : oneDecimal(head.perPost)}
-          <small>per post · site avg ▲{head.siteAvg === null ? '–' : oneDecimal(head.siteAvg)}</small>
+          <small>{fill(w.profile.statPerPost, { avg: head.siteAvg === null ? '–' : oneDecimal(head.siteAvg) })}</small>
         </div>
       </div>
     </section>
@@ -141,16 +141,16 @@ const WhoHead: FC<{ person: Person; head: Head; now: number; owner?: boolean }> 
 
 const WorkingOn: FC<{ rows: WorkingRow[]; all: boolean; handle: string; now: number; total: string }> = ({ rows, all, handle, now, total }) => (
   <div class="box">
-    <h2>working on <span>impact: avg upvotes per post · avg posts per day</span></h2>
+    <h2>{w.profile.workingOn} <span>{w.profile.workingOnKey}</span></h2>
     {rows.length ? (
       <table>
-        <thead><tr><th>shwarm or branch</th><th class="n">impact</th></tr></thead>
+        <thead><tr><th>{w.profile.colShwarmOrBranch}</th><th class="n">{w.profile.colImpact}</th></tr></thead>
         <tbody>
           {(all ? rows : rows.slice(0, SHOWN)).map(r => (
             <tr>
               <td>
                 <a href={nodeHref(r.path)}><Name name={r.title} /></a>
-                <span class="sub">{dotted([kindLabel(r), stateLabel(r), r.last_post && <>last post <Ago at={r.last_post} now={now} /></>])}</span>
+                <span class="sub">{dotted([kindLabel(r), stateLabel(r), r.last_post && <>{fillx(w.profile.lastPost, { when: <Ago at={r.last_post} now={now} /> })}</>])}</span>
               </td>
               <td class="n"><Imp figures={r.figures} /></td>
             </tr>
@@ -158,15 +158,15 @@ const WorkingOn: FC<{ rows: WorkingRow[]; all: boolean; handle: string; now: num
         </tbody>
       </table>
     ) : (
-      <div class="in"><p class="note">nothing yet.</p></div>
+      <div class="in"><p class="note">{w.profile.nothingYet}</p></div>
     )}
-    {!all && rows.length > SHOWN && <div class="in more"><a href={`/@${handle}?all=1`}>show all {total}</a></div>}
+    {!all && rows.length > SHOWN && <div class="in more"><a href={`/@${handle}?all=1`}>{fill(w.profile.showAllCount, { n: total })}</a></div>}
   </div>
 )
 
 const Created: FC<{ rows: CreatedRow[]; all: boolean; more: boolean; handle: string }> = ({ rows, all, more, handle }) => (
   <div class="box">
-    <h2>created <span>shwarms and branches</span></h2>
+    <h2>{w.profile.created} <span>{w.profile.createdKey}</span></h2>
     {rows.length ? (
       <ul class="made">
         {(all ? rows : rows.slice(0, SHOWN)).map(r => {
@@ -175,7 +175,7 @@ const Created: FC<{ rows: CreatedRow[]; all: boolean; more: boolean; handle: str
             <li>
               <div>
                 <a href={nodeHref(r.path)}><Name name={r.title} /></a>
-                <div class="sub">{dotted([kindLabel(r, true), <>done when <Text inline text={r.done_when} /></>])}</div>
+                <div class="sub">{dotted([kindLabel(r, true), <>{fillx(w.profile.doneWhen, { text: <Text inline text={r.done_when} /> })}</>])}</div>
               </div>
               <span class={b.cls}>{b.text}</span>
             </li>
@@ -183,24 +183,27 @@ const Created: FC<{ rows: CreatedRow[]; all: boolean; more: boolean; handle: str
         })}
       </ul>
     ) : (
-      <div class="in"><p class="note">nothing yet.</p></div>
+      <div class="in"><p class="note">{w.profile.nothingYet}</p></div>
     )}
-    {!all && rows.length > SHOWN && <div class="in more"><a href={`/@${handle}?all=1`}>show all {more ? `${rows.length}+` : rows.length}</a></div>}
+    {!all && rows.length > SHOWN && <div class="in more"><a href={`/@${handle}?all=1`}>{fill(w.profile.showAllCount, { n: more ? `${rows.length}+` : rows.length })}</a></div>}
   </div>
 )
 
 function postLabel(p: NamePost): string {
-  if (p.kind === 'submission') return `submission #${p.number ?? '?'}`
-  if (p.kind === 'check') return `${p.verdict ?? 'check'}${p.on_number ? ` on #${p.on_number}` : ''}`
-  if (p.kind === 'repro') return 'repro'
-  if (p.kind === 'dead_end') return 'dead end'
-  return p.reply_to ? 'reply' : ''
+  if (p.kind === 'submission') return fill(w.profile.postSubmission, { n: p.number ?? '?' })
+  if (p.kind === 'check') {
+    const what = p.verdict === 'pass' ? w.profile.verdictPass : p.verdict === 'fail' ? w.profile.verdictFail : w.profile.postCheck
+    return p.on_number ? fill(w.profile.postCheckOn, { what, n: p.on_number }) : what
+  }
+  if (p.kind === 'repro') return w.profile.postRepro
+  if (p.kind === 'dead_end') return w.profile.deadEnd
+  return p.reply_to ? w.profile.postReply : ''
 }
 
 const NamePosts: FC<{ handle: string; name: string; posts: NamePost[]; next: string | null; now: number }> = ({ handle, name, posts, next, now }) => (
   <>
     <div class="box posts">
-      <h2>posts <span>by <Name name={name} /> · newest first</span></h2>
+      <h2>{w.profile.posts} <span>{fillx(w.profile.postsBy, { name: <Name name={name} /> })}</span></h2>
       {posts.length ? (
         posts.map(p => {
           const label = postLabel(p)
@@ -218,23 +221,23 @@ const NamePosts: FC<{ handle: string; name: string; posts: NamePost[]; next: str
           )
         })
       ) : (
-        <p class="note empty">no posts from <Name name={name} /> yet.</p>
+        <p class="note empty">{fillx(w.profile.noPostsFrom, { name: <Name name={name} /> })}</p>
       )}
-      {next && <div class="in more"><a href={`/@${handle}?as=${encodeURIComponent(name)}&before=${encodeURIComponent(next)}`}>older posts</a></div>}
+      {next && <div class="in more"><a href={`/@${handle}?as=${encodeURIComponent(name)}&before=${encodeURIComponent(next)}`}>{w.profile.olderPosts}</a></div>}
     </div>
-    <p class="back"><a href={`/@${handle}`}>← back to @{handle}</a></p>
+    <p class="back"><a href={`/@${handle}`}>{fill(w.profile.backToHandle, { handle })}</a></p>
   </>
 )
 
 const LookUp: FC<{ handle: string; value: string; error?: string }> = ({ handle, value, error }) => (
   <div class="box lookup">
-    <h2>look up a name</h2>
+    <h2>{w.profile.lookUp}</h2>
     <div class="in">
       <form method="get" action={`/@${handle}`} role="search">
-        <div class="path-in"><input name="as" value={value} placeholder={`@${handle}/…`} aria-label="name" autocomplete="off" spellcheck={false} /></div>
+        <div class="path-in"><input name="as" value={value} placeholder={`@${handle}/…`} aria-label={w.profile.lookUpField} autocomplete="off" spellcheck={false} /></div>
       </form>
       {error && <p class="err" role="alert">{error}</p>}
-      <p class="note">names under @{handle} are whatever @{handle}'s harness chose. look one up to see its posts.</p>
+      <p class="note">{fill(w.profile.lookUpNote, { handle })}</p>
     </div>
   </div>
 )
@@ -250,10 +253,9 @@ export type InboxView = { items: InboxItem[]; more: boolean; upto: number; limit
 /** A sign-off item's words, after its link and who submitted. As the mockup while there were checks before the author's. */
 function signOffWords(i: InboxItem): string {
   // OPEN (#83): no mockup draws an author-only item, the operator's, or the operator's once the author is back (#75); their words wait on Myra's yes.
-  const others = i.others ? 'passed its other checks' : ''
-  if (i.operator) return `${others || 'needs a sign-off'}. its author's account is gone, so you sign off as the operator.`
-  if (i.theirs) return others ? `${others} and needs its author's sign-off.` : "needs its author's sign-off."
-  return others ? `${others} and needs your sign-off.` : 'needs your sign-off.'
+  if (i.operator) return i.others ? w.profile.signOffOperatorChecked : w.profile.signOffOperator
+  if (i.theirs) return i.others ? w.profile.signOffTheirsChecked : w.profile.signOffTheirs
+  return i.others ? w.profile.signOffYoursChecked : w.profile.signOffYours
 }
 
 /** A small form in an item's action line: mark it read or unread, or mark all read. One submit per click (static/js/node.js). */
@@ -272,24 +274,24 @@ const InboxAct: FC<{ action: string; token: string; act: string; fields?: Record
  */
 const Reply: FC<{ i: InboxItem; handle: string; action: string; token: string; limit?: { left: number; wait: number }; flash?: ReplyFlash }> = ({ i, handle, action, token, limit, flash }) => (
   <details class="rep" open={flash ? true : undefined}>
-    <summary>reply</summary>
+    <summary>{w.profile.reply}</summary>
     <form method="post" action={action} class="rbox inbox-act">
       <input type="hidden" name="form_token" value={token} />
       <input type="hidden" name="do" value="reply" />
       <input type="hidden" name="item" value={String(i.id)} />
-      <textarea name="text" required maxlength={MAX_TEXT} aria-label={`reply to ${i.as_name ?? 'this post'}`} placeholder={`reply as @${handle}…`}>{flash?.draft ?? ''}</textarea>
+      <textarea name="text" required maxlength={MAX_TEXT} aria-label={i.as_name ? fill(w.profile.replyTo, { name: i.as_name }) : w.profile.replyToPost} placeholder={fill(w.profile.replyAs, { handle })}>{flash?.draft ?? ''}</textarea>
       {flash && <p class="err" role="alert">{flash.text}</p>}
       <div class="rrow">
         <span class="note">{limitLine(limit)}</span>
-        <button class="btn plain" type="submit">post</button>
+        <button class="btn plain" type="submit">{w.profile.replyPost}</button>
       </div>
     </form>
   </details>
 )
 
 const InboxEntry: FC<{ i: InboxItem; inbox: InboxView; handle: string; action: string; token: string; now: number }> = ({ i, inbox, handle, action, token, now }) => {
-  const isNew = !i.read && <span class="newb">new</span>
-  const toggle = <InboxAct action={action} token={token} act={i.read ? 'unread' : 'read'} fields={{ item: i.id }} label={i.read ? 'mark unread' : 'mark read'} />
+  const isNew = !i.read && <span class="newb">{w.profile.newBadge}</span>
+  const toggle = <InboxAct action={action} token={token} act={i.read ? 'unread' : 'read'} fields={{ item: i.id }} label={i.read ? w.profile.markUnread : w.profile.markRead} />
   const cls = ['c', !i.read && 'new', i.kind === 'sign_off' && 'signoff'].filter(Boolean).join(' ')
   if (i.kind === 'sign_off') {
     // The pill is the submission's state now; the item itself has no pass or fail (the author decides on the submission page).
@@ -297,9 +299,9 @@ const InboxEntry: FC<{ i: InboxItem; inbox: InboxView; handle: string; action: s
     return (
       <div class={cls} id={`i${i.id}`}>
         <div class="who"><PillView p={pill} />{isNew} · <Ago at={i.created_at} now={now} /></div>
-        <a href={i.href}><b>{i.title ? <Name name={i.title} /> : 'a shwarm'} · submission #{i.number ?? '?'}</b></a>
-        {i.as_name && <> by <Name name={i.as_name} /></>} {signOffWords(i)}
-        <div class="acts"><a href={i.href}>open</a> · {toggle}</div>
+        <a href={i.href}><b>{fillx(w.profile.signOffTitle, { title: i.title ? <Name name={i.title} /> : w.profile.aShwarm, n: i.number ?? '?' })}</b></a>
+        {i.as_name && <>{fillx(w.profile.signOffBy, { name: <Name name={i.as_name} /> })}</>} {signOffWords(i)}
+        <div class="acts"><a href={i.href}>{w.profile.open}</a> · {toggle}</div>
       </div>
     )
   }
@@ -314,7 +316,7 @@ const InboxEntry: FC<{ i: InboxItem; inbox: InboxView; handle: string; action: s
         <Text text={cut(i.post_text ?? '', 400)} addressed />
         <div class="acts">
           {/* An ended thread is locked (decided Oct 9): no reply box on it, as on its page. */}
-          <a href={i.href}>see thread</a>
+          <a href={i.href}>{w.profile.seeThread}</a>
           {!i.locked && <> · <Reply i={i} handle={handle} action={action} token={token} limit={i.node_id === null ? undefined : inbox.limits.get(i.node_id)} flash={inbox.flash?.item === i.id ? inbox.flash : undefined} /></>} · {toggle}
         </div>
         {/* a reply sent from a page drawn before it ended: the refusal shows under the item */}
@@ -326,7 +328,7 @@ const InboxEntry: FC<{ i: InboxItem; inbox: InboxView; handle: string; action: s
     <div class={cls} id={`i${i.id}`}>
       <div class="who"><Ago at={i.created_at} now={now} />{isNew}</div>
       <div class="txt"><Plain text={i.text} /></div>
-      <div class="acts"><a href={i.href}>open</a> · {toggle}</div>
+      <div class="acts"><a href={i.href}>{w.profile.open}</a> · {toggle}</div>
     </div>
   )
 }
@@ -342,14 +344,14 @@ const Inbox: FC<{ inbox: InboxView; handle: string; all: boolean; now: number }>
   const action = `/@${handle}${all ? '?all=1' : ''}`
   return (
     <div class="box inbox">
-      <h2 id="addressed">inbox <span>only you see this</span></h2>
+      <h2 id="addressed">{w.profile.inbox} <span>{w.profile.inboxOnlyYou}</span></h2>
       <div class="abar">
-        <span id="newcount">{unread ? `${unread >= UNREAD_CAP ? '99+' : unread} new` : 'all read'}</span>
-        {unread > 0 && <InboxAct action={action} token={token} act="all_read" fields={{ upto: inbox.upto }} label="mark all read" />}
+        <span id="newcount">{unread ? fill(w.profile.newCount, { n: unread >= UNREAD_CAP ? '99+' : unread }) : w.profile.allRead}</span>
+        {unread > 0 && <InboxAct action={action} token={token} act="all_read" fields={{ upto: inbox.upto }} label={w.profile.markAllRead} />}
       </div>
       {inbox.items.map(i => <InboxEntry i={i} inbox={inbox} handle={handle} action={action} token={token} now={now} />)}
-      {!inbox.items.length && <div class="in"><p class="note">nothing yet.</p></div>}
-      {inbox.more && <div class="in more">{all ? `showing the newest ${inbox.items.length}.` : <a href={`/@${handle}?all=1#addressed`}>show all</a>}</div>}
+      {!inbox.items.length && <div class="in"><p class="note">{w.profile.nothingYet}</p></div>}
+      {inbox.more && <div class="in more">{all ? fill(w.profile.showingNewest, { n: inbox.items.length }) : <a href={`/@${handle}?all=1#addressed`}>{w.profile.showAll}</a>}</div>}
     </div>
   )
 }
@@ -365,7 +367,7 @@ type View = {
 }
 
 export const ProfilePage: FC<View> = ({ person, profile, all, now, name, inbox, account }) => (
-  <Layout title={`@${person.handle} · shwarm`}>
+  <Layout title={fill(w.profile.pageTitle, { handle: person.handle })}>
     <link rel="stylesheet" href="/css/profile.css" />
     <WhoHead person={person} head={profile.head} now={now} owner={!!account} />
     <div class="grid">
@@ -393,7 +395,7 @@ export const ProfilePage: FC<View> = ({ person, profile, all, now, name, inbox, 
 
 /** A closed or suspended account: no head figures, lists or about, only the handle and one line. */
 export const Tombstone: FC<{ handle: string; text: string }> = ({ handle, text }) => (
-  <Layout title={`@${handle} · shwarm`}>
+  <Layout title={fill(w.profile.pageTitle, { handle })}>
     <link rel="stylesheet" href="/css/profile.css" />
     <section id="main" tabindex={-1} class="who-head tomb">
       <div>
@@ -406,12 +408,12 @@ export const Tombstone: FC<{ handle: string; text: string }> = ({ handle, text }
 
 /** Nobody has this handle (or the account isn't verified yet). */
 export const NoOne: FC<{ handle: string | null }> = ({ handle }) => (
-  <Layout title="not found · shwarm">
+  <Layout title={w.profile.notFoundTitle}>
     <link rel="stylesheet" href="/css/profile.css" />
     <section id="main" tabindex={-1} class="who-head tomb">
       <div>
-        <h1 class="path">{handle ? <Name name={`@${handle}`} /> : 'not found'}</h1>
-        <p class="about">nobody goes by that handle here.</p>
+        <h1 class="path">{handle ? <Name name={`@${handle}`} /> : w.profile.notFound}</h1>
+        <p class="about">{w.profile.nobody}</p>
       </div>
     </section>
   </Layout>
@@ -425,9 +427,9 @@ export const NoOne: FC<{ handle: string | null }> = ({ handle }) => (
  */
 export function lookUpName(raw: string, handle: string): { name: string } | { error: string } {
   let s = raw.trim().toLowerCase().replace(/\/+$/, '')
-  if (!s) return { error: 'type a name, like @' + handle + '/m-04.' }
+  if (!s) return { error: fill(w.profile.lookUpEmpty, { handle }) }
   if (!s.startsWith('@')) s = `@${handle}/${s}`
-  if (!isValidName(s)) return { error: "that isn't a name. names look like @" + handle + '/m-04.' }
+  if (!isValidName(s)) return { error: fill(w.profile.lookUpBad, { handle }) }
   return { name: s }
 }
 
@@ -439,7 +441,8 @@ export { readingOpen }
 
 export const profile = new Hono<{ Bindings: Env }>()
 
-/** A profile that can't show: the page for browsers, one line of text or JSON for agents that ask (go-live 3.8). Never cached, like sendError. */
+/** A profile that can't show: the page for browsers, one line of text or JSON for agents that ask (go-live 3.8). Never cached, like sendError.
+ *  `text` is the agents' line, so it stays here in code; the page has its own words (w.profile). */
 function cannot(c: Context<{ Bindings: Env }>, status: ErrorStatus, node: Child, text: string) {
   if (formatFor(c) !== 'html') return sendError(c, { status, text })
   c.header('Cache-Control', 'no-store')
@@ -461,11 +464,10 @@ profile.get('/:at{@[A-Za-z0-9_]+}', async c => {
   if (!person || !person.verified) return cannot(c, 404, <NoOne handle={handle} />, NOBODY)
   // Closing detaches the handle and keeps the work (table B #60): the posts stay in their threads; the page goes.
   if (person.status === 'closed') {
-    const text = 'this account was closed. what it posted stays in the threads.'
-    return cannot(c, 410, <Tombstone handle={handle} text={text} />, text)
+    return cannot(c, 410, <Tombstone handle={handle} text={w.profile.closed} />, 'this account was closed. what it posted stays in the threads.')
   }
   // OPEN: a suspension's public tombstone with its reason comes with the moderation log (8.5); for now, one line.
-  if (person.status === 'suspended') return cannot(c, 403, <Tombstone handle={handle} text="this account is suspended." />, 'this account is suspended.')
+  if (person.status === 'suspended') return cannot(c, 403, <Tombstone handle={handle} text={w.profile.suspended} />, 'this account is suspended.')
 
   return profileView(c, person, url, (await sessionOf(c))?.personId === person.id)
 })
@@ -523,7 +525,7 @@ async function ownAccount(c: Context<{ Bindings: Env }>, personId: number, url: 
   const [session, account] = await Promise.all([sessionOf(c), readAccount(c.env.DB, personId, now)])
   if (!session || !account) return undefined
   const asked = url.searchParams.get('account')
-  return { account, open: asked !== null || flash !== undefined, steppedUp: stepUpOpen(session, now), status: flash ? undefined : ACCOUNT_STATUS[asked ?? ''], flash }
+  return { account, open: asked !== null || flash !== undefined, steppedUp: stepUpOpen(session, now), status: flash ? undefined : accountStatus(asked), flash }
 }
 
 /** An inbox item id from a form field, or null. */
@@ -540,13 +542,13 @@ profile.post('/:at{@[A-Za-z0-9_]+}', async c => {
   const url = new URL(c.req.url)
   const handle = c.req.param('at').slice(1).toLowerCase()
   const back = `/@${handle}${url.searchParams.get('all') === '1' ? '?all=1' : ''}`
-  const w = await who(c as unknown as AuthContext)
-  if (!w.session) return c.redirect(signInHref(`/@${handle}`), 303)
+  const visitor = await who(c as unknown as AuthContext)
+  if (!visitor.session) return c.redirect(signInHref(`/@${handle}`), 303)
   const f = await formOf(c)
-  if (!(await postedTokenOk(c as unknown as AuthContext, w, f))) return sendError(c, { status: 403, heading: 'this form expired', text: 'go back, reload the page and try again.' }, 'html')
+  if (!(await postedTokenOk(c as unknown as AuthContext, visitor, f))) return sendError(c, { status: 403, heading: w.auth.formExpired, text: w.auth.formExpiredRetry }, 'html')
   // Nobody acts on someone else's inbox or account.
-  if (w.session.handle !== handle || !w.session.verified) return sendError(c, { status: 403 }, 'html')
-  const s = w.session
+  if (visitor.session.handle !== handle || !visitor.session.verified) return sendError(c, { status: 403 }, 'html')
+  const s = visitor.session
   const db = c.env.DB
   const at = new Date().toISOString()
   if (f.do === 'read' || f.do === 'unread') {
@@ -572,7 +574,7 @@ profile.post('/:at{@[A-Za-z0-9_]+}', async c => {
     c.header('Set-Cookie', clearCookie(), { append: true })
     return c.redirect('/signin?done=everywhere', 303)
   }
-  return sendError(c, { status: 400, text: 'that form asked for nothing we know.' }, 'html')
+  return sendError(c, { status: 400, text: w.auth.unknownForm }, 'html')
 })
 
 /**
@@ -606,7 +608,7 @@ async function accountForm(c: Context<{ Bindings: Env }>, s: Session, act: 'acco
     if (wait) {
       c.header('Retry-After', String(wait))
       // OPEN (#84): new words.
-      return refuse({ errors: { email: `that's a lot of email changes. wait ${waitText(wait)}, then try again.` } }, 429)
+      return refuse({ errors: { email: fill(w.profile.emailChangesWait, { wait: waitText(wait) }) } }, 429)
     }
     await saveAccount(db, me, checked.save, now)
     return c.redirect(`/@${s.handle}?account=saved`, 303)
@@ -638,7 +640,7 @@ async function exportData(c: Context<{ Bindings: Env }>, s: Session, f: AccountF
   if (wait) {
     c.header('Retry-After', String(wait))
     // OPEN (#86): new words.
-    return refuseIn(c, s, { at: 'export', error: `that's a lot of downloads. wait ${waitText(wait)}, then try again.` }, 429)
+    return refuseIn(c, s, { at: 'export', error: fill(w.profile.downloadsWait, { wait: waitText(wait) }) }, 429)
   }
   const data = await readExport(db, s.personId, now)
   if (!data) return sendError(c, { status: 404 }, 'html')
@@ -655,7 +657,7 @@ async function exportData(c: Context<{ Bindings: Env }>, s: Session, f: AccountF
  */
 async function closeForm(c: Context<{ Bindings: Env }>, s: Session, f: AccountForm) {
   // OPEN (#86): new words.
-  if (!confirmsHandle(f.confirm, s.handle)) return refuseIn(c, s, { at: 'close', errors: { confirm: `type ${s.handle} to confirm.` } })
+  if (!confirmsHandle(f.confirm, s.handle)) return refuseIn(c, s, { at: 'close', errors: { confirm: fill(w.profile.closeConfirm, { handle: s.handle }) } })
   const now = Date.now()
   const up = await inlineStepUp(c.env.DB, c.env.PASSWORD_PEPPER, s, f.password, clientIp(c), now)
   if ('refuse' in up) {
@@ -678,7 +680,7 @@ async function reply(c: Context<{ Bindings: Env }>, s: Session, url: URL, f: Rec
   const draft = f.text ?? ''
   const refuse = (text: string, status: 400 | 429 = 400) => profileView(c, person, url, true, { item: id, text, draft }, status)
   const text = draft.trim()
-  if (!text) return refuse('write something first.')
+  if (!text) return refuse(w.profile.writeFirst)
   const actor = siteActor({ id: s.personId, handle: s.handle })
   const now = Date.now()
   const to = threadHref(target.path, target)
@@ -697,7 +699,7 @@ async function reply(c: Context<{ Bindings: Env }>, s: Session, url: URL, f: Rec
     if (e.code === 'rate_limited') {
       const wait = Number(e.details.retry_after) || 60
       c.header('Retry-After', String(wait))
-      return refuse(`slow down: you can post here again in ${waitText(wait)}.`, 429)
+      return refuse(fill(w.profile.replySlowDown, { wait: waitText(wait) }), 429)
     }
     return refuse(e.message.replace(/\.?$/, '.'))
   }

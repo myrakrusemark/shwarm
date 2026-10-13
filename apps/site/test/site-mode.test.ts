@@ -9,7 +9,7 @@ import { keyActor, siteActor } from '../src/core/actor'
 import { TreeEngine } from '../src/core/engine'
 import { actsLimited, BETA_REFUSAL, homeShowsFeed, inBeta, readingOpen, siteModeOf } from '../src/core/site-mode'
 import { runInTree } from '../src/do/shwarm-tree'
-import { WAITING } from '../src/web/auth-pages'
+import { w as words } from '../src/words'
 import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
 import { OPENS_SOON } from '../src/web/opens-soon'
 import { resetReadLimit } from '../src/web/read-limit'
@@ -18,6 +18,8 @@ import { allow, body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, joinForm, 
 import { addPerson, T0 } from './d1'
 import { PLAIN, stagingWorld } from './node-fixture'
 import { treeNamespace } from './tree'
+
+const WAITING = words.auth.waiting
 
 beforeEach(() => {
   vi.stubGlobal('fetch', fakeFetch())

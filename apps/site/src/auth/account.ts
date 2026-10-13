@@ -11,20 +11,15 @@ import { nextPrefs, NOTICE_GROUPS } from '../email/notices'
 import { linkParts } from '../render/text'
 import { isDisposable, parseEmail, type Email } from './email'
 import { isPwned, passwordProblem } from './password'
-import { cleanName, COPY, DISPLAY_NAME_MAX } from './signup'
+import { cleanName, DISPLAY_NAME_MAX } from './signup'
 import { consumeEmailChange, newToken } from './tokens'
+import { fill, w } from '../words'
 
 export const ABOUT_MAX = 160 // PRD PROF-8
 // OPEN (#84): no decided length for a profile link; the renderer links up to 2048.
 export const LINK_MAX = 200
 /** The modal's two links (mockups/profile.html), stored as [{label, url}] in this order. */
 export const LINK_FIELDS = ['website', 'code'] as const
-
-export const ACCOUNT_COPY = {
-  about: `keep it to ${ABOUT_MAX} characters.`,
-  link: "that doesn't look like a link.",
-  mismatch: "the two passwords don't match.",
-}
 
 export type AccountForm = Record<string, string | undefined>
 export type AccountErrors = Partial<Record<'display_name' | 'about' | 'website' | 'code' | 'email' | 'new_password' | 'new_password2' | 'confirm', string>>
@@ -46,7 +41,7 @@ export function cleanLink(raw: string | undefined): { url: string | null } | { e
   const s = (raw ?? '').trim()
   if (!s) return { url: null }
   const url = /^[a-z][a-z0-9+.-]*:\/\//i.test(s) ? s : `https://${s}`
-  if (s.length > LINK_MAX || /\s/.test(s) || !linkParts(url) || !new URL(url).hostname.includes('.')) return { error: ACCOUNT_COPY.link }
+  if (s.length > LINK_MAX || /\s/.test(s) || !linkParts(url) || !new URL(url).hostname.includes('.')) return { error: w.profile.linkBad }
   return { url }
 }
 
@@ -55,9 +50,9 @@ export async function checkAccount(db: D1Database, f: AccountForm, cur: Current)
   const errors: AccountErrors = {}
   // OPEN (#84): a display name changes any time here; ID-4 calls it "real name or persistent pseudonym".
   const displayName = cleanName(f.display_name ?? '')
-  if ([...displayName].length > DISPLAY_NAME_MAX) errors.display_name = COPY.displayName
+  if ([...displayName].length > DISPLAY_NAME_MAX) errors.display_name = fill(w.auth.displayNameTooLong, { max: DISPLAY_NAME_MAX })
   const about = cleanName(f.about ?? '')
-  if ([...about].length > ABOUT_MAX) errors.about = ACCOUNT_COPY.about
+  if ([...about].length > ABOUT_MAX) errors.about = fill(w.profile.aboutTooLong, { max: ABOUT_MAX })
   const links: AccountSave['links'] = []
   for (const label of LINK_FIELDS) {
     const l = cleanLink(f[label])
@@ -69,8 +64,8 @@ export async function checkAccount(db: D1Database, f: AccountForm, cur: Current)
   const same = f.email !== undefined && typed === cur.email.toLowerCase()
   if (f.email !== undefined && !same) {
     email = parseEmail(typed)
-    if (!email) errors.email = COPY.email
-    else if (await isDisposable(db, email.domain)) errors.email = COPY.disposable
+    if (!email) errors.email = w.auth.emailBad
+    else if (await isDisposable(db, email.domain)) errors.email = w.auth.disposable
   }
   if (Object.keys(errors).length) return { errors }
   const ticked = Object.fromEntries(NOTICE_GROUPS.map(g => [g.key, f[`n_${g.key}`] === '1']))
@@ -149,8 +144,8 @@ export async function applyEmailChange(db: D1Database, token: unknown, nowMs = D
 export async function checkNewPassword(f: AccountForm): Promise<AccountErrors | null> {
   const password = f.new_password ?? ''
   const problem = passwordProblem(password)
-  if (problem) return { new_password: problem === 'too_short' ? COPY.tooShort : COPY.tooLong }
-  if (password !== f.new_password2) return { new_password2: ACCOUNT_COPY.mismatch }
-  if (await isPwned(password)) return { new_password: COPY.pwned }
+  if (problem) return { new_password: problem === 'too_short' ? w.auth.tooShort : w.auth.tooLong }
+  if (password !== f.new_password2) return { new_password2: w.profile.passwordsDontMatch }
+  if (await isPwned(password)) return { new_password: w.auth.pwned }
   return null
 }
