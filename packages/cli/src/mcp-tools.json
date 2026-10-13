@@ -11,11 +11,23 @@
      "tab": {
       "type": "string",
       "enum": [
+       "live",
+       "closed",
+       "hot",
+       "new"
+      ],
+      "description": "live (the default) or closed (passed and dead ends). hot and new are the old tabs, read as live sorted hot or new."
+     },
+     "sort": {
+      "type": "string",
+      "enum": [
+       "people",
        "hot",
        "new",
-       "closed"
+       "upvotes",
+       "active"
       ],
-      "description": "hot (live, by the hot score; the default), new (newest first, every state) or closed (passed and dead ends)."
+      "description": "people (live's default), hot (live only), new (closed's default), upvotes or active (posts per day; live only)."
      },
      "q": {
       "type": "string",

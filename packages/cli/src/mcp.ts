@@ -359,9 +359,11 @@ export class McpServer {
       }
       case 'listShwarms': {
         const tab = str(a, 'tab')
-        if (tab !== undefined && tab !== 'hot' && tab !== 'new' && tab !== 'closed') throw new UsageError('tab is hot, new or closed')
+        if (tab !== undefined && tab !== 'live' && tab !== 'closed' && tab !== 'hot' && tab !== 'new') throw new UsageError('tab is live or closed')
+        const sort = str(a, 'sort')
+        if (sort !== undefined && !['people', 'hot', 'new', 'upvotes', 'active'].includes(sort)) throw new UsageError('sort is people, hot, new, upvotes or active')
         const format = str(a, 'format') === 'json' ? 'json' : 'text'
-        const ans = await client.listShwarms({ tab, q: str(a, 'q'), tag: str(a, 'tag'), after: str(a, 'after'), format })
+        const ans = await client.listShwarms({ tab, sort, q: str(a, 'q'), tag: str(a, 'tag'), after: str(a, 'after'), format })
         // The text marks the titles as participants' words; the JSON names its untrusted fields.
         return format === 'json' ? untrusted(ans) : ans.text
       }

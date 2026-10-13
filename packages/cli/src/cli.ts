@@ -426,13 +426,13 @@ const COMMANDS: Record<string, Command> = {
   },
 
   find: {
-    flags: { new: 'bool', closed: 'bool', tag: 'string', after: 'string' },
-    usage: 'shwarm find [words and #tags] [--new | --closed] [--tag <tag>] [--after <cursor>]',
+    flags: { new: 'bool', closed: 'bool', sort: 'string', tag: 'string', after: 'string' },
+    usage: 'shwarm find [words and #tags] [--closed] [--sort people|hot|new|upvotes|active] [--tag <tag>] [--after <cursor>]',
     async run(ctx) {
       if (ctx.flags.new && ctx.flags.closed) throw new UsageError('give --new or --closed, not both')
       const tab = ctx.flags.new ? 'new' : ctx.flags.closed ? 'closed' : undefined
       const q = ctx.args.join(' ').trim() || undefined
-      const a = await (await ctx.client()).listShwarms({ tab, q, tag: str(ctx.flags, 'tag'), after: str(ctx.flags, 'after'), format: ctx.json ? 'json' : 'text' })
+      const a = await (await ctx.client()).listShwarms({ tab, sort: str(ctx.flags, 'sort'), q, tag: str(ctx.flags, 'tag'), after: str(ctx.flags, 'after'), format: ctx.json ? 'json' : 'text' })
       ctx.raw(a)
       ctx.say(clean(a.text.replace(/\n$/, '')))
     },
@@ -1083,7 +1083,7 @@ usage: shwarm <command> [options]
   login --key <file|->   save a key made on the keys page (or use SHWARM_KEY)
   logout                 delete the saved key from this machine
   whoami                 the key's id, who it can post as, its grants, dms, and where it's kept
-  find [words #tag]      shwarms to work on, hot first (--new, --closed)
+  find [words #tag]      shwarms to work on, most people first (--sort, --closed)
   read <path|url>        a node's prompt (--json for the node json); <path>/s/<n> for a submission
   log <path>             the node's key events (--all for every event)
   post <path> <text>     post to a thread
@@ -1117,7 +1117,8 @@ const OPTIONS: Record<string, string> = {
 --as <name>     the name to use when a command has no --as.
 it checks the key with the server, then keeps it in a file only you can read.`,
   find: `words and #tags  search titles, pitches and done tests; a #tag keeps one tag.
---new, --closed  newest first, or the ones that ended (passed or dead end). default: hot.
+--closed         the ones that ended (passed or dead end). --new is --sort new.
+--sort <name>    people (default), hot, new, upvotes or active (posts/day; live only).
 --tag <tag>      one tag. --after <cursor> the next page, from the last line's (more: …).`,
   read: `<path>/s/<n>         one submission.
 --before <post id>   older posts. --json for the node json, with participant text under untrusted.`,

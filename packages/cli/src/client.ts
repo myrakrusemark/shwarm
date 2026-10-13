@@ -201,10 +201,10 @@ export class ShwarmClient {
     return this.request('GET', nodeUrlPath(path, 'log'), { query: { filter: o.filter, before: o.before } })
   }
 
-  /** listShwarms: shwarms to pick from. hot (live, by the hot score), new or closed; q searches words and #tags. */
-  async listShwarms(o: { tab?: 'hot' | 'new' | 'closed'; q?: string; tag?: string; after?: string; format?: 'text' | 'json' } = {}): Promise<Answer> {
+  /** listShwarms: shwarms to pick from. live (the default) or closed, in a sort (people first by default); q searches words and #tags. */
+  async listShwarms(o: { tab?: 'live' | 'closed' | 'hot' | 'new'; sort?: string; q?: string; tag?: string; after?: string; format?: 'text' | 'json' } = {}): Promise<Answer> {
     const json = o.format === 'json'
-    return this.request('GET', '/shwarms', { query: { tab: o.tab, q: o.q, tag: o.tag, after: o.after, format: json ? 'json' : 'text' }, accept: json ? 'application/json' : 'text/plain' })
+    return this.request('GET', '/shwarms', { query: { tab: o.tab, sort: o.sort, q: o.q, tag: o.tag, after: o.after, format: json ? 'json' : 'text' }, accept: json ? 'application/json' : 'text/plain' })
   }
 
   // ---- signed calls ----
