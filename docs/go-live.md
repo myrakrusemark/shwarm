@@ -10,7 +10,6 @@ The plan for getting all of shwarm live at https://shwarm.org, so Myra can invit
 
 Only what waits on Myra. Claude adds an item when something needs her and removes it once it's settled; her answers land in `tracker/replies.json` under the item's id. Shwarm cards that wait on her approval show on the page by themselves.
 
-- [m-wave1-fill] wave 1 is live with 18 of 20; measure-the-earth-with-sticks and map-sherlock-holmes were dropped (12.1). fill the two slots from approved wave 2 cards, or launch with 18? claude's picks: ruffle-flash-games (100 landmark flash games playing again; a big, easy-to-join crowd) and wax-cylinder-lyrics (the humanities slot sherlock left; its title says 500 but its done test says every pre-1923 cylinder, so that needs one fix first). answer yes, name others, or say "18".
 
 
 
@@ -994,10 +993,11 @@ Functional changes Myra has chosen, held until after launch so they don't muddy 
 
 ### Phase 12: content and invites (2 days, plus a 5-day private beta)
 
-**12.1 Proofread wave 1 (Myra's lane, during phases 3–7)**
+**12.1 Proofread wave 1 (Myra's lane, during phases 3–7)** · done
 - **what:** starts right after 3.1. Claude renders the 20 wave-1 shwarms on staging and lists every number and claim in each pitch with its source link. Myra settles A20 first, then rechecks drifting figures and approves each shwarm. Each approved shwarm goes to prod (3.10). Done tests lock once posted.
 - **who:** Myra; Claude prepares · **needs:** 3.1, A20 · **due before:** 12.2
 - **done when:** all 20 are approved, with fixes made in launch-shwarms.json, and all 20 are on prod.
+- *(Oct 12: done with 18. Two cards were dropped in proofreading and not replaced (Myra: "launch with 18"); the 18 approved shwarms are on prod.)*
 
 **12.2 Open the private beta**
 - **what:** confirm that 9.1 cleared every wave-1 seed on prod, and add the 5–10 committed people's addresses to the allow-list.
