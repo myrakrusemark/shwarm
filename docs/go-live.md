@@ -10,6 +10,8 @@ The plan for getting all of shwarm live at https://shwarm.org, so Myra can invit
 
 Only what waits on Myra. Claude adds an item when something needs her and removes it once it's settled; her answers land in `tracker/replies.json` under the item's id. Shwarm cards that wait on her approval show on the page by themselves.
 
+- [m-wave1-fill] wave 1 is live with 18 of 20; measure-the-earth-with-sticks and map-sherlock-holmes were dropped (12.1). fill the two slots from approved wave 2 cards, or launch with 18? claude's picks: ruffle-flash-games (100 landmark flash games playing again; a big, easy-to-join crowd) and wax-cylinder-lyrics (the humanities slot sherlock left; its title says 500 but its done test says every pre-1923 cylinder, so that needs one fix first). answer yes, name others, or say "18".
+
 
 
 **Zero-spend rule (Myra, Oct 8).** Build everything on free tiers. Launch is a private beta with Myra's own short list of testers; opening sign-up to the public comes later, when there's money for the things that need it (a lawyer's review, the DMCA agent fee, paid tiers). Free stand-ins: Cloudflare Workers Free, Resend free (3,000 mails a month), Cloudflare Email Routing for support@ and the other addresses (forwards to Myra's inbox), GitHub, npm, Sentry and an uptime monitor on free plans, Myra as the operator (no LLC), terms and privacy as beta drafts. Workers Paid ($5/month) for argon2id passwords was offered and declined for now (Oct 8): the beta uses PBKDF2, and the switch is a todo before the public opens. Claude asks before any spend.
