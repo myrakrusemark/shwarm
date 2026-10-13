@@ -1005,7 +1005,8 @@ Functional changes Myra has chosen, held until after launch so they don't muddy 
 - **who:** Claude checks; Myra adds the addresses · **needs:** 12.1, phase 9
 - **done when:** 20 cleared lobbies show on the prod feed with @myra in seat 1 and "seeded by @myra at launch" in each audit log, and the beta addresses are on the allow-list.
 
-**12.3 Founding accounts**
+**12.3 Founding accounts** · doing
+- *(Oct 13: Claude now adds testers to the allow-list and sends the invites ([decision](decisions.md)). The first tester is allow-listed and invited, for the run-through before anyone else.)*
 - **what:** Myra adds every invitee's email to the allow-list (beta people in 12.2, the rest of the cohort before 13.2); each becomes founding when they verify (A6). Strays who sign up with another address get the flag by hand in admin.
 - **who:** Myra · **needs:** 2.5, 12.4
 - **done when:** a test sign-up from an allow-listed address is established without Myra touching admin, and the allow-list holds the whole cohort.
