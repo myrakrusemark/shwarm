@@ -12,6 +12,7 @@ import { pickFormat } from './web/format'
 import { home } from './web/feed'
 import { originGuard } from './auth/csrf'
 import { mailRoutes } from './email/routes'
+import { wordsScript } from './words/script'
 import { scheduled } from './jobs'
 import { auth } from './auth/routes'
 import { create } from './web/create'
@@ -115,6 +116,9 @@ app.get('/healthz', async c => {
 // robots.txt (go-live 11.7, web/crawl.ts): before the staging lock, so a crawler reads staging's "disallow everything"
 // instead of a 401, which it would take as leave to crawl.
 app.get('/robots.txt', robots)
+
+// The browser scripts' words (go-live 11.8, words/script.ts), open like the scripts themselves.
+app.get('/js/words.js', wordsScript)
 
 // Staging is private: a shared password (wrangler secret STAGING_PASSWORD). Health stays open for uptime checks,
 // and /hooks/* stay open because they check their own secret.

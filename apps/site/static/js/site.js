@@ -4,7 +4,8 @@
   const sc = g('dn-scrim')
   if (!sc) return
   let amt = 25, freq = 'once', lastFocus = null
-  const label = () => { g('dn-go').textContent = amt ? `donate $${amt}${freq === 'monthly' ? ' a month' : ''}` : 'pick an amount' }
+  const W = window.W.chrome
+  const label = () => { g('dn-go').textContent = amt ? window.W.fill(W.donateGo, { amount: amt, often: freq === 'monthly' ? W.donateMonthlySuffix : '' }) : W.donatePick }
   const focusables = () => [...sc.querySelectorAll('button, input:not([type=hidden]), textarea, [href]')].filter(el => !el.disabled)
   const open = e => { e.preventDefault(); lastFocus = document.activeElement; sc.hidden = false; focusables()[0]?.focus() }
   const close = () => { sc.hidden = true; lastFocus?.focus() }
@@ -39,11 +40,11 @@
   form.addEventListener('submit', e => {
     if (!amt || !form.dataset.checkout) {
       e.preventDefault()
-      if (amt) g('dn-go').textContent = 'checkout opens soon'
+      if (amt) g('dn-go').textContent = W.donateSoon
       return
     }
     g('dn-freq').value = freq; g('dn-amount').value = String(amt)
-    g('dn-go').textContent = 'opening checkout…'
+    g('dn-go').textContent = W.donateOpening
   })
   window.addEventListener('pageshow', label) // back from Stripe's page: the button names the amount again
 })()

@@ -259,6 +259,27 @@ runIt('every page in a real browser (3.8)', () => {
         }
       }
     }
+
+    // The button's words come from /js/words.js (go-live 11.8), so this proves the script gets them.
+    it('the button names the amount and how often', async () => {
+      const { page } = await open('out', { path: '/', status: 200 })
+      await page.locator('.strip .dn-link').click()
+      const go = page.locator('#dn-go')
+      await page.locator('#dn-scrim .freq button[data-f="monthly"]').click()
+      await page.locator('#dn-scrim .amts button[data-a="10"]').click()
+      expect(await go.textContent()).toBe('donate $10 a month')
+      await page.locator('#dn-other').fill('7')
+      await page.locator('#dn-scrim .freq button[data-f="once"]').click()
+      expect(await go.textContent()).toBe('donate $7')
+      await page.locator('#dn-other').fill('')
+      expect(await go.textContent()).toBe('pick an amount')
+      await page.locator('#dn-scrim .amts button[data-a="5"]').click()
+      const checkout = await page.locator('#dn-scrim form.dn').getAttribute('data-checkout')
+      if (!checkout) {
+        await go.click()
+        expect(await go.textContent()).toBe('checkout opens soon')
+      }
+    })
   })
 
   describe('long words', () => {

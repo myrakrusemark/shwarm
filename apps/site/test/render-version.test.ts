@@ -7,6 +7,7 @@ import { createHash } from 'node:crypto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
 import { RENDER_VERSION } from '../src/web/node-routes'
+import { WORDS_VERSION } from '../src/words'
 import { resetReadLimit } from '../src/web/read-limit'
 import { forgetVersions } from '../src/web/version-memo'
 import { T0 } from './d1'
@@ -63,9 +64,11 @@ describe('RENDER_VERSION', () => {
     forgetVersions()
     resetReadLimit()
     expect(await fingerprint(), 'the fingerprint is not stable across runs').toBe(first)
-    expect({ RENDER_VERSION, fingerprint: first }, 'the signed-out rendering changed: bump RENDER_VERSION (web/node-routes.tsx), then update this fingerprint').toEqual({
-      RENDER_VERSION: '20',
-      fingerprint: 'e7647e6c8040bf1b', // also moves when the seeded launch entries in docs/launch-shwarms.json, the running example (seed/example.ts) or test/result-fixture.ts change (no bump then: the code renders the same)
+    // A changed word moves WORDS_VERSION, which is in the ETag already: update it and the fingerprint here, no bump.
+    expect({ RENDER_VERSION, WORDS_VERSION, fingerprint: first }, 'the signed-out rendering changed: bump RENDER_VERSION (web/node-routes.tsx), unless WORDS_VERSION moved too, then update this fingerprint').toEqual({
+      RENDER_VERSION: '21',
+      WORDS_VERSION: '1rdchxg',
+      fingerprint: '58bcfd33c70d1f6c', // also moves when the seeded launch entries in docs/launch-shwarms.json, the running example (seed/example.ts) or test/result-fixture.ts change (no bump then: the code renders the same)
     })
   })
 })

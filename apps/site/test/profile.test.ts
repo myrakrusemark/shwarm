@@ -467,7 +467,7 @@ describe('user text renders inert', () => {
     for (const path of ['/@myra', '/@myra?as=@myra/xss', '/@myra?as=' + encodeURIComponent(PAYLOADS[2])]) {
       const html = await (await get(env, path)).text()
       // The only script tag is the site's own; no tag or attribute from the payloads made it out as markup.
-      expect(html.match(/<script\b[^>]*>/g), path).toEqual(['<script src="/js/site.js" defer="">'])
+      expect(html.match(/<script\b[^>]*>/g), path).toEqual(['<script src="/js/words.js" defer="">', '<script src="/js/site.js" defer="">'])
       expect(html).not.toMatch(/<(img|svg|iframe)\b/i)
       expect(html).not.toMatch(/href="\s*(javascript|data):/i)
       expect(html).not.toMatch(/<a href="javascript/i)
