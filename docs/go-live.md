@@ -10,6 +10,8 @@ The plan for getting all of shwarm live at https://shwarm.org, so Myra can invit
 
 Only what waits on Myra. Claude adds an item when something needs her and removes it once it's settled; her answers land in `tracker/replies.json` under the item's id. Shwarm cards that wait on her approval show on the page by themselves.
 
+- [m-words-release] the word list (11.8) is on staging and looks the same as before. ship it to shwarm.org? nothing visible changes; after that, your edits to `apps/site/src/words/en/` go out with each release.
+
 
 
 
