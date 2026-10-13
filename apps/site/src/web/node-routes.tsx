@@ -6,7 +6,7 @@
 // signed-out read whose ETag this isolate saw in D1 within those 15 seconds gets its 304 with no D1 read (version-memo.ts).
 // The page's activity strip covers the last 14 UTC days, which move at midnight with no write, so a page's ETag and
 // memo key also carry the UTC day: the first read after midnight is a miss, and a cached page is a day old 15 seconds at most.
-import { WORDS_VERSION } from '../words'
+import { fill, w, WORDS_VERSION } from '../words'
 import { Hono, type Context } from 'hono'
 import { ShwarmError } from '@shwarm/protocol'
 import { formToken } from '../auth/csrf'
@@ -333,15 +333,15 @@ async function submissionPost(c: C, path: string, number: number, session: Sessi
   if (!chain) return (await gone(c, 'html', path)) ?? notFound(c, 'html')
   const n = chain.node
   const sub = await readSubmission(db, n.id, number)
-  if (!sub) return notFound(c, 'html', `there is no submission #${number} here.`)
+  if (!sub) return notFound(c, 'html', fill(w.node.noSubmission, { n: number }))
   const act = f.do === 'check' || f.do === 'signoff' ? f.do : null
-  if (!act) return errorOut(c, 'html', 400, 'bad_request', 'that form asked for nothing we know.')
+  if (!act) return errorOut(c, 'html', 400, 'bad_request', w.node.formUnknown)
   const back = `/w/${path}/s/${number}`
   const now = Date.now()
   const flash = (text: string): SubFlash => ({ at: act, text, fields: { verdict: f.verdict ?? '', text: f.text ?? '', links: f.links ?? '' } })
   const refuse = (text: string, status: 400 | 429 = 400) => submissionView(c, chain, number, session, 'html', now, flash(text), status)
   const verdict = f.verdict === 'pass' || f.verdict === 'fail' ? (f.verdict as 'pass' | 'fail') : null
-  if (!verdict) return refuse('pick pass or fail.')
+  if (!verdict) return refuse(w.node.pickVerdict)
   // A double click repeats the same act: a sign-off matches only a sign-off, a check only a check, so a sign-off sent
   // right after the person's own people check reaches core and is refused there (slot_taken), not taken for a repeat.
   const dup = await db
@@ -423,21 +423,21 @@ nodeRoutes.post('/*', async c => {
   const subNumber = parsed.kind === 'view' ? submissionNumber(parsed.view) : null
   if (!readingOpen(c.env) || parsed.kind === 'bad' || (parsed.kind === 'view' && subNumber === null)) return notFound(c, 'html')
   const back = subNumber === null ? `/w/${parsed.path}` : `/w/${parsed.path}/s/${subNumber}`
-  const w = await who(c as unknown as AuthContext)
-  if (!w.session) return c.redirect(signInHref(back), 303)
+  const signedIn = await who(c as unknown as AuthContext)
+  if (!signedIn.session) return c.redirect(signInHref(back), 303)
   const f = await formOf(c)
-  if (!(await postedTokenOk(c as unknown as AuthContext, w, f))) return sendError(c, { status: 403, heading: 'this form expired', text: 'go back, reload the page and try again.' }, 'html')
-  if (subNumber !== null) return submissionPost(c, parsed.path, subNumber, w.session, f)
+  if (!(await postedTokenOk(c as unknown as AuthContext, signedIn, f))) return sendError(c, { status: 403, heading: w.node.formExpired, text: w.node.formExpiredText }, 'html')
+  if (subNumber !== null) return submissionPost(c, parsed.path, subNumber, signedIn.session, f)
   // Re-pitch is retired (decided Oct 10), and so is editing a shwarm (decided Oct 12: once posted, a shwarm's or a
   // branch's words are fixed): a re-pitch form from an old tab is refused with why. OPEN: the words wait on Myra's yes.
   if (f.do === 'repitch') return errorOut(c, 'html', 400, 'bad_request', NO_EDIT)
-  if (f.do === 'report') return reportAct(c, parsed.path, w.session, f, url)
-  if (f.do === 'flag') return flagAct(c, parsed.path, w.session, f, url)
+  if (f.do === 'report') return reportAct(c, parsed.path, signedIn.session, f, url)
+  if (f.do === 'flag') return flagAct(c, parsed.path, signedIn.session, f, url)
   const act = (ACTS as readonly string[]).includes(f.do) ? (f.do as Act) : null
-  if (!act) return errorOut(c, 'html', 400, 'bad_request', 'that form asked for nothing we know.')
+  if (!act) return errorOut(c, 'html', 400, 'bad_request', w.node.formUnknown)
 
   const db = c.env.DB
-  const session = w.session
+  const session = signedIn.session
   const chain = await readChain(db, parsed.path, session.personId)
   if (!chain) return (await gone(c, 'html', parsed.path)) ?? notFound(c, 'html')
   const n = chain.node
@@ -452,7 +452,7 @@ nodeRoutes.post('/*', async c => {
       if (n.state === 'dead_end') return c.redirect(back, 303)
       const note = (f.note ?? '').trim()
       // OPEN (#76): the words for a missing note wait on Myra's yes. Said before the password is checked, so it isn't spent.
-      if (!note) return refuse('say why it stops here, so nobody repeats it.')
+      if (!note) return refuse(w.node.sayWhyDeadEnd)
       // Only the author is asked for the password; anyone else is refused by core (only the author marks a dead end).
       const s = n.author_id === session.personId ? await steppedUp(c, session, f.password, now) : { actor }
       if ('refuse' in s) {
@@ -465,7 +465,7 @@ nodeRoutes.post('/*', async c => {
     if (act === 'post') {
       const text = (f.text ?? '').trim()
       const pin = f.pin === '1'
-      if (!text) return htmlPage(c, chain, parsed.path, session, now, { at: 'compose', text: 'write something first.', pin }, 400)
+      if (!text) return htmlPage(c, chain, parsed.path, session, now, { at: 'compose', text: w.node.writeFirst, pin }, 400)
       const replyTo = f.reply_to || null
       const dup = await justPosted(db, { nodeId: n.id, personId: session.personId, as: actor.as, text, now, replyTo, pin })
       const to = threadHref(parsed.path, n)
@@ -481,7 +481,7 @@ nodeRoutes.post('/*', async c => {
     }
     if (act === 'edit') {
       const text = (f.text ?? '').trim()
-      if (!text) return htmlPage(c, chain, parsed.path, session, now, { at: 'post', post: f.post, text: 'write something first.', draft: '' }, 400)
+      if (!text) return htmlPage(c, chain, parsed.path, session, now, { at: 'post', post: f.post, text: w.node.writeFirst, draft: '' }, 400)
       // The same text twice (a double click) changes nothing in core.
       await runInTree(c.env.TREE, { type: 'editPost', actor, input: { node: parsed.path, post: f.post ?? '', text } })
       return c.redirect(at, 303)
@@ -494,10 +494,10 @@ nodeRoutes.post('/*', async c => {
     if (act === 'submit') {
       const refuse = (text: string) => htmlPage(c, chain, parsed.path, session, now, { at: 'compose', text, draft: f.text, ...kept }, 400)
       const text = (f.text ?? '').trim()
-      if (!text) return refuse('say what you did in the text box first.')
+      if (!text) return refuse(w.node.sayWhatFirst)
       // Only a post is pinned (core post), so a ticked pin box isn't dropped quietly.
       // OPEN (#78): the words wait on Myra's yes.
-      if (f.pin === '1') return refuse("a submission can't be pinned. submit it without the pin, or post it to pin it.")
+      if (f.pin === '1') return refuse(w.node.noPinSubmission)
       const builtOn = await builtOnFromForm(db, n.id, f.built_on ?? '')
       if (typeof builtOn === 'string') return refuse(builtOn)
       const dup = await db
@@ -543,8 +543,8 @@ nodeRoutes.post('/*', async c => {
       // OPEN: the submissions wording isn't in a mockup; it waits on Myra's yes.
       const text =
         e.details.limit === 'submissions'
-          ? `one submission per person per day here. next in ${waitText(wait)}.`
-          : `slow down: you can post here again in ${waitText(wait)}.`
+          ? fill(w.node.submitLimitWait, { wait: waitText(wait) })
+          : fill(w.node.slowPost, { wait: waitText(wait) })
       return htmlPage(c, chain, parsed.path, session, now, { at, text, draft, ...kept }, 429)
     }
     return htmlPage(c, chain, parsed.path, session, now, { at, text: e.message.replace(/\.?$/, '.'), draft, ...kept }, 400)
@@ -571,11 +571,11 @@ async function reportAct(c: C, path: string, session: Session, f: Record<string,
     if (wait) {
       c.header('Retry-After', String(wait))
       // OPEN (#105): new wording.
-      return refuse(`slow down: you can report again in ${waitText(wait)}.`, { status: 429 })
+      return refuse(fill(w.node.slowReport, { wait: waitText(wait) }), { status: 429 })
     }
     const r = await reportPost(db, { by, nodeId: chain.node.id, path, post, reason: f.reason, text: f.text, env: c.env.ENV, now })
     // OPEN (#105): new wording.
-    if (r === 'already') return refuse('you already reported this post.', { status: 200, keep: false })
+    if (r === 'already') return refuse(w.node.alreadyReported, { status: 200, keep: false })
     return c.redirect(`/w/${path}${url.search}${isId('p', post) ? `#${post}` : ''}`, 303)
   } catch (e) {
     if (!(e instanceof ShwarmError)) throw e
@@ -603,11 +603,11 @@ async function flagAct(c: C, path: string, session: Session, f: Record<string, s
     if (wait) {
       c.header('Retry-After', String(wait))
       // OPEN (#106): new wording.
-      return refuse(`slow down: you can flag again in ${waitText(wait)}.`, 429)
+      return refuse(fill(w.node.slowFlag, { wait: waitText(wait) }), 429)
     }
     const r = await flagNode(db, { by: { personId: session.personId }, nodeId: chain.node.id, path, reason: f.reason, env: c.env.ENV, now })
     // OPEN (#106): new wording.
-    if (r === 'already') return refuse('you already flagged this.', 200)
+    if (r === 'already') return refuse(w.node.alreadyFlagged, 200)
     return c.redirect(`/w/${path}${url.search}`, 303)
   } catch (e) {
     if (!(e instanceof ShwarmError)) throw e
@@ -648,12 +648,12 @@ export async function builtOnFromForm(db: D1Database, nodeId: number, s: string)
     const num = /^#(\d{1,9})$/.exec(ref)
     if (num) {
       const row = await db.prepare('SELECT post_id FROM submission WHERE node_id = ? AND number = ?').bind(nodeId, Number(num[1])).first<{ post_id: string }>()
-      if (!row) return `built on: there is no #${num[1]} here.`
+      if (!row) return fill(w.node.builtOnNoSub, { n: num[1] })
       out.push({ post: row.post_id, ...(note ? { note } : {}) })
       continue
     }
     const id = /(?:^|[^a-z0-9_])(p_[a-z0-9]{8,32})$/.exec(ref)?.[1]
-    if (!id) return `built on, line ${i + 1}: start with a post id (p_…) or a submission number (#1).`
+    if (!id) return fill(w.node.builtOnBadLine, { line: i + 1 })
     out.push({ post: id, ...(note ? { note } : {}) })
   }
   return out
