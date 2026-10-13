@@ -1,39 +1,5 @@
 [
   {
-    "slug": "where-am-i-ask-the-birds",
-    "wave": "idea",
-    "title": "where am i? ask the birds",
-    "category": "science",
-    "tags": [
-      "#birds",
-      "#ai",
-      "#sound",
-      "#maps"
-    ],
-    "what": "the birds singing outside your window give away where you are: which species live there, and even their regional accents. bird models can already name the species. train an open model that hears one minute of outdoor sound and guesses where on earth it was recorded, and test it on fresh recordings nobody trained on.",
-    "done_when": "an open model, trained only on openly licensed recordings, places at least 200 new one-minute outdoor recordings, made after the shwarm opens by at least 50 people in at least 20 countries and hidden from the model, with a median error under 500 km.",
-    "checked_by": {
-      "runs": {
-        "command": "python score.py model/ hidden-set/ (prints the median distance error over the hidden recordings)",
-        "count": 1
-      },
-      "people": {
-        "count": 1,
-        "human": true,
-        "instructions": "record your own minute outside, run the model on it, and post how far off it was."
-      },
-      "author": false
-    },
-    "lobby": 2,
-    "builds_on": "google's perch bird model (apache-2.0); xeno-canto recordings filtered to cc by, by-sa or cc0",
-    "sources": [],
-    "why_now": "",
-    "size": "months",
-    "needs_humans": "people in many countries to record one minute of outdoor sound each, for the hidden test set.",
-    "risk_notes": "guess a region (hundreds of km), never a street. birdnet's model is non-commercial, so it can't be the base. sources and figures still to check.",
-    "origin": "myra, oct 9 (on the mosquito card)"
-  },
-  {
     "slug": "a-20-dollar-star-compass",
     "wave": "idea",
     "title": "a $20 star compass",
@@ -44,17 +10,17 @@
       "#navigation",
       "#open-lab"
     ],
-    "what": "satellites find their way with star trackers: a camera spots a few bright stars, matches their pattern and knows exactly which way it points. they cost thousands. a blurry, very low-res sensor can still do it, because it only needs the brightest handful of stars. build one for $20 that tells you north and your latitude from the night sky, with no gps.",
-    "done_when": "an open design under $20 in parts, with a sensor of at most 64x64 pixels, gives heading within 2 degrees and latitude within 1 degree on clear nights, tested by at least 30 builders in at least 10 countries against their phone's gps, every result logged.",
+    "what": "satellites find their way with star trackers: a camera spots a few bright stars, matches their pattern and knows exactly which way it points. they cost thousands. this builds on name the sky from 64 pixels once that shwarm passes: it trains an open model that names the patch of sky a blurry sensor of 64x64 pixels or fewer is seeing. this one's job is heading and position on the finished device: design one that costs $20 to make and ship, tells you north and where you are from the night sky with no gps, and get it to the people who would use it: hikers, sailors, schools, anyone whose gps can fail.",
+    "done_when": "a finished star compass with an open design and a sensor of at most 64x64 pixels, made for under $20 a unit all in (parts, case, assembly and shipping, on an open cost sheet), is delivered ready to use to at least 100 people in at least 10 countries, and on clear nights the delivered units give heading within 2 degrees and latitude within 1 degree of each owner's phone gps, every result logged.",
     "checked_by": {
       "runs": {
-        "command": "python check_results.py logs/ (checks each logged night's heading and latitude against the gps reading)",
+        "command": "python check_results.py logs/ (checks each logged night's heading and latitude from delivered units against the gps reading, and counts owners and countries)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "build one, take it out on a clear night, and post your heading and latitude next to your phone's."
+        "instructions": "pick 3 owners in different countries and confirm with each that the compass arrived finished and worked with no assembly. check the cost sheet against the invoices for one production run. then take a delivered one out on a clear night and post its heading and latitude next to your phone's."
       },
       "author": false
     },
@@ -63,8 +29,7 @@
     "sources": [],
     "why_now": "",
     "size": "months",
-    "needs_humans": "builders under different skies, latitudes and levels of light pollution.",
-    "risk_notes": "sources and figures still to check.",
+    "needs_humans": "hardware designers, people to run a production batch and ship it, and owners under different skies, latitudes and levels of light pollution.",
     "origin": "myra, oct 9 (on the clock-set-by-the-stars card)"
   },
   {
@@ -98,76 +63,7 @@
     "why_now": "",
     "size": "months",
     "needs_humans": "people with printers, trumpet players, and blind listeners.",
-    "risk_notes": "sources and figures still to check.",
     "origin": "myra, oct 9 (on the pipe organ card)"
-  },
-  {
-    "slug": "a-seismograph-in-100-homes",
-    "wave": "idea",
-    "title": "a seismograph in 100 homes",
-    "category": "science",
-    "tags": [
-      "#earthquakes",
-      "#hardware",
-      "#open-lab",
-      "#maps"
-    ],
-    "what": "official seismometers are expensive and thin on the ground in much of the world. an open home seismometer under $100, built by people in their own houses and streaming to one open map, would add eyes where there are none, and let anyone hear the planet move as it happens.",
-    "done_when": "at least 100 home-built stations in at least 10 countries stream to a public server, and the network detects at least 20 magnitude 4+ earthquakes that usgs also logs, each within 60 seconds of usgs's origin time, from the open data alone.",
-    "checked_by": {
-      "runs": {
-        "command": "python match_usgs.py detections.csv (matches the network's detections against the usgs catalog)",
-        "count": 1
-      },
-      "people": {
-        "count": 1,
-        "human": true,
-        "instructions": "open the live map, pick three detected quakes and confirm them on usgs's site."
-      },
-      "author": true
-    },
-    "lobby": 2,
-    "builds_on": "",
-    "sources": [],
-    "why_now": "",
-    "size": "months",
-    "needs_humans": "builders in many countries who will host a station at home.",
-    "risk_notes": "a hobby network, not an earthquake warning system; say so plainly. sources and figures still to check.",
-    "origin": "claude, oct 9 (replacement for the earthquakes shwarm)"
-  },
-  {
-    "slug": "the-printer-choir",
-    "wave": "idea",
-    "title": "the printer choir",
-    "category": "weird",
-    "tags": [
-      "#music",
-      "#3d-printing",
-      "#weird",
-      "#speech"
-    ],
-    "what": "a stepper motor hums whatever pitch you spin it at, and every 3d printer has four. split a voice into its strongest frequencies, give each printer in the world one part, and line the recordings up: dozens of printers in strangers' homes, together, saying words out loud. it's a ridiculous, delightful thing nobody can do alone.",
-    "done_when": "at least 50 printers in at least 10 countries, each filmed unedited in its owner's home playing its own part to a shared click track, add up to one recording of a public-domain song (e.g. 'daisy bell') that the open whisper model transcribes with under 30% word error, every part's video and g-code linked.",
-    "checked_by": {
-      "runs": {
-        "command": "python wer.py choir.wav lyrics.txt (whisper large-v3 word error rate)",
-        "count": 1
-      },
-      "people": {
-        "count": 1,
-        "human": true,
-        "instructions": "listen without the lyrics first and write down what you hear."
-      },
-      "author": false
-    },
-    "lobby": 2,
-    "builds_on": "",
-    "sources": [],
-    "why_now": "",
-    "size": "weeks",
-    "needs_humans": "people with 3d printers, anywhere.",
-    "risk_notes": "public-domain songs only. long runs heat motors; log temperatures. sources still to check.",
-    "origin": "myra + claude, oct 9 (on the printer card)"
   },
   {
     "slug": "the-open-home-lab",
@@ -180,17 +76,17 @@
       "#3d-printing",
       "#science"
     ],
-    "what": "real science needs instruments, and lab gear is priced for labs. a spectrometer, an oscilloscope, a microscope or a ph meter can be built from printed parts, cheap electronics or computer-generated shapes, if enough people build and check them. make 20 instruments anyone can build for under $50, each proven against the professional one.",
-    "done_when": "20 open instrument designs, each under $50 in parts, each built by at least 5 people in different places, and each matching a professional instrument within its stated tolerance on the same samples.",
+    "what": "real science needs instruments, and lab gear is priced for labs. a spectrometer, an oscilloscope, a microscope or a ph meter can be made from printed parts and cheap electronics. design 20 of them as finished instruments that cost under $50 each to make and ship, get them to homes, schools and clubs, and prove each one against the professional instrument.",
+    "done_when": "20 open instruments are each a finished device made for under $50 a unit all in (on an open cost sheet), delivered ready to use to at least 25 homes, schools or clubs in at least 5 countries, and matching a professional instrument within its stated tolerance on the same samples, measured with delivered units.",
     "checked_by": {
       "runs": {
-        "command": "python check_lab.py instruments/ (checks each instrument's builds, costs and comparison data against its stated tolerance)",
+        "command": "python check_lab.py instruments/ (checks each instrument's cost sheet, delivery count and countries, and its comparison data from delivered units against its stated tolerance)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "build one instrument, compare it with a professional one, and post the numbers."
+        "instructions": "pick one instrument. confirm with 2 recipients that it arrived finished and works, then compare a delivered unit with a professional one on the same samples and post the numbers."
       },
       "author": true
     },
@@ -198,78 +94,9 @@
     "builds_on": "",
     "sources": [],
     "why_now": "",
-    "size": "months",
-    "needs_humans": "builders, and people with access to a professional instrument to compare against.",
-    "risk_notes": "a root shwarm: each instrument is a branch. existing launch shwarms that fit as branches: five-strangers-one-microscope, see-your-alpha-waves, 25-dollar-sky-darkness-meter, calibrate-the-2-dollar-soil-sensor, weigh-the-earth-on-a-table, and the seismograph idea.",
+    "size": "years",
+    "needs_humans": "instrument designers, people to run production and shipping, recipients in homes, schools and clubs, and people with access to a professional instrument to compare against.",
     "origin": "myra, oct 9 ('more stuff like this', on the alpha-waves card)"
-  },
-  {
-    "slug": "all-of-ubuntu-in-rust",
-    "wave": "idea",
-    "title": "the rust userland: ubuntu's everyday tools, all in rust",
-    "category": "open source",
-    "tags": [
-      "#rust",
-      "#linux",
-      "#open-source",
-      "#security"
-    ],
-    "what": "the small tools every linux computer runs on were written in c decades ago, and a lot of security bugs come from that kind of code. rust rules out whole classes of them. ubuntu already ships rust versions of some. finish the job for the everyday tools, so a stock ubuntu runs them all in rust and behaves exactly the same.",
-    "done_when": "a bootable ubuntu image where coreutils, findutils, diffutils, sudo and the other everyday shell utilities are all rust, passing each original project's test suite at 99% or better.",
-    "checked_by": {
-      "runs": {
-        "command": "./run-upstream-tests.sh (runs each original project's test suite against the rust tools and prints pass rates)",
-        "count": 1
-      },
-      "people": {
-        "count": 1,
-        "human": true,
-        "instructions": "use the image as your daily system for a week and post anything that broke."
-      },
-      "author": false
-    },
-    "lobby": 2,
-    "builds_on": "",
-    "sources": [],
-    "why_now": "",
-    "size": "months",
-    "needs_humans": "rust developers, and daily users to find what breaks.",
-    "risk_notes": "a root shwarm; rust-coreutils-last-tests becomes its first branch. follow each upstream's rules on ai help. sources still to check.",
-    "origin": "myra, oct 9 (on the rust coreutils card)"
-  },
-  {
-    "slug": "the-dawn-chorus-of-the-world",
-    "wave": "idea",
-    "title": "the dawn chorus of the world",
-    "category": "science",
-    "tags": [
-      "#birds",
-      "#sound",
-      "#citizen-science",
-      "#maps"
-    ],
-    "what": "every morning a wave of birdsong rolls around the planet with the sunrise. nobody has recorded it all on one day. people in 50 countries record the same ten minutes of sunrise, and an open model names every species, checked by human birders: a snapshot of which birds are still singing, and where.",
-    "done_when": "recordings from at least 50 countries, all made at sunrise on the same day, each with every species identified by an open model and checked by a human birder, published as an open dataset and map.",
-    "checked_by": {
-      "runs": {
-        "command": "python check_chorus.py recordings/ (checks the count, dates, sunrise times and that every recording has reviewed labels)",
-        "count": 1
-      },
-      "people": {
-        "count": 1,
-        "human": true,
-        "instructions": "listen to five random recordings and check their species labels."
-      },
-      "author": false
-    },
-    "lobby": 2,
-    "builds_on": "",
-    "sources": [],
-    "why_now": "",
-    "size": "weeks",
-    "needs_humans": "people in many countries who will get up at sunrise on the same day, and birders to check labels.",
-    "risk_notes": "sources still to check.",
-    "origin": "claude, oct 9 (earthquake replacement option)"
   },
   {
     "slug": "hunt-new-planets-in-tess-data",
@@ -282,7 +109,7 @@
       "#tess",
       "#citizen-science"
     ],
-    "what": "nasa's tess telescope watches hundreds of thousands of stars, and its data is public. a star that dims a little on a regular beat may have a planet crossing in front of it, and plenty of those dips are still unchecked. one hobbyist with ai helpers reportedly found two candidates this way. a crowd can sweep far more stars, vet every dip twice, and send the real ones to the astronomers who confirm planets.",
+    "what": "nasa's tess telescope watches hundreds of thousands of stars, and its data is public. a star that dims a little on a regular beat may have a planet crossing in front of it, and plenty of those dips are still unchecked. one hobbyist, pavel rabtsevich, [reported two candidates](https://www.reddit.com/r/ClaudeAI/comments/1wzw8zd/i_think_i_found_a_planet_nobody_knew_existed_i/) around one nearby star this way, with claude code doing the analysis and other agents double-checking it. a crowd can sweep far more stars, vet every dip twice, and send the real ones to the astronomers who confirm planets.",
     "done_when": "at least 10 new planet candidates found by the crew in public tess light curves are accepted as community tess objects of interest (ctois) on nasa's exofop archive, each vetted beforehand by 2 people outside the finder's account with the open vetting notebook.",
     "checked_by": {
       "runs": {
@@ -302,7 +129,6 @@
     "why_now": "",
     "size": "months",
     "needs_humans": "people to sweep sectors of tess data and to vet each other's candidates; someone who knows how exofop ctoi submission works.",
-    "risk_notes": "prior art: planet hunters tess (zooniverse) already does crowd vetting; this shwarm should work with them, not compete. the reddit/x claim that inspired it isn't verified; check it and the ctoi process before posting. a candidate isn't a planet until astronomers confirm it; the pitch says candidates.",
     "origin": "myra, oct 9 (from a reddit post about a hobbyist finding two candidates with claude and chatgpt)"
   },
   {
@@ -337,7 +163,6 @@
     "why_now": "",
     "size": "months",
     "needs_humans": "people with old devices in drawers and the patience to build adapters; hardware and protocol tinkerers; agents to draft translators for each new device and propose protocol changes.",
-    "risk_notes": "a root shwarm: each device family is a branch with its own done test ('device x answers on the mesh'); agents propose new adapters and protocol versions as thread posts and branches. compute from old devices is tiny; the point is universality and reuse, so don't oversell speed. never flash or open devices people don't own; mind old batteries (swollen lithium cells). prior art to study: volunteer computing (boinc), plan 9's everything-is-a-file, mqtt, and retro-computing link cables. sources still to check.",
     "origin": "myra, oct 9"
   },
   {
@@ -351,7 +176,7 @@
       "#open-data",
       "#ai"
     ],
-    "what": "every field has useful projects that never rise high enough on anyone's list: a map nobody stitched together, a dataset nobody cleaned, a catalog nobody cross-checked. anthropic's team just made the first complete ultraviolet map of the sky this way, filling the gaps in nasa's galex survey with other telescopes' data. scientists nominate their backlog, agents and volunteers do the work, and the scientists check it against real data the work never saw.",
+    "what": "every field has useful projects that never rise high enough on anyone's list: a map nobody stitched together, a dataset nobody cleaned, a catalog nobody cross-checked. brice ménard at johns hopkins, working with claude, just made [the first complete ultraviolet map of the sky](https://www.anthropic.com/research/the-missing-map-of-the-sky) this way, filling the gaps in nasa's galex survey with other telescopes' data. scientists nominate their backlog, agents and volunteers do the work, and the scientists check it against real data the work never saw.",
     "done_when": "at least 10 backlog projects nominated by working researchers in at least 3 fields are finished and published openly, each validated by its nominator against held-out real observations or records the work never used, with the agreement stated in numbers on each project's page.",
     "checked_by": {
       "runs": {
@@ -373,7 +198,6 @@
     "why_now": "anthropic's 'missing map of the sky' (oct 2026) showed agents directed by one scientist can finish a long-shelved map; a crowd can take on many at once.",
     "size": "months",
     "needs_humans": "researchers willing to nominate a shelved project and check the result; volunteers and agents to do the work.",
-    "risk_notes": "a root shwarm: each nominated project is a branch with its own done test and its nominator's sign-off. filled-in or predicted data must be labeled as such, never passed off as observations. don't reuse anthropic's map or name beyond citing it.",
     "origin": "myra, oct 9 (from anthropic's 'the missing map of the sky')"
   },
   {
@@ -408,7 +232,6 @@
     "why_now": "",
     "size": "months",
     "needs_humans": "amateur astronomers with telescopes and cameras in many time zones (each needs an mpc observatory code); people to vet candidates; volunteers sharing computer time for image stacking.",
-    "risk_notes": "work with existing efforts (mpc confirmation page, zooniverse projects such as hubble asteroid hunter and active asteroids) rather than duplicating them. report only what's vetted; false reports waste observers' time. 'potentially hazardous' claims are the mpc's and nasa's to make, never the crew's. sources and numbers still to check.",
     "origin": "myra, oct 9 ('would a shwarm do a good job reviewing recent astronomy photos for moving objects?')"
   },
   {
@@ -443,7 +266,6 @@
     "why_now": "",
     "size": "years",
     "needs_humans": "outreach volunteers, people who help with applications in person, local service organizations as partners, volunteers for the annual street counts, people who show up at city council and talk to their representatives.",
-    "risk_notes": "a root shwarm; the work happens in branches, each with its own done test: (1) an open benefits and housing-voucher application helper, checked by caseworkers; (2) a live map of open shelter beds and affordable units, kept current by local volunteers; (3) an open write-up of what cities that cut homelessness sharply actually did, so st. louis can copy it; (4) tools and volunteers for the annual point-in-time count; (5) a civic branch for testimony, letters and meetings on housing policy. hard rules: never collect or post personal data about people experiencing homelessness; every branch works with a local organization that does the real work; the author sign-off should go to someone at a local service provider, not to us. check whether st. louis's continuum of care is in built for zero before posting. city chosen as myra's own; easy to change.",
     "origin": "myra, oct 9 ('can end homelessness be a shwarm?' — tools and resources, humans perform tasks, do politics)"
   },
   {
@@ -477,7 +299,6 @@
     "why_now": "",
     "size": "months",
     "needs_humans": "people to check transcriptions against the scans, specialists in historical languages to judge blind outputs, and skeptics to attack every claimed solution.",
-    "risk_notes": "two finish lines on purpose: a real reading, or an honest map of what doesn't work. many 'solutions' have been claimed; the blind held-out test is the point, so no reading counts without it. branches: a consensus transcription; a statistical fingerprint; one branch per hypothesis. the scans are yale's beinecke ms 408 (check the license before reuse). sources still to check.",
     "origin": "myra, oct 9"
   },
   {
@@ -511,7 +332,6 @@
     "why_now": "",
     "size": "months",
     "needs_humans": "people who know general relativity and numerical methods, students who want a real research project, and published relativists willing to read the verdicts.",
-    "risk_notes": "a verification project, not a promise of warp travel; the pitch must say so. stick to peer-reviewed papers; treat preprints as optional extras. sources (alcubierre 1994; lentz 2021; bobrick and martire 2021; fell and heisenberg 2024) still to check before posting.",
     "origin": "myra, oct 9 ('solve warp propulsion would be cool')"
   },
   {
@@ -545,7 +365,6 @@
     "why_now": "",
     "size": "months",
     "needs_humans": "makers and labs who can build test rigs and sensitive balances in different places, and physicists to review protocols.",
-    "risk_notes": "most likely outcome is careful nulls; the pitch says so honestly, and a clean null is a real result. high voltage, rf power and superconductors are dangerous: safety rules per build; no claims that endanger people. pre-register before measuring. emdrive replication (tu dresden, 2021) and the claims list still to check.",
     "origin": "myra, oct 9 ('make floating cars, or find the technology behind it')"
   },
   {
@@ -560,33 +379,35 @@
       "#citizen-science",
       "#open-data"
     ],
-    "what": "people keep seeing things in the sky they can't explain, and the debate never ends because nobody has good data. cheap all-sky cameras in hundreds of backyards could track everything that crosses overhead, then name it: planes by their transponder broadcasts, satellites by their published orbits, plus meteors, birds and balloons. whatever is left unexplained gets published with every frame of raw data, so anyone can look. either way, the arguments finally get real evidence.",
-    "done_when": "at least 100 open-design sky-camera stations in at least 10 countries log at least 10,000 station-nights, the open pipeline identifies at least 99% of tracked objects automatically against public plane and satellite data, and every unidentified track is published with its raw frames from at least 2 stations and reviewed by 2 people.",
+    "what": "people keep seeing things in the sky they can't explain, and the debate never ends because nobody has good data. a finished, weatherproof all-sky camera, cheap enough to ship to hundreds of backyards, could track everything that crosses overhead, then name it: planes by their transponder broadcasts, satellites by their published orbits, plus meteors, birds and balloons. whatever is left unexplained gets published with every frame of raw data, so anyone can look. either way, the arguments finally get real evidence.",
+    "done_when": "at least 100 finished sky-camera stations with an open design, made for under $250 a unit all in (on an open cost sheet) and delivered ready to mount to hosts in at least 10 countries, log at least 10,000 station-nights, the open pipeline identifies at least 99% of tracked objects automatically against public plane and satellite data, and every unidentified track is published with its raw frames from at least 2 stations and reviewed by 2 people.",
     "checked_by": {
       "runs": {
-        "command": "python sky_report.py tracks/ (recomputes the identification rate per station and lists every unidentified track with its raw-frame links)",
+        "command": "python sky_report.py tracks/ (counts delivered stations, countries and station-nights, recomputes the identification rate per station and lists every unidentified track with its raw-frame links)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "pick five 'unidentified' tracks, look at the raw frames from both stations, and try to identify them yourself before agreeing."
+        "instructions": "confirm with 2 hosts in different countries that their station arrived finished and ready to mount. then pick five 'unidentified' tracks, look at the raw frames from both stations, and try to identify them yourself before agreeing."
       },
       "author": false
     },
     "lobby": 2,
     "builds_on": "",
-    "sources": [],
+    "sources": [
+      "https://magazine.raspberrypi.com/articles/global-meteor-network",
+      "https://www.emeteornews.net/2026/02/06/global-meteor-network-report-2025/"
+    ],
     "why_now": "",
     "size": "months",
-    "needs_humans": "people in many countries to host a camera on their roof or balcony, and reviewers for the unidentified tracks.",
-    "risk_notes": "the done test is about finishing the search honestly, not finding aliens; an unidentified track is not evidence of anything until people rule out the ordinary. cameras point up, never at neighbors' windows; follow local privacy and aviation rules. related work to cite and study: harvard's galileo project. sources still to check.",
+    "needs_humans": "camera and software designers, people to run production and shipping, hosts in many countries for a camera on their roof or balcony, and reviewers for the unidentified tracks.",
     "origin": "myra, oct 9 ('find real evidence of extraterrestrial aliens')"
   },
   {
     "slug": "listen-for-them-in-open-radio-data",
     "wave": "idea",
-    "title": "listen for them: search open radio telescope data",
+    "title": "bring back seti@home, for the shwarm era",
     "category": "science",
     "tags": [
       "#seti",
@@ -594,7 +415,7 @@
       "#radio",
       "#open-data"
     ],
-    "what": "if anyone out there is broadcasting, the evidence could already be sitting in public data. breakthrough listen has released a huge archive of radio observations, far more than its own team can comb by hand. a crowd with agents can search more of it, throw out signals from earth, and publish what's left. finding nothing is still worth it: it sets real limits on who could be out there, and how loud.",
+    "what": "from 1999 to 2020, seti@home let millions of people lend their home computers to the search for radio signals from other worlds. it went into hibernation in march 2020: its small team had more results than it could analyze, and its last candidates are still being looked at again. this brings the idea back for the shwarm era, in seti@home's spirit, not run by berkeley's team. people and their agents don't just lend spare computer time; they write the search, throw out signals from earth, vet each other's candidates and publish everything. breakthrough listen has put about a petabyte of radio telescope data in the open, far more than its own team can comb by hand. if anyone out there is broadcasting, the evidence could already be sitting in it. finding nothing is still worth it: it sets real limits on who could be out there, and how loud.",
     "done_when": "a frozen list of public breakthrough listen observations totaling at least 1,000 targets is searched with an open pipeline, every candidate signal is checked against the standard on-off test and an interference database by 2 people, and the results are published as open candidates plus signal-strength limits for every target.",
     "checked_by": {
       "runs": {
@@ -610,46 +431,161 @@
     },
     "lobby": 2,
     "builds_on": "",
-    "sources": [],
-    "why_now": "",
+    "sources": [
+      "https://en.wikipedia.org/wiki/SETI@home",
+      "https://arxiv.org/abs/2506.14737",
+      "https://phys.org/news/2019-06-largest-seti-history.html",
+      "https://breakthroughinitiatives.org/news/25",
+      "https://seti.berkeley.edu/opendata"
+    ],
+    "why_now": "seti@home's final analysis came out in the astronomical journal in 2025, with its top candidates sent to china's fast telescope for a second look, so the old project's own work is wrapping up. breakthrough listen's open archive has held about a petabyte since 2019. what's new is agents that can write and check search code beside the volunteers.",
     "size": "months",
     "needs_humans": "people to vet candidate signals, volunteers sharing computer time, and someone who knows radio interference.",
-    "risk_notes": "never announce a detection; candidates go to the breakthrough listen team and the seti community for follow-up. data size is large: check the archive's access and terms before posting. sources still to check.",
     "origin": "myra, oct 9 ('find real evidence of extraterrestrial aliens')"
   },
   {
     "slug": "silence-tinnitus",
     "wave": "idea",
-    "title": "silence tinnitus: test the at-home treatments for real",
+    "title": "find a cure for tinnitus",
     "category": "science",
     "tags": [
       "#health",
       "#tinnitus",
-      "#sound",
-      "#open-trial",
+      "#hearing",
+      "#open-science",
       "#needs-humans"
     ],
-    "what": "millions of people hear a ringing that never stops, and there is no cure. people try sound therapies at home, like pink noise with a notch cut out at their own tinnitus pitch, but the evidence is thin and mixed, because trials are small and few. a crowd can run the trial that never got done: an open app, thousands of people, a placebo sound nobody can tell apart, and results anyone can check. if a home treatment works, everyone learns it; if not, people stop wasting months on it.",
-    "done_when": "a pre-registered, ethics-board-approved, double-blind remote trial with at least 1,000 people who complete 12 weeks compares notched sound therapy against matched unnotched sound, using the open app and a validated tinnitus questionnaire, and publishes the full anonymized data and the pre-registered analysis openly, whatever the result.",
+    "what": "about one adult in seven hears a ringing or hiss that isn't there, some 750 million people, and for about 120 million it's bad enough to wreck sleep and work. there is no cure. drug trials keep failing: auris medical's am-101 failed two late-stage trials, and otonomy's oto-313 failed in 2022. the best treatment so far, lenire's sound-and-tongue stimulation, eases it for many people without making it go away. the clues are scattered across fields: damage between the ear and its nerve that a normal hearing test misses (\"hidden hearing loss\"), how the brain fills in sound it no longer gets, and a long list of remedies people try at home. a crowd with agents can read all of it, map every proposed cause and treatment with its evidence, dig into why the remedies might work, and pick the candidates most worth testing. then the hard part: get the best candidate tested by real research groups in proper trials. the finish line is the first treatment that clearly beats placebo in two independent trials. that isn't the end of tinnitus, but it's the first proven way in.",
+    "done_when": "a treatment picked from the crew's open evidence map of every proposed cause and treatment of chronic tinnitus is tested in two pre-registered, ethics-approved, randomized, blinded trials of at least 100 people each, run by two independent research groups outside the crew; in each trial, more people on the treatment than on the matched placebo or sham improve by at least 13 points on the tinnitus functional index (the smallest change a patient notices) at 12 weeks, significant at p < 0.05 by the trial's pre-registered analysis; and both trials' full results and anonymized data are published openly.",
     "checked_by": {
       "runs": {
-        "command": "python reanalyze.py data/ prereg.yaml (reruns the pre-registered analysis on the published data and prints the effect and confidence interval)",
+        "command": "python reanalyze.py trial-a/ trial-b/ (reruns each trial's pre-registered analysis on its published data and prints, for each arm, the share of people who improved by at least 13 points on the tinnitus functional index at 12 weeks, the difference between the arms and its p-value)",
         "count": 1
       },
       "people": {
         "count": 1,
         "human": true,
-        "instructions": "an audiologist or clinical researcher reads the protocol, the ethics approval and the results, and confirms the trial was run as registered."
+        "instructions": "a clinical researcher outside the crew and both trial teams reads both registrations, ethics approvals and results, and confirms each trial was randomized, blinded, run as registered by a group independent of the crew, and that the treatment tested is the one the evidence map picked."
+      },
+      "author": true
+    },
+    "lobby": 2,
+    "builds_on": "",
+    "sources": [
+      "https://doi.org/10.1001/jamaneurol.2022.2189",
+      "https://www.hearingtracker.com/news/lenire-tinnitus-treatment-device-granted-de-novo-approval-by-fda",
+      "https://genengnews.com/news/auris-medicals-tinnitus-candidate-keyzilen-fails-second-phase-iii-trial",
+      "https://www.fiercebiotech.com/biotech/otonomy-cuts-lead-asset-loose-after-phase-2-failure-latest-string-pitfalls",
+      "https://doi.org/10.1523/JNEUROSCI.2845-09.2009",
+      "https://www.nih.gov/news-events/nih-research-matters/cochlear-nerve-damage-associated-tinnitus",
+      "https://doi.org/10.1186/s12883-016-0558-7",
+      "https://pubmed.ncbi.nlm.nih.gov/22156949/"
+    ],
+    "why_now": "in march 2023 the us fda allowed lenire, the first tinnitus device of its kind (sound plus a mild tongue stimulus), which showed a treatment can make a real difference. a 2023 study from mass eye and ear found signs of nerve damage in people with tinnitus whose hearing tests were normal, a clue to what a cure has to fix. and agents can now read and grade thousands of papers, the slow first step every new candidate waits on.",
+    "size": "years",
+    "needs_humans": "researchers and audiologists to grade the evidence; people with tinnitus to say which outcomes count; research groups willing to run the trials, with their ethics boards; funders; statisticians; agents to read and grade the papers.",
+    "origin": "myra, oct 9 ('cure tinnitus')"
+  },
+  {
+    "slug": "the-answer-is-already-in-another-field",
+    "wave": "idea",
+    "title": "the answer is already in another field",
+    "category": "science",
+    "tags": [
+      "#science",
+      "#math",
+      "#ai",
+      "#open-source"
+    ],
+    "what": "lots of stuck problems in science would fall to a method someone in another field already knows, if anyone knew to look. matthew schwartz, a physicist at harvard, just [used claude to finish 36 papers](https://www.anthropic.com/research/claude-shaped-science) in 18 fields in three months by choosing problems like that: ones where the answer can be checked with numbers, the method lives in some other field, and the hard part is a lot of careful code. researchers post problems they're stuck on, agents and volunteers hunt for the method that cracks each one and write the code, and the person who posted it checks the result against numbers they already trust.",
+    "done_when": "at least 20 stuck problems posted by working researchers in at least 5 fields are solved with a method borrowed from another field, each with open code that reproduces its key number and a sign-off from the researcher who posted it saying the result matches a value they checked independently.",
+    "checked_by": {
+      "runs": {
+        "command": "python check_problems.py problems/ (checks each problem has a poster, the borrowed method named with a citation, open code, and that the code reproduces the stated number)",
+        "count": 1
+      },
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "pick one solved problem, run its code, and confirm the number matches the independent value the researcher gave."
+      },
+      "author": true
+    },
+    "lobby": 2,
+    "builds_on": "",
+    "sources": [
+      "https://www.anthropic.com/research/claude-shaped-science"
+    ],
+    "why_now": "anthropic's 'claude-shaped science' (oct 1, 2026): one scientist steering agents finished 36 papers in 18 fields by picking checkable, cross-field, code-heavy problems. one person picks a few dozen; a crowd can work through the whole pile.",
+    "size": "months",
+    "needs_humans": "researchers willing to post a problem they're stuck on and check the answer; people who know many fields a little, to match methods to problems; agents to search the literature and write the code.",
+    "origin": "myra, oct 9 (from anthropic's 'claude-shaped science')"
+  },
+  {
+    "slug": "find-every-shwarm-shaped-problem",
+    "wave": "idea",
+    "title": "find every problem a crowd of people and agents could finish",
+    "category": "knowledge",
+    "tags": [
+      "#meta",
+      "#ai",
+      "#open-data",
+      "#science"
+    ],
+    "what": "some problems sit unsolved because nobody has the time, not because nobody knows how. they can be checked when they're done, they split into pieces, and they're too big for one person but not for a crowd with agents. nobody keeps a list of them. this shwarm builds that list: people and agents comb through backlogs, unsolved-problem lists, abandoned projects and bug trackers, score each find against a short public test of what makes a problem crowd-shaped, and turn the best ones into real shwarms.",
+    "done_when": "an open list of at least 500 problems from at least 20 fields is published, each with its source, a draft done test and a score on a public rubric (checkable, splits into branches, needs a crowd, why it matters); at least 25 of the top-scored become shwarms here, and at least 5 of those pass their own done tests.",
+    "checked_by": {
+      "runs": {
+        "command": "python check_list.py problems.json (checks the counts, that every entry has a source link, a draft done test and a rubric score, and that each claimed shwarm exists and its pass status matches the site)",
+        "count": 1
+      },
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "pick ten entries at random, open their sources, and confirm each problem is real, still open, and scored fairly against the rubric."
       },
       "author": true
     },
     "lobby": 2,
     "builds_on": "",
     "sources": [],
-    "why_now": "",
-    "size": "years",
-    "needs_humans": "people with tinnitus willing to join a 12-week trial; a university or clinic partner with an ethics board; audiologists; app builders; statisticians.",
-    "risk_notes": "a root for 'cure tinnitus'; branches: the open notched-sound app (myra's work/tinnitus tool, based on pantev et al. 2012, is a starting point); an open tinnitus diary that logs loudness and possible triggers (with consent); a plain-language review of every treatment's evidence. medical rules: research, not medical advice; strict volume limits in the app; anyone with sudden, one-sided or pulsing tinnitus is told to see a doctor first; no trial starts without ethics approval and informed consent; health data stays anonymized and never goes on shwarm. sources still to check.",
-    "origin": "myra, oct 9 ('cure tinnitus')"
+    "why_now": "the 'claude-shaped science' piece made the case for choosing problems by their shape; nobody has done that across every field at once, and shwarm is the place to finish what the list finds.",
+    "size": "months",
+    "needs_humans": "people who know where a field's shelved work lives (researchers, maintainers, librarians, organizers); reviewers to keep the scores honest; agents to read the lists, draft done tests and dedupe.",
+    "origin": "myra, oct 9"
+  },
+  {
+    "slug": "what-the-old-archives-saw",
+    "wave": "idea",
+    "title": "what the old archives saw",
+    "category": "science",
+    "tags": [
+      "#history",
+      "#archives",
+      "#volcanoes",
+      "#meteorites",
+      "#ai"
+    ],
+    "what": "millions of pages of old ship logs, letters and newspapers are now transcribed, and they're full of eyewitness reports nobody has read in centuries: rocks falling from the sky, mountains erupting, strange animals. jesse waites, one engineer with cheap ai models, [searched](https://jessewaites.com/blog/post/i-pointed-ai-at-400-years-of-archives) the dutch east india company's 4.35 million pages this way and turned up a possible 1812 meteorite fall in india and three eruptions missing from the smithsonian's volcano list. a crowd can sweep many more archives in many languages, check every lead against the page scan, and hand them to the specialists who keep the catalogues.",
+    "done_when": "at least 20 events found by the crew in historical archives, and missing from their catalogue before (the smithsonian global volcanism program, the meteoritical bulletin database, or a named species-record database), are added to that catalogue or confirmed in writing by a named specialist, each with a link to the original page scan and a transcription and translation checked by 2 people.",
+    "checked_by": {
+      "runs": {
+        "command": "python check_finds.py finds.json (looks up each event in its catalogue or links its specialist's confirmation, and checks every scan link resolves)",
+        "count": 1
+      },
+      "people": {
+        "count": 1,
+        "human": true,
+        "instructions": "pick three finds, open their page scans, and confirm the transcription, date and place match the claim."
+      },
+      "author": false
+    },
+    "lobby": 2,
+    "builds_on": "jesse waites' antiquity toolkit (license to check); globalise's transcriptions of the voc archives; delpher's dutch newspapers",
+    "sources": [],
+    "why_now": "big archives were only machine-transcribed in the last few years, and cheap models can now screen millions of passages for a few dollars. one person proved the method in weeks; the leads still need people who read old dutch, portuguese or spanish, and specialists to judge them.",
+    "size": "months",
+    "needs_humans": "readers of old dutch, portuguese, spanish and other archive languages to check transcriptions; volcano, meteorite and natural-history specialists to judge leads; people to point the pipeline at new archives.",
+    "origin": "myra, oct 9 (shared jesse waites' post)"
   }
 ]
