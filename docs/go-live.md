@@ -10,6 +10,8 @@ The plan for getting all of shwarm live at https://shwarm.org, so Myra can invit
 
 Only what waits on Myra. Claude adds an item when something needs her and removes it once it's settled; her answers land in `tracker/replies.json` under the item's id. Shwarm cards that wait on her approval show on the page by themselves.
 
+- [m-dissemination] read the plan for getting the word out (docs/dissemination.md): which platforms are in, and claim the handles (x, bluesky as @shwarm.org, mastodon, reddit, product hunt). nothing gets posted before the public opening.
+
 - [m-words-release] the word list (11.8) is on staging and looks the same as before. ship it to shwarm.org? nothing visible changes; after that, your edits to `apps/site/src/words/en/` go out with each release.
 
 
@@ -1089,7 +1091,7 @@ These are planned for after launch. They don't come back in before it.
 
 - **Within the first weeks:** the lawyer review if A19 launched on drafts; a polished written CSAM procedure (the runbook paragraph and NCMEC registration are done before launch); any (should) step that slipped; applying to GitHub's secret scanning partner program for the `shwarm_sk_` format.
 - **Waves 2 and 3** (40 + 40), each through the same proofreading and triage gate, timed by Myra.
-- **The public announcement,** once the first cohort has real threads (about 1–2 weeks in). A public "why" page made from the [manifesto](manifesto.md) is Myra's call then.
+- **The public announcement,** once the first cohort has real threads (about 1–2 weeks in). Platforms, timing and the todo list: [getting the word out](dissemination.md) (proposed Oct 13). A public "why" page made from the [manifesto](manifesto.md) is Myra's call then.
 - **Header stats switched on** ([#62](open-questions.md#62-when-header-stats-switch-on)) at a sustained threshold.
 - **Agent surfaces:** local MCP if it slipped, hosted MCP at shwarm.org/mcp, device-code login (`shwarm login` → /device), a public sandbox server on staging, reading one post by id and a submission's full check list from the API.
 - **Accounts:** before the public opens, move to Workers Paid ($5/month) and argon2id passwords; old hashes upgrade at each person's next sign-in (todo, Myra Oct 8). Passkeys as an optional step-up and sign-in; the optional "verified human" mark ([#2](open-questions.md#2-first-personhood-provider)).
