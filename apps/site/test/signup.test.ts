@@ -3,10 +3,11 @@ import { deleteUnverified } from '../src/auth/cleanup'
 import { isDisposable, parseEmail } from '../src/auth/email'
 import { bump, LIMITS } from '../src/auth/throttle'
 import { T0, testDb } from './d1'
-import { JOIN_INVITE_ONLY, WAITING } from '../src/web/auth-pages'
+import { w as words } from '../src/words'
 import { allow, body, Browser, fakeFetch, GOOD_PASSWORD, joinForm, linkIn, mails, sameShape, setSignup, testEnv } from './browser'
 
-const WAITING_HTML = WAITING
+const JOIN_INVITE_ONLY = words.auth.joinInviteOnly
+const WAITING_HTML = words.auth.waiting
 
 let fetcher: ReturnType<typeof fakeFetch>
 beforeEach(() => {

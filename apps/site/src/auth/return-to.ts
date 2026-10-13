@@ -1,6 +1,7 @@
 // Return-to links for pages, and what to call the page someone came from ("back to …" after verifying).
 import { VISIBLE_SQL } from '../read/node'
 import { safeNext } from './request'
+import { w } from '../words'
 
 /** `path` with ?next= when `next` is a same-site path (else plain `path`). */
 export const withNext = (path: string, next?: string | null) => {
@@ -39,5 +40,5 @@ export async function backLabel(db: D1Database, next: string, viewerId: number |
       : null
     if (row) return row.title
   }
-  return 'where you were'
+  return w.auth.whereYouWere
 }

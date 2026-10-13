@@ -9,6 +9,7 @@ import { createSession, ipPrefix, sessionId, type Session } from './session'
 import { openStepUp, STEP_UP_MS, stepUpOpen } from './stepup'
 import { clearThrottle, LIMITS, stamp, type Limit } from './throttle'
 import { newToken } from './tokens'
+import { fill, w } from '../words'
 
 // Well-formed, current settings, matches no password: verifying against it costs what a real check costs.
 const DUMMY_HASH = `pbkdf2-sha256$i=${PBKDF2_ITERATIONS}$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA`
@@ -240,10 +241,10 @@ export type InlineStepUp = { ok: true } | { refuse: string; status: 400 | 429; w
  */
 export async function inlineStepUp(db: D1Database, pepper: string, session: Session, password: string | undefined, ip: string | null, now = Date.now()): Promise<InlineStepUp> {
   if (stepUpOpen(session, now)) return { ok: true }
-  if (!password) return { refuse: 'enter your password to confirm.', status: 400 }
+  if (!password) return { refuse: w.auth.enterPassword, status: 400 }
   const r = await stepUp(db, pepper, session.personId, session.id, password, ip, now)
-  if (r.kind === 'slow') return { refuse: `there have been too many tries from here. wait about ${Math.max(1, Math.ceil(r.seconds / 60))} minutes, then try again.`, status: 429, wait: r.seconds }
-  if (r.kind === 'bad') return { refuse: "that password doesn't match.", status: 400 }
+  if (r.kind === 'slow') return { refuse: fill(w.auth.tooManyTries, { minutes: Math.max(1, Math.ceil(r.seconds / 60)) }), status: 429, wait: r.seconds }
+  if (r.kind === 'bad') return { refuse: w.auth.wrongPassword, status: 400 }
   session.stepUpUntil = new Date(now + STEP_UP_MS).toISOString()
   return { ok: true }
 }

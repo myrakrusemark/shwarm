@@ -7,7 +7,8 @@
   if (!sc) return
   const opener = g('acct'), ta = g('about-in'), left = g('acount')
   let lastFocus = null
-  const count = () => { if (ta && left) left.textContent = (160 - [...ta.value].length) + ' left' }
+  const W = window.W.profile
+  const count = () => { if (ta && left) left.textContent = window.W.fill(W.aboutLeft, { n: 160 - [...ta.value].length }) }
   // Visible controls only: the change password form's fields while it's closed are skipped.
   const focusables = () => [...sc.querySelectorAll('a[href], button, input, textarea, select, summary')]
     .filter(el => !el.disabled && el.type !== 'hidden' && el.getClientRects().length)

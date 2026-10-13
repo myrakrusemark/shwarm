@@ -7,6 +7,7 @@ import { fromBase64url, isPostAsPattern, KEYID_RE, toBase64url } from '@shwarm/p
 import type { Grant, Perm } from '../core/actor'
 import { parseNodePath } from '../read/node'
 import { SEEN_NODE } from '../read/visibility'
+import { fill, w } from '../words'
 
 /** Active keys per person (table B, technical caps). Revoked and expired keys don't count. */
 export const MAX_KEYS = 20
@@ -36,8 +37,7 @@ export type KeyRefusal = { field: KeyField; error: string }
 /** dm: the key may send and read direct messages for its names (7.17; agent_key.dm). Off unless the modal's box is ticked. */
 export type KeyDraft = { name: string; canPostAs: string; grants: Grant[]; days: number | null; publicKey: string; dm?: boolean }
 
-// OPEN (#88): every refusal below is new wording.
-const BAD_PUBLIC_KEY = "the key didn't come through. reload the page and try again."
+// OPEN (#88): every refusal below is new wording. They're shown in the keys page's modal (w.keys).
 
 /** A random keyid: 20 characters of lowercase base32 (100 bits), so it says nothing about who holds it. OPEN (#88). */
 export function newKeyId(): string {
@@ -49,19 +49,19 @@ export function newKeyId(): string {
 
 /** The public half as the browser sends it: 32 bytes of Ed25519 public key, base64url without padding. Null when it's good. */
 export async function publicKeyProblem(raw: string | undefined): Promise<string | null> {
-  if (!raw || raw.length !== 43) return BAD_PUBLIC_KEY
+  if (!raw || raw.length !== 43) return w.keys.badPublicKey
   let bytes: Uint8Array
   try {
     bytes = fromBase64url(raw)
   } catch {
-    return BAD_PUBLIC_KEY
+    return w.keys.badPublicKey
   }
-  if (bytes.length !== 32 || toBase64url(bytes) !== raw) return BAD_PUBLIC_KEY
-  if (raw === TEST_VECTOR_PUBLIC) return "that's the published test key. anyone can sign with it, so it can't be registered."
+  if (bytes.length !== 32 || toBase64url(bytes) !== raw) return w.keys.badPublicKey
+  if (raw === TEST_VECTOR_PUBLIC) return w.keys.testKey
   try {
     await crypto.subtle.importKey('raw', bytes as Uint8Array<ArrayBuffer>, { name: 'Ed25519' }, false, ['verify'])
   } catch {
-    return BAD_PUBLIC_KEY
+    return w.keys.badPublicKey
   }
   return null
 }
@@ -101,16 +101,16 @@ export function parseGrants(raw: string | undefined): Grant[] | null {
 /** The new-key form, checked: the draft to save, or the field that's wrong and why. Grants must name nodes `me` can see. */
 export async function checkKeyForm(db: D1Database, me: { id: number; handle: string }, f: Record<string, string | undefined>): Promise<{ draft: KeyDraft } | KeyRefusal> {
   const name = oneLine(f.name ?? '')
-  if (!name) return { field: 'name', error: 'give it a name.' }
-  if ([...name].length > NAME_MAX) return { field: 'name', error: `keep it to ${NAME_MAX} characters.` }
+  if (!name) return { field: 'name', error: w.keys.giveName }
+  if ([...name].length > NAME_MAX) return { field: 'name', error: fill(w.keys.nameTooLong, { max: NAME_MAX }) }
   // The modal shows "@handle/" in front of the field; left empty, it means "*", as the mockup reads it.
   const tail = (f.post_as ?? '').trim() || '*'
   const canPostAs = `@${me.handle}/${tail}`
   if (tail.length > 400 || !isPostAsPattern(canPostAs))
-    return { field: 'post_as', error: 'that isn\'t a name pattern: letters, digits, ".", "-" and "_", parts split by "/", and "*" only at the end.' }
+    return { field: 'post_as', error: w.keys.badPattern }
   const grants = parseGrants(f.grants)
-  if (!grants) return { field: 'grants', error: "that access list didn't come through. reload the page and try again." }
-  if (grants.length > MAX_GRANTS) return { field: 'grants', error: `a key can have up to ${MAX_GRANTS} grants.` }
+  if (!grants) return { field: 'grants', error: w.keys.grantsBroken }
+  if (grants.length > MAX_GRANTS) return { field: 'grants', error: fill(w.keys.tooManyGrants, { max: MAX_GRANTS }) }
   const paths = grants.filter(g => g.node !== '*').map(g => g.node)
   if (paths.length) {
     const { results } = await db
@@ -119,10 +119,10 @@ export async function checkKeyForm(db: D1Database, me: { id: number; handle: str
       .all<{ path: string }>()
     const seen = new Set(results.map(r => r.path))
     const missing = paths.find(p => !seen.has(p))
-    if (missing) return { field: 'grants', error: `there's no shwarm or branch at ${missing} that you can see.` }
+    if (missing) return { field: 'grants', error: fill(w.keys.noNodeAt, { path: missing }) }
   }
   const expires = f.expires ?? DEFAULT_EXPIRY
-  if (!(expires in EXPIRY)) return { field: 'expires', error: 'pick when it expires.' }
+  if (!(expires in EXPIRY)) return { field: 'expires', error: w.keys.pickExpiry }
   const bad = await publicKeyProblem(f.public_key)
   if (bad) return { field: 'public_key', error: bad }
   // The dm box (7.17): ticked sends "1"; anything else, or nothing, leaves it off.

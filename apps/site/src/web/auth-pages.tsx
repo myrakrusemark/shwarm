@@ -1,6 +1,7 @@
 import type { Child, FC } from 'hono/jsx'
 import { FORM_FIELD } from '../auth/request'
 import { withNext } from '../auth/return-to'
+import { fill, fillx, w } from '../words'
 import { Layout } from './layout'
 
 // Account pages (go-live 2.5, 2.7, 2.8). Plain HTML forms: they work without JavaScript, except the
@@ -9,7 +10,7 @@ import { Layout } from './layout'
 export type Errors = Partial<Record<string, string>>
 
 const Shell: FC<{ title: string; heading: string; children?: Child; below?: Child }> = ({ title, heading, children, below }) => (
-  <Layout title={`${title} · shwarm`}>
+  <Layout title={fill(w.auth.pageTitle, { title })}>
     <link rel="stylesheet" href="/css/auth.css" />
     <main id="main" tabindex={-1} class="auth">
       <div class="box">
@@ -31,7 +32,7 @@ export const Turnstile: FC<{ siteKey?: string; error?: string }> = ({ siteKey, e
   siteKey ? (
     <div class="f">
       <div class="cf-turnstile" data-sitekey={siteKey} data-theme="light"></div>
-      <noscript><p class="hint">this check needs javascript.</p></noscript>
+      <noscript><p class="hint">{w.auth.turnstileNoScript}</p></noscript>
       <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
       <Err text={error} />
     </div>
@@ -73,13 +74,9 @@ const Field: FC<FieldProps> = ({ label, name, type = 'text', value, hint, error,
 
 // ---------- join ----------
 
-/**
- * While sign-up is invite-only (decided Oct 10: anyone may join; an address off the list waits for the opening). The
- * join form says so first; the check-email page says WAITING to anyone who joined from an address off the list.
- * OPEN: both wait on Myra's yes.
- */
-export const JOIN_INVITE_ONLY = "shwarm is invite-only for now. if you have an invite, join with the address it came to. if not, join anyway and we'll email you when it opens to everyone."
-export const WAITING = "you're on the list. shwarm is invite-only for now, so we'll email you when it opens to everyone."
+// While sign-up is invite-only (decided Oct 10: anyone may join; an address off the list waits for the opening). The
+// join form says so first (w.auth.joinInviteOnly); the check-email page says w.auth.waiting to anyone who joined from
+// an address off the list. OPEN: both wait on Myra's yes.
 
 export type JoinValues = { handle?: string; display_name?: string; email?: string; age?: boolean; terms?: boolean }
 
@@ -88,28 +85,28 @@ const Next: FC<{ next?: string }> = ({ next }) => (next ? <input type="hidden" n
 export const JoinPage: FC<{ token: string; siteKey?: string; inviteOnly: boolean; values?: JoinValues; errors?: Errors; next?: string }> = ({
   token, siteKey, inviteOnly, values = {}, errors = {}, next,
 }) => (
-  <Shell title="join" heading="join shwarm" below={<>have an account? <a href={withNext('/signin', next)}>sign in</a></>}>
-    {inviteOnly && <div class="msg ok">{JOIN_INVITE_ONLY}</div>}
+  <Shell title={w.auth.joinTitle} heading={w.auth.joinHeading} below={<>{fillx(w.auth.haveAccount, { link: <a href={withNext('/signin', next)}>{w.auth.signIn}</a> })}</>}>
+    {inviteOnly && <div class="msg ok">{w.auth.joinInviteOnly}</div>}
     <Msg text={errors.form} />
     <form method="post" action="/join">
       <Token value={token} />
       <Next next={next} />
-      <Field label="handle" name="handle" value={values.handle} error={errors.handle} autocomplete="username" maxlength={32} required
-        hint="your name here, like @myra. 2 to 32 lowercase letters, numbers or underscores. it can't change later." />
-      <Field label="display name" name="display_name" value={values.display_name} error={errors.display_name} autocomplete="name" maxlength={50}
-        hint="optional. shown next to your handle." />
-      <Field label="email" name="email" type="email" value={values.email} error={errors.email} autocomplete="email" maxlength={254} required
-        hint="we send a link to check it. it's never shown." />
-      <Field label="password" name="password" type="password" error={errors.password} autocomplete="new-password" maxlength={128} required
-        hint="10 to 128 characters." />
+      <Field label={w.auth.handle} name="handle" value={values.handle} error={errors.handle} autocomplete="username" maxlength={32} required
+        hint={w.auth.handleHint} />
+      <Field label={w.auth.displayName} name="display_name" value={values.display_name} error={errors.display_name} autocomplete="name" maxlength={50}
+        hint={w.auth.displayNameHint} />
+      <Field label={w.auth.email} name="email" type="email" value={values.email} error={errors.email} autocomplete="email" maxlength={254} required
+        hint={w.auth.emailHint} />
+      <Field label={w.auth.password} name="password" type="password" error={errors.password} autocomplete="new-password" maxlength={128} required
+        hint={w.auth.passwordHint} />
       <div class="f">
-        <label class="chk"><input type="checkbox" name="age" value="1" checked={values.age} required /> <span>i'm 16 or older.</span></label>
+        <label class="chk"><input type="checkbox" name="age" value="1" checked={values.age} required /> <span>{w.auth.age}</span></label>
         <Err text={errors.age} />
-        <label class="chk"><input type="checkbox" name="terms" value="1" checked={values.terms} required /> <span>i agree to the <a href="/terms">terms</a> and the <a href="/privacy">privacy notice</a>.</span></label>
+        <label class="chk"><input type="checkbox" name="terms" value="1" checked={values.terms} required /> <span>{fillx(w.auth.agree, { terms: <a href="/terms">{w.auth.agreeTerms}</a>, privacy: <a href="/privacy">{w.auth.agreePrivacy}</a> })}</span></label>
         <Err text={errors.terms} />
       </div>
       <Turnstile siteKey={siteKey} error={errors.turnstile} />
-      <div class="go"><span class="note">you can read everything without an account.</span><button class="btn" type="submit">join</button></div>
+      <div class="go"><span class="note">{w.auth.joinNote}</span><button class="btn" type="submit">{w.auth.joinButton}</button></div>
     </form>
   </Shell>
 )
@@ -121,29 +118,29 @@ export const JoinPage: FC<{ token: string; siteKey?: string; inviteOnly: boolean
 export const CheckEmailPage: FC<{ token: string; kind: 'verify' | 'reset'; sent?: boolean; unverified?: boolean; waiting?: boolean; n?: string }> = ({
   token, kind, sent, unverified, waiting, n,
 }) => (
-  <Shell title="check your email" heading="check your email">
-    {sent && <Msg ok text="sent again. it can take a minute or two." />}
-    {waiting && kind === 'verify' && <div class="msg ok" role="status">{WAITING}</div>}
+  <Shell title={w.auth.checkEmail} heading={w.auth.checkEmail}>
+    {sent && <Msg ok text={w.auth.sentAgain} />}
+    {waiting && kind === 'verify' && <div class="msg ok" role="status">{w.auth.waiting}</div>}
     <div class="in">
       {kind === 'reset' ? (
         <>
-          <p>if that address has an account, a link to set a new password is on its way. it works for 1 hour.</p>
-          <p>nothing there? look in spam, or <a href="/forgot">ask again</a>.</p>
+          <p>{w.auth.resetSent}</p>
+          <p>{fillx(w.auth.resetNothing, { link: <a href="/forgot">{w.auth.askAgain}</a> })}</p>
         </>
       ) : (
         <>
           {unverified ? (
-            <p>your email isn't verified yet. until it is, you can read and sign in, nothing else.</p>
+            <p>{w.auth.unverified}</p>
           ) : (
             // Myra's words (Oct 10). Shown whether or not the address has an account, so the page never tells which.
-            <p>we sent the next step to your email address. it will expire after 7 days.</p>
+            <p>{w.auth.verifySent}</p>
           )}
-          <p>be sure to check your spam folder!</p>
+          <p>{w.auth.checkSpam}</p>
           <form method="post" action="/check-email">
             <Token value={token} />
             {n && <input type="hidden" name="n" value={n} />}
             {waiting && <input type="hidden" name="w" value="1" />}
-            <button class="btn plain" type="submit">send it again</button>
+            <button class="btn plain" type="submit">{w.auth.sendAgain}</button>
           </form>
         </>
       )}
@@ -154,29 +151,29 @@ export const CheckEmailPage: FC<{ token: string; kind: 'verify' | 'reset'; sent?
 // ---------- links from email ----------
 
 export const VerifyPage: FC<{ token: string; t: string; handle: string; n?: string }> = ({ token, t, handle, n }) => (
-  <Shell title="verify your email" heading="verify your email">
+  <Shell title={w.auth.verifyEmail} heading={w.auth.verifyEmail}>
     <div class="in">
-      <p>this link finishes joining as <strong>@{handle}</strong>.</p>
-      <p>didn't sign up as @{handle}? don't press the button. an account that's never verified is deleted after 7 days.</p>
+      <p>{fillx(w.auth.verifyFinishes, { handle: <strong>@{handle}</strong> })}</p>
+      <p>{fill(w.auth.verifyNotYou, { handle })}</p>
     </div>
     <form method="post" action="/verify">
       <Token value={token} />
       <input type="hidden" name="t" value={t} />
       {n && <input type="hidden" name="n" value={n} />}
-      <div class="go"><span>press the button to finish joining.</span><button class="btn" type="submit">verify my email</button></div>
+      <div class="go"><span>{w.auth.verifyPress}</span><button class="btn" type="submit">{w.auth.verifyButton}</button></div>
     </form>
   </Shell>
 )
 
 /** `back`: where they were before joining (a same-site path) and what to call it. */
 export const VerifiedPage: FC<{ signedIn: boolean; back?: { href: string; label: string } }> = ({ signedIn, back }) => (
-  <Shell title="verified" heading="you're in">
+  <Shell title={w.auth.verifiedTitle} heading={w.auth.verifiedHeading}>
     <div class="in">
-      <p>your email is verified. welcome to shwarm.</p>
+      <p>{w.auth.verifiedWelcome}</p>
       {back ? (
-        <p>{signedIn ? <a href={back.href}>back to {back.label}</a> : <><a href={withNext('/signin', back.href)}>sign in</a> to go back to {back.label}.</>}</p>
+        <p>{signedIn ? <a href={back.href}>{fill(w.auth.backTo, { place: back.label })}</a> : <>{fillx(w.auth.signInToGoBack, { link: <a href={withNext('/signin', back.href)}>{w.auth.signIn}</a>, place: back.label })}</>}</p>
       ) : (
-        <p>{signedIn ? <a href="/">go to shwarm</a> : <a href="/signin">sign in</a>}</p>
+        <p>{signedIn ? <a href="/">{w.auth.goToShwarm}</a> : <a href="/signin">{w.auth.signIn}</a>}</p>
       )}
     </div>
   </Shell>
@@ -185,26 +182,26 @@ export const VerifiedPage: FC<{ signedIn: boolean; back?: { href: string; label:
 export const ExpiredPage: FC<{ kind: 'verify' | 'reset' | 'email_change' | 'email_taken' }> = ({ kind }) =>
   kind === 'email_taken' ? (
     // OPEN (#84): the email change pages' words (go-live 6.2) wait on Myra's yes.
-    <Shell title="link expired" heading="this link doesn't work anymore">
+    <Shell title={w.auth.linkExpiredTitle} heading={w.auth.linkExpiredHeading}>
       <div class="in">
-        <p>that address is on another shwarm account now, so this one can't move to it. your old address stays.</p>
+        <p>{w.auth.emailTaken}</p>
       </div>
     </Shell>
   ) : (
-    <Shell title="link expired" heading="this link doesn't work anymore">
+    <Shell title={w.auth.linkExpiredTitle} heading={w.auth.linkExpiredHeading}>
       <div class="in">
         {kind === 'email_change' ? (
           <>
-            <p>it was already used, or it ran out of time. email change links last 24 hours.</p>
-            <p>to try again, open "account" on your profile and change the address there.</p>
+            <p>{w.auth.emailChangeExpired}</p>
+            <p>{w.auth.emailChangeAgain}</p>
           </>
         ) : (
-          <p>it was already used, or it ran out of time. verify links last 7 days and reset links 1 hour.</p>
+          <p>{w.auth.linkUsed}</p>
         )}
         {kind === 'reset' ? (
-          <p><a href="/forgot">ask for a new reset link</a></p>
+          <p><a href="/forgot">{w.auth.newResetLink}</a></p>
         ) : kind === 'verify' ? (
-          <p>already verified? <a href="/signin">sign in</a>. if not, sign in and send a new link from there.</p>
+          <p>{fillx(w.auth.alreadyVerified, { link: <a href="/signin">{w.auth.signIn}</a> })}</p>
         ) : null}
       </div>
     </Shell>
@@ -212,24 +209,24 @@ export const ExpiredPage: FC<{ kind: 'verify' | 'reset' | 'email_change' | 'emai
 
 /** The link in an email change mail (go-live 6.2): one button, so a mail scanner that opens the link changes nothing. */
 export const EmailChangePage: FC<{ token: string; t: string; handle: string; email: string }> = ({ token, t, handle, email }) => (
-  <Shell title="confirm your new email" heading="confirm your new email">
+  <Shell title={w.auth.confirmNewEmail} heading={w.auth.confirmNewEmail}>
     <div class="in">
-      <p>this link moves <strong>@{handle}</strong> to <strong>{email}</strong>. until you press the button, the old address stays on the account.</p>
-      <p>didn't ask for this? don't press the button.</p>
+      <p>{fillx(w.auth.emailChangeMoves, { handle: <strong>@{handle}</strong>, email: <strong>{email}</strong> })}</p>
+      <p>{w.auth.emailChangeNotYou}</p>
     </div>
     <form method="post" action="/email-change">
       <Token value={token} />
       <input type="hidden" name="t" value={t} />
-      <div class="go"><span>press the button to use this address.</span><button class="btn" type="submit">use this address</button></div>
+      <div class="go"><span>{w.auth.emailChangePress}</span><button class="btn" type="submit">{w.auth.emailChangeButton}</button></div>
     </form>
   </Shell>
 )
 
 export const EmailChangedPage: FC<{ handle?: string }> = ({ handle }) => (
-  <Shell title="email changed" heading="your new email is set">
+  <Shell title={w.auth.emailChangedTitle} heading={w.auth.emailChangedHeading}>
     <div class="in">
-      <p>shwarm sends your mail here from now on, and you sign in with it.</p>
-      <p>{handle ? <a href={`/@${handle}`}>back to @{handle}</a> : <a href="/signin">sign in</a>}</p>
+      <p>{w.auth.emailChangedText}</p>
+      <p>{handle ? <a href={`/@${handle}`}>{fill(w.auth.backTo, { place: `@${handle}` })}</a> : <a href="/signin">{w.auth.signIn}</a>}</p>
     </div>
   </Shell>
 )
@@ -239,49 +236,49 @@ export const EmailChangedPage: FC<{ handle?: string }> = ({ handle }) => (
 export const SignInPage: FC<{ token: string; siteKey?: string; email?: string; next?: string; error?: string; notice?: string; signedInAs?: string }> = ({
   token, siteKey, email, next, error, notice, signedInAs,
 }) => (
-  <Shell title="sign in" heading="sign in" below={<>new here? <a href={withNext('/join', next)}>join</a></>}>
+  <Shell title={w.auth.signInHeading} heading={w.auth.signInHeading} below={<>{fillx(w.auth.newHere, { link: <a href={withNext('/join', next)}>{w.auth.joinLink}</a> })}</>}>
     <Msg ok text={notice} />
     {signedInAs && (
       <div class="msg ok">
-        you're signed in as @{signedInAs}.{' '}
-        <form method="post" action="/signout" class="inline"><Token value={token} /><button class="link" type="submit">sign out</button></form>
+        {fill(w.auth.signedInAs, { handle: signedInAs })}{' '}
+        <form method="post" action="/signout" class="inline"><Token value={token} /><button class="link" type="submit">{w.auth.signOut}</button></form>
       </div>
     )}
     <Msg text={error} />
     <form method="post" action="/signin">
       <Token value={token} />
       <Next next={next} />
-      <Field label="email" name="email" type="email" value={email} autocomplete="email" maxlength={254} required />
-      <Field label="password" name="password" type="password" autocomplete="current-password" maxlength={128} required
-        hint={<a href="/forgot">forgot it?</a>} />
+      <Field label={w.auth.email} name="email" type="email" value={email} autocomplete="email" maxlength={254} required />
+      <Field label={w.auth.password} name="password" type="password" autocomplete="current-password" maxlength={128} required
+        hint={<a href="/forgot">{w.auth.forgotIt}</a>} />
       <Turnstile siteKey={siteKey} />
-      <div class="go"><span></span><button class="btn" type="submit">sign in</button></div>
+      <div class="go"><span></span><button class="btn" type="submit">{w.auth.signInButton}</button></div>
     </form>
   </Shell>
 )
 
 export const ForgotPage: FC<{ token: string; siteKey?: string; email?: string; error?: string }> = ({ token, siteKey, email, error }) => (
-  <Shell title="forgot your password" heading="forgot your password?" below={<><a href="/signin">back to sign in</a></>}>
+  <Shell title={w.auth.forgotTitle} heading={w.auth.forgotHeading} below={<><a href="/signin">{w.auth.backToSignIn}</a></>}>
     <Msg text={error} />
     <form method="post" action="/forgot">
       <Token value={token} />
-      <Field label="email" name="email" type="email" value={email} autocomplete="email" maxlength={254} required
-        hint="if it has an account, we'll send a link to set a new password." />
+      <Field label={w.auth.email} name="email" type="email" value={email} autocomplete="email" maxlength={254} required
+        hint={w.auth.forgotHint} />
       <Turnstile siteKey={siteKey} />
-      <div class="go"><span></span><button class="btn" type="submit">send the link</button></div>
+      <div class="go"><span></span><button class="btn" type="submit">{w.auth.sendLink}</button></div>
     </form>
   </Shell>
 )
 
 export const ResetPage: FC<{ token: string; t: string; errors?: Errors }> = ({ token, t, errors = {} }) => (
-  <Shell title="set a new password" heading="set a new password">
+  <Shell title={w.auth.newPasswordHeading} heading={w.auth.newPasswordHeading}>
     <form method="post" action="/reset">
       <Token value={token} />
       <input type="hidden" name="t" value={t} />
-      <Field label="new password" name="password" type="password" error={errors.password} autocomplete="new-password" maxlength={128} required
-        hint="10 to 128 characters." />
-      <Field label="new password again" name="password2" type="password" error={errors.password2} autocomplete="new-password" maxlength={128} required />
-      <div class="go"><span class="note">this signs you out everywhere.</span><button class="btn" type="submit">set new password</button></div>
+      <Field label={w.auth.newPassword} name="password" type="password" error={errors.password} autocomplete="new-password" maxlength={128} required
+        hint={w.auth.passwordHint} />
+      <Field label={w.auth.newPasswordAgain} name="password2" type="password" error={errors.password2} autocomplete="new-password" maxlength={128} required />
+      <div class="go"><span class="note">{w.auth.resetNote}</span><button class="btn" type="submit">{w.auth.resetButton}</button></div>
     </form>
   </Shell>
 )
@@ -289,15 +286,15 @@ export const ResetPage: FC<{ token: string; t: string; errors?: Errors }> = ({ t
 // ---------- step-up ----------
 
 export const StepUpPage: FC<{ token: string; next: string; handle: string; error?: string }> = ({ token, next, handle, error }) => (
-  <Shell title="confirm it's you" heading="confirm it's you">
+  <Shell title={w.auth.stepUpHeading} heading={w.auth.stepUpHeading}>
     <Msg text={error} />
     <form method="post" action="/step-up">
       <Token value={token} />
       <input type="hidden" name="next" value={next} />
       <input type="hidden" name="username" value={handle} autocomplete="username" />
-      <Field label="password" name="password" type="password" autocomplete="current-password" maxlength={128} required
-        hint="enter your password to go on. it stays confirmed for 10 minutes." />
-      <div class="go"><span class="note">signed in as @{handle}</span><button class="btn" type="submit">confirm</button></div>
+      <Field label={w.auth.password} name="password" type="password" autocomplete="current-password" maxlength={128} required
+        hint={w.auth.stepUpHint} />
+      <div class="go"><span class="note">{fill(w.auth.stepUpSignedInAs, { handle })}</span><button class="btn" type="submit">{w.auth.stepUpButton}</button></div>
     </form>
   </Shell>
 )
@@ -305,18 +302,18 @@ export const StepUpPage: FC<{ token: string; next: string; handle: string; error
 // ---------- refusals ----------
 
 export const SlowDownPage: FC<{ seconds: number }> = ({ seconds }) => (
-  <Shell title="too many tries" heading="too many tries">
+  <Shell title={w.auth.tooManyTriesHeading} heading={w.auth.tooManyTriesHeading}>
     <div class="in">
-      <p>there have been too many tries from here. wait about {Math.max(1, Math.ceil(seconds / 60))} minutes, then try again.</p>
-      <p><a href="/">back to shwarm</a></p>
+      <p>{fill(w.auth.tooManyTries, { minutes: Math.max(1, Math.ceil(seconds / 60)) })}</p>
+      <p><a href="/">{w.auth.backToShwarm}</a></p>
     </div>
   </Shell>
 )
 
 export const FormExpiredPage: FC = () => (
-  <Shell title="this form expired" heading="this form expired">
+  <Shell title={w.auth.formExpired} heading={w.auth.formExpired}>
     <div class="in">
-      <p>go back, reload the page, and try again.</p>
+      <p>{w.auth.formExpiredText}</p>
     </div>
   </Shell>
 )

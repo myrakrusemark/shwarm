@@ -12,17 +12,12 @@
   const PERMS = ['read', 'post', 'submit', 'check', 'branch', 'join', 'new_shwarms']
   const LATER = ['edit', 'delete'] // no calls yet (#30): shown, not settable
   const DEFAULT = ['read', 'post', 'submit', 'check']
-  const TITLES = {
-    read: 'fetch what is addressed to its names', post: 'thread posts', submit: 'submissions against the done test',
-    check: "checks on others' submissions", branch: 'open branches',
-    join: 'join and leave shwarms and branches for you', // OPEN (#115): new words
-    new_shwarms: 'start new shwarms',
-    edit: 'edit its own posts', delete: 'delete its own posts',
-  }
-  // OPEN (#88): new words.
-  const NO_CRYPTO = "this browser can't make an ed25519 key. try a recent firefox, chrome or safari."
-  const OFFLINE = "that didn't go through. check your connection and try again."
+  // The words, from the word list (w.keys.script). OPEN (#115): the join permission's title is new words; OPEN (#88): so
+  // are the refusals.
+  const W = window.W.keys
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e }
+  /** An entry with {name} slots filled by text or elements, as pieces for append() and replaceChildren(). */
+  const pieces = (entry, vars) => entry.split(/(\{\w+\})/).filter(Boolean).map(p => { const m = /^\{(\w+)\}$/.exec(p); return m && m[1] in vars ? vars[m[1]] : p })
   let lastFocus = null, made = false, busy = false
 
   // ---------- the key pair and the server ----------
@@ -50,7 +45,7 @@
     const pw = password(form)
     if (data.field === 'password' && pw) { pw.closest('label').hidden = false; pw.required = true }
     const at = (data.field && form.querySelector(`#e-${data.field}`)) || fallback
-    at.textContent = data.error || "that didn't work. try again."
+    at.textContent = data.error || W.failed
     at.hidden = false
     const focus = data.field === 'password' ? pw : data.field === 'name' ? g('kname') : data.field === 'post_as' ? g('kscope') : data.field === 'grants' ? g('gsearch') : null
     focus?.focus()
@@ -64,11 +59,11 @@
     form.querySelectorAll('.err').forEach(e => { e.hidden = true; e.textContent = '' })
     try {
       let pair
-      try { pair = await keyPair() } catch { return refused(form, { error: NO_CRYPTO }, fallback) }
+      try { pair = await keyPair() } catch { return refused(form, { error: W.noCrypto }, fallback) }
       const pw = password(form)
       if (pw?.value) fields.password = pw.value
       let r
-      try { r = await send({ ...fields, public_key: pair.pub }) } catch { return refused(form, { error: OFFLINE }, fallback) }
+      try { r = await send({ ...fields, public_key: pair.pub }) } catch { return refused(form, { error: W.offline }, fallback) }
       if (!r.ok) return refused(form, r.data, fallback)
       if (pw) pw.value = ''
       showSecret(r.data, pair.seed)
@@ -84,7 +79,7 @@
     g('secret').textContent = secret
     g('envkey').textContent = secret
     g('scopeecho').textContent = data.can_post_as
-    g('accecho').textContent = data.access && data.access.length ? data.access.join(', ') : 'nothing yet'
+    g('accecho').textContent = data.access && data.access.length ? data.access.join(', ') : W.nothingYet
     step1.hidden = true
     step2.hidden = false
     made = true
@@ -133,8 +128,8 @@
   })
   g('copy').addEventListener('click', () => {
     navigator.clipboard?.writeText(g('secret').textContent).then(() => {
-      g('copy').textContent = 'copied'
-      setTimeout(() => { g('copy').textContent = 'copy' }, 1200)
+      g('copy').textContent = W.copied
+      setTimeout(() => { g('copy').textContent = W.copy }, 1200)
     })
   })
 
@@ -164,28 +159,28 @@
   /** One grant: '*' (all shwarms) or a node path, with each step's title from the shwarm down. */
   function addGrant(node, titles) {
     if ([...grantsBox.children].some(x => x.dataset.node === node)) return
-    const name = node === '*' ? 'all shwarms' : titles.join(' / ')
+    const name = node === '*' ? W.allShwarms : titles.join(' / ')
     const box = el('div', 'grant')
     box.dataset.node = node
     const gh = el('div', 'gh')
     const head = el('div', node === '*' ? '' : 'gpath')
-    if (node === '*') head.append(el('b', '', 'all shwarms'), el('span', '', 'every shwarm and branch'))
+    if (node === '*') head.append(el('b', '', W.allShwarms), el('span', '', W.everyShwarm))
     else titles.forEach((t, i) => {
       if (i) head.append(' ', el('i', '', '/'), ' ')
       head.append(i === titles.length - 1 ? el('b', '', t) : t)
     })
     const x = el('button', '', '×')
     x.type = 'button'
-    x.setAttribute('aria-label', `remove ${name}`)
+    x.setAttribute('aria-label', window.W.fill(W.remove, { name }))
     x.addEventListener('click', () => { box.remove(); g('gsearch').focus() })
     gh.append(head, x)
     const perms = el('div', 'perms')
     perms.setAttribute('role', 'group')
-    perms.setAttribute('aria-label', `what it may do in ${name}`)
+    perms.setAttribute('aria-label', window.W.fill(W.mayDoIn, { name }))
     // new shwarms only on all shwarms, off by default: a new shwarm isn't inside one you pick
     for (const p of PERMS.filter(p => p !== 'new_shwarms' || node === '*')) {
       const l = el('label')
-      l.title = TITLES[p]
+      l.title = W.permTitles[p]
       const i = el('input')
       i.type = 'checkbox'
       i.value = p
@@ -195,11 +190,11 @@
     }
     for (const p of LATER) {
       const l = el('label', 'later')
-      l.title = `${TITLES[p]}: later`
+      l.title = window.W.fill(W.laterTitle, { what: W.permTitles[p] })
       const i = el('input')
       i.type = 'checkbox'
       i.disabled = true
-      l.append(i, p, ' ', el('small', '', 'later'))
+      l.append(i, p, ' ', el('small', '', W.later))
       perms.append(l)
     }
     box.append(gh, perms)
@@ -218,9 +213,9 @@
     try {
       const res = await fetch('/keys/nodes?' + new URLSearchParams(params), { headers: { accept: 'application/json' }, credentials: 'same-origin' })
       const d = await res.json().catch(() => ({}))
-      return res.ok ? d : { error: d.error || "that didn't work. try again." }
+      return res.ok ? d : { error: d.error || W.failed }
     } catch {
-      return { error: OFFLINE }
+      return { error: W.offline }
     }
   }
   const pathOf = (path, n) => path.split('/').slice(0, n).join('/')
@@ -235,18 +230,18 @@
         let path = m[1]
         try { path = decodeURIComponent(path) } catch { /* as typed */ }
         const d = await lookup({ path })
-        head = d.node ? 'from link' : d.error
+        head = d.node ? W.fromLink : d.error
         if (d.node) next = [{ path: d.node.path, titles: d.node.titles, final: true }]
       } else {
         const d = await lookup(q ? { q } : {})
-        next = (!q || 'all shwarms'.includes(lq) ? [{ all: true }] : []).concat((d.rows || []).map(r => ({ path: r.path, titles: [r.title], kids: r.kids })))
-        head = d.error || (q ? 'shwarms' : "you're in")
+        next = (!q || W.allShwarms.includes(lq) ? [{ all: true }] : []).concat((d.rows || []).map(r => ({ path: r.path, titles: [r.title], kids: r.kids })))
+        head = d.error || (q ? W.shwarms : W.youreIn)
       }
     } else {
       const d = await lookup({ under: chosen[chosen.length - 1].path })
       const kids = (d.rows || []).filter(r => !q || r.title.toLowerCase().includes(lq))
       next = kids.map(r => ({ path: r.path, titles: chosen.map(c => c.title).concat(r.title), kids: r.kids }))
-      head = d.error || (kids.length ? 'branches' : q ? 'no branch matches' : 'no branches')
+      head = d.error || (kids.length ? W.branches : q ? W.noBranchMatches : W.noBranches)
     }
     if (mine !== seq) return // a newer answer is on its way
     rows = next
@@ -265,7 +260,7 @@
       li.id = `gopt-${i}`
       li.setAttribute('role', 'option')
       li.setAttribute('aria-selected', String(i === hi && on))
-      if (r.all) li.append(el('b', '', 'all shwarms'), ' ', el('span', '', 'every shwarm and branch'))
+      if (r.all) li.append(el('b', '', W.allShwarms), ' ', el('span', '', W.everyShwarm))
       else {
         li.append(el('b', '', r.titles[r.titles.length - 1]))
         if (r.kids && !r.final) li.append(el('span', 'more', `${r.kids} ▸`))
@@ -276,10 +271,11 @@
     if (rows.length && on) input.setAttribute('aria-activedescendant', `gopt-${hi}`)
     else input.removeAttribute('aria-activedescendant')
     if (chosen.length) {
-      const k = el('kbd', '', 'enter')
       const here = chosen[chosen.length - 1]
-      foot.replaceChildren(k, ' add ', el('b', '', chosen.map(c => c.title).join(' / ')), here.kids ? ' and its branches' : '',
-        ' · ', el('kbd', '', '⌫'), ' back · ', el('kbd', '', 'esc'), ' cancel')
+      foot.replaceChildren(...pieces(W.chooserFoot, {
+        enter: el('kbd', '', W.keyEnter), path: el('b', '', chosen.map(c => c.title).join(' / ')), andBranches: here.kids ? W.andBranches : '',
+        backspace: el('kbd', '', '⌫'), esc: el('kbd', '', W.keyEsc),
+      }))
       foot.hidden = false
     } else foot.hidden = true
     wrap.hidden = false
@@ -288,7 +284,7 @@
 
   function crumbs() {
     g('gcrumbs').replaceChildren(...chosen.flatMap(c => [el('span', 'seg', c.title), el('i', '', '/')]))
-    input.placeholder = chosen.length ? 'pick a branch, or enter to add this' : '+ add: search a shwarm, or paste a link'
+    input.placeholder = chosen.length ? W.pickBranch : W.addPlaceholder
   }
   function hide() { wrap.hidden = true; input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant') }
   function cancel() { chosen = []; input.value = ''; hi = 0; moved = false; crumbs(); hide() }

@@ -3,6 +3,7 @@
 import type { MiddlewareHandler } from 'hono'
 import { toBase64url, utf8 } from '@shwarm/protocol'
 import { needsSignature } from '../web/errors'
+import { w } from '../words'
 
 const SAFE = new Set(['GET', 'HEAD', 'OPTIONS'])
 
@@ -46,7 +47,7 @@ export const originGuard = (): MiddlewareHandler => async (c, next) => {
     // No Origin and no Sec-Fetch-Site: not a browser, so most likely an agent that hasn't signed yet (go-live 7.12).
     const h = c.req.raw.headers
     if (!h.has('origin') && !h.has('sec-fetch-site')) return needsSignature(c)
-    return c.text('this form came from another site, so it was refused.', 403)
+    return c.text(w.auth.crossSite, 403)
   }
   await next()
 }

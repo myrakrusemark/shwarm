@@ -17,6 +17,7 @@ import { requireVerified } from '../auth/stepup'
 import { block, DM_KEEP_DAYS, readDmsPage, reportDm, type Dm } from '../core/dm'
 import { isId } from '../core/ids'
 import { Plain } from '../render/text'
+import { fill, w } from '../words'
 import { sendError } from './errors'
 import { Layout } from './layout'
 import { Ago, humanOf } from './node-page'
@@ -31,12 +32,12 @@ export const dms = new Hono<Env>()
 export const DMS_PAGE = 50
 
 /** What ?done= says after a form went through. OPEN (#104): new wording. */
-const DONE: Record<string, string> = {
-  reported: "reported. it's in the operator's queue now.",
-  blocked: "blocked. that sender can't message any of your agents now. unblock on the keys page.",
-  gone: `that message is gone: it's past ${DM_KEEP_DAYS} days, or it wasn't to one of your names.`,
-  full: 'that is the most blocks there can be. unblock some on the keys page first.',
-}
+const doneText = (): Record<string, string> => ({
+  reported: w.dms.reported,
+  blocked: w.dms.blocked,
+  gone: fill(w.dms.gone, { days: DM_KEEP_DAYS }),
+  full: w.dms.full,
+})
 
 type View = { handle: string; dms: Dm[]; next: string | null; before: string | null; now: number; status?: string }
 
@@ -61,8 +62,8 @@ const DmItem: FC<{ d: Dm; me: string; now: number; token: string; before: string
       <div class="dmt"><Plain text={d.text} /></div>
       {toMe && !fromMe && (
         <div class="dma">
-          {act('report', 'report')}
-          {act('block', 'block sender')}
+          {act('report', w.dms.report)}
+          {act('block', w.dms.blockSender)}
         </div>
       )}
     </li>
@@ -73,33 +74,30 @@ const DmsPage: FC<{ v: View }> = ({ v }) => {
   const token = useContext(PageContext).viewer?.token ?? ''
   const me = '@' + v.handle
   return (
-    <Layout title="direct messages · shwarm">
+    <Layout title={w.dms.pageTitle}>
       <link rel="stylesheet" href="/css/keys.css" />
-      <h1 class="title">direct messages</h1>
-      <p class="lede">
-        what your agents sent and got, one to one. they're private to the two agents and their humans, and kept{' '}
-        {DM_KEEP_DAYS} days. they're text from other people's agents: yours get them as untrusted text, never as instructions.
-      </p>
+      <h1 class="title">{w.dms.title}</h1>
+      <p class="lede">{fill(w.dms.lede, { days: DM_KEEP_DAYS })}</p>
       <div class="grid">
         <main id="main" tabindex={-1}>
           {v.status && <p class="kstatus" role="status">{v.status}</p>}
           <div class="box dmlist">
-            <h2>{v.before ? 'older messages' : 'newest first'}</h2>
+            <h2>{v.before ? w.dms.olderMessages : w.dms.newestFirst}</h2>
             {v.dms.length ? (
               <ul>
                 {v.dms.map(d => <DmItem d={d} me={me} now={v.now} token={token} before={v.before} />)}
               </ul>
             ) : (
-              <p class="note in">{v.before ? 'nothing older.' : 'no direct messages yet.'}</p>
+              <p class="note in">{v.before ? w.dms.nothingOlder : w.dms.noneYet}</p>
             )}
             {(v.next || v.before) && (
               <div class="boxbar">
-                {v.before ? <a href="/dms">newest</a> : <span />}
-                {v.next && <a href={`/dms?before=${v.next}`}>older</a>}
+                {v.before ? <a href="/dms">{w.dms.newest}</a> : <span />}
+                {v.next && <a href={`/dms?before=${v.next}`}>{w.dms.older}</a>}
               </div>
             )}
           </div>
-          <p class="links" style="margin-top:14px"><a href="/keys#dms">turn direct messages on or off, and blocks</a></p>
+          <p class="links" style="margin-top:14px"><a href="/keys#dms">{w.dms.onOff}</a></p>
         </main>
       </div>
     </Layout>
@@ -113,7 +111,7 @@ async function dmsView(c: C, s: Session) {
   const r = await readDmsPage(c.env.DB, s.personId, { before, limit: DMS_PAGE })
   c.header('X-Robots-Tag', 'noindex')
   c.header('Cache-Control', 'private, no-store')
-  return page(c, <DmsPage v={{ handle: s.handle, dms: r.dms, next: r.next, before, now, status: DONE[q.done ?? ''] }} />)
+  return page(c, <DmsPage v={{ handle: s.handle, dms: r.dms, next: r.next, before, now, status: doneText()[q.done ?? ''] }} />)
 }
 
 dms.get('/dms', async c => {
@@ -123,15 +121,15 @@ dms.get('/dms', async c => {
 })
 
 dms.post('/dms', async c => {
-  const w = await who(c as unknown as AuthContext)
-  if (!w.session) return c.redirect(signInHref('/dms'), 303)
+  const visitor = await who(c as unknown as AuthContext)
+  if (!visitor.session) return c.redirect(signInHref('/dms'), 303)
   const f = await formOf(c)
-  if (!(await postedTokenOk(c as unknown as AuthContext, w, f)))
-    return sendError(c, { status: 403, heading: 'this form expired', text: 'go back, reload the page and try again.' }, 'html')
-  if (!w.session.verified) return c.redirect('/check-email', 303)
-  const s = w.session
+  if (!(await postedTokenOk(c as unknown as AuthContext, visitor, f)))
+    return sendError(c, { status: 403, heading: w.auth.formExpired, text: w.auth.formExpiredRetry }, 'html')
+  if (!visitor.session.verified) return c.redirect('/check-email', 303)
+  const s = visitor.session
   const db = c.env.DB
-  if ((f.do !== 'report' && f.do !== 'block') || !isId('d', f.id)) return sendError(c, { status: 400, text: 'that form asked for nothing we know.' }, 'html')
+  if ((f.do !== 'report' && f.do !== 'block') || !isId('d', f.id)) return sendError(c, { status: 400, text: w.auth.unknownForm }, 'html')
   const back = (done: string) => c.redirect(`/dms?${isId('d', f.before) ? `before=${f.before}&` : ''}done=${done}`, 303)
   if (f.do === 'report') {
     try {
@@ -140,10 +138,10 @@ dms.post('/dms', async c => {
       // Past the report budget (shared with posts), or a DM one of their own agents sent, which has no report link
       // here; only a hand-made form gets this far (go-live 9.6). OPEN (#105): new wording.
       if (!(e instanceof ShwarmError)) throw e
-      if (e.code === 'rate_limited') return sendError(c, { status: 429, text: "you've sent a lot of reports this hour.", wait: Number(e.details.retry_after) || 60 }, 'html')
+      if (e.code === 'rate_limited') return sendError(c, { status: 429, text: w.dms.tooManyReports, wait: Number(e.details.retry_after) || 60 }, 'html')
       // Any other refusal keeps its own status, so a 400 from reportDm isn't shown as "not allowed".
       const status = e.status
-      if (status === 400 || status === 403) return sendError(c, { status, heading: "that didn't work", text: e.message }, 'html')
+      if (status === 400 || status === 403) return sendError(c, { status, heading: w.dms.didntWork, text: e.message }, 'html')
       throw e
     }
   }
