@@ -38,6 +38,7 @@ The editable spec also lives as a claude.ai artifact: https://claude.ai/code/art
 | [docs/runbook.md](docs/runbook.md) | What to do when production breaks: roll back the code, restore the database, and the rehearsal log. |
 | `admin/` | Local only, never committed: the accounts list, the operator's details, renewals, deadlines and money. |
 | `tracker/` | A vite page that shows the go-live plan live (`npx vite --config tracker/vite.config.js`, port 5174): Now lines, progress, decisions, steps with status you can change. |
+| `localize/` | A vite page for the site's words in every language (`npx vite --config localize/vite.config.js`, port 5175): edit the English source, add a language, translate line by line with a status on each (missing, draft, checked, out of date), `{slots}` kept intact. Words live in `apps/site/src/words/`. |
 | [docs/decisions.md](docs/decisions.md) | Decision log, newest first, with reasoning and status (decided / accepted / proposed). Source of truth. |
 | [docs/open-questions.md](docs/open-questions.md) | Everything still undecided, numbered, with options, current lean and who decides. |
 | [docs/legal-todo.md](docs/legal-todo.md) | Checklist for finishing the terms and privacy drafts: decisions first, every [to decide] blank, what the full documents need, and the review process. |

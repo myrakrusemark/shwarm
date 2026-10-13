@@ -59,3 +59,48 @@ describe('filling an entry', () => {
     expect(count(posts, 2, { n: '2' })).toBe('2 posts')
   })
 })
+
+// Translations (the localize tool, localize/): every line is for an English entry that exists, keeps its {slots},
+// and a plural's forms are ones the language uses.
+import { languages, wordsFor } from '../src/words'
+import { translations } from '../src/words/translations'
+import { setRules } from '../src/words/fill'
+
+describe('translations', () => {
+  const english = new Map(leaves(w as unknown as Tree).flatMap(([path, v]) =>
+    typeof v === 'string' ? [[path.join('.'), v] as const] : Object.entries(v as Record<string, string>).map(([form, text]) => [`${path.join('.')}.${form}`, text] as const)))
+  const plurals = new Set(leaves(w as unknown as Tree).filter(([, v]) => typeof v !== 'string').map(([p]) => p.join('.')))
+  const slots = (s: string) => [...new Set([...s.matchAll(/\{(\w+)\}/g)].map(m => m[1]))].sort()
+
+  it('has a file for every language listed, and a language listed for every file', () => {
+    expect(Object.keys(translations).sort()).toEqual(languages.filter(l => !l.source).map(l => l.code).sort())
+    expect(languages.filter(l => l.source).map(l => l.code)).toEqual(['en'])
+  })
+
+  for (const [code, t] of Object.entries(translations)) {
+    it(`${code}: every line is for an English entry, with the same {slots}`, () => {
+      const forms = new Intl.PluralRules(code).resolvedOptions().pluralCategories as string[]
+      for (const [key, { text }] of Object.entries(t)) {
+        const base = key.slice(0, key.lastIndexOf('.'))
+        if (plurals.has(base)) {
+          expect(forms, `${key}: ${code} has no "${key.slice(base.length + 1)}" form`).toContain(key.slice(base.length + 1))
+          expect(slots(text), key).toEqual(slots(english.get(`${base}.other`)!))
+        } else {
+          expect(english.has(key), `${key}: no such English entry (renamed or removed?)`).toBe(true)
+          expect(slots(text), key).toEqual(slots(english.get(key)!))
+        }
+      }
+    })
+  }
+
+  it("picks a translated plural's form by that language's rules", () => {
+    const ru = setRules({ one: '{n} пост', few: '{n} поста', many: '{n} постов', other: '{n} поста' } as any, new Intl.PluralRules('ru'))
+    expect([1, 3, 5, 21].map(n => count(ru, n))).toEqual(['1 пост', '3 поста', '5 постов', '21 пост'])
+    const ja = setRules({ other: '{n}件' } as any, new Intl.PluralRules('ja'))
+    expect(count(ja, 1)).toBe('1件')
+  })
+
+  it('falls back to English for a line a language lacks', () => {
+    expect(wordsFor('xx').chrome.tagline).toBe(w.chrome.tagline)
+  })
+})

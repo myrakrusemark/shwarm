@@ -27,7 +27,16 @@ export function fillx(entry: string, vars: Record<string, Child>): Child[] {
   return out
 }
 
-/** A plural entry for n: { one, other } picked by the language's rules, then filled. {n} is n as given, unless vars says otherwise. */
+// A translated plural carries its language's rules (words/index.ts wordsFor); English's { one, other } use English's.
+const rulesOf = new WeakMap<object, Intl.PluralRules>()
+export function setRules<T extends object>(entry: T, rules: Intl.PluralRules): T {
+  rulesOf.set(entry, rules)
+  return entry
+}
+
+/** A plural entry for n: the form the language's rules pick for n (one, few, many, other…), then filled. {n} is n as
+ * given, unless vars says otherwise. A form the entry lacks falls back to other. */
 export function count(entry: Plural, n: number, vars: Record<string, string | number> = {}): string {
-  return fill(english.select(n) === 'one' ? entry.one : entry.other, { n, ...vars })
+  const form = (rulesOf.get(entry) ?? english).select(n) as keyof Plural
+  return fill(entry[form] ?? entry.other, { n, ...vars })
 }

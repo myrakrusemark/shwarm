@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>localize · shwarm</title>
+<link rel="icon" type="image/png" href="/mark.png" />
+<style>
+  :root {
+    --paper: #f3eedb;
+    --paper-2: #e9e2c6;
+    --ink: #13261b;
+    --moss: #2f6b3a;
+    --leaf: #5c9a3e;
+    --sun: #f4c531;
+    --clay: #c4572d;
+    --sky: #1d4ed8;
+    --rule: 1.5px solid var(--ink);
+    --rule-heavy: 3px solid var(--ink);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--paper); color: var(--ink); }
+  body { font: 14px/1.55 ui-monospace, "JetBrains Mono", "IBM Plex Mono", Menlo, Consolas, monospace; }
+  button, input, textarea, select { font: inherit; color: inherit; }
+  a { color: var(--sky); }
+
+  header { border-bottom: var(--rule-heavy); display: flex; align-items: center; gap: 14px; padding: 12px 16px; flex-wrap: wrap; position: sticky; top: 0; background: var(--paper); z-index: 5; }
+  header .mark { width: 34px; height: 34px; background: var(--ink); -webkit-mask: url(/mark.png) center/contain no-repeat; mask: url(/mark.png) center/contain no-repeat; }
+  header h1 { font: 900 24px/1 "Arial Black", Arial, sans-serif; margin: 0; letter-spacing: -1px; }
+  header h1 span { color: var(--moss); }
+  .langs { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .langs button { border: var(--rule); background: var(--paper); padding: 3px 10px; cursor: pointer; }
+  .langs button.on { background: var(--ink); color: var(--paper); }
+  .langs .add { border-style: dashed; }
+  #live { margin-left: auto; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  #live::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--leaf); }
+  #live.off::before { background: var(--clay); }
+
+  .summary { background: var(--ink); color: #fff; padding: 9px 16px 11px; font-size: 13px; }
+  .summary b { color: var(--sun); }
+  .summary .bar { height: 10px; border: 1.5px solid var(--paper); position: relative; margin-top: 7px; display: flex; }
+  .summary .bar i { display: block; height: 100%; }
+  .summary .how { opacity: .75; font-size: 12px; margin-top: 4px; }
+
+  main { display: grid; grid-template-columns: 230px 1fr; gap: 0; min-height: calc(100vh - 120px); }
+  nav { border-right: var(--rule); padding: 12px 0; position: sticky; top: 60px; align-self: start; max-height: calc(100vh - 60px); overflow: auto; }
+  nav button { display: flex; justify-content: space-between; gap: 8px; width: 100%; text-align: left; border: 0; background: none; padding: 5px 14px; cursor: pointer; }
+  nav button:hover { background: var(--paper-2); }
+  nav button.on { background: var(--sun); font-weight: 700; }
+  nav .n { opacity: .7; font-size: 12px; }
+  nav .n b { color: var(--clay); }
+
+  .tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 12px 16px; border-bottom: var(--rule); position: sticky; top: 60px; background: var(--paper); z-index: 4; }
+  .tools input[type=search] { flex: 1 1 220px; border: var(--rule); background: #fffdf3; padding: 5px 8px; }
+  .chip { border: var(--rule); background: var(--paper); padding: 2px 9px; cursor: pointer; font-size: 12.5px; }
+  .chip.on { background: var(--ink); color: var(--paper); }
+  .about { padding: 10px 16px 0; font-size: 12.5px; opacity: .8; }
+
+  .list { padding: 6px 16px 60px; }
+  .e { border: var(--rule); background: #fffdf3; margin: 10px 0; padding: 9px 11px 10px; }
+  .e.unshipped { box-shadow: 4px 4px 0 var(--sun); }
+  .e .note { font-size: 12.5px; color: #3d5345; white-space: pre-wrap; }
+  .e .key { font-size: 11px; opacity: .55; float: right; margin-left: 10px; }
+  .e .src { margin: 6px 0; padding: 6px 8px; background: var(--paper-2); white-space: pre-wrap; }
+  .e textarea { width: 100%; border: var(--rule); background: #fff; padding: 6px 8px; resize: vertical; min-height: 2.4em; line-height: 1.45; }
+  .e textarea:focus { outline: 3px solid var(--sun); outline-offset: 0; }
+  .e .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 6px; font-size: 12.5px; }
+  .e .msg { color: var(--clay); font-weight: 700; }
+  .e .ok { color: var(--moss); }
+  .slot { background: #dfe8ff; border-radius: 3px; padding: 0 3px; }
+  .slot.miss { background: #f6d2c4; text-decoration: line-through; }
+  .pill { font-size: 11.5px; padding: 0 6px; border: 1.5px solid; border-radius: 9px; }
+  .pill.missing { color: var(--clay); }
+  .pill.stale { color: #8a5a00; background: #fde9a6; }
+  .pill.draft { color: var(--sky); }
+  .pill.checked { color: var(--moss); background: #dcefd2; }
+  .pill.ship { color: #6b5200; background: var(--sun); border-color: var(--ink); }
+  .form { font-size: 12px; background: var(--ink); color: var(--paper); padding: 0 6px; }
+  .linkish { background: none; border: 0; padding: 0; color: var(--sky); text-decoration: underline; cursor: pointer; font-size: 12.5px; }
+  .empty { padding: 30px 0; opacity: .7; }
+
+  .scrim { position: fixed; inset: 0; background: rgba(19, 38, 27, .45); display: flex; align-items: center; justify-content: center; z-index: 10; }
+  .scrim[hidden] { display: none; }
+  .modal { background: var(--paper); border: var(--rule-heavy); padding: 16px 18px; width: min(460px, calc(100vw - 32px)); }
+  .modal h2 { margin: 0 0 10px; font-size: 16px; display: flex; justify-content: space-between; }
+  .modal label { display: block; margin: 10px 0 3px; font-size: 12.5px; }
+  .modal input { width: 100%; border: var(--rule); background: #fff; padding: 6px 8px; }
+  .modal .go { margin-top: 14px; display: flex; gap: 10px; align-items: center; }
+  .btn { border: var(--rule); background: var(--ink); color: var(--paper); padding: 5px 14px; cursor: pointer; }
+  .x { border: 0; background: none; font-size: 18px; cursor: pointer; }
+
+  @media (max-width: 760px) {
+    main { grid-template-columns: 1fr; }
+    nav { position: static; max-height: none; border-right: 0; border-bottom: var(--rule); display: flex; flex-wrap: wrap; padding: 6px; }
+    nav button { width: auto; }
+    .tools { top: 0; position: static; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <i class="mark" aria-hidden="true"></i>
+  <h1>s<span>h</span>warm · localize</h1>
+  <div class="langs" id="langs"></div>
+  <span id="live">live</span>
+</header>
+<div class="summary" id="summary"></div>
+<main>
+  <nav id="areas" aria-label="page areas"></nav>
+  <section>
+    <div class="tools">
+      <input type="search" id="q" placeholder="search the words, the notes or the names…" aria-label="search" />
+      <span id="filters"></span>
+    </div>
+    <div class="about" id="about"></div>
+    <div class="list" id="list"></div>
+  </section>
+</main>
+
+<div class="scrim" id="add-scrim" hidden>
+  <form class="modal" id="add-form" role="dialog" aria-modal="true" aria-labelledby="add-title">
+    <h2 id="add-title"><span>add a language</span><button type="button" class="x" id="add-close" aria-label="close">×</button></h2>
+    <label for="add-code">language code (like ja, pt-BR, zh-Hant, ar)</label>
+    <input id="add-code" autocomplete="off" required />
+    <label for="add-name">its name, as it shows here</label>
+    <input id="add-name" autocomplete="off" />
+    <div class="go"><button class="btn" type="submit">add</button><span class="msg" id="add-msg" style="color:var(--clay)"></span></div>
+    <p style="font-size:12px;opacity:.75;margin:12px 0 0">it starts empty: every line shows in english on the site until it's translated. who sees which language on the site is still open (#116).</p>
+  </form>
+</div>
+
+<script type="module">
+const $ = s => document.querySelector(s)
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+const slotsOf = s => [...new Set([...String(s).matchAll(/\{(\w+)\}/g)].map(m => m[1]))].sort()
+const showSlots = (s, missing = []) => esc(s).replace(/\{(\w+)\}/g, (m, k) => `<span class="slot${missing.includes(k) ? ' miss' : ''}">{${k}}</span>`)
+const pref = { get: k => { try { return localStorage.getItem('localize.' + k) } catch { return null } }, set: (k, v) => { try { localStorage.setItem('localize.' + k, v) } catch {} } }
+
+let data = null
+let lang = new URLSearchParams(location.search).get('lang') || pref.get('lang') || 'en'
+let area = pref.get('area') || null
+let filter = 'all'
+let editing = null // the key whose box has focus: a reload doesn't overwrite it
+
+async function load() {
+  let r = await fetch(`/api/words?lang=${encodeURIComponent(lang)}`)
+  if (r.status === 404) { lang = 'en'; r = await fetch('/api/words?lang=en') }
+  data = await r.json()
+  render()
+}
+
+// Which numbers a plural form is for, as a hint: "1, 21, 31…" for Russian's one.
+function formHint(code, form) {
+  const rules = new Intl.PluralRules(code), out = []
+  for (let n = 0; n < 200 && out.length < 4; n++) if (rules.select(n) === form) out.push(n)
+  return out.length ? `for numbers like ${out.join(', ')}…` : ''
+}
+
+function rows() {
+  return data.lang.source
+    ? data.english.map(a => ({ area: a.area, about: a.about, entries: a.entries.map(e => ({ ...e, status: e.shipped !== null && e.shipped !== e.text ? 'unshipped' : 'same', unshipped: e.shipped !== null && e.shipped !== e.text })) }))
+    : data.translation.areas
+}
+
+function render() {
+  const L = data.lang
+  document.title = `localize · ${L.name} · shwarm`
+  history.replaceState(null, '', `?lang=${L.code}`)
+  pref.set('lang', L.code)
+
+  $('#langs').innerHTML = data.languages.map(l => `<button type="button" data-l="${esc(l.code)}" class="${l.code === L.code ? 'on' : ''}">${esc(l.name)}${l.source ? ' (source)' : ''}</button>`).join('') + '<button type="button" class="add" id="add">+ add a language</button>'
+  $('#langs').querySelectorAll('[data-l]').forEach(b => b.onclick = () => { lang = b.dataset.l; filter = 'all'; load() })
+  $('#add').onclick = openAdd
+
+  const all = rows()
+  const flat = all.flatMap(a => a.entries)
+  const unshipped = flat.filter(e => e.unshipped).length
+  const how = unshipped ? `<div class="how"><b>${unshipped}</b> edit${unshipped === 1 ? '' : 's'} waiting to ship (yellow shadow). to ship: tell claude "ship my word edits"; it runs the checks and puts them on staging, then shwarm.org.</div>` : '<div class="how">nothing waiting to ship.</div>'
+  if (L.source) {
+    $('#summary').innerHTML = `<b>english</b> is the source: ${flat.length} lines across ${all.length} page areas. every other language translates these.${how}`
+  } else {
+    const c = s => flat.filter(e => e.status === s).length
+    const n = { checked: c('checked'), draft: c('draft'), stale: c('stale'), missing: c('missing') }
+    const pct = k => (100 * n[k] / flat.length).toFixed(2)
+    $('#summary').innerHTML = `<b>${esc(L.name)}</b> (${esc(L.code)}): ${n.checked + n.draft + n.stale} of ${flat.length} lines translated · <b>${n.checked}</b> checked · ${n.draft} drafts · ${n.stale} out of date · ${n.missing} missing${data.translation.orphans.length ? ` · ${data.translation.orphans.length} for english lines that are gone` : ''}
+      <div class="bar" aria-hidden="true"><i style="width:${pct('checked')}%;background:var(--leaf)"></i><i style="width:${pct('draft')}%;background:#8fb3ff"></i><i style="width:${pct('stale')}%;background:var(--sun)"></i></div>${how}`
+  }
+
+  const counts = a => L.source ? (a.entries.filter(e => e.unshipped).length ? `<b>${a.entries.filter(e => e.unshipped).length} edited</b> · ` : '') + a.entries.length : `<b>${a.entries.filter(e => e.status === 'missing' || e.status === 'stale').length || ''}</b>${a.entries.filter(e => e.status === 'missing' || e.status === 'stale').length ? ' to do · ' : ''}${a.entries.length}`
+  $('#areas').innerHTML = `<button type="button" data-a="" class="${area ? '' : 'on'}"><span>everything</span><span class="n">${flat.length}</span></button>` +
+    all.map(a => `<button type="button" data-a="${a.area}" class="${area === a.area ? 'on' : ''}"><span>${a.area}</span><span class="n">${counts(a)}</span></button>`).join('') +
+    (!L.source && data.translation.orphans.length ? `<button type="button" data-a="_orphans" class="${area === '_orphans' ? 'on' : ''}"><span>gone from english</span><span class="n"><b>${data.translation.orphans.length}</b></span></button>` : '')
+  $('#areas').querySelectorAll('button').forEach(b => b.onclick = () => { area = b.dataset.a || null; pref.set('area', area ?? ''); render(); window.scrollTo(0, 0) })
+
+  const kinds = L.source ? [['all', 'all'], ['unshipped', 'waiting to ship']] : [['all', 'all'], ['todo', 'missing or out of date'], ['missing', 'missing'], ['stale', 'out of date'], ['draft', 'drafts'], ['checked', 'checked'], ['unshipped', 'waiting to ship']]
+  $('#filters').innerHTML = kinds.map(([k, label]) => `<button type="button" class="chip ${filter === k ? 'on' : ''}" data-f="${k}">${label}</button>`).join(' ')
+  $('#filters').querySelectorAll('[data-f]').forEach(b => b.onclick = () => { filter = b.dataset.f; render() })
+
+  list()
+}
+
+function list() {
+  const L = data.lang
+  if (area === '_orphans') return orphans()
+  const q = $('#q').value.trim().toLowerCase()
+  const shown = rows().filter(a => !area || a.area === area)
+  $('#about').textContent = area ? (shown[0]?.about ?? '') : ''
+  const keep = e => {
+    if (filter === 'unshipped' && !e.unshipped) return false
+    if (filter === 'todo' && !['missing', 'stale'].includes(e.status)) return false
+    if (!['all', 'todo', 'unshipped'].includes(filter) && e.status !== filter) return false
+    if (!q) return true
+    return [e.key, e.text, e.note, e.source, e.shipped].some(x => x && String(x).toLowerCase().includes(q))
+  }
+  const html = shown.flatMap(a => a.entries.filter(keep).map(e => L.source ? englishCard(e) : transCard(e, L))).join('')
+  $('#list').innerHTML = html || '<p class="empty">nothing here with this search or filter.</p>'
+  $('#list').querySelectorAll('.e').forEach(wire)
+}
+
+function englishCard(e) {
+  return `<div class="e ${e.unshipped ? 'unshipped' : ''}" data-k="${esc(e.key)}">
+    <span class="key">${esc(e.key)}</span>
+    <div class="note">${esc(e.note || '(no note)')}${e.plural ? ` · <span class="form">${e.plural === 'one' ? 'when the number is 1' : 'any other number'}</span>` : ''}</div>
+    <textarea rows="${Math.min(8, Math.ceil(e.text.length / 90) + (e.text.match(/\n/g)?.length ?? 0))}" spellcheck="true">${esc(e.text)}</textarea>
+    <div class="row">${e.unshipped ? `<span class="pill ship">waiting to ship</span><span>was: <i>${showSlots(e.shipped)}</i></span><button type="button" class="linkish" data-undo>put it back</button>` : ''}
+      ${slotsOf(e.text).length ? `<span>slots: ${slotsOf(e.text).map(s => `<span class="slot">{${s}}</span>`).join(' ')}</span>` : ''}<span class="msg"></span></div>
+  </div>`
+}
+
+const STATUS = { missing: 'missing', stale: 'out of date: the english changed', draft: 'draft', checked: 'checked' }
+function transCard(e, L) {
+  const missing = e.text ? e.slots.filter(s => !slotsOf(e.text).includes(s)) : []
+  return `<div class="e ${e.unshipped ? 'unshipped' : ''}" data-k="${esc(e.key)}">
+    <span class="key">${esc(e.key)}</span>
+    <div class="note">${esc(e.note || '(no note)')}${e.form ? ` · <span class="form">${esc(e.form)}</span> ${formHint(L.code, e.form)}` : ''}</div>
+    <div class="src" lang="en">${showSlots(e.source)}</div>
+    ${e.status === 'stale' ? `<div class="note">translated from: <i>${showSlots(e.from)}</i></div>` : ''}
+    <textarea lang="${esc(L.code)}" dir="${L.dir}" rows="${Math.min(8, Math.ceil(e.source.length / 90) + (e.source.match(/\n/g)?.length ?? 0))}" placeholder="in ${esc(L.name)}…">${esc(e.text)}</textarea>
+    <div class="row"><span class="pill ${e.status}">${STATUS[e.status]}</span>
+      ${e.text ? `<label><input type="checkbox" data-check ${e.checked && e.status !== 'stale' ? 'checked' : ''} /> checked by someone who reads ${esc(L.name)}</label>` : ''}
+      ${e.slots.length ? `<span>keep: ${e.slots.map(s => `<span class="slot${missing.includes(s) ? ' miss' : ''}">{${s}}</span>`).join(' ')}</span>` : ''}
+      ${e.unshipped ? '<span class="pill ship">waiting to ship</span>' : ''}<span class="msg"></span></div>
+  </div>`
+}
+
+function orphans() {
+  $('#about').textContent = "lines translated for english entries that were renamed or removed. the site doesn't use them; delete them, or copy one into its new entry first."
+  $('#list').innerHTML = data.translation.orphans.map(o => `<div class="e" data-k="${esc(o.key)}"><span class="key">${esc(o.key)}</span><div class="note">was the english: ${esc(o.from)}</div><div class="src">${esc(o.text)}</div><div class="row"><button type="button" class="linkish" data-drop>delete it</button><span class="msg"></span></div></div>`).join('')
+  $('#list').querySelectorAll('[data-drop]').forEach(b => b.onclick = async () => {
+    const box = b.closest('.e')
+    const r = await save({ key: box.dataset.k, text: '' })
+    if (r.ok) load(); else box.querySelector('.msg').textContent = r.error
+  })
+}
+
+async function save(body) {
+  const r = await fetch('/api/save', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ lang: data.lang.code, ...body }) })
+  return r.json()
+}
+
+function wire(box) {
+  const key = box.dataset.k, ta = box.querySelector('textarea'), msg = box.querySelector('.msg')
+  if (!ta) return
+  const entry = rows().flatMap(a => a.entries).find(e => e.key === key)
+  let last = ta.value
+  const grow = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 4 + 'px' }
+  grow()
+  ta.addEventListener('input', () => {
+    grow()
+    const want = data.lang.source ? (entry.shipped ?? entry.text) : entry.source
+    const miss = slotsOf(want).filter(s => !slotsOf(ta.value).includes(s))
+    const extra = slotsOf(ta.value).filter(s => !slotsOf(want).includes(s))
+    msg.className = 'msg'
+    msg.textContent = extra.length ? `{${extra.join('}, {')}} isn't a slot here` : miss.length && ta.value ? `keep ${miss.map(s => `{${s}}`).join(' ')}` : ''
+  })
+  ta.addEventListener('focus', () => { editing = key })
+  const commit = async () => {
+    editing = null
+    if (ta.value === last) return
+    if (data.lang.source && ta.value.trim() === '') { msg.className = 'msg'; msg.textContent = "english can't be empty"; return }
+    const r = await save({ key, text: ta.value })
+    if (r.ok) { last = ta.value; msg.className = 'ok'; msg.textContent = 'saved'; setTimeout(load, 500) }
+    else { msg.className = 'msg'; msg.textContent = r.error }
+  }
+  ta.addEventListener('blur', commit)
+  ta.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); ta.blur() } if (e.key === 'Escape') { ta.value = last; ta.blur() } })
+  box.querySelector('[data-undo]')?.addEventListener('click', async () => {
+    const r = await save({ key, text: entry.shipped })
+    if (r.ok) load(); else msg.textContent = r.error
+  })
+  box.querySelector('[data-check]')?.addEventListener('change', async e => {
+    const r = await save({ key, checked: e.target.checked })
+    if (r.ok) load(); else msg.textContent = r.error
+  })
+}
+
+// ---------- add a language ----------
+function openAdd() { $('#add-scrim').hidden = false; $('#add-msg').textContent = ''; $('#add-code').value = ''; $('#add-name').value = ''; $('#add-code').focus() }
+function closeAdd() { $('#add-scrim').hidden = true; $('#add').focus() }
+$('#add-close').onclick = closeAdd
+$('#add-scrim').addEventListener('click', e => { if (e.target === $('#add-scrim')) closeAdd() })
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#add-scrim').hidden) closeAdd() })
+let named = false
+$('#add-name').addEventListener('input', () => { named = !!$('#add-name').value })
+$('#add-code').addEventListener('input', async () => {
+  const r = await (await fetch('/api/suggest?code=' + encodeURIComponent($('#add-code').value.trim()))).json()
+  if (!named) $('#add-name').value = r.name && r.name !== r.code.toLowerCase() ? r.name : ''
+})
+$('#add-form').addEventListener('submit', async e => {
+  e.preventDefault()
+  const r = await (await fetch('/api/language', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: $('#add-code').value, name: $('#add-name').value }) })).json()
+  if (!r.ok) { $('#add-msg').textContent = r.error; return }
+  $('#add-scrim').hidden = true; named = false; lang = r.code; filter = 'all'; area = null; load()
+})
+
+$('#q').addEventListener('input', list)
+
+// reload when the files change (an edit here, or Claude's), without touching a box that's being typed in
+if (import.meta.hot) {
+  import.meta.hot.on('words-changed', () => { if (!editing) load() })
+  import.meta.hot.on('vite:ws:disconnect', () => $('#live').classList.add('off'))
+  import.meta.hot.on('vite:ws:connect', () => $('#live').classList.remove('off'))
+}
+load()
+</script>
+</body>
+</html>
