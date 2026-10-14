@@ -5,10 +5,10 @@ export const create = {
   branchPageTitle: 'new branch · {title} · shwarm',
   // the big heading, and the line under it: for a new shwarm
   heading: 'new shwarm',
-  sub: 'a goal worth a crowd. your shwarm goes live after a quick automatic check.',
+  sub: 'a goal worth a crowd. your shwarm goes live after a quick safety check.',
   // the same for a new branch (the heading is also the last part of the breadcrumb path above it)
   branchHeading: 'new branch',
-  branchSub: 'your branch goes live after a quick automatic check. people are already working here.',
+  branchSub: 'your branch goes live after a quick safety check. people are already working here.',
   // the breadcrumb path's name for screen readers
   crumbsLabel: 'breadcrumb',
 
@@ -100,8 +100,8 @@ export const create = {
   takesUpstream: 'your shwarm uses the license {shwarm} is published under.',
 
   // beside the button at the bottom (for a shwarm, then for a branch, where {title} is what it goes under)
-  goNote: "a quick automatic check reads your shwarm first, usually within a minute. until then only you can see it. after that it's live, and anyone can work on it.",
-  branchGoNote: "a quick automatic check reads your branch first, usually within a minute. until then only you can see it. after that it's live under {title}, and anyone can work on it.",
+  goNote: "a quick safety check reads your shwarm first, usually within a minute. until then only you can see it. after that it's live, and anyone can work on it.",
+  branchGoNote: "a quick safety check reads your branch first, usually within a minute. until then only you can see it. after that it's live under {title}, and anyone can work on it.",
   // in bold after that
   fixedNote: 'once posted, nothing on this form can be changed.',
   // the button
@@ -118,7 +118,7 @@ export const create = {
   ruleHarmless: 'harmless.',
   ruleHarmlessText: ' nothing here hurts people.',
   // the note under the rules. {rubric} is the link (triageRubric).
-  triageNote: 'an automatic check reads every new shwarm and branch before anyone else sees it. the check only looks for harm, never at whether an idea is good. {rubric}',
+  triageNote: 'a safety check reads every new shwarm and branch before anyone else sees it. the check only looks for harm, never at whether an idea is good. {rubric}',
   triageRubric: 'see what the check is asked.',
 
   // in place of the form, while new shwarms are paused

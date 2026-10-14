@@ -1,8 +1,8 @@
 # Translations
 
-The site's words in other languages: what the drafts chose, for the people who check them. The translations themselves live in `apps/site/src/words/translations/<code>.json` and are edited in the localize tool (`npx vite --config localize/vite.config.js`, port 5175), where a reader ticks each line "checked". How a visitor gets a language is in the [decision log](decisions.md#oct-11-terms-and-privacy-final). Drafts are served on staging only.
+The site's words in other languages: what the drafts chose, for the people who check them. The translations themselves live in `apps/site/src/words/translations/<code>.json` and are edited in the localize tool (`npx vite --config localize/vite.config.js`, port 5175), where a reader ticks each line "checked". How a visitor gets a language is in the [decision log](decisions.md#oct-11-terms-and-privacy-final). Drafts are served everywhere (decided Oct 13: no reader's check is needed first); a reader can still tick lines.
 
-Each language below was drafted by Claude on Oct 13, 2026, after the English words sweep. Every line is a draft. A reader should start with the term list, since one changed term changes many lines, then read the site on staging with the browser set to the language (or pick it in the footer).
+Each language below was drafted by Claude on Oct 13, 2026, after the English words sweep. Every line is a draft. Anyone who reads one of these languages and wants to improve it should start with the term list, since one changed term changes many lines, then read the site with the browser set to the language (or pick it in the footer).
 
 
 ## French (fr)

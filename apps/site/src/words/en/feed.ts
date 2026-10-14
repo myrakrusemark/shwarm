@@ -30,7 +30,7 @@ export const feed = {
   noMatch: 'no shwarms match that search. {link}',
   clearSearch: 'clear the search',
   // the closed tab, with nothing in it
-  noneClosed: 'nothing has closed yet. a shwarm shows up here when it is marked done, or a dead-end.',
+  noneClosed: 'nothing has closed yet. a shwarm shows up here when it passes, or when its author calls it a dead end.',
   // the live tab, with nothing in it. {closed} is the "see what closed" link, {start} the "start a shwarm" link.
   // the first is for someone who can start one; the second is in the beta, for someone who can't yet
   noneLive: 'nothing is live right now. {closed} or {start}',
@@ -59,6 +59,6 @@ export const feed = {
   deadOthers: ' + {n}',
   // a card, right: its state
   live: 'live',
-  closed: 'closed',
+  closed: 'passed',
   deadEnd: 'dead end',
 }

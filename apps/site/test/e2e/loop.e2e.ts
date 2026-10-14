@@ -10,7 +10,7 @@
 //      gets the sign_off inbox item and its mail in the same batch: the item appears in the inbox on her profile
 //      ("waiting on you", "for you" counts it, "open" goes to the submission), and the node and the submission say
 //      "waiting on you" to her. Nobody else sees it.
-//   6. @myra passes it from the sign-off box, entering her password inline; the item's pill says "approved".
+//   6. @myra passes it from the sign-off box, entering her password inline; the item's pill says "passed".
 //   7. The shwarm's address now shows the result page, and /w/<path>/log lists every event of the run.
 // Each new page is checked as the page suite checks pages: no sideways scroll at 390–1280 px, no serious or critical
 // axe findings at 390 and 1280 px.
@@ -245,11 +245,11 @@ runIt('the whole loop, end to end (5.8)', () => {
     expect(landed.pathname + landed.hash).toBe(`/w/${path}/s/1#checks`)
     expect(all('SELECT status FROM submission WHERE post_id = ?', sub)[0].status).toBe('passed')
     expect(all('SELECT state FROM node WHERE path = ?', path)[0].state).toBe('closed')
-    expect(await my.locator('#status').textContent()).toBe('approved')
+    expect(await my.locator('#status').textContent()).toBe('passed')
     // the inbox item is done, and its pill says so
     expect(signOffItems()[0].done_at).not.toBeNull()
     await open('myra', '/@myra')
-    expect(await my.locator('#addressed ~ .c.signoff', { hasText: TITLE }).locator('.stp').textContent()).toBe('approved')
+    expect(await my.locator('#addressed ~ .c.signoff', { hasText: TITLE }).locator('.stp').textContent()).toBe('passed')
   })
 
   it("7. the shwarm's address is its result page", async () => {

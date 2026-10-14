@@ -840,8 +840,8 @@
     "checked": false
   },
   "create.branchGoNote": {
-    "text": "une rapide vérification automatique lit d'abord votre branche, en général en moins d'une minute. d'ici là, elle n'est visible que par vous. ensuite elle est en ligne sous {title}, et tout le monde peut y travailler.",
-    "from": "a quick automatic check reads your branch first, usually within a minute. until then only you can see it. after that it's live under {title}, and anyone can work on it.",
+    "text": "une rapide vérification de sécurité lit d'abord votre branche, en général en moins d'une minute. d'ici là, elle n'est visible que par vous. ensuite elle est en ligne sous {title}, et tout le monde peut y travailler.",
+    "from": "a quick safety check reads your branch first, usually within a minute. until then only you can see it. after that it's live under {title}, and anyone can work on it.",
     "checked": false
   },
   "create.branchHeading": {
@@ -895,8 +895,8 @@
     "checked": false
   },
   "create.branchSub": {
-    "text": "votre branche est en ligne après une rapide vérification automatique. des gens travaillent déjà ici.",
-    "from": "your branch goes live after a quick automatic check. people are already working here.",
+    "text": "votre branche est en ligne après une rapide vérification de sécurité. des gens travaillent déjà ici.",
+    "from": "your branch goes live after a quick safety check. people are already working here.",
     "checked": false
   },
   "create.buildsOn": {
@@ -980,8 +980,8 @@
     "checked": false
   },
   "create.goNote": {
-    "text": "une rapide vérification automatique lit d'abord votre shwarm, en général en moins d'une minute. d'ici là, il n'est visible que par vous. ensuite il est en ligne, et tout le monde peut y travailler.",
-    "from": "a quick automatic check reads your shwarm first, usually within a minute. until then only you can see it. after that it's live, and anyone can work on it.",
+    "text": "une rapide vérification de sécurité lit d'abord votre shwarm, en général en moins d'une minute. d'ici là, il n'est visible que par vous. ensuite il est en ligne, et tout le monde peut y travailler.",
+    "from": "a quick safety check reads your shwarm first, usually within a minute. until then only you can see it. after that it's live, and anyone can work on it.",
     "checked": false
   },
   "create.heading": {
@@ -1190,8 +1190,8 @@
     "checked": false
   },
   "create.sub": {
-    "text": "un but qui mérite une foule. votre shwarm est en ligne après une rapide vérification automatique.",
-    "from": "a goal worth a crowd. your shwarm goes live after a quick automatic check.",
+    "text": "un but qui mérite une foule. votre shwarm est en ligne après une rapide vérification de sécurité.",
+    "from": "a goal worth a crowd. your shwarm goes live after a quick safety check.",
     "checked": false
   },
   "create.tags": {
@@ -1220,8 +1220,8 @@
     "checked": false
   },
   "create.triageNote": {
-    "text": "une vérification automatique lit chaque nouveau shwarm et chaque nouvelle branche avant que quiconque les voie. elle cherche seulement ce qui peut nuire, jamais si une idée est bonne. {rubric}",
-    "from": "an automatic check reads every new shwarm and branch before anyone else sees it. the check only looks for harm, never at whether an idea is good. {rubric}",
+    "text": "une vérification de sécurité lit chaque nouveau shwarm et chaque nouvelle branche avant que quiconque les voie. elle cherche seulement ce qui peut nuire, jamais si une idée est bonne. {rubric}",
+    "from": "a safety check reads every new shwarm and branch before anyone else sees it. the check only looks for harm, never at whether an idea is good. {rubric}",
     "checked": false
   },
   "create.triageRubric": {
@@ -1665,8 +1665,8 @@
     "checked": false
   },
   "email.signOffOpen": {
-    "text": "ouvrez la soumission pour la déclarer réussie en disant ce que vous avez vérifié, ou en échec avec une reproduction :",
-    "from": "open the submission to pass it with what you checked, or fail it with a repro:",
+    "text": "ouvrez la soumission pour la déclarer réussie en disant ce que vous avez vérifié, ou en échec avec les étapes qui montrent comment elle échoue :",
+    "from": "open the submission to pass it with what you checked, or fail it with steps that show how it fails:",
     "checked": false
   },
   "email.signOffSubject": {
@@ -1795,8 +1795,8 @@
     "checked": false
   },
   "feed.closed": {
-    "text": "terminé",
-    "from": "closed",
+    "text": "réussi",
+    "from": "passed",
     "checked": false
   },
   "feed.deadEnd": {
@@ -1850,8 +1850,8 @@
     "checked": false
   },
   "feed.noneClosed": {
-    "text": "rien n'est encore terminé. un shwarm apparaît ici quand il est marqué fini, ou comme impasse.",
-    "from": "nothing has closed yet. a shwarm shows up here when it is marked done, or a dead-end.",
+    "text": "rien n'est encore terminé. un shwarm apparaît ici quand il réussit, ou quand son auteur le déclare une impasse.",
+    "from": "nothing has closed yet. a shwarm shows up here when it passes, or when its author calls it a dead end.",
     "checked": false
   },
   "feed.noneLive": {
@@ -2750,8 +2750,8 @@
     "checked": false
   },
   "node.blocked": {
-    "text": "la vérification automatique a bloqué cette page, donc elle n'est visible que par vous. voir {rules}.",
-    "from": "the automatic check blocked this page, so only you can see it. see {rules}.",
+    "text": "la vérification de sécurité a jugé cette page non autorisée, donc elle n'est visible que par vous. voir {rules}.",
+    "from": "the safety check found this page isn't allowed, so only you can see it. see {rules}.",
     "checked": false
   },
   "node.branches": {
@@ -2890,8 +2890,8 @@
     "checked": false
   },
   "node.closed": {
-    "text": "terminé",
-    "from": "closed",
+    "text": "réussi",
+    "from": "passed",
     "checked": false
   },
   "node.composePlaceholder": {
@@ -3280,13 +3280,13 @@
     "checked": false
   },
   "node.lockedAboveDeadEnd": {
-    "text": "{node} est une impasse, donc {kind} n'accepte plus rien de nouveau non plus.",
-    "from": "{node} is a dead end, so this {kind} is inactive too.",
+    "text": "{node} est une impasse, donc tout est aussi verrouillé dans {kind}.",
+    "from": "{node} is a dead end, so this {kind} is locked too.",
     "checked": false
   },
   "node.lockedAbovePassed": {
-    "text": "{node} a réussi, donc {kind} n'accepte plus rien de nouveau non plus.",
-    "from": "{node} passed, so this {kind} takes nothing new either.",
+    "text": "{node} a réussi, donc tout est aussi verrouillé dans {kind}.",
+    "from": "{node} passed, so this {kind} is locked too.",
     "checked": false
   },
   "node.lockedBuildOn": {
@@ -3295,13 +3295,13 @@
     "checked": false
   },
   "node.lockedDeadEnd": {
-    "text": "{kind} est une impasse, donc plus rien de nouveau n'y est accepté.",
-    "from": "this {kind} is a dead end, so it is inactive.",
+    "text": "{kind} est une impasse : tout y est verrouillé.",
+    "from": "this {kind} is a dead end, so it is locked.",
     "checked": false
   },
   "node.lockedPassed": {
-    "text": "{kind} a réussi, donc plus rien de nouveau n'y est accepté.",
-    "from": "this {kind} passed, so it is inactive.",
+    "text": "{kind} a réussi : tout y est verrouillé.",
+    "from": "this {kind} passed, so it is locked.",
     "checked": false
   },
   "node.log": {
@@ -3480,18 +3480,18 @@
     "checked": false
   },
   "node.peopleImpact.many": {
-    "text": "{n} personnes · impact",
-    "from": "{n} people · impact",
+    "text": "{n} personnes · votes par message",
+    "from": "{n} people · upvotes per post",
     "checked": false
   },
   "node.peopleImpact.one": {
-    "text": "{n} personne · impact",
-    "from": "{n} person · impact",
+    "text": "{n} personne · votes par message",
+    "from": "{n} person · upvotes per post",
     "checked": false
   },
   "node.peopleImpact.other": {
-    "text": "{n} personnes · impact",
-    "from": "{n} people · impact",
+    "text": "{n} personnes · votes par message",
+    "from": "{n} people · upvotes per post",
     "checked": false
   },
   "node.perPost": {
@@ -3655,8 +3655,8 @@
     "checked": false
   },
   "node.repro": {
-    "text": "reproduction : {steps}",
-    "from": "repro: {steps}",
+    "text": "comment le faire échouer : {steps}",
+    "from": "how to make it fail: {steps}",
     "checked": false
   },
   "node.reset": {
@@ -4535,8 +4535,8 @@
     "checked": false
   },
   "pages.triageDescription": {
-    "text": "ce qu'on demande à la vérification automatique de chaque nouveau shwarm et de chaque nouvelle branche, et chaque décision prise par elle et par @myra.",
-    "from": "what the automatic check on every new shwarm and branch is asked, and every decision it and @myra made.",
+    "text": "ce qu'on demande à la vérification de sécurité de chaque nouveau shwarm et de chaque nouvelle branche, et chaque décision prise par elle et par @myra.",
+    "from": "what the safety check on every new shwarm and branch is asked, and every decision it and @myra made.",
     "checked": false
   },
   "pages.triageEmpty": {
@@ -4565,8 +4565,8 @@
     "checked": false
   },
   "pages.triageIntro": {
-    "text": "la vérification automatique qui lit chaque nouveau shwarm et chaque nouvelle branche : ce qu'on lui demande, mot pour mot, et chaque décision qu'elle a prise. les plus récentes d'abord.",
-    "from": "the automatic check that reads every new shwarm and branch: what it's asked, word for word, and every decision it made. newest first.",
+    "text": "la vérification de sécurité qui lit chaque nouveau shwarm et chaque nouvelle branche : ce qu'on lui demande, mot pour mot, et chaque décision qu'elle a prise. les plus récentes d'abord.",
+    "from": "the safety check that reads every new shwarm and branch: what it's asked, word for word, and every decision it made. newest first.",
     "checked": false
   },
   "pages.triageModlogLink": {
@@ -4600,8 +4600,8 @@
     "checked": false
   },
   "pages.triageTitle": {
-    "text": "tri",
-    "from": "triage",
+    "text": "la vérification de sécurité",
+    "from": "the safety check",
     "checked": false
   },
   "pages.yearsAgo": {
@@ -4665,8 +4665,8 @@
     "checked": false
   },
   "profile.blocked": {
-    "text": "bloqué",
-    "from": "blocked",
+    "text": "non autorisé",
+    "from": "not allowed",
     "checked": false
   },
   "profile.branchOf": {
@@ -4720,8 +4720,8 @@
     "checked": false
   },
   "profile.colImpact": {
-    "text": "impact",
-    "from": "impact",
+    "text": "votes par message",
+    "from": "upvotes per post",
     "checked": false
   },
   "profile.colShwarmOrBranch": {
@@ -5025,8 +5025,8 @@
     "checked": false
   },
   "profile.postRepro": {
-    "text": "reproduction",
-    "from": "repro",
+    "text": "comment le faire échouer",
+    "from": "how to make it fail",
     "checked": false
   },
   "profile.posts": {
@@ -5240,8 +5240,8 @@
     "checked": false
   },
   "profile.workingOnKey": {
-    "text": "impact : moy. de votes par message · moy. de messages par jour",
-    "from": "impact: avg upvotes per post · avg posts per day",
+    "text": "votes par message · messages par jour, en moyenne",
+    "from": "upvotes per post · posts per day, both on average",
     "checked": false
   },
   "profile.writeFirst": {
@@ -5290,8 +5290,8 @@
     "checked": false
   },
   "result.closed": {
-    "text": "terminé",
-    "from": "closed",
+    "text": "réussi",
+    "from": "passed",
     "checked": false
   },
   "result.creditNote": {
@@ -5740,8 +5740,8 @@
     "checked": false
   },
   "submission.historyReopened": {
-    "text": "rouverte par une reproduction",
-    "from": "reopened by a repro",
+    "text": "rouverte quand quelqu'un l'a montrée en échec",
+    "from": "reopened when someone showed it failing",
     "checked": false
   },
   "submission.historySignedOff": {
@@ -5830,8 +5830,8 @@
     "checked": false
   },
   "submission.pillApproved": {
-    "text": "acceptée",
-    "from": "approved",
+    "text": "réussie",
+    "from": "passed",
     "checked": false
   },
   "submission.pillFailed": {
@@ -5920,8 +5920,8 @@
     "checked": false
   },
   "submission.tallyReopened": {
-    "text": "{done} sur {total} · réussie · rouverte par une reproduction",
-    "from": "{done} of {total} · passed · reopened by a repro",
+    "text": "{done} sur {total} · réussie · rouverte quand quelqu'un l'a montrée en échec",
+    "from": "{done} of {total} · passed · reopened when someone showed it failing",
     "checked": false
   },
   "submission.tallyReset": {

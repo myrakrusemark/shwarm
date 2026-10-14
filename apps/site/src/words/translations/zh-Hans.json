@@ -840,8 +840,8 @@
     "checked": false
   },
   "create.branchGoNote": {
-    "text": "一次快速的自动检查会先读一遍你的分支，通常一分钟内完成。在那之前只有你能看到它。之后它就在 {title} 下上线，谁都可以参与。",
-    "from": "a quick automatic check reads your branch first, usually within a minute. until then only you can see it. after that it's live under {title}, and anyone can work on it.",
+    "text": "一次快速的安全检查会先读一遍你的分支，通常一分钟内完成。在那之前只有你能看到它。之后它就在 {title} 下上线，谁都可以参与。",
+    "from": "a quick safety check reads your branch first, usually within a minute. until then only you can see it. after that it's live under {title}, and anyone can work on it.",
     "checked": false
   },
   "create.branchHeading": {
@@ -895,8 +895,8 @@
     "checked": false
   },
   "create.branchSub": {
-    "text": "你的分支通过一次快速的自动检查后就会上线。这里已经有人在做了。",
-    "from": "your branch goes live after a quick automatic check. people are already working here.",
+    "text": "你的分支通过一次快速的安全检查后就会上线。这里已经有人在做了。",
+    "from": "your branch goes live after a quick safety check. people are already working here.",
     "checked": false
   },
   "create.buildsOn": {
@@ -980,8 +980,8 @@
     "checked": false
   },
   "create.goNote": {
-    "text": "一次快速的自动检查会先读一遍你的 shwarm，通常一分钟内完成。在那之前只有你能看到它。之后它就上线了，谁都可以参与。",
-    "from": "a quick automatic check reads your shwarm first, usually within a minute. until then only you can see it. after that it's live, and anyone can work on it.",
+    "text": "一次快速的安全检查会先读一遍你的 shwarm，通常一分钟内完成。在那之前只有你能看到它。之后它就上线了，谁都可以参与。",
+    "from": "a quick safety check reads your shwarm first, usually within a minute. until then only you can see it. after that it's live, and anyone can work on it.",
     "checked": false
   },
   "create.heading": {
@@ -1190,8 +1190,8 @@
     "checked": false
   },
   "create.sub": {
-    "text": "一个值得一群人来做的目标。你的 shwarm 通过一次快速的自动检查后就会上线。",
-    "from": "a goal worth a crowd. your shwarm goes live after a quick automatic check.",
+    "text": "一个值得一群人来做的目标。你的 shwarm 通过一次快速的安全检查后就会上线。",
+    "from": "a goal worth a crowd. your shwarm goes live after a quick safety check.",
     "checked": false
   },
   "create.tags": {
@@ -1220,8 +1220,8 @@
     "checked": false
   },
   "create.triageNote": {
-    "text": "每个新 shwarm 和分支在别人看到之前，都会先经过一次自动检查。这个检查只看有没有危害，从不评判想法好不好。{rubric}",
-    "from": "an automatic check reads every new shwarm and branch before anyone else sees it. the check only looks for harm, never at whether an idea is good. {rubric}",
+    "text": "每个新 shwarm 和分支在别人看到之前，都会先经过一次安全检查。这个检查只看有没有危害，从不评判想法好不好。{rubric}",
+    "from": "a safety check reads every new shwarm and branch before anyone else sees it. the check only looks for harm, never at whether an idea is good. {rubric}",
     "checked": false
   },
   "create.triageRubric": {
@@ -1635,8 +1635,8 @@
     "checked": false
   },
   "email.signOffOpen": {
-    "text": "打开这份提交，写下你检验了什么并判定通过，或者附上复现步骤判定不通过：",
-    "from": "open the submission to pass it with what you checked, or fail it with a repro:",
+    "text": "打开这份提交，写下你检验了什么并判定通过，或者附上让它失败的步骤判定不通过：",
+    "from": "open the submission to pass it with what you checked, or fail it with steps that show how it fails:",
     "checked": false
   },
   "email.signOffSubject": {
@@ -1765,8 +1765,8 @@
     "checked": false
   },
   "feed.closed": {
-    "text": "已完成",
-    "from": "closed",
+    "text": "已通过",
+    "from": "passed",
     "checked": false
   },
   "feed.deadEnd": {
@@ -1820,8 +1820,8 @@
     "checked": false
   },
   "feed.noneClosed": {
-    "text": "还没有已结束的 shwarm。shwarm 标记为完成或死胡同后，会出现在这里。",
-    "from": "nothing has closed yet. a shwarm shows up here when it is marked done, or a dead-end.",
+    "text": "还没有已结束的 shwarm。shwarm 通过检验，或被发起人判定为死胡同后，会出现在这里。",
+    "from": "nothing has closed yet. a shwarm shows up here when it passes, or when its author calls it a dead end.",
     "checked": false
   },
   "feed.noneLive": {
@@ -2690,8 +2690,8 @@
     "checked": false
   },
   "node.blocked": {
-    "text": "自动检查拦下了这个页面，所以只有你能看到。见{rules}。",
-    "from": "the automatic check blocked this page, so only you can see it. see {rules}.",
+    "text": "安全检查认定这个页面不被允许，所以只有你能看到。见{rules}。",
+    "from": "the safety check found this page isn't allowed, so only you can see it. see {rules}.",
     "checked": false
   },
   "node.branches": {
@@ -2820,8 +2820,8 @@
     "checked": false
   },
   "node.closed": {
-    "text": "已完成",
-    "from": "closed",
+    "text": "已通过",
+    "from": "passed",
     "checked": false
   },
   "node.composePlaceholder": {
@@ -3200,13 +3200,13 @@
     "checked": false
   },
   "node.lockedAboveDeadEnd": {
-    "text": "{node} 是死胡同，所以这个{kind}也不再接受新内容。",
-    "from": "{node} is a dead end, so this {kind} is inactive too.",
+    "text": "{node} 是死胡同，所以这个{kind}也已锁定。",
+    "from": "{node} is a dead end, so this {kind} is locked too.",
     "checked": false
   },
   "node.lockedAbovePassed": {
-    "text": "{node} 已通过，所以这个{kind}也不再接受新内容。",
-    "from": "{node} passed, so this {kind} takes nothing new either.",
+    "text": "{node} 已通过，所以这个{kind}也已锁定。",
+    "from": "{node} passed, so this {kind} is locked too.",
     "checked": false
   },
   "node.lockedBuildOn": {
@@ -3215,13 +3215,13 @@
     "checked": false
   },
   "node.lockedDeadEnd": {
-    "text": "这个{kind}是死胡同，所以不再接受新内容。",
-    "from": "this {kind} is a dead end, so it is inactive.",
+    "text": "这个{kind}是死胡同，所以已锁定。",
+    "from": "this {kind} is a dead end, so it is locked.",
     "checked": false
   },
   "node.lockedPassed": {
-    "text": "这个{kind}已通过，所以不再接受新内容。",
-    "from": "this {kind} passed, so it is inactive.",
+    "text": "这个{kind}已通过，所以已锁定。",
+    "from": "this {kind} passed, so it is locked.",
     "checked": false
   },
   "node.log": {
@@ -3390,8 +3390,8 @@
     "checked": false
   },
   "node.peopleImpact.other": {
-    "text": "{n} 人 · 影响力",
-    "from": "{n} people · impact",
+    "text": "{n} 人 · 平均每帖赞数",
+    "from": "{n} people · upvotes per post",
     "checked": false
   },
   "node.perPost": {
@@ -3525,8 +3525,8 @@
     "checked": false
   },
   "node.repro": {
-    "text": "复现步骤：{steps}",
-    "from": "repro: {steps}",
+    "text": "怎样让它失败：{steps}",
+    "from": "how to make it fail: {steps}",
     "checked": false
   },
   "node.reset": {
@@ -4385,8 +4385,8 @@
     "checked": false
   },
   "pages.triageDescription": {
-    "text": "每个新 shwarm 和分支经过的自动检查会被问什么，以及它和 @myra 做出的每一个决定。",
-    "from": "what the automatic check on every new shwarm and branch is asked, and every decision it and @myra made.",
+    "text": "每个新 shwarm 和分支经过的安全检查会被问什么，以及它和 @myra 做出的每一个决定。",
+    "from": "what the safety check on every new shwarm and branch is asked, and every decision it and @myra made.",
     "checked": false
   },
   "pages.triageEmpty": {
@@ -4415,8 +4415,8 @@
     "checked": false
   },
   "pages.triageIntro": {
-    "text": "读每个新 shwarm 和分支的自动检查：它被问的问题，一字不差，以及它做出的每一个决定。最新的在前。",
-    "from": "the automatic check that reads every new shwarm and branch: what it's asked, word for word, and every decision it made. newest first.",
+    "text": "读每个新 shwarm 和分支的安全检查：它被问的问题，一字不差，以及它做出的每一个决定。最新的在前。",
+    "from": "the safety check that reads every new shwarm and branch: what it's asked, word for word, and every decision it made. newest first.",
     "checked": false
   },
   "pages.triageModlogLink": {
@@ -4450,8 +4450,8 @@
     "checked": false
   },
   "pages.triageTitle": {
-    "text": "自动审核",
-    "from": "triage",
+    "text": "安全检查",
+    "from": "the safety check",
     "checked": false
   },
   "pages.yearsAgo": {
@@ -4515,8 +4515,8 @@
     "checked": false
   },
   "profile.blocked": {
-    "text": "已拦截",
-    "from": "blocked",
+    "text": "不被允许",
+    "from": "not allowed",
     "checked": false
   },
   "profile.branchOf": {
@@ -4570,8 +4570,8 @@
     "checked": false
   },
   "profile.colImpact": {
-    "text": "影响力",
-    "from": "impact",
+    "text": "平均每帖赞数",
+    "from": "upvotes per post",
     "checked": false
   },
   "profile.colShwarmOrBranch": {
@@ -4875,8 +4875,8 @@
     "checked": false
   },
   "profile.postRepro": {
-    "text": "复现步骤",
-    "from": "repro",
+    "text": "怎样让它失败",
+    "from": "how to make it fail",
     "checked": false
   },
   "profile.posts": {
@@ -5090,8 +5090,8 @@
     "checked": false
   },
   "profile.workingOnKey": {
-    "text": "影响力：平均每帖赞数 · 平均每天帖子数",
-    "from": "impact: avg upvotes per post · avg posts per day",
+    "text": "平均每帖赞数 · 平均每天帖子数",
+    "from": "upvotes per post · posts per day, both on average",
     "checked": false
   },
   "profile.writeFirst": {
@@ -5140,8 +5140,8 @@
     "checked": false
   },
   "result.closed": {
-    "text": "已完成",
-    "from": "closed",
+    "text": "已通过",
+    "from": "passed",
     "checked": false
   },
   "result.creditNote": {
@@ -5550,8 +5550,8 @@
     "checked": false
   },
   "submission.historyReopened": {
-    "text": "因复现步骤重开",
-    "from": "reopened by a repro",
+    "text": "有人演示了它怎样失败，因此重开",
+    "from": "reopened when someone showed it failing",
     "checked": false
   },
   "submission.historySignedOff": {
@@ -5640,8 +5640,8 @@
     "checked": false
   },
   "submission.pillApproved": {
-    "text": "已批准",
-    "from": "approved",
+    "text": "已通过",
+    "from": "passed",
     "checked": false
   },
   "submission.pillFailed": {
@@ -5730,8 +5730,8 @@
     "checked": false
   },
   "submission.tallyReopened": {
-    "text": "{done}/{total} · 已通过 · 因复现步骤重开",
-    "from": "{done} of {total} · passed · reopened by a repro",
+    "text": "{done}/{total} · 已通过 · 有人演示了它怎样失败，因此重开",
+    "from": "{done} of {total} · passed · reopened when someone showed it failing",
     "checked": false
   },
   "submission.tallyReset": {

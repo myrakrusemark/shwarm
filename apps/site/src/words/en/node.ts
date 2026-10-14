@@ -16,7 +16,7 @@ export const node = {
   // the trail of shwarm / branch / sub-branch above a branch's title, for screen readers
   breadcrumb: 'breadcrumb',
   // the note the author sees on a shwarm the triage agent blocked ({rules} is rulesLink)
-  blocked: 'the automatic check blocked this page, so only you can see it. see {rules}.',
+  blocked: "the safety check found this page isn't allowed, so only you can see it. see {rules}.",
   rulesLink: 'the rules',
   // the banner on a shwarm or branch that people flagged ({rules} is rulesLink)
   pausedNote: 'paused for review. this {kind} was flagged, so it is paused until it can be reviewed. see {rules}.',
@@ -73,7 +73,7 @@ export const node = {
   // head: under the status line on an ended shwarm
   buildOnThis: 'build on this shwarm',
   // head: the pill at the right ({n} is how many days it has been live)
-  closed: 'closed',
+  closed: 'passed',
   deadEnd: 'dead end',
   live: 'live',
   liveInReview: 'live · in review',
@@ -98,10 +98,10 @@ export const node = {
 
   // the box in place of the compose box on an ended shwarm or branch ({node} is the ended one above it)
   locked: 'locked',
-  lockedPassed: 'this {kind} passed, so it is inactive.',
-  lockedDeadEnd: 'this {kind} is a dead end, so it is inactive.',
-  lockedAbovePassed: '{node} passed, so this {kind} takes nothing new either.',
-  lockedAboveDeadEnd: '{node} is a dead end, so this {kind} is inactive too.',
+  lockedPassed: 'this {kind} passed, so it is locked.',
+  lockedDeadEnd: 'this {kind} is a dead end, so it is locked.',
+  lockedAbovePassed: '{node} passed, so this {kind} is locked too.',
+  lockedAboveDeadEnd: '{node} is a dead end, so this {kind} is locked too.',
   // after the sentence above, for a shwarm ({link} is buildOnIt)
   lockedBuildOn: ' to keep going, {link}.',
   buildOnIt: 'start a new shwarm that builds on this shwarm',
@@ -245,7 +245,7 @@ export const node = {
   failedIt: 'failed the submission',
   verdictPass: 'pass',
   verdictFail: 'fail',
-  repro: 'repro: {steps}',
+  repro: 'how to make it fail: {steps}',
   authorGone: "the author's account is gone, so someone who runs shwarm signed off",
   reset: "no longer counts: the author's fail reset the checks",
 
@@ -318,7 +318,7 @@ export const node = {
   // sidebar: the contributors box
   contributors: 'contributors',
   onThisBranch: 'on this branch',
-  peopleImpact: { one: '{n} person · impact', other: '{n} people · impact' },
+  peopleImpact: { one: '{n} person · upvotes per post', other: '{n} people · upvotes per post' },
   joinedBy: 'joined through {name}',
   more: '+ {n} more',
   // sidebar: the contributors box, joined

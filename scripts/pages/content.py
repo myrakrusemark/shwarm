@@ -75,7 +75,7 @@ RULES = ("rules", "the rules",
  ("who", "who keeps it fair",
   # go-live 9.5: the public log is live at /moderation (web/moderation-log.tsx). OPEN (#107): the link is new, the words aren't.
   # go-live 9.2: the check's questions and decisions are at /triage (web/triage-page.tsx). OPEN: new words, "on the triage page ... with every decision it makes".
-  "<p>an automatic check reads every new shwarm and branch. if it might break one of the never-allowed rules above, it waits for @myra, who clears it or blocks it. the check's questions are public, on the <a href=\"/triage\">triage page</a>, with every decision it makes. while shwarm is new, reports, flags and appeals go to @myra, who runs the site, and every action she takes goes in a <a href=\"/moderation\">public log</a>.</p>"
+  "<p>a safety check reads every new shwarm and branch. if it might break one of the never-allowed rules above, it waits for @myra, who clears it or blocks it. the check's questions are public, on the <a href=\"/triage\">safety check page</a>, with every decision it makes. while shwarm is new, reports, flags and appeals go to @myra, who runs the site, and every action she takes goes in a <a href=\"/moderation\">public log</a>.</p>"
   "<p>later, people with a good record in a field will be able to lift a shwarm or reject it. that record comes from the upvotes on what they've posted there, so a pile of brand-new accounts can't bury good work.</p>"),
  ("wrong", "when something goes wrong",
   "<ul><li>think a pass is wrong? start a shwarm that builds on it with the same done test, and the finished shwarm's page lists yours under \"challenged by\".</li>"
@@ -218,7 +218,7 @@ TERMS = ("terms", "terms of use",
   "<p>when a shwarm or branch passes its done test, that means the people and checks it picked found it done. it doesn't guarantee the work is correct, safe or fit for any purpose. nothing here is professional advice. use what you find at your own risk.</p>"
   "<p>running other people's code, including for a check, is your choice and your risk, so run it in a sandbox.</p>"),
  ("donations", "donations",
-  "<p>donations are voluntary and pay for hosting, uptime and triage. you can give once or every month. stripe handles checkout, and we never see your card. payments go to myra krusemark, who runs shwarm, and show as SHWARM on your statement. they aren't tax-deductible.</p>"
+  "<p>donations are voluntary and pay for hosting, uptime and the safety check. you can give once or every month. stripe handles checkout, and we never see your card. payments go to myra krusemark, who runs shwarm, and show as SHWARM on your statement. they aren't tax-deductible.</p>"
   "<p>to stop a monthly gift, write to <a href=\"mailto:support@shwarm.org\">support@shwarm.org</a> and we'll cancel it. closing your account doesn't stop it on its own. if you gave by mistake, write to us within 30 days and we'll refund it.</p>"),
  ("leaving", "leaving",
   # OPEN (#86): what closing removes and keeps is a builder's default.
@@ -268,10 +268,11 @@ PRIVACY = ("privacy", "privacy",
   "<p>stripe handles your card, name and email. we never see your card. we keep the amount, the date, whether it's once or monthly, and stripe's id for the payment, so we can find it at stripe to cancel or refund it. if you leave a note, we keep it. if you're signed in with a verified email and leave \"show my handle and note on the supporters list\" ticked, we keep your handle with the gift. your note and handle also go to stripe with the payment.</p>"
   "<p>the supporters list isn't built yet, so nothing about your gift is public. this page will say what the list shows before it goes up.</p>"),
  ("cookies", "cookies",
-  "<p>we use three cookies. all of them are needed for the site to work.</p>"
+  "<p>we use three cookies that the site needs to work, and a fourth only if you pick a language.</p>"
   "<ul><li><b>sign-in:</b> keeps you signed in. it lasts 30 days from when you last used the site, or until you sign out.</li>"
   "<li><b>form guard:</b> set when you open a form while signed out, like join, sign in or report. it stops other sites from sending forms as you. it lasts 2 hours.</li>"
-  "<li><b>new account:</b> set when you join. it lets this browser resend your check link and hold your handle while you check your email. it lasts 7 days.</li></ul>"
+  "<li><b>new account:</b> set when you join. it lets this browser resend your check link and hold your handle while you check your email. it lasts 7 days.</li>"
+  "<li><b>language:</b> set only when you pick a language at the bottom of a page. it remembers your pick for a year.</li></ul>"
   "<p>none of them follow you to other sites. cloudflare's bot check and stripe's checkout page run on their own sites, under their own rules.</p>"),
  ("share", "who we share with",
   "<p>we only share with the services that make shwarm work:</p>"

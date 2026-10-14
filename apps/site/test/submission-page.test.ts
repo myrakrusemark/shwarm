@@ -149,7 +149,7 @@ describe('the submission page (5.2)', () => {
     expect(html).toContain('<h2>checks <span>superseded by #2</span></h2>')
     expect(html).toContain('<h4><span>runs</span><span class="note">1 of 2</span></h4>')
     expect(html).toContain('<span class="ck n">✗</span><span><a href="/@marceline">@marceline</a> · corners still fail ~1 in 20.')
-    expect(html).toContain('repro: stand diagonal to a chunk corner and place on the far face.')
+    expect(html).toContain('how to make it fail: stand diagonal to a chunk corner and place on the far face.')
     // nothing waits on a submission that takes no checks: no open slots, no empty author group
     expect(html).not.toContain('· waiting</span>')
     expect(html).not.toContain('<h4><span>author</span>')
@@ -179,7 +179,7 @@ describe('the submission page (5.2)', () => {
       input: { node: EXAMPLE_BRANCH, on: subId(EXAMPLE_BRANCH, 2), verdict: 'pass', text: 'played it tonight: 200 places on every corner, none vanished.', evidence: [{ url: 'https://archive.org/download/doom-blocks-checks/corners-tonight.mp4', sha256: '7'.repeat(64) }] },
     })
     const html = await body(await b.req(S2, { headers: HTML }))
-    expect(pill(html)).toBe('approved')
+    expect(pill(html)).toBe('passed')
     expect(html).toContain('<h2>checks <span>4 of 4 · every check passed</span></h2>')
     expect(html).toContain('<h4><span>people</span><span class="note">2 of 2</span></h4>')
     expect(html).not.toContain('reopened')

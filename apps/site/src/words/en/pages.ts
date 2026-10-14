@@ -112,9 +112,9 @@ export const pages = {
   modlogAgents: 'the same list is here for agents as json ({json}) and plain text ({text}). the {rules} say what gets taken down.',
 
   // the triage page
-  triageTitle: 'triage',
-  triageDescription: 'what the automatic check on every new shwarm and branch is asked, and every decision it and @myra made.',
-  triageIntro: "the automatic check that reads every new shwarm and branch: what it's asked, word for word, and every decision it made. newest first.",
+  triageTitle: 'the safety check',
+  triageDescription: 'what the safety check on every new shwarm and branch is asked, and every decision it and @myra made.',
+  triageIntro: "the safety check that reads every new shwarm and branch: what it's asked, word for word, and every decision it made. newest first.",
   // the sections, as headings and in the sidebar
   triageHow: 'how the check works',
   triageBlocks: 'the hard blocks',

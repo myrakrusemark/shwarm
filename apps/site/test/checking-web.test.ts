@@ -185,16 +185,16 @@ describe('a passed shwarm is locked (decided Oct 9), and the branches under it',
     const reader = await signIn(env, 'reader')
     // its thread, behind the result page (5.7)
     const thread = await body(await reader.req(`${ROOT}?thread=1`, { headers: HTML }))
-    expect(thread).toContain('<div class="compose locked"><div class="to">locked</div><p>this shwarm passed, so it is inactive. to keep going, <a href="/new?builds_on=minecraft-in-doom">start a new shwarm that builds on this shwarm</a>.</p></div>')
+    expect(thread).toContain('<div class="compose locked"><div class="to">locked</div><p>this shwarm passed, so it is locked. to keep going, <a href="/new?builds_on=minecraft-in-doom">start a new shwarm that builds on this shwarm</a>.</p></div>')
     expect(thread).not.toContain('value="post"')
     expect(thread).not.toContain('start a branch from this post')
     const page = await body(await reader.req(R1, { headers: HTML }))
     expect(page).not.toContain('id="check"')
-    expect(pill(page)).toBe('approved')
+    expect(pill(page)).toBe('passed')
     // the branch is locked with it, though it never ended itself; its #2 takes no more checks
     const branch = await body(await reader.req(BP, { headers: HTML }))
     expect(branch).not.toContain('post a repro')
-    expect(branch).toContain('<div class="compose locked"><div class="to">locked</div><p><a href="/w/minecraft-in-doom">minecraft in doom</a> passed, so this branch takes nothing new either. to keep going, <a href="/new?builds_on=minecraft-in-doom">start a new shwarm that builds on this shwarm</a>.</p></div>')
+    expect(branch).toContain('<div class="compose locked"><div class="to">locked</div><p><a href="/w/minecraft-in-doom">minecraft in doom</a> passed, so this branch is locked too. to keep going, <a href="/new?builds_on=minecraft-in-doom">start a new shwarm that builds on this shwarm</a>.</p></div>')
     expect(branch).not.toContain('value="post"')
     expect(branch).not.toContain('start a branch from this post')
     expect(await body(await reader.req(S2, { headers: HTML }))).not.toContain('id="check"')
@@ -246,7 +246,7 @@ describe("the author's sign-off (5.5)", () => {
     expect(res.headers.get('location')).toBe(`${R1}#checks`)
     expect(node(EXAMPLE_ROOT).state).toBe('closed')
     html = await body(await author.req(R1, { headers: HTML }))
-    expect(pill(html)).toBe('approved')
+    expect(pill(html)).toBe('passed')
     expect(html).toContain('<h2>checks <span>3 of 3 · minecraft in doom is done</span></h2>')
     expect(html).not.toContain('id="decide"')
   })
@@ -264,7 +264,7 @@ describe("the author's sign-off (5.5)", () => {
     expect(html).toContain('<h2>checks <span>reset · waiting for a new submission</span></h2>')
     expect(html.match(/<li id="c_\w+" class="reset">/g)).toHaveLength(2)
     expect(html).toContain('failed by you')
-    expect(html).toContain('repro: e1m4 drops to 41 fps on the reference rig.')
+    expect(html).toContain('how to make it fail: e1m4 drops to 41 fps on the reference rig.')
   })
 
   it("refuses a forged people check from the author, and anyone else's sign-off", async () => {
@@ -377,7 +377,7 @@ describe('dead end (5.6)', () => {
     const ended = await body(await author.req(ROOT, { headers: HTML }))
     expect(ended).not.toContain('id="owner"')
     expect(ended).not.toContain('reopen')
-    expect(ended).toContain('<div class="compose locked"><div class="to">locked</div><p>this shwarm is a dead end, so it is inactive. to keep going, <a href="/new?builds_on=minecraft-in-doom">start a new shwarm that builds on this shwarm</a>.</p></div>')
+    expect(ended).toContain('<div class="compose locked"><div class="to">locked</div><p>this shwarm is a dead end, so it is locked. to keep going, <a href="/new?builds_on=minecraft-in-doom">start a new shwarm that builds on this shwarm</a>.</p></div>')
   })
 
   it("a branch doesn't end (decided Oct 13): its author gets no box, and a forged dead end is refused", async () => {
@@ -413,7 +413,7 @@ describe('dead end (5.6)', () => {
     expect(err(await body(res))).toBe(locked)
     expect(node(EXAMPLE_ROOT).state).toBe('dead_end')
     // the branch under it never ended, but takes nothing new either
-    expect(await body(await author.req(BP, { headers: HTML }))).toContain('<div class="compose locked"><div class="to">locked</div><p><a href="/w/minecraft-in-doom">minecraft in doom</a> is a dead end, so this branch is inactive too.')
+    expect(await body(await author.req(BP, { headers: HTML }))).toContain('<div class="compose locked"><div class="to">locked</div><p><a href="/w/minecraft-in-doom">minecraft in doom</a> is a dead end, so this branch is locked too.')
     res = await send(author, BP, BP, { do: 'post', text: 'one more idea' })
     expect(res.status).toBe(400)
     expect(err(await body(res))).toBe(locked)

@@ -15,9 +15,9 @@ export const profile = {
 
   // working on: the box's heading, the key beside it, and the table's two column heads
   workingOn: 'working on',
-  workingOnKey: 'impact: avg upvotes per post · avg posts per day',
+  workingOnKey: 'upvotes per post · posts per day, both on average',
   colShwarmOrBranch: 'shwarm or branch',
-  colImpact: 'impact',
+  colImpact: 'upvotes per post',
   // the small line under each shwarm or branch in working on and created: what it is
   kindShwarm: 'shwarm',
   kindBranch: 'branch',
@@ -39,7 +39,7 @@ export const profile = {
   created: 'created',
   createdKey: 'shwarms and branches',
   // created: the badge on the right, for the owner's own that aren't public yet, and for a live one
-  blocked: 'blocked',
+  blocked: 'not allowed',
   beingChecked: 'not public yet',
   live: 'live',
   // created: the small line under each. {text} is its done test
@@ -56,7 +56,7 @@ export const profile = {
   verdictFail: 'fail',
   // a check on a numbered submission. {what} is the verdict, or postCheck
   postCheckOn: '{what} on #{n}',
-  postRepro: 'repro',
+  postRepro: 'how to make it fail',
   postReply: 'reply',
   noPostsFrom: 'no posts from {name} yet.',
   olderPosts: 'older posts',

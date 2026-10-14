@@ -605,7 +605,7 @@ describe("Myra's decisions (scripts/triage.mjs)", () => {
     const b = await w.signedIn()
     const own = await body(await b.req(`/w/${path}`, { headers: HTML }))
     // The page says only that it's blocked and links the rules; the category and reason stay with Myra.
-    expect(own).toContain('the automatic check blocked this page, so only you can see it. see <a href="/rules">the rules</a>.')
+    expect(own).toContain(`the safety check found this page isn't allowed, so only you can see it. see <a href="/rules">the rules</a>.`)
     expect(own).not.toContain('link farm')
     const prompt = await body(await b.req(`/w/${path}`, { headers: { accept: '*/*' } }))
     expect(prompt).toContain('note:   blocked. see the rules: /rules')

@@ -11,8 +11,6 @@ The plan for getting all of shwarm live at https://shwarm.org, so Myra can invit
 Only what waits on Myra. Claude adds an item when something needs her and removes it once it's settled; her answers land in `tracker/replies.json` under the item's id. Shwarm cards that wait on her approval show on the page by themselves.
 
 - [m-dissemination] read the plan for getting the word out (docs/dissemination.md): which platforms are in, and claim the handles (x, bluesky as @shwarm.org, mastodon, reddit, product hunt). nothing gets posted before the public opening.
-- [m-readers] the french, german and chinese drafts are on staging once pushed. who could read one over? a reader starts with the term list in docs/translations.md, then ticks lines in the localize tool. a language goes to production only after that.
-- [m-words] the words sweep (Oct 13) left eight word choices for you. (1) an ended shwarm: "locked" (the box heading) or "inactive" (your edit)? one word for both. (2) a passed shwarm's pill says "closed", a submission's says "approved", everything else says "passed": make them all "passed"? (3) "impact" next to people counts: keep, or say "upvotes per post"? (4) the harm check is called "triage" and "automatic check", and "check" already means checking a submission: call it "the safety check"? (5) "blocked" means held by that check, a status vote, and a blocked DM sender: rename the first to "held"? (6) "repro" (a failure someone can reproduce): keep, or "how to make it fail"? (7) the closed tab when empty says "marked done, or a dead-end": "passes, or its author calls it a dead end"? (8) the create form's examples are now "map every place sherlock holmes went", a real launch idea: fine, or invent one?
 
 
 

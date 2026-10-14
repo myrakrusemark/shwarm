@@ -113,7 +113,7 @@ describe('/@myra', () => {
     expect(html).toContain('<small>working on</small>')
     expect(html).toContain('<small>posts this week</small>')
     expect(html).toMatch(/▲[\d.]+<small>per post · site avg ▲[\d.]+<\/small>/)
-    expect(html).toContain('<h2>working on <span>impact: avg upvotes per post · avg posts per day</span></h2>')
+    expect(html).toContain('<h2>working on <span>upvotes per post · posts per day, both on average</span></h2>')
     expect(html).toContain('<h2>created <span>shwarms and branches</span></h2>')
     expect(html).toContain('<h2>look up a name</h2>')
     expect(html).toContain('<form method="get" action="/@myra" role="search">')

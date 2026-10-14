@@ -17,7 +17,7 @@ export const result = {
   // above the done test
   doneWhenPassed: 'done when · passed',
   // its state, at the right
-  closed: 'closed',
+  closed: 'passed',
 
   // the result box: its heading, and the words beside it ({n} is the submission's number)
   theResult: 'the result',

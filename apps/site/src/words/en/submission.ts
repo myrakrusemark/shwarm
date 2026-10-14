@@ -18,7 +18,7 @@ export const submission = {
 
   // the state pill at the top right (and beside each submission in the sidebar, and in the inbox)
   pillReopened: 'reopened',
-  pillApproved: 'approved',
+  pillApproved: 'passed',
   pillFailed: 'failed',
   pillSuperseded: 'superseded',
   pillWaitingOnYou: 'waiting on you',
@@ -45,7 +45,7 @@ export const submission = {
   // beside the heading once it passed ({title} is the shwarm or branch)
   tallyDone: '{done} of {total} · {title} is done',
   // beside the heading for a pass that a repro reopened (only before oct 9)
-  tallyReopened: '{done} of {total} · passed · reopened by a repro',
+  tallyReopened: '{done} of {total} · passed · reopened when someone showed it failing',
   // a branch's submission that passed its checks: the branch stays open, its pass is its status vote (Oct 13)
   tallyPassedChecks: '{done} of {total} · every check passed',
   // beside the heading once the author failed it
@@ -69,7 +69,7 @@ export const submission = {
   historySignedOff: 'signed off',
   historyPassed: 'passed',
   historyFailed: 'failed the author check',
-  historyReopened: 'reopened by a repro',
+  historyReopened: 'reopened when someone showed it failing',
   historyBy: 'by {name}',
 
   // the check form: its heading, and the words beside it

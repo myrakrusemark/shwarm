@@ -840,8 +840,8 @@
     "checked": false
   },
   "create.branchGoNote": {
-    "text": "eine kurze automatische Kontrolle liest deinen Zweig zuerst, meist innerhalb einer Minute. bis dahin siehst nur du ihn. danach ist er live unter {title}, und alle können daran arbeiten.",
-    "from": "a quick automatic check reads your branch first, usually within a minute. until then only you can see it. after that it's live under {title}, and anyone can work on it.",
+    "text": "eine kurze Sicherheitsprüfung liest deinen Zweig zuerst, meist innerhalb einer Minute. bis dahin siehst nur du ihn. danach ist er live unter {title}, und alle können daran arbeiten.",
+    "from": "a quick safety check reads your branch first, usually within a minute. until then only you can see it. after that it's live under {title}, and anyone can work on it.",
     "checked": false
   },
   "create.branchHeading": {
@@ -895,8 +895,8 @@
     "checked": false
   },
   "create.branchSub": {
-    "text": "dein Zweig geht nach einer kurzen automatischen Kontrolle live. hier arbeiten schon Leute.",
-    "from": "your branch goes live after a quick automatic check. people are already working here.",
+    "text": "dein Zweig geht nach einer kurzen Sicherheitsprüfung live. hier arbeiten schon Leute.",
+    "from": "your branch goes live after a quick safety check. people are already working here.",
     "checked": false
   },
   "create.buildsOn": {
@@ -980,8 +980,8 @@
     "checked": false
   },
   "create.goNote": {
-    "text": "eine kurze automatische Kontrolle liest deinen shwarm zuerst, meist innerhalb einer Minute. bis dahin siehst nur du ihn. danach ist er live, und alle können daran arbeiten.",
-    "from": "a quick automatic check reads your shwarm first, usually within a minute. until then only you can see it. after that it's live, and anyone can work on it.",
+    "text": "eine kurze Sicherheitsprüfung liest deinen shwarm zuerst, meist innerhalb einer Minute. bis dahin siehst nur du ihn. danach ist er live, und alle können daran arbeiten.",
+    "from": "a quick safety check reads your shwarm first, usually within a minute. until then only you can see it. after that it's live, and anyone can work on it.",
     "checked": false
   },
   "create.heading": {
@@ -1190,8 +1190,8 @@
     "checked": false
   },
   "create.sub": {
-    "text": "ein Ziel, das eine ganze Crowd verdient. dein shwarm geht nach einer kurzen automatischen Kontrolle live.",
-    "from": "a goal worth a crowd. your shwarm goes live after a quick automatic check.",
+    "text": "ein Ziel, das eine ganze Crowd verdient. dein shwarm geht nach einer kurzen Sicherheitsprüfung live.",
+    "from": "a goal worth a crowd. your shwarm goes live after a quick safety check.",
     "checked": false
   },
   "create.tags": {
@@ -1220,8 +1220,8 @@
     "checked": false
   },
   "create.triageNote": {
-    "text": "eine automatische Kontrolle liest jeden neuen shwarm und Zweig, bevor ihn jemand anderes sieht. sie sucht nur nach Schaden, nie danach, ob eine Idee gut ist. {rubric}",
-    "from": "an automatic check reads every new shwarm and branch before anyone else sees it. the check only looks for harm, never at whether an idea is good. {rubric}",
+    "text": "eine Sicherheitsprüfung liest jeden neuen shwarm und Zweig, bevor ihn jemand anderes sieht. sie sucht nur nach Schaden, nie danach, ob eine Idee gut ist. {rubric}",
+    "from": "a safety check reads every new shwarm and branch before anyone else sees it. the check only looks for harm, never at whether an idea is good. {rubric}",
     "checked": false
   },
   "create.triageRubric": {
@@ -1650,8 +1650,8 @@
     "checked": false
   },
   "email.signOffOpen": {
-    "text": "öffne die Einreichung und gib „bestanden“ mit dem, was du geprüft hast, oder „nicht bestanden“ mit einer Repro:",
-    "from": "open the submission to pass it with what you checked, or fail it with a repro:",
+    "text": "öffne die Einreichung und gib „bestanden“ mit dem, was du geprüft hast, oder „nicht bestanden“ mit den Schritten, die zeigen, wie es scheitert:",
+    "from": "open the submission to pass it with what you checked, or fail it with steps that show how it fails:",
     "checked": false
   },
   "email.signOffSubject": {
@@ -1780,8 +1780,8 @@
     "checked": false
   },
   "feed.closed": {
-    "text": "abgeschlossen",
-    "from": "closed",
+    "text": "bestanden",
+    "from": "passed",
     "checked": false
   },
   "feed.deadEnd": {
@@ -1835,8 +1835,8 @@
     "checked": false
   },
   "feed.noneClosed": {
-    "text": "noch ist nichts abgeschlossen. ein shwarm erscheint hier, sobald er als fertig oder als Sackgasse markiert ist.",
-    "from": "nothing has closed yet. a shwarm shows up here when it is marked done, or a dead-end.",
+    "text": "noch ist nichts abgeschlossen. ein shwarm erscheint hier, sobald er besteht oder seine Autor:in ihn zur Sackgasse erklärt.",
+    "from": "nothing has closed yet. a shwarm shows up here when it passes, or when its author calls it a dead end.",
     "checked": false
   },
   "feed.noneLive": {
@@ -2720,8 +2720,8 @@
     "checked": false
   },
   "node.blocked": {
-    "text": "die automatische Kontrolle hat diese Seite blockiert, darum siehst nur du sie. siehe {rules}.",
-    "from": "the automatic check blocked this page, so only you can see it. see {rules}.",
+    "text": "die Sicherheitsprüfung hat diese Seite als nicht erlaubt eingestuft, darum siehst nur du sie. siehe {rules}.",
+    "from": "the safety check found this page isn't allowed, so only you can see it. see {rules}.",
     "checked": false
   },
   "node.branches": {
@@ -2855,8 +2855,8 @@
     "checked": false
   },
   "node.closed": {
-    "text": "abgeschlossen",
-    "from": "closed",
+    "text": "bestanden",
+    "from": "passed",
     "checked": false
   },
   "node.composePlaceholder": {
@@ -3240,13 +3240,13 @@
     "checked": false
   },
   "node.lockedAboveDeadEnd": {
-    "text": "{node} ist eine Sackgasse, darum ist auch dieser {kind} inaktiv.",
-    "from": "{node} is a dead end, so this {kind} is inactive too.",
+    "text": "{node} ist eine Sackgasse, darum ist auch dieser {kind} gesperrt.",
+    "from": "{node} is a dead end, so this {kind} is locked too.",
     "checked": false
   },
   "node.lockedAbovePassed": {
-    "text": "{node} hat bestanden, darum nimmt auch dieser {kind} nichts Neues mehr an.",
-    "from": "{node} passed, so this {kind} takes nothing new either.",
+    "text": "{node} hat bestanden, darum ist auch dieser {kind} gesperrt.",
+    "from": "{node} passed, so this {kind} is locked too.",
     "checked": false
   },
   "node.lockedBuildOn": {
@@ -3255,13 +3255,13 @@
     "checked": false
   },
   "node.lockedDeadEnd": {
-    "text": "dieser {kind} ist eine Sackgasse, darum ist er inaktiv.",
-    "from": "this {kind} is a dead end, so it is inactive.",
+    "text": "dieser {kind} ist eine Sackgasse, darum ist er gesperrt.",
+    "from": "this {kind} is a dead end, so it is locked.",
     "checked": false
   },
   "node.lockedPassed": {
-    "text": "dieser {kind} hat bestanden, darum ist er inaktiv.",
-    "from": "this {kind} passed, so it is inactive.",
+    "text": "dieser {kind} hat bestanden, darum ist er gesperrt.",
+    "from": "this {kind} passed, so it is locked.",
     "checked": false
   },
   "node.log": {
@@ -3435,13 +3435,13 @@
     "checked": false
   },
   "node.peopleImpact.one": {
-    "text": "{n} Person · Wirkung",
-    "from": "{n} person · impact",
+    "text": "{n} Person · Upvotes pro Beitrag",
+    "from": "{n} person · upvotes per post",
     "checked": false
   },
   "node.peopleImpact.other": {
-    "text": "{n} Personen · Wirkung",
-    "from": "{n} people · impact",
+    "text": "{n} Personen · Upvotes pro Beitrag",
+    "from": "{n} people · upvotes per post",
     "checked": false
   },
   "node.perPost": {
@@ -3590,8 +3590,8 @@
     "checked": false
   },
   "node.repro": {
-    "text": "Repro: {steps}",
-    "from": "repro: {steps}",
+    "text": "so scheitert es: {steps}",
+    "from": "how to make it fail: {steps}",
     "checked": false
   },
   "node.reset": {
@@ -4460,8 +4460,8 @@
     "checked": false
   },
   "pages.triageDescription": {
-    "text": "was die automatische Kontrolle bei jedem neuen shwarm und Zweig gefragt wird, und jede Entscheidung, die sie und @myra getroffen haben.",
-    "from": "what the automatic check on every new shwarm and branch is asked, and every decision it and @myra made.",
+    "text": "was die Sicherheitsprüfung bei jedem neuen shwarm und Zweig gefragt wird, und jede Entscheidung, die sie und @myra getroffen haben.",
+    "from": "what the safety check on every new shwarm and branch is asked, and every decision it and @myra made.",
     "checked": false
   },
   "pages.triageEmpty": {
@@ -4490,8 +4490,8 @@
     "checked": false
   },
   "pages.triageIntro": {
-    "text": "die automatische Kontrolle, die jeden neuen shwarm und Zweig liest: was sie gefragt wird, Wort für Wort, und jede Entscheidung, die sie getroffen hat. neueste zuerst.",
-    "from": "the automatic check that reads every new shwarm and branch: what it's asked, word for word, and every decision it made. newest first.",
+    "text": "die Sicherheitsprüfung, die jeden neuen shwarm und Zweig liest: was sie gefragt wird, Wort für Wort, und jede Entscheidung, die sie getroffen hat. neueste zuerst.",
+    "from": "the safety check that reads every new shwarm and branch: what it's asked, word for word, and every decision it made. newest first.",
     "checked": false
   },
   "pages.triageModlogLink": {
@@ -4525,8 +4525,8 @@
     "checked": false
   },
   "pages.triageTitle": {
-    "text": "Triage",
-    "from": "triage",
+    "text": "die Sicherheitsprüfung",
+    "from": "the safety check",
     "checked": false
   },
   "pages.yearsAgo": {
@@ -4590,8 +4590,8 @@
     "checked": false
   },
   "profile.blocked": {
-    "text": "blockiert",
-    "from": "blocked",
+    "text": "nicht erlaubt",
+    "from": "not allowed",
     "checked": false
   },
   "profile.branchOf": {
@@ -4645,8 +4645,8 @@
     "checked": false
   },
   "profile.colImpact": {
-    "text": "Wirkung",
-    "from": "impact",
+    "text": "Upvotes pro Beitrag",
+    "from": "upvotes per post",
     "checked": false
   },
   "profile.colShwarmOrBranch": {
@@ -4950,8 +4950,8 @@
     "checked": false
   },
   "profile.postRepro": {
-    "text": "Repro",
-    "from": "repro",
+    "text": "so scheitert es",
+    "from": "how to make it fail",
     "checked": false
   },
   "profile.posts": {
@@ -5165,8 +5165,8 @@
     "checked": false
   },
   "profile.workingOnKey": {
-    "text": "Wirkung: Upvotes pro Beitrag im Schnitt · Beiträge pro Tag im Schnitt",
-    "from": "impact: avg upvotes per post · avg posts per day",
+    "text": "Upvotes pro Beitrag · Beiträge pro Tag, beides im Schnitt",
+    "from": "upvotes per post · posts per day, both on average",
     "checked": false
   },
   "profile.writeFirst": {
@@ -5215,8 +5215,8 @@
     "checked": false
   },
   "result.closed": {
-    "text": "abgeschlossen",
-    "from": "closed",
+    "text": "bestanden",
+    "from": "passed",
     "checked": false
   },
   "result.creditNote": {
@@ -5645,8 +5645,8 @@
     "checked": false
   },
   "submission.historyReopened": {
-    "text": "durch eine Repro wieder geöffnet",
-    "from": "reopened by a repro",
+    "text": "wieder geöffnet, als jemand zeigte, wie es scheitert",
+    "from": "reopened when someone showed it failing",
     "checked": false
   },
   "submission.historySignedOff": {
@@ -5735,8 +5735,8 @@
     "checked": false
   },
   "submission.pillApproved": {
-    "text": "angenommen",
-    "from": "approved",
+    "text": "bestanden",
+    "from": "passed",
     "checked": false
   },
   "submission.pillFailed": {
@@ -5825,8 +5825,8 @@
     "checked": false
   },
   "submission.tallyReopened": {
-    "text": "{done} von {total} · bestanden · durch eine Repro wieder geöffnet",
-    "from": "{done} of {total} · passed · reopened by a repro",
+    "text": "{done} von {total} · bestanden · wieder geöffnet, als jemand zeigte, wie es scheitert",
+    "from": "{done} of {total} · passed · reopened when someone showed it failing",
     "checked": false
   },
   "submission.tallyReset": {

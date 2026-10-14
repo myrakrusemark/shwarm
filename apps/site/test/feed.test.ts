@@ -661,7 +661,7 @@ describe('cards', () => {
     const c = card(await html(r.db, '/?tab=closed'), 'a ramsey-number bound')
     const h = await html(r.db, '/?sort=new')
     expect(c).toContain('▲<br/>2.1k<small>upvotes</small><span class="qbar" style="--q:5" title="5.1 upvotes per post, on average"></span>')
-    expect(c).toContain('<span class="st done">closed</span>')
+    expect(c).toContain('<span class="st done">passed</span>')
     expect(c).toContain(' · 9 people · 31 posts/day · <time datetime="2026-10-08T08:00:00.000Z"')
     expect(done).toBeGreaterThan(0)
     const f = card(h, 'faster ramsey')

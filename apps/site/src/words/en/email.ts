@@ -88,7 +88,7 @@ export const email = {
   signOffOnly: 'submission #{n} on {title} is waiting on you. your sign-off is the only check it needs.',
   // when every other check passed
   signOffLast: 'every other check on submission #{n} on {title} has passed. your sign-off is the last one.',
-  signOffOpen: 'open the submission to pass it with what you checked, or fail it with a repro:',
+  signOffOpen: 'open the submission to pass it with what you checked, or fail it with steps that show how it fails:',
   signOffNothingPasses: 'nothing passes until you sign off. the work stays open to everyone meanwhile.',
 
   // a mention, sent right away. {by} is who wrote, {title} where

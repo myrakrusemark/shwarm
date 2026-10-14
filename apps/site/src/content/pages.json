@@ -84,7 +84,7 @@
    {
     "id": "who",
     "h": "who keeps it fair",
-    "body": "<p>an automatic check reads every new shwarm and branch. if it might break one of the never-allowed rules above, it waits for @myra, who clears it or blocks it. the check's questions are public, on the <a href=\"/triage\">triage page</a>, with every decision it makes. while shwarm is new, reports, flags and appeals go to @myra, who runs the site, and every action she takes goes in a <a href=\"/moderation\">public log</a>.</p><p>later, people with a good record in a field will be able to lift a shwarm or reject it. that record comes from the upvotes on what they've posted there, so a pile of brand-new accounts can't bury good work.</p>"
+    "body": "<p>a safety check reads every new shwarm and branch. if it might break one of the never-allowed rules above, it waits for @myra, who clears it or blocks it. the check's questions are public, on the <a href=\"/triage\">safety check page</a>, with every decision it makes. while shwarm is new, reports, flags and appeals go to @myra, who runs the site, and every action she takes goes in a <a href=\"/moderation\">public log</a>.</p><p>later, people with a good record in a field will be able to lift a shwarm or reject it. that record comes from the upvotes on what they've posted there, so a pile of brand-new accounts can't bury good work.</p>"
    },
    {
     "id": "wrong",
@@ -198,7 +198,7 @@
    {
     "id": "donations",
     "h": "donations",
-    "body": "<p>donations are voluntary and pay for hosting, uptime and triage. you can give once or every month. stripe handles checkout, and we never see your card. payments go to myra krusemark, who runs shwarm, and show as SHWARM on your statement. they aren't tax-deductible.</p><p>to stop a monthly gift, write to <a href=\"mailto:support@shwarm.org\">support@shwarm.org</a> and we'll cancel it. closing your account doesn't stop it on its own. if you gave by mistake, write to us within 30 days and we'll refund it.</p>"
+    "body": "<p>donations are voluntary and pay for hosting, uptime and the safety check. you can give once or every month. stripe handles checkout, and we never see your card. payments go to myra krusemark, who runs shwarm, and show as SHWARM on your statement. they aren't tax-deductible.</p><p>to stop a monthly gift, write to <a href=\"mailto:support@shwarm.org\">support@shwarm.org</a> and we'll cancel it. closing your account doesn't stop it on its own. if you gave by mistake, write to us within 30 days and we'll refund it.</p>"
    },
    {
     "id": "leaving",
@@ -260,7 +260,7 @@
    {
     "id": "cookies",
     "h": "cookies",
-    "body": "<p>we use three cookies. all of them are needed for the site to work.</p><ul><li><b>sign-in:</b> keeps you signed in. it lasts 30 days from when you last used the site, or until you sign out.</li><li><b>form guard:</b> set when you open a form while signed out, like join, sign in or report. it stops other sites from sending forms as you. it lasts 2 hours.</li><li><b>new account:</b> set when you join. it lets this browser resend your check link and hold your handle while you check your email. it lasts 7 days.</li></ul><p>none of them follow you to other sites. cloudflare's bot check and stripe's checkout page run on their own sites, under their own rules.</p>"
+    "body": "<p>we use three cookies that the site needs to work, and a fourth only if you pick a language.</p><ul><li><b>sign-in:</b> keeps you signed in. it lasts 30 days from when you last used the site, or until you sign out.</li><li><b>form guard:</b> set when you open a form while signed out, like join, sign in or report. it stops other sites from sending forms as you. it lasts 2 hours.</li><li><b>new account:</b> set when you join. it lets this browser resend your check link and hold your handle while you check your email. it lasts 7 days.</li><li><b>language:</b> set only when you pick a language at the bottom of a page. it remembers your pick for a year.</li></ul><p>none of them follow you to other sites. cloudflare's bot check and stripe's checkout page run on their own sites, under their own rules.</p>"
    },
    {
     "id": "share",

@@ -379,12 +379,12 @@ describe('sign-off items and "waiting on you" (6.1, PROF-9)', () => {
     // nobody else sees "waiting on you" on myra's profile
     for (const b of [new Browser(env), await signIn(env, 'ana')]) expect(await body(await b.get('/@myra'))).not.toContain('waiting on you')
 
-    // The pill follows the submission: approved on a pass, failed on a fail; the node stops waiting.
+    // The pill follows the submission: passed on a pass, failed on a fail; the node stops waiting.
     env.DB.raw.prepare("UPDATE submission SET status = 'passed' WHERE post_id = ?").run(item.post_id)
     env.DB.raw.prepare("UPDATE node SET state = 'closed', in_review = 0 WHERE path = ?").run(EXAMPLE_ROOT)
     env.DB.raw.prepare('UPDATE inbox_item SET done_at = ? WHERE id = ?').run(new Date(T0).toISOString(), item.id)
     html = await body(await myra.get('/@myra'))
-    expect(itemOf(html, item.id)).toContain('<span class="stp ok">approved</span>')
+    expect(itemOf(html, item.id)).toContain('<span class="stp ok">passed</span>')
     expect(html).not.toContain('waiting on you')
     env.DB.raw.prepare("UPDATE submission SET status = 'failed' WHERE post_id = ?").run(item.post_id)
     env.DB.raw.prepare("UPDATE node SET state = 'live' WHERE path = ?").run(EXAMPLE_ROOT)

@@ -54,7 +54,7 @@ describe('create form (4.2)', () => {
     const { b, pid } = await member(env, 'ana')
     const page = await body(await b.get('/new'))
     expect(page).toContain('>start shwarm</button>')
-    expect(page).toContain('a goal worth a crowd. your shwarm goes live after a quick automatic check.')
+    expect(page).toContain('a goal worth a crowd. your shwarm goes live after a quick safety check.')
     // fixed once posted (decided Oct 12: no editing a shwarm's words), and the form says so by its button
     expect(page).toContain("the license can't be changed once you post, and branches inherit it.")
     expect(page).toContain(`after that it's live, and anyone can work on it. <b id="fixed-note">once posted, nothing on this form can be changed.</b>`)
@@ -135,7 +135,7 @@ describe('branch mode (4.3); no variants (decided Oct 9)', () => {
     const { b } = await member(env, 'ana')
     const page = await body(await b.get('/new?parent=minecraft-in-doom/block-placement'))
     expect(page).toContain('<h1 class="title" id="heading">new branch</h1>')
-    expect(page).toContain('your branch goes live after a quick automatic check. people are already working here.')
+    expect(page).toContain('your branch goes live after a quick safety check. people are already working here.')
     expect(page).toMatch(/<nav class="crumbs"[^>]*><a href="\/w\/minecraft-in-doom">minecraft in doom<\/a><span>\/<\/span><a href="\/w\/minecraft-in-doom\/block-placement">block placement<\/a><span>\/<\/span>new branch<\/nav>/)
     expect(page).toContain('helping reach')
     expect(page).toContain('block placement is done when')
