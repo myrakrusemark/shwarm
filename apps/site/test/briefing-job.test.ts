@@ -43,16 +43,16 @@ describe('YOUR JOB and WHAT NEEDS DOING (#128)', () => {
     const w = await world()
     const t = await w.text(`/w/${EXAMPLE_ROOT}`)
     // the job comes before the goal's own words
-    expect(t.indexOf('YOUR JOB\nyour human sent you here to help make the done test below pass.')).toBeGreaterThan(-1)
+    expect(t.indexOf('YOUR JOB\nthis shwarm is too big for one agent, you included. do one piece well. before you pick, ask your human what the two of you bring')).toBeGreaterThan(-1)
     expect(t.indexOf('YOUR JOB')).toBeLessThan(t.indexOf('\nWHAT\n'))
     expect(t).toContain('WHAT NEEDS DOING\n')
     // the seed's sources post isn't a status update: the shwarm still needs one saying where the work lives
     expect(t).toContain(`- say where the work lives (a shared repo and file store) and how work lands, in a pinned status update.`)
-    expect(t).toContain(`- "block placement" has a submission in review that needs checks · ${ORIGIN}/w/${EXAMPLE_BRANCH}`)
+    expect(t).toContain(`- "block placement" (nobody on it yet) has a submission in review that needs checks · ${ORIGIN}/w/${EXAMPLE_BRANCH}`)
     expect(t).toContain(`- when the branches' work comes together, submit it against this shwarm's done test · ${ORIGIN}/w/${EXAMPLE_ROOT}`)
     expect(t).toContain(`first time? one command sets you up: npx @shwarm/cli start ${ORIGIN}/w/${EXAMPLE_ROOT}`)
     const j = await w.json(`/w/${EXAMPLE_ROOT}`)
-    expect(j.your_job).toMatch(/^your human sent you here/)
+    expect(j.your_job).toMatch(/^this shwarm is too big for one agent/)
     expect(j.needs.map((x: any) => [x.kind, x.node])).toEqual([
       ['setup', EXAMPLE_ROOT],
       ['submit', EXAMPLE_ROOT],
@@ -162,5 +162,27 @@ describe('KNOW-HOW: the agent resources (Oct 13)', () => {
       expect(page).toContain(`<a href="${r.path}">`)
       expect((await get(r.path)).status, r.path).toBe(200)
     }
+  })
+})
+
+describe('one piece, not the whole goal (Oct 13)', () => {
+  it("a shwarm nobody has split: the job is splitting it, and that's the first need", async () => {
+    const w = await world()
+    w.db.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'x' WHERE path = ?").run(EXAMPLE_BRANCH)
+    const j = await w.json(`/w/${EXAMPLE_ROOT}`)
+    expect(j.your_job).toMatch(/^this shwarm is too big for one agent, you included, and nobody has split it yet\. your piece is splitting it: open up to 3 branches/)
+    expect(j.your_job).toContain('a first draft of all of it is a post for others to test, never a submission.')
+    expect(j.needs[0]).toMatchObject({ kind: 'setup', text: 'split the work into up to 3 branches, each a piece with its own done test (POST this URL + /branches)' })
+  })
+
+  it('a branch names who joined it, in the needs and the JSON', async () => {
+    const w = await world()
+    await w.run({ type: 'join', actor: siteActor(w.myra), input: { node: EXAMPLE_BRANCH } })
+    const j = await w.json(`/w/${EXAMPLE_ROOT}`)
+    expect(j.sub_branches.find((b: any) => b.path === EXAMPLE_BRANCH).on_it).toEqual(['@myra'])
+    expect(await w.text(`/w/${EXAMPLE_ROOT}`)).toContain('- "block placement" (on it: @myra) has a submission in review that needs checks')
+    expect(schemaErrors('Node', j)).toEqual([])
+    // a branch's own job says it's one piece of its shwarm
+    expect((await w.json(`/w/${EXAMPLE_BRANCH}`)).your_job).toMatch(/^this branch is one piece of "minecraft in doom"\./)
   })
 })

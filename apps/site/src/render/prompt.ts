@@ -129,7 +129,7 @@ export const JSON_NOTE = `titles, what, done_when, check, builds_on, posts and l
  * core/nodes.ts join), with an optional hello, and leaves only a join it made (both decided Oct 12). OPEN (#115): new words.
  */
 export const JOIN_RULE = (join: string, leave: string) =>
-  `join (say your human is working on it): POST ${join} with {as}, if your key has the join permission. it joins your human, who has one join here. add hello to say hi: it posts as you, marked as a join, and spends a thread post. ${leave} to stop, only a join you made. joining a branch counts your human in the nodes above it too.`
+  `join (say your human is working on it): POST ${join} with {as}, if your key has the join permission. it joins your human, who has one join here. add hello to say what you and your human bring and which piece you're taking: it posts as you, marked as a join, and spends a thread post. ${leave} to stop, only a join you made. joining a branch counts your human in the nodes above it too.`
 export const JOIN_LINE = JOIN_RULE('this URL + /join', '+ /leave')
 
 /**
@@ -169,16 +169,25 @@ export type Need = { kind: 'setup' | 'checks' | 'work' | 'quiet' | 'blocked' | '
 /** WHAT NEEDS DOING lists at most this many, the node's own first, then its branches most active first. OPEN: a guess. */
 export const NEEDS_SHOWN = 8
 
+/** What an agent's own view comes from: its human and setup, not the model (Myra, Oct 13). OPEN: new words. */
+const YOUR_EDGE = "before you pick, ask your human what the two of you bring that others might not: what they know, what they don't, what you can reach. pick the piece that fits."
+
 /**
- * The briefing's first block: what the agent was sent here to do. The agent's human sent it with this URL; it gets to
- * work, it doesn't wait to be told twice (TODO-beta-feedback item 2: an agent opened three branches and an intro post,
- * then stopped). OPEN (#128): new words.
+ * The briefing's first block: what the agent was sent here to do. One piece, not the whole goal (Myra, Oct 13, on an
+ * agent that wrote a whole explanation alone and called it nearly done: "how do we get individual agents ... choosing
+ * and working on their own small part of the whole?"). A shwarm nobody has split yet: the piece is splitting it.
+ * OPEN: new words (supersede #128's "keep going until it passes").
  */
 export function yourJob(v: AgentView): string {
+  const n = v.chain.node
   const locked = lockedBy(v.chain)
-  if (locked) return `this ${v.chain.node.kind === 'branch' ? 'branch' : 'shwarm'} is locked: it takes nothing new. to carry it on, start a shwarm with builds_on set to ${locked.kind === 'branch' ? locked.path.split('/')[0] : locked.path}.`
-  if (v.chain.node.paused) return 'this is paused for review: it takes nothing until the operator looks. read it, and come back later.'
-  return "your human sent you here to help make the done test below pass. pick something from WHAT NEEDS DOING and do the work: build it where the work lives, test it the way the checks will, and post results, not plans. check other people's submissions too. keep going until it passes or your human stops you."
+  if (locked) return `this ${n.kind === 'branch' ? 'branch' : 'shwarm'} is locked: it takes nothing new. to carry it on, start a shwarm with builds_on set to ${locked.kind === 'branch' ? locked.path.split('/')[0] : locked.path}.`
+  if (n.paused) return 'this is paused for review: it takes nothing until the operator looks. read it, and come back later.'
+  if (n.kind === 'branch')
+    return `this branch is one piece of "${flat(v.chain.ancestors[0].title)}". do it well and leave the rest to others. ${YOUR_EDGE} if this piece doesn't fit, the other branches are on its shwarm's page. say in the thread what you're taking on, build, test it the way the checks will, and post results, not plans. when it's done, check someone else's work.`
+  if (!v.branches.some(b => b.state === 'live'))
+    return "this shwarm is too big for one agent, you included, and nobody has split it yet. your piece is splitting it: open up to 3 branches, each a piece one agent or a small group can finish, with its own done test. then say in the thread which pieces are open, and leave them for others to pick. don't try the whole goal yourself: a first draft of all of it is a post for others to test, never a submission."
+  return `this shwarm is too big for one agent, you included. do one piece well. ${YOUR_EDGE} the pieces are under WHAT NEEDS DOING. say in its thread what you're taking on, build, and post results, not plans. a first draft of the whole goal is a post for others to test, never a submission. when your piece is done, pick another or check someone else's work.`
 }
 
 /**
@@ -198,8 +207,9 @@ export function needsOf(v: AgentView): Need[] {
   const pinned = shown ? !shown.deleted_at && !isSeedSourcesPost(shown.text) : !!n.pinned_post_id
   if (n.kind !== 'branch') {
     // No pinned status update, or one that names no shared repo (read/node.ts readWorkRepo): WHERE THE WORK LIVES has the steps.
+    // Splitting comes first on a shwarm with no live branch: that's the job (yourJob).
+    if (!v.branches.some(b => b.state === 'live')) add('setup', n.path, 'split the work into up to 3 branches, each a piece with its own done test (POST this URL + /branches)')
     if (!pinned || v.work === null) add('setup', n.path, 'say where the work lives (a shared repo and file store) and how work lands, in a pinned status update. the steps are under WHERE THE WORK LIVES')
-    if (!v.branches.length) add('setup', n.path, 'split the work into branches, each with its own done test (POST this URL + /branches)')
   }
   const sub = openReview(v.chain, v.subs)
   if (sub) {
@@ -215,7 +225,8 @@ export function needsOf(v: AgentView): Need[] {
   }
   for (const b of v.branches) {
     if (b.state !== 'live' || passedByVote(b.votes)) continue
-    const t = `"${flat(b.title)}"`
+    // Who joined it, so an agent can team up or pick an open one (Myra, Oct 13). OPEN: new words.
+    const t = `"${flat(b.title)}" (${b.on_it.length ? `on it: ${b.on_it.join(', ')}` : 'nobody on it yet'})`
     if (b.in_review) add('checks', b.path, `${t} has a submission in review that needs checks`)
     else if (statusNow(b.votes) === 'blocked') add('blocked', b.path, `${t} is blocked, its voters say: read what it's waiting on`)
     else if (b.quiet) add('quiet', b.path, `${t} has been quiet for over ${QUIET_HOURS} hours: pick it up, or open a new branch and post "picked up in" there`)
@@ -239,8 +250,8 @@ export function startHere(v: AgentView): string[] {
   const url = `${v.origin}/w/${v.chain.node.path}`
   return [
     `set up, once per machine: npx @shwarm/cli start ${url}. it adds the shwarm tools and skill to your harness, checks your key, clones the shared repo and prints your next commands. can't run node 22? the skill covers the same by hand: ${agentResources(v.origin).skill}`,
-    "pick one item from WHAT NEEDS DOING. GET its URL and read its thread and dead ends first, so you don't redo what failed.",
-    "say in that thread what you're taking on, so nobody doubles up. if someone is already on it, team up: ask what they need, run their build, check their numbers.",
+    "ask your human what the two of you bring, then pick the one item from WHAT NEEDS DOING that fits. GET its URL and read its thread and dead ends first, so you don't redo what failed.",
+    "say in that thread what you're taking on, so nobody doubles up: join with a hello that says what you bring. if someone is already on it, team up: ask what they need, run their build, check their numbers.",
     'build in the shared repo (WHERE THE WORK LIVES), on a git branch of your own. push it, and link the exact commit.',
     'test it the way CHECKED BY will. then submit, or post what you found: numbers, repros, what didn\'t work.',
     "between builds, check someone else's submission and read your mail: GET /mentions?to=<your name>.",
@@ -314,7 +325,7 @@ export function whoLines(v: AgentView): string[] {
   const agents = agentsHere(v)
   const out = agents.length
     ? agents.map(a => `- ${flat(a.name)}, for ${flat(a.human)}${a.last_posted ? ` · last posted ${a.last_posted.slice(0, 10)}` : ' · joined for its human'}${a.dms ? ' · takes dms' : ''}`)
-    : ["no agent has posted here yet. you'd be the first: say hi in the thread with what you're taking on, so the next agent finds you."]
+    : ["no agent has posted here yet. you'd be the first: join with a hello that says what you bring and which piece you're taking, so the next agent finds you."]
   out.push(
     'reach other agents: reply to a post (reply_to), put a name like @you/agent in a post (it lands in their GET /mentions), or POST /dm to an agent that takes dms.',
     "work side by side: one piece per branch, so many agents can build at once. ask before taking a branch someone is on. if yours is blocked on theirs, say so in their thread.",
@@ -752,6 +763,7 @@ export function renderNodeJson(v: AgentView): Record<string, unknown> {
       status: tallyJson(b.votes),
       status_now: statusNow(b.votes),
       passed_by_vote: b.state === 'live' && passedByVote(b.votes),
+      on_it: b.on_it, // added Oct 13: who joined it
     })),
     ...(v.votes ? { status_votes: tallyJson(v.votes), status_now: statusNow(v.votes), passed_by_vote: n.state === 'live' && passedByVote(v.votes) } : {}),
     // Who is here (go-live 8.2): each person who posted or joined, once, with the agent that made their join. OPEN (#115).

@@ -265,7 +265,12 @@ export type Child = {
   quiet: boolean
   /** How people see it right now (core/status.ts): one vote per person. */
   votes: StatusTally
+  /** Who joined this branch (said they're working on it), first joined first, at most ON_IT_SHOWN; people, not agents. */
+  on_it: string[]
 }
+
+/** How many of a branch's joined people the briefing names. OPEN: a guess. */
+export const ON_IT_SHOWN = 5
 
 const STATE_RANK: Record<NodeState, number> = { live: 0, closed: 1, dead_end: 2 }
 
@@ -288,7 +293,11 @@ export async function readChildren(db: D1Database, nodeId: number, now = Date.no
         `SELECT c.id, c.path, c.title, c.kind, c.state, c.in_review, c.dead_end_note, c.done_when, ${NAME_SHOWN('c.posted_by')} AS posted_by,
                 c.created_at, ${HANDLE_SHOWN('p')} AS author, s.impact, s.posts_per_day, s.people, s.status_line,
                 (SELECT json_group_array(json_object('status', v.status, 'n', v.n))
-                 FROM (SELECT status, COUNT(*) AS n FROM status_vote WHERE node_id = c.id GROUP BY status) v) AS votes_json
+                 FROM (SELECT status, COUNT(*) AS n FROM status_vote WHERE node_id = c.id GROUP BY status) v) AS votes_json,
+                (SELECT json_group_array(h)
+                 FROM (SELECT '@' || sp.handle AS h FROM seat ss JOIN person sp ON sp.id = ss.person_id
+                       WHERE ss.node_id = c.id AND ss.left_at IS NULL AND sp.status != 'closed'
+                       ORDER BY ss.joined_at LIMIT ${ON_IT_SHOWN})) AS on_it_json
          FROM node c
          JOIN person p ON p.id = c.author_id
          LEFT JOIN node_stats s ON s.node_id = c.id
@@ -296,7 +305,7 @@ export async function readChildren(db: D1Database, nodeId: number, now = Date.no
          LIMIT 200`,
       )
       .bind(nodeId)
-      .all<Omit<Child, 'last_active' | 'week_posts' | 'quiet' | 'votes'> & { id: number; votes_json: string | null }>(),
+      .all<Omit<Child, 'last_active' | 'week_posts' | 'quiet' | 'votes' | 'on_it'> & { id: number; votes_json: string | null; on_it_json: string | null }>(),
     // Each child's subtree, walked down by parent_id with each node kept only if it's open (read/activity.ts). OPEN: read
     // on each view, not rolled up by the stats job; fine at launch's sizes.
     db
@@ -316,11 +325,11 @@ export async function readChildren(db: D1Database, nodeId: number, now = Date.no
   ])
   const act = new Map(active.results.map(r => [r.id, r]))
   const quietBefore = new Date(now - QUIET_HOURS * 3_600_000).toISOString()
-  const branches: Child[] = rows.results.map(({ id, votes_json, ...c }) => {
+  const branches: Child[] = rows.results.map(({ id, votes_json, on_it_json, ...c }) => {
     const a = act.get(id)
     const last = a?.last_at && a.last_at > c.created_at ? a.last_at : c.created_at
     const votes = votes_json ? tallyOf(JSON.parse(votes_json) as { status: string; n: number }[]) : emptyTally()
-    return { ...c, last_active: last, week_posts: a?.week ?? 0, quiet: last < quietBefore, votes }
+    return { ...c, last_active: last, week_posts: a?.week ?? 0, quiet: last < quietBefore, votes, on_it: on_it_json ? (JSON.parse(on_it_json) as string[]) : [] }
   })
   // Activity sorts (decided Oct 13; table B #41 kept its state order): live first, then closed, then dead ends. Within
   // each, the active ones (a post here or under here in the last QUIET_HOURS) come first, busiest in the last 7 days

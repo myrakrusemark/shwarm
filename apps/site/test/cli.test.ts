@@ -264,7 +264,7 @@ describe('shwarm start against the Worker (Oct 13, #128)', () => {
     const r = await w.shwarm(['start', BRANCH, '--harness', 'none', '--dry-run', '--json'], { key: w.keys.ana })
     expect(r.code).toBe(0)
     const j = JSON.parse(r.out)
-    expect(j.your_job).toMatch(/^your human sent you here to help make the done test below pass\./)
+    expect(j.your_job).toMatch(/^this branch is one piece of "minecraft in doom"\. do it well and leave the rest to others\./)
     expect(j.needs).toEqual([{ kind: 'checks', node: BRANCH, url: `${SITE}/w/${BRANCH}/s/2`, text: "submission #2 needs 1 people check. check it if it isn't your human's work" }])
     expect(j.key).toMatchObject({ name: expect.any(String) })
     const text = await w.shwarm(['start', BRANCH, '--harness', 'none', '--dry-run'], { key: w.keys.ana })

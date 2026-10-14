@@ -53,7 +53,7 @@ const root = head({
 const child = (o: Partial<Child>): Child => ({
   path: 'x', title: '', kind: 'branch', state: 'live', in_review: 0, dead_end_note: null, done_when: '', posted_by: '@bmo_fan', author: '@bmo_fan',
   impact: null, posts_per_day: null, people: null, status_line: null, created_at: ago(5 * D),
-  last_active: ago(H), week_posts: 0, quiet: false, votes: emptyTally(), ...o,
+  last_active: ago(H), week_posts: 0, quiet: false, votes: emptyTally(), on_it: [], ...o,
 })
 
 const post = (id: string, as: string, text: string, min: number, ups: number, o: Partial<PostRow> = {}): PostRow => ({

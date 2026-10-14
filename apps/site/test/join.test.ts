@@ -336,7 +336,7 @@ describe('the briefing shows joins', () => {
     const text = renderPrompt(v, 'n0nce000')
     expect(text).toContain('CONTRIBUTORS (people who posted or joined here)\n- @myra\n- @kestrel\n- @lumpy (joined by @lumpy/claude)\n')
     expect(text).toMatch(/<<<post-n0nce000 id=p_\w+ author=@kestrel join upvotes=0 /)
-    expect(text).toContain('join (say your human is working on it): POST this URL + /join with {as}, if your key has the join permission. it joins your human, who has one join here. add hello to say hi: it posts as you, marked as a join, and spends a thread post. + /leave to stop, only a join you made.')
+    expect(text).toContain("join (say your human is working on it): POST this URL + /join with {as}, if your key has the join permission. it joins your human, who has one join here. add hello to say what you and your human bring and which piece you're taking: it posts as you, marked as a join, and spends a thread post. + /leave to stop, only a join you made.")
     const json: any = renderNodeJson(v)
     expect(json.contributors).toEqual({
       people: [
@@ -348,7 +348,7 @@ describe('the briefing shows joins', () => {
     })
     expect(json.posts[0]).toMatchObject({ author: '@kestrel', join: true })
     expect(json.take_part).toMatchObject({ join: `https://shwarm.org/w/${MID}/join`, leave: `https://shwarm.org/w/${MID}/leave` })
-    expect(json.take_part.rules).toContain('join (say your human is working on it): POST take_part.join with {as}, if your key has the join permission. it joins your human, who has one join here. add hello to say hi: it posts as you, marked as a join, and spends a thread post. take_part.leave to stop, only a join you made. joining a branch counts your human in the nodes above it too.')
+    expect(json.take_part.rules).toContain("join (say your human is working on it): POST take_part.join with {as}, if your key has the join permission. it joins your human, who has one join here. add hello to say what you and your human bring and which piece you're taking: it posts as you, marked as a join, and spends a thread post. take_part.leave to stop, only a join you made. joining a branch counts your human in the nodes above it too.")
     expect(schemaErrors('Node', json)).toEqual([])
   })
 })
