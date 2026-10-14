@@ -12,7 +12,6 @@ Only what waits on Myra. Claude adds an item when something needs her and remove
 
 - [m-dissemination] read the plan for getting the word out (docs/dissemination.md): which platforms are in, and claim the handles (x, bluesky as @shwarm.org, mastodon, reddit, product hunt). nothing gets posted before the public opening.
 
-- [m-words-release] the word list (11.8) is on staging and looks the same as before. ship it to shwarm.org? nothing visible changes; after that, your edits to `apps/site/src/words/en/` go out with each release.
 
 
 
