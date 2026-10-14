@@ -121,7 +121,7 @@ describe('the direct messages box on the keys page (7.17)', () => {
     expect(res.status).toBe(303)
     expect(all(env, 'SELECT name FROM dm_name WHERE person_id = ? ORDER BY name', myraId).map(r => r.name)).toEqual(['@myra/fathom', '@myra/scout/a1'])
     html = await body(await myra.get('/keys?done=dm_on'))
-    expect(html).toContain('direct messages are on for that name.')
+    expect(html).toContain('direct messages are on for the name you added.')
     expect(html).toContain('<code>@myra/fathom</code>')
     expect(html).toContain('on for 2 names')
 
@@ -243,7 +243,7 @@ describe('/dms (7.17)', () => {
     let res = await dmsForm(myra, { do: 'report', id: inbound.id })
     expect(res.status).toBe(303)
     expect(res.headers.get('location')).toBe('/dms?done=reported')
-    expect(await body(await myra.get('/dms?done=reported'))).toContain("it's in the operator's queue now.")
+    expect(await body(await myra.get('/dms?done=reported'))).toContain('the people who run shwarm will look at the message.')
     expect(get(env, 'SELECT reported_at FROM dm WHERE id = ?', inbound.id).reported_at).not.toBeNull()
     expect(get(env, "SELECT url, kind FROM report WHERE url = ?", `dm:${inbound.id}`)).toMatchObject({ kind: 'abuse' })
     expect(mails(env.DB as any).filter(m => m.template === 'dm_report').map(m => m.to_email)).toEqual(['op@example.org'])

@@ -139,7 +139,7 @@ describe('GET /w/<path>/log (5.7)', () => {
     const at = (s: { number: number; hash: string }) => `#${s.number} (${s.hash.slice(0, 7)})`
     expect(passed).toMatchObject({ by: null, number: 2, submission: w.sub.id, detail: `${at(w.sub)} passed`, evidence: `${ORIGIN}/w/${EXAMPLE_ROOT}/s/2`, key: true })
     // the author's fail was the shwarm's, on its first submission
-    expect(events.find(e => e.event === 'failed')).toMatchObject({ node: EXAMPLE_ROOT, by: null, number: 1, detail: '#1 failed the author check. every check starts over', key: false })
+    expect(events.find(e => e.event === 'failed')).toMatchObject({ node: EXAMPLE_ROOT, by: null, number: 1, detail: 'the author failed submission #1. every check on the done test starts over', key: false })
     // a branch's submission that passes its checks is a pass in its own words, and the branch stays live (decided Oct 13)
     const two = w.get("SELECT s.post_id, s.number, s.hash FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ? AND s.status = 'passed'", EXAMPLE_BRANCH)
     expect(events.find(e => e.event === 'passed' && e.node === EXAMPLE_BRANCH)).toMatchObject({

@@ -66,7 +66,7 @@ describe('sign-up', () => {
     // the check-email page
     const page = await (await b.get('/check-email')).text()
     expect(page).toContain('check your email')
-    expect(page).toContain('send it again')
+    expect(page).toContain('send the link again')
   })
 
   it('lowercases the handle and refuses reserved or malformed ones', async () => {
@@ -109,7 +109,7 @@ describe('sign-up', () => {
     await setSignup(env.DB, 'open')
     const res = await new Browser(env).post('/join', joinForm('myra', 'myra@example.org', { password: 'short', age: '', terms: '' }))
     const html = await body(res)
-    expect(html).toContain('use at least 10 characters')
+    expect(html).toContain('your password needs at least 10 characters')
     expect(html).toContain('16 or older to join')
     expect(html).toContain('agree to the terms')
     expect(html).toContain('value="myra@example.org"') // typed values come back, the password doesn't
@@ -171,7 +171,7 @@ describe('sign-up', () => {
     expect(env.DB.raw.prepare('SELECT person_id, joined_at, mailed_at FROM signup_wait').all()).toEqual([{ person_id: p.id, joined_at: expect.any(String), mailed_at: null }])
     const page = await body(await stranger.get('/check-email?w=1'))
     expect(page).toContain(WAITING_HTML)
-    expect(page).toContain('we sent the next step to your email address. it will expire after 7 days.')
+    expect(page).toContain('we sent a link to your email address. the link works for 7 days.')
     expect(page).toContain('name="w" value="1"') // "send it again" keeps the words
     expect((await stranger.post('/check-email', { w: '1' })).headers.get('location')).toBe('/check-email?sent=1&w=1')
     // an invited address gets the page as before, and isn't waiting
@@ -179,7 +179,7 @@ describe('sign-up', () => {
     const r2 = await member.post('/join', joinForm('member', 'member@example.org'))
     expect(r2.headers.get('location')).toBe('/check-email')
     const normal = await body(await member.get('/check-email'))
-    expect(normal).toContain('we sent the next step to your email address. it will expire after 7 days.')
+    expect(normal).toContain('we sent a link to your email address. the link works for 7 days.')
     expect(normal).toContain('be sure to check your spam folder!')
     expect(normal).not.toContain(WAITING_HTML)
     expect(env.DB.raw.prepare('SELECT COUNT(*) AS n FROM signup_wait').get().n).toBe(1)

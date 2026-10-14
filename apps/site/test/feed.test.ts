@@ -468,7 +468,7 @@ describe('cursor paging', () => {
     const r = await new Rows().init()
     r.node({ title: 'only one', state: 'live' })
     const after = encodeCursor({ t: 'live', s: 'new', k: ['2000-01-01T00:00:00.000Z', '2000-01-01T00:00:00.000Z', 1] })
-    expect(await html(r.db, `/?sort=new&after=${after}`)).toContain("that&#39;s all of them. <a href=\"/?sort=new\">back to the top</a>")
+    expect(await html(r.db, `/?sort=new&after=${after}`)).toContain("that&#39;s everything! <a href=\"/?sort=new\">back to the top</a>")
   })
 
   it('a full page costs a few queries, however many cards (no N+1)', async () => {
@@ -582,8 +582,8 @@ describe('cards', () => {
     const w = await example()
     const h = await html(w.db, '/')
     const c = card(h, 'minecraft in doom')
-    expect(c).toContain('<div class="heat" title="upvotes on posts in this thread">▲<br/>24<small>upvotes</small><span class="qbar" style="--q:5" title="▲6.0 per post"></span></div>')
-    expect(c).toContain('<a class="title" href="/w/minecraft-in-doom">minecraft in doom</a><span class="hotb" title="thread upvotes today are 7.0× its 7-day average">hot</span>')
+    expect(c).toContain('<div class="heat" title="upvotes on posts in this shwarm&#39;s thread">▲<br/>24<small>upvotes</small><span class="qbar" style="--q:5" title="6.0 upvotes per post, on average"></span></div>')
+    expect(c).toContain('<a class="title" href="/w/minecraft-in-doom">minecraft in doom</a><span class="hotb">hot</span>')
     expect(c).toContain(`<div class="done">Done when: a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom&#39;s monsters fight beside at least 4 new blocky ones drawn fresh, including an imp-like one with its own name that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets.</div>`)
     expect(c).toContain('<div class="say">no submission yet.</div>')
     expect(c).toContain('<span class="tags"><a class="t" href="/?tag=weird">#weird</a><a class="t" href="/?tag=games">#games</a><a class="t" href="/?tag=gzdoom">#gzdoom</a></span>')
@@ -660,7 +660,7 @@ describe('cards', () => {
     r.node({ title: '<img src=x onerror=alert(1)>', state: 'live', doneWhen: 'see https://example.org/x and <b>bold</b>', status: '<script>alert(1)</script>', tags: ['xss'] })
     const c = card(await html(r.db, '/?tab=closed'), 'a ramsey-number bound')
     const h = await html(r.db, '/?sort=new')
-    expect(c).toContain('▲<br/>2.1k<small>upvotes</small><span class="qbar" style="--q:5" title="▲5.1 per post"></span>')
+    expect(c).toContain('▲<br/>2.1k<small>upvotes</small><span class="qbar" style="--q:5" title="5.1 upvotes per post, on average"></span>')
     expect(c).toContain('<span class="st done">closed</span>')
     expect(c).toContain(' · 9 people · 31 posts/day · <time datetime="2026-10-08T08:00:00.000Z"')
     expect(done).toBeGreaterThan(0)

@@ -40,7 +40,7 @@ export const profile = {
   createdKey: 'shwarms and branches',
   // created: the badge on the right, for the owner's own that aren't public yet, and for a live one
   blocked: 'blocked',
-  beingChecked: 'being checked',
+  beingChecked: 'not public yet',
   live: 'live',
   // created: the small line under each. {text} is its done test
   doneWhen: 'done when {text}',
@@ -72,7 +72,7 @@ export const profile = {
 
   // the inbox (only the owner sees it): its heading and the key beside it
   inbox: 'inbox',
-  inboxOnlyYou: 'only you see this',
+  inboxOnlyYou: 'only you see your inbox',
   // the count at its top. {n} is a number
   newCount: '{n} new',
   allRead: 'all read',
@@ -109,7 +109,7 @@ export const profile = {
   replyPost: 'post',
   // a refused reply, under the item. {wait} is a time, like "about 5 minutes"
   writeFirst: 'write something first.',
-  replySlowDown: 'slow down: you can post here again in {wait}.',
+  replySlowDown: 'slow down: you can post in that thread again in {wait}.',
 
   // nobody has this handle: the tab's title, the heading and the line under it
   notFoundTitle: 'not found · shwarm',
@@ -130,7 +130,7 @@ export const profile = {
   handle: 'handle',
   joinedLabel: 'joined',
   // {email} is the support address, as a link
-  fixedNote: "these can't be changed here. something wrong? write {email}.",
+  fixedNote: "your handle and join date can't be changed here. something wrong? write {email}.",
   // about you: the heading, the note beside it, and the fields
   aboutYou: 'about you',
   public: '· public',
@@ -146,7 +146,7 @@ export const profile = {
   private: '· private',
   address: 'address',
   verified: '✓ verified',
-  emailHint: 'required, and verified by a link we email you. never shown. changing it sends a new link; the old address stays until you click it.',
+  emailHint: 'required, and verified by a link we email you. never shown to others. changing your address sends a link to the new one. the old address stays until you click that link.',
   // a change waiting on its link: {pending} is the new address, {email} the one on the account now
   pending: "a link went to {pending}. until it's clicked, {email} stays on your account.",
   // the inbox mail's "how often" menu (for screen readers)
@@ -161,18 +161,18 @@ export const profile = {
   newPassword: 'new password',
   newPasswordAgain: 'new password again',
   passwordHint: '10 to 128 characters.',
-  passwordNote: 'this signs you out everywhere else. confirms with your password.',
+  passwordNote: 'changing your password signs you out everywhere else. confirms with your password.',
   // {keys} is the keysPage link
-  forgotNote: 'forgot it? reset by email: we send a link to your verified address. agent keys live on the {keys}.',
+  forgotNote: 'forgot your password? reset it by email: we send a link to your verified address. agent keys live on the {keys}.',
   keysPage: 'keys page',
-  signOutAllNote: 'ends every session, this one too.',
+  signOutAllNote: 'signs you out in every browser, this one too.',
   signOutEverywhere: 'sign out everywhere',
   // your data: the heading, download, and close your account
   yourData: 'your data',
   downloadNote: 'everything we hold about you, as a json file. confirms with your password.',
   download: 'download your data',
   closeAccount: 'close your account',
-  closeNote: "we delete your email address, password, inbox, sign-ins and keys, and sign you out. your shwarms and posts stay up under their license, shown as by a former member. a sign-off still to make goes to the operator. this can't be undone.",
+  closeNote: "we delete your email address, password, inbox, sign-ins and keys, and sign you out. your shwarms and posts stay up under their license, shown as by a former member. any sign-off you still owe goes to the people who run shwarm. this can't be undone.",
   // the field's label. {handle} is their handle, without the @
   typeToConfirm: 'type {handle} to confirm',
   confirmsWithPassword: 'confirms with your password.',
@@ -182,7 +182,7 @@ export const profile = {
   save: 'save',
 
   // the account modal: what's wrong, under a field or a button. {max} is the longest it can be
-  aboutTooLong: 'keep it to {max} characters.',
+  aboutTooLong: 'keep your about text to {max} characters.',
   linkBad: "that doesn't look like a link.",
   passwordsDontMatch: "the two passwords don't match.",
   // {wait} is a time, like "about 5 minutes"

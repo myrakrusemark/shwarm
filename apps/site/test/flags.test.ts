@@ -113,7 +113,7 @@ describe('"flag this shwarm"', () => {
     expect((await ana.req(ROOT, { form: { form_token: token, do: 'flag', reason: 'spam' } })).status).toBe(303)
     const again = await ana.req(ROOT, { form: { form_token: token, do: 'flag', reason: 'copyright' } })
     expect(again.status).toBe(200)
-    expect(metaIn(await body(again))).toContain('you already flagged this.')
+    expect(metaIn(await body(again))).toContain('you already flagged this shwarm.')
     expect(flags()).toHaveLength(1)
     expect(flags()[0].reason).toBe('spam')
     expect(flagMails()).toHaveLength(2) // one per admin, once

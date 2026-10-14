@@ -79,15 +79,15 @@ describe('sign_off_ready (go-live 5.4)', () => {
 
   it('renders the subject, the submission link and the opt-out footer', () => {
     const m = renderMail('sign_off_ready', payload, notice)
-    expect(m.subject).toBe('#2 on minecraft in doom is ready for your sign-off')
+    expect(m.subject).toBe('submission #2 on minecraft in doom is ready for your sign-off')
     expect(m.text).toContain('hi @myra,')
-    expect(m.text).toContain('every other check on #2 on minecraft in doom has passed. yours is the last one.')
+    expect(m.text).toContain('every other check on submission #2 on minecraft in doom has passed. your sign-off is the last one.')
     expect(m.text).toContain(`${SITE}/w/minecraft-in-doom/s/2`)
     expect(m.html).toContain(`<a href="${SITE}/w/minecraft-in-doom/s/2">`)
     expect(m.text).toContain('sign off mails are on')
     expect(m.text.replace(/https:\S+/g, '')).toBe(m.text.replace(/https:\S+/g, '').toLowerCase())
     expect(m.text + m.html).not.toMatch(/[—–]/)
-    expect(renderMail('sign_off_ready', { ...payload, only: true }, notice).text).toContain("#2 on minecraft in doom is waiting on you. you're its only check.")
+    expect(renderMail('sign_off_ready', { ...payload, only: true }, notice).text).toContain('submission #2 on minecraft in doom is waiting on you. your sign-off is the only check it needs.')
   })
 
   it("author gone: tells the admin why it's theirs", () => {
@@ -119,7 +119,7 @@ describe('sign_off_ready (go-live 5.4)', () => {
     const sent: any[] = []
     const f = (async (_url: string, init: RequestInit) => (sent.push(JSON.parse(String(init.body))), new Response('{"id":"re_1"}', { status: 200 }))) as unknown as typeof fetch
     expect(await sweepOutbox(e, { now: T0, fetch: f })).toMatchObject({ sent: 1 })
-    expect(sent[0].subject).toBe('#2 on minecraft in doom is ready for your sign-off')
+    expect(sent[0].subject).toBe('submission #2 on minecraft in doom is ready for your sign-off')
     e.DB.raw.prepare(`UPDATE person SET notice_prefs = '{"sign_off":false}' WHERE id = ?`).run(me)
     await mail(me).run()
     expect(await sweepOutbox(e, { now: T0 + 60_000, fetch: f })).toMatchObject({ sent: 0, skipped: 1 })

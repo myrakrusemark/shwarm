@@ -149,7 +149,7 @@ describe('new nodes: 3 a day, shwarms and branches together (no variants since O
     for (const res of [await newShwarm(ana, 'four'), await newBranch(ana, 'four')]) {
       expect(res.status).toBe(429)
       expect(res.headers.get('retry-after')).toBe(String((DAY - 3 * HOUR) / 1000)) // when the first one is a day old
-      expect(await body(res)).toContain("that's 3 new shwarms and branches today, the most for one person.")
+      expect(await body(res)).toContain("you've started 3 shwarms and branches in the last 24 hours, the most for one person.")
     }
     expect(count('SELECT COUNT(*) AS n FROM node WHERE author_id = ?', pid)).toBe(NEW_NODES_PER_DAY)
     // a rolling day: once the first is a day old there is room for one, not three
@@ -187,7 +187,7 @@ describe('new nodes: 3 a day, shwarms and branches together (no variants since O
     const res = await newShwarm(ana, 'guarded 4')
     expect(stale).toBe(0) // the stale read happened
     expect(res.status).toBe(429)
-    expect(await body(res)).toContain("that's 3 new shwarms and branches today")
+    expect(await body(res)).toContain("you've started 3 shwarms and branches in the last 24 hours")
     expect(count('SELECT COUNT(*) AS n FROM node WHERE author_id = ?', pid)).toBe(NEW_NODES_PER_DAY)
     // the rest of the batch didn't land either: no tag, no seat
     expect(count('SELECT COUNT(*) AS n FROM node_tag')).toBe(tags)

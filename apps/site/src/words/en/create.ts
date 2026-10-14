@@ -5,10 +5,10 @@ export const create = {
   branchPageTitle: 'new branch · {title} · shwarm',
   // the big heading, and the line under it: for a new shwarm
   heading: 'new shwarm',
-  sub: 'a goal worth a crowd. it goes live as soon as you start it.',
+  sub: 'a goal worth a crowd. your shwarm goes live after a quick automatic check.',
   // the same for a new branch (the heading is also the last part of the breadcrumb path above it)
   branchHeading: 'new branch',
-  branchSub: 'goes live as soon as you start it. the crew is already here.',
+  branchSub: 'your branch goes live after a quick automatic check. people are already working here.',
   // the breadcrumb path's name for screen readers
   crumbsLabel: 'breadcrumb',
 
@@ -18,30 +18,30 @@ export const create = {
   // branch only: the box that shows the shwarm the branch helps. {title} is its title.
   helpingReach: 'helping reach',
   parentDoneWhen: '{title} is done when',
-  helpingReachHint: "your branch doesn't have to finish the parent. it just has to move it closer.",
+  helpingReachHint: "your branch doesn't have to finish the shwarm or branch it's under, only move it closer.",
 
   // the title field
   title: 'title',
   // the what field, and the hint under it (for a shwarm, then for a branch)
   what: 'what',
-  pitchHint: 'what is this, why does it matter, and why now?',
-  branchPitchHint: 'what is stuck or missing, and how this branch helps the parent get done.',
+  pitchHint: 'what is your shwarm, why is it worth doing, and why now?',
+  branchPitchHint: "what is stuck or missing, and how your branch helps finish the shwarm or branch it's under.",
   // the done when field, and the hint under it
   doneWhen: 'done when',
-  doneHint: "what is true when it's finished. people join for this as much as for the idea.",
+  doneHint: 'what is true when the work is finished. people join for the finish line as much as for the idea.',
 
   // the grey example text inside the empty fields, for a new shwarm
-  placeTitle: 'minecraft in doom',
-  placeWhat: 'this one is for fun, and anyone can play it free: no copy of doom or minecraft needed…',
-  placeDone: "a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp-like one with its own name that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets.",
-  placeCommand: './bench.sh && ./demos.sh && ./license-scan.sh mcdoom.pk3',
-  placeLook: 'what checkers do and what they should see: play e1m1 and one later map from a pistol start for 15 minutes each, dig through a wall, craft something, no crash, no stutter.',
+  placeTitle: 'map every place sherlock holmes went',
+  placeWhat: 'the stories name hundreds of real streets, towns and moors. one open map would let anyone follow the cases…',
+  placeDone: 'an open geojson file lists every named real-world place in all 60 stories with coordinates and the quote that names it, and 2 checkers find at least 97 of 100 random rows correct.',
+  placeCommand: './validate.sh places.geojson',
+  placeLook: 'what checkers do and what they should see: pick 10 random rows, find each quote in its story, and look up the place on a map.',
   // the same, for a new branch
-  branchPlaceTitle: 'monster collision',
-  branchPlaceWhat: 'imps walk straight through placed blocks because the blockmap is only built at level load…',
-  branchPlaceDone: "monsters can't walk through placed blocks, and placing one costs under 0.1 ms.",
-  branchPlaceCommand: './bench.sh --blockmap',
-  branchPlaceLook: 'what checkers do and what they should see: build a wall in front of an imp; it paths around.',
+  branchPlaceTitle: 'places in the four novels',
+  branchPlaceWhat: 'the short stories are mapped, but nobody has started on the four novels yet…',
+  branchPlaceDone: 'every named real-world place in the four novels is in places.geojson, with coordinates and the quote that names it.',
+  branchPlaceCommand: './validate.sh places.geojson --novels',
+  branchPlaceLook: 'what checkers do and what they should see: pick 5 rows from the novels and find each quote in the text.',
 
   // the checks box: its heading, and the small words beside it (for a shwarm, then for a branch)
   howChecked: "how it's checked",
@@ -73,65 +73,65 @@ export const create = {
 
   // shwarm only: the tags field
   tags: 'tags',
-  tagsHint: 'how people find it. no categories, just tags.',
-  tagsPlaceholder: '#weird #games #uzdoom',
+  tagsHint: 'how people find your shwarm. no categories, just tags.',
+  tagsPlaceholder: '#maps #books #open-data',
   // shwarm only: the builds on field
   buildsOn: 'builds on',
   optional: '· optional',
-  buildsOnHint: "an existing open project this extends: a passed shwarm, a github repo, or any other link. its license becomes this shwarm's.",
+  buildsOnHint: "an open project your shwarm extends: a passed shwarm, a github repo, or any other link. that project's license becomes your shwarm's.",
   buildsOnPlaceholder: "https://github.com/… or a passed shwarm's link",
   // the box under it naming the shwarm it builds on. {path} is its address, {license} its license.
   pickedLine: '/w/{path} · license {license}',
   // two smaller fields for any other link (each also its name for screen readers)
-  buildsOnName: 'its name (other links)',
-  buildsOnLicenseLabel: 'its license (other links)',
-  buildsOnLicensePlaceholder: 'its license (other links), e.g. GPL-3.0',
+  buildsOnName: "the project's name (other links)",
+  buildsOnLicenseLabel: "the project's license (other links)",
+  buildsOnLicensePlaceholder: "the project's license (other links), e.g. GPL-3.0",
   buildsOnFillHint: 'github and shwarm links fill in their name and license by themselves.',
 
   // the license box, and the hint under its heading (for a shwarm, then for a branch)
   license: 'license',
-  licHint: "everything made here is open. the default is MIT for code and CC BY 4.0 for everything else. it can't be changed once you post it, and branches inherit it.",
+  licHint: "everything made here is open. the default is MIT for code and CC BY 4.0 for everything else. the license can't be changed once you post, and branches inherit it.",
   branchLicHint: "a branch inherits its shwarm's license.",
   // the first license in the list. {license} is its name.
   licenseDefault: '{license} (default)',
   // branch only: under the license. {shwarm} is the top shwarm's title, {license} the license.
   inheritsFrom: 'inherits from {shwarm}: {license}.',
   // building on a passed shwarm: in place of the license list. {shwarm} is its title.
-  takesUpstream: 'takes the upstream license: whatever {shwarm} is published under.',
+  takesUpstream: 'your shwarm uses the license {shwarm} is published under.',
 
   // beside the button at the bottom (for a shwarm, then for a branch, where {title} is what it goes under)
-  goNote: "a quick automatic check runs first. until it's done, usually within a minute, only you can see it. then it's live, and anyone can work on it.",
-  branchGoNote: "a quick automatic check runs first. until it's done, usually within a minute, only you can see it. then it's live under {title}, and anyone can work on it.",
+  goNote: "a quick automatic check reads your shwarm first, usually within a minute. until then only you can see it. after that it's live, and anyone can work on it.",
+  branchGoNote: "a quick automatic check reads your branch first, usually within a minute. until then only you can see it. after that it's live under {title}, and anyone can work on it.",
   // in bold after that
-  fixedNote: "once you post it, it can't be changed.",
+  fixedNote: 'once posted, nothing on this form can be changed.',
   // the button
   go: 'start shwarm',
   branchGo: 'start branch',
 
   // the sidebar: the rules
   rules: 'the rules',
-  rulesAll: "that's all of them",
+  rulesAll: 'there are only three',
   ruleCheckable: 'checkable.',
-  ruleCheckableText: " say how anyone can tell it's done.",
+  ruleCheckableText: ' say how anyone can tell the goal is done.',
   ruleOpen: 'open.',
   ruleOpenText: ' everything made is published under an open license.',
   ruleHarmless: 'harmless.',
   ruleHarmlessText: ' nothing here hurts people.',
   // the note under the rules. {rubric} is the link (triageRubric).
-  triageNote: 'an automatic check reads every new shwarm and branch before anyone else sees it. it only looks for harm, never at whether an idea is good. {rubric}',
-  triageRubric: 'its rubric is public.',
+  triageNote: 'an automatic check reads every new shwarm and branch before anyone else sees it. the check only looks for harm, never at whether an idea is good. {rubric}',
+  triageRubric: 'see what the check is asked.',
 
   // in place of the form, while new shwarms are paused
-  paused: 'new shwarms and branches are paused for a moment. posting, joining and checking still work.',
+  paused: 'starting new shwarms and branches is paused for now. posting, joining and checking still work.',
   // the error page for a /new?parent= address that leads nowhere
   noNode: 'there is no shwarm or branch at this address.',
   // at the top of the form: too many new shwarms today. {wait} is a time like "about 3 hours".
-  rateLimited: "that's 3 new shwarms and branches today, the most for one person. you can start another in {wait}.",
+  rateLimited: "you've started 3 shwarms and branches in the last 24 hours, the most for one person. you can start another in {wait}.",
   // at the top of the form: a number field that isn't a whole number ({field} is "runs" or "people")
-  wholeNumber: '{field} is a whole number',
+  wholeNumber: '{field} needs a whole number, like 2',
   // at the top of the form: something wrong in builds on
-  buildsOnNotLink: 'builds on is a link, or the path of a passed shwarm',
-  buildsOnNotWeb: 'builds on is a web link',
+  buildsOnNotLink: "builds on needs a web link, or a passed shwarm's address",
+  buildsOnNotWeb: 'builds on needs a web link, starting with https:// or http://',
   // at the top of the form: builds on needs a license. {name} is the github repo.
   githubNoLicense: "{name} doesn't name a license on github. type the license it uses",
   typeLicense: 'type the license the project you build on uses',

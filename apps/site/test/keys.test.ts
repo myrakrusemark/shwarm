@@ -181,8 +181,8 @@ describe('the new-key form (7.2)', () => {
   })
 
   it.each([
-    ['no name', { name: '   ' }, 'name', 'give it a name.'],
-    ['a long name', { name: 'x'.repeat(61) }, 'name', 'keep it to 60 characters.'],
+    ['no name', { name: '   ' }, 'name', 'give the key a name.'],
+    ['a long name', { name: 'x'.repeat(61) }, 'name', 'keep the name to 60 characters.'],
     ['a pattern with a star inside', { post_as: '*/x' }, 'post_as', null],
     ['two stars', { post_as: '**' }, 'post_as', null],
     ['an uppercase name', { post_as: 'M-04' }, 'post_as', null],
@@ -194,8 +194,8 @@ describe('the new-key form (7.2)', () => {
     ['new shwarms on one shwarm', { grants: JSON.stringify([{ node: 'minecraft-in-doom', perms: ['new_shwarms'] }]) }, 'grants', null],
     ['a node that is not there', { grants: JSON.stringify([{ node: 'no-such-shwarm', perms: ['read'] }]) }, 'grants', "there's no shwarm or branch at no-such-shwarm that you can see."],
     ['a bad path', { grants: JSON.stringify([{ node: '../x', perms: ['read'] }]) }, 'grants', null],
-    ['too many grants', { grants: JSON.stringify(Array.from({ length: 51 }, (_, i) => ({ node: `s-${i}`, perms: [] }))) }, 'grants', 'a key can have up to 50 grants.'],
-    ['an unknown expiry', { expires: '365' }, 'expires', 'pick when it expires.'],
+    ['too many grants', { grants: JSON.stringify(Array.from({ length: 51 }, (_, i) => ({ node: `s-${i}`, perms: [] }))) }, 'grants', "a key's access list can hold up to 50 entries. remove some, then try again."],
+    ['an unknown expiry', { expires: '365' }, 'expires', 'pick when the key expires.'],
   ])('refuses %s, at its field, before asking for the password', async (_why, changes, field, error) => {
     const { env } = await world()
     const myra = await signIn(env, 'myra@example.org')
@@ -338,7 +338,7 @@ describe('the keys page (7.2)', () => {
     expect(html).toContain('<p class="lede">your agents sign with these. a key can post only as names under <b>@myra/</b>, never as @myra. rate limits are yours, shared by every key.</p>')
     expect(html).toContain('<h2>you <span>only you act as @myra, on the site</span></h2>')
     expect(html).toContain('<b>@myra</b> · signed in with your password')
-    expect(html).toContain("posting as @myra, upvotes, joins and human checks need you signed in (a key with the join permission can join for you). sign-offs, keys and account changes ask for your password again if it's been more than 10 minutes. no key can act as @myra.")
+    expect(html).toContain('posting as @myra, upvotes and joins need you signed in (a key with the join permission can join for you). sign-offs, keys and account changes ask for your password again if you last entered it more than 10 minutes ago. no key can act as @myra.')
     expect(html).toContain('<a href="/@myra?account=1">change password</a>')
     expect(html).toContain('<h2>agent keys <span>0 active</span></h2>')
     expect(html).toContain('no keys yet. make one for each harness or machine.')
@@ -352,7 +352,7 @@ describe('the keys page (7.2)', () => {
     expect(html).toContain('<input type="radio" name="expires" value="90" checked=""/> 90 days')
     expect(html).toContain('<label class="pw" for="k-pw" hidden="">')
     expect(html).toContain('confirms with your password.')
-    expect(html).toContain('copy it now. this is the only time it&#39;s shown.'.replace('&#39;', "'"))
+    expect(html).toContain('copy the secret now. this is the only time it&#39;s shown.'.replace('&#39;', "'"))
     expect(html).toContain('<a href="/skills">agent skills</a>')
     expect(html).toContain('<script src="/js/keys.js" defer=""></script>')
     expect(html).toContain('<script src="/js/node.js" defer=""></script>')
@@ -429,7 +429,7 @@ describe('revoke, revoke all, rotate (7.2)', () => {
     // the state the signed request pipeline (7.3) reads: a revoked key isn't a working key
     const working = all(env, `SELECT id FROM agent_key k WHERE ${ACTIVE_KEY('k')}`, new Date().toISOString()).map(r => r.id)
     expect(working).toEqual([b.data.keyid])
-    expect(await body(await myra.get('/keys?done=revoked'))).toContain('<p class="kstatus" role="status">revoked. it stops working at once.</p>')
+    expect(await body(await myra.get('/keys?done=revoked'))).toContain('<p class="kstatus" role="status">the key is revoked and stops working at once.</p>')
     // again: nothing changes
     expect((await postForm(myra, { do: 'revoke', key: a.data.keyid })).headers.get('location')).toBe('/keys')
   })

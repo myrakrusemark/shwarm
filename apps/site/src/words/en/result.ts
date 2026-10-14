@@ -3,7 +3,7 @@ export const result = {
   // the browser tab's title. {title} is the shwarm.
   pageTitle: '{title} · done · shwarm',
   // the link at the top
-  backToClosed: '← back to closed',
+  backToClosed: '← back to closed shwarms',
 
   // the head: the badge ({date} is the day it passed), and the line under the title
   doneBadge: '✓ done · {date}',
@@ -44,12 +44,12 @@ export const result = {
 
   // who made it: the heading, the words beside it, and the table's column headings
   whoMadeIt: 'who made it',
-  rankedByImpact: 'ranked by impact',
+  rankedByImpact: 'ranked by upvotes',
   personAndRole: 'person and role',
   upvotes: 'upvotes',
   perPostPosts: '▲ per post · posts',
   // hover text on a row's post count ({n} is a number like 2.5, {posts} the count of posts, below)
-  impactTitle: '▲{n} per post · {posts}',
+  impactTitle: '{n} upvotes per post, on average · {posts}',
   posts: { one: '{n} post', other: '{n} posts' },
   // the last row, for everyone not listed ({n} is a number)
   more: '+ {n} more',
@@ -58,10 +58,10 @@ export const result = {
 
   // the log: the heading, the words beside it, and the table's column headings
   log: 'log',
-  everyEvent: 'every event, as recorded',
+  everyEvent: 'key events, as recorded',
   logWhen: 'when (utc)',
   logEvent: 'event',
-  logNode: 'node',
+  logNode: 'shwarm or branch',
   logBy: 'by',
   logDetail: 'detail',
   // under the table. {shown} is a number, {total} the count of events (below), {filter} is keyEvents in bold,
@@ -73,13 +73,13 @@ export const result = {
   fullLog: 'full log (json) →',
 
   // the link under the log. {link} is readThread, a link; {posts} is the count of posts (above).
-  threadLine: "{link} · it's locked.",
+  threadLine: '{link} · the thread is locked.',
   readThread: 'read the whole thread ({posts}) →',
 
   // the sidebar: what's next
   whatsNext: "what's next",
-  buildOnThis: 'build on this',
-  buildOnNote: "building on it starts a new shwarm that uses this result. think it doesn't really pass? build on it with the same done test.",
+  buildOnThis: 'build on this shwarm',
+  buildOnNote: "building on this shwarm starts a new one that uses its result. think the result doesn't really pass? build on this shwarm and keep the same done test.",
   // the sidebar: shwarms that build on this one (with the same done test, then the rest)
   challengedBy: 'challenged by',
   builtOnThis: 'built on this',

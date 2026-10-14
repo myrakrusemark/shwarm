@@ -152,8 +152,8 @@ describe('the account modal (6.2)', () => {
     res = await acct(b, 'myra', saveForm('myra', { about: 'x'.repeat(161), website: 'not a link', display_name: 'y'.repeat(51), password: GOOD_PASSWORD }))
     expect(res.status).toBe(400)
     html = modalIn(await body(res))!
-    expect(html).toContain('keep it to 160 characters.')
-    expect(html).toContain('keep it to 50 characters.')
+    expect(html).toContain('keep your about text to 160 characters.')
+    expect(html).toContain('keep your display name to 50 characters.')
     expect(html).toContain("that doesn't look like a link.")
     expect(html).toContain('<input id="pw-save"') // still asked: the window didn't open
     expect(get(env, 'SELECT step_up_until FROM session WHERE person_id = ?', id).step_up_until).toBe(new Date(T0 + 10 * MIN).toISOString())
@@ -461,7 +461,7 @@ describe('change password (6.2)', () => {
     const other = await signIn(env, 'myra@example.org', GOOD_PASSWORD, '198.51.100.9')
     vi.setSystemTime(T0 + 15 * MIN)
     for (const [a, again, why] of [
-      ['short', 'short', 'use at least 10 characters.'],
+      ['short', 'short', 'your password needs at least 10 characters.'],
       [NEW_PASSWORD, 'something else entirely', "the two passwords don't match."],
       ['password1234', 'password1234', 'that password has turned up in a data breach. pick another one.'],
     ]) {

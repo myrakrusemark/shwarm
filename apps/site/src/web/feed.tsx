@@ -183,7 +183,7 @@ const Title: FC<{ card: FeedCard }> = ({ card }) => (
   <>
     <a class="title" href={nodeHref(card.path)}><Name name={card.title} /></a>
     {card.hot && (
-      <span class="hotb" title={card.surge ? fill(w.feed.hotTitle, { times: card.surge.toFixed(1) }) : w.feed.hotTitleNoNumber}>{w.feed.hot}</span>
+      <span class="hotb">{w.feed.hot}</span>
     )}
   </>
 )

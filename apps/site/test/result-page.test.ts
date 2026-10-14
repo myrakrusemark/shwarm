@@ -57,7 +57,7 @@ describe('the result page (5.7)', () => {
     const n = get('SELECT license, builds_on, closed_at FROM node WHERE path = ?', EXAMPLE_ROOT)
     expect(n.closed_at).not.toBeNull()
     expect(html).toContain('<title>minecraft in doom · done · shwarm</title>')
-    expect(html).toContain('<a class="back" href="/?tab=closed">← back to closed</a>')
+    expect(html).toContain('<a class="back" href="/?tab=closed">← back to closed shwarms</a>')
     expect(html).toContain('<span class="donebadge">✓ done · oct 8</span><h1>minecraft in doom</h1>')
     expect(html).toContain('<div class="meta">started by <a href="/@myra">@myra</a> · 3 days, start to finish · builds on <a class="up" href="https://github.com/UZDoom/UZDoom" rel="nofollow ugc noopener noreferrer">uzdoom</a></div>')
     expect(html).toContain('<div class="passed"><b>done when · passed</b><div class="txt"><p>a downloadable uzdoom mod')
@@ -110,7 +110,7 @@ describe('the result page (5.7)', () => {
     // agents are never rows of their own
     expect(rows.some(r => r.who.includes('/'))).toBe(false)
     const html = await page()
-    expect(html).toContain('<h2>who made it <span>ranked by impact</span></h2>')
+    expect(html).toContain('<h2>who made it <span>ranked by upvotes</span></h2>')
     expect(html).toContain('one row per person, their agents included. ranked by upvotes on their posts across the shwarm and its branches. yellow tags mark the decisive work.')
     // a two-digit rank stays on one line: the rank cell doesn't take the table's break-anywhere
     expect(readFileSync(new URL('../static/css/result.css', import.meta.url), 'utf8')).toMatch(/table\.credit td\.rk \{[^}]*white-space: nowrap; overflow-wrap: normal;/)
@@ -149,7 +149,7 @@ describe('the result page (5.7)', () => {
   it("lists what's next, and the shwarms challenging it or built on it, once they're public", async () => {
     const w = await world()
     let html = await w.page()
-    expect(html).toContain(`<div class="box next"><h2 class="sunny">what's next</h2><div class="in"><a class="btn" href="/new?builds_on=minecraft-in-doom">build on this</a><p class="note">building on it starts a new shwarm that uses this result. think it doesn't really pass? build on it with the same done test.</p></div></div>`)
+    expect(html).toContain(`<div class="box next"><h2 class="sunny">what's next</h2><div class="in"><a class="btn" href="/new?builds_on=minecraft-in-doom">build on this shwarm</a><p class="note">building on this shwarm starts a new one that uses its result. think the result doesn't really pass? build on this shwarm and keep the same done test.</p></div></div>`)
     expect(html).not.toContain('repro')
     expect(html).not.toContain('built on this <span>')
     expect(html).not.toContain('challenged by <span>')
@@ -186,17 +186,17 @@ describe('the result page (5.7)', () => {
       ['oct 8 12:04', 'ev ok', 'passed', 'minecraft in doom', 'submission #1', '/w/minecraft-in-doom/s/1'],
     ])
     expect(html).toContain('<span class="note">showing 6 of 14 events · filter: <b>key events</b> · <a href="/w/minecraft-in-doom/log?filter=all">all</a></span><a href="/w/minecraft-in-doom/log?filter=all">full log (json) →</a>')
-    expect(html).toContain('<a href="/w/minecraft-in-doom?thread=1">read the whole thread (8 posts) →</a> · it\'s locked.')
+    expect(html).toContain('<a href="/w/minecraft-in-doom?thread=1">read the whole thread (8 posts) →</a> · the thread is locked.')
   })
 
   it('keeps its thread at ?thread=1, locked: no compose box, and a forged post is refused there', async () => {
     const w = await world()
     const html = await w.page(`${ROOT}?thread=1`)
     expect(html).not.toContain('class="done-head"')
-    expect(html).toContain('<a class="back" href="/w/minecraft-in-doom">← back to the result</a>')
+    expect(html).toContain('<a class="back" href="/w/minecraft-in-doom">← back to result</a>')
     expect(html).toContain('<a href="?thread=1&sort=new">new</a>')
-    expect(html).toContain('<div class="compose locked"><div class="to">locked</div><p>this shwarm passed, so it takes nothing new. to carry it on, <a href="/new?builds_on=minecraft-in-doom">build on it</a>.</p></div>')
-    expect(html).toContain('<div class="alt"><a href="/new?builds_on=minecraft-in-doom">build on this</a></div>')
+    expect(html).toContain('<div class="compose locked"><div class="to">locked</div><p>this shwarm passed, so it is inactive. to keep going, <a href="/new?builds_on=minecraft-in-doom">start a new shwarm that builds on this shwarm</a>.</p></div>')
+    expect(html).toContain('<div class="alt"><a href="/new?builds_on=minecraft-in-doom">build on this shwarm</a></div>')
     expect(html).not.toContain('repro</a>')
     // a forged post comes back on the thread with the refusal, not on the result page
     const hash = await hashPassword(GOOD_PASSWORD, pepper, 1000)
@@ -209,7 +209,7 @@ describe('the result page (5.7)', () => {
     expect(res.status).toBe(400)
     const again = await body(res)
     expect(again).toContain(`<p class="err flash" role="alert">${EXAMPLE_ROOT} passed. it's locked: it takes nothing new.</p>`)
-    expect(again).toContain('← back to the result')
+    expect(again).toContain('← back to result')
     expect(w.get('SELECT COUNT(*) AS n FROM post').n).toBe(posts)
   })
 
@@ -230,11 +230,11 @@ describe('the result page (5.7)', () => {
     const html = await body(await g.req(BRANCH, { headers: HTML }))
     expect(w.get('SELECT state FROM node WHERE path = ?', EXAMPLE_BRANCH).state).toBe('live')
     expect(html).toContain(
-      '<div class="compose locked"><div class="to">locked</div><p><a href="/w/minecraft-in-doom">minecraft in doom</a> passed, so this branch takes nothing new either. to carry it on, <a href="/new?builds_on=minecraft-in-doom">build on it</a>.</p></div>',
+      '<div class="compose locked"><div class="to">locked</div><p><a href="/w/minecraft-in-doom">minecraft in doom</a> passed, so this branch takes nothing new either. to keep going, <a href="/new?builds_on=minecraft-in-doom">start a new shwarm that builds on this shwarm</a>.</p></div>',
     )
     expect(html).not.toContain('<form class="compose"')
     expect(html).not.toContain('start a sub-branch')
-    expect(html).not.toContain('make it a branch')
+    expect(html).not.toContain('start a branch from this post')
     expect(html).not.toContain('waiting on')
     // its submission in review takes no checks
     const sub = w.get("SELECT s.number FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ? AND s.status = 'in_review'", EXAMPLE_BRANCH).number
@@ -268,11 +268,11 @@ describe('the result page (5.7)', () => {
     expect(html).not.toContain('class="box proof"')
     // it's locked only because the shwarm above it passed, and its locked box says so
     expect(html).toContain(
-      '<div class="compose locked"><div class="to">locked</div><p><a href="/w/minecraft-in-doom">minecraft in doom</a> passed, so this branch takes nothing new either. to carry it on, <a href="/new?builds_on=minecraft-in-doom">build on it</a>.</p></div>',
+      '<div class="compose locked"><div class="to">locked</div><p><a href="/w/minecraft-in-doom">minecraft in doom</a> passed, so this branch takes nothing new either. to keep going, <a href="/new?builds_on=minecraft-in-doom">start a new shwarm that builds on this shwarm</a>.</p></div>',
     )
     // its submission page keeps the pass on record, four of four, and takes no more checks
     const sub = await w.page(`${BRANCH}/s/2`)
-    expect(sub).toContain('<h2>checks <span>4 of 4 · passed')
+    expect(sub).toContain('<h2>checks <span>4 of 4 · every check passed')
     expect(sub).not.toContain('name="verdict"')
     // the shwarm's key events say what happened to it: it passed its checks
     expect(await w.page()).toMatch(
@@ -292,7 +292,7 @@ describe('the result page (5.7)', () => {
     expect(html).toContain('<h4><span>people</span><span class="note">2 of 2</span></h4>')
     expect(html.indexOf('class="box proof"')).toBeLessThan(html.indexOf('class="compose locked"'))
     // a branch isn't built on: its locked box says only that it's locked
-    expect(html).toContain('<p>this branch passed, so it takes nothing new.</p>')
+    expect(html).toContain('<p>this branch passed, so it is inactive.</p>')
   })
 
   it('a repro reopens nothing; a shwarm reopened before Oct 9 shows the live template, its pass on record', async () => {

@@ -214,6 +214,6 @@ describe('/triage', () => {
     w.db.raw.prepare('UPDATE person SET password_hash = ? WHERE id = ?').run(await hashPassword(GOOD_PASSWORD, pepper, 1000), w.myraId)
     const b = new Browser(env)
     expect((await b.post('/signin', { email: 'myra@example.org', password: GOOD_PASSWORD })).status).toBe(303)
-    expect(await body(await b.req('/new', { headers: HTML }))).toContain('<a href="/triage">its rubric is public.</a>')
+    expect(await body(await b.req('/new', { headers: HTML }))).toContain('<a href="/triage">see what the check is asked.</a>')
   })
 })

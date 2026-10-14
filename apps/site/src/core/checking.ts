@@ -277,12 +277,12 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
     )
     last = auditStatement(
       ctx.db,
-      { event: 'failed', node: n.id, by: null, submissionId: sub.post_id, number: sub.number, detail: `#${sub.number} failed the author check. every check starts over`, evidence: subHref },
+      { event: 'failed', node: n.id, by: null, submissionId: sub.post_id, number: sub.number, detail: `the author failed submission #${sub.number}. every check on the done test starts over`, evidence: subHref },
       ctx.at,
     )
     stmts.push(
       last.stmt,
-      notifyStatement(ctx, n.id, `#${sub.number} on ${n.title} failed the author check. every check starts over.`, 'involved'),
+      notifyStatement(ctx, n.id, `the author failed submission #${sub.number} on ${n.title}. every check on the done test starts over.`, 'involved'),
       noticeMailStatement(ctx, n.id, 'involved', { template: 'node_news', payload: { ...news, event: 'failed' } }),
     )
   } else if (sub.status === 'in_review' && after.passed) {
@@ -320,7 +320,7 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
       ...(branch
         ? []
         : [
-            notifyStatement(ctx, n.id, `${n.title} passed on #${sub.number}.`, 'involved'),
+            notifyStatement(ctx, n.id, `${n.title} passed with submission #${sub.number}.`, 'involved'),
             noticeMailStatement(ctx, n.id, 'involved', { template: 'node_news', payload: { ...news, event: 'passed' } }),
           ]),
     )

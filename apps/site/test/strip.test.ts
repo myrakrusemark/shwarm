@@ -62,7 +62,7 @@ describe('the header strip', () => {
     const s = strip(await body(res))
     expect(s).toContain('welcome new friends!')
     expect(s).toContain('<a class="h" href="/@myra">@myra</a>')
-    expect(s).toContain('<a href="/@myra#addressed" title="posts addressed to @myra (only you see this)">for you</a>')
+    expect(s).toContain('<a href="/@myra#addressed" title="your inbox: posts addressed to @myra. only you see your inbox.">for you</a>')
     expect(s).toContain('<a href="/keys">keys</a>')
     expect(s).toMatch(/<form class="out" method="post" action="\/signout"><input type="hidden" name="form_token" value="[^"]+"\/><button type="submit">sign out<\/button><\/form>/)
     expect(s).not.toContain('sign in')

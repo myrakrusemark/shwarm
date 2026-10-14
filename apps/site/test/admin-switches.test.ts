@@ -133,7 +133,7 @@ describe('/admin/switches', () => {
     const input = { kind: 'branch', parent: EXAMPLE_ROOT, title: 'sky box', what: 'a sky that moves.', doneWhen: 'the sky scrolls at 60 fps.', check: { author: true } }
     await expect(runInTree(w.env.TREE, { type: 'createNode', actor, input } as any)).rejects.toMatchObject({ code: 'not_permitted', details: { reason: 'pause_new_nodes' } })
     await expect(runInTree(w.env.TREE, { type: 'post', actor, input: { node: EXAMPLE_ROOT, text: 'still here' } })).resolves.toBeTruthy()
-    expect(await body(await b.get('/new'))).toContain('new shwarms and branches are paused for a moment.')
+    expect(await body(await b.get('/new'))).toContain('starting new shwarms and branches is paused for now.')
   })
 
   it('sign-up: open tells an address off the allow-list it is in; allow-list only tells it to wait', async () => {

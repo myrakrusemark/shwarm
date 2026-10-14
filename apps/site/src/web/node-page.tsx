@@ -201,7 +201,7 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
         {isBranch && <div class="kicker">{fillx(w.node.branchOf, { parent: <a href={nodeHref(parent.path)}><Plain text={parent.title} /></a> })}</div>}
         <h1 class="title">
           <Text inline text={n.title} />
-          {s?.hot === 1 && <span class="hotb" title={w.node.hotTitle}>{w.node.hot}</span>}
+          {s?.hot === 1 && <span class="hotb">{w.node.hot}</span>}
         </h1>
         {!isBranch && n.tags.length > 0 && (
           <div class="tags">{n.tags.map(t => <a class="t" href={tagHref(t)}>#{t}</a>)}</div>
@@ -447,7 +447,7 @@ const FlagNode: FC<{ d: NodePageData }> = ({ d }) => {
   if (!d.me) return <> · <a class="flag-it" href={signInHref(d.here)}>{fill(w.node.flagThis, { kind: word })}</a></>
   if (!hasFlagSpot(d)) return null
   const flash = d.flash?.at === 'flag' ? d.flash : undefined
-  if (d.myFlag) return <> · <span class="note flag-it" role={flash ? 'status' : undefined}>{flash ? flash.text : w.node.youFlagged}</span></>
+  if (d.myFlag) return <> · <span class="note flag-it" role={flash ? 'status' : undefined}>{flash ? flash.text : fill(w.node.youFlagged, { kind: word })}</span></>
   const reason = flash?.fields?.reason
   return (
     <>
@@ -465,7 +465,7 @@ const FlagNode: FC<{ d: NodePageData }> = ({ d }) => {
           </fieldset>
           {flash && <p class="err" role="alert">{flash.text}</p>}
           <div class="row">
-            <span class="note">{fill(w.node.flagNote, { n: PAUSE_AT })}</span>
+            <span class="note">{fill(w.node.flagNote, { n: PAUSE_AT, kind: word })}</span>
             <button class="btn plain" type="submit">{w.node.flagIt}</button>
           </div>
         </form>
@@ -1501,7 +1501,7 @@ const Join: FC<{ d: NodePageData }> = ({ d }) => {
         <p class="join"><a class="btn plain" href={signInHref(d.here)}>{w.node.join}</a></p>
       ) : d.mySeat ? (
         <div class="note">
-          <b>{w.node.working}</b>
+          <b>{fill(w.node.working, { kind: n.kind === 'branch' ? w.node.kindBranch : w.node.kindShwarm })}</b>
           {href && <> <a href={href}>{w.node.yourJoin}</a></>}
           {canLeave && <>{href ? ' · ' : ' '}{seatForm(d, 'leave', w.node.leave, 'linkish')}</>}
         </div>

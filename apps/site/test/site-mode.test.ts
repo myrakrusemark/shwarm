@@ -267,7 +267,7 @@ describe('anyone may join while sign-up is invite-only (decided Oct 10); only th
     await allow(env.DB, 'friend@example.net')
     const friend = await joinAndVerify(env, 'friend', 'friend@example.net', '203.0.113.20')
     expect(friend.page).not.toContain(WAITING)
-    expect(friend.page).toContain('we sent the next step to your email address.')
+    expect(friend.page).toContain('we sent a link to your email address.')
     expect(count('SELECT count(*) AS n FROM person WHERE id = ? AND founding = 1', friend.pid)).toBe(1)
     expect(count('SELECT count(*) AS n FROM signup_wait WHERE person_id = ?', friend.pid)).toBe(0)
     const fh = await body(await friend.b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML }))
@@ -295,7 +295,7 @@ describe('creation paused (pause_new_nodes)', () => {
     const { b } = await w.signedIn('tester', { founding: true })
     for (const p of ['/new', `/new?parent=${EXAMPLE_ROOT}`]) {
       const h = await body(await b.get(p))
-      expect(h).toContain('new shwarms and branches are paused for a moment.')
+      expect(h).toContain('starting new shwarms and branches is paused for now.')
       expect(h).not.toContain('<form method="post" action="/new"')
     }
     // posting still works

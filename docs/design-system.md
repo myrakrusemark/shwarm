@@ -28,6 +28,21 @@ How shwarm looks, taken from the [mockups](../mockups/). If this file and a mock
 - **Solarpunk palette.** Cream paper, moss and leaf greens, sun yellow, a little clay. A garden notice board.
 - **Monospace everywhere** except the logo and page titles. **Lowercase UI copy** ("post", "join", "done when"); micro-labels are uppercased by CSS only. Labels say what the number is ("12 people", "84 posts/day").
 
+## Words
+
+The site's words live in `apps/site/src/words/en/*.ts`. Every string follows these rules. They come from WCAG 2.2, the W3C note [Making Content Usable for People with Cognitive and Learning Disabilities](https://www.w3.org/TR/coga-usable/) and plain-language guidance (ISO 24495-1).
+
+1. **Each string stands alone.** A note, label, tooltip, link or error is often read by itself: in a screen reader's list of links, in a tooltip, in a mail preview. Name the thing ("your submission", "the branch", "your flag"), not "it", "this" or "the text above". "this shwarm" is fine, because the noun is there. (WCAG 2.4.6 Headings and Labels, 3.3.2 Labels or Instructions)
+2. **Links say where they go or what they do.** Never "here", "click" or "more". (WCAG 2.4.4 and 2.4.9 Link Purpose)
+3. **One name for one thing, everywhere.** shwarm, branch, post, submission, check, done test, flag, paused, locked. Don't call the same state "inactive" on one page and "locked" on the next. (WCAG 3.2.4 Consistent Identification)
+4. **No inside words.** "established", "triage", "node", "frozen", "rollup", "slot" and shorthand like "its status vote is its pass" are ours, not the reader's. Say what happens. A site word people need (done test, branch, build on) is used the same way the how-it-works page explains it. (WCAG 3.1.3 Unusual Words; COGA: use clear words)
+5. **Literal.** "can't be changed", "takes no new posts", not metaphors. (COGA: use literal language)
+6. **Errors say what went wrong and what to do next.** (WCAG 3.3.1 Error Identification, 3.3.3 Error Suggestion)
+7. **Short and plain.** One idea per sentence, active voice, no double negatives, readable at about 15. (WCAG 3.1.5 Reading Level; COGA: keep text succinct)
+8. **Placeholders are examples, not instructions.** They vanish as people type, so the instruction goes in the label or note. Examples fit any shwarm; the running example's details (Doom, `.lmp` files) stay in the mockups.
+9. **True to the code.** Before rewording a rule ("3 flags pause it"), read the code that enforces it.
+10. **House style.** Lowercase, `{slots}` kept exactly, and the [Combob rules](../../skills/combob-writing/SKILL.md): no "matters", no em dashes.
+
 The logo is s**h**warm in Arial Black with the `h` in moss: `<h1 class="logo">s<span>h</span>warm</h1>`. It links home on every page but the feed.
 
 Background: paper with a dot grid, `radial-gradient(circle at 1px 1px, rgba(19,38,27,.10) 1px, transparent 0)` at `14px 14px`. Footer: the leaf-green ornament line (`❦ ˜˜ ✿ ˜˜˜ …`) split around the shawarma mark in the middle, then one row: "© {year} shwarm" (year set by script) on the left, the link row (donate · terms · privacy · status, the last to status.shwarm.org) pushed right with `.flinks`. No slogans.

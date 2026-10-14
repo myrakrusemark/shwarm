@@ -122,7 +122,7 @@ runIt('the whole loop, end to end (5.8)', () => {
     expect(await open('out', `/w/${path}`)).toBe(200)
     expect(await pages.out.locator('.head .st').textContent()).toContain('live')
     await open('myra', `/w/${path}`)
-    expect(await my.locator('.late').textContent()).toContain("you're working on this.")
+    expect(await my.locator('.late').textContent()).toContain("you're working on this shwarm.")
     await pageChecks(my, 'a new shwarm, to its author')
   })
 
@@ -171,7 +171,7 @@ runIt('the whole loop, end to end (5.8)', () => {
     expect(row.status).toBe('in_review')
     sub = row.post_id
     expect(await page.locator('#status').textContent()).toBe('in review')
-    expect(await page.locator('#check').textContent()).toContain("you can't check it: it's yours.")
+    expect(await page.locator('#check').textContent()).toContain("you can't check your own submission.")
     await pageChecks(page, 'the submission, to its submitter')
   })
 
@@ -182,7 +182,7 @@ runIt('the whole loop, end to end (5.8)', () => {
     expect(signOffItems()).toEqual([])
     expect(signOffMails()).toEqual([])
     await open('runner', `/w/${path}/s/1`)
-    expect(await pages.runner.locator('#check').textContent()).toContain('you have a check on it already.')
+    expect(await pages.runner.locator('#check').textContent()).toContain('you already checked this submission.')
   })
 
   it("5. @checker's people check is the last before the author's: @myra's inbox item, her mail, \"waiting on you\"", async () => {

@@ -3,7 +3,7 @@ export const feed = {
   // the browser tab's title
   pageTitle: 'shwarm',
   // the short description search engines and link previews show
-  description: 'people + their agents, working on things in the open.',
+  description: 'people + their agents, working on things out in the open.',
 
   // the sort line above the tabs: its start, the words for each order, and its name for screen readers
   sortBy: 'sort:',
@@ -24,13 +24,13 @@ export const feed = {
 
   // when the list is empty. {link} is the link that follows, in words of its own.
   // past the last page
-  endOfList: "that's all of them. {link}",
+  endOfList: "that's everything! {link}",
   backToTop: 'back to the top',
   // a search that found nothing
   noMatch: 'no shwarms match that search. {link}',
   clearSearch: 'clear the search',
   // the closed tab, with nothing in it
-  noneClosed: 'nothing has closed yet. a shwarm shows up here when its done test passes, or when its author calls it a dead end.',
+  noneClosed: 'nothing has closed yet. a shwarm shows up here when it is marked done, or a dead-end.',
   // the live tab, with nothing in it. {closed} is the "see what closed" link, {start} the "start a shwarm" link.
   // the first is for someone who can start one; the second is in the beta, for someone who can't yet
   noneLive: 'nothing is live right now. {closed} or {start}',
@@ -39,17 +39,15 @@ export const feed = {
   startShwarm: 'start a shwarm',
 
   // the link under the list to the next page
-  more: 'more ↓',
+  more: 'more shwarms ↓',
 
   // a card, left: the upvote count's hover text, and the word under the number
-  upvotesTitle: 'upvotes on posts in this thread',
+  upvotesTitle: "upvotes on posts in this shwarm's thread",
   upvotes: { one: 'upvote', other: 'upvotes' },
   // a card, left: the hover text of the little impact bar ({n} is a number like 2.5)
-  impactTitle: '▲{n} per post',
-  // a card: the hot badge beside the title, and its hover text ({times} is a number like 3.2)
+  impactTitle: '{n} upvotes per post, on average',
+  // a card: the hot badge beside the title
   hot: 'hot',
-  hotTitle: 'thread upvotes today are {times}× its 7-day average',
-  hotTitleNoNumber: 'thread upvotes today are well above its 7-day average',
   // a card: the line under the title. {test} is the shwarm's done test.
   doneWhen: 'Done when: {test}',
   // a card's meta line: what it builds on ({shwarm} is its name, often a link)

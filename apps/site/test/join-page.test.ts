@@ -67,7 +67,7 @@ describe('the join buttons and the say-hi modal (8.2)', () => {
     expect(h).toMatch(/^<div class="state"><span class="st live">[^<]*<\/span><span id="jn-state"><form method="post" action="\/w\/minecraft-in-doom" class="seat-act">/)
     expect(h).toContain('<input type="hidden" name="do" value="join"/><button class="btn jn-open" type="submit">join</button>')
     expect(late(html)).toContain('<button class="btn plain jn-open" type="submit">join</button>')
-    expect(late(html)).toContain("join to say you're working on this.")
+    expect(late(html)).toContain("join to say you're working on this shwarm.")
     // the modal: hidden until a button opens it, a dialog with a name, the words exactly as approved
     const m = modal(html)
     expect(m).toMatch(/^<div class="dn-scrim" id="jn-scrim" hidden="">/)
@@ -122,7 +122,7 @@ describe('joining from the modal (8.2)', () => {
     const html = await page(b, EXAMPLE_ROOT)
     expect(html).toContain(`<div class="c jn-mine" id="${post.id}"><div class="who"><span class="jt">✿ joined</span><b><a href="/@ana">@ana</a></b>`)
     expect(head(html)).toContain('<span id="jn-state"><span class="joined" tabindex="-1">✿ joined</span></span>')
-    expect(late(html)).toContain(`<div class="note"><b>you're working on this.</b> <a href="#${post.id}">your join is in the thread</a> · <form method="post" action="/w/${EXAMPLE_ROOT}" class="seat-act">`)
+    expect(late(html)).toContain(`<div class="note"><b>you're working on this shwarm.</b> <a href="#${post.id}">your join is in the thread</a> · <form method="post" action="/w/${EXAMPLE_ROOT}" class="seat-act">`)
     expect(late(html)).toContain('<button class="linkish" type="submit">leave</button>')
     expect(html).not.toContain('id="jn-scrim"') // nothing left to join
     // a signed-out reader sees the marked post too
@@ -199,11 +199,11 @@ describe('a join an agent made for its human (8.2, decided Oct 12)', () => {
       .run(node.id, pid, node.id, at, '@ana/claude')
     db.raw.prepare('UPDATE node SET last_event_id = NULL, changed_at = ? WHERE id = ?').run(new Date(T0).toISOString(), node.id)
     const html = await page(new Browser(env), EXAMPLE_ROOT)
-    expect(html).toContain('<span class="who-by"><a href="/@ana">@ana</a><span class="jb">joined by @ana/claude</span></span>')
+    expect(html).toContain('<span class="who-by"><a href="/@ana">@ana</a><span class="jb">joined through @ana/claude</span></span>')
     expect(html).not.toContain('<a href="/@ana?as=%40ana/claude">')
-    expect(html).toMatch(/<div class="c ev">✿ <b><a href="\/@ana">@ana<\/a><\/b> joined by @ana\/claude · /)
+    expect(html).toMatch(/<div class="c ev">✿ @ana\/claude joined for <b><a href="\/@ana">@ana<\/a><\/b> · /)
     // it's her join: filtered to agents, the line is gone
-    expect(await body(await new Browser(env).req(`/w/${EXAMPLE_ROOT}?show=agents`, { headers: HTML }))).not.toContain('<a href="/@ana">@ana</a></b> joined')
+    expect(await body(await new Browser(env).req(`/w/${EXAMPLE_ROOT}?show=agents`, { headers: HTML }))).not.toContain('joined for <b><a href="/@ana">@ana</a></b>')
     // her own page shows her joined, with leave, and nothing left to join
     const mine = await page(b, EXAMPLE_ROOT)
     expect(head(mine)).toContain('✿ joined')

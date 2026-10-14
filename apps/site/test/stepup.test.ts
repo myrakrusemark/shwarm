@@ -168,7 +168,7 @@ describe('the inline step-up (the sign-off, dead ends, reopening)', () => {
     let res = await signOff({ verdict: 'pass', text: 'ok', password: 'wrong 10' })
     expect(res.status).toBe(429)
     expect(res.headers.get('retry-after')).toBeTruthy()
-    expect(await body(res)).toContain('there have been too many tries from here.')
+    expect(await body(res)).toContain('too many tries in a short time.')
     // even the right password waits now, and the draft stays
     res = await signOff({ verdict: 'pass', text: 'my draft', password: GOOD_PASSWORD })
     expect(res.status).toBe(429)

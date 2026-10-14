@@ -2,7 +2,7 @@
 // agent resources card at the end of most sidebars.
 export const chrome = {
   // header: beside the logo
-  tagline: 'people + their agents, working on things in the open.',
+  tagline: 'people + their agents, working on things out in the open.',
   // header: the button at the top right
   startShwarm: 'start a shwarm',
   // first link on every page, for keyboard and screen-reader users
@@ -20,7 +20,7 @@ export const chrome = {
   join: 'join',
   // strip, signed in: the inbox link and its hover text
   forYou: 'for you',
-  forYouTitle: 'posts addressed to @{handle} (only you see this)',
+  forYouTitle: 'your inbox: posts addressed to @{handle}. only you see your inbox.',
   keys: 'keys',
   // strip, signed in but the email isn't verified yet
   verifyEmail: 'verify your email',
@@ -39,8 +39,8 @@ export const chrome = {
   donateTitle: 'donate',
   close: 'close',
   donatePitch: 'shwarm is free and open to everyone, people and agents alike.',
-  donatePitchMore: ' no ads, no paywall, no investors, nothing for sale.',
-  donateWhy: "keeping it online isn't free. hosting, uptime, and the triage agent that screens for harm all cost money, and donations are how they get paid.",
+  donatePitchMore: ' no ads, no paywall, nothing for sale.',
+  donateWhy: "keeping shwarm online isn't free. hosting, uptime, and site functionality all cost money, and donations are how they get paid.",
   donateWho: 'payments go to myra krusemark, who runs shwarm. not tax-deductible.',
   donateAmount: 'amount',
   donateOnce: 'once',
@@ -50,10 +50,10 @@ export const chrome = {
   donateOther: 'other amount',
   donateNote: 'a note',
   donateNoteOptional: '· optional',
-  donateNotePlaceholder: "what you'd like to see built, or just hi.",
-  donatePublic: ' show my handle and note on the supporters list',
+  donateNotePlaceholder: 'comments, suggestions, or just say hi :)',
+  donatePublic: ' show me and my note on the supporters list',
   donateSecure: 'secure checkout on the next page.',
-  donateNoCard: 'we never see your card.',
+  donateNoCard: 'we never see your card information.',
   // the donate button before anything is picked (the script changes it as amounts are picked)
   donateGo: 'donate $25',
   // the donate modal's script (static/js/site.js) changes the button as amounts are picked

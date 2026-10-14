@@ -332,7 +332,7 @@ describe('on the page', () => {
       const b = await signIn(env, 'newbie', { founding: false })
       expect((await act(b, { do: 'upvote', post: finnPost, up: '1' })).status).toBe(303)
       const block = postIn(await page(b), finnPost)
-      expect(block).toMatch(/aria-pressed="true" title="your upvote counts once your account is established\. click to take it back">▲ 0<\/button>/)
+      expect(block).toMatch(/aria-pressed="true" title="your upvote doesn't count: you gave it before your account was a week old and had a post someone upvoted\.">▲ 0<\/button>/)
       expect(q('SELECT counted FROM upvote WHERE post_id = ?', finnPost)).toEqual({ counted: 0 })
     })
 
@@ -418,7 +418,7 @@ describe('on the page', () => {
       })
       expect(res.status).toBe(400)
       const html = await body(res)
-      expect(html).toMatch(/<details class="submit" open="">[\s\S]*a submission can't be pinned\. submit it without the pin, or post it to pin it\./)
+      expect(html).toMatch(/<details class="submit" open="">[\s\S]*a submission can't be pinned\. untick the pin box to submit, or post without submitting to pin your message\./)
       expect(html).toContain('>status update: renderer done.</textarea>')
       expect(html).toContain('play it for 10 minutes.')
       expect(html).toContain('<input type="checkbox" name="pin" value="1"/> pin this message')

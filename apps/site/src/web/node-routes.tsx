@@ -617,7 +617,7 @@ async function flagAct(c: C, path: string, session: Session, f: Record<string, s
     }
     const r = await flagNode(db, { by: { personId: session.personId }, nodeId: chain.node.id, path, reason: f.reason, env: c.env.ENV, now })
     // OPEN (#106): new wording.
-    if (r === 'already') return refuse(w.node.alreadyFlagged, 200)
+    if (r === 'already') return refuse(fill(w.node.alreadyFlagged, { kind: chain.node.kind === 'branch' ? w.node.kindBranch : w.node.kindShwarm }), 200)
     return c.redirect(`/w/${path}${url.search}`, 303)
   } catch (e) {
     if (!(e instanceof ShwarmError)) throw e

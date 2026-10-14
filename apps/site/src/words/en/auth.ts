@@ -3,7 +3,7 @@ export const auth = {
   // every account page: the browser tab's title. {title} is the page's name, from the entries below
   pageTitle: '{title} · shwarm',
   // the bot check on join, sign in and forgot, for a browser with javascript off
-  turnstileNoScript: 'this check needs javascript.',
+  turnstileNoScript: 'the bot check needs javascript. turn javascript on and reload the page.',
 
   // join: the page's name in the tab, and its heading
   joinTitle: 'join',
@@ -40,13 +40,13 @@ export const auth = {
   handleReserved: 'that handle is reserved. pick another one.',
   handleTaken: 'that handle is taken. pick another one.',
   // also on the account modal's display name. {max} is the longest it can be
-  displayNameTooLong: 'keep it to {max} characters.',
+  displayNameTooLong: 'keep your display name to {max} characters.',
   // also on the account modal's email
   emailBad: "that doesn't look like an email address.",
   disposable: "we can't take addresses from throwaway mail services.",
   // a new password that's too short, too long or known from a breach: on join, set a new password and the account modal
-  tooShort: 'use at least 10 characters.',
-  tooLong: 'use at most 128 characters.',
+  tooShort: 'your password needs at least 10 characters.',
+  tooLong: 'your password can have at most 128 characters.',
   pwned: 'that password has turned up in a data breach. pick another one.',
   ageNeeded: 'you need to be 16 or older to join.',
   termsNeeded: 'you need to agree to the terms to join.',
@@ -56,18 +56,18 @@ export const auth = {
   // check your email: the page's name and heading
   checkEmail: 'check your email',
   // after "send it again"
-  sentAgain: 'sent again. it can take a minute or two.',
+  sentAgain: 'we sent the link again. it can take a minute or two to arrive.',
   // for someone who joined from an address that isn't invited yet
   waiting: "you're on the list. shwarm is invite-only for now, so we'll email you when it opens to everyone.",
   // after asking for a password reset. {link} is askAgain
   resetSent: 'if that address has an account, a link to set a new password is on its way. it works for 1 hour.',
   resetNothing: 'nothing there? look in spam, or {link}.',
-  askAgain: 'ask again',
+  askAgain: 'ask for a new link',
   // after joining, or signing in before the email is verified
   unverified: "your email isn't verified yet. until it is, you can read and sign in, nothing else.",
-  verifySent: 'we sent the next step to your email address. it will expire after 7 days.',
+  verifySent: 'we sent a link to your email address. the link works for 7 days.',
   checkSpam: 'be sure to check your spam folder!',
-  sendAgain: 'send it again',
+  sendAgain: 'send the link again',
 
   // verify your email (the page the emailed link opens): its name and heading
   verifyEmail: 'verify your email',
@@ -95,12 +95,12 @@ export const auth = {
   linkExpiredTitle: 'link expired',
   linkExpiredHeading: "this link doesn't work anymore",
   // an email change link to an address another account took in the meantime
-  emailTaken: "that address is on another shwarm account now, so this one can't move to it. your old address stays.",
+  emailTaken: "that address is on another shwarm account now, so your account can't move to it. your old address stays.",
   // an old email change link
-  emailChangeExpired: 'it was already used, or it ran out of time. email change links last 24 hours.',
+  emailChangeExpired: 'this link was already used, or it ran out of time. email change links last 24 hours.',
   emailChangeAgain: 'to try again, open "account" on your profile and change the address there.',
   // an old verify or reset link
-  linkUsed: 'it was already used, or it ran out of time. verify links last 7 days and reset links 1 hour.',
+  linkUsed: 'this link was already used, or it ran out of time. verify links last 7 days and reset links 1 hour.',
   newResetLink: 'ask for a new reset link',
   // {link} is the signIn link
   alreadyVerified: 'already verified? {link}. if not, sign in and send a new link from there.',
@@ -109,7 +109,7 @@ export const auth = {
   confirmNewEmail: 'confirm your new email',
   // {handle} and {email} are in bold
   emailChangeMoves: 'this link moves {handle} to {email}. until you press the button, the old address stays on the account.',
-  emailChangeNotYou: "didn't ask for this? don't press the button.",
+  emailChangeNotYou: "didn't ask to change your email? don't press the button.",
   // beside the button, and the button
   emailChangePress: 'press the button to use this address.',
   emailChangeButton: 'use this address',
@@ -131,7 +131,7 @@ export const auth = {
   signedInAs: "you're signed in as @{handle}.",
   signOut: 'sign out',
   // the link under the password label
-  forgotIt: 'forgot it?',
+  forgotIt: 'forgot your password?',
   badSignIn: "that email and password don't match.",
 
   // forgot your password: the tab's name, the heading, the link under the box
@@ -139,7 +139,7 @@ export const auth = {
   forgotHeading: 'forgot your password?',
   backToSignIn: 'back to sign in',
   // under the email label, and the button
-  forgotHint: "if it has an account, we'll send a link to set a new password.",
+  forgotHint: "if the address has an account, we'll send a link to set a new password.",
   sendLink: 'send the link',
 
   // set a new password (the page a reset link opens): its name and heading, the fields, the note and the button
@@ -147,12 +147,12 @@ export const auth = {
   newPassword: 'new password',
   newPasswordAgain: 'new password again',
   passwordsDontMatch: "the two passwords don't match.",
-  resetNote: 'this signs you out everywhere.',
+  resetNote: 'setting a new password signs you out everywhere.',
   resetButton: 'set new password',
 
   // confirm it's you (the password step-up page): its name and heading, the hint, beside the button, the button
   stepUpHeading: "confirm it's you",
-  stepUpHint: 'enter your password to go on. it stays confirmed for 10 minutes.',
+  stepUpHint: "enter your password to go on. we won't ask again for 10 minutes.",
   stepUpSignedInAs: 'signed in as @{handle}',
   stepUpButton: 'confirm',
   // a wrong password: on the step-up page, and wherever a form confirms with your password
@@ -160,7 +160,7 @@ export const auth = {
   // a form that confirms with your password, sent with the password empty
   enterPassword: 'enter your password to confirm.',
   // too many tries: on the too many tries page, and wherever a form confirms with your password. {minutes} is a number, at least 1
-  tooManyTries: 'there have been too many tries from here. wait about {minutes} minutes, then try again.',
+  tooManyTries: 'too many tries in a short time. wait about {minutes} minutes, then try again.',
 
   // the too many tries page: its name and heading, and the link under it
   tooManyTriesHeading: 'too many tries',
@@ -172,7 +172,7 @@ export const auth = {
   // the line under it on the shwarm, profile, keys and messages pages
   formExpiredRetry: 'go back, reload the page and try again.',
   // a made-up form on the shwarm, profile, keys or messages page
-  unknownForm: 'that form asked for nothing we know.',
+  unknownForm: "we didn't recognize that form. go back, reload the page and try again.",
   // a form posted from another website (a plain text page)
-  crossSite: 'this form came from another site, so it was refused.',
+  crossSite: 'this form was sent from another website, so shwarm refused it. open the page on shwarm and send the form from there.',
 }

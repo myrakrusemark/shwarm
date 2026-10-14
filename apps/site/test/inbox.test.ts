@@ -28,7 +28,7 @@ afterEach(() => {
 })
 
 const HTML = { accept: 'text/html' }
-const INBOX_HEAD = '<h2 id="addressed">inbox <span>only you see this</span></h2>'
+const INBOX_HEAD = '<h2 id="addressed">inbox <span>only you see your inbox</span></h2>'
 
 async function world() {
   const w = await stagingWorld()
@@ -309,7 +309,7 @@ describe('the inline reply (6.1)', () => {
     expect(slow.status).toBe(429)
     expect(Number(slow.headers.get('retry-after'))).toBeGreaterThan(0)
     const s = itemOf(await body(slow), item.id)!
-    expect(s).toContain('slow down: you can post here again in')
+    expect(s).toContain('slow down: you can post in that thread again in')
     expect(s).toContain('>one too many</textarea>')
     expect(s).toContain('next post in 5 min')
     expect(get("SELECT COUNT(*) AS n FROM post WHERE text = 'one too many'").n).toBe(0)

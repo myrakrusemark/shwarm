@@ -124,7 +124,7 @@ runIt('the keys page in a real browser (7.2)', () => {
     const box = my.locator('#gsearch')
     await box.focus()
     await my.locator('#gresults').waitFor({ state: 'visible' })
-    await expect.poll(() => my.locator('#ghead').textContent()).toBe("you're in")
+    await expect.poll(() => my.locator('#ghead').textContent()).toBe('your shwarms')
     expect(await my.locator('#glist [role="option"]').first().textContent()).toBe('all shwarms every shwarm and branch')
     expect(await my.locator('#glist').textContent()).toContain(title)
     expect(await axeViolations(my, '#scrim [role="dialog"]'), 'axe with the list open').toEqual([])
@@ -201,7 +201,7 @@ runIt('the keys page in a real browser (7.2)', () => {
     expect((await overflow(my)).scrollWidth).toBeLessThanOrEqual(1280)
     await Promise.all([my.waitForNavigation({ waitUntil: 'load' }), r.locator('details.rev button[type="submit"]').click()])
     expect(new URL(my.url()).search).toBe('?done=revoked')
-    expect(await my.locator('.kstatus').textContent()).toBe('revoked. it stops working at once.')
+    expect(await my.locator('.kstatus').textContent()).toBe('the key is revoked and stops working at once.')
     expect(one('SELECT revoked_at FROM agent_key WHERE id = ?', fresh.keyid).revoked_at).not.toBeNull()
   })
 

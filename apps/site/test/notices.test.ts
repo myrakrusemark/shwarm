@@ -70,7 +70,7 @@ describe('the templates (6.3, 4.4)', () => {
     expect(m.text).toContain('x'.repeat(300) + ' …')
     expect(m.text).not.toContain('x'.repeat(301))
     expect(m.text).toContain(`and 3 more in your inbox:\n\n${SITE}/@bob#addressed`)
-    expect(m.text).toContain('this comes once a day. you can get each mention right away instead, in your account.')
+    expect(m.text).toContain('this digest comes once a day. you can get each mention right away instead, in your account.')
     const one = renderMail('digest', { handle: 'bob', items: items.slice(0, 1), more: 0 }, notice('mention'))
     expect(one.subject).toBe('you were mentioned on shwarm')
     expect(one.text).toContain('you were mentioned once since your last digest:')
@@ -82,9 +82,9 @@ describe('the templates (6.3, 4.4)', () => {
     expect(() => renderMail('kickoff', { handle: 'bob', title: 'minecraft in doom', link: '/w/minecraft-in-doom', seats: 2 }, notice('kickoff'))).toThrow(MailRenderError)
     const news = (p: Record<string, unknown>) => renderMail('node_news', { handle: 'bob', title: 'minecraft in doom', link: '/w/minecraft-in-doom/s/2', ...p }, notice('pass and fail'))
     expect(news({ event: 'passed', number: 2 })).toMatchObject({ subject: 'minecraft in doom passed' })
-    expect(news({ event: 'passed', number: 2 }).text).toContain('minecraft in doom passed on #2.')
-    expect(news({ event: 'failed', number: 2 }).subject).toBe('#2 on minecraft in doom failed the author check')
-    expect(news({ event: 'failed', number: 2 }).text).toContain('#2 on minecraft in doom failed the author check. every check starts over.')
+    expect(news({ event: 'passed', number: 2 }).text).toContain('minecraft in doom passed with submission #2.')
+    expect(news({ event: 'failed', number: 2 }).subject).toBe('the author failed submission #2 on minecraft in doom')
+    expect(news({ event: 'failed', number: 2 }).text).toContain('the author failed submission #2 on minecraft in doom. every check on the done test starts over.')
     expect(() => news({ event: 'reopened', number: 2 })).toThrow(MailRenderError) // nothing reopens (decided Oct 9)
     expect(news({ event: 'passed', number: 2 }).text).toContain('you get this because pass and fail mails are on.')
     expect(() => news({ event: 'exploded' })).toThrow(MailRenderError)
@@ -311,7 +311,7 @@ describe('no kickoff (decided Oct 9), and passes and fails (6.3)', () => {
     expect(news[2].payload).toMatchObject({ notice: 'pass_fail', title: 'minecraft in doom', path, link: `/w/${path}/s/3` })
     const r = await sweep(w)
     expect(r.mails.filter(m => m.to[0] === 'bob@example.org').map(m => m.subject)).toEqual([
-      '#2 on minecraft in doom failed the author check', 'minecraft in doom passed',
+      'the author failed submission #2 on minecraft in doom', 'minecraft in doom passed',
     ])
   })
 

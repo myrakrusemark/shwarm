@@ -235,7 +235,7 @@ describe('/report', () => {
   it('signed in but not verified, it is sent as signed out, so the 7-day cleanup can still delete the account', async () => {
     const { env, finnPost, q, reports, reportMails } = await world()
     const b = await signIn(env, 'quiet', { verified: false })
-    expect(await body(await b.get('/report'))).toContain("optional, but we can't reply without it.")
+    expect(await body(await b.get('/report'))).toContain("optional, but we can't reply without an email.")
     expect((await b.post('/report', { url: `${ROOT}#${finnPost}`, reason: 'spam' })).status).toBe(303)
     expect(reports()[0]).toMatchObject({ person_id: null, post_id: finnPost })
     expect(JSON.parse(reportMails()[0].payload)).toMatchObject({ by: null })
@@ -308,7 +308,7 @@ describe('/report', () => {
     const html = await body(await b.get('/report'))
     for (const r of REASONS) expect(html).toContain(`name="reason" value="${r}"`)
     expect(html).toContain('class="cf-turnstile"')
-    expect(html).toContain("optional, but we can't reply without it.")
+    expect(html).toContain("optional, but we can't reply without an email.")
   })
 })
 

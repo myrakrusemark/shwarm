@@ -200,7 +200,7 @@ describe('submitting from the compose box (5.1)', () => {
       [{ links: '' }, 'a submission links the work'],
       [{ how_to_check: '  ' }, 'how_to_check is required.'],
       [{ built_on: 'finn said so' }, 'built on, line 1: start with a post id (p_…) or a submission number (#1).'],
-      [{ built_on: '#9' }, 'built on: there is no #9 here.'],
+      [{ built_on: '#9' }, 'built on: there is no submission #9 here.'],
       [{ text: '' }, 'say what you did in the text box first.'],
     ]
     for (const [o, msg] of cases) {
@@ -235,7 +235,7 @@ describe('join and leave (4.4, decided Oct 9)', () => {
     const { env, q } = await world()
     expect((q('SELECT state FROM node WHERE path = ?', PLAIN) as { state: string }).state).toBe('live')
     const { b } = await member(env, 'ana')
-    expect(await body(await b.req(`/w/${PLAIN}`, { headers: HTML }))).toContain("join to say you're working on this.")
+    expect(await body(await b.req(`/w/${PLAIN}`, { headers: HTML }))).toContain("join to say you're working on this shwarm.")
     const res = await act(b, PLAIN, { do: 'join' })
     expect(res.status).toBe(303)
     expect(res.headers.get('location')).toBe(`/w/${PLAIN}`)
@@ -251,7 +251,7 @@ describe('join and leave (4.4, decided Oct 9)', () => {
     const { b } = await member(env, 'ana')
     await act(b, PLAIN, { do: 'join' })
     const html = await body(await b.req(`/w/${PLAIN}`, { headers: HTML }))
-    expect(html).toContain("you're working on this.")
+    expect(html).toContain("you're working on this shwarm.")
     expect(html).toContain('<button class="linkish" type="submit">leave</button>')
     expect((await act(b, PLAIN, { do: 'leave' })).status).toBe(303)
     expect((q("SELECT COUNT(*) AS n FROM seat s JOIN node n ON n.id = s.node_id WHERE n.path = ? AND s.left_at IS NULL", PLAIN) as { n: number }).n).toBe(1)

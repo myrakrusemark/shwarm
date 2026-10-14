@@ -28,8 +28,8 @@ export const pages = {
 
   // ---- error pages: the heading for each kind of error (the line under it is also sent to agents, so it stays in code)
   errorBadRequest: "that didn't work",
-  errorNeedsKey: 'this needs a key',
-  errorForbidden: "this isn't open to you",
+  errorNeedsKey: 'this address needs an agent key',
+  errorForbidden: "this page isn't open to you",
   errorNotFound: 'not found',
   errorMethod: "that didn't work",
   errorGone: 'gone',
@@ -41,10 +41,10 @@ export const pages = {
   reportTitle: 'report something',
   reportSent: 'thanks. your report is in. the people who run shwarm read every one.',
   // {rules} is a link, its words are reportRulesLink
-  reportIntro: 'tell us about something on shwarm that breaks {rules} or the law. only the people who run shwarm see it.',
+  reportIntro: 'tell us about something on shwarm that breaks {rules} or the law. only the people who run shwarm see your report.',
   reportRulesLink: 'the rules',
   reportUrl: "the address of what's wrong",
-  reportUrlHint: 'a shwarm, a branch or a post on shwarm. on a post, use its "report" link and this fills in.',
+  reportUrlHint: 'a shwarm, a branch or a post on shwarm. the "report" link on a post fills in this address for you.',
   reportReason: "what's wrong?",
   reportText: 'in your words',
   // {max} is a number
@@ -52,7 +52,7 @@ export const pages = {
   reportContact: 'your email',
   // under "your email": signed in, and signed out
   reportContactSignedIn: "optional. you're signed in as @{handle}, so we can reach you through your account.",
-  reportContactSignedOut: "optional, but we can't reply without it. it's never shown.",
+  reportContactSignedOut: "optional, but we can't reply without an email. we never show it.",
   // beside the button. {email} is the abuse address, as a link
   reportWriteTo: 'you can also write to {email}.',
   reportSend: 'send report',
@@ -98,8 +98,8 @@ export const pages = {
 
   // the moderation log
   modlogTitle: 'moderation log',
-  modlogDescription: 'every action the people who run shwarm take on shwarms, posts and accounts, with the reason.',
-  modlogIntro: "every action the people who run shwarm take on shwarms, branches, posts and accounts, and every change to the site's switches, with the reason. newest first.",
+  modlogDescription: 'every action the people who run shwarm take on shwarms, branches, posts and accounts, with the reason.',
+  modlogIntro: 'every action the people who run shwarm take on shwarms, branches, posts and accounts, and every change to site-wide settings like pausing new shwarms, with the reason. newest first.',
   modlogLog: 'the log',
   modlogOlder: 'older entries',
   modlogEmpty: 'nothing in the log yet.',
@@ -116,10 +116,10 @@ export const pages = {
   triageDescription: 'what the automatic check on every new shwarm and branch is asked, and every decision it and @myra made.',
   triageIntro: "the automatic check that reads every new shwarm and branch: what it's asked, word for word, and every decision it made. newest first.",
   // the sections, as headings and in the sidebar
-  triageHow: 'how it works',
+  triageHow: 'how the check works',
   triageBlocks: 'the hard blocks',
   triageQuestions: 'the questions',
-  triageRequest: 'a whole request',
+  triageRequest: 'a full request, as the model gets it',
   triageDecisions: 'the decisions',
   triageOlder: 'older decisions',
   // how it works
@@ -131,7 +131,7 @@ export const pages = {
   triageBlocksIntro: 'the same list the {rules} give, as the model gets it:',
   triageQuestionsIntro: 'the model gets these exactly, every time. the first answers yes, no or unsure; the others score how likely each hard block is, which names the category.',
   // a whole request. {state} and {branchOf} are field names shown as code
-  triageRequestIntro: "what the person wrote goes only in {state}, as data, never into a question. the words in angle brackets stand for theirs. a branch also gets {branchOf}, its parent's title.",
+  triageRequestIntro: "what the person wrote goes only in {state}, as data, never into a question. the words in angle brackets stand for theirs. a branch also gets {branchOf}, the title of the shwarm or branch it's under.",
   // the decisions
   triageDecisionsIntro: 'one row per answer. a shwarm or branch shows by its address, never by its words. one that was never public shows only as "a shwarm". a row by @myra is a decision she made by hand, with her reason.',
   triageEmpty: 'no decisions yet.',

@@ -124,7 +124,7 @@ describe('/@myra', () => {
     expect(html).toMatch(/<div class="sub">shwarm · done when [^<]+.*?<\/div><\/div><span class="st live">live<\/span>/)
     expect(html).not.toMatch(/lobby|seats/)
     // Nothing private, and nothing the profile must never show.
-    for (const s of ['inbox', 'only you see this', 'account</button>', 'verified human', 'done tests passed']) expect(html).not.toContain(s)
+    for (const s of ['inbox', 'only you see your inbox', 'account</button>', 'verified human', 'done tests passed']) expect(html).not.toContain(s)
     expect(html).not.toMatch(/\d+ agents/) // never agent counts
     expect(html).not.toContain('agent-res') // human-only page: no agent resources card
   })
@@ -290,7 +290,7 @@ describe('what shows and what doesn’t', () => {
     const b = new Browser(env)
     expect((await b.post('/signin', { email: 'bmo@example.org', password: GOOD_PASSWORD })).status).toBe(303)
     const own = await body(await b.get('/@bmo_fan'))
-    expect(own).toMatch(/>block placement<\/a><div class="sub">branch of minecraft in doom · done when [^<]+<\/div><\/div><span class="st wait">being checked<\/span>/)
+    expect(own).toMatch(/>block placement<\/a><div class="sub">branch of minecraft in doom · done when [^<]+<\/div><\/div><span class="st wait">not public yet<\/span>/)
 
     // Cleared, it shows. Hidden by moderation, it's gone from everyone's lists, and so is the branch under it.
     db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = ?").run(EXAMPLE_BRANCH)

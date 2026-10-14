@@ -41,12 +41,12 @@ export const email = {
   // password changed: after the password changes
   passwordChangedSubject: 'your shwarm password was changed',
   passwordChangedBody: 'the password for your shwarm account was just changed.',
-  passwordChangedIfNot: "if you did this, there's nothing to do. if you didn't, reset it now and reply to this mail so we can help:",
+  passwordChangedIfNot: "if you did this, there's nothing to do. if you didn't, reset your password now and reply to this mail so we can help:",
 
   // email change, to the new address
   emailChangeNewSubject: 'confirm your new email for shwarm',
   emailChangeNewOpen: 'open this link and press the button to use this address for your shwarm account:',
-  emailChangeNewIgnore: "your old address stays on the account until you do. if you didn't ask for this, ignore this mail.",
+  emailChangeNewIgnore: "your old address stays on the account until you press the button. if you didn't ask for this, ignore this mail.",
 
   // email change, to the old address
   emailChangeOldSubject: 'your shwarm email is being changed',
@@ -80,14 +80,14 @@ export const email = {
   // account closed: the last mail to the old address
   accountClosedSubject: 'your shwarm account is closed',
   accountClosedBody: 'your shwarm account was closed just now. we deleted your email address, password, inbox, sign-ins and keys. what you posted stays up under its license, shown as by a former member.',
-  accountClosedLast: "this is the last mail we send to this address. if you didn't close it, reply to this mail right away.",
+  accountClosedLast: "this is the last mail we send to this address. if you didn't close your account, reply to this mail right away.",
 
   // ready for sign-off: to a shwarm's author. {n} is the submission's number, {title} the shwarm's or branch's title
-  signOffSubject: '#{n} on {title} is ready for your sign-off',
+  signOffSubject: 'submission #{n} on {title} is ready for your sign-off',
   // when the author is the only check
-  signOffOnly: "#{n} on {title} is waiting on you. you're its only check.",
+  signOffOnly: 'submission #{n} on {title} is waiting on you. your sign-off is the only check it needs.',
   // when every other check passed
-  signOffLast: 'every other check on #{n} on {title} has passed. yours is the last one.',
+  signOffLast: 'every other check on submission #{n} on {title} has passed. your sign-off is the last one.',
   signOffOpen: 'open the submission to pass it with what you checked, or fail it with a repro:',
   signOffNothingPasses: 'nothing passes until you sign off. the work stays open to everyone meanwhile.',
 
@@ -107,15 +107,15 @@ export const email = {
   digestItem: '{by} on {title}:',
   // when there were more than the digest shows
   digestMore: 'and {n} more in your inbox:',
-  digestOnceADay: 'this comes once a day. you can get each mention right away instead, in your account.',
+  digestOnceADay: 'this digest comes once a day. you can get each mention right away instead, in your account.',
 
   // a shwarm or branch you're in passed. {title} is its title, {n} the submission's number
   passedSubject: '{title} passed',
-  passedLine: '{title} passed on #{n}.',
+  passedLine: '{title} passed with submission #{n}.',
   passedSee: 'see what passed:',
-  // ...or failed the author check
-  failedSubject: '#{n} on {title} failed the author check',
-  failedLine: '#{n} on {title} failed the author check. every check starts over.',
+  // ...or the author failed it
+  failedSubject: 'the author failed submission #{n} on {title}',
+  failedLine: 'the author failed submission #{n} on {title}. every check on the done test starts over.',
   failedSee: 'see why:',
 
   // an agent key used from a new network. {name} is the key's name, {networks} the networks, {when} the time
@@ -136,5 +136,5 @@ export const email = {
   unsubscribedText: "you won't get {label} mails anymore. you can turn them back on in your account.",
   // when the link is broken or too old
   badLinkHeading: "this link doesn't work",
-  badLinkText: "it may be old or cut short. you can turn notices off in your account, or write to support@shwarm.org and we'll do it for you.",
+  badLinkText: "the link may be old or cut short. you can turn notices off in your account, or write to support@shwarm.org and we'll do it for you.",
 }

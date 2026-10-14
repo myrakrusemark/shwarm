@@ -504,14 +504,14 @@ describe('on the page', () => {
       const b = await signIn(env, 'ana')
       let box = boxOf(await page(b), 'contributors')
       expect(box).toContain('<input type="hidden" name="do" value="join"/>')
-      expect(box).toContain("join to say you're working on this.")
+      expect(box).toContain("join to say you're working on this shwarm.")
       const res = await act(b, { do: 'join' })
       expect(res.status).toBe(303)
       expect(res.headers.get('location')).toBe(`/w/${EXAMPLE_ROOT}`)
       expect(q("SELECT s.number FROM seat s JOIN person p ON p.id = s.person_id WHERE p.handle = 'ana'")).toEqual({ number: 3 })
       box = boxOf(await page(b), 'contributors')
       expect(box).toContain('href="/@ana">@ana</a>')
-      expect(box).toContain("you're working on this.")
+      expect(box).toContain("you're working on this shwarm.")
       expect(box).not.toContain('value="join"')
       // no lobby, no kickoff: joining writes no event
       expect(q("SELECT COUNT(*) AS n FROM audit_event a JOIN node n ON n.id = a.node_id WHERE n.path = ? AND a.event = 'lobby_filled'", EXAMPLE_ROOT)).toEqual({ n: 0 })
@@ -531,7 +531,7 @@ describe('on the page', () => {
       expect(boxOf(await page(quiet), 'contributors')).toContain('verify your email to join.')
       const author = await signIn(env, 'myra', { make: false })
       const mine = boxOf(await page(author, `/w/${PLAIN}`), 'contributors')
-      expect(mine).toContain("you're working on this.")
+      expect(mine).toContain("you're working on this shwarm.")
       expect(mine).not.toContain('value="leave"')
       const b = await signIn(env, 'ana')
       expect(boxOf(await page(b, `/w/${PLAIN}`), 'contributors')).toContain('value="join"') // a new launch shwarm is live too
@@ -584,7 +584,7 @@ describe('on the page', () => {
       const b = await signIn(env, 'myra', { make: false })
       for (const path of ['/new', `/new?parent=${EXAMPLE_ROOT}`]) {
         const html = await body(await b.req(path, { headers: HTML }))
-        expect(html, path).toMatch(/<span class="note" id="go-note">[^<]*<b id="fixed-note">once you post it, it can't be changed.<\/b><\/span>/)
+        expect(html, path).toMatch(/<span class="note" id="go-note">[^<]*<b id="fixed-note">once posted, nothing on this form can be changed.<\/b><\/span>/)
         expect(html, path).toContain("the done test can't change once it's posted.")
         expect(html, path).not.toContain('someone else joins or anything is submitted')
         expect(html, path).not.toContain('id="e-pw"')
@@ -664,7 +664,7 @@ describe('on the page', () => {
       await act(b, { do: 'post', text: 'monster collision\n\nimps walk through placed blocks: the blockmap is only built at level load.' })
       const id = q<{ id: string }>("SELECT id FROM post WHERE text LIKE 'monster collision%'").id
       const block = postIn(await page(b), id)
-      expect(block).toContain(`<a href="/new?parent=${EXAMPLE_ROOT}&from=${id}">make it a branch</a>`) // body() decodes &amp;
+      expect(block).toContain(`<a href="/new?parent=${EXAMPLE_ROOT}&from=${id}">start a branch from this post</a>`) // body() decodes &amp;
       const form = await body(await b.req(`/new?parent=${EXAMPLE_ROOT}&from=${id}`))
       expect(form).toContain('<h1 class="title" id="heading">new branch</h1>')
       expect(form).toContain('value="monster collision"')
@@ -679,9 +679,9 @@ describe('on the page', () => {
       // a new shwarm takes branches at once; an ended one's posts have no "make it a branch"
       await act(b, { do: 'post', text: 'a first post.' }, `/w/${PLAIN}`)
       const lp = q<{ id: string }>("SELECT id FROM post WHERE text = 'a first post.'").id
-      expect(postIn(await page(b, `/w/${PLAIN}`), lp)).toContain('make it a branch')
+      expect(postIn(await page(b, `/w/${PLAIN}`), lp)).toContain('start a branch from this post')
       env.DB.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'x' WHERE path = ?").run(PLAIN)
-      expect(postIn(await page(b, `/w/${PLAIN}`), lp)).not.toContain('make it a branch')
+      expect(postIn(await page(b, `/w/${PLAIN}`), lp)).not.toContain('start a branch from this post')
     })
   })
 })

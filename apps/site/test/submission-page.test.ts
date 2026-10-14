@@ -166,7 +166,7 @@ describe('the submission page (5.2)', () => {
     expect(html).toContain('<h2>checks <span>reset · waiting for a new submission</span></h2>')
     expect(html).toContain('<h4><span>runs</span><span class="note">0 of 1</span></h4>')
     expect(html.match(/<li id="c_\w+" class="reset">/g)).toHaveLength(2)
-    expect(html).toContain('<span class="note"> · reset</span>')
+    expect(html).toContain(`<span class="note"> · no longer counts: the author's fail reset the checks</span>`)
     expect(html).toContain('<h4><span>author</span><span class="note">failed</span></h4>')
   })
 
@@ -180,7 +180,7 @@ describe('the submission page (5.2)', () => {
     })
     const html = await body(await b.req(S2, { headers: HTML }))
     expect(pill(html)).toBe('approved')
-    expect(html).toContain('<h2>checks <span>4 of 4 · passed its checks</span></h2>')
+    expect(html).toContain('<h2>checks <span>4 of 4 · every check passed</span></h2>')
     expect(html).toContain('<h4><span>people</span><span class="note">2 of 2</span></h4>')
     expect(html).not.toContain('reopened')
     // nothing closed it: the branch's pass is its status vote, so it stays live and keeps taking submissions
@@ -313,7 +313,7 @@ describe('waiting on the author (5.4)', () => {
       input: { node: EXAMPLE_ROOT, text: 'a first playable build.', links: [{ url: 'https://codeberg.org/myra/doom-blocks/archive/v0.1.zip', sha256: '5c'.repeat(32) }], howToCheck: 'play it for 10 minutes.' },
     })
     const html = await body(await b.req(`/w/${EXAMPLE_ROOT}/s/1`, { headers: HTML }))
-    expect(html).toContain("<p class=\"note swap\">the author's own work: one more people check stands in for the author's sign-off.</p>")
+    expect(html).toContain("<p class=\"note swap\">the author made this submission, so one more person's check takes the place of the author's sign-off.</p>")
     expect(html).not.toContain('<h4><span>author</span>')
   })
 })

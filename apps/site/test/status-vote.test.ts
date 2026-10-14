@@ -348,7 +348,7 @@ describe('the page', () => {
     const env = testEnv(db)
     vi.setSystemTime(T0 + 30 * DAY)
     const html = await body(await new Browser(env).req(`/w/${EXAMPLE_ROOT}`, { headers: { accept: 'text/html' } }))
-    expect(html).toContain('<span class="st quiet" title="nothing posted here or under it for over 48 hours">quiet</span>')
+    expect(html).toContain('<span class="st quiet" title="nothing posted on this branch or its sub-branches for over 48 hours">quiet</span>')
     const list = html.slice(html.indexOf('<ul class="branches">'), html.indexOf('</ul>', html.indexOf('<ul class="branches">')))
     expect(list).not.toContain('class="st live"') // no "live" pill on a branch (Myra, Oct 13)
   })
