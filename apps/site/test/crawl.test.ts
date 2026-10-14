@@ -126,15 +126,15 @@ describe('sitemap.xml', () => {
 })
 
 describe('link previews and canonical links', () => {
-  it('a shwarm page: its title, its done line, its canonical address, no image of its own', async () => {
+  it('a shwarm page: its title, its pitch, its canonical address, no image of its own', async () => {
     const w = await stagingWorld()
     const env = { ...testEnv(w.db), SITE_URL: 'https://shwarm.example' }
     const html = await body(await new Browser(env).req(`/w/${PLAIN}?sort=new&page=1`, { headers: HTML }))
-    const n = w.db.raw.prepare('SELECT title, done_when FROM node WHERE path = ?').get(PLAIN) as { title: string; done_when: string }
+    const n = w.db.raw.prepare('SELECT title, what FROM node WHERE path = ?').get(PLAIN) as { title: string; what: string }
     expect(canonical(html)).toBe(`https://shwarm.example/w/${PLAIN}`)
     expect(meta(html, 'og:url')).toBe(`https://shwarm.example/w/${PLAIN}`)
     expect(meta(html, 'og:title')).toBe(n.title)
-    expect(meta(html, 'og:description')).toMatch(/^done when: /)
+    expect(meta(html, 'og:description')).toBe(meta(html, 'description')) // the pitch, not the done test
     expect(meta(html, 'og:description')!.length).toBeLessThanOrEqual(260)
     expect(meta(html, 'og:site_name')).toBe('shwarm')
     expect(meta(html, 'og:type')).toBe('website')
@@ -147,7 +147,7 @@ describe('link previews and canonical links', () => {
     const b = new Browser(testEnv(w.db))
     const branch = await body(await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: HTML }))
     expect(canonical(branch)).toBe(`https://shwarm.org/w/${EXAMPLE_BRANCH}`)
-    expect(meta(branch, 'og:description')).toMatch(/^done when: /)
+    expect(meta(branch, 'og:description')).toBe(meta(branch, 'description'))
     const result = await body(await b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML }))
     expect(result).toContain('class="passed"') // it is the result page
     expect(canonical(result)).toBe(`https://shwarm.org/w/${EXAMPLE_ROOT}`)
@@ -158,10 +158,10 @@ describe('link previews and canonical links', () => {
 
   it('escapes what the author wrote', async () => {
     const w = await stagingWorld()
-    w.db.raw.prepare('UPDATE node SET title = ?, done_when = ? WHERE path = ?').run('a "quoted" <b>title</b>', 'it says "done" & <i>means it</i>', PLAIN)
+    w.db.raw.prepare('UPDATE node SET title = ?, what = ? WHERE path = ?').run('a "quoted" <b>title</b>', 'it says "done" & <i>means it</i>', PLAIN)
     const html = await (await new Browser(testEnv(w.db)).req(`/w/${PLAIN}`, { headers: HTML })).text() // as sent, not unescaped
     expect(meta(html, 'og:title')).toBe('a &quot;quoted&quot; &lt;b&gt;title&lt;/b&gt;')
-    expect(meta(html, 'og:description')).toBe('done when: it says &quot;done&quot; &amp; &lt;i&gt;means it&lt;/i&gt;')
+    expect(meta(html, 'og:description')).toBe('it says &quot;done&quot; &amp; &lt;i&gt;means it&lt;/i&gt;')
     expect(html).not.toContain('<b>title</b>')
   })
 
@@ -183,7 +183,7 @@ describe('link previews and canonical links', () => {
       expect(res.headers.get('content-type'), ua).toMatch(/^text\/html/)
       expect(res.headers.get('vary'), ua).toContain('User-Agent')
       const html = await body(res)
-      expect(meta(html, 'og:description'), ua).toMatch(/^done when: /)
+      expect(meta(html, 'og:description'), ua).toBe(meta(html, 'description'))
       expect(canonical(html), ua).toBe(`https://shwarm.org/w/${PLAIN}`)
     }
     // The home page and a footer page, which also answer */* with text.

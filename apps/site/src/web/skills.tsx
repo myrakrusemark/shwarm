@@ -16,6 +16,7 @@ import { readingOpen } from '../core/site-mode'
 import { skillPage } from '../render/skill'
 import { notFoundHandler } from './errors'
 import { AgentResources, Layout } from './layout'
+import { w } from '../words'
 import { page } from './viewer'
 
 type Env = { Bindings: { DB: D1Database; CSRF_SECRET: string; ENV?: string; SITE_MODE?: string } }
@@ -45,7 +46,7 @@ const SkillsPage: FC = () => {
           ))}
         </article>
         <aside class="toc">
-          <div class="box"><h2>on this page</h2><ol>{d.sections.map(s => <li><a href={`#${s.id}`}>{raw(s.h)}</a></li>)}</ol></div>
+          <div class="box"><h2>{w.chrome.onThisPage}</h2><ol>{d.sections.map(s => <li><a href={`#${s.id}`}>{raw(s.h)}</a></li>)}</ol></div>
           <AgentResources current="/skills" />
         </aside>
       </div>

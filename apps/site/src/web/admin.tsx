@@ -9,6 +9,7 @@ import { activity, funnel, lastDays, STEPS, testers, trafficByDay, trafficTop, t
 import { adminGate, type AdminEnv } from './admin-gate'
 import { AdminNav } from './admin-nav'
 import { AgentResources, Layout } from './layout'
+import { w } from '../words'
 import { page } from './viewer'
 
 type Env = { Bindings: AdminEnv & { CSRF_SECRET: string } }
@@ -194,7 +195,7 @@ const BetaPage: FC<{ v: View }> = ({ v }) => (
         </section>
       </article>
       <aside class="toc">
-        <div class="box"><h2>on this page</h2><ol>{SECTIONS.map(([id, h]) => <li><a href={`#${id}`}>{h}</a></li>)}</ol></div>
+        <div class="box"><h2>{w.chrome.onThisPage}</h2><ol>{SECTIONS.map(([id, h]) => <li><a href={`#${id}`}>{h}</a></li>)}</ol></div>
         <AgentResources />
       </aside>
     </div>

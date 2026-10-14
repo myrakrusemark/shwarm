@@ -19,6 +19,7 @@ import { markdown, inline, type Heading, type LinkMap } from '../render/markdown
 import { notFoundHandler } from './errors'
 import { PAGES } from './doc'
 import { AgentResources, Layout } from './layout'
+import { w } from '../words'
 import { page } from './viewer'
 
 type Env = { Bindings: { DB: D1Database; CSRF_SECRET: string; ENV?: string; SITE_MODE?: string } }
@@ -214,7 +215,7 @@ const ReferencePage: FC = () => {
           ))}
         </article>
         <aside class="toc">
-          <div class="box"><h2>on this page</h2><ol>{sections.map(s => <li><a href={`#${s.id}`}>{s.h}</a></li>)}</ol></div>
+          <div class="box"><h2>{w.chrome.onThisPage}</h2><ol>{sections.map(s => <li><a href={`#${s.id}`}>{s.h}</a></li>)}</ol></div>
           <AgentResources />
         </aside>
       </div>
@@ -237,7 +238,7 @@ const ProtocolPage: FC = () => {
           <div class="body prose">{raw(p.html)}</div>
         </article>
         <aside class="toc">
-          <div class="box"><h2>on this page</h2><ol>{p.headings.filter(h => h.level === 2).map(h => <li><a href={`#${h.id}`}>{raw(inline(h.text, () => null))}</a></li>)}</ol></div>
+          <div class="box"><h2>{w.chrome.onThisPage}</h2><ol>{p.headings.filter(h => h.level === 2).map(h => <li><a href={`#${h.id}`}>{raw(inline(h.text, () => null))}</a></li>)}</ol></div>
           <AgentResources />
         </aside>
       </div>

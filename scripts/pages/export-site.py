@@ -26,9 +26,22 @@ def fix(s):  # mockup links → site routes
     s = s.replace('src="img/', 'src="/img/').replace('href="openapi.yaml"', 'href="/openapi.yaml"')
     s = s.replace('href="../docs/protocol.md"', 'href="/docs/protocol"')  # served by the Worker (go-live 7.5)
     return s
-pages = [{'slug': slug, 'title': title, 'lede': fix(lede), **({'intro': fix(c.INTRO[slug])} if getattr(c, 'INTRO', {}).get(slug) else {}),
+# An intro is a figure (the manifesto's sauce diagram): mostly drawing, with a few bits of text. Each bit becomes {{tN}}
+# in `intro` and its English goes in `introText`, so a translation covers only the words (web/doc.tsx fills them in).
+TEXT_BITS = re.compile(r'(<title[^>]*>|<text[^>]*>|<figcaption[^>]*>)([^<]+)(</title>|</text>|</figcaption>)|(\balt=")([^"]+)(")')
+def intro_of(slug):
+    html = fix(c.INTRO[slug]); bits = []
+    def cut(m):
+        bits.append(m.group(2) or m.group(5))
+        return f'{m.group(1) or m.group(4)}{{{{t{len(bits) - 1}}}}}{m.group(3) or m.group(6)}'
+    return {'intro': TEXT_BITS.sub(cut, html), 'introText': bits}
+pages = [{'slug': slug, 'title': title, 'lede': fix(lede), **(intro_of(slug) if getattr(c, 'INTRO', {}).get(slug) else {}),
           'sections': [{'id': i, 'h': fix(h), 'body': fix(b)} for i, h, b in secs]}
          for slug, title, lede, secs in c.PAGES]
+# Translations are keyed doc.<slug>.<part> (web/doc.tsx), so a section can't take a part's name.
+for p in pages:
+    assert not {s['id'] for s in p['sections']} & {'title', 'lede', 'intro'}, f"{p['slug']}: a section id clashes with title/lede/intro"
+
 json.dump(pages, open(os.path.join(SITE, 'src', 'content', 'pages.json'), 'w'), indent=1, ensure_ascii=False)
 # The terms versions (go-live 10.2), newest last: the site's banner, the notice mail and /admin/switches read them (src/core/terms.ts).
 json.dump(c.TERMS_VERSIONS, open(os.path.join(SITE, 'src', 'content', 'terms.json'), 'w'), indent=1, ensure_ascii=False)

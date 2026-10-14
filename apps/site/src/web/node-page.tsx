@@ -85,11 +85,8 @@ export const nodeHref = (path: string) => `/w/${path}`
 export const subHref = (path: string, n: number) => `/w/${path}/s/${n}` // the submission page (go-live 5.2)
 /** An ended shwarm's "build on this": the create form with builds-on filled in (go-live 4.3; decided Oct 9, passed or a dead end). */
 export const buildOnHref = (path: string) => `/new?builds_on=${encodeURIComponent(path)}`
-/**
- * A shwarm's or branch's link preview (go-live 11.7, web/layout.tsx `card`): its title, and its done line as the
- * description. OPEN: "done when: " is new wording; it waits on Myra's yes.
- */
-export const doneCard = (n: { title: string; done_when: string }) => ({ title: showHidden(n.title), description: cut(fill(w.node.cardDescription, { done: showHidden(n.done_when) }), 200) })
+/** A shwarm's or branch's link preview (go-live 11.7, web/layout.tsx `card`): its title, and its pitch as the description. */
+export const previewCard = (n: { title: string; what: string }) => ({ title: showHidden(n.title), description: cut(showHidden(n.what), 200) })
 export const Ago: FC<{ at: string | null; now: number; short?: boolean }> = ({ at, now, short }) => <span title={exact(at)}>{ago(at, now, short)}</span>
 const Imp: FC<{ q: number; ppd: number }> = ({ q, ppd }) => (
   <span class="imp" style={`--q:${q1(q)}`} title={fill(w.node.impTitle, { q: q1(q), ppd: perDay(ppd) })}>{fill(w.node.impPerDay, { ppd: perDay(ppd) })}</span>
@@ -105,7 +102,7 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
   const passed = isBranch && n.state === 'closed' ? d.subs.find(s => s.status === 'passed') : undefined
   const opensSoon = useContext(PageContext).opensSoon
   return (
-    <Layout title={fill(w.node.pageTitle, { title: showHidden(n.title) })} description={cut(showHidden(n.what), 200)} canonical={d.threadView ? `${nodeHref(n.path)}?thread=1` : nodeHref(n.path)} card={doneCard(n)}>
+    <Layout title={fill(w.node.pageTitle, { title: showHidden(n.title) })} description={cut(showHidden(n.what), 200)} canonical={d.threadView ? `${nodeHref(n.path)}?thread=1` : nodeHref(n.path)} card={previewCard(n)}>
       <link rel="stylesheet" href="/css/node.css" />
       {passed && <link rel="stylesheet" href="/css/result.css" />}
       {isBranch ? (

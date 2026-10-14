@@ -15,7 +15,7 @@ import { LINK_REL, linkParts, Name, Plain, Text } from '../render/text'
 import { count, fill, fillx, w } from '../words'
 import { feedHref } from './feed'
 import { AgentResources, Layout } from './layout'
-import { buildOnHref, doneCard, linkView, nodeHref, parseLinks, Pill, Proof, subHref, type Me, TriageNote, PausedNote } from './node-page'
+import { buildOnHref, previewCard, linkView, nodeHref, parseLinks, Pill, Proof, subHref, type Me, TriageNote, PausedNote } from './node-page'
 
 export type ResultPageData = {
   chain: Chain
@@ -40,7 +40,7 @@ export const ResultPage: FC<{ d: ResultPageData }> = ({ d }) => {
   const challenged = d.builtOnThis.filter(b => b.challenges)
   const builtOn = d.builtOnThis.filter(b => !b.challenges)
   return (
-    <Layout title={fill(w.result.pageTitle, { title: showHidden(n.title) })} description={cut(showHidden(n.what), 200)} canonical={nodeHref(n.path)} card={doneCard(n)}>
+    <Layout title={fill(w.result.pageTitle, { title: showHidden(n.title) })} description={cut(showHidden(n.what), 200)} canonical={nodeHref(n.path)} card={previewCard(n)}>
       <link rel="stylesheet" href="/css/node.css" />
       <link rel="stylesheet" href="/css/result.css" />
       <a class="back" href={feedHref('closed')}>{w.result.backToClosed}</a>

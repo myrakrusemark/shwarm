@@ -37,7 +37,7 @@ const Header: FC<{ home?: boolean }> = ({ home }) => {
   )
 }
 
-// Launch mode (decided): stats are counted but hidden; the strip says "welcome new friends!". The manifesto sits left of donate.
+// Launch mode (decided): stats are counted but hidden; the strip says "welcome new friends!". About and the manifesto sit left of donate.
 const Strip: FC<{ showStats?: boolean; stats?: { people: number; posts: number } }> = ({ showStats, stats }) => (
   <div class="strip">
     <span>
@@ -46,7 +46,7 @@ const Strip: FC<{ showStats?: boolean; stats?: { people: number; posts: number }
       ) : (
         <span class="stats-soon">{w.chrome.welcome} · </span>
       )}
-      <a class="mf-link" href="/manifesto">{w.chrome.manifesto}</a> · <a class="dn-link" href="#donate">{w.chrome.donate}</a>
+      <a class="mf-link" href="/about">{w.chrome.about}</a> · <a class="mf-link" href="/manifesto">{w.chrome.manifesto}</a> · <a class="dn-link" href="#donate">{w.chrome.donate}</a>
     </span>
     <Me {...useContext(PageContext)} />
   </div>
@@ -161,14 +161,14 @@ const Footer: FC = () => (
     <div class="vine"><span class="v">{VINE}</span><i class="mark" aria-hidden="true"></i><span class="v">{VINE}</span></div>
     <span class="copy">{fill(w.chrome.copyright, { year: new Date().getFullYear() })}</span>
     <LanguageSwitch />
-    <span class="flinks"><a class="dn-link" href="#donate">{w.chrome.donate}</a> · <a href="/terms">{w.chrome.terms}</a> · <a href="/privacy">{w.chrome.privacy}</a> · <a href="https://status.shwarm.org">{w.chrome.status}</a></span>
+    <span class="flinks"><a href="/about">{w.chrome.about}</a> · <a class="dn-link" href="#donate">{w.chrome.donate}</a> · <a href="/terms">{w.chrome.terms}</a> · <a href="/privacy">{w.chrome.privacy}</a> · <a href="https://status.shwarm.org">{w.chrome.status}</a></span>
   </footer>
 )
 
 // Link previews and canonical links (go-live 11.7). `canonical` is the page's own path with only the query that makes
 // it a different page; it becomes <link rel=canonical> and og:url on the site's origin (PageInfo.origin). `card` is
 // what a link preview in a chat or social app shows, when it isn't the title and description: a shwarm's title and its
-// done line. Text only: no image is made per page, and the one og:image is the site's mark.
+// pitch. Text only: no image is made per page, and the one og:image is the site's mark.
 const Social: FC<{ title: string; description?: string; canonical?: string; card?: { title: string; description: string } }> = ({ title, description, canonical, card }) => {
   const { origin } = useContext(PageContext)
   const href = canonical && origin ? origin + canonical : undefined

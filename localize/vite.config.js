@@ -5,6 +5,9 @@
 // where it shows. Editing English here changes only the text between the quotes; comments and names stay as they are.
 // Other languages: apps/site/src/words/translations/<code>.json, one line per English entry ({ text, from, checked }),
 // listed in apps/site/src/words/languages.json. The site falls back to English for any line a language lacks.
+// The reading pages (footer pages, guides, the manifesto, about) are translated here too, as doc.<slug>.<part> lines
+// in the same files. Their English is apps/site/src/content/pages.json, written from scripts/pages/content.py, which
+// is where the English changes; here it's read-only.
 // "Waiting to ship" means different from the last commit (git HEAD); Claude ships them (commit, tests, deploy).
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
@@ -18,6 +21,7 @@ const WORDS = path.join(ROOT, 'apps/site/src/words')
 const EN = path.join(WORDS, 'en')
 const LANGS = path.join(WORDS, 'languages.json')
 const TRANS = path.join(WORDS, 'translations')
+const PAGES = path.join(ROOT, 'apps/site/src/content/pages.json')
 const RTL = new Set(['ar', 'he', 'fa', 'ur', 'ps', 'sd', 'ug', 'yi', 'dv', 'ckb'])
 const rel = f => path.relative(ROOT, f)
 const slotsOf = s => [...new Set([...String(s).matchAll(/\{(\w+)\}/g)].map(m => m[1]))].sort()
@@ -116,6 +120,29 @@ const languages = () => readJson(LANGS, [{ code: 'en', name: 'english', dir: 'lt
 const transFile = code => path.join(TRANS, `${code}.json`)
 const formsOf = code => new Intl.PluralRules(code).resolvedOptions().pluralCategories
 
+/** The reading pages as areas of lines, one per part: title, lede, the intro's text bits, each section's heading and body. */
+function docAreas() {
+  return readJson(PAGES, []).map(p => ({
+    area: `doc.${p.slug}`,
+    about: `the page /${p.slug} ("${p.title}"). its english comes from scripts/pages/content.py; keep every link, tag and bit of code as the english has it.`,
+    entries: [
+      { key: `doc.${p.slug}.title`, source: p.title, note: 'the page title' },
+      { key: `doc.${p.slug}.lede`, source: p.lede, note: 'the line under the title' },
+      ...(p.introText ?? []).map((t, i) => ({ key: `doc.${p.slug}.intro.${i}`, source: t, note: 'a bit of text in the figure at the top' })),
+      ...p.sections.flatMap(x => [
+        { key: `doc.${p.slug}.${x.id}.h`, source: x.h, note: `the heading of section #${x.id}` },
+        { key: `doc.${p.slug}.${x.id}.body`, source: x.body, note: `section #${x.id}, as html` },
+      ]),
+    ],
+  }))
+}
+
+/** What a page line's translation must keep from its English (test/doc-translations.test.ts checks the same). */
+const kept = s => {
+  const bag = re => [...s.matchAll(re)].map(m => m.slice(1).join('\u0000')).sort().join('\u0001')
+  return { links: bag(/href="([^"]*)"/g), code: bag(/<(code|pre)[^>]*>([\s\S]*?)<\/\1>/g), tags: bag(/<(\/?[a-z0-9]+)/g) }
+}
+
 /**
  * A language's lines against the English: one row per English entry, and for a plural one row per form the language
  * uses (English's "other" shown for forms English doesn't have). Status: missing, draft, checked, or stale (the English
@@ -140,12 +167,13 @@ function translation(code) {
     }
     return { area: a.area, about: a.about, entries: rows }
   })
-  function row(key, source, note, form) {
+  for (const a of docAreas()) out.push({ area: a.area, about: a.about, entries: a.entries.map(e => row(e.key, e.source, e.note, null, true)) })
+  function row(key, source, note, form, doc = false) {
     used.add(key)
     const line = t[key]
     const status = !line?.text ? 'missing' : line.from !== source ? 'stale' : line.checked ? 'checked' : 'draft'
     const was = old[key]
-    return { key, source, note, form, text: line?.text ?? '', from: line?.from ?? null, checked: !!line?.checked, status, slots: slotsOf(source), unshipped: JSON.stringify(was ?? null) !== JSON.stringify(line ?? null) }
+    return { key, source, note, form, text: line?.text ?? '', from: line?.from ?? null, checked: !!line?.checked, status, slots: doc ? [] : slotsOf(source), doc, unshipped: JSON.stringify(was ?? null) !== JSON.stringify(line ?? null) }
   }
   const orphans = Object.entries(t).filter(([k]) => !used.has(k)).map(([key, v]) => ({ key, ...v }))
   return { areas: out, orphans }
@@ -162,12 +190,17 @@ function saveTranslation(code, key, { text, checked }) {
   }
   if (text === undefined) text = t[key]?.text ?? ''
   text = String(text)
-  if (text.length > 4000) throw new Error('the text is too long')
+  if (text.length > (row.doc ? 30000 : 4000)) throw new Error('the text is too long')
   if (text.trim() === '') delete t[key]
   else {
     // every slot the English has, and no others: a missing {link} would drop a link from the page
     const want = row.slots, got = slotsOf(text)
     const missing = want.filter(s => !got.includes(s)), extra = got.filter(s => !want.includes(s))
+    if (row.doc) {
+      const a = kept(row.source), b = kept(text)
+      const lost = ['links', 'code', 'tags'].filter(k => a[k] !== b[k])
+      if (lost.length) throw new Error(`keep the english's ${lost.join(', ')} exactly as they are; translate only the words around them`)
+    }
     if (missing.length || extra.length) throw new Error([missing.length && `keep ${missing.map(s => `{${s}}`).join(' ')}`, extra.length && `{${extra.join('}, {')}} isn't in the english`].filter(Boolean).join('; ') + ' (slots stay as they are; move them anywhere in the sentence)')
     // saving the text means it was looked at against today's English; a changed text is a draft again unless ticked
     const same = t[key]?.text === text
@@ -204,8 +237,8 @@ function api() {
   return {
     name: 'localize-api',
     configureServer(server) {
-      server.watcher.add(WORDS)
-      server.watcher.on('change', f => { if (path.resolve(f).startsWith(WORDS)) server.ws.send({ type: 'custom', event: 'words-changed' }) })
+      server.watcher.add([WORDS, PAGES])
+      server.watcher.on('change', f => { if (path.resolve(f).startsWith(WORDS) || path.resolve(f) === PAGES) server.ws.send({ type: 'custom', event: 'words-changed' }) })
       const json = (res, status, body) => { res.statusCode = status; res.setHeader('Content-Type', 'application/json'); res.setHeader('Cache-Control', 'no-store'); res.end(JSON.stringify(body)) }
       const post = (req, res, fn) => {
         if (req.method !== 'POST') return json(res, 405, { error: 'post only' })

@@ -84,6 +84,7 @@ describe('translations', () => {
     it(`${code}: every line is for an English entry, with the same {slots}`, () => {
       const forms = new Intl.PluralRules(code).resolvedOptions().pluralCategories as string[]
       for (const [key, { text }] of Object.entries(t)) {
+        if (key.startsWith('doc.')) continue // the reading pages' lines: test/doc-translations.test.ts
         const base = key.slice(0, key.lastIndexOf('.'))
         if (plurals.has(base)) {
           expect(forms, `${key}: ${code} has no "${key.slice(base.length + 1)}" form`).toContain(key.slice(base.length + 1))

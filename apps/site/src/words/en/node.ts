@@ -5,7 +5,6 @@ export const node = {
   // the browser tab's title ({title} is the shwarm's or branch's title)
   pageTitle: '{title} · shwarm',
   // a link preview in a chat or social app: its line under the title ({done} is the done test)
-  cardDescription: 'done when: {done}',
   // the word put in for {kind} in the entries below
   kindShwarm: 'shwarm',
   kindBranch: 'branch',

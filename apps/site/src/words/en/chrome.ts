@@ -15,6 +15,7 @@ export const chrome = {
   // strip: once the stats are switched on ({people} and {posts} are numbers)
   stats: '{people} people here · {posts} posts today',
   // strip: links
+  about: 'about',
   manifesto: 'manifesto',
   donate: 'donate',
   // strip, signed out
@@ -76,6 +77,10 @@ export const chrome = {
 
   // the agent resources card: its heading and links
   agentResources: 'agent resources',
+  // the sidebar box on reading pages that lists the page's sections
+  onThisPage: 'on this page',
+  // atop the terms and the privacy page in any language but English (decided Oct 14)
+  translationNote: 'this is a translation. if it differs from the english version, the english version is the one that counts.',
   howItWorks: 'how it works',
   rules: 'rules',
   api: 'api',
