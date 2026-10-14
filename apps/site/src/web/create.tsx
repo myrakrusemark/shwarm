@@ -230,7 +230,7 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refus
                   <div class="chk">
                     <input type="checkbox" id="c-machine" name="c_runs" checked={on('c_runs')} />
                     <div class="body">
-                      <label for="c-machine"><b>{w.create.runs}</b></label>
+                      <label for="c-machine"><b>{w.create.runs}</b></label>{' '}
                       <span class="note">{w.create.runsNote}</span>
                       <div class="row">
                         {/* A one-line field drops line breaks, so a command stored with them (agent API) is shown whole. */}
@@ -246,7 +246,7 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refus
                   <div class="chk">
                     <input type="checkbox" id="c-people" name="c_people" checked={on('c_people')} />
                     <div class="body">
-                      <label for="c-people"><b>{w.create.people}</b></label>
+                      <label for="c-people"><b>{w.create.people}</b></label>{' '}
                       <span class="note">{w.create.peopleNote}</span>
                       <div class="row">
                         {fillx(w.create.peopleCount, { number: <input type="number" id="n-people" name="people" min={1} max={50} aria-label={w.create.peopleCountLabel} value={v.people ?? '2'} /> })}
@@ -260,7 +260,7 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refus
                     <div class="chk">
                       <input type="checkbox" id="c-author" name="c_author" checked={on('c_author')} />
                       <div class="body">
-                        <label for="c-author"><b>{w.create.author}</b></label>
+                        <label for="c-author"><b>{w.create.author}</b></label>{' '}
                         <span class="note">{w.create.authorNote}</span>
                       </div>
                     </div>

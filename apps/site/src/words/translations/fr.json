@@ -880,28 +880,28 @@
     "checked": false
   },
   "create.branchPlaceCommand": {
-    "text": "./validate.sh places.geojson --novels",
-    "from": "./validate.sh places.geojson --novels",
+    "text": "./reproduce.sh alcubierre",
+    "from": "./reproduce.sh alcubierre",
     "checked": false
   },
   "create.branchPlaceDone": {
-    "text": "chaque lieu réel nommé dans les quatre romans est dans places.geojson, avec ses coordonnées et la citation qui le nomme.",
-    "from": "every named real-world place in the four novels is in places.geojson, with coordinates and the quote that names it.",
+    "text": "un notebook ouvert recalcule l'énergie dont la bulle d'alcubierre a besoin et retrouve le chiffre de l'article.",
+    "from": "an open notebook recomputes the energy the alcubierre bubble needs and matches the paper's number.",
     "checked": false
   },
   "create.branchPlaceLook": {
-    "text": "ce que font les vérificateurs et ce qu'ils doivent voir : prendre 5 lignes des romans et retrouver chaque citation dans le texte.",
-    "from": "what checkers do and what they should see: pick 5 rows from the novels and find each quote in the text.",
+    "text": "ce que font les vérificateurs et ce qu'ils doivent voir : lancer le notebook et comparer son chiffre d'énergie à celui de l'article.",
+    "from": "what checkers do and what they should see: run the notebook and compare its energy number with the paper's.",
     "checked": false
   },
   "create.branchPlaceTitle": {
-    "text": "les lieux des quatre romans",
-    "from": "places in the four novels",
+    "text": "refaire les calculs d'alcubierre",
+    "from": "redo the alcubierre math",
     "checked": false
   },
   "create.branchPlaceWhat": {
-    "text": "les nouvelles sont cartographiées, mais personne n'a encore commencé les quatre romans…",
-    "from": "the short stories are mapped, but nobody has started on the four novels yet…",
+    "text": "l'article d'alcubierre de 1994 a tout lancé, mais ses chiffres d'énergie ont été revus bien des fois depuis, et personne ici ne les a encore refaits…",
+    "from": "the 1994 alcubierre paper started it all, but its energy numbers have been revised many times since, and nobody here has redone them yet…",
     "checked": false
   },
   "create.branchSub": {
@@ -1105,28 +1105,28 @@
     "checked": false
   },
   "create.placeCommand": {
-    "text": "./validate.sh places.geojson",
-    "from": "./validate.sh places.geojson",
+    "text": "./reproduce.sh warp-bubble",
+    "from": "./reproduce.sh warp-bubble",
     "checked": false
   },
   "create.placeDone": {
-    "text": "un fichier geojson ouvert liste chaque lieu réel nommé dans les 60 histoires, avec ses coordonnées et la citation qui le nomme, et 2 vérificateurs trouvent au moins 97 lignes justes sur 100 tirées au hasard.",
-    "from": "an open geojson file lists every named real-world place in all 60 stories with coordinates and the quote that names it, and 2 checkers find at least 97 of 100 random rows correct.",
+    "text": "une simulation ouverte d'une bulle de distorsion publiée prédit un résultat qu'un vrai labo pourrait mesurer, le montage du labo est écrit, et 2 vérificateurs relancent la simulation et obtiennent les mêmes chiffres.",
+    "from": "an open simulation of one published warp bubble predicts a result a real lab could measure, the lab setup is written down, and 2 checkers rerun the simulation and get the same numbers.",
     "checked": false
   },
   "create.placeLook": {
-    "text": "ce que font les vérificateurs et ce qu'ils doivent voir : prendre 10 lignes au hasard, retrouver chaque citation dans son histoire, et chercher le lieu sur une carte.",
-    "from": "what checkers do and what they should see: pick 10 random rows, find each quote in its story, and look up the place on a map.",
+    "text": "ce que font les vérificateurs et ce qu'ils doivent voir : relancer la simulation, comparer ses chiffres à ceux de l'article, et lire le montage du labo pour repérer toute étape que personne ne pourrait construire.",
+    "from": "what checkers do and what they should see: rerun the simulation, compare its numbers with the paper's, and read the lab setup for any step nobody could build.",
     "checked": false
   },
   "create.placeTitle": {
-    "text": "cartographier chaque lieu visité par sherlock holmes",
-    "from": "map every place sherlock holmes went",
+    "text": "résoudre le voyage en distorsion",
+    "from": "solve warp travel",
     "checked": false
   },
   "create.placeWhat": {
-    "text": "les histoires citent des centaines de vraies rues, villes et landes. une carte ouverte permettrait à chacun de suivre les enquêtes…",
-    "from": "the stories name hundreds of real streets, towns and moors. one open map would let anyone follow the cases…",
+    "text": "la distorsion de star trek ne restera peut-être pas de la fiction. des physiciens ont publié des bulles de distorsion qui marchent sur le papier, mais les affirmations sont éparpillées et peu ont été vérifiées. ensemble, on peut les rassembler, vérifier les calculs au grand jour et en trouver une qu'un labo pourrait tester…",
+    "from": "star trek's warp drive may not stay fiction. physicists have published warp bubbles that work on paper, but the claims are scattered and few have been checked. together we can gather them, check the math in the open, and find one a lab could test…",
     "checked": false
   },
   "create.rateLimited": {

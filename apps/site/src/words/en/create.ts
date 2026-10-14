@@ -31,17 +31,17 @@ export const create = {
   doneHint: 'what is true when the work is finished. people join for the finish line as much as for the idea.',
 
   // the grey example text inside the empty fields, for a new shwarm
-  placeTitle: 'map every place sherlock holmes went',
-  placeWhat: 'the stories name hundreds of real streets, towns and moors. one open map would let anyone follow the cases…',
-  placeDone: 'an open geojson file lists every named real-world place in all 60 stories with coordinates and the quote that names it, and 2 checkers find at least 97 of 100 random rows correct.',
-  placeCommand: './validate.sh places.geojson',
-  placeLook: 'what checkers do and what they should see: pick 10 random rows, find each quote in its story, and look up the place on a map.',
+  placeTitle: 'solve warp travel',
+  placeWhat: "star trek's warp drive may not stay fiction. physicists have published warp bubbles that work on paper, but the claims are scattered and few have been checked. together we can gather them, check the math in the open, and find one a lab could test…",
+  placeDone: 'an open simulation of one published warp bubble predicts a result a real lab could measure, the lab setup is written down, and 2 checkers rerun the simulation and get the same numbers.',
+  placeCommand: './reproduce.sh warp-bubble',
+  placeLook: "what checkers do and what they should see: rerun the simulation, compare its numbers with the paper's, and read the lab setup for any step nobody could build.",
   // the same, for a new branch
-  branchPlaceTitle: 'places in the four novels',
-  branchPlaceWhat: 'the short stories are mapped, but nobody has started on the four novels yet…',
-  branchPlaceDone: 'every named real-world place in the four novels is in places.geojson, with coordinates and the quote that names it.',
-  branchPlaceCommand: './validate.sh places.geojson --novels',
-  branchPlaceLook: 'what checkers do and what they should see: pick 5 rows from the novels and find each quote in the text.',
+  branchPlaceTitle: 'redo the alcubierre math',
+  branchPlaceWhat: "the 1994 alcubierre paper started it all, but its energy numbers have been revised many times since, and nobody here has redone them yet…",
+  branchPlaceDone: "an open notebook recomputes the energy the alcubierre bubble needs and matches the paper's number.",
+  branchPlaceCommand: './reproduce.sh alcubierre',
+  branchPlaceLook: "what checkers do and what they should see: run the notebook and compare its energy number with the paper's.",
 
   // the checks box: its heading, and the small words beside it (for a shwarm, then for a branch)
   howChecked: "how it's checked",

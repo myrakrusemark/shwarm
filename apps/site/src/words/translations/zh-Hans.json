@@ -880,28 +880,28 @@
     "checked": false
   },
   "create.branchPlaceCommand": {
-    "text": "./validate.sh places.geojson --novels",
-    "from": "./validate.sh places.geojson --novels",
+    "text": "./reproduce.sh alcubierre",
+    "from": "./reproduce.sh alcubierre",
     "checked": false
   },
   "create.branchPlaceDone": {
-    "text": "四部长篇里每个有名字的真实地点都在 places.geojson 里，带坐标和提到它的原文。",
-    "from": "every named real-world place in the four novels is in places.geojson, with coordinates and the quote that names it.",
+    "text": "一个公开的 notebook 重新算出阿尔库别雷曲速泡所需的能量，并与论文里的数字一致。",
+    "from": "an open notebook recomputes the energy the alcubierre bubble needs and matches the paper's number.",
     "checked": false
   },
   "create.branchPlaceLook": {
-    "text": "检验者要做什么、应该看到什么：从长篇里挑 5 行，在原文里找到每段引文。",
-    "from": "what checkers do and what they should see: pick 5 rows from the novels and find each quote in the text.",
+    "text": "检验者要做什么、应该看到什么：运行 notebook，把它算出的能量和论文里的数字对比。",
+    "from": "what checkers do and what they should see: run the notebook and compare its energy number with the paper's.",
     "checked": false
   },
   "create.branchPlaceTitle": {
-    "text": "四部长篇里的地点",
-    "from": "places in the four novels",
+    "text": "重算阿尔库别雷的数学",
+    "from": "redo the alcubierre math",
     "checked": false
   },
   "create.branchPlaceWhat": {
-    "text": "短篇都标好了，但四部长篇还没人开始…",
-    "from": "the short stories are mapped, but nobody has started on the four novels yet…",
+    "text": "1994 年阿尔库别雷的论文开启了这一切，但它的能量数字后来被修正过很多次，这里还没有人重算过…",
+    "from": "the 1994 alcubierre paper started it all, but its energy numbers have been revised many times since, and nobody here has redone them yet…",
     "checked": false
   },
   "create.branchSub": {
@@ -1105,28 +1105,28 @@
     "checked": false
   },
   "create.placeCommand": {
-    "text": "./validate.sh places.geojson",
-    "from": "./validate.sh places.geojson",
+    "text": "./reproduce.sh warp-bubble",
+    "from": "./reproduce.sh warp-bubble",
     "checked": false
   },
   "create.placeDone": {
-    "text": "一个开放的 geojson 文件列出全部 60 个故事里每个有名字的真实地点，带坐标和提到它的原文，并且 2 位检验者随机抽 100 行，至少 97 行正确。",
-    "from": "an open geojson file lists every named real-world place in all 60 stories with coordinates and the quote that names it, and 2 checkers find at least 97 of 100 random rows correct.",
+    "text": "一个公开的模拟复现了一个已发表的曲速泡，并预测出真实实验室能测量的结果，实验方案已经写下来，另有 2 名检验者重跑模拟并得到相同的数字。",
+    "from": "an open simulation of one published warp bubble predicts a result a real lab could measure, the lab setup is written down, and 2 checkers rerun the simulation and get the same numbers.",
     "checked": false
   },
   "create.placeLook": {
-    "text": "检验者要做什么、应该看到什么：随机挑 10 行，在故事里找到每段原文，再在地图上查一下这个地方。",
-    "from": "what checkers do and what they should see: pick 10 random rows, find each quote in its story, and look up the place on a map.",
+    "text": "检验者要做什么、应该看到什么：重跑模拟，把它的数字和论文里的对比，再通读实验方案，找出任何没人做得出来的步骤。",
+    "from": "what checkers do and what they should see: rerun the simulation, compare its numbers with the paper's, and read the lab setup for any step nobody could build.",
     "checked": false
   },
   "create.placeTitle": {
-    "text": "标出福尔摩斯去过的每个地方",
-    "from": "map every place sherlock holmes went",
+    "text": "解决曲速航行",
+    "from": "solve warp travel",
     "checked": false
   },
   "create.placeWhat": {
-    "text": "故事里提到了几百个真实的街道、城镇和荒原。有一张开放地图，谁都能跟着案子走一遍…",
-    "from": "the stories name hundreds of real streets, towns and moors. one open map would let anyone follow the cases…",
+    "text": "星际迷航里的曲速引擎未必永远是科幻。物理学家已经发表了在纸面上成立的曲速泡，但这些说法很分散，经过检验的很少。我们可以一起把它们收集起来，公开检查其中的数学，找出一个实验室能测试的…",
+    "from": "star trek's warp drive may not stay fiction. physicists have published warp bubbles that work on paper, but the claims are scattered and few have been checked. together we can gather them, check the math in the open, and find one a lab could test…",
     "checked": false
   },
   "create.rateLimited": {

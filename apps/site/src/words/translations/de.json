@@ -880,28 +880,28 @@
     "checked": false
   },
   "create.branchPlaceCommand": {
-    "text": "./validate.sh places.geojson --novels",
-    "from": "./validate.sh places.geojson --novels",
+    "text": "./reproduce.sh alcubierre",
+    "from": "./reproduce.sh alcubierre",
     "checked": false
   },
   "create.branchPlaceDone": {
-    "text": "jeder benannte echte Ort aus den vier Romanen steht in places.geojson, mit Koordinaten und dem Zitat, das ihn nennt.",
-    "from": "every named real-world place in the four novels is in places.geojson, with coordinates and the quote that names it.",
+    "text": "ein offenes Notebook berechnet die Energie, die die Alcubierre-Blase braucht, neu und trifft den Wert aus dem Paper.",
+    "from": "an open notebook recomputes the energy the alcubierre bubble needs and matches the paper's number.",
     "checked": false
   },
   "create.branchPlaceLook": {
-    "text": "was Prüfende tun und sehen sollten: 5 Zeilen aus den Romanen wählen und jedes Zitat im Text finden.",
-    "from": "what checkers do and what they should see: pick 5 rows from the novels and find each quote in the text.",
+    "text": "was Prüfende tun und sehen sollten: das Notebook ausführen und seinen Energiewert mit dem aus dem Paper vergleichen.",
+    "from": "what checkers do and what they should see: run the notebook and compare its energy number with the paper's.",
     "checked": false
   },
   "create.branchPlaceTitle": {
-    "text": "Orte in den vier Romanen",
-    "from": "places in the four novels",
+    "text": "die Alcubierre-Rechnung nachrechnen",
+    "from": "redo the alcubierre math",
     "checked": false
   },
   "create.branchPlaceWhat": {
-    "text": "die Kurzgeschichten sind kartiert, aber mit den vier Romanen hat noch niemand angefangen…",
-    "from": "the short stories are mapped, but nobody has started on the four novels yet…",
+    "text": "das Alcubierre-Paper von 1994 hat alles angestoßen, aber seine Energiewerte wurden seitdem oft korrigiert, und hier hat sie noch niemand nachgerechnet…",
+    "from": "the 1994 alcubierre paper started it all, but its energy numbers have been revised many times since, and nobody here has redone them yet…",
     "checked": false
   },
   "create.branchSub": {
@@ -1105,28 +1105,28 @@
     "checked": false
   },
   "create.placeCommand": {
-    "text": "./validate.sh places.geojson",
-    "from": "./validate.sh places.geojson",
+    "text": "./reproduce.sh warp-bubble",
+    "from": "./reproduce.sh warp-bubble",
     "checked": false
   },
   "create.placeDone": {
-    "text": "eine offene GeoJSON-Datei listet jeden benannten echten Ort aus allen 60 Geschichten, mit Koordinaten und dem Zitat, das ihn nennt, und 2 Prüfende finden mindestens 97 von 100 zufälligen Zeilen korrekt.",
-    "from": "an open geojson file lists every named real-world place in all 60 stories with coordinates and the quote that names it, and 2 checkers find at least 97 of 100 random rows correct.",
+    "text": "eine offene Simulation einer veröffentlichten Warp-Blase sagt ein Ergebnis voraus, das ein echtes Labor messen könnte, der Laboraufbau ist aufgeschrieben, und 2 Prüfende lassen die Simulation erneut laufen und bekommen dieselben Zahlen.",
+    "from": "an open simulation of one published warp bubble predicts a result a real lab could measure, the lab setup is written down, and 2 checkers rerun the simulation and get the same numbers.",
     "checked": false
   },
   "create.placeLook": {
-    "text": "was Prüfende tun und sehen sollten: 10 zufällige Zeilen wählen, jedes Zitat in seiner Geschichte finden und den Ort auf einer Karte nachschlagen.",
-    "from": "what checkers do and what they should see: pick 10 random rows, find each quote in its story, and look up the place on a map.",
+    "text": "was Prüfende tun und sehen sollten: die Simulation erneut laufen lassen, ihre Zahlen mit denen des Papers vergleichen und den Laboraufbau auf Schritte lesen, die niemand bauen könnte.",
+    "from": "what checkers do and what they should see: rerun the simulation, compare its numbers with the paper's, and read the lab setup for any step nobody could build.",
     "checked": false
   },
   "create.placeTitle": {
-    "text": "jeden Ort kartieren, an dem Sherlock Holmes war",
-    "from": "map every place sherlock holmes went",
+    "text": "Warp-Reisen lösen",
+    "from": "solve warp travel",
     "checked": false
   },
   "create.placeWhat": {
-    "text": "die Geschichten nennen Hunderte echte Straßen, Städte und Moore. eine offene Karte würde allen erlauben, den Fällen zu folgen…",
-    "from": "the stories name hundreds of real streets, towns and moors. one open map would let anyone follow the cases…",
+    "text": "der Warp-Antrieb aus Star Trek muss keine Fiktion bleiben. Physiker haben Warp-Blasen veröffentlicht, die auf dem Papier funktionieren, aber die Aussagen sind verstreut und kaum geprüft. gemeinsam können wir sie sammeln, die Mathematik offen prüfen und eine finden, die ein Labor testen könnte…",
+    "from": "star trek's warp drive may not stay fiction. physicists have published warp bubbles that work on paper, but the claims are scattered and few have been checked. together we can gather them, check the math in the open, and find one a lab could test…",
     "checked": false
   },
   "create.rateLimited": {
