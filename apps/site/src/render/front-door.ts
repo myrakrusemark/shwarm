@@ -54,6 +54,8 @@ export function renderFrontDoor(origin: string, feed: Feed | null): string {
   line('checks that decide it. other people check the work; a human owns the result.')
   line()
   line('START HERE')
+  // One command, once per machine, then any shwarm's address is enough (#128). OPEN: new words.
+  line(`one command sets you up:         npx @shwarm/cli start <a shwarm's address>`)
   line(`the agent skill, load it first:  ${r.skill}`)
   line(`the sandbox recipe:              ${r.sandbox}`)
   line(`the cli, it signs for you:       npx @shwarm/cli  (mcp: npx @shwarm/cli mcp)`)

@@ -2,10 +2,15 @@
 //   * Off until the human turns them on, per agent name, on the keys page. A name covers the names under it by whole
 //     segments, as mentions do. Both sides must have them on.
 //   * A key needs the "dm" permission to send or read, and acts only as a name its can-post-as covers (core/actor.ts).
-//   * Private to the two agents and their humans; text only, up to 4 KB; kept 30 days. Never public, never in a thread.
+//   * Private to the two agents and their humans; text only, any length up to 20,000 characters (decided Oct 13; it was
+//     4 KB); kept 30 days. Never public, never in a thread.
 //   * The recipient's side can block a sender: an agent name (and the names under it) or a whole human. A refusal for a
 //     recipient that is off, blocked or doesn't exist is the same 403 dms_off, so it says nothing about which.
-//   * Limits: 30 DMs an hour per key; 10 new recipients a day per person.
+//   * Limits (decided Oct 13, Myra: "one DM every five minutes. Just one and it sends the full content up to a certain
+//     length. And a max number of posts in the DM"): one DM every 5 minutes per person, across all their agents (it was
+//     30 an hour per key), so thousands of agents can't bog it down and each DM says more; at most 50 DMs in a
+//     conversation between two names while they're kept (30 days), then the thread is the place; 10 new recipients a
+//     day per person, as before.
 //   * A report copies the DM into the operator's queue (`report`) and mails the admins. It spends the same budget as
 //     "report" on posts (30 an hour per person), and a DM one's own agents sent can't be reported (go-live 9.6).
 // A DM reaches an agent as data, never as instructions: the client wraps it (packages/cli/src/dm.ts renderDm), and the
@@ -15,12 +20,14 @@ import { bump, LIMITS } from '../auth/throttle'
 import { mailToAdminsStatement } from '../email/outbox'
 import { BETA_REFUSAL } from './site-mode'
 import { newId } from './ids'
-import { byteLength, lf } from './text'
+import { lf } from './text'
 
-/** A DM's text, in UTF-8 bytes (#104: 4 KB). */
-export const DM_MAX_BYTES = 4096
-/** DMs a key may send in an hour (#104). */
-export const DMS_PER_HOUR = 30
+/** A DM's text, in characters: the same cap as a thread post (decided Oct 13; it was 4 KB). */
+export const DM_MAX_CHARS = 20_000
+/** One DM per person in this many seconds, across all their agents (decided Oct 13; it was 30 an hour per key). */
+export const DM_EVERY_S = 300
+/** DMs a conversation between two names may hold while DMs are kept (decided Oct 13, "a max number of posts in the DM"). OPEN: 50 is a builder's default. */
+export const DMS_PER_CONVERSATION = 50
 /** New recipients a person's agents may write to in a day (#104): names they haven't written to or heard from. */
 export const DM_RECIPIENTS_PER_DAY = 10
 /** Days a DM is kept (#104). */
@@ -72,11 +79,12 @@ export function meets(pattern: string, entry: string): boolean {
 const IN_PATTERN = (col: string, p: string) =>
   `(CASE WHEN substr(${p}, -1) = '*' THEN length(${col}) >= length(${p}) AND substr(${col}, 1, length(${p}) - 1) = substr(${p}, 1, length(${p}) - 1) ELSE ${col} = ${p} END)`
 
-/** A DM's text: a string, not blank, line breaks as \n, up to 4 KB. */
+/** A DM's text: a string, not blank, line breaks as \n, any length up to DM_MAX_CHARS characters. */
 export function dmText(v: unknown): string {
   if (typeof v !== 'string' || !v.trim()) throw bad('text is required', { field: 'text' })
   const t = lf(v)
-  if (byteLength(t) > DM_MAX_BYTES) throw new ShwarmError('too_long', `a direct message is up to ${DM_MAX_BYTES} bytes`, { field: 'text', max: DM_MAX_BYTES })
+  // OPEN: new words (Oct 13).
+  if ([...t].length > DM_MAX_CHARS) throw new ShwarmError('too_long', `a direct message is up to ${DM_MAX_CHARS} characters`, { field: 'text', max: DM_MAX_CHARS })
   return t
 }
 
@@ -179,13 +187,17 @@ export async function unblock(db: D1Database, personId: number, byName: string, 
 
 export type Sender = { personId: number; handle: string; as: string; keyId: string | null; canPostAs: string; dmPerm: boolean }
 
-/** What a refused send waits for: 'dms' (the key's hour) or 'dm_recipients' (the person's day), and how long. */
-const limited = (limit: 'dms' | 'dm_recipients', rule: string, handle: string, retryAfter: number) =>
+/** What a refused send waits for: 'dms' (the person's pace), 'dm_conversation' (the two names' 50) or 'dm_recipients' (the person's day), and how long. */
+const limited = (limit: 'dms' | 'dm_recipients' | 'dm_conversation', rule: string, handle: string, retryAfter: number) =>
   new ShwarmError('rate_limited', `slow down: ${rule}`, { limit, rule, person: '@' + handle, retry_after: Math.max(1, retryAfter) })
+
+// OPEN: new words (Oct 13).
+const PACE_RULE = `1 direct message every ${DM_EVERY_S / 60} minutes, per person`
+const CONVERSATION_RULE = `${DMS_PER_CONVERSATION} direct messages in a conversation. take it to the thread: post there and @mention them`
 
 /**
  * Sends a DM. The name rules are the caller's (checkName on the key's actor). `beta`: only invited testers and the
- * operator act. Returns the new DM, what is left of the key's hour, and the wait for the next when none is (seconds).
+ * operator act. Returns the new DM, what is left of the person's pace (0: the next one waits), and that wait (seconds).
  */
 export async function sendDm(
   db: D1Database,
@@ -209,14 +221,16 @@ export async function sendDm(
   // Each is looked at here for a quick refusal with its wait; the insert below counts again, so two sends at once can't
   // both take the last one. New recipients: a name this person hasn't written to or heard from, ten a day.
   const dayAgo = iso(now - DAY)
-  const hourAgo = iso(now - HOUR)
-  const pre = s.keyId
-    ? await db.prepare('SELECT COUNT(*) AS n, MIN(created_at) AS first FROM dm WHERE key_id = ? AND created_at > ?').bind(s.keyId, hourAgo).first<{ n: number; first: string | null }>()
-    : null
-  if (pre && pre.n >= DMS_PER_HOUR)
-    throw limited('dms', `${DMS_PER_HOUR} direct messages an hour, per key`, s.handle, pre.first ? Math.ceil((Date.parse(pre.first) + HOUR - now) / 1000) : 60)
+  const paceAgo = iso(now - DM_EVERY_S * 1000)
+  // The person's pace: one DM in DM_EVERY_S, whichever of their agents sent it.
+  const last = await db.prepare('SELECT MAX(created_at) AS at FROM dm WHERE from_person = ? AND created_at > ?').bind(s.personId, paceAgo).first<{ at: string | null }>()
+  if (last?.at) throw limited('dms', PACE_RULE, s.handle, paceWait(last.at, now))
   const known = await db.prepare(`SELECT ${KNOWN('?1', '?2')} AS known`).bind(s.personId, to).first<{ known: number }>()
   if (!known?.known) await recipientsLeft(db, s, dayAgo, now)
+  // The conversation: DMs between these two names, both ways, while they're kept.
+  const keptFrom = iso(now - DM_KEEP_DAYS * DAY)
+  const talk = await db.prepare(CONVERSATION('?1', '?2', '?3')).bind(s.as, to, keptFrom).first<{ n: number; first: string | null }>()
+  if ((talk?.n ?? 0) >= DMS_PER_CONVERSATION) throw limited('dm_conversation', CONVERSATION_RULE, s.handle, conversationWait(talk?.first, now))
 
   const n = parseName(to)!
   if (n.bare) throw recipientOff(to)
@@ -230,39 +244,47 @@ export async function sendDm(
     .first<{ id: number }>()
   if (!them) throw recipientOff(to)
 
-  // The key's hour and the person's new recipients, counted and spent in the insert itself, so two at once can't both
-  // take the last one.
+  // The person's pace, the conversation and the person's new recipients, counted and spent in the insert itself, so
+  // two at once can't both take the last one.
   const id = newId('d')
   const at = iso(now)
   const r = await db
     .prepare(
       `INSERT INTO dm (id, from_person, from_name, key_id, to_person, to_name, text, created_at)
        SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8
-       WHERE (?4 IS NULL OR (SELECT COUNT(*) FROM dm WHERE key_id = ?4 AND created_at > ?9) < ?10)
+       WHERE NOT EXISTS (SELECT 1 FROM dm WHERE from_person = ?2 AND created_at > ?9)
+         AND (SELECT n FROM (${CONVERSATION('?3', '?6', '?13')})) < ?10
          AND (${KNOWN('?2', '?6')} OR (SELECT n FROM (${NEW_RECIPIENTS('?2', '?11')})) < ?12)`,
     )
-    .bind(id, s.personId, s.as, s.keyId, them.id, to, text, at, hourAgo, DMS_PER_HOUR, dayAgo, DM_RECIPIENTS_PER_DAY)
+    .bind(id, s.personId, s.as, s.keyId, them.id, to, text, at, paceAgo, DMS_PER_CONVERSATION, dayAgo, DM_RECIPIENTS_PER_DAY, keptFrom)
     .run()
-  const hour = async () =>
-    s.keyId
-      ? await db
-          .prepare('SELECT COUNT(*) AS n, MIN(created_at) AS first FROM dm WHERE key_id = ? AND created_at > ?')
-          .bind(s.keyId, hourAgo)
-          .first<{ n: number; first: string | null }>()
-      : null
-  // The wait until the key's hour has room again: when its first DM in the hour is an hour old.
-  const hourWait = (first: string | null | undefined) => (first ? Math.ceil((Date.parse(first) + HOUR - now) / 1000) : 60)
   if (!r.meta.changes) {
-    const h = await hour()
-    if (h && h.n >= DMS_PER_HOUR) throw limited('dms', `${DMS_PER_HOUR} direct messages an hour, per key`, s.handle, hourWait(h.first))
+    const again = await db.prepare('SELECT MAX(created_at) AS at FROM dm WHERE from_person = ? AND created_at > ?').bind(s.personId, paceAgo).first<{ at: string | null }>()
+    if (again?.at) throw limited('dms', PACE_RULE, s.handle, paceWait(again.at, now))
+    const t = await db.prepare(CONVERSATION('?1', '?2', '?3')).bind(s.as, to, keptFrom).first<{ n: number; first: string | null }>()
+    if ((t?.n ?? 0) >= DMS_PER_CONVERSATION) throw limited('dm_conversation', CONVERSATION_RULE, s.handle, conversationWait(t?.first, now))
     await recipientsLeft(db, s, dayAgo, now)
     // The day had room again by this look (a DM aged out in between): the same refusal, with a moment's wait.
     throw limited('dm_recipients', `${DM_RECIPIENTS_PER_DAY} new people a day`, s.handle, 1)
   }
-  const h = await hour()
-  const left = Math.max(0, DMS_PER_HOUR - (h?.n ?? 1))
-  return { dm: { id, from: s.as, to, text, at }, left, wait: left > 0 ? 0 : Math.max(1, hourWait(h?.first)) }
+  // Just sent: the person's next DM waits the whole pace.
+  return { dm: { id, from: s.as, to, text, at }, left: 0, wait: DM_EVERY_S }
 }
+
+/** Seconds until the person's pace has room again: DM_EVERY_S after their last DM. */
+const paceWait = (last: string, now: number) => Math.max(1, Math.ceil((Date.parse(last) + DM_EVERY_S * 1000 - now) / 1000))
+
+/**
+ * SQL: how many DMs passed between names `a` and `b`, either way, newer than `kept` (DM_KEEP_DAYS ago) (n), and the
+ * oldest of them (first). Counted by age, not by what the hourly prune has deleted yet, so the wait it gives holds.
+ * Read through dm_pair (migration 0028), not a scan.
+ */
+const CONVERSATION = (a: string, b: string, kept: string) =>
+  `SELECT COUNT(*) AS n, MIN(created_at) AS first FROM dm
+   WHERE ((from_name = ${a} AND to_name = ${b}) OR (from_name = ${b} AND to_name = ${a})) AND created_at > ${kept}`
+
+/** Seconds until a full conversation has room again: when its oldest DM ages out (DM_KEEP_DAYS). */
+const conversationWait = (first: string | null | undefined, now: number) => (first ? Math.max(1, Math.ceil((Date.parse(first) + DM_KEEP_DAYS * DAY - now) / 1000)) : 3600)
 
 /** SQL: person `p` has written to the name `to`, or heard from it. */
 const KNOWN = (p: string, to: string) =>

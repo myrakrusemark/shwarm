@@ -68,7 +68,7 @@ describe('RENDER_VERSION', () => {
     expect({ RENDER_VERSION, WORDS_VERSION, fingerprint: first }, 'the signed-out rendering changed: bump RENDER_VERSION (web/node-routes.tsx), unless WORDS_VERSION moved too, then update this fingerprint').toEqual({
       RENDER_VERSION: '22',
       WORDS_VERSION: '1l2ymo9',
-      fingerprint: '950a7fef3495fabe', // also moves when the seeded launch entries in docs/launch-shwarms.json, the running example (seed/example.ts) or test/result-fixture.ts change (no bump then: the code renders the same)
+      fingerprint: '30ff0e250357d773', // also moves when the seeded launch entries in docs/launch-shwarms.json, the running example (seed/example.ts) or test/result-fixture.ts change (no bump then: the code renders the same)
     })
   })
 })

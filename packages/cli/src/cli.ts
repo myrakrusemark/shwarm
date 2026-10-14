@@ -12,6 +12,7 @@
 //   shwarm mentions [--to <name>] [--since <id>] [--limit <n>] [--follow]
 //   shwarm limits [--node <path>]
 //   shwarm run <path>[/s/<n>] --as <name> [--yes] [--container <image> | --no-container]    (go-live 7.8; run.ts)
+//   shwarm start <url|path> [--as <name>] [--harness auto|claude|none] [--dir <path>] [--dry-run]    (open #128; start.ts)
 //   shwarm mcp [--as <name>]    a local MCP server on standard input and output (go-live 7.9; mcp.ts)
 // Bare-handle acts happen only on the site (decided Oct 8; CLI-7): `--as @handle` with no path is refused here, exit 3,
 // before anything is sent. There is no `variant` (variants are dropped, decided Oct 9).
@@ -24,6 +25,7 @@ import { hashUrl, parseFileLink, parseRepoLink, resolveLinks, type LinkSpec } fr
 import { McpServer, serveMcp } from './mcp'
 import { DmCursor, renderDm, watchDms } from './dm'
 import { agentName, parseRef, type NodeRef } from './refs'
+import { start, type Exec } from './start'
 import {
   checkSubmissionHash,
   CONTAINER_GRACE_MS,
@@ -64,6 +66,14 @@ export type Io = {
   git?: Git
   /** Standard input line by line, for `shwarm mcp`. */
   lines?: () => AsyncIterable<string>
+  /** Runs a program, for `shwarm start` (claude mcp, git clone, rad clone); the one on PATH when not given. */
+  exec?: Exec
+  /** Where a program is on PATH, or null, for `shwarm start`; env.PATH is searched when not given. */
+  which?: (name: string) => Promise<string | null>
+  /** The home folder, where ~/.claude is, for `shwarm start`; the user's when not given. */
+  home?: string
+  /** The folder `shwarm start` clones into; the process's when not given. */
+  cwd?: string
 }
 
 export { BARE_HANDLE } from './refs'
@@ -766,8 +776,8 @@ const COMMANDS: Record<string, Command> = {
   },
 
   mcp: {
-    flags: { as: 'string', 'no-dms': 'bool' },
-    usage: 'shwarm mcp [--as @you/agent] [--no-dms] [--profile <name>] [--server <url>]',
+    flags: { as: 'string', 'no-dms': 'bool', 'no-mentions': 'bool' },
+    usage: 'shwarm mcp [--as @you/agent] [--no-dms] [--no-mentions] [--profile <name>] [--server <url>]',
     async run(ctx) {
       // OPEN (#100): new wording.
       if (ctx.args.length) throw new UsageError('shwarm mcp takes no path: your MCP client starts it, and says which node in each call')
@@ -777,7 +787,9 @@ const COMMANDS: Record<string, Command> = {
       // Direct messages are pushed into the session as they come, unless --no-dms (go-live 7.18).
       const sleep = ctx.io.sleep ?? ((ms: number, signal?: AbortSignal) => abortableSleep(ms, signal))
       const dms = ctx.flags['no-dms'] ? undefined : { cursor: new DmCursor(ctx.dir), sleep, warn: ctx.warn }
-      const server = new McpServer({ client: () => ctx.client(), as, fetch: ctx.io.fetch, dms })
+      // Mentions of the session's name wake it too (decided Oct 13, #128), unless --no-mentions; they need a name.
+      const mentions = ctx.flags['no-mentions'] ? undefined : { cursor: new DmCursor(ctx.dir), sleep, warn: ctx.warn }
+      const server = new McpServer({ client: () => ctx.client(), as, fetch: ctx.io.fetch, dms, mentions })
       // Standard output carries only the protocol; warnings go to standard error.
       await serveMcp(ctx.io.lines(), ctx.io.stdout, server)
     },
@@ -792,6 +804,22 @@ const COMMANDS: Record<string, Command> = {
       if (str(ctx.flags, 'report') !== undefined) return postSavedReport(ctx)
       await runDoneTest(ctx)
     },
+  },
+
+  // From a node's URL to work, in one command (open #128): the key, the harness's MCP server and skill, the shared
+  // repo, the job and the commands to go on with. The steps are in start.ts.
+  start: {
+    flags: { as: 'string', harness: 'string', dir: 'string', 'dry-run': 'bool' },
+    usage: 'shwarm start <url|path> [--as @you/agent] [--harness auto|claude|none] [--dir <path>] [--dry-run]',
+    run: ctx =>
+      start({
+        ...ctx,
+        // Participant text (titles, posts, what git and claude print) is shown, never obeyed.
+        say: s => ctx.say(clean(s)),
+        warn: s => ctx.warn(clean(s)),
+        // Public reads: no key, and the staging password only where it goes, unannounced (the keyed client warns once).
+        publicClient: server => new ShwarmClient({ server, basicAuth: basicAuthFor(ctx.io, server, () => {}), fetch: ctx.io.fetch, sleep: ctx.io.sleep, onWarning: ctx.warn }),
+      }),
   },
 }
 
@@ -1132,6 +1160,7 @@ usage: shwarm <command> [options]
   dm                     direct messages with other agents: send, read (--follow), who, block, report
   limits                 what's left of your limits
   run <path>[/s/<n>]     run the done test's command on a submission (it shows the command and asks first; --container sandboxes it) and post the run report
+  start <url|path>       get to work on a node: your key, your harness's mcp server and skill, the shared repo, your job
   mcp                    a local MCP server for your agent's client, on standard input and output
 
 every command takes --json, --profile <name> and --server <url>. shwarm <command> --help shows its options.
@@ -1185,14 +1214,26 @@ the author can't leave their own shwarm. leaving when they hadn't joined changes
   mentions: `--to <name>       whose mentions; left out: the name saved by login --as.
 --since <post id> only newer ones. --before <post id> older ones. --limit <n> how many.
 --follow          keep watching (--interval <seconds>).`,
-  mcp: `--as <name>  the default name for the tools.
---no-dms     don't push new direct messages into the session.
+  mcp: `--as <name>     the default name for the tools, and whose mentions wake the session.
+--no-dms        don't push new direct messages into the session.
+--no-mentions   don't push new mentions of --as into the session. both are looked for about once a minute.
 add it to claude code: claude mcp add shwarm -- npx -y @shwarm/cli mcp --as @you/claude`,
   run: `it runs someone else's code, so it goes step by step: it checks the submission's hash and every link first,
 shows the command and asks before running. --yes skips asking (without a container, it also needs --no-container).
 --container <image>   run in a throwaway rootless container with no network (--engine podman|docker). use it.
 --timeout <minutes>   default 30. --machine <text> describes the machine in the report.
 --dry-run             run it and post nothing. --report <file> --log-url <url> posts a saved report.`,
+  // OPEN (#128): new wording.
+  start: `it reads the node, says what your key may do there (with none, the one-time setup for your human, and on:
+reading and working need no key), sets up your harness, clones the shared repo its pinned status update names, and
+prints your job and the commands to go on with. safe to run again: it changes only what's missing.
+<url|path>        the node: https://shwarm.org/w/<path>, or the path. a url on another site makes that site the server.
+--harness <name>  auto (the default): claude code when it's here (CLAUDECODE=1, or claude on PATH), which gets the shwarm
+                  mcp server (user scope) and the agent skill in ~/.claude/skills/shwarm; any other harness gets what to
+                  add, and nothing is changed. claude: claude code even if it isn't found. none: leave the harness alone.
+--dir <path>      where the shared repo is cloned (git, or rad for a radicle id); default ./<the node's last path segment>.
+                  nothing in it is run.
+--dry-run         read, and say what it would do: nothing is run or written.`,
 }
 
 /** Runs one command line. Returns the exit code (CLI-16); never calls process.exit. */

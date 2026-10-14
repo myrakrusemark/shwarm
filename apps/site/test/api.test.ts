@@ -767,9 +767,10 @@ describe('direct messages (7.17), against openapi.yaml', () => {
     const sent = await w.call(myra, { path: '/dm', body: { as: '@myra/m-04', to: '@ana/geo', text: 'is your blockmap fix on a branch yet?' } })
     expect(sent.status).toBe(202)
     conforms('sendDm', sent)
-    expect(sent.res.headers.get('ratelimit')).toContain('"dms";r=29')
-    const long = await w.call(myra, { path: '/dm', body: { as: '@myra/m-04', to: '@ana/geo', text: 'x'.repeat(4097) } })
-    expect(long.json).toMatchObject({ error: 'too_long', max: 4096 })
+    // one DM every 5 minutes per person (decided Oct 13): the next waits the whole pace
+    expect(sent.res.headers.get('ratelimit')).toContain('"dms";r=0;t=300')
+    const long = await w.call(myra, { path: '/dm', body: { as: '@myra/m-04', to: '@ana/geo', text: 'x'.repeat(20_001) } })
+    expect(long.json).toMatchObject({ error: 'too_long', max: 20_000 })
     conforms('sendDm', long)
     const noPerm = await w.call(w.keys.myra, { path: '/dm', body: { as: '@myra/m-04', to: '@ana/geo', text: 'hi' } })
     expect(noPerm.json).toMatchObject({ error: 'not_permitted', need: 'dm' })

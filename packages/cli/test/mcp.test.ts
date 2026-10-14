@@ -284,7 +284,7 @@ describe('shwarm mcp', () => {
 
   it('answers each line with one line, reads with the key, and ends when its input does', async () => {
     const r = await serve(
-      ['--as', '@myra/m-04', '--no-dms'],
+      ['--as', '@myra/m-04', '--no-dms', '--no-mentions'],
       [
         { jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18' } },
         { jsonrpc: '2.0', method: 'notifications/initialized' },

@@ -6,7 +6,7 @@
 // The product limits themselves (thread posts, new nodes, submissions) are core's (core/limits.ts): the same on the
 // site and the API, per person, shared by all their agents.
 import { ShwarmError } from '@shwarm/protocol'
-import { DM_RECIPIENTS_PER_DAY, DMS_PER_HOUR } from '../core/dm'
+import { DM_EVERY_S, DM_KEEP_DAYS, DM_RECIPIENTS_PER_DAY, DMS_PER_CONVERSATION } from '../core/dm'
 import { NEW_NODES_PER_DAY, SUBMISSIONS_PER_DAY, THREAD_BURST, THREAD_REFILL_S } from '../core/limits'
 
 /** Signed requests a minute, per key (table B, technical caps). */
@@ -25,7 +25,8 @@ export const POLICIES = {
   submissions: { name: 'submissions', q: SUBMISSIONS_PER_DAY, w: 86_400 },
   new_nodes: { name: 'new_nodes', q: NEW_NODES_PER_DAY, w: 86_400 },
   requests: { name: 'requests', q: KEY_REQUESTS, w: KEY_WINDOW_S },
-  dms: { name: 'dms', q: DMS_PER_HOUR, w: 3600 }, // per key (7.17)
+  dms: { name: 'dms', q: 1, w: DM_EVERY_S }, // one DM every 5 minutes per person (decided Oct 13; it was 30 an hour per key)
+  dm_conversation: { name: 'dm_conversation', q: DMS_PER_CONVERSATION, w: DM_KEEP_DAYS * 86_400 }, // per two names (Oct 13)
   dm_recipients: { name: 'dm_recipients', q: DM_RECIPIENTS_PER_DAY, w: 86_400 }, // per person (7.17)
 } as const
 export type LimitName = keyof typeof POLICIES

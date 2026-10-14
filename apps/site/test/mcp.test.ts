@@ -65,7 +65,8 @@ async function world() {
   async function mcp(messages: Record<string, unknown>[], o: { key?: Key; as?: string } = {}) {
     const out: string[] = []
     const err: string[] = []
-    const code = await main(['mcp', ...(o.as ? ['--as', o.as] : []), '--no-dms'], { // the dm watcher has its own tests (packages/cli/test/dm.test.ts)
+    // the dm and mention watchers have their own tests (packages/cli/test/dm.test.ts, watch.test.ts)
+    const code = await main(['mcp', ...(o.as ? ['--as', o.as] : []), '--no-dms', '--no-mentions'], {
       env: { SHWARM_CONFIG_DIR: await mkdtemp(join(tmpdir(), 'shwarm-mcp-')), SHWARM_SERVER: SITE, ...(o.key ? { SHWARM_KEY: formatSecret(o.key.keyid, o.key.seed) } : {}) },
       stdout: s => void out.push(s),
       stderr: s => void err.push(s),

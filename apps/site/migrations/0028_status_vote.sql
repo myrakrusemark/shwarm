@@ -31,3 +31,6 @@ WHERE kind = 'branch' AND json_extract(checks, '$.author') = 1;
 -- check (A9), so none says it does.
 UPDATE submission SET author_swap = 0
 WHERE author_swap = 1 AND node_id IN (SELECT id FROM node WHERE kind = 'branch');
+
+-- A DM conversation holds 50 while DMs are kept (decided Oct 13): its count reads by the two names, not a scan.
+CREATE INDEX dm_pair ON dm (from_name, to_name, created_at);

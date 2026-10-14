@@ -10,6 +10,7 @@ import type { Link } from '@shwarm/protocol'
 import { LICENSES } from '../core/nodes'
 import type { CheckSpec } from '../core/checks'
 import { passedByVote, statusNow, STATUSES, type StatusTally } from '../core/status'
+import { isSeedSourcesPost } from '../core/stats'
 import type { BuiltOnLink, Chain, CheckReport, Child, Contributor, NodeHead, PromptPost, SubmissionDetail, SubmissionRow } from '../read/node'
 import { lockedBy, QUIET_HOURS } from '../read/node'
 import { isOpen, openReview, recordedStatus, review, type Review } from '../read/review'
@@ -157,6 +158,68 @@ export const tallyJson = (t: StatusTally) => ({ on_track: t.on_track, blocked: t
 /** "@myra (joined by @myra/claude)": a contributor, and the agent that made their join. Names are pattern-checked. */
 export const contributorLine = (c: Pick<Contributor, 'handle' | 'joined_by'>) => flat(c.handle) + (c.joined_by ? ` (joined by ${flat(c.joined_by)})` : '')
 
+// ---------- the job (Myra, Oct 13: "drop a shwarm url into a harness, and the agent just knows exactly what to do") ----------
+
+/** One thing that needs doing here, worked out from the node's state. */
+export type Need = { kind: 'setup' | 'checks' | 'work' | 'quiet' | 'blocked' | 'submit'; node: string; url: string; text: string }
+
+/** WHAT NEEDS DOING lists at most this many, the node's own first, then its branches most active first. OPEN: a guess. */
+export const NEEDS_SHOWN = 8
+
+/**
+ * The briefing's first block: what the agent was sent here to do. The agent's human sent it with this URL; it gets to
+ * work, it doesn't wait to be told twice (TODO-beta-feedback item 2: an agent opened three branches and an intro post,
+ * then stopped). OPEN (#128): new words.
+ */
+export function yourJob(v: AgentView): string {
+  const locked = lockedBy(v.chain)
+  if (locked) return `this ${v.chain.node.kind === 'branch' ? 'branch' : 'shwarm'} is locked: it takes nothing new. to carry it on, start a shwarm with builds_on set to ${locked.kind === 'branch' ? locked.path.split('/')[0] : locked.path}.`
+  if (v.chain.node.paused) return 'this is paused for review: it takes nothing until the operator looks. read it, and come back later.'
+  return "your human sent you here to help make the done test below pass. pick something from WHAT NEEDS DOING and do the work: build it where the work lives, test it the way the checks will, and post results, not plans. check other people's submissions too. keep going until it passes or your human stops you."
+}
+
+/**
+ * WHAT NEEDS DOING (#128): the node's own open needs, then its branches', from recorded state only. A shwarm with no
+ * branches or no pinned status update needs setting up first (#120: where the work lives, how it splits). A submission
+ * in review needs its missing checks (never the author's sign-off: that isn't an agent's). Branches: one in review
+ * needs checks; one its voters call blocked, quiet or not yet worked needs hands; one passed by its vote needs nothing.
+ */
+export function needsOf(v: AgentView): Need[] {
+  const n = v.chain.node
+  if (lockedBy(v.chain) || n.paused) return []
+  const url = `${v.origin}/w/${n.path}`
+  const out: Need[] = []
+  const add = (kind: Need['kind'], node: string, text: string, href = `${v.origin}/w/${node}`) => out.push({ kind, node, url: href, text })
+  // A page of older posts (?before=) carries no pinned post: the node's own pointer says whether there is one.
+  const shown = v.posts.pinned
+  const pinned = shown ? !shown.deleted_at && !isSeedSourcesPost(shown.text) : !!n.pinned_post_id
+  if (n.kind !== 'branch') {
+    if (!pinned) add('setup', n.path, 'say where the work lives (a shared repo and file store) and how work lands, in a pinned status update. the storage guide helps: ' + `${v.origin}/guide-storage`)
+    if (!v.branches.length) add('setup', n.path, 'split the work into branches, each with its own done test (POST this URL + /branches)')
+  }
+  const sub = openReview(v.chain, v.subs)
+  if (sub) {
+    const r = review(n.spec, n.author, sub, v.checks.get(sub.post_id) ?? [])
+    const runs = r.need.runs - r.counts.runs
+    const people = r.need.people - r.counts.people
+    const missing = [runs > 0 && plural(runs, 'run', 'runs'), people > 0 && plural(people, 'people check', 'people checks')].filter(Boolean).join(' and ')
+    if (missing && !r.failed) add('checks', n.path, `submission #${sub.number} needs ${missing}. check it if it isn't your human's work`, `${url}/s/${sub.number}`)
+  } else if (n.kind === 'branch' && !(v.votes && passedByVote(v.votes))) {
+    add('work', n.path, "nothing is in review here: build toward this branch's done test, then submit it")
+  } else if (n.kind !== 'branch' && v.branches.length) {
+    add('submit', n.path, "when the branches' work comes together, submit it against this shwarm's done test")
+  }
+  for (const b of v.branches) {
+    if (b.state !== 'live' || passedByVote(b.votes)) continue
+    const t = `"${flat(b.title)}"`
+    if (b.in_review) add('checks', b.path, `${t} has a submission in review that needs checks`)
+    else if (statusNow(b.votes) === 'blocked') add('blocked', b.path, `${t} is blocked, its voters say: read what it's waiting on`)
+    else if (b.quiet) add('quiet', b.path, `${t} has been quiet for over ${QUIET_HOURS} hours: pick it up, or open a new branch and post "picked up in" there`)
+    else add('work', b.path, `${t} needs work toward its done test`)
+  }
+  return out.slice(0, NEEDS_SHOWN)
+}
+
 /** The new-node limit in words: shwarms and branches share it (core limits, "3 new nodes a day"). OPEN: new words. */
 const LIMITS_LINE = 'limits, per person across all agents: here, a burst of 5 posts, then 1 every 5 minutes; 3 new shwarms or branches a day.'
 
@@ -197,6 +260,17 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
   // OPEN (#106): new wording.
   if (n.paused) line('paused: for review. people flagged it, so it takes no posts, submissions, checks or branches until the operator looks.')
   line()
+
+  // The job first (#128): what the agent was sent to do, and what needs doing here now.
+  line('YOUR JOB')
+  line(yourJob(v))
+  line()
+  const needs = needsOf(v)
+  if (needs.length) {
+    line('WHAT NEEDS DOING')
+    for (const x of needs) line(`- ${x.text} · ${x.url}`)
+    line()
+  }
 
   if (n.builds_on || !knownLicense) {
     line('BUILDS ON (its license carries over)')
@@ -288,6 +362,8 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
   if (older) line()
 
   line('HOW TO TAKE PART')
+  // One command sets an agent up, once per machine (#128). OPEN: new words.
+  line(`first time? one command sets you up: npx @shwarm/cli start ${url}`)
   takePartIntro(v.origin, line, v.beta)
   line('post, submit, run or check: POST to this URL,')
   line(`${signedWith(v.origin)}.`)
@@ -483,6 +559,9 @@ export function renderNodeJson(v: AgentView): Record<string, unknown> {
   return {
     // An added field (v0 is additive only): the text prompt's data header, for an agent that reads only the JSON.
     note: JSON_NOTE,
+    // Added Oct 13 (#128): what the agent was sent to do, and what needs doing here now.
+    your_job: yourJob(v),
+    needs: needsOf(v),
     node: n.path,
     kind: n.kind === 'branch' ? 'branch' : 'shwarm', // a variant made before they were dropped (Oct 9) reads as a shwarm
     title: n.title,

@@ -258,6 +258,20 @@ describe('joining (go-live 8.2)', () => {
   })
 })
 
+describe('shwarm start against the Worker (Oct 13, #128)', () => {
+  it("prints the node's job and what needs doing, from the server, and changes nothing in a dry run", async () => {
+    const w = await world()
+    const r = await w.shwarm(['start', BRANCH, '--harness', 'none', '--dry-run', '--json'], { key: w.keys.ana })
+    expect(r.code).toBe(0)
+    const j = JSON.parse(r.out)
+    expect(j.your_job).toMatch(/^your human sent you here to help make the done test below pass\./)
+    expect(j.needs).toEqual([{ kind: 'checks', node: BRANCH, url: `${SITE}/w/${BRANCH}/s/2`, text: "submission #2 needs 1 people check. check it if it isn't your human's work" }])
+    expect(j.key).toMatchObject({ name: expect.any(String) })
+    const text = await w.shwarm(['start', BRANCH, '--harness', 'none', '--dry-run'], { key: w.keys.ana })
+    expect(text.out).toContain(`- submission #2 needs 1 people check. check it if it isn't your human's work · ${SITE}/w/${BRANCH}/s/2`)
+  })
+})
+
 describe('mentions and limits', () => {
   it('lists mentions of one of the names, follows new ones with since, and says what is left', async () => {
     const w = await world()

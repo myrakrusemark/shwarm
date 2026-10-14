@@ -1,11 +1,14 @@
 // Go-live 7.17: the site's side of direct messages, through the site as the browser uses it. The keys page's
 // "direct messages" box (turning names on and off, blocks), the new-key modal's dm box, and /dms (reading, report,
-// block sender). The API's side is test/api.test.ts and core/dm.ts.
+// block sender). The API's side is test/dm.test.ts and core/dm.ts. Sending keeps its limits here too (decided Oct 13:
+// one DM every 5 minutes per person, 50 in a conversation): a send waits out its sender's pace, and a long setup goes
+// straight into the dm table.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { newSeed, publicKeyFromSeed, toBase64url } from '@shwarm/protocol'
 import { hashPassword } from '../src/auth/password'
 import { bump, LIMITS } from '../src/auth/throttle'
-import { DM_NAMES_MAX, sendDm, type Sender } from '../src/core/dm'
+import { DM_EVERY_S, DM_NAMES_MAX, sendDm, type Sender } from '../src/core/dm'
+import { newId } from '../src/core/ids'
 import { resetReadLimit } from '../src/web/read-limit'
 import { dmNameOf } from '../src/web/keys'
 import { addPerson, T0 } from './d1'
@@ -217,12 +220,10 @@ describe('/dms (7.17)', () => {
   })
 
   it('pages 50 at a time with an older link', async () => {
-    const { env, db, myraId, anaId } = await talking()
-    for (let i = 0; i < 50; i++) {
-      vi.setSystemTime(T0 + (i + 1) * 1000)
-      await sendDm(db, sender(anaId, 'ana', '@ana/bot'), '@myra/fathom', `note ${i}`, { beta: false })
-    }
-    expect(myraId).toBeGreaterThan(0)
+    const { env, myraId, anaId } = await talking()
+    // 50 more from ana, a second apart: past her pace and the conversation's 50, so straight into the table
+    const put = env.DB.raw.prepare('INSERT INTO dm (id, from_person, from_name, to_person, to_name, text, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    for (let i = 0; i < 50; i++) put.run(newId('d'), anaId, '@ana/bot', myraId, '@myra/fathom', `note ${i}`, new Date(T0 + (i + 1) * 1000).toISOString())
     const myra = await signIn(env, 'myra@example.org')
     const first = await body(await myra.get('/dms'))
     expect(first).toContain('note 49')
@@ -257,7 +258,8 @@ describe('/dms (7.17)', () => {
     res = await dmsForm(myra, { do: 'block', id: inbound.id })
     expect(res.headers.get('location')).toBe('/dms?done=blocked')
     expect(all(env, 'SELECT by_name, name FROM dm_block WHERE person_id = ?', myraId)).toEqual([{ by_name: '@myra', name: '@ana/bot' }])
-    await expect(sendDm(db, sender(anaId, 'ana', '@ana/bot'), '@myra/fathom', 'again', { beta: false })).rejects.toMatchObject({ code: 'dms_off' })
+    // five minutes after her last DM, past her pace, the block is what answers
+    await expect(sendDm(db, sender(anaId, 'ana', '@ana/bot'), '@myra/fathom', 'again', { beta: false, now: T0 + DM_EVERY_S * 1000 })).rejects.toMatchObject({ code: 'dms_off' })
 
     // the keys page lists the block and unblocks it
     const keys = await body(await myra.get('/keys'))
@@ -270,7 +272,8 @@ describe('/dms (7.17)', () => {
   it("a report past the person's budget (shared with posts) is a 429 page; a DM between her own names is refused (9.6)", async () => {
     const { env, db, myraId, inbound } = await talking()
     env.DB.raw.prepare('INSERT INTO dm_name (person_id, name, created_at) VALUES (?, ?, ?)').run(myraId, '@myra/m-04', new Date(T0).toISOString())
-    const own = await sendDm(db, sender(myraId, 'myra', '@myra/m-04'), '@myra/fathom', 'to myself', { beta: false })
+    // five minutes after her DM to ana: one every 5 minutes per person
+    const own = await sendDm(db, sender(myraId, 'myra', '@myra/m-04'), '@myra/fathom', 'to myself', { beta: false, now: T0 + DM_EVERY_S * 1000 })
     const myra = await signIn(env, 'myra@example.org')
     // a DM to her from her own agent shows no report link; a hand-made form is refused
     const page = await body(await myra.get('/dms'))
