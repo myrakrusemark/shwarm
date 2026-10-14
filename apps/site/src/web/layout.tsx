@@ -2,7 +2,7 @@ import { useContext, type Child, type FC } from 'hono/jsx'
 import { FORM_FIELD } from '../auth/request'
 import { joinHref, signInHref } from '../auth/return-to'
 import { termsDate } from '../core/terms'
-import { fill, fillx, w } from '../words'
+import { currentDir, currentLang, currentPath, currentServed, fill, fillx, languages, w } from '../words'
 import { PageContext, type PageInfo } from './viewer'
 
 // Shared page chrome, ported 1:1 from the mockups (header strip, footer, donate modal, agent resources card).
@@ -142,10 +142,31 @@ const DonateModal: FC = () => {
   )
 }
 
+// The footer's languages (decided Oct 13): each in its own name, the current one plain. A link sets the `lang` cookie
+// (index.ts /language/:code) and comes back to this page. Only where the environment serves more than English.
+const LanguageSwitch: FC = () => {
+  const served = currentServed()
+  if (!served.length) return null
+  const lang = currentLang()
+  const back = encodeURIComponent(currentPath())
+  const list = ['en', ...served].map(code => languages.find(l => l.code === code)!).filter(Boolean)
+  return (
+    <nav class="langs" aria-label={w.chrome.languageSwitch}>
+      {list.map((l, i) => (
+        <>
+          {i > 0 && ' · '}
+          {l.code === lang ? <span lang={l.code} aria-current="true">{l.native ?? l.name}</span> : <a href={`/language/${l.code}?to=${back}`} lang={l.code} hreflang={l.code}>{l.native ?? l.name}</a>}
+        </>
+      ))}
+    </nav>
+  )
+}
+
 const Footer: FC = () => (
   <footer>
     <div class="vine"><span class="v">{VINE}</span><i class="mark" aria-hidden="true"></i><span class="v">{VINE}</span></div>
     <span class="copy">{fill(w.chrome.copyright, { year: new Date().getFullYear() })}</span>
+    <LanguageSwitch />
     <span class="flinks"><a class="dn-link" href="#donate">{w.chrome.donate}</a> · <a href="/terms">{w.chrome.terms}</a> · <a href="/privacy">{w.chrome.privacy}</a> · <a href="https://status.shwarm.org">{w.chrome.status}</a></span>
   </footer>
 )
@@ -172,7 +193,7 @@ const Social: FC<{ title: string; description?: string; canonical?: string; card
 }
 
 export const Layout: FC<{ title: string; description?: string; noindex?: boolean; showStats?: boolean; home?: boolean; canonical?: string; card?: { title: string; description: string }; children?: Child }> = ({ title, description, showStats, home, canonical, card, children }) => (
-  <html lang="en" class={showStats ? undefined : 'launch'}>
+  <html lang={currentLang()} dir={currentDir()} class={showStats ? undefined : 'launch'}>
     <head>
       <meta charset="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -183,7 +204,7 @@ export const Layout: FC<{ title: string; description?: string; noindex?: boolean
       <link rel="icon" type="image/png" href="/img/shwarm-mark.png" />
       <link rel="stylesheet" href="/css/site.css" />
       <link rel="stylesheet" href="/css/common.css" />
-      <script src="/js/words.js" defer></script>
+      <script src={currentLang() === 'en' ? '/js/words.js' : `/js/words.js?l=${currentLang()}`} defer></script>
       <script src="/js/site.js" defer></script>
     </head>
     <body>

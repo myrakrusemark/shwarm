@@ -1,0 +1,5862 @@
+{
+  "auth.age": {
+    "text": "ich bin 16 oder älter.",
+    "from": "i'm 16 or older.",
+    "checked": false
+  },
+  "auth.ageNeeded": {
+    "text": "du musst 16 oder älter sein, um dich zu registrieren.",
+    "from": "you need to be 16 or older to join.",
+    "checked": false
+  },
+  "auth.agree": {
+    "text": "ich stimme den {terms} und dem {privacy} zu.",
+    "from": "i agree to the {terms} and the {privacy}.",
+    "checked": false
+  },
+  "auth.agreePrivacy": {
+    "text": "Datenschutzhinweis",
+    "from": "privacy notice",
+    "checked": false
+  },
+  "auth.agreeTerms": {
+    "text": "Nutzungsbedingungen",
+    "from": "terms",
+    "checked": false
+  },
+  "auth.alreadyVerified": {
+    "text": "schon bestätigt? {link}. wenn nicht, melde dich an und schick von dort einen neuen Link.",
+    "from": "already verified? {link}. if not, sign in and send a new link from there.",
+    "checked": false
+  },
+  "auth.askAgain": {
+    "text": "fordere einen neuen Link an",
+    "from": "ask for a new link",
+    "checked": false
+  },
+  "auth.backTo": {
+    "text": "zurück zu {place}",
+    "from": "back to {place}",
+    "checked": false
+  },
+  "auth.backToShwarm": {
+    "text": "zurück zu shwarm",
+    "from": "back to shwarm",
+    "checked": false
+  },
+  "auth.backToSignIn": {
+    "text": "zurück zur Anmeldung",
+    "from": "back to sign in",
+    "checked": false
+  },
+  "auth.badSignIn": {
+    "text": "E-Mail und Passwort passen nicht zusammen.",
+    "from": "that email and password don't match.",
+    "checked": false
+  },
+  "auth.checkEmail": {
+    "text": "schau in dein Postfach",
+    "from": "check your email",
+    "checked": false
+  },
+  "auth.checkSpam": {
+    "text": "schau unbedingt auch in deinen Spam-Ordner!",
+    "from": "be sure to check your spam folder!",
+    "checked": false
+  },
+  "auth.confirmNewEmail": {
+    "text": "neue E-Mail bestätigen",
+    "from": "confirm your new email",
+    "checked": false
+  },
+  "auth.crossSite": {
+    "text": "dieses Formular wurde von einer anderen Website geschickt, darum hat shwarm es abgelehnt. öffne die Seite auf shwarm und schick das Formular von dort.",
+    "from": "this form was sent from another website, so shwarm refused it. open the page on shwarm and send the form from there.",
+    "checked": false
+  },
+  "auth.displayName": {
+    "text": "Anzeigename",
+    "from": "display name",
+    "checked": false
+  },
+  "auth.displayNameHint": {
+    "text": "optional. wird neben deinem Handle gezeigt.",
+    "from": "optional. shown next to your handle.",
+    "checked": false
+  },
+  "auth.displayNameTooLong": {
+    "text": "dein Anzeigename darf höchstens {max} Zeichen haben.",
+    "from": "keep your display name to {max} characters.",
+    "checked": false
+  },
+  "auth.disposable": {
+    "text": "Adressen von Wegwerf-Maildiensten können wir nicht annehmen.",
+    "from": "we can't take addresses from throwaway mail services.",
+    "checked": false
+  },
+  "auth.email": {
+    "text": "E-Mail",
+    "from": "email",
+    "checked": false
+  },
+  "auth.emailBad": {
+    "text": "das sieht nicht nach einer E-Mail-Adresse aus.",
+    "from": "that doesn't look like an email address.",
+    "checked": false
+  },
+  "auth.emailChangeAgain": {
+    "text": "um es noch mal zu versuchen, öffne „Konto“ auf deinem Profil und ändere dort die Adresse.",
+    "from": "to try again, open \"account\" on your profile and change the address there.",
+    "checked": false
+  },
+  "auth.emailChangeButton": {
+    "text": "diese Adresse nutzen",
+    "from": "use this address",
+    "checked": false
+  },
+  "auth.emailChangedHeading": {
+    "text": "deine neue E-Mail ist eingestellt",
+    "from": "your new email is set",
+    "checked": false
+  },
+  "auth.emailChangedText": {
+    "text": "shwarm schickt deine Mails ab jetzt hierhin, und du meldest dich damit an.",
+    "from": "shwarm sends your mail here from now on, and you sign in with it.",
+    "checked": false
+  },
+  "auth.emailChangedTitle": {
+    "text": "E-Mail geändert",
+    "from": "email changed",
+    "checked": false
+  },
+  "auth.emailChangeExpired": {
+    "text": "dieser Link wurde schon benutzt, oder er ist abgelaufen. Links zum Ändern der E-Mail gelten 24 Stunden.",
+    "from": "this link was already used, or it ran out of time. email change links last 24 hours.",
+    "checked": false
+  },
+  "auth.emailChangeMoves": {
+    "text": "mit diesem Link wechselt {handle} zu {email}. bis du den Knopf drückst, bleibt die alte Adresse am Konto.",
+    "from": "this link moves {handle} to {email}. until you press the button, the old address stays on the account.",
+    "checked": false
+  },
+  "auth.emailChangeNotYou": {
+    "text": "du wolltest deine E-Mail gar nicht ändern? dann drück den Knopf nicht.",
+    "from": "didn't ask to change your email? don't press the button.",
+    "checked": false
+  },
+  "auth.emailChangePress": {
+    "text": "drück den Knopf, um diese Adresse zu nutzen.",
+    "from": "press the button to use this address.",
+    "checked": false
+  },
+  "auth.emailHint": {
+    "text": "wir schicken einen Link zur Bestätigung. sie wird nie gezeigt.",
+    "from": "we send a link to check it. it's never shown.",
+    "checked": false
+  },
+  "auth.emailTaken": {
+    "text": "diese Adresse gehört inzwischen zu einem anderen shwarm-Konto, darum kann dein Konto nicht dorthin wechseln. deine alte Adresse bleibt.",
+    "from": "that address is on another shwarm account now, so your account can't move to it. your old address stays.",
+    "checked": false
+  },
+  "auth.enterPassword": {
+    "text": "gib zur Bestätigung dein Passwort ein.",
+    "from": "enter your password to confirm.",
+    "checked": false
+  },
+  "auth.forgotHeading": {
+    "text": "Passwort vergessen?",
+    "from": "forgot your password?",
+    "checked": false
+  },
+  "auth.forgotHint": {
+    "text": "wenn es zu der Adresse ein Konto gibt, schicken wir einen Link zum Setzen eines neuen Passworts.",
+    "from": "if the address has an account, we'll send a link to set a new password.",
+    "checked": false
+  },
+  "auth.forgotIt": {
+    "text": "Passwort vergessen?",
+    "from": "forgot your password?",
+    "checked": false
+  },
+  "auth.forgotTitle": {
+    "text": "Passwort vergessen",
+    "from": "forgot your password",
+    "checked": false
+  },
+  "auth.formExpired": {
+    "text": "dieses Formular ist abgelaufen",
+    "from": "this form expired",
+    "checked": false
+  },
+  "auth.formExpiredRetry": {
+    "text": "geh zurück, lade die Seite neu und versuch es noch mal.",
+    "from": "go back, reload the page and try again.",
+    "checked": false
+  },
+  "auth.formExpiredText": {
+    "text": "geh zurück, lade die Seite neu und versuch es noch mal.",
+    "from": "go back, reload the page, and try again.",
+    "checked": false
+  },
+  "auth.goToShwarm": {
+    "text": "zu shwarm",
+    "from": "go to shwarm",
+    "checked": false
+  },
+  "auth.handle": {
+    "text": "Handle",
+    "from": "handle",
+    "checked": false
+  },
+  "auth.handleHint": {
+    "text": "dein Name hier, z. B. @myra. 2 bis 32 Kleinbuchstaben, Ziffern oder Unterstriche. lässt sich später nicht ändern.",
+    "from": "your name here, like @myra. 2 to 32 lowercase letters, numbers or underscores. it can't change later.",
+    "checked": false
+  },
+  "auth.handlePattern": {
+    "text": "nutze 2 bis 32 Kleinbuchstaben, Ziffern oder Unterstriche.",
+    "from": "use 2 to 32 lowercase letters, numbers or underscores.",
+    "checked": false
+  },
+  "auth.handleReserved": {
+    "text": "dieses Handle ist reserviert. wähle ein anderes.",
+    "from": "that handle is reserved. pick another one.",
+    "checked": false
+  },
+  "auth.handleTaken": {
+    "text": "dieses Handle ist schon vergeben. wähle ein anderes.",
+    "from": "that handle is taken. pick another one.",
+    "checked": false
+  },
+  "auth.haveAccount": {
+    "text": "schon ein Konto? {link}",
+    "from": "have an account? {link}",
+    "checked": false
+  },
+  "auth.joinButton": {
+    "text": "registrieren",
+    "from": "join",
+    "checked": false
+  },
+  "auth.joinHeading": {
+    "text": "bei shwarm registrieren",
+    "from": "join shwarm",
+    "checked": false
+  },
+  "auth.joinInviteOnly": {
+    "text": "shwarm geht gerade nur mit Einladung. wenn du eine hast, registriere dich mit der Adresse, an die sie ging. wenn nicht, registriere dich trotzdem, und wir schreiben dir, sobald shwarm für alle offen ist.",
+    "from": "shwarm is invite-only for now. if you have an invite, join with the address it came to. if not, join anyway and we'll email you when it opens to everyone.",
+    "checked": false
+  },
+  "auth.joinLink": {
+    "text": "registrieren",
+    "from": "join",
+    "checked": false
+  },
+  "auth.joinNote": {
+    "text": "du kannst alles ohne Konto lesen.",
+    "from": "you can read everything without an account.",
+    "checked": false
+  },
+  "auth.joinTitle": {
+    "text": "registrieren",
+    "from": "join",
+    "checked": false
+  },
+  "auth.linkExpiredHeading": {
+    "text": "dieser Link funktioniert nicht mehr",
+    "from": "this link doesn't work anymore",
+    "checked": false
+  },
+  "auth.linkExpiredTitle": {
+    "text": "Link abgelaufen",
+    "from": "link expired",
+    "checked": false
+  },
+  "auth.linkUsed": {
+    "text": "dieser Link wurde schon benutzt, oder er ist abgelaufen. Bestätigungslinks gelten 7 Tage, Links zum Zurücksetzen 1 Stunde.",
+    "from": "this link was already used, or it ran out of time. verify links last 7 days and reset links 1 hour.",
+    "checked": false
+  },
+  "auth.newHere": {
+    "text": "neu hier? {link}",
+    "from": "new here? {link}",
+    "checked": false
+  },
+  "auth.newPassword": {
+    "text": "neues Passwort",
+    "from": "new password",
+    "checked": false
+  },
+  "auth.newPasswordAgain": {
+    "text": "neues Passwort wiederholen",
+    "from": "new password again",
+    "checked": false
+  },
+  "auth.newPasswordHeading": {
+    "text": "neues Passwort setzen",
+    "from": "set a new password",
+    "checked": false
+  },
+  "auth.newResetLink": {
+    "text": "einen neuen Link zum Zurücksetzen anfordern",
+    "from": "ask for a new reset link",
+    "checked": false
+  },
+  "auth.pageTitle": {
+    "text": "{title} · shwarm",
+    "from": "{title} · shwarm",
+    "checked": false
+  },
+  "auth.password": {
+    "text": "Passwort",
+    "from": "password",
+    "checked": false
+  },
+  "auth.passwordHint": {
+    "text": "10 bis 128 Zeichen.",
+    "from": "10 to 128 characters.",
+    "checked": false
+  },
+  "auth.passwordsDontMatch": {
+    "text": "die beiden Passwörter stimmen nicht überein.",
+    "from": "the two passwords don't match.",
+    "checked": false
+  },
+  "auth.pwned": {
+    "text": "dieses Passwort ist in einem Datenleck aufgetaucht. wähle ein anderes.",
+    "from": "that password has turned up in a data breach. pick another one.",
+    "checked": false
+  },
+  "auth.resetButton": {
+    "text": "neues Passwort setzen",
+    "from": "set new password",
+    "checked": false
+  },
+  "auth.resetDone": {
+    "text": "dein neues Passwort ist gesetzt. melde dich damit an.",
+    "from": "your new password is set. sign in with it.",
+    "checked": false
+  },
+  "auth.resetNote": {
+    "text": "ein neues Passwort meldet dich überall ab.",
+    "from": "setting a new password signs you out everywhere.",
+    "checked": false
+  },
+  "auth.resetNothing": {
+    "text": "nichts angekommen? schau im Spam nach, oder {link}.",
+    "from": "nothing there? look in spam, or {link}.",
+    "checked": false
+  },
+  "auth.resetSent": {
+    "text": "wenn es zu dieser Adresse ein Konto gibt, ist ein Link zum Setzen eines neuen Passworts unterwegs. er gilt 1 Stunde.",
+    "from": "if that address has an account, a link to set a new password is on its way. it works for 1 hour.",
+    "checked": false
+  },
+  "auth.sendAgain": {
+    "text": "Link noch mal schicken",
+    "from": "send the link again",
+    "checked": false
+  },
+  "auth.sendLink": {
+    "text": "Link schicken",
+    "from": "send the link",
+    "checked": false
+  },
+  "auth.sentAgain": {
+    "text": "wir haben den Link noch mal geschickt. es kann ein, zwei Minuten dauern, bis er ankommt.",
+    "from": "we sent the link again. it can take a minute or two to arrive.",
+    "checked": false
+  },
+  "auth.signedInAs": {
+    "text": "du bist als @{handle} angemeldet.",
+    "from": "you're signed in as @{handle}.",
+    "checked": false
+  },
+  "auth.signedOutEverywhere": {
+    "text": "du bist überall abgemeldet.",
+    "from": "you're signed out everywhere.",
+    "checked": false
+  },
+  "auth.signIn": {
+    "text": "anmelden",
+    "from": "sign in",
+    "checked": false
+  },
+  "auth.signInButton": {
+    "text": "anmelden",
+    "from": "sign in",
+    "checked": false
+  },
+  "auth.signInHeading": {
+    "text": "anmelden",
+    "from": "sign in",
+    "checked": false
+  },
+  "auth.signInToGoBack": {
+    "text": "{link}, um zu {place} zurückzukehren.",
+    "from": "{link} to go back to {place}.",
+    "checked": false
+  },
+  "auth.signOut": {
+    "text": "abmelden",
+    "from": "sign out",
+    "checked": false
+  },
+  "auth.stepUpButton": {
+    "text": "bestätigen",
+    "from": "confirm",
+    "checked": false
+  },
+  "auth.stepUpHeading": {
+    "text": "bestätige, dass du es bist",
+    "from": "confirm it's you",
+    "checked": false
+  },
+  "auth.stepUpHint": {
+    "text": "gib dein Passwort ein, um weiterzumachen. wir fragen 10 Minuten lang nicht noch mal.",
+    "from": "enter your password to go on. we won't ask again for 10 minutes.",
+    "checked": false
+  },
+  "auth.stepUpSignedInAs": {
+    "text": "angemeldet als @{handle}",
+    "from": "signed in as @{handle}",
+    "checked": false
+  },
+  "auth.termsNeeded": {
+    "text": "du musst den Nutzungsbedingungen zustimmen, um dich zu registrieren.",
+    "from": "you need to agree to the terms to join.",
+    "checked": false
+  },
+  "auth.tooLong": {
+    "text": "dein Passwort darf höchstens 128 Zeichen haben.",
+    "from": "your password can have at most 128 characters.",
+    "checked": false
+  },
+  "auth.tooManyTries": {
+    "text": "zu viele Versuche in kurzer Zeit. warte etwa {minutes} Minuten und versuch es dann noch mal.",
+    "from": "too many tries in a short time. wait about {minutes} minutes, then try again.",
+    "checked": false
+  },
+  "auth.tooManyTriesHeading": {
+    "text": "zu viele Versuche",
+    "from": "too many tries",
+    "checked": false
+  },
+  "auth.tooShort": {
+    "text": "dein Passwort braucht mindestens 10 Zeichen.",
+    "from": "your password needs at least 10 characters.",
+    "checked": false
+  },
+  "auth.turnstileFailed": {
+    "text": "die Bot-Prüfung hat nicht geklappt. bitte versuch es noch mal.",
+    "from": "the bot check didn't go through. please try again.",
+    "checked": false
+  },
+  "auth.turnstileNoScript": {
+    "text": "die Bot-Prüfung braucht JavaScript. schalte JavaScript ein und lade die Seite neu.",
+    "from": "the bot check needs javascript. turn javascript on and reload the page.",
+    "checked": false
+  },
+  "auth.unknownForm": {
+    "text": "wir haben dieses Formular nicht erkannt. geh zurück, lade die Seite neu und versuch es noch mal.",
+    "from": "we didn't recognize that form. go back, reload the page and try again.",
+    "checked": false
+  },
+  "auth.unverified": {
+    "text": "deine E-Mail ist noch nicht bestätigt. bis dahin kannst du nur lesen und dich anmelden.",
+    "from": "your email isn't verified yet. until it is, you can read and sign in, nothing else.",
+    "checked": false
+  },
+  "auth.verifiedHeading": {
+    "text": "du bist drin",
+    "from": "you're in",
+    "checked": false
+  },
+  "auth.verifiedTitle": {
+    "text": "bestätigt",
+    "from": "verified",
+    "checked": false
+  },
+  "auth.verifiedWelcome": {
+    "text": "deine E-Mail ist bestätigt. willkommen bei shwarm.",
+    "from": "your email is verified. welcome to shwarm.",
+    "checked": false
+  },
+  "auth.verifyButton": {
+    "text": "meine E-Mail bestätigen",
+    "from": "verify my email",
+    "checked": false
+  },
+  "auth.verifyEmail": {
+    "text": "E-Mail bestätigen",
+    "from": "verify your email",
+    "checked": false
+  },
+  "auth.verifyFinishes": {
+    "text": "mit diesem Link schließt du die Registrierung als {handle} ab.",
+    "from": "this link finishes joining as {handle}.",
+    "checked": false
+  },
+  "auth.verifyNotYou": {
+    "text": "du hast dich nicht als @{handle} registriert? dann drück den Knopf nicht. ein Konto, das nie bestätigt wird, wird nach 7 Tagen gelöscht.",
+    "from": "didn't sign up as @{handle}? don't press the button. an account that's never verified is deleted after 7 days.",
+    "checked": false
+  },
+  "auth.verifyPress": {
+    "text": "drück den Knopf, um die Registrierung abzuschließen.",
+    "from": "press the button to finish joining.",
+    "checked": false
+  },
+  "auth.verifySent": {
+    "text": "wir haben einen Link an deine E-Mail-Adresse geschickt. der Link gilt 7 Tage.",
+    "from": "we sent a link to your email address. the link works for 7 days.",
+    "checked": false
+  },
+  "auth.waiting": {
+    "text": "du stehst auf der Liste. shwarm geht gerade nur mit Einladung, darum schreiben wir dir, sobald shwarm für alle offen ist.",
+    "from": "you're on the list. shwarm is invite-only for now, so we'll email you when it opens to everyone.",
+    "checked": false
+  },
+  "auth.whereYouWere": {
+    "text": "der vorigen Seite",
+    "from": "where you were",
+    "checked": false
+  },
+  "auth.wrongPassword": {
+    "text": "dieses Passwort stimmt nicht.",
+    "from": "that password doesn't match.",
+    "checked": false
+  },
+  "chrome.agentResources": {
+    "text": "Ressourcen für Agenten",
+    "from": "agent resources",
+    "checked": false
+  },
+  "chrome.agentSkills": {
+    "text": "Agenten-Skills",
+    "from": "agent skills",
+    "checked": false
+  },
+  "chrome.api": {
+    "text": "api",
+    "from": "api",
+    "checked": false
+  },
+  "chrome.close": {
+    "text": "schließen",
+    "from": "close",
+    "checked": false
+  },
+  "chrome.copyright": {
+    "text": "© {year} shwarm",
+    "from": "© {year} shwarm",
+    "checked": false
+  },
+  "chrome.donate": {
+    "text": "spenden",
+    "from": "donate",
+    "checked": false
+  },
+  "chrome.donateAmount": {
+    "text": "Betrag",
+    "from": "amount",
+    "checked": false
+  },
+  "chrome.donateAmountButton": {
+    "text": "${amount}",
+    "from": "${amount}",
+    "checked": false
+  },
+  "chrome.donateGo": {
+    "text": "$25 spenden",
+    "from": "donate $25",
+    "checked": false
+  },
+  "chrome.donateMonthly": {
+    "text": "monatlich",
+    "from": "monthly",
+    "checked": false
+  },
+  "chrome.donateNoCard": {
+    "text": "wir sehen deine Kartendaten nie.",
+    "from": "we never see your card information.",
+    "checked": false
+  },
+  "chrome.donateNote": {
+    "text": "eine Nachricht",
+    "from": "a note",
+    "checked": false
+  },
+  "chrome.donateNoteOptional": {
+    "text": "· optional",
+    "from": "· optional",
+    "checked": false
+  },
+  "chrome.donateNotePlaceholder": {
+    "text": "Kommentare, Ideen oder einfach hallo sagen :)",
+    "from": "comments, suggestions, or just say hi :)",
+    "checked": false
+  },
+  "chrome.donateOnce": {
+    "text": "einmalig",
+    "from": "once",
+    "checked": false
+  },
+  "chrome.donateOther": {
+    "text": "anderer Betrag",
+    "from": "other amount",
+    "checked": false
+  },
+  "chrome.donatePitch": {
+    "text": "shwarm ist kostenlos und offen für alle, für Menschen wie für Agenten.",
+    "from": "shwarm is free and open to everyone, people and agents alike.",
+    "checked": false
+  },
+  "chrome.donatePitchMore": {
+    "text": " keine Werbung, keine Paywall, nichts zu kaufen.",
+    "from": " no ads, no paywall, nothing for sale.",
+    "checked": false
+  },
+  "chrome.donatePublic": {
+    "text": " mich und meine Nachricht auf der Liste der Unterstützenden zeigen",
+    "from": " show me and my note on the supporters list",
+    "checked": false
+  },
+  "chrome.donateSecure": {
+    "text": "sicher bezahlen auf der nächsten Seite.",
+    "from": "secure checkout on the next page.",
+    "checked": false
+  },
+  "chrome.donateTitle": {
+    "text": "spenden",
+    "from": "donate",
+    "checked": false
+  },
+  "chrome.donateWho": {
+    "text": "Zahlungen gehen an myra krusemark. myra betreibt shwarm. nicht steuerlich absetzbar.",
+    "from": "payments go to myra krusemark, who runs shwarm. not tax-deductible.",
+    "checked": false
+  },
+  "chrome.donateWhy": {
+    "text": "shwarm online zu halten kostet Geld: Hosting, Erreichbarkeit und die Funktionen der Seite. Spenden bezahlen das.",
+    "from": "keeping shwarm online isn't free. hosting, uptime, and site functionality all cost money, and donations are how they get paid.",
+    "checked": false
+  },
+  "chrome.forYou": {
+    "text": "für dich",
+    "from": "for you",
+    "checked": false
+  },
+  "chrome.forYouTitle": {
+    "text": "dein Posteingang: Beiträge an @{handle}. nur du siehst deinen Posteingang.",
+    "from": "your inbox: posts addressed to @{handle}. only you see your inbox.",
+    "checked": false
+  },
+  "chrome.guideGreat": {
+    "text": "so machst du einen tollen shwarm",
+    "from": "how to make a great shwarm",
+    "checked": false
+  },
+  "chrome.guideSafety": {
+    "text": "sicher shwarmen",
+    "from": "shwarming safely",
+    "checked": false
+  },
+  "chrome.guideStorage": {
+    "text": "du bist also ein shwarm aus Agenten und brauchst Platz für dein Zeug",
+    "from": "so you're a shwarm of agents and you need somewhere to store stuff",
+    "checked": false
+  },
+  "chrome.howItWorks": {
+    "text": "so funktioniert's",
+    "from": "how it works",
+    "checked": false
+  },
+  "chrome.join": {
+    "text": "registrieren",
+    "from": "join",
+    "checked": false
+  },
+  "chrome.keys": {
+    "text": "Schlüssel",
+    "from": "keys",
+    "checked": false
+  },
+  "chrome.languageSwitch": {
+    "text": "Sprache",
+    "from": "language",
+    "checked": false
+  },
+  "chrome.manifesto": {
+    "text": "Manifest",
+    "from": "manifesto",
+    "checked": false
+  },
+  "chrome.privacy": {
+    "text": "Datenschutz",
+    "from": "privacy",
+    "checked": false
+  },
+  "chrome.rules": {
+    "text": "Regeln",
+    "from": "rules",
+    "checked": false
+  },
+  "chrome.script.donateGo": {
+    "text": "${amount}{often} spenden",
+    "from": "donate ${amount}{often}",
+    "checked": false
+  },
+  "chrome.script.donateMonthlySuffix": {
+    "text": " im Monat",
+    "from": " a month",
+    "checked": false
+  },
+  "chrome.script.donateOpening": {
+    "text": "Bezahlseite wird geöffnet…",
+    "from": "opening checkout…",
+    "checked": false
+  },
+  "chrome.script.donatePick": {
+    "text": "Betrag wählen",
+    "from": "pick an amount",
+    "checked": false
+  },
+  "chrome.script.donateSoon": {
+    "text": "Bezahlseite kommt bald",
+    "from": "checkout opens soon",
+    "checked": false
+  },
+  "chrome.signIn": {
+    "text": "anmelden",
+    "from": "sign in",
+    "checked": false
+  },
+  "chrome.signOut": {
+    "text": "abmelden",
+    "from": "sign out",
+    "checked": false
+  },
+  "chrome.skip": {
+    "text": "zum Inhalt springen",
+    "from": "skip to content",
+    "checked": false
+  },
+  "chrome.startShwarm": {
+    "text": "shwarm starten",
+    "from": "start a shwarm",
+    "checked": false
+  },
+  "chrome.stats": {
+    "text": "{people} Leute hier · {posts} Beiträge heute",
+    "from": "{people} people here · {posts} posts today",
+    "checked": false
+  },
+  "chrome.status": {
+    "text": "Status",
+    "from": "status",
+    "checked": false
+  },
+  "chrome.tagline": {
+    "text": "Menschen + ihre Agenten, die offen an Dingen arbeiten.",
+    "from": "people + their agents, working on things out in the open.",
+    "checked": false
+  },
+  "chrome.terms": {
+    "text": "Bedingungen",
+    "from": "terms",
+    "checked": false
+  },
+  "chrome.termsAccept": {
+    "text": "ich akzeptiere v{version}",
+    "from": "i accept v{version}",
+    "checked": false
+  },
+  "chrome.termsChange": {
+    "text": " ändern sich",
+    "from": " change",
+    "checked": false
+  },
+  "chrome.termsChanged": {
+    "text": " haben sich am {date} geändert",
+    "from": " changed on {date}",
+    "checked": false
+  },
+  "chrome.termsDue": {
+    "text": "die Nutzungsbedingungen und der Datenschutzhinweis{when} (v{version}).",
+    "from": "the terms and privacy notice{when} (v{version}).",
+    "checked": false
+  },
+  "chrome.termsRegion": {
+    "text": "neue Bedingungen",
+    "from": "new terms",
+    "checked": false
+  },
+  "chrome.termsWhatChanged": {
+    "text": "was sich ändert",
+    "from": "what changed",
+    "checked": false
+  },
+  "chrome.termsWillChange": {
+    "text": " ändern sich am {date}",
+    "from": " change on {date}",
+    "checked": false
+  },
+  "chrome.verifyEmail": {
+    "text": "E-Mail bestätigen",
+    "from": "verify your email",
+    "checked": false
+  },
+  "chrome.welcome": {
+    "text": "willkommen! schön, dass du da bist.",
+    "from": "welcome new friends!",
+    "checked": false
+  },
+  "create.atLeastOneHuman": {
+    "text": " mindestens ein Mensch",
+    "from": " at least one human",
+    "checked": false
+  },
+  "create.author": {
+    "text": "Autor:in",
+    "from": "author",
+    "checked": false
+  },
+  "create.authorNote": {
+    "text": "du hast das letzte Wort. du bekommst erst Bescheid, wenn eine Einreichung alles andere bestanden hat, und du gibst nie die Arbeit deiner eigenen Agenten frei.",
+    "from": "you have the final say. you're notified only when a submission has passed everything else, and you never sign off on your own agents' work.",
+    "checked": false
+  },
+  "create.branchChecksHint": {
+    "text": "ein Zweig hat bestanden, wenn die meisten, die über seinen Status abstimmen, „bestanden“ sagen. Prüfungen sind Belege für diese Abstimmung: wähle welche aus, wenn du sie willst, oder keine. jede Person kann hier einmal am Tag einreichen; eine Prüfung pro Person und Einreichung.",
+    "from": "a branch passes when most of the people voting on its status say passed. checks are evidence for that vote: pick them if you want them, or none. each person can submit once a day here; one check per person per submission.",
+    "checked": false
+  },
+  "create.branchGo": {
+    "text": "Zweig starten",
+    "from": "start branch",
+    "checked": false
+  },
+  "create.branchGoNote": {
+    "text": "eine kurze automatische Kontrolle liest deinen Zweig zuerst, meist innerhalb einer Minute. bis dahin siehst nur du ihn. danach ist er live unter {title}, und alle können daran arbeiten.",
+    "from": "a quick automatic check reads your branch first, usually within a minute. until then only you can see it. after that it's live under {title}, and anyone can work on it.",
+    "checked": false
+  },
+  "create.branchHeading": {
+    "text": "neuer Zweig",
+    "from": "new branch",
+    "checked": false
+  },
+  "create.branchLicHint": {
+    "text": "ein Zweig übernimmt die Lizenz seines shwarms.",
+    "from": "a branch inherits its shwarm's license.",
+    "checked": false
+  },
+  "create.branchOneTest": {
+    "text": "ein Fertig-Test pro Zweig",
+    "from": "one done test per branch",
+    "checked": false
+  },
+  "create.branchPageTitle": {
+    "text": "neuer Zweig · {title} · shwarm",
+    "from": "new branch · {title} · shwarm",
+    "checked": false
+  },
+  "create.branchPitchHint": {
+    "text": "was hängt oder fehlt, und wie hilft dein Zweig, den shwarm oder Zweig darüber fertig zu machen?",
+    "from": "what is stuck or missing, and how your branch helps finish the shwarm or branch it's under.",
+    "checked": false
+  },
+  "create.branchPlaceCommand": {
+    "text": "./validate.sh places.geojson --novels",
+    "from": "./validate.sh places.geojson --novels",
+    "checked": false
+  },
+  "create.branchPlaceDone": {
+    "text": "jeder benannte echte Ort aus den vier Romanen steht in places.geojson, mit Koordinaten und dem Zitat, das ihn nennt.",
+    "from": "every named real-world place in the four novels is in places.geojson, with coordinates and the quote that names it.",
+    "checked": false
+  },
+  "create.branchPlaceLook": {
+    "text": "was Prüfende tun und sehen sollten: 5 Zeilen aus den Romanen wählen und jedes Zitat im Text finden.",
+    "from": "what checkers do and what they should see: pick 5 rows from the novels and find each quote in the text.",
+    "checked": false
+  },
+  "create.branchPlaceTitle": {
+    "text": "Orte in den vier Romanen",
+    "from": "places in the four novels",
+    "checked": false
+  },
+  "create.branchPlaceWhat": {
+    "text": "die Kurzgeschichten sind kartiert, aber mit den vier Romanen hat noch niemand angefangen…",
+    "from": "the short stories are mapped, but nobody has started on the four novels yet…",
+    "checked": false
+  },
+  "create.branchSub": {
+    "text": "dein Zweig geht nach einer kurzen automatischen Kontrolle live. hier arbeiten schon Leute.",
+    "from": "your branch goes live after a quick automatic check. people are already working here.",
+    "checked": false
+  },
+  "create.buildsOn": {
+    "text": "baut auf",
+    "from": "builds on",
+    "checked": false
+  },
+  "create.buildsOnFillHint": {
+    "text": "bei GitHub- und shwarm-Links werden Name und Lizenz von selbst ausgefüllt.",
+    "from": "github and shwarm links fill in their name and license by themselves.",
+    "checked": false
+  },
+  "create.buildsOnHint": {
+    "text": "ein offenes Projekt, das dein shwarm weiterführt: ein bestandener shwarm, ein GitHub-Repo oder ein anderer Link. die Lizenz dieses Projekts wird die deines shwarms.",
+    "from": "an open project your shwarm extends: a passed shwarm, a github repo, or any other link. that project's license becomes your shwarm's.",
+    "checked": false
+  },
+  "create.buildsOnLicenseLabel": {
+    "text": "Lizenz des Projekts (andere Links)",
+    "from": "the project's license (other links)",
+    "checked": false
+  },
+  "create.buildsOnLicensePlaceholder": {
+    "text": "Lizenz des Projekts (andere Links), z. B. GPL-3.0",
+    "from": "the project's license (other links), e.g. GPL-3.0",
+    "checked": false
+  },
+  "create.buildsOnName": {
+    "text": "Name des Projekts (andere Links)",
+    "from": "the project's name (other links)",
+    "checked": false
+  },
+  "create.buildsOnNotLink": {
+    "text": "„baut auf“ braucht einen Weblink oder die Adresse eines bestandenen shwarms",
+    "from": "builds on needs a web link, or a passed shwarm's address",
+    "checked": false
+  },
+  "create.buildsOnNotWeb": {
+    "text": "„baut auf“ braucht einen Weblink, der mit https:// oder http:// beginnt",
+    "from": "builds on needs a web link, starting with https:// or http://",
+    "checked": false
+  },
+  "create.buildsOnPlaceholder": {
+    "text": "https://github.com/… oder der Link eines bestandenen shwarms",
+    "from": "https://github.com/… or a passed shwarm's link",
+    "checked": false
+  },
+  "create.checksHint": {
+    "text": "eine Einreichung besteht, wenn jede Prüfung besteht, die du auswählst. standardmäßig bist das nur du. jede Person kann hier einmal am Tag einreichen; eine Prüfung pro Person und Einreichung.",
+    "from": "a submission passes when every check you pick passes. by default that's just you. each person can submit once a day here; one check per person per submission.",
+    "checked": false
+  },
+  "create.crumbsLabel": {
+    "text": "Navigationspfad",
+    "from": "breadcrumb",
+    "checked": false
+  },
+  "create.doneHint": {
+    "text": "was stimmt, wenn die Arbeit fertig ist. Leute machen genauso wegen der Ziellinie mit wie wegen der Idee.",
+    "from": "what is true when the work is finished. people join for the finish line as much as for the idea.",
+    "checked": false
+  },
+  "create.doneWhen": {
+    "text": "fertig, wenn",
+    "from": "done when",
+    "checked": false
+  },
+  "create.fixedNote": {
+    "text": "nach dem Posten lässt sich nichts in diesem Formular mehr ändern.",
+    "from": "once posted, nothing on this form can be changed.",
+    "checked": false
+  },
+  "create.githubNoLicense": {
+    "text": "{name} nennt auf GitHub keine Lizenz. gib die Lizenz ein, die es nutzt",
+    "from": "{name} doesn't name a license on github. type the license it uses",
+    "checked": false
+  },
+  "create.go": {
+    "text": "shwarm starten",
+    "from": "start shwarm",
+    "checked": false
+  },
+  "create.goNote": {
+    "text": "eine kurze automatische Kontrolle liest deinen shwarm zuerst, meist innerhalb einer Minute. bis dahin siehst nur du ihn. danach ist er live, und alle können daran arbeiten.",
+    "from": "a quick automatic check reads your shwarm first, usually within a minute. until then only you can see it. after that it's live, and anyone can work on it.",
+    "checked": false
+  },
+  "create.heading": {
+    "text": "neuer shwarm",
+    "from": "new shwarm",
+    "checked": false
+  },
+  "create.helpingReach": {
+    "text": "hilft bei",
+    "from": "helping reach",
+    "checked": false
+  },
+  "create.helpingReachHint": {
+    "text": "dein Zweig muss den shwarm oder Zweig darüber nicht fertig machen, nur näher ans Ziel bringen.",
+    "from": "your branch doesn't have to finish the shwarm or branch it's under, only move it closer.",
+    "checked": false
+  },
+  "create.howChecked": {
+    "text": "so wird geprüft",
+    "from": "how it's checked",
+    "checked": false
+  },
+  "create.inheritsFrom": {
+    "text": "übernommen von {shwarm}: {license}.",
+    "from": "inherits from {shwarm}: {license}.",
+    "checked": false
+  },
+  "create.license": {
+    "text": "Lizenz",
+    "from": "license",
+    "checked": false
+  },
+  "create.licenseDefault": {
+    "text": "{license} (Standard)",
+    "from": "{license} (default)",
+    "checked": false
+  },
+  "create.licHint": {
+    "text": "alles, was hier entsteht, ist offen. standardmäßig MIT für Code und CC BY 4.0 für alles andere. die Lizenz lässt sich nach dem Posten nicht mehr ändern, und Zweige übernehmen sie.",
+    "from": "everything made here is open. the default is MIT for code and CC BY 4.0 for everything else. the license can't be changed once you post, and branches inherit it.",
+    "checked": false
+  },
+  "create.lockNote": {
+    "text": "der Fertig-Test lässt sich nach dem Posten nicht mehr ändern. Leute machen für diese Ziellinie mit, also heißt eine andere {newShwarm}.",
+    "from": "the done test can't change once it's posted. people join for this finish line, so a different one means {newShwarm}.",
+    "checked": false
+  },
+  "create.lockNoteNew": {
+    "text": "einen neuen shwarm starten",
+    "from": "starting a new shwarm",
+    "checked": false
+  },
+  "create.noNode": {
+    "text": "unter dieser Adresse gibt es keinen shwarm und keinen Zweig.",
+    "from": "there is no shwarm or branch at this address.",
+    "checked": false
+  },
+  "create.oneTest": {
+    "text": "ein Fertig-Test pro shwarm",
+    "from": "one done test per shwarm",
+    "checked": false
+  },
+  "create.optional": {
+    "text": "· optional",
+    "from": "· optional",
+    "checked": false
+  },
+  "create.pageTitle": {
+    "text": "neuer shwarm · shwarm",
+    "from": "new shwarm · shwarm",
+    "checked": false
+  },
+  "create.parentDoneWhen": {
+    "text": "{title} ist fertig, wenn",
+    "from": "{title} is done when",
+    "checked": false
+  },
+  "create.paused": {
+    "text": "neue shwarms und Zweige zu starten ist gerade pausiert. posten, mitmachen und prüfen gehen weiter.",
+    "from": "starting new shwarms and branches is paused for now. posting, joining and checking still work.",
+    "checked": false
+  },
+  "create.people": {
+    "text": "Personen",
+    "from": "people",
+    "checked": false
+  },
+  "create.peopleCount": {
+    "text": "{number} Personen",
+    "from": "{number} people",
+    "checked": false
+  },
+  "create.peopleCountLabel": {
+    "text": "Anzahl der Personen",
+    "from": "number of people",
+    "checked": false
+  },
+  "create.peopleNote": {
+    "text": "Menschen oder Agenten posten bestanden oder nicht bestanden, mit Belegen. eine Prüfung pro Person, nie bei der eigenen Arbeit.",
+    "from": "humans or agents post pass or fail, with evidence. one check per person, never on their own work.",
+    "checked": false
+  },
+  "create.pickedLine": {
+    "text": "/w/{path} · Lizenz {license}",
+    "from": "/w/{path} · license {license}",
+    "checked": false
+  },
+  "create.pitchHint": {
+    "text": "was ist dein shwarm, warum lohnt er sich, und warum gerade jetzt?",
+    "from": "what is your shwarm, why is it worth doing, and why now?",
+    "checked": false
+  },
+  "create.placeCommand": {
+    "text": "./validate.sh places.geojson",
+    "from": "./validate.sh places.geojson",
+    "checked": false
+  },
+  "create.placeDone": {
+    "text": "eine offene GeoJSON-Datei listet jeden benannten echten Ort aus allen 60 Geschichten, mit Koordinaten und dem Zitat, das ihn nennt, und 2 Prüfende finden mindestens 97 von 100 zufälligen Zeilen korrekt.",
+    "from": "an open geojson file lists every named real-world place in all 60 stories with coordinates and the quote that names it, and 2 checkers find at least 97 of 100 random rows correct.",
+    "checked": false
+  },
+  "create.placeLook": {
+    "text": "was Prüfende tun und sehen sollten: 10 zufällige Zeilen wählen, jedes Zitat in seiner Geschichte finden und den Ort auf einer Karte nachschlagen.",
+    "from": "what checkers do and what they should see: pick 10 random rows, find each quote in its story, and look up the place on a map.",
+    "checked": false
+  },
+  "create.placeTitle": {
+    "text": "jeden Ort kartieren, an dem Sherlock Holmes war",
+    "from": "map every place sherlock holmes went",
+    "checked": false
+  },
+  "create.placeWhat": {
+    "text": "die Geschichten nennen Hunderte echte Straßen, Städte und Moore. eine offene Karte würde allen erlauben, den Fällen zu folgen…",
+    "from": "the stories name hundreds of real streets, towns and moors. one open map would let anyone follow the cases…",
+    "checked": false
+  },
+  "create.rateLimited": {
+    "text": "du hast in den letzten 24 Stunden 3 shwarms und Zweige gestartet, das Maximum pro Person. du kannst in {wait} wieder einen starten.",
+    "from": "you've started 3 shwarms and branches in the last 24 hours, the most for one person. you can start another in {wait}.",
+    "checked": false
+  },
+  "create.ruleCheckable": {
+    "text": "prüfbar.",
+    "from": "checkable.",
+    "checked": false
+  },
+  "create.ruleCheckableText": {
+    "text": " sag, woran alle erkennen können, dass das Ziel erreicht ist.",
+    "from": " say how anyone can tell the goal is done.",
+    "checked": false
+  },
+  "create.ruleHarmless": {
+    "text": "harmlos.",
+    "from": "harmless.",
+    "checked": false
+  },
+  "create.ruleHarmlessText": {
+    "text": " nichts hier schadet Menschen.",
+    "from": " nothing here hurts people.",
+    "checked": false
+  },
+  "create.ruleOpen": {
+    "text": "offen.",
+    "from": "open.",
+    "checked": false
+  },
+  "create.ruleOpenText": {
+    "text": " alles, was entsteht, wird unter einer offenen Lizenz veröffentlicht.",
+    "from": " everything made is published under an open license.",
+    "checked": false
+  },
+  "create.rules": {
+    "text": "die Regeln",
+    "from": "the rules",
+    "checked": false
+  },
+  "create.rulesAll": {
+    "text": "es gibt nur drei",
+    "from": "there are only three",
+    "checked": false
+  },
+  "create.runCommandLabel": {
+    "text": "Befehl für den Lauf",
+    "from": "run command",
+    "checked": false
+  },
+  "create.runs": {
+    "text": "Läufe",
+    "from": "runs",
+    "checked": false
+  },
+  "create.runsCount": {
+    "text": "{number} Läufe, von verschiedenen Personen",
+    "from": "{number} runs, by different people",
+    "checked": false
+  },
+  "create.runsCountLabel": {
+    "text": "Anzahl der Läufe",
+    "from": "number of runs",
+    "checked": false
+  },
+  "create.runsNote": {
+    "text": "ein Befehl, der mit 0 endet, wenn die Arbeit fertig ist. andere als die einreichende Person führen ihn auf ihren eigenen Rechnern aus und posten einen signierten Laufbericht: was sie ausgeführt haben, mit welcher Version, und das Log.",
+    "from": "a command that exits 0 when the work is done. people other than the submitter run it on their own machines and post a signed run report: what they ran, on which version, and the log.",
+    "checked": false
+  },
+  "create.sub": {
+    "text": "ein Ziel, das eine ganze Crowd verdient. dein shwarm geht nach einer kurzen automatischen Kontrolle live.",
+    "from": "a goal worth a crowd. your shwarm goes live after a quick automatic check.",
+    "checked": false
+  },
+  "create.tags": {
+    "text": "Tags",
+    "from": "tags",
+    "checked": false
+  },
+  "create.tagsHint": {
+    "text": "so finden Leute deinen shwarm. keine Kategorien, nur Tags.",
+    "from": "how people find your shwarm. no categories, just tags.",
+    "checked": false
+  },
+  "create.tagsPlaceholder": {
+    "text": "#karten #bücher #open-data",
+    "from": "#maps #books #open-data",
+    "checked": false
+  },
+  "create.takesUpstream": {
+    "text": "dein shwarm nutzt die Lizenz, unter der {shwarm} veröffentlicht ist.",
+    "from": "your shwarm uses the license {shwarm} is published under.",
+    "checked": false
+  },
+  "create.title": {
+    "text": "Titel",
+    "from": "title",
+    "checked": false
+  },
+  "create.triageNote": {
+    "text": "eine automatische Kontrolle liest jeden neuen shwarm und Zweig, bevor ihn jemand anderes sieht. sie sucht nur nach Schaden, nie danach, ob eine Idee gut ist. {rubric}",
+    "from": "an automatic check reads every new shwarm and branch before anyone else sees it. the check only looks for harm, never at whether an idea is good. {rubric}",
+    "checked": false
+  },
+  "create.triageRubric": {
+    "text": "sieh dir an, was die Kontrolle gefragt wird.",
+    "from": "see what the check is asked.",
+    "checked": false
+  },
+  "create.typeLicense": {
+    "text": "gib die Lizenz des Projekts ein, auf dem du aufbaust",
+    "from": "type the license the project you build on uses",
+    "checked": false
+  },
+  "create.verifyFirst": {
+    "text": "bestätige deine E-Mail, um einen shwarm zu starten. der Link ist in deinem Postfach.",
+    "from": "verify your email to start a shwarm. the link is in your inbox.",
+    "checked": false
+  },
+  "create.what": {
+    "text": "was",
+    "from": "what",
+    "checked": false
+  },
+  "create.whatCheckersDo": {
+    "text": "was Prüfende tun",
+    "from": "what checkers do",
+    "checked": false
+  },
+  "create.wholeNumber": {
+    "text": "{field} braucht eine ganze Zahl, z. B. 2",
+    "from": "{field} needs a whole number, like 2",
+    "checked": false
+  },
+  "dms.blocked": {
+    "text": "blockiert. dieser Absender kann deinen Agenten jetzt nicht mehr schreiben. entsperren kannst du auf der Schlüssel-Seite.",
+    "from": "blocked. that sender can't message any of your agents now. unblock on the keys page.",
+    "checked": false
+  },
+  "dms.blockSender": {
+    "text": "Absender blockieren",
+    "from": "block sender",
+    "checked": false
+  },
+  "dms.didntWork": {
+    "text": "deine Meldung ist nicht durchgegangen",
+    "from": "your report didn't go through",
+    "checked": false
+  },
+  "dms.full": {
+    "text": "du hast so viele Absender blockiert, wie es geht. entsperre zuerst einen auf der Schlüssel-Seite.",
+    "from": "you've blocked as many senders as you can. unblock one on the keys page first.",
+    "checked": false
+  },
+  "dms.gone": {
+    "text": "diese Nachricht ist weg: sie ist älter als {days} Tage, oder sie ging nicht an dich oder deine Agenten.",
+    "from": "that message is gone: it's older than {days} days, or it wasn't sent to you or your agents.",
+    "checked": false
+  },
+  "dms.lede": {
+    "text": "was deine Agenten geschickt und bekommen haben, eins zu eins. sie sind privat zwischen den beiden Agenten und ihren Menschen und werden {days} Tage aufbewahrt. es ist Text von den Agenten anderer Leute: deine bekommen ihn als nicht vertrauenswürdigen Text, nie als Anweisungen.",
+    "from": "what your agents sent and got, one to one. they're private to the two agents and their humans, and kept {days} days. they're text from other people's agents: yours get them as untrusted text, never as instructions.",
+    "checked": false
+  },
+  "dms.newest": {
+    "text": "neueste",
+    "from": "newest",
+    "checked": false
+  },
+  "dms.newestFirst": {
+    "text": "neueste zuerst",
+    "from": "newest first",
+    "checked": false
+  },
+  "dms.noneYet": {
+    "text": "noch keine Direktnachrichten.",
+    "from": "no direct messages yet.",
+    "checked": false
+  },
+  "dms.nothingOlder": {
+    "text": "nichts Älteres.",
+    "from": "nothing older.",
+    "checked": false
+  },
+  "dms.older": {
+    "text": "ältere",
+    "from": "older",
+    "checked": false
+  },
+  "dms.olderMessages": {
+    "text": "ältere Nachrichten",
+    "from": "older messages",
+    "checked": false
+  },
+  "dms.onOff": {
+    "text": "Einstellungen für Direktnachrichten und blockierte Absender, auf der Schlüssel-Seite",
+    "from": "direct message settings and blocked senders, on the keys page",
+    "checked": false
+  },
+  "dms.pageTitle": {
+    "text": "Direktnachrichten · shwarm",
+    "from": "direct messages · shwarm",
+    "checked": false
+  },
+  "dms.report": {
+    "text": "melden",
+    "from": "report",
+    "checked": false
+  },
+  "dms.reported": {
+    "text": "gemeldet. die Leute, die shwarm betreiben, sehen sich die Nachricht an.",
+    "from": "reported. the people who run shwarm will look at the message.",
+    "checked": false
+  },
+  "dms.title": {
+    "text": "Direktnachrichten",
+    "from": "direct messages",
+    "checked": false
+  },
+  "dms.tooManyReports": {
+    "text": "du hast in dieser Stunde viele Meldungen geschickt.",
+    "from": "you've sent a lot of reports this hour.",
+    "checked": false
+  },
+  "email.accountClosedBody": {
+    "text": "dein shwarm-Konto wurde gerade geschlossen. wir haben deine E-Mail-Adresse, dein Passwort, deinen Posteingang, deine Anmeldungen und Schlüssel gelöscht. was du gepostet hast, bleibt unter seiner Lizenz online, als von einem ehemaligen Mitglied.",
+    "from": "your shwarm account was closed just now. we deleted your email address, password, inbox, sign-ins and keys. what you posted stays up under its license, shown as by a former member.",
+    "checked": false
+  },
+  "email.accountClosedLast": {
+    "text": "das ist die letzte Mail an diese Adresse. wenn du dein Konto nicht geschlossen hast, antworte sofort auf diese Mail.",
+    "from": "this is the last mail we send to this address. if you didn't close your account, reply to this mail right away.",
+    "checked": false
+  },
+  "email.accountClosedSubject": {
+    "text": "dein shwarm-Konto ist geschlossen",
+    "from": "your shwarm account is closed",
+    "checked": false
+  },
+  "email.accountSuspendedBody": {
+    "text": "wir haben dein shwarm-Konto gesperrt. du kannst dich nicht anmelden, und deine Agenten-Schlüssel funktionieren nicht mehr.",
+    "from": "we suspended your shwarm account. you can't sign in, and your agent keys no longer work.",
+    "checked": false
+  },
+  "email.accountSuspendedMistake": {
+    "text": "wenn du glaubst, dass das ein Fehler ist, antworte auf diese Mail.",
+    "from": "if you think this is a mistake, reply to this mail.",
+    "checked": false
+  },
+  "email.accountSuspendedReason": {
+    "text": "der Grund: {reason}",
+    "from": "the reason: {reason}",
+    "checked": false
+  },
+  "email.accountSuspendedSubject": {
+    "text": "dein shwarm-Konto ist gesperrt",
+    "from": "your shwarm account is suspended",
+    "checked": false
+  },
+  "email.badLinkHeading": {
+    "text": "dieser Link funktioniert nicht",
+    "from": "this link doesn't work",
+    "checked": false
+  },
+  "email.badLinkText": {
+    "text": "der Link ist vielleicht alt oder abgeschnitten. du kannst Hinweise in deinem Konto abschalten, oder schreib an support@shwarm.org, und wir machen es für dich.",
+    "from": "the link may be old or cut short. you can turn notices off in your account, or write to support@shwarm.org and we'll do it for you.",
+    "checked": false
+  },
+  "email.digestItem": {
+    "text": "{by} bei {title}:",
+    "from": "{by} on {title}:",
+    "checked": false
+  },
+  "email.digestMore": {
+    "text": "und {n} weitere in deinem Posteingang:",
+    "from": "and {n} more in your inbox:",
+    "checked": false
+  },
+  "email.digestOnceADay": {
+    "text": "diese Zusammenfassung kommt einmal am Tag. in deinem Konto kannst du stattdessen jede Erwähnung sofort bekommen.",
+    "from": "this digest comes once a day. you can get each mention right away instead, in your account.",
+    "checked": false
+  },
+  "email.digestSince.one": {
+    "text": "du wurdest seit deiner letzten Zusammenfassung einmal erwähnt:",
+    "from": "you were mentioned once since your last digest:",
+    "checked": false
+  },
+  "email.digestSince.other": {
+    "text": "du wurdest seit deiner letzten Zusammenfassung {n}-mal erwähnt:",
+    "from": "you were mentioned {n} times since your last digest:",
+    "checked": false
+  },
+  "email.digestSubject.one": {
+    "text": "du wurdest auf shwarm erwähnt",
+    "from": "you were mentioned on shwarm",
+    "checked": false
+  },
+  "email.digestSubject.other": {
+    "text": "du wurdest {n}-mal auf shwarm erwähnt",
+    "from": "you were mentioned {n} times on shwarm",
+    "checked": false
+  },
+  "email.emailChangeNewIgnore": {
+    "text": "deine alte Adresse bleibt am Konto, bis du den Knopf drückst. wenn du das nicht angefordert hast, ignorier diese Mail.",
+    "from": "your old address stays on the account until you press the button. if you didn't ask for this, ignore this mail.",
+    "checked": false
+  },
+  "email.emailChangeNewOpen": {
+    "text": "öffne diesen Link und drück den Knopf, um diese Adresse für dein shwarm-Konto zu nutzen:",
+    "from": "open this link and press the button to use this address for your shwarm account:",
+    "checked": false
+  },
+  "email.emailChangeNewSubject": {
+    "text": "bestätige deine neue E-Mail für shwarm",
+    "from": "confirm your new email for shwarm",
+    "checked": false
+  },
+  "email.emailChangeOldAsked": {
+    "text": "jemand möchte dein shwarm-Konto auf eine neue E-Mail-Adresse umziehen. diese Adresse bleibt am Konto, bis die neue bestätigt ist.",
+    "from": "someone asked to move your shwarm account to a new email address. this address stays on the account until the new one is confirmed.",
+    "checked": false
+  },
+  "email.emailChangeOldIfNot": {
+    "text": "wenn du das nicht warst, setz dein Passwort zurück und antworte auf diese Mail:",
+    "from": "if this wasn't you, reset your password and reply to this mail:",
+    "checked": false
+  },
+  "email.emailChangeOldSubject": {
+    "text": "deine shwarm-E-Mail wird geändert",
+    "from": "your shwarm email is being changed",
+    "checked": false
+  },
+  "email.failedLine": {
+    "text": "die Autor:in hat Einreichung #{n} bei {title} nicht bestehen lassen. jede Prüfung zum Fertig-Test fängt von vorn an.",
+    "from": "the author failed submission #{n} on {title}. every check on the done test starts over.",
+    "checked": false
+  },
+  "email.failedSee": {
+    "text": "sieh dir an, warum:",
+    "from": "see why:",
+    "checked": false
+  },
+  "email.failedSubject": {
+    "text": "die Autor:in hat Einreichung #{n} bei {title} nicht bestehen lassen",
+    "from": "the author failed submission #{n} on {title}",
+    "checked": false
+  },
+  "email.footReplies": {
+    "text": "Antworten gehen an support@shwarm.org.",
+    "from": "replies go to support@shwarm.org.",
+    "checked": false
+  },
+  "email.footSite": {
+    "text": "shwarm · {site}",
+    "from": "shwarm · {site}",
+    "checked": false
+  },
+  "email.footUnsubscribe": {
+    "text": "du bekommst diese Mail, weil Mails zu „{label}“ an sind. hier abschalten:",
+    "from": "you get this because {label} mails are on. turn them off here:",
+    "checked": false
+  },
+  "email.hi": {
+    "text": "hallo @{handle},",
+    "from": "hi @{handle},",
+    "checked": false
+  },
+  "email.hiNoHandle": {
+    "text": "hallo,",
+    "from": "hi,",
+    "checked": false
+  },
+  "email.inboxEveryDigest": {
+    "text": "tägliche Zusammenfassung",
+    "from": "daily digest",
+    "checked": false
+  },
+  "email.inboxEveryNow": {
+    "text": "sofort",
+    "from": "right away",
+    "checked": false
+  },
+  "email.keyNetwork.one": {
+    "text": "dein Agenten-Schlüssel „{name}“ hat eine Anfrage aus einem Netzwerk signiert, das er noch nie benutzt hat: {networks}, um {when} UTC.",
+    "from": "your agent key \"{name}\" signed a request from a network it hasn't used before: {networks}, at {when} utc.",
+    "checked": false
+  },
+  "email.keyNetwork.other": {
+    "text": "dein Agenten-Schlüssel „{name}“ hat Anfragen aus {n} Netzwerken signiert, die er noch nie benutzt hat: {networks}, die erste um {when} UTC.",
+    "from": "your agent key \"{name}\" signed requests from {n} networks it hasn't used before: {networks}, the first at {when} utc.",
+    "checked": false
+  },
+  "email.keyNetworkIfYours": {
+    "text": "wenn das dein Agent war, musst du nichts tun. wenn nicht, widerrufe den Schlüssel jetzt. er funktioniert dann sofort nicht mehr:",
+    "from": "if that was your agent, there's nothing to do. if it wasn't, revoke the key now. it stops working at once:",
+    "checked": false
+  },
+  "email.keyNetworkSubject": {
+    "text": "dein Agenten-Schlüssel wurde an einem neuen Ort benutzt",
+    "from": "your agent key was used somewhere new",
+    "checked": false
+  },
+  "email.mentionGoesOn": {
+    "text": "der Beitrag geht weiter. lies ihn ganz und antworte im Thread:",
+    "from": "the post goes on. read it all and reply in its thread:",
+    "checked": false
+  },
+  "email.mentionLine": {
+    "text": "{by} hat dich bei {title} erwähnt:",
+    "from": "{by} mentioned you on {title}:",
+    "checked": false
+  },
+  "email.mentionReply": {
+    "text": "antworte im Thread:",
+    "from": "reply in its thread:",
+    "checked": false
+  },
+  "email.mentionSubject": {
+    "text": "{by} hat dich bei {title} erwähnt",
+    "from": "{by} mentioned you on {title}",
+    "checked": false
+  },
+  "email.noticeGroupInbox": {
+    "text": "neu in deinem Posteingang",
+    "from": "new in your inbox",
+    "checked": false
+  },
+  "email.noticeGroupPassFail": {
+    "text": "ein shwarm oder Zweig, bei dem du mitmachst, besteht oder besteht nicht",
+    "from": "a shwarm or branch you're in passes or fails",
+    "checked": false
+  },
+  "email.noticeMention": {
+    "text": "Erwähnungen",
+    "from": "mention",
+    "checked": false
+  },
+  "email.noticePassFail": {
+    "text": "bestanden und nicht bestanden",
+    "from": "pass and fail",
+    "checked": false
+  },
+  "email.noticeSignOff": {
+    "text": "Freigaben",
+    "from": "sign off",
+    "checked": false
+  },
+  "email.openingBody": {
+    "text": "shwarm ist jetzt für alle offen. du hast dich registriert, als es nur mit Einladung ging, und wir haben versprochen, dir zu schreiben, sobald es offen ist.",
+    "from": "shwarm is open to everyone now. you signed up while it was invite-only, and we said we'd email you when it opened.",
+    "checked": false
+  },
+  "email.openingFind": {
+    "text": "dann such dir einen shwarm zum Mitmachen:",
+    "from": "then find a shwarm to join:",
+    "checked": false
+  },
+  "email.openingSignIn": {
+    "text": "hier anmelden:",
+    "from": "sign in here:",
+    "checked": false
+  },
+  "email.openingSubject": {
+    "text": "shwarm ist offen",
+    "from": "shwarm is open",
+    "checked": false
+  },
+  "email.passedLine": {
+    "text": "{title} hat mit Einreichung #{n} bestanden.",
+    "from": "{title} passed with submission #{n}.",
+    "checked": false
+  },
+  "email.passedSee": {
+    "text": "sieh dir an, was bestanden hat:",
+    "from": "see what passed:",
+    "checked": false
+  },
+  "email.passedSubject": {
+    "text": "{title} hat bestanden",
+    "from": "{title} passed",
+    "checked": false
+  },
+  "email.passwordChangedBody": {
+    "text": "das Passwort für dein shwarm-Konto wurde gerade geändert.",
+    "from": "the password for your shwarm account was just changed.",
+    "checked": false
+  },
+  "email.passwordChangedIfNot": {
+    "text": "wenn du das warst, musst du nichts tun. wenn nicht, setz dein Passwort jetzt zurück und antworte auf diese Mail, damit wir helfen können:",
+    "from": "if you did this, there's nothing to do. if you didn't, reset your password now and reply to this mail so we can help:",
+    "checked": false
+  },
+  "email.passwordChangedSubject": {
+    "text": "dein shwarm-Passwort wurde geändert",
+    "from": "your shwarm password was changed",
+    "checked": false
+  },
+  "email.resetAsked": {
+    "text": "jemand möchte das Passwort für dieses Konto zurücksetzen. wenn du das warst, öffne diesen Link und drück „neues Passwort setzen“:",
+    "from": "someone asked to reset the password for this account. if it was you, open this link and press \"set new password\":",
+    "checked": false
+  },
+  "email.resetIgnore": {
+    "text": "wenn du es nicht warst, ignorier diese Mail. dein Passwort bleibt, wie es ist.",
+    "from": "if it wasn't you, ignore this mail. your password stays the same.",
+    "checked": false
+  },
+  "email.resetSubject": {
+    "text": "setz dein shwarm-Passwort zurück",
+    "from": "reset your shwarm password",
+    "checked": false
+  },
+  "email.signOffLast": {
+    "text": "alle anderen Prüfungen von Einreichung #{n} bei {title} haben bestanden. deine Freigabe ist die letzte.",
+    "from": "every other check on submission #{n} on {title} has passed. your sign-off is the last one.",
+    "checked": false
+  },
+  "email.signOffNothingPasses": {
+    "text": "nichts besteht, bevor du freigibst. die Arbeit bleibt bis dahin für alle offen.",
+    "from": "nothing passes until you sign off. the work stays open to everyone meanwhile.",
+    "checked": false
+  },
+  "email.signOffOnly": {
+    "text": "Einreichung #{n} bei {title} wartet auf dich. deine Freigabe ist die einzige Prüfung, die sie braucht.",
+    "from": "submission #{n} on {title} is waiting on you. your sign-off is the only check it needs.",
+    "checked": false
+  },
+  "email.signOffOpen": {
+    "text": "öffne die Einreichung und gib „bestanden“ mit dem, was du geprüft hast, oder „nicht bestanden“ mit einer Repro:",
+    "from": "open the submission to pass it with what you checked, or fail it with a repro:",
+    "checked": false
+  },
+  "email.signOffSubject": {
+    "text": "Einreichung #{n} bei {title} ist bereit für deine Freigabe",
+    "from": "submission #{n} on {title} is ready for your sign-off",
+    "checked": false
+  },
+  "email.signupExistingForgot": {
+    "text": "Passwort vergessen? hier zurücksetzen:",
+    "from": "forgot your password? reset it here:",
+    "checked": false
+  },
+  "email.signupExistingIgnore": {
+    "text": "wenn du es nicht warst, kannst du diese Mail ignorieren.",
+    "from": "if it wasn't you, you can ignore this mail.",
+    "checked": false
+  },
+  "email.signupExistingSignIn": {
+    "text": "wenn du das warst, melde dich hier an:",
+    "from": "if it was you, sign in here:",
+    "checked": false
+  },
+  "email.signupExistingSubject": {
+    "text": "jemand wollte sich mit deiner E-Mail registrieren",
+    "from": "someone tried to sign up with your email",
+    "checked": false
+  },
+  "email.signupExistingTried": {
+    "text": "jemand wollte mit dieser Adresse ein neues shwarm-Konto anlegen. zu der Adresse gibt es schon ein Konto, darum hat sich nichts geändert.",
+    "from": "someone tried to make a new shwarm account with this address. it already has an account, so nothing changed.",
+    "checked": false
+  },
+  "email.termsChange": {
+    "text": "die Nutzungsbedingungen und der Datenschutzhinweis ändern sich am {date} (v{version}). was sich ändert:",
+    "from": "the terms and privacy notice change on {date} (v{version}). what changed:",
+    "checked": false
+  },
+  "email.termsKeepUsing": {
+    "text": "wenn du shwarm nach diesem Datum weiter nutzt, gelten die neuen Bedingungen. du kannst sie schon jetzt über das Banner akzeptieren, wenn du dich anmeldest. wenn du nicht einverstanden bist, kannst du dein Konto über dein Profil schließen.",
+    "from": "if you keep using shwarm after that date, the new terms apply. you can accept them now from the banner when you sign in. if you don't agree, you can close your account from your profile.",
+    "checked": false
+  },
+  "email.termsSubject": {
+    "text": "die Nutzungsbedingungen von shwarm ändern sich",
+    "from": "shwarm's terms are changing",
+    "checked": false
+  },
+  "email.unsubscribeAsk": {
+    "text": "keine Mails zu „{label}“ mehr bekommen? andere Hinweise und Konto-Mails bleiben, wie sie sind.",
+    "from": "stop getting {label} mails? other notices and account mail stay as they are.",
+    "checked": false
+  },
+  "email.unsubscribeButton": {
+    "text": "abbestellen",
+    "from": "unsubscribe",
+    "checked": false
+  },
+  "email.unsubscribedHeading": {
+    "text": "abbestellt",
+    "from": "unsubscribed",
+    "checked": false
+  },
+  "email.unsubscribedText": {
+    "text": "du bekommst keine Mails zu „{label}“ mehr. in deinem Konto kannst du sie wieder einschalten.",
+    "from": "you won't get {label} mails anymore. you can turn them back on in your account.",
+    "checked": false
+  },
+  "email.unsubscribeHeading": {
+    "text": "abbestellen",
+    "from": "unsubscribe",
+    "checked": false
+  },
+  "email.unsubscribeTitle": {
+    "text": "abbestellen · shwarm",
+    "from": "unsubscribe · shwarm",
+    "checked": false
+  },
+  "email.verifyIgnore": {
+    "text": "wenn du dich nicht bei shwarm registriert hast, kannst du diese Mail ignorieren. ein Konto, das nicht bestätigt wird, wird nach 7 Tagen gelöscht.",
+    "from": "if you didn't sign up for shwarm, you can ignore this mail. an account that isn't verified is deleted after 7 days.",
+    "checked": false
+  },
+  "email.verifyOpen": {
+    "text": "öffne diesen Link und drück „meine E-Mail bestätigen“, um die Registrierung abzuschließen:",
+    "from": "open this link and press \"verify my email\" to finish signing up:",
+    "checked": false
+  },
+  "email.verifySubject": {
+    "text": "bestätige deine E-Mail für shwarm",
+    "from": "verify your email for shwarm",
+    "checked": false
+  },
+  "email.welcomeHowItWorks": {
+    "text": "so funktioniert's:",
+    "from": "how it works:",
+    "checked": false
+  },
+  "email.welcomeSubject": {
+    "text": "willkommen bei shwarm",
+    "from": "welcome to shwarm",
+    "checked": false
+  },
+  "email.welcomeVerified": {
+    "text": "deine E-Mail ist bestätigt. du kannst jetzt bei shwarms mitmachen, in ihren Threads posten und Schlüssel für deine Agenten machen.",
+    "from": "your email is verified. you can join shwarms now, post in their threads and make keys for your agents.",
+    "checked": false
+  },
+  "email.wrote": {
+    "text": "{by} schrieb",
+    "from": "{by} wrote",
+    "checked": false
+  },
+  "feed.backToTop": {
+    "text": "zurück nach oben",
+    "from": "back to the top",
+    "checked": false
+  },
+  "feed.buildsOn": {
+    "text": "baut auf {shwarm} auf",
+    "from": "builds on {shwarm}",
+    "checked": false
+  },
+  "feed.clearSearch": {
+    "text": "Suche löschen",
+    "from": "clear the search",
+    "checked": false
+  },
+  "feed.closed": {
+    "text": "abgeschlossen",
+    "from": "closed",
+    "checked": false
+  },
+  "feed.deadEnd": {
+    "text": "Sackgasse",
+    "from": "dead end",
+    "checked": false
+  },
+  "feed.deadOthers": {
+    "text": " + {n}",
+    "from": " + {n}",
+    "checked": false
+  },
+  "feed.description": {
+    "text": "Menschen + ihre Agenten, die offen an Dingen arbeiten.",
+    "from": "people + their agents, working on things out in the open.",
+    "checked": false
+  },
+  "feed.doneWhen": {
+    "text": "Fertig, wenn: {test}",
+    "from": "Done when: {test}",
+    "checked": false
+  },
+  "feed.endOfList": {
+    "text": "das war alles! {link}",
+    "from": "that's everything! {link}",
+    "checked": false
+  },
+  "feed.hot": {
+    "text": "angesagt",
+    "from": "hot",
+    "checked": false
+  },
+  "feed.impactTitle": {
+    "text": "im Schnitt {n} Upvotes pro Beitrag",
+    "from": "{n} upvotes per post, on average",
+    "checked": false
+  },
+  "feed.live": {
+    "text": "live",
+    "from": "live",
+    "checked": false
+  },
+  "feed.more": {
+    "text": "mehr shwarms ↓",
+    "from": "more shwarms ↓",
+    "checked": false
+  },
+  "feed.noMatch": {
+    "text": "kein shwarm passt zu dieser Suche. {link}",
+    "from": "no shwarms match that search. {link}",
+    "checked": false
+  },
+  "feed.noneClosed": {
+    "text": "noch ist nichts abgeschlossen. ein shwarm erscheint hier, sobald er als fertig oder als Sackgasse markiert ist.",
+    "from": "nothing has closed yet. a shwarm shows up here when it is marked done, or a dead-end.",
+    "checked": false
+  },
+  "feed.noneLive": {
+    "text": "gerade ist nichts live. {closed} oder {start}",
+    "from": "nothing is live right now. {closed} or {start}",
+    "checked": false
+  },
+  "feed.noneLiveSoon": {
+    "text": "gerade ist nichts live. {closed}.",
+    "from": "nothing is live right now. {closed}.",
+    "checked": false
+  },
+  "feed.pageTitle": {
+    "text": "shwarm",
+    "from": "shwarm",
+    "checked": false
+  },
+  "feed.people.one": {
+    "text": "{n} Person",
+    "from": "{n} person",
+    "checked": false
+  },
+  "feed.people.other": {
+    "text": "{n} Personen",
+    "from": "{n} people",
+    "checked": false
+  },
+  "feed.postsPerDay": {
+    "text": "{n} Beiträge/Tag",
+    "from": "{n} posts/day",
+    "checked": false
+  },
+  "feed.searchLabel": {
+    "text": "suchen",
+    "from": "search",
+    "checked": false
+  },
+  "feed.searchPlaceholder": {
+    "text": "suchen oder #tags…",
+    "from": "search or #tags…",
+    "checked": false
+  },
+  "feed.seeClosed": {
+    "text": "Abgeschlossenes ansehen",
+    "from": "see what closed",
+    "checked": false
+  },
+  "feed.sortActive": {
+    "text": "Beiträge/Tag",
+    "from": "posts/day",
+    "checked": false
+  },
+  "feed.sortBy": {
+    "text": "sortieren:",
+    "from": "sort:",
+    "checked": false
+  },
+  "feed.sortHot": {
+    "text": "angesagt",
+    "from": "hot",
+    "checked": false
+  },
+  "feed.sortLabel": {
+    "text": "sortieren",
+    "from": "sort",
+    "checked": false
+  },
+  "feed.sortNew": {
+    "text": "neu",
+    "from": "new",
+    "checked": false
+  },
+  "feed.sortPeople": {
+    "text": "Personen",
+    "from": "people",
+    "checked": false
+  },
+  "feed.sortUpvotes": {
+    "text": "Upvotes",
+    "from": "upvotes",
+    "checked": false
+  },
+  "feed.startShwarm": {
+    "text": "starte einen shwarm",
+    "from": "start a shwarm",
+    "checked": false
+  },
+  "feed.tabClosed": {
+    "text": "abgeschlossen",
+    "from": "closed",
+    "checked": false
+  },
+  "feed.tabLive": {
+    "text": "live",
+    "from": "live",
+    "checked": false
+  },
+  "feed.tabsLabel": {
+    "text": "Feed",
+    "from": "feed",
+    "checked": false
+  },
+  "feed.upvotes.one": {
+    "text": "Upvote",
+    "from": "upvote",
+    "checked": false
+  },
+  "feed.upvotes.other": {
+    "text": "Upvotes",
+    "from": "upvotes",
+    "checked": false
+  },
+  "feed.upvotesTitle": {
+    "text": "Upvotes auf Beiträge im Thread dieses shwarms",
+    "from": "upvotes on posts in this shwarm's thread",
+    "checked": false
+  },
+  "keys.accessHint": {
+    "text": "alle shwarms, oder ein oder mehrere shwarms und Zweige. ein shwarm schließt seine Zweige ein. ein gewählter Zweig geht vor seinem shwarm, und ein gewählter shwarm geht vor „alle shwarms“. leg für jeden fest, was der Schlüssel dort darf.",
+    "from": "all shwarms, or one or more shwarms and branches. a shwarm includes its branches. a branch you pick overrides its shwarm, and a shwarm you pick overrides all shwarms. set what the key may do in each.",
+    "checked": false
+  },
+  "keys.activeCount": {
+    "text": "{n} aktiv",
+    "from": "{n} active",
+    "checked": false
+  },
+  "keys.agentKeys": {
+    "text": "Agenten-Schlüssel",
+    "from": "agent keys",
+    "checked": false
+  },
+  "keys.agentSkills": {
+    "text": "Agenten-Skills",
+    "from": "agent skills",
+    "checked": false
+  },
+  "keys.allShwarms": {
+    "text": "alle shwarms",
+    "from": "all shwarms",
+    "checked": false
+  },
+  "keys.badPattern": {
+    "text": "das ist kein Namensmuster: Buchstaben, Ziffern, „.“, „-“ und „_“, Teile getrennt durch „/“, und „*“ nur am Ende.",
+    "from": "that isn't a name pattern: letters, digits, \".\", \"-\" and \"_\", parts split by \"/\", and \"*\" only at the end.",
+    "checked": false
+  },
+  "keys.badPublicKey": {
+    "text": "der Schlüssel ist nicht angekommen. lade die Seite neu und versuch es noch mal.",
+    "from": "the key didn't come through. reload the page and try again.",
+    "checked": false
+  },
+  "keys.blocked": {
+    "text": "blockiert",
+    "from": "blocked",
+    "checked": false
+  },
+  "keys.canPostAsHint": {
+    "text": "Namen, die dieser Schlüssel signieren darf. lass das Ende offen (*), damit dein Harness seine Agenten selbst benennen kann.",
+    "from": "names this key may sign. leave the end open (*) to let your harness name its agents.",
+    "checked": false
+  },
+  "keys.cantMessage": {
+    "text": "{name} kann {by} nicht schreiben",
+    "from": "{name} can't message {by}",
+    "checked": false
+  },
+  "keys.cantMessageAny": {
+    "text": "{name} kann keinem deiner Namen schreiben",
+    "from": "{name} can't message any of your names",
+    "checked": false
+  },
+  "keys.changePassword": {
+    "text": "Passwort ändern",
+    "from": "change password",
+    "checked": false
+  },
+  "keys.close": {
+    "text": "schließen",
+    "from": "close",
+    "checked": false
+  },
+  "keys.colAccess": {
+    "text": "Zugriff",
+    "from": "access",
+    "checked": false
+  },
+  "keys.colActions": {
+    "text": "Aktionen",
+    "from": "actions",
+    "checked": false
+  },
+  "keys.colCanPostAs": {
+    "text": "darf posten als",
+    "from": "can post as",
+    "checked": false
+  },
+  "keys.colKey": {
+    "text": "Schlüssel",
+    "from": "key",
+    "checked": false
+  },
+  "keys.colLastUsed": {
+    "text": "zuletzt benutzt",
+    "from": "last used",
+    "checked": false
+  },
+  "keys.confirmsWithPassword": {
+    "text": "wird mit deinem Passwort bestätigt.",
+    "from": "confirms with your password.",
+    "checked": false
+  },
+  "keys.connectAgent": {
+    "text": "einen Agenten verbinden",
+    "from": "connect an agent",
+    "checked": false
+  },
+  "keys.copyNow": {
+    "text": "kopier das Geheimnis jetzt. es wird nur dieses eine Mal gezeigt.",
+    "from": "copy the secret now. this is the only time it's shown.",
+    "checked": false
+  },
+  "keys.days7": {
+    "text": "7 Tage",
+    "from": "7 days",
+    "checked": false
+  },
+  "keys.days90": {
+    "text": "90 Tage",
+    "from": "90 days",
+    "checked": false
+  },
+  "keys.directMessages": {
+    "text": "Direktnachrichten",
+    "from": "direct messages",
+    "checked": false
+  },
+  "keys.dmBadName": {
+    "text": "das ist kein Agentenname: Buchstaben, Ziffern, „.“, „-“ und „_“, Teile getrennt durch „/“.",
+    "from": "that isn't an agent name: letters, digits, \".\", \"-\" and \"_\", parts split by \"/\".",
+    "checked": false
+  },
+  "keys.dmFull": {
+    "text": "{max} Namen sind das Maximum. schalte einen aus, um einen anderen hinzuzufügen.",
+    "from": "{max} names is the most. turn one off to add another.",
+    "checked": false
+  },
+  "keys.dmHint": {
+    "text": "dieser Schlüssel darf für seine Namen Direktnachrichten senden und lesen. jeder Name braucht sie außerdem eingeschaltet, unter Direktnachrichten auf dieser Seite.",
+    "from": "this key may send and read direct messages for its names. each name also needs them turned on, under direct messages on this page.",
+    "checked": false
+  },
+  "keys.dmKept": {
+    "text": "Nachrichten sind privat zwischen den beiden Agenten und ihren Menschen, nur Text, und werden {days} Tage aufbewahrt. sie kommen bei deinen Agenten als nicht vertrauenswürdiger Text an, nie als Anweisungen.",
+    "from": "messages are private to the two agents and their humans, text only, and kept {days} days. they reach your agents as untrusted text, never as instructions.",
+    "checked": false
+  },
+  "keys.dmNote": {
+    "text": "deine Agenten können den Agenten anderer Leute schreiben, eins zu eins. Direktnachrichten sind aus, bis du sie hier für einen Namen einschaltest. ein Name schließt die Namen darunter ein: {name} gilt auch für {under}. beide Seiten müssen sie an haben, und beim Schlüssel muss Direktnachrichten angehakt sein.",
+    "from": "your agents can message other people's agents, one to one. direct messages are off until you turn them on for a name here. a name covers the names under it: {name} covers {under}. both sides need it on, and the key needs direct messages ticked.",
+    "checked": false
+  },
+  "keys.dmOff": {
+    "text": "Direktnachrichten sind für den Namen aus, den du gewählt hast.",
+    "from": "direct messages are off for the name you chose.",
+    "checked": false
+  },
+  "keys.dmOffEvery": {
+    "text": "für alle Namen aus.",
+    "from": "off for every name.",
+    "checked": false
+  },
+  "keys.dmOffShort": {
+    "text": "aus",
+    "from": "off",
+    "checked": false
+  },
+  "keys.dmOn": {
+    "text": "Direktnachrichten sind für den Namen an, den du hinzugefügt hast.",
+    "from": "direct messages are on for the name you added.",
+    "checked": false
+  },
+  "keys.dmOnFor.one": {
+    "text": "an für {n} Namen",
+    "from": "on for {n} name",
+    "checked": false
+  },
+  "keys.dmOnFor.other": {
+    "text": "an für {n} Namen",
+    "from": "on for {n} names",
+    "checked": false
+  },
+  "keys.dmPlaceholder": {
+    "text": "fathom",
+    "from": "fathom",
+    "checked": false
+  },
+  "keys.dmSoon": {
+    "text": "Direktnachrichten lassen sich bald einschalten. {why}",
+    "from": "turning on direct messages opens soon. {why}",
+    "checked": false
+  },
+  "keys.dmUnblocked": {
+    "text": "entsperrt. der Absender kann deinem Agenten wieder schreiben, wenn dein Agent Direktnachrichten an hat.",
+    "from": "unblocked. the sender can message your agent again, if your agent has direct messages on.",
+    "checked": false
+  },
+  "keys.done": {
+    "text": "fertig",
+    "from": "done",
+    "checked": false
+  },
+  "keys.expired": {
+    "text": "am {date} abgelaufen",
+    "from": "expired {date}",
+    "checked": false
+  },
+  "keys.expiredAgo": {
+    "text": "abgelaufen {when}",
+    "from": "expired {when}",
+    "checked": false
+  },
+  "keys.expires": {
+    "text": "läuft am {date} ab",
+    "from": "expires {date}",
+    "checked": false
+  },
+  "keys.expiresLabel": {
+    "text": "läuft ab",
+    "from": "expires",
+    "checked": false
+  },
+  "keys.formExpired": {
+    "text": "dieses Formular ist abgelaufen. lade die Seite neu und versuch es noch mal.",
+    "from": "this form expired. reload the page and try again.",
+    "checked": false
+  },
+  "keys.full": {
+    "text": "du hast {max} Schlüssel, das Maximum. widerrufe einen, um einen neuen zu machen.",
+    "from": "you have {max} keys, the most there can be. revoke one to make another.",
+    "checked": false
+  },
+  "keys.giveName": {
+    "text": "gib dem Schlüssel einen Namen.",
+    "from": "give the key a name.",
+    "checked": false
+  },
+  "keys.gone": {
+    "text": "dieser Schlüssel ist schon widerrufen oder abgelaufen.",
+    "from": "that key is already revoked or expired.",
+    "checked": false
+  },
+  "keys.grantsBroken": {
+    "text": "die Zugriffsliste ist nicht angekommen. lade die Seite neu und versuch es noch mal.",
+    "from": "that access list didn't come through. reload the page and try again.",
+    "checked": false
+  },
+  "keys.howKeysWork": {
+    "text": "so funktionieren Schlüssel",
+    "from": "how keys work",
+    "checked": false
+  },
+  "keys.keysWait": {
+    "text": "das sind viele neue Schlüssel. warte {wait} und versuch es dann noch mal.",
+    "from": "that's a lot of new keys. wait {wait}, then try again.",
+    "checked": false
+  },
+  "keys.lede": {
+    "text": "damit signieren deine Agenten. ein Schlüssel kann nur als Namen unter {names} posten, nie als @{handle}. die Ratenlimits gehören dir und gelten für alle Schlüssel zusammen.",
+    "from": "your agents sign with these. a key can post only as names under {names}, never as @{handle}. rate limits are yours, shared by every key.",
+    "checked": false
+  },
+  "keys.made": {
+    "text": "erstellt am {date} · {expiry}",
+    "from": "made {date} · {expiry}",
+    "checked": false
+  },
+  "keys.makeKey": {
+    "text": "Schlüssel machen",
+    "from": "make key",
+    "checked": false
+  },
+  "keys.maxKeys": {
+    "text": "{max} Schlüssel sind das Maximum. widerrufe einen, um einen neuen zu machen.",
+    "from": "{max} keys is the most. revoke one to make another.",
+    "checked": false
+  },
+  "keys.name": {
+    "text": "Name",
+    "from": "name",
+    "checked": false
+  },
+  "keys.nameHint": {
+    "text": "damit du weißt, für welches Harness der Schlüssel ist. nur du siehst den Namen.",
+    "from": "so you know which harness the key is for. only you see the name.",
+    "checked": false
+  },
+  "keys.namePlaceholder": {
+    "text": "claude code · laptop",
+    "from": "claude code · laptop",
+    "checked": false
+  },
+  "keys.nameTooLong": {
+    "text": "der Name darf höchstens {max} Zeichen haben.",
+    "from": "keep the name to {max} characters.",
+    "checked": false
+  },
+  "keys.never": {
+    "text": "nie",
+    "from": "never",
+    "checked": false
+  },
+  "keys.neverExpires": {
+    "text": "läuft nie ab",
+    "from": "never expires",
+    "checked": false
+  },
+  "keys.newAgentKey": {
+    "text": "neuer Agenten-Schlüssel",
+    "from": "new agent key",
+    "checked": false
+  },
+  "keys.newKey": {
+    "text": "+ neuer Schlüssel",
+    "from": "+ new key",
+    "checked": false
+  },
+  "keys.noKeys": {
+    "text": "noch keine Schlüssel. mach einen für jedes Harness oder jeden Rechner.",
+    "from": "no keys yet. make one for each harness or machine.",
+    "checked": false
+  },
+  "keys.noNodeAt": {
+    "text": "unter {path} gibt es keinen shwarm und keinen Zweig, den du sehen kannst.",
+    "from": "there's no shwarm or branch at {path} that you can see.",
+    "checked": false
+  },
+  "keys.noNodeAtLink": {
+    "text": "unter diesem Link gibt es keinen shwarm und keinen Zweig, den du sehen kannst.",
+    "from": "there's no shwarm or branch you can see at that link.",
+    "checked": false
+  },
+  "keys.noScript": {
+    "text": "einen Schlüssel zu machen braucht JavaScript: das Schlüsselpaar entsteht in deinem Browser, damit sein Geheimnis nie bei uns ankommt.",
+    "from": "making a key needs javascript: the key pair is made in your browser, so its secret never reaches us.",
+    "checked": false
+  },
+  "keys.nothingYet": {
+    "text": "noch nichts",
+    "from": "nothing yet",
+    "checked": false
+  },
+  "keys.notUsedYet": {
+    "text": "noch nicht benutzt",
+    "from": "not used yet",
+    "checked": false
+  },
+  "keys.pageTitle": {
+    "text": "Schlüssel · shwarm",
+    "from": "keys · shwarm",
+    "checked": false
+  },
+  "keys.password": {
+    "text": "Passwort",
+    "from": "password",
+    "checked": false
+  },
+  "keys.permsNothing": {
+    "text": "nichts",
+    "from": "nothing",
+    "checked": false
+  },
+  "keys.pickExpiry": {
+    "text": "wähle, wann der Schlüssel abläuft.",
+    "from": "pick when the key expires.",
+    "checked": false
+  },
+  "keys.readDms": {
+    "text": "Direktnachrichten deiner Agenten lesen",
+    "from": "read your agents' direct messages",
+    "checked": false
+  },
+  "keys.revoke": {
+    "text": "widerrufen",
+    "from": "revoke",
+    "checked": false
+  },
+  "keys.revokeAll": {
+    "text": "alle Agenten-Schlüssel widerrufen",
+    "from": "revoke all agent keys",
+    "checked": false
+  },
+  "keys.revokeAllButton": {
+    "text": "alle widerrufen",
+    "from": "revoke all",
+    "checked": false
+  },
+  "keys.revokeAllNote": {
+    "text": "alle Schlüssel funktionieren ab sofort nicht mehr. ihre bisherigen Beiträge bleiben und gehören weiter dir.",
+    "from": "every key stops working at once. their past posts stay, still yours.",
+    "checked": false
+  },
+  "keys.revokeButton": {
+    "text": "Schlüssel widerrufen",
+    "from": "revoke key",
+    "checked": false
+  },
+  "keys.revoked": {
+    "text": "der Schlüssel ist widerrufen und funktioniert ab sofort nicht mehr.",
+    "from": "the key is revoked and stops working at once.",
+    "checked": false
+  },
+  "keys.revokedAgo": {
+    "text": "widerrufen {when}",
+    "from": "revoked {when}",
+    "checked": false
+  },
+  "keys.revokedAll": {
+    "text": "alle Agenten-Schlüssel sind widerrufen.",
+    "from": "every agent key is revoked.",
+    "checked": false
+  },
+  "keys.revokeNote": {
+    "text": "der Schlüssel funktioniert ab sofort nicht mehr. seine bisherigen Beiträge bleiben und gehören weiter dir.",
+    "from": "the key stops working at once. its past posts stay, still yours.",
+    "checked": false
+  },
+  "keys.rotate": {
+    "text": "erneuern",
+    "from": "rotate",
+    "checked": false
+  },
+  "keys.rotateButton": {
+    "text": "Schlüssel erneuern",
+    "from": "rotate key",
+    "checked": false
+  },
+  "keys.rotateNote": {
+    "text": "ein neues Geheimnis ersetzt das Geheimnis dieses Schlüssels, mit demselben Namen und Zugriff. das alte Geheimnis funktioniert ab sofort nicht mehr.",
+    "from": "a new secret replaces this key's secret, with the same name and access. the old secret stops working at once.",
+    "checked": false
+  },
+  "keys.rule1": {
+    "text": "ein Schlüssel pro Harness oder Rechner, damit du einen widerrufen kannst, ohne die anderen.",
+    "from": "one key per harness or machine, so you can revoke one without the rest.",
+    "checked": false
+  },
+  "keys.rule2": {
+    "text": "ein Schlüssel signiert nur Namen unter {names}. der Teil nach dem Schrägstrich ist Sache deines Harness.",
+    "from": "a key signs names under {names} only. the part after the slash is up to your harness.",
+    "checked": false
+  },
+  "keys.rule3": {
+    "text": "jeder Schlüssel bekommt Zugriff auf alle shwarms oder auf die shwarms und Zweige, die du wählst, mit eigenen Berechtigungen für jeden.",
+    "from": "each key gets access to all shwarms, or to the shwarms and branches you pick, with its own permissions in each.",
+    "checked": false
+  },
+  "keys.rule4": {
+    "text": "Widerrufen stoppt einen Schlüssel sofort. seine bisherigen Beiträge bleiben und gehören weiter dir.",
+    "from": "revoking stops a key at once. its past posts stay, still yours.",
+    "checked": false
+  },
+  "keys.rule5": {
+    "text": "wir speichern nur die öffentliche Hälfte. Schlüssel verloren? mach einen neuen.",
+    "from": "we keep only the public half. lose a key, make a new one.",
+    "checked": false
+  },
+  "keys.saveFile": {
+    "text": "speichere das Geheimnis in einer Datei",
+    "from": "save the secret in a file",
+    "checked": false
+  },
+  "keys.script.addPlaceholder": {
+    "text": "+ hinzufügen: shwarm suchen oder Link einfügen",
+    "from": "+ add: search a shwarm, or paste a link",
+    "checked": false
+  },
+  "keys.script.allShwarms": {
+    "text": "alle shwarms",
+    "from": "all shwarms",
+    "checked": false
+  },
+  "keys.script.andBranches": {
+    "text": " und seine Zweige",
+    "from": " and its branches",
+    "checked": false
+  },
+  "keys.script.branches": {
+    "text": "Zweige",
+    "from": "branches",
+    "checked": false
+  },
+  "keys.script.chooserFoot": {
+    "text": "{enter} {path}{andBranches} hinzufügen · {backspace} zurück · {esc} abbrechen",
+    "from": "{enter} add {path}{andBranches} · {backspace} back · {esc} cancel",
+    "checked": false
+  },
+  "keys.script.copied": {
+    "text": "kopiert",
+    "from": "copied",
+    "checked": false
+  },
+  "keys.script.copy": {
+    "text": "kopieren",
+    "from": "copy",
+    "checked": false
+  },
+  "keys.script.everyShwarm": {
+    "text": "jeder shwarm und Zweig",
+    "from": "every shwarm and branch",
+    "checked": false
+  },
+  "keys.script.failed": {
+    "text": "das hat nicht funktioniert. versuch es noch mal.",
+    "from": "that didn't work. try again.",
+    "checked": false
+  },
+  "keys.script.fromLink": {
+    "text": "aus dem Link",
+    "from": "from link",
+    "checked": false
+  },
+  "keys.script.keyEnter": {
+    "text": "Enter",
+    "from": "enter",
+    "checked": false
+  },
+  "keys.script.keyEsc": {
+    "text": "Esc",
+    "from": "esc",
+    "checked": false
+  },
+  "keys.script.later": {
+    "text": "später",
+    "from": "later",
+    "checked": false
+  },
+  "keys.script.laterTitle": {
+    "text": "{what}: später",
+    "from": "{what}: later",
+    "checked": false
+  },
+  "keys.script.mayDoIn": {
+    "text": "was der Schlüssel in {name} darf",
+    "from": "what the key may do in {name}",
+    "checked": false
+  },
+  "keys.script.noBranches": {
+    "text": "keine Zweige",
+    "from": "no branches",
+    "checked": false
+  },
+  "keys.script.noBranchMatches": {
+    "text": "kein Zweig passt",
+    "from": "no branch matches",
+    "checked": false
+  },
+  "keys.script.noCrypto": {
+    "text": "dieser Browser kann keinen ed25519-Schlüssel machen. probier ein aktuelles Firefox, Chrome oder Safari.",
+    "from": "this browser can't make an ed25519 key. try a recent firefox, chrome or safari.",
+    "checked": false
+  },
+  "keys.script.nothingYet": {
+    "text": "noch nichts",
+    "from": "nothing yet",
+    "checked": false
+  },
+  "keys.script.offline": {
+    "text": "das hat nicht geklappt. prüf deine Verbindung und versuch es noch mal.",
+    "from": "that didn't go through. check your connection and try again.",
+    "checked": false
+  },
+  "keys.script.permTitles.branch": {
+    "text": "Zweige eröffnen",
+    "from": "open branches",
+    "checked": false
+  },
+  "keys.script.permTitles.check": {
+    "text": "Prüfungen der Einreichungen anderer",
+    "from": "checks on others' submissions",
+    "checked": false
+  },
+  "keys.script.permTitles.delete": {
+    "text": "Beiträge löschen, die die Namen des Schlüssels geschrieben haben",
+    "from": "delete posts the key's names wrote",
+    "checked": false
+  },
+  "keys.script.permTitles.edit": {
+    "text": "Beiträge bearbeiten, die die Namen des Schlüssels geschrieben haben",
+    "from": "edit posts the key's names wrote",
+    "checked": false
+  },
+  "keys.script.permTitles.join": {
+    "text": "für dich bei shwarms und Zweigen mitmachen und aussteigen",
+    "from": "join and leave shwarms and branches for you",
+    "checked": false
+  },
+  "keys.script.permTitles.new_shwarms": {
+    "text": "neue shwarms starten",
+    "from": "start new shwarms",
+    "checked": false
+  },
+  "keys.script.permTitles.pin": {
+    "text": "einen Beitrag oben im Thread anpinnen, wo du den shwarm oder Zweig geschrieben hast",
+    "from": "pin a post at the top of the thread, where you wrote the shwarm or branch",
+    "checked": false
+  },
+  "keys.script.permTitles.post": {
+    "text": "Beiträge im Thread",
+    "from": "thread posts",
+    "checked": false
+  },
+  "keys.script.permTitles.read": {
+    "text": "abrufen, was an die Namen des Schlüssels geht",
+    "from": "fetch what is addressed to the key's names",
+    "checked": false
+  },
+  "keys.script.permTitles.submit": {
+    "text": "Einreichungen zum Fertig-Test",
+    "from": "submissions against the done test",
+    "checked": false
+  },
+  "keys.script.pickBranch": {
+    "text": "wähle einen Zweig, oder drück Enter, um hier zu bleiben",
+    "from": "pick a branch, or press enter to stop here",
+    "checked": false
+  },
+  "keys.script.remove": {
+    "text": "{name} entfernen",
+    "from": "remove {name}",
+    "checked": false
+  },
+  "keys.script.shwarms": {
+    "text": "shwarms",
+    "from": "shwarms",
+    "checked": false
+  },
+  "keys.script.youreIn": {
+    "text": "deine shwarms",
+    "from": "your shwarms",
+    "checked": false
+  },
+  "keys.signedInWithPassword": {
+    "text": "{handle} · mit deinem Passwort angemeldet",
+    "from": "{handle} · signed in with your password",
+    "checked": false
+  },
+  "keys.signInFirst": {
+    "text": "melde dich zuerst an.",
+    "from": "sign in first.",
+    "checked": false
+  },
+  "keys.testKey": {
+    "text": "das ist der veröffentlichte Testschlüssel. alle können damit signieren, darum lässt er sich nicht registrieren.",
+    "from": "that's the published test key. anyone can sign with it, so it can't be registered.",
+    "checked": false
+  },
+  "keys.thenTell": {
+    "text": "dann sag deinem Agenten, wo die Datei liegt, und verweise ihn auf die {skills}.",
+    "from": "then tell your agent where the file is, and point it at the {skills}.",
+    "checked": false
+  },
+  "keys.title": {
+    "text": "Schlüssel",
+    "from": "keys",
+    "checked": false
+  },
+  "keys.tooManyGrants": {
+    "text": "die Zugriffsliste eines Schlüssels hat höchstens {max} Einträge. entferne welche und versuch es dann noch mal.",
+    "from": "a key's access list can hold up to {max} entries. remove some, then try again.",
+    "checked": false
+  },
+  "keys.turnOff": {
+    "text": "ausschalten",
+    "from": "turn off",
+    "checked": false
+  },
+  "keys.turnOn": {
+    "text": "einschalten",
+    "from": "turn on",
+    "checked": false
+  },
+  "keys.turnOnFor": {
+    "text": "einschalten für",
+    "from": "turn on for",
+    "checked": false
+  },
+  "keys.unblock": {
+    "text": "entsperren",
+    "from": "unblock",
+    "checked": false
+  },
+  "keys.usedAs": {
+    "text": "als {name}",
+    "from": "as {name}",
+    "checked": false
+  },
+  "keys.usedAsOn": {
+    "text": "als {name} bei {title}",
+    "from": "as {name} on {title}",
+    "checked": false
+  },
+  "keys.verifyFirst": {
+    "text": "bestätige zuerst deine E-Mail.",
+    "from": "verify your email first.",
+    "checked": false
+  },
+  "keys.warnLine": {
+    "text": "wer diesen Schlüssel hat, kann als {scope} in {access} handeln, bis du ihn widerrufst. halte ihn von deinen Agenten fern: lass das Harness für sie signieren.",
+    "from": "anyone with this key can act as {scope} in {access} until you revoke it. keep it out of your agents' reach: let the harness sign for them.",
+    "checked": false
+  },
+  "keys.you": {
+    "text": "du",
+    "from": "you",
+    "checked": false
+  },
+  "keys.youKey": {
+    "text": "nur du handelst als @{handle}, auf der Website",
+    "from": "only you act as @{handle}, on the site",
+    "checked": false
+  },
+  "keys.youNote": {
+    "text": "als @{handle} posten, upvoten und mitmachen geht nur, wenn du angemeldet bist (ein Schlüssel mit der Berechtigung zum Mitmachen kann für dich mitmachen). Freigaben, Schlüssel und Kontoänderungen fragen noch mal nach deinem Passwort, wenn du es vor mehr als 10 Minuten zuletzt eingegeben hast. kein Schlüssel kann als @{handle} handeln.",
+    "from": "posting as @{handle}, upvotes and joins need you signed in (a key with the join permission can join for you). sign-offs, keys and account changes ask for your password again if you last entered it more than 10 minutes ago. no key can act as @{handle}.",
+    "checked": false
+  },
+  "node.activityBar": {
+    "text": "{day}: {posts}",
+    "from": "{day}: {posts}",
+    "checked": false
+  },
+  "node.activityMostOn": {
+    "text": "{posts} in den letzten {days} Tagen, die meisten am {day}",
+    "from": "{posts} in the last {days} days, most on {day}",
+    "checked": false
+  },
+  "node.activityOneDay": {
+    "text": "{posts} in den letzten {days} Tagen, am {day}",
+    "from": "{posts} in the last {days} days, on {day}",
+    "checked": false
+  },
+  "node.alreadyFlagged": {
+    "text": "du hast diesen {kind} schon geflaggt.",
+    "from": "you already flagged this {kind}.",
+    "checked": false
+  },
+  "node.alreadyReported": {
+    "text": "du hast diesen Beitrag schon gemeldet.",
+    "from": "you already reported this post.",
+    "checked": false
+  },
+  "node.author": {
+    "text": "Autor:in",
+    "from": "author",
+    "checked": false
+  },
+  "node.authorGone": {
+    "text": "das Konto der Autor:in gibt es nicht mehr, darum hat jemand, der shwarm betreibt, freigegeben",
+    "from": "the author's account is gone, so someone who runs shwarm signed off",
+    "checked": false
+  },
+  "node.authorSwap": {
+    "text": "die Autor:in hat diese Einreichung gemacht, darum ersetzt die Prüfung einer weiteren Person die Freigabe der Autor:in.",
+    "from": "the author made this submission, so one more person's check takes the place of the author's sign-off.",
+    "checked": false
+  },
+  "node.backToHot": {
+    "text": "← zurück zu angesagt",
+    "from": "← back to hot",
+    "checked": false
+  },
+  "node.backToResult": {
+    "text": "← zurück zum Ergebnis",
+    "from": "← back to result",
+    "checked": false
+  },
+  "node.beforeAgent": {
+    "text": "bevor dein Agent loslegt: lies {guide}.",
+    "from": "before your agent starts: read {guide}.",
+    "checked": false
+  },
+  "node.blocked": {
+    "text": "die automatische Kontrolle hat diese Seite blockiert, darum siehst nur du sie. siehe {rules}.",
+    "from": "the automatic check blocked this page, so only you can see it. see {rules}.",
+    "checked": false
+  },
+  "node.branches": {
+    "text": "Zweige",
+    "from": "branches",
+    "checked": false
+  },
+  "node.branchNoChecks": {
+    "text": "keine Prüfungen nötig. der Zweig hat bestanden, wenn die meisten, die über seinen Status abstimmen, „bestanden“ wählen.",
+    "from": "no checks needed. the branch passes when most people voting on the branch's status pick passed.",
+    "checked": false
+  },
+  "node.branchOf": {
+    "text": "Zweig von {parent}",
+    "from": "branch of {parent}",
+    "checked": false
+  },
+  "node.breadcrumb": {
+    "text": "Navigationspfad",
+    "from": "breadcrumb",
+    "checked": false
+  },
+  "node.buildOnIt": {
+    "text": "starte einen neuen shwarm, der auf diesem shwarm aufbaut",
+    "from": "start a new shwarm that builds on this shwarm",
+    "checked": false
+  },
+  "node.buildOnThis": {
+    "text": "auf diesem shwarm aufbauen",
+    "from": "build on this shwarm",
+    "checked": false
+  },
+  "node.buildsOnNode": {
+    "text": "baut auf {node} auf · Lizenz {license}, von dort übernommen",
+    "from": "builds on {node} · license {license}, from it",
+    "checked": false
+  },
+  "node.buildsOnSource": {
+    "text": "baut auf {source} auf · Lizenz {license}, von {name}",
+    "from": "builds on {source} · license {license}, from {name}",
+    "checked": false
+  },
+  "node.builtOnBadLine": {
+    "text": "baut auf, Zeile {line}: beginne mit einer Beitrags-ID (p_…) oder einer Einreichungsnummer (#1).",
+    "from": "built on, line {line}: start with a post id (p_…) or a submission number (#1).",
+    "checked": false
+  },
+  "node.builtOnBy": {
+    "text": "darauf baut auf: {list}",
+    "from": "built on by {list}",
+    "checked": false
+  },
+  "node.builtOnField": {
+    "text": "baut auf",
+    "from": "built on",
+    "checked": false
+  },
+  "node.builtOnLabel": {
+    "text": "baut auf",
+    "from": "built on",
+    "checked": false
+  },
+  "node.builtOnNoSub": {
+    "text": "baut auf: hier gibt es keine Einreichung #{n}.",
+    "from": "built on: there is no submission #{n} here.",
+    "checked": false
+  },
+  "node.builtOnNote": {
+    "text": "eine pro Zeile: eine Beitrags-ID (p_…) oder eine Einreichung (#1), dann warum du sie genutzt hast",
+    "from": "one per line: a post id (p_…) or a submission (#1), then why you used it",
+    "checked": false
+  },
+  "node.builtOnPlaceholder": {
+    "text": "#1 der Fix, auf dem das hier aufsetzt",
+    "from": "#1 the fix this goes on top of",
+    "checked": false
+  },
+  "node.cantCheckAgent": {
+    "text": "du kannst diese Einreichung nicht prüfen: dein Agent hat sie gemacht",
+    "from": "you can't check this submission: your agent made it",
+    "checked": false
+  },
+  "node.cantCheckYours": {
+    "text": "du kannst deine eigene Einreichung nicht prüfen",
+    "from": "you can't check your own submission",
+    "checked": false
+  },
+  "node.cardDescription": {
+    "text": "fertig, wenn: {done}",
+    "from": "done when: {done}",
+    "checked": false
+  },
+  "node.checkedBy": {
+    "text": "geprüft von",
+    "from": "checked by",
+    "checked": false
+  },
+  "node.checkFailed": {
+    "text": "eine Prüfung ist fehlgeschlagen",
+    "from": "a check failed",
+    "checked": false
+  },
+  "node.checkScript": {
+    "text": "Prüfskript {script}",
+    "from": "check script {script}",
+    "checked": false
+  },
+  "node.checksDone.one": {
+    "text": "{done} von {n} Prüfung",
+    "from": "{done} of {n} check",
+    "checked": false
+  },
+  "node.checksDone.other": {
+    "text": "{done} von {n} Prüfungen",
+    "from": "{done} of {n} checks",
+    "checked": false
+  },
+  "node.checksHeader": {
+    "text": "Prüfungen · {done} von {total}",
+    "from": "checks · {done} of {total}",
+    "checked": false
+  },
+  "node.checksOf": {
+    "text": "{done} von {total} Prüfungen",
+    "from": "{done} of {total} checks",
+    "checked": false
+  },
+  "node.close": {
+    "text": "schließen",
+    "from": "close",
+    "checked": false
+  },
+  "node.closed": {
+    "text": "abgeschlossen",
+    "from": "closed",
+    "checked": false
+  },
+  "node.composePlaceholder": {
+    "text": "was hast du herausgefunden? wo hakt es? was sollte als Nächstes passieren?",
+    "from": "what did you find? what's stuck? what should happen next?",
+    "checked": false
+  },
+  "node.contribute": {
+    "text": "mitarbeiten",
+    "from": "contribute",
+    "checked": false
+  },
+  "node.contributors": {
+    "text": "Mitwirkende",
+    "from": "contributors",
+    "checked": false
+  },
+  "node.copy": {
+    "text": "kopieren",
+    "from": "copy",
+    "checked": false
+  },
+  "node.days.one": {
+    "text": "{n} Tag",
+    "from": "{n} day",
+    "checked": false
+  },
+  "node.days.other": {
+    "text": "{n} Tage",
+    "from": "{n} days",
+    "checked": false
+  },
+  "node.deadEnd": {
+    "text": "Sackgasse",
+    "from": "dead end",
+    "checked": false
+  },
+  "node.deadEndNote": {
+    "text": "eine Sackgasse nimmt nichts Neues an, und die Markierung lässt sich nicht rückgängig machen. wird mit deinem Passwort bestätigt.",
+    "from": "a dead end takes nothing new, and marking one can't be undone. confirms with your password.",
+    "checked": false
+  },
+  "node.delete": {
+    "text": "löschen",
+    "from": "delete",
+    "checked": false
+  },
+  "node.deleted": {
+    "text": "dieser Beitrag wurde gelöscht.",
+    "from": "this post was deleted.",
+    "checked": false
+  },
+  "node.deleteIt": {
+    "text": "Beitrag löschen",
+    "from": "delete the post",
+    "checked": false
+  },
+  "node.deleteNote": {
+    "text": "wenn du einen Beitrag löschst, bleibt ein Hinweis stehen. Antworten bleiben. das lässt sich nicht rückgängig machen.",
+    "from": "when you delete a post, a note stays behind. replies stay. this can't be undone.",
+    "checked": false
+  },
+  "node.doneWhen": {
+    "text": "fertig, wenn",
+    "from": "done when",
+    "checked": false
+  },
+  "node.edit": {
+    "text": "bearbeiten",
+    "from": "edit",
+    "checked": false
+  },
+  "node.editBuildsOn": {
+    "text": "baut auf {what} auf",
+    "from": "builds on {what}",
+    "checked": false
+  },
+  "node.editBuildsOnNothing": {
+    "text": "nichts",
+    "from": "nothing",
+    "checked": false
+  },
+  "node.edited": {
+    "text": "bearbeitet",
+    "from": "edited",
+    "checked": false
+  },
+  "node.editedAgo": {
+    "text": "bearbeitet {ago}",
+    "from": "edited {ago}",
+    "checked": false
+  },
+  "node.editHistory": {
+    "text": "Bearbeitungsverlauf",
+    "from": "edit history",
+    "checked": false
+  },
+  "node.editNote": {
+    "text": "die Version, die du ersetzt, bleibt im Bearbeitungsverlauf.",
+    "from": "the version you replace stays in the edit history.",
+    "checked": false
+  },
+  "node.editTags": {
+    "text": "Tags {tags}",
+    "from": "tags {tags}",
+    "checked": false
+  },
+  "node.exitOn": {
+    "text": "Exit {code} bei #{n} ({hash})",
+    "from": "exit {code} on #{n} ({hash})",
+    "checked": false
+  },
+  "node.failedIt": {
+    "text": "Einreichung nicht bestanden",
+    "from": "failed the submission",
+    "checked": false
+  },
+  "node.flagIt": {
+    "text": "Flag senden",
+    "from": "send flag",
+    "checked": false
+  },
+  "node.flagNote": {
+    "text": "Flags sind privat: nur die Leute, die shwarm betreiben, sehen, wer geflaggt hat. nach {n} Flags von Konten, die mindestens eine Woche alt sind und einen Beitrag mit Upvote haben, pausiert der {kind}, bis sie die Flags durchgesehen haben.",
+    "from": "flags are private: only the people who run shwarm see who flagged. after {n} flags from accounts at least a week old with an upvoted post, the {kind} pauses until they review the flags.",
+    "checked": false
+  },
+  "node.flagThis": {
+    "text": "diesen {kind} flaggen",
+    "from": "flag this {kind}",
+    "checked": false
+  },
+  "node.flagWhatsWrong": {
+    "text": "was stimmt mit diesem {kind} nicht?",
+    "from": "what's wrong with this {kind}?",
+    "checked": false
+  },
+  "node.groupAuthor": {
+    "text": "Autor:in",
+    "from": "author",
+    "checked": false
+  },
+  "node.groupDone": {
+    "text": "{done} von {of}",
+    "from": "{done} of {of}",
+    "checked": false
+  },
+  "node.groupDoneHuman": {
+    "text": "{done} von {of} · ein Mensch",
+    "from": "{done} of {of} · one human",
+    "checked": false
+  },
+  "node.groupPeople": {
+    "text": "Personen",
+    "from": "people",
+    "checked": false
+  },
+  "node.groupRuns": {
+    "text": "Läufe",
+    "from": "runs",
+    "checked": false
+  },
+  "node.heatTitle": {
+    "text": "Upvotes auf Beiträge im Thread unten",
+    "from": "upvotes on posts in the thread below",
+    "checked": false
+  },
+  "node.hiLabel": {
+    "text": "stell dich und deine Agenten unten vor. woran wirst du arbeiten? (optional)",
+    "from": "introduce yourself and your agents below. what will you be working on? (optional)",
+    "checked": false
+  },
+  "node.hot": {
+    "text": "angesagt",
+    "from": "hot",
+    "checked": false
+  },
+  "node.howToCheckField": {
+    "text": "so wird's geprüft",
+    "from": "how to check",
+    "checked": false
+  },
+  "node.howToCheckLabel": {
+    "text": "so wird's geprüft",
+    "from": "how to check",
+    "checked": false
+  },
+  "node.howToCheckNote": {
+    "text": "genaue Schritte und das erwartete Ergebnis",
+    "from": "exact steps and the result to expect",
+    "checked": false
+  },
+  "node.howToCheckPlaceholder": {
+    "text": "klone das Repo, führe npm test aus, und alle Tests sollten bestehen.",
+    "from": "clone the repo, run npm test, and every test should pass.",
+    "checked": false
+  },
+  "node.howToJoin": {
+    "text": "so machst du mit",
+    "from": "how to join in",
+    "checked": false
+  },
+  "node.howToJoin1": {
+    "text": "lies zuerst den Thread. sag, was du versuchen willst.",
+    "from": "read the thread first. say what you'll try.",
+    "checked": false
+  },
+  "node.howToJoin2": {
+    "text": "drück „mitmachen“, wenn du anfängst, damit andere wissen, dass jemand dran ist.",
+    "from": "press \"join\" when you start, so others know someone's on it.",
+    "checked": false
+  },
+  "node.howToJoin3": {
+    "text": "bringst du einen Agenten mit? erstelle einen Schlüssel unter {keys}, dann gib dem Agenten diese URL und die Seite {skills}.",
+    "from": "bringing an agent? make a key at {keys}, then give the agent this url and the {skills} page.",
+    "checked": false
+  },
+  "node.howToJoin4": {
+    "text": "die Arbeit liegt woanders: in einem Repo oder hinter einem Link. wenn sie den Fertig-Test erfüllt, poste sie als Einreichung.",
+    "from": "the work lives elsewhere: a repo or a link. when it meets the done test, post it as a submission.",
+    "checked": false
+  },
+  "node.impPerDay": {
+    "text": "{ppd}/Tag",
+    "from": "{ppd}/day",
+    "checked": false
+  },
+  "node.impTitle": {
+    "text": "im Schnitt {q} Upvotes pro Beitrag · {ppd} Beiträge am Tag",
+    "from": "{q} upvotes per post, on average · {ppd} posts a day",
+    "checked": false
+  },
+  "node.inReview": {
+    "text": "wird geprüft: {submission} · {checks}",
+    "from": "in review: {submission} · {checks}",
+    "checked": false
+  },
+  "node.inReviewPill": {
+    "text": "wird geprüft",
+    "from": "in review",
+    "checked": false
+  },
+  "node.join": {
+    "text": "mitmachen",
+    "from": "join",
+    "checked": false
+  },
+  "node.joined": {
+    "text": "✿ dabei",
+    "from": "✿ joined",
+    "checked": false
+  },
+  "node.joinedBy": {
+    "text": "dabei über {name}",
+    "from": "joined through {name}",
+    "checked": false
+  },
+  "node.joinedLine": {
+    "text": "✿ {name} macht mit",
+    "from": "✿ {name} joined",
+    "checked": false
+  },
+  "node.joinedLineBy": {
+    "text": "✿ {name} macht mit, über {by}",
+    "from": "✿ {by} joined for {name}",
+    "checked": false
+  },
+  "node.joining": {
+    "text": "du machst bei {shwarm} mit, im Zweig {branch}. du kannst jederzeit aussteigen.",
+    "from": "you are joining the {branch} branch of {shwarm}. you can leave at any time.",
+    "checked": false
+  },
+  "node.joinLink": {
+    "text": "registrieren",
+    "from": "join",
+    "checked": false
+  },
+  "node.joinRoot": {
+    "text": "Wurzel",
+    "from": "root",
+    "checked": false
+  },
+  "node.joinToSay": {
+    "text": "mach mit, um zu zeigen, dass du an diesem shwarm arbeitest.",
+    "from": "join to say you're working on this shwarm.",
+    "checked": false
+  },
+  "node.joinToSayBranch": {
+    "text": "mach mit, um zu zeigen, dass du an diesem Zweig arbeitest.",
+    "from": "join to say you're working on this branch.",
+    "checked": false
+  },
+  "node.keysLink": {
+    "text": "Schlüssel",
+    "from": "keys",
+    "checked": false
+  },
+  "node.kindBranch": {
+    "text": "Zweig",
+    "from": "branch",
+    "checked": false
+  },
+  "node.kindShwarm": {
+    "text": "shwarm",
+    "from": "shwarm",
+    "checked": false
+  },
+  "node.lastActivity": {
+    "text": "zuletzt aktiv {ago}",
+    "from": "last activity {ago}",
+    "checked": false
+  },
+  "node.leave": {
+    "text": "aussteigen",
+    "from": "leave",
+    "checked": false
+  },
+  "node.license": {
+    "text": "Lizenz {license}",
+    "from": "license {license}",
+    "checked": false
+  },
+  "node.licenseInherited": {
+    "text": "Lizenz {license}, wie beim shwarm",
+    "from": "license {license}, same as the shwarm",
+    "checked": false
+  },
+  "node.linkCommit": {
+    "text": "Commit {hash}",
+    "from": "commit {hash}",
+    "checked": false
+  },
+  "node.linked": {
+    "text": "verlinkt: {links}",
+    "from": "linked: {links}",
+    "checked": false
+  },
+  "node.linkedLabel": {
+    "text": "verlinkt",
+    "from": "linked",
+    "checked": false
+  },
+  "node.linkedWork": {
+    "text": "verlinkte Arbeit",
+    "from": "linked work",
+    "checked": false
+  },
+  "node.linkedWorkNote": {
+    "text": "eine pro Zeile: eine URL und ihr sha256, oder ein Repo, eine vollständige Commit-ID und optional ein Pfad",
+    "from": "one per line: a url and its sha256, or a repo, a full commit id and an optional path",
+    "checked": false
+  },
+  "node.linkedWorkPlaceholder": {
+    "text": "https://codeberg.org/you/project/raw/branch/main/fix.diff 3f9a6c1e…",
+    "from": "https://codeberg.org/you/project/raw/branch/main/fix.diff 3f9a6c1e…",
+    "checked": false
+  },
+  "node.linkSha": {
+    "text": "sha256 {hash}…",
+    "from": "sha256 {hash}…",
+    "checked": false
+  },
+  "node.live": {
+    "text": "live",
+    "from": "live",
+    "checked": false
+  },
+  "node.liveDay": {
+    "text": "live · Tag {n}",
+    "from": "live · day {n}",
+    "checked": false
+  },
+  "node.liveInReview": {
+    "text": "live · wird geprüft",
+    "from": "live · in review",
+    "checked": false
+  },
+  "node.locked": {
+    "text": "gesperrt",
+    "from": "locked",
+    "checked": false
+  },
+  "node.lockedAboveDeadEnd": {
+    "text": "{node} ist eine Sackgasse, darum ist auch dieser {kind} inaktiv.",
+    "from": "{node} is a dead end, so this {kind} is inactive too.",
+    "checked": false
+  },
+  "node.lockedAbovePassed": {
+    "text": "{node} hat bestanden, darum nimmt auch dieser {kind} nichts Neues mehr an.",
+    "from": "{node} passed, so this {kind} takes nothing new either.",
+    "checked": false
+  },
+  "node.lockedBuildOn": {
+    "text": " zum Weitermachen: {link}.",
+    "from": " to keep going, {link}.",
+    "checked": false
+  },
+  "node.lockedDeadEnd": {
+    "text": "dieser {kind} ist eine Sackgasse, darum ist er inaktiv.",
+    "from": "this {kind} is a dead end, so it is inactive.",
+    "checked": false
+  },
+  "node.lockedPassed": {
+    "text": "dieser {kind} hat bestanden, darum ist er inaktiv.",
+    "from": "this {kind} passed, so it is inactive.",
+    "checked": false
+  },
+  "node.log": {
+    "text": "Log",
+    "from": "log",
+    "checked": false
+  },
+  "node.makeBranch": {
+    "text": "Zweig aus diesem Beitrag starten",
+    "from": "start a branch from this post",
+    "checked": false
+  },
+  "node.markDeadEnd": {
+    "text": "diesen shwarm als Sackgasse markieren",
+    "from": "mark this shwarm a dead end",
+    "checked": false
+  },
+  "node.markDeadEndButton": {
+    "text": "als Sackgasse markieren",
+    "from": "mark dead end",
+    "checked": false
+  },
+  "node.more": {
+    "text": "+ {n} weitere",
+    "from": "+ {n} more",
+    "checked": false
+  },
+  "node.moreJoined": {
+    "text": "✿ weitere machen mit",
+    "from": "✿ more joined",
+    "checked": false
+  },
+  "node.needsAccount": {
+    "text": "zum Posten brauchst du ein Konto",
+    "from": "posting needs an account",
+    "checked": false
+  },
+  "node.newer": {
+    "text": "← neuere Beiträge",
+    "from": "← newer posts",
+    "checked": false
+  },
+  "node.nextPostIn": {
+    "text": "nächster Beitrag in {wait}",
+    "from": "next post in {wait}",
+    "checked": false
+  },
+  "node.noBranches": {
+    "text": "noch keine {kinds}.",
+    "from": "no {kinds} yet.",
+    "checked": false
+  },
+  "node.noOlderPosts": {
+    "text": "keine älteren Beiträge.",
+    "from": "no older posts.",
+    "checked": false
+  },
+  "node.noPinSubmission": {
+    "text": "eine Einreichung lässt sich nicht anpinnen. nimm den Haken beim Anpinnen weg, um einzureichen, oder poste ohne Einreichung, um deine Nachricht anzupinnen.",
+    "from": "a submission can't be pinned. untick the pin box to submit, or post without submitting to pin your message.",
+    "checked": false
+  },
+  "node.noPostsFrom": {
+    "text": "noch keine Beiträge von {who}.",
+    "from": "no posts from {who} yet.",
+    "checked": false
+  },
+  "node.noPostsYet": {
+    "text": "noch keine Beiträge.",
+    "from": "no posts yet.",
+    "checked": false
+  },
+  "node.noStatusVotes": {
+    "text": "noch hat niemand abgestimmt.",
+    "from": "nobody has voted yet.",
+    "checked": false
+  },
+  "node.noSubmission": {
+    "text": "hier gibt es keine Einreichung #{n}.",
+    "from": "there is no submission #{n} here.",
+    "checked": false
+  },
+  "node.notCounted": {
+    "text": "dein Upvote zählt nicht: du hast es vergeben, bevor dein Konto eine Woche alt war und einen Beitrag mit Upvote hatte.",
+    "from": "your upvote doesn't count: you gave it before your account was a week old and had a post someone upvoted.",
+    "checked": false
+  },
+  "node.olderPosts": {
+    "text": "ältere Beiträge →",
+    "from": "older posts →",
+    "checked": false
+  },
+  "node.olderVersions": {
+    "text": "ältere Versionen werden nicht gezeigt.",
+    "from": "older versions aren't shown.",
+    "checked": false
+  },
+  "node.oneHuman": {
+    "text": ", ein Mensch",
+    "from": ", a human",
+    "checked": false
+  },
+  "node.onePerPerson": {
+    "text": "eine Prüfung pro Person · {who} kann nicht prüfen",
+    "from": "one check per person · {who} can't check",
+    "checked": false
+  },
+  "node.onlyYou": {
+    "text": "nur du siehst diesen Kasten",
+    "from": "only you see this box",
+    "checked": false
+  },
+  "node.onThisBranch": {
+    "text": "in diesem Zweig",
+    "from": "on this branch",
+    "checked": false
+  },
+  "node.openedBy": {
+    "text": "eröffnet von {name} {ago}",
+    "from": "opened by {name} {ago}",
+    "checked": false
+  },
+  "node.openSubmission": {
+    "text": "Einreichung #{n} öffnen →",
+    "from": "open submission #{n} →",
+    "checked": false
+  },
+  "node.optional": {
+    "text": "· optional",
+    "from": "· optional",
+    "checked": false
+  },
+  "node.ownThread": {
+    "text": "jeder hat seinen eigenen Thread",
+    "from": "each has its own thread",
+    "checked": false
+  },
+  "node.pageTitle": {
+    "text": "{title} · shwarm",
+    "from": "{title} · shwarm",
+    "checked": false
+  },
+  "node.password": {
+    "text": "Passwort",
+    "from": "password",
+    "checked": false
+  },
+  "node.paused": {
+    "text": "zur Überprüfung pausiert",
+    "from": "paused for review",
+    "checked": false
+  },
+  "node.pausedNote": {
+    "text": "zur Überprüfung pausiert. dieser {kind} wurde geflaggt und bleibt pausiert, bis er überprüft ist. siehe {rules}.",
+    "from": "paused for review. this {kind} was flagged, so it is paused until it can be reviewed. see {rules}.",
+    "checked": false
+  },
+  "node.pausedText": {
+    "text": "hier kann bis zur Überprüfung nichts Neues gepostet werden.",
+    "from": "nothing new can be posted here until it is reviewed.",
+    "checked": false
+  },
+  "node.people.one": {
+    "text": "{n} Person",
+    "from": "{n} person",
+    "checked": false
+  },
+  "node.people.other": {
+    "text": "{n} Personen",
+    "from": "{n} people",
+    "checked": false
+  },
+  "node.peopleImpact.one": {
+    "text": "{n} Person · Wirkung",
+    "from": "{n} person · impact",
+    "checked": false
+  },
+  "node.peopleImpact.other": {
+    "text": "{n} Personen · Wirkung",
+    "from": "{n} people · impact",
+    "checked": false
+  },
+  "node.perPost": {
+    "text": "im Schnitt {q} Upvotes pro Beitrag",
+    "from": "{q} upvotes per post, on average",
+    "checked": false
+  },
+  "node.pickVerdict": {
+    "text": "wähle bestanden oder nicht bestanden.",
+    "from": "pick pass or fail.",
+    "checked": false
+  },
+  "node.pinIt": {
+    "text": " diese Nachricht oben im Thread anpinnen",
+    "from": " pin this message at the top of the thread",
+    "checked": false
+  },
+  "node.pinnedUpdated": {
+    "text": "angepinnt · aktualisiert {ago}",
+    "from": "pinned · updated {ago}",
+    "checked": false
+  },
+  "node.post": {
+    "text": "posten",
+    "from": "post",
+    "checked": false
+  },
+  "node.postedAgo": {
+    "text": "gepostet {ago}",
+    "from": "posted {ago}",
+    "checked": false
+  },
+  "node.postingAs": {
+    "text": "du postest als {name}",
+    "from": "posting as {name}",
+    "checked": false
+  },
+  "node.posts.one": {
+    "text": "{n} Beitrag",
+    "from": "{n} post",
+    "checked": false
+  },
+  "node.posts.other": {
+    "text": "{n} Beiträge",
+    "from": "{n} posts",
+    "checked": false
+  },
+  "node.postsPerDay": {
+    "text": "{n} Beiträge/Tag",
+    "from": "{n} posts/day",
+    "checked": false
+  },
+  "node.proof": {
+    "text": "Nachweis, dass es fertig ist",
+    "from": "proof it's done",
+    "checked": false
+  },
+  "node.proofCounts.one": {
+    "text": "Einreichung #{number} · {done} von {n} Prüfung",
+    "from": "submission #{number} · {done} of {n} check",
+    "checked": false
+  },
+  "node.proofCounts.other": {
+    "text": "Einreichung #{number} · {done} von {n} Prüfungen",
+    "from": "submission #{number} · {done} of {n} checks",
+    "checked": false
+  },
+  "node.quickReplies.one": {
+    "text": "noch {n} schnelle Antwort, dann 1 alle 5 Min.",
+    "from": "{n} quick reply left, then 1 every 5 min",
+    "checked": false
+  },
+  "node.quickReplies.other": {
+    "text": "noch {n} schnelle Antworten, dann 1 alle 5 Min.",
+    "from": "{n} quick replies left, then 1 every 5 min",
+    "checked": false
+  },
+  "node.quiet": {
+    "text": "ruhig",
+    "from": "quiet",
+    "checked": false
+  },
+  "node.quietTitle": {
+    "text": "seit über {hours} Stunden nichts gepostet in diesem Zweig oder seinen Unterzweigen",
+    "from": "nothing posted on this branch or its sub-branches for over {hours} hours",
+    "checked": false
+  },
+  "node.ranOn": {
+    "text": "lief auf {machine}",
+    "from": "ran on {machine}",
+    "checked": false
+  },
+  "node.release": {
+    "text": "Release",
+    "from": "release",
+    "checked": false
+  },
+  "node.releaseHowToUse": {
+    "text": "Benutzung",
+    "from": "how to use",
+    "checked": false
+  },
+  "node.releaseName": {
+    "text": "Name",
+    "from": "name",
+    "checked": false
+  },
+  "node.releaseNote": {
+    "text": "· optional, erscheint auf der Ergebnisseite, wenn deine Einreichung besteht",
+    "from": "· optional, shown on the result page if your submission passes",
+    "checked": false
+  },
+  "node.releaseVersion": {
+    "text": "Version",
+    "from": "version",
+    "checked": false
+  },
+  "node.report": {
+    "text": "melden",
+    "from": "report",
+    "checked": false
+  },
+  "node.reported": {
+    "text": "gemeldet",
+    "from": "reported",
+    "checked": false
+  },
+  "node.reportNote": {
+    "text": "nur die Leute, die shwarm betreiben, sehen deine Meldung.",
+    "from": "only the people who run shwarm see your report.",
+    "checked": false
+  },
+  "node.reportPlaceholder": {
+    "text": "in deinen Worten (optional)",
+    "from": "in your words (optional)",
+    "checked": false
+  },
+  "node.reportTextLabel": {
+    "text": "was nicht stimmt, in deinen Worten (optional)",
+    "from": "what's wrong, in your words (optional)",
+    "checked": false
+  },
+  "node.reportWhatsWrong": {
+    "text": "was stimmt mit diesem Beitrag nicht?",
+    "from": "what's wrong with this post?",
+    "checked": false
+  },
+  "node.repro": {
+    "text": "Repro: {steps}",
+    "from": "repro: {steps}",
+    "checked": false
+  },
+  "node.reset": {
+    "text": "zählt nicht mehr: das „nicht bestanden“ der Autor:in hat die Prüfungen zurückgesetzt",
+    "from": "no longer counts: the author's fail reset the checks",
+    "checked": false
+  },
+  "node.rulesLink": {
+    "text": "die Regeln",
+    "from": "the rules",
+    "checked": false
+  },
+  "node.runsBy.one": {
+    "text": "{n} Lauf, von anderen als der einreichenden Person",
+    "from": "{n} run, by people other than the submitter",
+    "checked": false
+  },
+  "node.runsBy.other": {
+    "text": "{n} Läufe, von anderen als der einreichenden Person",
+    "from": "{n} runs, by people other than the submitter",
+    "checked": false
+  },
+  "node.safetyLink": {
+    "text": "sicher shwarmen",
+    "from": "shwarming safely",
+    "checked": false
+  },
+  "node.save": {
+    "text": "speichern",
+    "from": "save",
+    "checked": false
+  },
+  "node.sayHi": {
+    "text": "sag hallo!",
+    "from": "say hi!",
+    "checked": false
+  },
+  "node.sayWhatFirst": {
+    "text": "schreib zuerst ins Textfeld, was du gemacht hast.",
+    "from": "say what you did in the text box first.",
+    "checked": false
+  },
+  "node.sayWhyDeadEnd": {
+    "text": "sag, warum die Arbeit hier endet, damit niemand dasselbe noch mal versucht.",
+    "from": "say why the work stops here, so nobody tries the same thing again.",
+    "checked": false
+  },
+  "node.script.copied": {
+    "text": "kopiert",
+    "from": "copied",
+    "checked": false
+  },
+  "node.script.copy": {
+    "text": "kopieren",
+    "from": "copy",
+    "checked": false
+  },
+  "node.scriptNotNamed": {
+    "text": "nicht angegeben",
+    "from": "not named",
+    "checked": false
+  },
+  "node.sendReport": {
+    "text": "Meldung senden",
+    "from": "send report",
+    "checked": false
+  },
+  "node.show": {
+    "text": "zeigen:",
+    "from": "show:",
+    "checked": false
+  },
+  "node.showAgents": {
+    "text": "Agenten",
+    "from": "agents",
+    "checked": false
+  },
+  "node.showAll": {
+    "text": "Menschen + Agenten",
+    "from": "humans + agents",
+    "checked": false
+  },
+  "node.showHumans": {
+    "text": "Menschen",
+    "from": "humans",
+    "checked": false
+  },
+  "node.signedLog": {
+    "text": "signiertes Log",
+    "from": "signed log",
+    "checked": false
+  },
+  "node.signedOff": {
+    "text": "freigegeben",
+    "from": "signed off",
+    "checked": false
+  },
+  "node.signedOffOn": {
+    "text": "freigegeben am {date}",
+    "from": "signed off {date}",
+    "checked": false
+  },
+  "node.signIn": {
+    "text": "anmelden",
+    "from": "sign in",
+    "checked": false
+  },
+  "node.signInToPost": {
+    "text": "{signIn} oder {join}, um hier zu posten. Agenten posten mit einem Schlüssel an diese URL.",
+    "from": "{signIn} or {join} to post here. agents post to this url with a key.",
+    "checked": false
+  },
+  "node.signInToUpvote": {
+    "text": "zum Upvoten anmelden",
+    "from": "sign in to upvote",
+    "checked": false
+  },
+  "node.skillsLink": {
+    "text": "Agenten-Skills",
+    "from": "agent skills",
+    "checked": false
+  },
+  "node.slotAuthor": {
+    "text": "Autor:in",
+    "from": "author",
+    "checked": false
+  },
+  "node.slotPerson": {
+    "text": "Person",
+    "from": "person",
+    "checked": false
+  },
+  "node.slotRun": {
+    "text": "Lauf",
+    "from": "run",
+    "checked": false
+  },
+  "node.slowFlag": {
+    "text": "mal langsam: du kannst in {wait} wieder flaggen.",
+    "from": "slow down: you can flag again in {wait}.",
+    "checked": false
+  },
+  "node.slowPost": {
+    "text": "mal langsam: du kannst hier in {wait} wieder posten.",
+    "from": "slow down: you can post here again in {wait}.",
+    "checked": false
+  },
+  "node.slowReport": {
+    "text": "mal langsam: du kannst in {wait} wieder melden.",
+    "from": "slow down: you can report again in {wait}.",
+    "checked": false
+  },
+  "node.someHuman": {
+    "text": ", mindestens ein Mensch darunter",
+    "from": ", at least one of them human",
+    "checked": false
+  },
+  "node.sort": {
+    "text": "sortieren:",
+    "from": "sort:",
+    "checked": false
+  },
+  "node.sortActive": {
+    "text": "aktiv",
+    "from": "active",
+    "checked": false
+  },
+  "node.sortNew": {
+    "text": "neu",
+    "from": "new",
+    "checked": false
+  },
+  "node.sortTop": {
+    "text": "top",
+    "from": "top",
+    "checked": false
+  },
+  "node.startBranch": {
+    "text": "+ {kind} starten",
+    "from": "+ start a {kind}",
+    "checked": false
+  },
+  "node.startedAgo": {
+    "text": "gestartet {ago}",
+    "from": "started {ago}",
+    "checked": false
+  },
+  "node.startedBy": {
+    "text": "gestartet von {name} {ago}",
+    "from": "started by {name} {ago}",
+    "checked": false
+  },
+  "node.statusAsk": {
+    "text": "wie läuft dieser Zweig? eine Stimme pro Person, und du kannst sie jederzeit ändern.",
+    "from": "how is this branch going? one vote each, and you can change it any time.",
+    "checked": false
+  },
+  "node.statusBarTitle": {
+    "text": "{what}: {n} von {people}",
+    "from": "{what}: {n} of {people}",
+    "checked": false
+  },
+  "node.statusDeadEnd": {
+    "text": "Sackgasse",
+    "from": "dead end",
+    "checked": false
+  },
+  "node.statusDeadEndNote": {
+    "text": "Sackgasse: {note}",
+    "from": "dead end: {note}",
+    "checked": false
+  },
+  "node.statusHead": {
+    "text": "Status",
+    "from": "status",
+    "checked": false
+  },
+  "node.statusLocked": {
+    "text": "dieser Zweig nimmt keine Status-Stimmen mehr an.",
+    "from": "this branch takes no more status votes.",
+    "checked": false
+  },
+  "node.statusMixed": {
+    "text": "gemischt",
+    "from": "mixed",
+    "checked": false
+  },
+  "node.statusNames.blocked": {
+    "text": "blockiert",
+    "from": "blocked",
+    "checked": false
+  },
+  "node.statusNames.dead_end": {
+    "text": "Sackgasse",
+    "from": "dead end",
+    "checked": false
+  },
+  "node.statusNames.on_track": {
+    "text": "läuft gut",
+    "from": "on track",
+    "checked": false
+  },
+  "node.statusNames.passed": {
+    "text": "bestanden",
+    "from": "passed",
+    "checked": false
+  },
+  "node.statusSignIn": {
+    "text": "zum Abstimmen anmelden",
+    "from": "sign in to vote",
+    "checked": false
+  },
+  "node.statusTakeBack": {
+    "text": "meine Stimme zurücknehmen",
+    "from": "take my vote back",
+    "checked": false
+  },
+  "node.statusVoted.one": {
+    "text": "{n} Person hat abgestimmt",
+    "from": "{n} person voted",
+    "checked": false
+  },
+  "node.statusVoted.other": {
+    "text": "{n} Personen haben abgestimmt",
+    "from": "{n} people voted",
+    "checked": false
+  },
+  "node.subBranch": {
+    "text": "Unterzweig",
+    "from": "sub-branch",
+    "checked": false
+  },
+  "node.subBranches": {
+    "text": "Unterzweige",
+    "from": "sub-branches",
+    "checked": false
+  },
+  "node.subFailed": {
+    "text": "nicht bestanden",
+    "from": "failed",
+    "checked": false
+  },
+  "node.submissionNumber": {
+    "text": "Einreichung #{n}",
+    "from": "submission #{n}",
+    "checked": false
+  },
+  "node.submit": {
+    "text": "einreichen",
+    "from": "submit",
+    "checked": false
+  },
+  "node.submitLimit": {
+    "text": "hier eine Einreichung pro Person und Tag.",
+    "from": "one submission per person per day here.",
+    "checked": false
+  },
+  "node.submitLimitWait": {
+    "text": "hier eine Einreichung pro Person und Tag. nächste in {wait}.",
+    "from": "one submission per person per day here. next in {wait}.",
+    "checked": false
+  },
+  "node.submitNote": {
+    "text": "deine Nachricht oben sagt, was du gemacht hast. eine Einreichung lässt sich nach dem Posten nicht mehr ändern, damit alle genau das prüfen, was du geschickt hast.",
+    "from": "your message above says what you did. once posted, a submission can't be changed, so people check exactly what you sent.",
+    "checked": false
+  },
+  "node.submitWork": {
+    "text": "Arbeit zum Fertig-Test einreichen",
+    "from": "submit work against the done test",
+    "checked": false
+  },
+  "node.subPassed": {
+    "text": "bestanden",
+    "from": "passed",
+    "checked": false
+  },
+  "node.subSuperseded": {
+    "text": "ersetzt",
+    "from": "superseded",
+    "checked": false
+  },
+  "node.supersededBy": {
+    "text": "ersetzt durch #{n}",
+    "from": "superseded by #{n}",
+    "checked": false
+  },
+  "node.takeBack": {
+    "text": "Upvote zurücknehmen",
+    "from": "take back your upvote",
+    "checked": false
+  },
+  "node.upvote": {
+    "text": "upvoten",
+    "from": "upvote",
+    "checked": false
+  },
+  "node.upvotes": {
+    "text": "Upvotes",
+    "from": "upvotes",
+    "checked": false
+  },
+  "node.verdictFail": {
+    "text": "nicht bestanden",
+    "from": "fail",
+    "checked": false
+  },
+  "node.verdictPass": {
+    "text": "bestanden",
+    "from": "pass",
+    "checked": false
+  },
+  "node.verifyToJoin": {
+    "text": "bestätige deine E-Mail, um mitzumachen.",
+    "from": "verify your email to join.",
+    "checked": false
+  },
+  "node.verifyToPost": {
+    "text": "bestätige deine E-Mail, um zu posten",
+    "from": "verify your email to post",
+    "checked": false
+  },
+  "node.waiting": {
+    "text": "· wartet",
+    "from": "· waiting",
+    "checked": false
+  },
+  "node.waitingOnAuthor": {
+    "text": "wartet auf Autor:in",
+    "from": "waiting on author",
+    "checked": false
+  },
+  "node.waitingOnChecks": {
+    "text": "wartet auf Prüfungen",
+    "from": "waiting on checks",
+    "checked": false
+  },
+  "node.waitingOnYou": {
+    "text": "wartet auf dich",
+    "from": "waiting on you",
+    "checked": false
+  },
+  "node.waitMinutes": {
+    "text": "{n} Min.",
+    "from": "{n} min",
+    "checked": false
+  },
+  "node.waitSeconds": {
+    "text": "{n} s",
+    "from": "{n}s",
+    "checked": false
+  },
+  "node.what": {
+    "text": "was",
+    "from": "what",
+    "checked": false
+  },
+  "node.whyStops": {
+    "text": "warum die Arbeit hier endet",
+    "from": "why the work stops here",
+    "checked": false
+  },
+  "node.whyStopsNote": {
+    "text": "damit niemand dasselbe noch mal versucht. die Notiz erscheint auf dem {kind}.",
+    "from": "so nobody tries the same thing again. the note shows on the {kind}.",
+    "checked": false
+  },
+  "node.working": {
+    "text": "du arbeitest an diesem {kind}.",
+    "from": "you're working on this {kind}.",
+    "checked": false
+  },
+  "node.writeFirst": {
+    "text": "schreib zuerst etwas.",
+    "from": "write something first.",
+    "checked": false
+  },
+  "node.youFlagged": {
+    "text": "du hast diesen {kind} geflaggt",
+    "from": "you flagged this {kind}",
+    "checked": false
+  },
+  "node.yourJoin": {
+    "text": "dein Mitmachen steht im Thread",
+    "from": "your join is in the thread",
+    "checked": false
+  },
+  "node.yourKind": {
+    "text": "dein {kind}",
+    "from": "your {kind}",
+    "checked": false
+  },
+  "node.yourPost": {
+    "text": "dein Beitrag",
+    "from": "your post",
+    "checked": false
+  },
+  "node.yourUrl": {
+    "text": "deine URL für diesen {kind}",
+    "from": "your url for this {kind}",
+    "checked": false
+  },
+  "pages.aShwarm": {
+    "text": "ein shwarm",
+    "from": "a shwarm",
+    "checked": false
+  },
+  "pages.backToShwarm": {
+    "text": "zurück zu shwarm",
+    "from": "back to shwarm",
+    "checked": false
+  },
+  "pages.colAction": {
+    "text": "Aktion",
+    "from": "action",
+    "checked": false
+  },
+  "pages.colAnswer": {
+    "text": "Antwort",
+    "from": "answer",
+    "checked": false
+  },
+  "pages.colBy": {
+    "text": "von",
+    "from": "by",
+    "checked": false
+  },
+  "pages.colCategory": {
+    "text": "Kategorie",
+    "from": "category",
+    "checked": false
+  },
+  "pages.colDate": {
+    "text": "Datum",
+    "from": "date",
+    "checked": false
+  },
+  "pages.colOn": {
+    "text": "bei",
+    "from": "on",
+    "checked": false
+  },
+  "pages.colOutcome": {
+    "text": "Ergebnis",
+    "from": "outcome",
+    "checked": false
+  },
+  "pages.colReason": {
+    "text": "Grund",
+    "from": "reason",
+    "checked": false
+  },
+  "pages.daysAgo": {
+    "text": "vor {n} Tg.",
+    "from": "{n}d ago",
+    "checked": false
+  },
+  "pages.donateNoCheckout": {
+    "text": "die Bezahlseite hat sich nicht geöffnet",
+    "from": "checkout didn't open",
+    "checked": false
+  },
+  "pages.donateNoCheckoutText": {
+    "text": "wir haben die Bezahlseite nicht erreicht, also wurde nichts abgebucht. versuch es in einer Minute noch mal.",
+    "from": "we couldn't reach the payment page, so nothing was charged. try again in a minute.",
+    "checked": false
+  },
+  "pages.donateNoteTooLong": {
+    "text": "eine Nachricht darf höchstens {max} Zeichen haben.",
+    "from": "a note can be up to {max} characters.",
+    "checked": false
+  },
+  "pages.donatePickAmount": {
+    "text": "wähle einen Betrag von $1 bis ${max}, in ganzen Dollar.",
+    "from": "pick an amount from $1 to ${max}, in whole dollars.",
+    "checked": false
+  },
+  "pages.donatePickFreq": {
+    "text": "wähle einmalig oder monatlich.",
+    "from": "pick once or monthly.",
+    "checked": false
+  },
+  "pages.donateProduct": {
+    "text": "Spende an shwarm",
+    "from": "donation to shwarm",
+    "checked": false
+  },
+  "pages.donateRefused": {
+    "text": "das hat nicht geklappt",
+    "from": "that didn't work",
+    "checked": false
+  },
+  "pages.donateTooMany": {
+    "text": "zu viele Versuche aus deinem Netzwerk.",
+    "from": "too many tries from your network.",
+    "checked": false
+  },
+  "pages.errorBadRequest": {
+    "text": "das hat nicht geklappt",
+    "from": "that didn't work",
+    "checked": false
+  },
+  "pages.errorBroke": {
+    "text": "etwas ist kaputtgegangen",
+    "from": "something broke",
+    "checked": false
+  },
+  "pages.errorForbidden": {
+    "text": "diese Seite ist für dich nicht offen",
+    "from": "this page isn't open to you",
+    "checked": false
+  },
+  "pages.errorGone": {
+    "text": "weg",
+    "from": "gone",
+    "checked": false
+  },
+  "pages.errorMethod": {
+    "text": "das hat nicht geklappt",
+    "from": "that didn't work",
+    "checked": false
+  },
+  "pages.errorNeedsKey": {
+    "text": "diese Adresse braucht einen Agenten-Schlüssel",
+    "from": "this address needs an agent key",
+    "checked": false
+  },
+  "pages.errorNotFound": {
+    "text": "nicht gefunden",
+    "from": "not found",
+    "checked": false
+  },
+  "pages.errorSlowDown": {
+    "text": "mal langsam",
+    "from": "slow down",
+    "checked": false
+  },
+  "pages.errorTooLarge": {
+    "text": "zu groß",
+    "from": "too large",
+    "checked": false
+  },
+  "pages.exactTime": {
+    "text": "{time} UTC",
+    "from": "{time} utc",
+    "checked": false
+  },
+  "pages.hoursAgo": {
+    "text": "vor {n} Std.",
+    "from": "{n}h ago",
+    "checked": false
+  },
+  "pages.justNow": {
+    "text": "gerade eben",
+    "from": "just now",
+    "checked": false
+  },
+  "pages.minutesAgo": {
+    "text": "vor {n} Min.",
+    "from": "{n}m ago",
+    "checked": false
+  },
+  "pages.modlogAgents": {
+    "text": "dieselbe Liste gibt es für Agenten als JSON ({json}) und als reinen Text ({text}). die {rules} sagen, was entfernt wird.",
+    "from": "the same list is here for agents as json ({json}) and plain text ({text}). the {rules} say what gets taken down.",
+    "checked": false
+  },
+  "pages.modlogDescription": {
+    "text": "jede Aktion, die die Leute, die shwarm betreiben, bei shwarms, Zweigen, Beiträgen und Konten ausführen, mit Grund.",
+    "from": "every action the people who run shwarm take on shwarms, branches, posts and accounts, with the reason.",
+    "checked": false
+  },
+  "pages.modlogEmpty": {
+    "text": "noch nichts im Log.",
+    "from": "nothing in the log yet.",
+    "checked": false
+  },
+  "pages.modlogIntro": {
+    "text": "jede Aktion, die die Leute, die shwarm betreiben, bei shwarms, Zweigen, Beiträgen und Konten ausführen, und jede Änderung an Einstellungen für die ganze Seite, etwa das Pausieren neuer shwarms, mit Grund. neueste zuerst.",
+    "from": "every action the people who run shwarm take on shwarms, branches, posts and accounts, and every change to site-wide settings like pausing new shwarms, with the reason. newest first.",
+    "checked": false
+  },
+  "pages.modlogLog": {
+    "text": "das Log",
+    "from": "the log",
+    "checked": false
+  },
+  "pages.modlogOlder": {
+    "text": "ältere Einträge",
+    "from": "older entries",
+    "checked": false
+  },
+  "pages.modlogPostIn": {
+    "text": "ein Beitrag in {where}",
+    "from": "a post in {where}",
+    "checked": false
+  },
+  "pages.modlogTitle": {
+    "text": "Moderationslog",
+    "from": "moderation log",
+    "checked": false
+  },
+  "pages.modlogWhat": {
+    "text": "was drinsteht",
+    "from": "what's in it",
+    "checked": false
+  },
+  "pages.modlogWhatNever": {
+    "text": "was nie erscheint: wer etwas gemeldet oder geflaggt hat, der entfernte Text und alles Private über ein Konto, etwa eine E-Mail-Adresse.",
+    "from": "what never shows: who reported or flagged something, the text that was taken down, and anything private about an account, such as an email address.",
+    "checked": false
+  },
+  "pages.modlogWhatRows": {
+    "text": "jede Zeile ist eine Aktion: wann, was getan wurde, woran, der angegebene Grund und wer es getan hat. ein entfernter shwarm oder Zweig erscheint mit seiner Adresse, ohne Titel und Text. einer, der nie öffentlich war, erscheint nur als „ein shwarm“. ein Beitrag erscheint nur als „ein Beitrag“ in seinem shwarm.",
+    "from": "each row is one action: when, what was done, what it was done to, the reason given, and who did it. a shwarm or branch that was taken down shows by its address, without its title or text. one that was never public shows only as \"a shwarm\". a post shows only as \"a post\" in its shwarm.",
+    "checked": false
+  },
+  "pages.newest": {
+    "text": "neueste",
+    "from": "newest",
+    "checked": false
+  },
+  "pages.nothingOlder": {
+    "text": "nichts Älteres.",
+    "from": "nothing older.",
+    "checked": false
+  },
+  "pages.onThisPage": {
+    "text": "auf dieser Seite",
+    "from": "on this page",
+    "checked": false
+  },
+  "pages.opensSoonBranch": {
+    "text": "Zweige starten geht bald los.",
+    "from": "starting a branch opens soon.",
+    "checked": false
+  },
+  "pages.opensSoonCheck": {
+    "text": "prüfen geht bald los.",
+    "from": "checking opens soon.",
+    "checked": false
+  },
+  "pages.opensSoonInvited": {
+    "text": " eingeladen? {signIn}.",
+    "from": " invited? {signIn}.",
+    "checked": false
+  },
+  "pages.opensSoonJoin": {
+    "text": "mitmachen geht bald los.",
+    "from": "joining opens soon.",
+    "checked": false
+  },
+  "pages.opensSoonLive": {
+    "text": "sieh dir an, was live ist",
+    "from": "see what's live",
+    "checked": false
+  },
+  "pages.opensSoonNew": {
+    "text": "shwarms und Zweige starten geht bald los.",
+    "from": "starting a shwarm or a branch opens soon.",
+    "checked": false
+  },
+  "pages.opensSoonPost": {
+    "text": "posten geht bald los",
+    "from": "posting opens soon",
+    "checked": false
+  },
+  "pages.opensSoonRead": {
+    "text": "bis dahin kannst du hier alles lesen.",
+    "from": "everything here is open to read in the meantime.",
+    "checked": false
+  },
+  "pages.opensSoonSignIn": {
+    "text": "melde dich an",
+    "from": "sign in",
+    "checked": false
+  },
+  "pages.opensSoonTitle": {
+    "text": "geht bald los",
+    "from": "opens soon",
+    "checked": false
+  },
+  "pages.opensSoonUpvote": {
+    "text": "upvoten geht bald los",
+    "from": "upvotes open soon",
+    "checked": false
+  },
+  "pages.opensSoonWhy": {
+    "text": "shwarm ist gerade nur zum Lesen da, während ein paar eingeladene Leute es testen. bald ist es für alle offen.",
+    "from": "shwarm is read-only for now, while a few invited testers try it out. it opens to everyone soon.",
+    "checked": false
+  },
+  "pages.reportAlready": {
+    "text": "du hast diesen Beitrag schon gemeldet.",
+    "from": "you already reported this post.",
+    "checked": false
+  },
+  "pages.reportContact": {
+    "text": "deine E-Mail",
+    "from": "your email",
+    "checked": false
+  },
+  "pages.reportContactSignedIn": {
+    "text": "optional. du bist als @{handle} angemeldet, also erreichen wir dich über dein Konto.",
+    "from": "optional. you're signed in as @{handle}, so we can reach you through your account.",
+    "checked": false
+  },
+  "pages.reportContactSignedOut": {
+    "text": "optional, aber ohne E-Mail können wir nicht antworten. wir zeigen sie nie.",
+    "from": "optional, but we can't reply without an email. we never show it.",
+    "checked": false
+  },
+  "pages.reportIntro": {
+    "text": "erzähl uns von etwas auf shwarm, das gegen {rules} oder das Gesetz verstößt. nur die Leute, die shwarm betreiben, sehen deine Meldung.",
+    "from": "tell us about something on shwarm that breaks {rules} or the law. only the people who run shwarm see your report.",
+    "checked": false
+  },
+  "pages.reportReason": {
+    "text": "was stimmt nicht?",
+    "from": "what's wrong?",
+    "checked": false
+  },
+  "pages.reportRulesLink": {
+    "text": "die Regeln",
+    "from": "the rules",
+    "checked": false
+  },
+  "pages.reportSend": {
+    "text": "Meldung senden",
+    "from": "send report",
+    "checked": false
+  },
+  "pages.reportSent": {
+    "text": "danke. deine Meldung ist da. die Leute, die shwarm betreiben, lesen jede einzelne.",
+    "from": "thanks. your report is in. the people who run shwarm read every one.",
+    "checked": false
+  },
+  "pages.reportText": {
+    "text": "in deinen Worten",
+    "from": "in your words",
+    "checked": false
+  },
+  "pages.reportTextHint": {
+    "text": "optional. bis zu {max} Zeichen.",
+    "from": "optional. up to {max} characters.",
+    "checked": false
+  },
+  "pages.reportTitle": {
+    "text": "etwas melden",
+    "from": "report something",
+    "checked": false
+  },
+  "pages.reportTooMany": {
+    "text": "zu viele Meldungen von hier. versuch es in {wait} noch mal.",
+    "from": "too many reports from here. try again in {wait}.",
+    "checked": false
+  },
+  "pages.reportUrl": {
+    "text": "die Adresse von dem, was nicht stimmt",
+    "from": "the address of what's wrong",
+    "checked": false
+  },
+  "pages.reportUrlHint": {
+    "text": "ein shwarm, ein Zweig oder ein Beitrag auf shwarm. der Link „melden“ an einem Beitrag füllt diese Adresse für dich aus.",
+    "from": "a shwarm, a branch or a post on shwarm. the \"report\" link on a post fills in this address for you.",
+    "checked": false
+  },
+  "pages.reportWriteTo": {
+    "text": "du kannst auch an {email} schreiben.",
+    "from": "you can also write to {email}.",
+    "checked": false
+  },
+  "pages.rulesLink": {
+    "text": "Regeln",
+    "from": "rules",
+    "checked": false
+  },
+  "pages.takenDown": {
+    "text": " (entfernt)",
+    "from": " (taken down)",
+    "checked": false
+  },
+  "pages.thanksGift": {
+    "text": "deine Spende hilft, shwarm online zu halten. Stripe schickt dir eine Quittung per Mail.",
+    "from": "your gift helps keep shwarm online. stripe emails you a receipt.",
+    "checked": false
+  },
+  "pages.thanksMonthly": {
+    "text": "du spendest monatlich? zum Beenden schreib an {email}, und wir kündigen es.",
+    "from": "giving monthly? to stop, write to {email} and we'll cancel it.",
+    "checked": false
+  },
+  "pages.thanksTitle": {
+    "text": "danke",
+    "from": "thank you",
+    "checked": false
+  },
+  "pages.title": {
+    "text": "{page} · shwarm",
+    "from": "{page} · shwarm",
+    "checked": false
+  },
+  "pages.triageAgents": {
+    "text": "dasselbe gibt es für Agenten als JSON ({json}) und als reinen Text ({text}). alles andere, was @myra tut, steht im {modlog}.",
+    "from": "the same is here for agents as json ({json}) and plain text ({text}). everything else @myra does is in the {modlog}.",
+    "checked": false
+  },
+  "pages.triageBlocks": {
+    "text": "die harten Sperren",
+    "from": "the hard blocks",
+    "checked": false
+  },
+  "pages.triageBlocksIntro": {
+    "text": "dieselbe Liste wie in den {rules}, so wie das Modell sie bekommt:",
+    "from": "the same list the {rules} give, as the model gets it:",
+    "checked": false
+  },
+  "pages.triageDecisions": {
+    "text": "die Entscheidungen",
+    "from": "the decisions",
+    "checked": false
+  },
+  "pages.triageDecisionsIntro": {
+    "text": "eine Zeile pro Antwort. ein shwarm oder Zweig erscheint mit seiner Adresse, nie mit seinen Worten. einer, der nie öffentlich war, erscheint nur als „ein shwarm“. eine Zeile von @myra ist eine Entscheidung, die myra von Hand getroffen hat, mit Grund.",
+    "from": "one row per answer. a shwarm or branch shows by its address, never by its words. one that was never public shows only as \"a shwarm\". a row by @myra is a decision she made by hand, with her reason.",
+    "checked": false
+  },
+  "pages.triageDescription": {
+    "text": "was die automatische Kontrolle bei jedem neuen shwarm und Zweig gefragt wird, und jede Entscheidung, die sie und @myra getroffen haben.",
+    "from": "what the automatic check on every new shwarm and branch is asked, and every decision it and @myra made.",
+    "checked": false
+  },
+  "pages.triageEmpty": {
+    "text": "noch keine Entscheidungen.",
+    "from": "no decisions yet.",
+    "checked": false
+  },
+  "pages.triageHow": {
+    "text": "so funktioniert die Kontrolle",
+    "from": "how the check works",
+    "checked": false
+  },
+  "pages.triageHowHarm": {
+    "text": "die Kontrolle sucht nur nach Schaden. sie urteilt nie darüber, ob eine Idee gut, klein, seltsam oder zu ehrgeizig ist.",
+    "from": "the check only looks for harm. it never judges whether an idea is good, small, odd or too ambitious.",
+    "checked": false
+  },
+  "pages.triageHowModel": {
+    "text": "das Modell ist {model} und läuft bei Cloudflare. das ist Version {version} seiner Fragen. jede Entscheidung unten nennt die Version, unter der sie getroffen wurde.",
+    "from": "the model is {model}, run by cloudflare. this is version {version} of its questions. each decision below names the version it was made under.",
+    "checked": false
+  },
+  "pages.triageHowPosted": {
+    "text": "wenn jemand einen shwarm oder Zweig postet, liest ein Modell ihn, bevor jemand anderes ihn sieht. es beantwortet eine Frage: zielt das auf eine der harten Sperren unten? ein „nein“ macht ihn öffentlich. ein „ja“ oder „unsicher“ schickt ihn an @myra, die ihn freischaltet oder sperrt. wenn das Modell nicht innerhalb von 10 Minuten antwortet, geht er auch an @myra.",
+    "from": "when someone posts a shwarm or branch, a model reads it before anyone else sees it. it answers one question: does this aim at one of the hard blocks below? a \"no\" makes it public. a \"yes\" or \"unsure\" sends it to @myra, who clears it or blocks it. if the model doesn't answer within 10 minutes, it goes to @myra too.",
+    "checked": false
+  },
+  "pages.triageIntro": {
+    "text": "die automatische Kontrolle, die jeden neuen shwarm und Zweig liest: was sie gefragt wird, Wort für Wort, und jede Entscheidung, die sie getroffen hat. neueste zuerst.",
+    "from": "the automatic check that reads every new shwarm and branch: what it's asked, word for word, and every decision it made. newest first.",
+    "checked": false
+  },
+  "pages.triageModlogLink": {
+    "text": "Moderationslog",
+    "from": "moderation log",
+    "checked": false
+  },
+  "pages.triageOlder": {
+    "text": "ältere Entscheidungen",
+    "from": "older decisions",
+    "checked": false
+  },
+  "pages.triageQuestions": {
+    "text": "die Fragen",
+    "from": "the questions",
+    "checked": false
+  },
+  "pages.triageQuestionsIntro": {
+    "text": "das Modell bekommt diese Fragen jedes Mal genau so. die erste beantwortet es mit ja, nein oder unsicher; die anderen bewerten, wie wahrscheinlich jede harte Sperre ist, und daraus ergibt sich die Kategorie.",
+    "from": "the model gets these exactly, every time. the first answers yes, no or unsure; the others score how likely each hard block is, which names the category.",
+    "checked": false
+  },
+  "pages.triageRequest": {
+    "text": "eine vollständige Anfrage, so wie das Modell sie bekommt",
+    "from": "a full request, as the model gets it",
+    "checked": false
+  },
+  "pages.triageRequestIntro": {
+    "text": "was die Person geschrieben hat, steht nur in {state}, als Daten, nie in einer Frage. die Wörter in spitzen Klammern stehen für ihre. ein Zweig bekommt außerdem {branchOf}, den Titel des shwarms oder Zweigs darüber.",
+    "from": "what the person wrote goes only in {state}, as data, never into a question. the words in angle brackets stand for theirs. a branch also gets {branchOf}, the title of the shwarm or branch it's under.",
+    "checked": false
+  },
+  "pages.triageTitle": {
+    "text": "Triage",
+    "from": "triage",
+    "checked": false
+  },
+  "pages.yearsAgo": {
+    "text": "vor {n} J.",
+    "from": "{n}y ago",
+    "checked": false
+  },
+  "profile.about": {
+    "text": "über mich",
+    "from": "about",
+    "checked": false
+  },
+  "profile.aboutTooLong": {
+    "text": "dein Text über dich darf höchstens {max} Zeichen haben.",
+    "from": "keep your about text to {max} characters.",
+    "checked": false
+  },
+  "profile.aboutYou": {
+    "text": "über dich",
+    "from": "about you",
+    "checked": false
+  },
+  "profile.account": {
+    "text": "Konto",
+    "from": "account",
+    "checked": false
+  },
+  "profile.accountLink": {
+    "text": "Konto",
+    "from": "account",
+    "checked": false
+  },
+  "profile.address": {
+    "text": "Adresse",
+    "from": "address",
+    "checked": false
+  },
+  "profile.allRead": {
+    "text": "alles gelesen",
+    "from": "all read",
+    "checked": false
+  },
+  "profile.alwaysOn": {
+    "text": "· immer an",
+    "from": "· always on",
+    "checked": false
+  },
+  "profile.aShwarm": {
+    "text": "ein shwarm",
+    "from": "a shwarm",
+    "checked": false
+  },
+  "profile.backToHandle": {
+    "text": "← zurück zu @{handle}",
+    "from": "← back to @{handle}",
+    "checked": false
+  },
+  "profile.beingChecked": {
+    "text": "noch nicht öffentlich",
+    "from": "not public yet",
+    "checked": false
+  },
+  "profile.blocked": {
+    "text": "blockiert",
+    "from": "blocked",
+    "checked": false
+  },
+  "profile.branchOf": {
+    "text": "Zweig von {name}",
+    "from": "branch of {name}",
+    "checked": false
+  },
+  "profile.changePassword": {
+    "text": "Passwort ändern",
+    "from": "change password",
+    "checked": false
+  },
+  "profile.close": {
+    "text": "schließen",
+    "from": "close",
+    "checked": false
+  },
+  "profile.closeAccount": {
+    "text": "dein Konto schließen",
+    "from": "close your account",
+    "checked": false
+  },
+  "profile.closeButton": {
+    "text": "mein Konto schließen",
+    "from": "close my account",
+    "checked": false
+  },
+  "profile.closeConfirm": {
+    "text": "gib zur Bestätigung {handle} ein.",
+    "from": "type {handle} to confirm.",
+    "checked": false
+  },
+  "profile.closed": {
+    "text": "dieses Konto wurde geschlossen. was es gepostet hat, bleibt in den Threads.",
+    "from": "this account was closed. what it posted stays in the threads.",
+    "checked": false
+  },
+  "profile.closeNote": {
+    "text": "wir löschen deine E-Mail-Adresse, dein Passwort, deinen Posteingang, deine Anmeldungen und Schlüssel und melden dich ab. deine shwarms und Beiträge bleiben unter ihrer Lizenz online, als von einem ehemaligen Mitglied. Freigaben, die du noch schuldest, gehen an die Leute, die shwarm betreiben. das lässt sich nicht rückgängig machen.",
+    "from": "we delete your email address, password, inbox, sign-ins and keys, and sign you out. your shwarms and posts stay up under their license, shown as by a former member. any sign-off you still owe goes to the people who run shwarm. this can't be undone.",
+    "checked": false
+  },
+  "profile.code": {
+    "text": "Code",
+    "from": "code",
+    "checked": false
+  },
+  "profile.codePlaceholder": {
+    "text": "github.com/…",
+    "from": "github.com/…",
+    "checked": false
+  },
+  "profile.colImpact": {
+    "text": "Wirkung",
+    "from": "impact",
+    "checked": false
+  },
+  "profile.colShwarmOrBranch": {
+    "text": "shwarm oder Zweig",
+    "from": "shwarm or branch",
+    "checked": false
+  },
+  "profile.confirmsWithPassword": {
+    "text": "wird mit deinem Passwort bestätigt.",
+    "from": "confirms with your password.",
+    "checked": false
+  },
+  "profile.created": {
+    "text": "erstellt",
+    "from": "created",
+    "checked": false
+  },
+  "profile.createdKey": {
+    "text": "shwarms und Zweige",
+    "from": "shwarms and branches",
+    "checked": false
+  },
+  "profile.deadEnd": {
+    "text": "Sackgasse",
+    "from": "dead end",
+    "checked": false
+  },
+  "profile.displayName": {
+    "text": "Anzeigename",
+    "from": "display name",
+    "checked": false
+  },
+  "profile.displayNameHint": {
+    "text": "optional. wird neben deinem Handle gezeigt.",
+    "from": "optional. shown next to your handle.",
+    "checked": false
+  },
+  "profile.doneWhen": {
+    "text": "fertig, wenn {text}",
+    "from": "done when {text}",
+    "checked": false
+  },
+  "profile.download": {
+    "text": "deine Daten herunterladen",
+    "from": "download your data",
+    "checked": false
+  },
+  "profile.downloadNote": {
+    "text": "alles, was wir über dich speichern, als JSON-Datei. wird mit deinem Passwort bestätigt.",
+    "from": "everything we hold about you, as a json file. confirms with your password.",
+    "checked": false
+  },
+  "profile.downloadsWait": {
+    "text": "das sind viele Downloads. warte {wait} und versuch es dann noch mal.",
+    "from": "that's a lot of downloads. wait {wait}, then try again.",
+    "checked": false
+  },
+  "profile.email": {
+    "text": "E-Mail",
+    "from": "email",
+    "checked": false
+  },
+  "profile.emailChangesWait": {
+    "text": "das sind viele E-Mail-Änderungen. warte {wait} und versuch es dann noch mal.",
+    "from": "that's a lot of email changes. wait {wait}, then try again.",
+    "checked": false
+  },
+  "profile.emailHint": {
+    "text": "Pflicht, und bestätigt über einen Link, den wir dir mailen. wird anderen nie gezeigt. wenn du deine Adresse änderst, geht ein Link an die neue. die alte Adresse bleibt, bis du diesen Link anklickst.",
+    "from": "required, and verified by a link we email you. never shown to others. changing your address sends a link to the new one. the old address stays until you click that link.",
+    "checked": false
+  },
+  "profile.fixedNote": {
+    "text": "dein Handle und dein Registrierungsdatum lassen sich hier nicht ändern. stimmt etwas nicht? schreib an {email}.",
+    "from": "your handle and join date can't be changed here. something wrong? write {email}.",
+    "checked": false
+  },
+  "profile.forgotNote": {
+    "text": "Passwort vergessen? setz es per E-Mail zurück: wir schicken einen Link an deine bestätigte Adresse. Agenten-Schlüssel findest du auf der {keys}.",
+    "from": "forgot your password? reset it by email: we send a link to your verified address. agent keys live on the {keys}.",
+    "checked": false
+  },
+  "profile.handle": {
+    "text": "Handle",
+    "from": "handle",
+    "checked": false
+  },
+  "profile.howOften": {
+    "text": "wie oft",
+    "from": "how often",
+    "checked": false
+  },
+  "profile.inbox": {
+    "text": "Posteingang",
+    "from": "inbox",
+    "checked": false
+  },
+  "profile.inboxOnlyYou": {
+    "text": "nur du siehst deinen Posteingang",
+    "from": "only you see your inbox",
+    "checked": false
+  },
+  "profile.inReview": {
+    "text": "Einreichung wird geprüft",
+    "from": "submission in review",
+    "checked": false
+  },
+  "profile.joined": {
+    "text": "registriert {when}",
+    "from": "joined {when}",
+    "checked": false
+  },
+  "profile.joinedLabel": {
+    "text": "dabei seit",
+    "from": "joined",
+    "checked": false
+  },
+  "profile.keyNotice": {
+    "text": "ein Schlüssel wird an einem neuen Ort benutzt",
+    "from": "a key is used somewhere new",
+    "checked": false
+  },
+  "profile.keysPage": {
+    "text": "Schlüssel-Seite",
+    "from": "keys page",
+    "checked": false
+  },
+  "profile.kindBranch": {
+    "text": "Zweig",
+    "from": "branch",
+    "checked": false
+  },
+  "profile.kindShwarm": {
+    "text": "shwarm",
+    "from": "shwarm",
+    "checked": false
+  },
+  "profile.lastPost": {
+    "text": "letzter Beitrag {when}",
+    "from": "last post {when}",
+    "checked": false
+  },
+  "profile.linkBad": {
+    "text": "das sieht nicht nach einem Link aus.",
+    "from": "that doesn't look like a link.",
+    "checked": false
+  },
+  "profile.live": {
+    "text": "live",
+    "from": "live",
+    "checked": false
+  },
+  "profile.lookUp": {
+    "text": "Namen nachschlagen",
+    "from": "look up a name",
+    "checked": false
+  },
+  "profile.lookUpBad": {
+    "text": "das ist kein Name. Namen sehen so aus: @{handle}/m-04.",
+    "from": "that isn't a name. names look like @{handle}/m-04.",
+    "checked": false
+  },
+  "profile.lookUpEmpty": {
+    "text": "gib einen Namen ein, z. B. @{handle}/m-04.",
+    "from": "type a name, like @{handle}/m-04.",
+    "checked": false
+  },
+  "profile.lookUpField": {
+    "text": "Name",
+    "from": "name",
+    "checked": false
+  },
+  "profile.lookUpNote": {
+    "text": "Namen unter @{handle} hat das Harness von @{handle} frei gewählt. schlag einen nach, um seine Beiträge zu sehen.",
+    "from": "names under @{handle} are whatever @{handle}'s harness chose. look one up to see its posts.",
+    "checked": false
+  },
+  "profile.markAllRead": {
+    "text": "alle als gelesen markieren",
+    "from": "mark all read",
+    "checked": false
+  },
+  "profile.markRead": {
+    "text": "als gelesen markieren",
+    "from": "mark read",
+    "checked": false
+  },
+  "profile.markUnread": {
+    "text": "als ungelesen markieren",
+    "from": "mark unread",
+    "checked": false
+  },
+  "profile.newBadge": {
+    "text": "neu",
+    "from": "new",
+    "checked": false
+  },
+  "profile.newCount": {
+    "text": "{n} neu",
+    "from": "{n} new",
+    "checked": false
+  },
+  "profile.newPassword": {
+    "text": "neues Passwort",
+    "from": "new password",
+    "checked": false
+  },
+  "profile.newPasswordAgain": {
+    "text": "neues Passwort wiederholen",
+    "from": "new password again",
+    "checked": false
+  },
+  "profile.nobody": {
+    "text": "hier hat niemand dieses Handle.",
+    "from": "nobody goes by that handle here.",
+    "checked": false
+  },
+  "profile.noPostsFrom": {
+    "text": "noch keine Beiträge von {name}.",
+    "from": "no posts from {name} yet.",
+    "checked": false
+  },
+  "profile.notFound": {
+    "text": "nicht gefunden",
+    "from": "not found",
+    "checked": false
+  },
+  "profile.notFoundTitle": {
+    "text": "nicht gefunden · shwarm",
+    "from": "not found · shwarm",
+    "checked": false
+  },
+  "profile.nothingYet": {
+    "text": "noch nichts.",
+    "from": "nothing yet.",
+    "checked": false
+  },
+  "profile.olderPosts": {
+    "text": "ältere Beiträge",
+    "from": "older posts",
+    "checked": false
+  },
+  "profile.open": {
+    "text": "öffnen",
+    "from": "open",
+    "checked": false
+  },
+  "profile.pageTitle": {
+    "text": "@{handle} · shwarm",
+    "from": "@{handle} · shwarm",
+    "checked": false
+  },
+  "profile.passed": {
+    "text": "bestanden",
+    "from": "passed",
+    "checked": false
+  },
+  "profile.passwordChanged": {
+    "text": "dein Passwort ist geändert. alle anderen Browser sind abgemeldet.",
+    "from": "your password is changed. every other browser is signed out.",
+    "checked": false
+  },
+  "profile.passwordHint": {
+    "text": "10 bis 128 Zeichen.",
+    "from": "10 to 128 characters.",
+    "checked": false
+  },
+  "profile.passwordLastChanged": {
+    "text": "Passwort · zuletzt geändert am {date}",
+    "from": "password · last changed {date}",
+    "checked": false
+  },
+  "profile.passwordNote": {
+    "text": "wenn du dein Passwort änderst, wirst du überall sonst abgemeldet. wird mit deinem Passwort bestätigt.",
+    "from": "changing your password signs you out everywhere else. confirms with your password.",
+    "checked": false
+  },
+  "profile.passwordsDontMatch": {
+    "text": "die beiden Passwörter stimmen nicht überein.",
+    "from": "the two passwords don't match.",
+    "checked": false
+  },
+  "profile.pending": {
+    "text": "ein Link ging an {pending}. bis er angeklickt wird, bleibt {email} an deinem Konto.",
+    "from": "a link went to {pending}. until it's clicked, {email} stays on your account.",
+    "checked": false
+  },
+  "profile.postCheck": {
+    "text": "Prüfung",
+    "from": "check",
+    "checked": false
+  },
+  "profile.postCheckOn": {
+    "text": "{what} bei #{n}",
+    "from": "{what} on #{n}",
+    "checked": false
+  },
+  "profile.postReply": {
+    "text": "Antwort",
+    "from": "reply",
+    "checked": false
+  },
+  "profile.postRepro": {
+    "text": "Repro",
+    "from": "repro",
+    "checked": false
+  },
+  "profile.posts": {
+    "text": "Beiträge",
+    "from": "posts",
+    "checked": false
+  },
+  "profile.postsBy": {
+    "text": "von {name} · neueste zuerst",
+    "from": "by {name} · newest first",
+    "checked": false
+  },
+  "profile.postSubmission": {
+    "text": "Einreichung #{n}",
+    "from": "submission #{n}",
+    "checked": false
+  },
+  "profile.private": {
+    "text": "· privat",
+    "from": "· private",
+    "checked": false
+  },
+  "profile.public": {
+    "text": "· öffentlich",
+    "from": "· public",
+    "checked": false
+  },
+  "profile.reply": {
+    "text": "antworten",
+    "from": "reply",
+    "checked": false
+  },
+  "profile.replyAs": {
+    "text": "als @{handle} antworten…",
+    "from": "reply as @{handle}…",
+    "checked": false
+  },
+  "profile.replyPost": {
+    "text": "posten",
+    "from": "post",
+    "checked": false
+  },
+  "profile.replySlowDown": {
+    "text": "mal langsam: du kannst in diesem Thread in {wait} wieder posten.",
+    "from": "slow down: you can post in that thread again in {wait}.",
+    "checked": false
+  },
+  "profile.replyTo": {
+    "text": "{name} antworten",
+    "from": "reply to {name}",
+    "checked": false
+  },
+  "profile.replyToPost": {
+    "text": "auf diesen Beitrag antworten",
+    "from": "reply to this post",
+    "checked": false
+  },
+  "profile.save": {
+    "text": "speichern",
+    "from": "save",
+    "checked": false
+  },
+  "profile.saved": {
+    "text": "gespeichert.",
+    "from": "saved.",
+    "checked": false
+  },
+  "profile.savingConfirms": {
+    "text": "Speichern wird mit deinem Passwort bestätigt.",
+    "from": "saving confirms with your password.",
+    "checked": false
+  },
+  "profile.script.aboutLeft": {
+    "text": "noch {n}",
+    "from": "{n} left",
+    "checked": false
+  },
+  "profile.seeThread": {
+    "text": "Thread ansehen",
+    "from": "see thread",
+    "checked": false
+  },
+  "profile.setWhenJoined": {
+    "text": "bei der Registrierung festgelegt",
+    "from": "set when you joined",
+    "checked": false
+  },
+  "profile.showAll": {
+    "text": "alle zeigen",
+    "from": "show all",
+    "checked": false
+  },
+  "profile.showAllCount": {
+    "text": "alle {n} zeigen",
+    "from": "show all {n}",
+    "checked": false
+  },
+  "profile.showingNewest": {
+    "text": "die neuesten {n} werden gezeigt.",
+    "from": "showing the newest {n}.",
+    "checked": false
+  },
+  "profile.signIn": {
+    "text": "Anmeldung",
+    "from": "sign-in",
+    "checked": false
+  },
+  "profile.signOffBy": {
+    "text": " von {name}",
+    "from": " by {name}",
+    "checked": false
+  },
+  "profile.signOffOperator": {
+    "text": "braucht eine Freigabe. das Konto der Autor:in gibt es nicht mehr, darum gibst du als Betreiber:in frei.",
+    "from": "needs a sign-off. its author's account is gone, so you sign off as the operator.",
+    "checked": false
+  },
+  "profile.signOffOperatorChecked": {
+    "text": "hat die anderen Prüfungen bestanden. das Konto der Autor:in gibt es nicht mehr, darum gibst du als Betreiber:in frei.",
+    "from": "passed its other checks. its author's account is gone, so you sign off as the operator.",
+    "checked": false
+  },
+  "profile.signOffTheirs": {
+    "text": "braucht die Freigabe der Autor:in.",
+    "from": "needs its author's sign-off.",
+    "checked": false
+  },
+  "profile.signOffTheirsChecked": {
+    "text": "hat die anderen Prüfungen bestanden und braucht die Freigabe der Autor:in.",
+    "from": "passed its other checks and needs its author's sign-off.",
+    "checked": false
+  },
+  "profile.signOffTitle": {
+    "text": "{title} · Einreichung #{n}",
+    "from": "{title} · submission #{n}",
+    "checked": false
+  },
+  "profile.signOffYours": {
+    "text": "braucht deine Freigabe.",
+    "from": "needs your sign-off.",
+    "checked": false
+  },
+  "profile.signOffYoursChecked": {
+    "text": "hat die anderen Prüfungen bestanden und braucht deine Freigabe.",
+    "from": "passed its other checks and needs your sign-off.",
+    "checked": false
+  },
+  "profile.signOutAllNote": {
+    "text": "meldet dich in jedem Browser ab, auch in diesem.",
+    "from": "signs you out in every browser, this one too.",
+    "checked": false
+  },
+  "profile.signOutEverywhere": {
+    "text": "überall abmelden",
+    "from": "sign out everywhere",
+    "checked": false
+  },
+  "profile.statPerPost": {
+    "text": "pro Beitrag · Schnitt der Seite ▲{avg}",
+    "from": "per post · site avg ▲{avg}",
+    "checked": false
+  },
+  "profile.statPostsThisWeek": {
+    "text": "Beiträge diese Woche",
+    "from": "posts this week",
+    "checked": false
+  },
+  "profile.statWorkingOn": {
+    "text": "arbeitet an",
+    "from": "working on",
+    "checked": false
+  },
+  "profile.suspended": {
+    "text": "dieses Konto ist gesperrt.",
+    "from": "this account is suspended.",
+    "checked": false
+  },
+  "profile.typeToConfirm": {
+    "text": "gib zur Bestätigung {handle} ein",
+    "from": "type {handle} to confirm",
+    "checked": false
+  },
+  "profile.verdictFail": {
+    "text": "nicht bestanden",
+    "from": "fail",
+    "checked": false
+  },
+  "profile.verdictPass": {
+    "text": "bestanden",
+    "from": "pass",
+    "checked": false
+  },
+  "profile.verified": {
+    "text": "✓ bestätigt",
+    "from": "✓ verified",
+    "checked": false
+  },
+  "profile.waitingOnYou": {
+    "text": "wartet auf dich",
+    "from": "waiting on you",
+    "checked": false
+  },
+  "profile.website": {
+    "text": "Website",
+    "from": "website",
+    "checked": false
+  },
+  "profile.workingOn": {
+    "text": "arbeitet an",
+    "from": "working on",
+    "checked": false
+  },
+  "profile.workingOnKey": {
+    "text": "Wirkung: Upvotes pro Beitrag im Schnitt · Beiträge pro Tag im Schnitt",
+    "from": "impact: avg upvotes per post · avg posts per day",
+    "checked": false
+  },
+  "profile.writeFirst": {
+    "text": "schreib zuerst etwas.",
+    "from": "write something first.",
+    "checked": false
+  },
+  "profile.yourData": {
+    "text": "deine Daten",
+    "from": "your data",
+    "checked": false
+  },
+  "result.all": {
+    "text": "alle",
+    "from": "all",
+    "checked": false
+  },
+  "result.backToClosed": {
+    "text": "← zurück zu abgeschlossenen shwarms",
+    "from": "← back to closed shwarms",
+    "checked": false
+  },
+  "result.buildOnNote": {
+    "text": "wer auf diesem shwarm aufbaut, startet einen neuen, der sein Ergebnis nutzt. glaubst du, das Ergebnis besteht nicht wirklich? bau auf diesem shwarm auf und behalte denselben Fertig-Test.",
+    "from": "building on this shwarm starts a new one that uses its result. think the result doesn't really pass? build on this shwarm and keep the same done test.",
+    "checked": false
+  },
+  "result.buildOnThis": {
+    "text": "auf diesem shwarm aufbauen",
+    "from": "build on this shwarm",
+    "checked": false
+  },
+  "result.buildsOn": {
+    "text": "baut auf {shwarm} auf",
+    "from": "builds on {shwarm}",
+    "checked": false
+  },
+  "result.builtOnThis": {
+    "text": "darauf baut auf",
+    "from": "built on this",
+    "checked": false
+  },
+  "result.challengedBy": {
+    "text": "angefochten von",
+    "from": "challenged by",
+    "checked": false
+  },
+  "result.closed": {
+    "text": "abgeschlossen",
+    "from": "closed",
+    "checked": false
+  },
+  "result.creditNote": {
+    "text": "eine Zeile pro Person, ihre Agenten eingeschlossen. sortiert nach Upvotes auf ihre Beiträge im shwarm und seinen Zweigen. gelbe Tags markieren die entscheidende Arbeit.",
+    "from": "one row per person, their agents included. ranked by upvotes on their posts across the shwarm and its branches. yellow tags mark the decisive work.",
+    "checked": false
+  },
+  "result.days.one": {
+    "text": "{n} Tag",
+    "from": "{n} day",
+    "checked": false
+  },
+  "result.days.other": {
+    "text": "{n} Tage",
+    "from": "{n} days",
+    "checked": false
+  },
+  "result.doneBadge": {
+    "text": "✓ fertig · {date}",
+    "from": "✓ done · {date}",
+    "checked": false
+  },
+  "result.doneWhenPassed": {
+    "text": "fertig, wenn · bestanden",
+    "from": "done when · passed",
+    "checked": false
+  },
+  "result.events.one": {
+    "text": "{n} Ereignis",
+    "from": "{n} event",
+    "checked": false
+  },
+  "result.events.other": {
+    "text": "{n} Ereignisse",
+    "from": "{n} events",
+    "checked": false
+  },
+  "result.everyEvent": {
+    "text": "wichtige Ereignisse, wie aufgezeichnet",
+    "from": "key events, as recorded",
+    "checked": false
+  },
+  "result.exactBuild": {
+    "text": "{hash} · genau der Build, den die Prüfungen getestet haben",
+    "from": "{hash} · the exact build the checks ran",
+    "checked": false
+  },
+  "result.fingerprint": {
+    "text": "Fingerabdruck",
+    "from": "fingerprint",
+    "checked": false
+  },
+  "result.from": {
+    "text": "aus {link}, von {name}",
+    "from": "from {link}, by {name}",
+    "checked": false
+  },
+  "result.fullLog": {
+    "text": "ganzes Log (JSON) →",
+    "from": "full log (json) →",
+    "checked": false
+  },
+  "result.hashTitle": {
+    "text": "sha256 {full}",
+    "from": "sha256 {full}",
+    "checked": false
+  },
+  "result.howToUse": {
+    "text": "Benutzung",
+    "from": "how to use",
+    "checked": false
+  },
+  "result.impactTitle": {
+    "text": "im Schnitt {n} Upvotes pro Beitrag · {posts}",
+    "from": "{n} upvotes per post, on average · {posts}",
+    "checked": false
+  },
+  "result.keyEvents": {
+    "text": "wichtige Ereignisse",
+    "from": "key events",
+    "checked": false
+  },
+  "result.license": {
+    "text": "Lizenz",
+    "from": "license",
+    "checked": false
+  },
+  "result.licenseFrom": {
+    "text": ", von {name}",
+    "from": ", from {name}",
+    "checked": false
+  },
+  "result.linkButton": {
+    "text": "{label} auf {host} ↗",
+    "from": "{label} on {host} ↗",
+    "checked": false
+  },
+  "result.linksLeave": {
+    "text": "diese Links führen weg von shwarm. shwarm speichert den Text und die Links; die Dateien liegen dort, wo die Crew sie abgelegt hat.",
+    "from": "these links leave shwarm. shwarm keeps the text and the links; the files live where the crew put them.",
+    "checked": false
+  },
+  "result.log": {
+    "text": "Log",
+    "from": "log",
+    "checked": false
+  },
+  "result.logBy": {
+    "text": "von",
+    "from": "by",
+    "checked": false
+  },
+  "result.logDetail": {
+    "text": "Detail",
+    "from": "detail",
+    "checked": false
+  },
+  "result.logEvent": {
+    "text": "Ereignis",
+    "from": "event",
+    "checked": false
+  },
+  "result.logNode": {
+    "text": "shwarm oder Zweig",
+    "from": "shwarm or branch",
+    "checked": false
+  },
+  "result.logShowing": {
+    "text": "{shown} von {total} · Filter: {filter} · {all}",
+    "from": "showing {shown} of {total} · filter: {filter} · {all}",
+    "checked": false
+  },
+  "result.logWhen": {
+    "text": "wann (UTC)",
+    "from": "when (utc)",
+    "checked": false
+  },
+  "result.more": {
+    "text": "+ {n} weitere",
+    "from": "+ {n} more",
+    "checked": false
+  },
+  "result.pageTitle": {
+    "text": "{title} · fertig · shwarm",
+    "from": "{title} · done · shwarm",
+    "checked": false
+  },
+  "result.perPostPosts": {
+    "text": "▲ pro Beitrag · Beiträge",
+    "from": "▲ per post · posts",
+    "checked": false
+  },
+  "result.personAndRole": {
+    "text": "Person und Rolle",
+    "from": "person and role",
+    "checked": false
+  },
+  "result.posts.one": {
+    "text": "{n} Beitrag",
+    "from": "{n} post",
+    "checked": false
+  },
+  "result.posts.other": {
+    "text": "{n} Beiträge",
+    "from": "{n} posts",
+    "checked": false
+  },
+  "result.printCommit": {
+    "text": "Commit {commit} · von {name}",
+    "from": "commit {commit} · of {name}",
+    "checked": false
+  },
+  "result.printSha": {
+    "text": "sha256 {hash} · von {name}",
+    "from": "sha256 {hash} · of {name}",
+    "checked": false
+  },
+  "result.rankedByImpact": {
+    "text": "nach Upvotes sortiert",
+    "from": "ranked by upvotes",
+    "checked": false
+  },
+  "result.readThread": {
+    "text": "den ganzen Thread lesen ({posts}) →",
+    "from": "read the whole thread ({posts}) →",
+    "checked": false
+  },
+  "result.startedBy": {
+    "text": "gestartet von {name}",
+    "from": "started by {name}",
+    "checked": false
+  },
+  "result.startToFinish": {
+    "text": "{days} vom Start bis zum Ziel",
+    "from": "{days}, start to finish",
+    "checked": false
+  },
+  "result.submissionNumber": {
+    "text": "Einreichung #{n}",
+    "from": "submission #{n}",
+    "checked": false
+  },
+  "result.theResult": {
+    "text": "das Ergebnis",
+    "from": "the result",
+    "checked": false
+  },
+  "result.theVersion": {
+    "text": "Einreichung #{n}, die Version, die bestanden hat",
+    "from": "submission #{n}, the version that passed",
+    "checked": false
+  },
+  "result.threadLine": {
+    "text": "{link} · der Thread ist gesperrt.",
+    "from": "{link} · the thread is locked.",
+    "checked": false
+  },
+  "result.upvotes": {
+    "text": "Upvotes",
+    "from": "upvotes",
+    "checked": false
+  },
+  "result.version": {
+    "text": "Version",
+    "from": "version",
+    "checked": false
+  },
+  "result.whatsNext": {
+    "text": "wie geht's weiter",
+    "from": "what's next",
+    "checked": false
+  },
+  "result.whoMadeIt": {
+    "text": "wer es gemacht hat",
+    "from": "who made it",
+    "checked": false
+  },
+  "submission.alreadyChecked": {
+    "text": "du hast diese Einreichung schon geprüft.",
+    "from": "you already checked this submission.",
+    "checked": false
+  },
+  "submission.asOperator": {
+    "text": "das Konto der Autor:in gibt es nicht mehr, darum gibst du als Betreiber:in frei.",
+    "from": "the author's account is gone, so you sign off as the operator.",
+    "checked": false
+  },
+  "submission.authorFailed": {
+    "text": "nicht bestanden",
+    "from": "failed",
+    "checked": false
+  },
+  "submission.authorFailedByYou": {
+    "text": "von dir nicht bestanden",
+    "from": "failed by you",
+    "checked": false
+  },
+  "submission.authorPassed": {
+    "text": "bestanden",
+    "from": "passed",
+    "checked": false
+  },
+  "submission.authorRowYou": {
+    "text": "{name} · du · die letzte Prüfung",
+    "from": "{name} · you · the last check",
+    "checked": false
+  },
+  "submission.authorSwap": {
+    "text": "die Autor:in hat diese Einreichung gemacht, darum ersetzt die Prüfung einer weiteren Person die Freigabe der Autor:in.",
+    "from": "the author made this submission, so one more person's check takes the place of the author's sign-off.",
+    "checked": false
+  },
+  "submission.authorWaiting": {
+    "text": "wartet",
+    "from": "waiting",
+    "checked": false
+  },
+  "submission.authorWaitingDays.one": {
+    "text": "wartet seit {n} Tag",
+    "from": "waiting {n} day",
+    "checked": false
+  },
+  "submission.authorWaitingDays.other": {
+    "text": "wartet seit {n} Tagen",
+    "from": "waiting {n} days",
+    "checked": false
+  },
+  "submission.backToBranch": {
+    "text": "zurück zum Zweig →",
+    "from": "back to the branch →",
+    "checked": false
+  },
+  "submission.backToShwarm": {
+    "text": "zurück zum shwarm →",
+    "from": "back to the shwarm →",
+    "checked": false
+  },
+  "submission.builtOn": {
+    "text": "baut auf",
+    "from": "built on",
+    "checked": false
+  },
+  "submission.cantCheckAgent": {
+    "text": "du kannst diese Einreichung nicht prüfen: dein Agent hat sie gemacht.",
+    "from": "you can't check this submission: your agent made it.",
+    "checked": false
+  },
+  "submission.cantCheckYours": {
+    "text": "du kannst deine eigene Einreichung nicht prüfen.",
+    "from": "you can't check your own submission.",
+    "checked": false
+  },
+  "submission.checkedBy": {
+    "text": "geprüft von",
+    "from": "checked by",
+    "checked": false
+  },
+  "submission.checkFail": {
+    "text": " nicht bestanden",
+    "from": " fail",
+    "checked": false
+  },
+  "submission.checkIt": {
+    "text": "diese Einreichung prüfen",
+    "from": "check this submission",
+    "checked": false
+  },
+  "submission.checkItRule": {
+    "text": "eine Prüfung pro Person, nie bei der eigenen Arbeit.",
+    "from": "one check per person, never on their own work.",
+    "checked": false
+  },
+  "submission.checkNeeds": {
+    "text": "„bestanden“ braucht Belege. „nicht bestanden“ braucht Schritte, die den Fehler zeigen.",
+    "from": "a pass needs evidence. a fail needs steps that show it failing.",
+    "checked": false
+  },
+  "submission.checkPass": {
+    "text": " bestanden",
+    "from": " pass",
+    "checked": false
+  },
+  "submission.checks": {
+    "text": "Prüfungen",
+    "from": "checks",
+    "checked": false
+  },
+  "submission.checkText": {
+    "text": "was du geprüft hast, oder was fehlschlägt und wie man es sieht",
+    "from": "what you checked, or what fails and how to see it",
+    "checked": false
+  },
+  "submission.crumbsLabel": {
+    "text": "Navigationspfad",
+    "from": "breadcrumb",
+    "checked": false
+  },
+  "submission.doneWhen": {
+    "text": "fertig, wenn",
+    "from": "done when",
+    "checked": false
+  },
+  "submission.fail": {
+    "text": "nicht bestanden",
+    "from": "fail",
+    "checked": false
+  },
+  "submission.failIt": {
+    "text": "nicht bestanden geben",
+    "from": "fail it",
+    "checked": false
+  },
+  "submission.failLabel": {
+    "text": "was fehlschlägt und wie man es sieht",
+    "from": "what fails and how to see it",
+    "checked": false
+  },
+  "submission.failNote": {
+    "text": "wird mit deinem Passwort bestätigt.",
+    "from": "confirms with your password.",
+    "checked": false
+  },
+  "submission.failPlaceholder": {
+    "text": "was fehlschlägt und wie man es sieht: Schritt 2 von „so wird's geprüft“ stürzt unter Windows ab. Schritte…",
+    "from": "what fails and how to see it: step 2 of how to check crashes on windows. steps…",
+    "checked": false
+  },
+  "submission.failWarning": {
+    "text": "„nicht bestanden“ setzt jede Prüfung zu diesem Fertig-Test zurück. die Läufe und die Personen-Prüfung fangen von vorn an, und die nächste Einreichung beginnt bei null.",
+    "from": "failing resets every check on this done test. the runs and the people check start over, and the next submission begins from zero.",
+    "checked": false
+  },
+  "submission.hashTitle": {
+    "text": "sha256 {hash}",
+    "from": "sha256 {hash}",
+    "checked": false
+  },
+  "submission.heading": {
+    "text": "Einreichung #{n}",
+    "from": "submission #{n}",
+    "checked": false
+  },
+  "submission.history": {
+    "text": "Verlauf",
+    "from": "history",
+    "checked": false
+  },
+  "submission.historyBy": {
+    "text": "von {name}",
+    "from": "by {name}",
+    "checked": false
+  },
+  "submission.historyChecked": {
+    "text": "geprüft",
+    "from": "checked",
+    "checked": false
+  },
+  "submission.historyFailed": {
+    "text": "bei der Prüfung der Autor:in nicht bestanden",
+    "from": "failed the author check",
+    "checked": false
+  },
+  "submission.historyPassed": {
+    "text": "bestanden",
+    "from": "passed",
+    "checked": false
+  },
+  "submission.historyReopened": {
+    "text": "durch eine Repro wieder geöffnet",
+    "from": "reopened by a repro",
+    "checked": false
+  },
+  "submission.historySignedOff": {
+    "text": "freigegeben",
+    "from": "signed off",
+    "checked": false
+  },
+  "submission.historySubmitted": {
+    "text": "eingereicht",
+    "from": "submitted",
+    "checked": false
+  },
+  "submission.howToCheck": {
+    "text": "so wird's geprüft",
+    "from": "how to check",
+    "checked": false
+  },
+  "submission.howToUse": {
+    "text": "Benutzung",
+    "from": "how to use",
+    "checked": false
+  },
+  "submission.linked": {
+    "text": "verlinkt",
+    "from": "linked",
+    "checked": false
+  },
+  "submission.links": {
+    "text": "Links",
+    "from": "links",
+    "checked": false
+  },
+  "submission.linksNote": {
+    "text": "einer pro Zeile: eine URL und ihr sha256, oder ein Repo und eine vollständige Commit-ID. „bestanden“ braucht mindestens einen Link, zu einer Aufnahme oder einem erneuten Lauf.",
+    "from": "one per line: a url and its sha256, or a repo and a full commit id. a pass needs at least one link, to a recording or a rerun.",
+    "checked": false
+  },
+  "submission.meta": {
+    "text": "an {node} · von {by} · {when} · Version {version}",
+    "from": "to {node} · by {by} · {when} · version {version}",
+    "checked": false
+  },
+  "submission.nothingLinked": {
+    "text": "nichts verlinkt",
+    "from": "nothing linked",
+    "checked": false
+  },
+  "submission.oneADay": {
+    "text": "eine Einreichung pro Person und Tag.",
+    "from": "one submission per person per day.",
+    "checked": false
+  },
+  "submission.onlyYou": {
+    "text": "nur du siehst diesen Kasten",
+    "from": "only you see this box",
+    "checked": false
+  },
+  "submission.pageTitle": {
+    "text": "Einreichung #{n} · {title} · shwarm",
+    "from": "submission #{n} · {title} · shwarm",
+    "checked": false
+  },
+  "submission.pass": {
+    "text": "bestanden",
+    "from": "pass",
+    "checked": false
+  },
+  "submission.passIt": {
+    "text": "bestanden geben",
+    "from": "pass it",
+    "checked": false
+  },
+  "submission.passLabel": {
+    "text": "was du geprüft hast",
+    "from": "what you checked",
+    "checked": false
+  },
+  "submission.passNote": {
+    "text": "„bestanden“ schließt {title} als fertig ab. wird mit deinem Passwort bestätigt.",
+    "from": "passing closes {title} as done. confirms with your password.",
+    "checked": false
+  },
+  "submission.passPlaceholder": {
+    "text": "was du geprüft hast: auf einem frischen Rechner ausgeführt und den Fertig-Test Zeile für Zeile durchgegangen…",
+    "from": "what you checked: ran it on a clean machine and went through the done test line by line…",
+    "checked": false
+  },
+  "submission.pillApproved": {
+    "text": "angenommen",
+    "from": "approved",
+    "checked": false
+  },
+  "submission.pillFailed": {
+    "text": "nicht bestanden",
+    "from": "failed",
+    "checked": false
+  },
+  "submission.pillInReview": {
+    "text": "wird geprüft",
+    "from": "in review",
+    "checked": false
+  },
+  "submission.pillReopened": {
+    "text": "wieder geöffnet",
+    "from": "reopened",
+    "checked": false
+  },
+  "submission.pillSuperseded": {
+    "text": "ersetzt",
+    "from": "superseded",
+    "checked": false
+  },
+  "submission.pillWaitingOnAuthor": {
+    "text": "wartet auf Autor:in",
+    "from": "waiting on author",
+    "checked": false
+  },
+  "submission.pillWaitingOnYou": {
+    "text": "wartet auf dich",
+    "from": "waiting on you",
+    "checked": false
+  },
+  "submission.postCheck": {
+    "text": "Prüfung posten",
+    "from": "post check",
+    "checked": false
+  },
+  "submission.release": {
+    "text": "Release",
+    "from": "release",
+    "checked": false
+  },
+  "submission.releaseVersion": {
+    "text": "Version {version}",
+    "from": "version {version}",
+    "checked": false
+  },
+  "submission.signIn": {
+    "text": "melde dich an",
+    "from": "sign in",
+    "checked": false
+  },
+  "submission.signInToCheck": {
+    "text": "{link}, um diese Einreichung zu prüfen. Agenten schicken Laufberichte mit einem Schlüssel.",
+    "from": "{link} to check this submission. agents send run reports with a key.",
+    "checked": false
+  },
+  "submission.signOff": {
+    "text": "deine Freigabe",
+    "from": "your sign-off",
+    "checked": false
+  },
+  "submission.submissions": {
+    "text": "Einreichungen",
+    "from": "submissions",
+    "checked": false
+  },
+  "submission.supersededBy": {
+    "text": "ersetzt durch {link}. die Prüfungen dieser Einreichung bleiben sichtbar.",
+    "from": "superseded by {link}. the checks on this submission stay on the record.",
+    "checked": false
+  },
+  "submission.tally": {
+    "text": "{done} von {total}",
+    "from": "{done} of {total}",
+    "checked": false
+  },
+  "submission.tallyDone": {
+    "text": "{done} von {total} · {title} ist fertig",
+    "from": "{done} of {total} · {title} is done",
+    "checked": false
+  },
+  "submission.tallyPassedChecks": {
+    "text": "{done} von {total} · alle Prüfungen bestanden",
+    "from": "{done} of {total} · every check passed",
+    "checked": false
+  },
+  "submission.tallyReopened": {
+    "text": "{done} von {total} · bestanden · durch eine Repro wieder geöffnet",
+    "from": "{done} of {total} · passed · reopened by a repro",
+    "checked": false
+  },
+  "submission.tallyReset": {
+    "text": "zurückgesetzt · wartet auf eine neue Einreichung",
+    "from": "reset · waiting for a new submission",
+    "checked": false
+  },
+  "submission.tallySuperseded": {
+    "text": "ersetzt durch #{n}",
+    "from": "superseded by #{n}",
+    "checked": false
+  },
+  "submission.verifyToCheck": {
+    "text": "bestätige deine E-Mail, um diese Einreichung zu prüfen.",
+    "from": "verify your email to check this submission.",
+    "checked": false
+  },
+  "submission.whatWasSubmitted": {
+    "text": "was eingereicht wurde",
+    "from": "what was submitted",
+    "checked": false
+  },
+  "submission.yourCall": {
+    "text": "alle anderen Prüfungen haben bestanden. du entscheidest, ob diese Einreichung den Fertig-Test erfüllt.",
+    "from": "every other check passed. you decide whether this submission meets the done test.",
+    "checked": false
+  },
+  "submission.yourCheck": {
+    "text": "deine Prüfung",
+    "from": "your check",
+    "checked": false
+  }
+}

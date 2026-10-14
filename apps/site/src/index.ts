@@ -13,6 +13,8 @@ import { home } from './web/feed'
 import { originGuard } from './auth/csrf'
 import { mailRoutes } from './email/routes'
 import { wordsScript } from './words/script'
+import { inLanguage, pickLanguage, servedLanguages } from './words'
+import { getCookie, setCookie } from 'hono/cookie'
 import { scheduled } from './jobs'
 import { auth } from './auth/routes'
 import { create } from './web/create'
@@ -39,7 +41,7 @@ import { readingOpen, siteModeOf } from './core/site-mode'
 import { attention, healthExtras } from './jobs/watch'
 export { ShwarmTree } from './do/shwarm-tree'
 
-type Env = { DB: D1Database; TREE: DurableObjectNamespace; AI: Ai; TRIAGE_MODEL?: string; ENV: string; SITE_MODE: string; SITE_URL?: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string; STRIPE_SECRET_KEY?: string; STRIPE_WEBHOOK_SECRET?: string; BACKUPS?: R2Bucket }
+type Env = { DB: D1Database; TREE: DurableObjectNamespace; AI: Ai; TRIAGE_MODEL?: string; ENV: string; SITE_MODE: string; LANGUAGES?: string; SITE_URL?: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string; STRIPE_SECRET_KEY?: string; STRIPE_WEBHOOK_SECRET?: string; BACKUPS?: R2Bucket }
 
 const app = new Hono<{ Bindings: Env }>()
 
@@ -62,6 +64,25 @@ app.use('*', async (c, next) => {
   // the agent API and /healthz included. Files under static/ are served before the Worker runs; static/_headers covers them, and gives them the headers above too (keep the two in step).
   if (siteModeOf(c.env) !== 'open') c.header('X-Robots-Tag', 'noindex')
   c.header('Content-Security-Policy', "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com")
+})
+
+// The language a request's pages are in (decided Oct 13, words/index.ts): the footer switch's cookie, else the
+// browser's Accept-Language, among the languages this environment serves (LANGUAGES). Signed agent calls stay English,
+// and so does everything when an environment serves only English. /js/words.js takes its language from ?l=, since
+// it's cached publicly by its address. A page whose words can change by language says so in Vary.
+app.use('*', async (c, next) => {
+  const served = servedLanguages(c.env)
+  if (!served.length || isSigned(c.req.raw)) return next()
+  const url = new URL(c.req.url)
+  const l = url.searchParams.get('l') ?? ''
+  const lang = url.pathname === '/js/words.js' ? (served.includes(l) ? l : 'en') : pickLanguage(getCookie(c, 'lang'), c.req.header('accept-language'), served)
+  await inLanguage(lang, () => next(), { path: url.pathname + url.search, served })
+  if (c.res.headers.get('content-type')?.startsWith('text/html')) {
+    const vary = (c.res.headers.get('Vary') ?? '').split(',').map(s => s.trim()).filter(Boolean)
+    for (const v of ['Accept-Language', 'Cookie']) if (!vary.some(x => x.toLowerCase() === v.toLowerCase())) vary.push(v)
+    c.header('Vary', vary.join(', '))
+    c.header('Content-Language', lang)
+  }
 })
 
 // Request bodies are capped at 256 KB (table B, technical caps), before anything parses them (4.9). A signed request
@@ -127,6 +148,18 @@ app.use('*', async (c, next) => {
   if (c.env.ENV !== 'staging' || path === '/healthz' || path.startsWith('/hooks/')) return next()
   if (!c.env.STAGING_PASSWORD) return c.text('staging is locked', 503)
   return basicAuth({ username: 'shwarm', password: c.env.STAGING_PASSWORD })(c, next)
+})
+
+// The footer's language switch (decided Oct 13): remembers the pick in a `lang` cookie for a year and goes back to the
+// page it came from (a path on this site only). English is always a choice; others only where this environment serves
+// them.
+app.get('/language/:code', c => {
+  const code = c.req.param('code')
+  if (code !== 'en' && !servedLanguages(c.env).includes(code)) return c.notFound()
+  setCookie(c, 'lang', code, { path: '/', maxAge: 365 * 86_400, sameSite: 'Lax', secure: true, httpOnly: true })
+  const to = c.req.query('to') ?? ''
+  c.header('Cache-Control', 'no-store')
+  return c.redirect(/^\/(?![/\\])/.test(to) ? to : '/', 303)
 })
 
 // Writes from other sites are refused (step 2.4). Form tokens are checked in each handler.

@@ -6,7 +6,7 @@
 // signed-out read whose ETag this isolate saw in D1 within those 15 seconds gets its 304 with no D1 read (version-memo.ts).
 // The page's activity strip covers the last 14 UTC days, which move at midnight with no write, so a page's ETag and
 // memo key also carry the UTC day: the first read after midnight is a miss, and a cached page is a day old 15 seconds at most.
-import { fill, w, WORDS_VERSION } from '../words'
+import { currentLang, fill, w, WORDS_VERSION } from '../words'
 import { Hono, type Context } from 'hono'
 import { ShwarmError } from '@shwarm/protocol'
 import { formToken } from '../auth/csrf'
@@ -64,7 +64,7 @@ type C = Context<Env>
 const TYPES: Record<Format, string> = { html: 'text/html', text: 'text/plain', json: 'application/json' }
 
 /** Bump to change every ETag when the rendering changes (test/render-version.test.ts fails until you do). */
-export const RENDER_VERSION = '22' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9). 4: the log's `key` field (v0, Oct 9). 5: the activity strip (Oct 10). 6: edit until join, the safety guide link, how to join in (Oct 10). 7: links for agents under how to take part, count wording (Oct 10). 8: npx @shwarm/cli under how to take part (Oct 10). 9: direct messages and who takes them, under how to take part; take_part in the JSON; "report" on every post (Oct 10). 10: "flag this shwarm" in the head, the "paused for review" banner, paused in the text and JSON (Oct 10). 11: the manifesto link in the header strip (Oct 10). 12: the donate modal is a form posting to /donate (Oct 10). 13: the canonical link and link-preview meta tags (go-live 11.7, Oct 11). 14: shwarming safely, how to sign, what impact means and the beta line in the text and JSON (go-live 7.11, 7.14, Oct 11). 15: the 7.14 review: the beta line before the keys page, a run's pass rule and where it runs, a license off the list, the note in the JSON, "shwarms or branches" (Oct 11). 16: joins (go-live 8.2): CONTRIBUTORS with each person's joined agents, the join line under how to take part, join posts marked, contributors and take_part.join/leave in the JSON (Oct 12). 17: the join page (go-live 8.2): join in the head and on branches, the say-hi modal, "✿ joined" posts and quiet join lines, agents under their person in contributors (Oct 12). 18: one join per person (Myra, Oct 12): contributors are people only, with "joined by @you/agent" when an agent made the join; the join rule says an agent joins for its human (Oct 12). 19: the join rule names an agent's optional hello and that it leaves only a join it made (Myra, Oct 12); no "edit" on a shwarm's own words (Myra, Oct 12; signed-in only, so the signed-out fingerprint doesn't move). 20: "status" in the footer's links (go-live 11.3, Oct 12). 21: /js/words.js before site.js, the word list (go-live 11.8, Oct 13); from here a changed word moves the ETag by itself (WORDS_VERSION), no bump. 22: a branch's status votes (a badge with its bars on hover or tap, the vote box), quiet branches and the activity order, the pin permission and the status vote in how to take part, YOUR JOB and WHAT NEEDS DOING first in the text and JSON (Oct 13)
+export const RENDER_VERSION = '23' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9). 4: the log's `key` field (v0, Oct 9). 5: the activity strip (Oct 10). 6: edit until join, the safety guide link, how to join in (Oct 10). 7: links for agents under how to take part, count wording (Oct 10). 8: npx @shwarm/cli under how to take part (Oct 10). 9: direct messages and who takes them, under how to take part; take_part in the JSON; "report" on every post (Oct 10). 10: "flag this shwarm" in the head, the "paused for review" banner, paused in the text and JSON (Oct 10). 11: the manifesto link in the header strip (Oct 10). 12: the donate modal is a form posting to /donate (Oct 10). 13: the canonical link and link-preview meta tags (go-live 11.7, Oct 11). 14: shwarming safely, how to sign, what impact means and the beta line in the text and JSON (go-live 7.11, 7.14, Oct 11). 15: the 7.14 review: the beta line before the keys page, a run's pass rule and where it runs, a license off the list, the note in the JSON, "shwarms or branches" (Oct 11). 16: joins (go-live 8.2): CONTRIBUTORS with each person's joined agents, the join line under how to take part, join posts marked, contributors and take_part.join/leave in the JSON (Oct 12). 17: the join page (go-live 8.2): join in the head and on branches, the say-hi modal, "✿ joined" posts and quiet join lines, agents under their person in contributors (Oct 12). 18: one join per person (Myra, Oct 12): contributors are people only, with "joined by @you/agent" when an agent made the join; the join rule says an agent joins for its human (Oct 12). 19: the join rule names an agent's optional hello and that it leaves only a join it made (Myra, Oct 12); no "edit" on a shwarm's own words (Myra, Oct 12; signed-in only, so the signed-out fingerprint doesn't move). 20: "status" in the footer's links (go-live 11.3, Oct 12). 21: /js/words.js before site.js, the word list (go-live 11.8, Oct 13); from here a changed word moves the ETag by itself (WORDS_VERSION), no bump. 22: a branch's status votes (a badge with its bars on hover or tap, the vote box), quiet branches and the activity order, the pin permission and the status vote in how to take part, YOUR JOB and WHAT NEEDS DOING first in the text and JSON (Oct 13). 23: pages in the reader's language: lang and dir on <html>, the footer's language switch where more than English is served (Oct 13)
 
 // Production's reading pages stay closed in holding mode and open in beta (go-live 3.10); core/site-mode.ts.
 import { actsLimited, readingOpen } from '../core/site-mode'
@@ -107,10 +107,11 @@ async function gone(c: C, f: Format, path: string): Promise<Response | null> {
  * would keep a donate button that never posts.
  * `beta`: the text and JSON say only invited testers act (7.14). The mode changes with a deploy that needn't bump
  * RENDER_VERSION, so it joins the ETag too.
+ * `lang`: the page's language (words/index.ts), so a reader who switches language never gets a 304 for the other one.
  */
-export function etagOf(chain: Chain, f: Format, view = '', tree?: string, day?: string, checkout = false, beta = false): string {
+export function etagOf(chain: Chain, f: Format, view = '', tree?: string, day?: string, checkout = false, beta = false, lang = 'en'): string {
   const n = chain.node
-  return `W/"${RENDER_VERSION}.${WORDS_VERSION}.${n.last_event_id ?? n.changed_at ?? n.created_at}.${n.stats?.updated_at ?? '-'}.${chain.moderated?.replace(/[^\w-]/g, '') || '-'}.${f}${view ? '.' + view : ''}${tree ? '.' + tree.replace(/[^\w.:-]/g, '') : ''}${day ? '.' + day : ''}${checkout ? '.c' : ''}${beta ? '.b' : ''}"`
+  return `W/"${RENDER_VERSION}.${WORDS_VERSION}.${n.last_event_id ?? n.changed_at ?? n.created_at}.${n.stats?.updated_at ?? '-'}.${chain.moderated?.replace(/[^\w-]/g, '') || '-'}.${f}${view ? '.' + view : ''}${tree ? '.' + tree.replace(/[^\w.:-]/g, '') : ''}${day ? '.' + day : ''}${checkout ? '.c' : ''}${beta ? '.b' : ''}${lang !== 'en' ? '.' + lang : ''}"`
 }
 
 /**
@@ -171,7 +172,9 @@ nodeRoutes.get('/*', async c => {
   const checkout = f === 'html' && checkoutOn(c)
   // Only the text and JSON carry the beta line (render/prompt.ts BETA_LINE).
   const beta = f !== 'html' && actsLimited(c.env)
-  const memoKey = `${parsed.path}|${f}|${view}${thread ? '|thread' : ''}${day ? '|' + day : ''}${checkout ? '|c' : ''}${beta ? '|b' : ''}`
+  // A page is in the reader's language (words/index.ts); text and JSON are always English.
+  const lang = f === 'html' ? currentLang() : 'en'
+  const memoKey = `${parsed.path}|${f}|${view}${thread ? '|thread' : ''}${day ? '|' + day : ''}${checkout ? '|c' : ''}${beta ? '|b' : ''}${lang !== 'en' ? '|' + lang : ''}`
   const ifNoneMatch = c.req.header('if-none-match')
   const validator = (etag: string) => (c.header('ETag', etag), c.header('Cache-Control', 'public, s-maxage=15'))
 
@@ -193,7 +196,7 @@ nodeRoutes.get('/*', async c => {
   const result = subNumber === null && f === 'html' && showsResult(chain.node, thread)
   if (session) c.header('Cache-Control', 'private, no-store')
   else {
-    const etag = etagOf(chain, f, view, result ? await readTreeVersion(db, chain) : undefined, day, checkout, beta)
+    const etag = etagOf(chain, f, view, result ? await readTreeVersion(db, chain) : undefined, day, checkout, beta, lang)
     noteVersion(memoKey, etag)
     validator(etag)
     if (matches(ifNoneMatch, etag)) return c.body(null, 304)

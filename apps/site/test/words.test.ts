@@ -84,7 +84,8 @@ describe('translations', () => {
         const base = key.slice(0, key.lastIndexOf('.'))
         if (plurals.has(base)) {
           expect(forms, `${key}: ${code} has no "${key.slice(base.length + 1)}" form`).toContain(key.slice(base.length + 1))
-          expect(slots(text), key).toEqual(slots(english.get(`${base}.other`)!))
+          // as the localize tool checks it: against English's own form when English has it ("one"), else "other"
+          expect(slots(text), key).toEqual(slots(english.get(key) ?? english.get(`${base}.other`)!))
         } else {
           expect(english.has(key), `${key}: no such English entry (renamed or removed?)`).toBe(true)
           expect(slots(text), key).toEqual(slots(english.get(key)!))

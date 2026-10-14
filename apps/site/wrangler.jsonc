@@ -9,7 +9,7 @@
   "env": {
     "staging": {
       "name": "shwarm-staging",
-      "vars": { "ENV": "staging", "SITE_MODE": "beta", "SITE_URL": "https://shwarm-staging.myrakrusemark.workers.dev", "TURNSTILE_SITE_KEY": "1x00000000000000000000AA", "TRIAGE_MODEL": "@cf/cloudflare/clef-flash" },
+      "vars": { "ENV": "staging", "SITE_MODE": "beta", "LANGUAGES": "fr,de,zh-Hans", "SITE_URL": "https://shwarm-staging.myrakrusemark.workers.dev", "TURNSTILE_SITE_KEY": "1x00000000000000000000AA", "TRIAGE_MODEL": "@cf/cloudflare/clef-flash" },
       "triggers": { "crons": ["* * * * *"] }, // one trigger (Workers Free: 5 per account): mail and triage every minute, stats every 5th (jobs/index.ts)
       "d1_databases": [
         { "binding": "DB", "database_name": "shwarm-staging", "database_id": "debfa9a2-1b5f-47ff-b2e9-6e2c397974ad", "migrations_dir": "migrations" }

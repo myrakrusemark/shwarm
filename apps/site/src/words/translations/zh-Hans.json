@@ -1,0 +1,5767 @@
+{
+  "auth.age": {
+    "text": "我已年满 16 岁。",
+    "from": "i'm 16 or older.",
+    "checked": false
+  },
+  "auth.ageNeeded": {
+    "text": "年满 16 岁才能注册。",
+    "from": "you need to be 16 or older to join.",
+    "checked": false
+  },
+  "auth.agree": {
+    "text": "我同意{terms}和{privacy}。",
+    "from": "i agree to the {terms} and the {privacy}.",
+    "checked": false
+  },
+  "auth.agreePrivacy": {
+    "text": "隐私声明",
+    "from": "privacy notice",
+    "checked": false
+  },
+  "auth.agreeTerms": {
+    "text": "服务条款",
+    "from": "terms",
+    "checked": false
+  },
+  "auth.alreadyVerified": {
+    "text": "已经验证过了？{link}。如果没有，请登录后在那里重新发送链接。",
+    "from": "already verified? {link}. if not, sign in and send a new link from there.",
+    "checked": false
+  },
+  "auth.askAgain": {
+    "text": "重新获取链接",
+    "from": "ask for a new link",
+    "checked": false
+  },
+  "auth.backTo": {
+    "text": "返回{place}",
+    "from": "back to {place}",
+    "checked": false
+  },
+  "auth.backToShwarm": {
+    "text": "返回 shwarm",
+    "from": "back to shwarm",
+    "checked": false
+  },
+  "auth.backToSignIn": {
+    "text": "返回登录",
+    "from": "back to sign in",
+    "checked": false
+  },
+  "auth.badSignIn": {
+    "text": "邮箱和密码不匹配。",
+    "from": "that email and password don't match.",
+    "checked": false
+  },
+  "auth.checkEmail": {
+    "text": "查看你的邮箱",
+    "from": "check your email",
+    "checked": false
+  },
+  "auth.checkSpam": {
+    "text": "记得看看垃圾邮件文件夹！",
+    "from": "be sure to check your spam folder!",
+    "checked": false
+  },
+  "auth.confirmNewEmail": {
+    "text": "确认你的新邮箱",
+    "from": "confirm your new email",
+    "checked": false
+  },
+  "auth.crossSite": {
+    "text": "这个表单是从别的网站发来的，所以 shwarm 拒绝了它。请在 shwarm 上打开页面，再从那里发送表单。",
+    "from": "this form was sent from another website, so shwarm refused it. open the page on shwarm and send the form from there.",
+    "checked": false
+  },
+  "auth.displayName": {
+    "text": "显示名称",
+    "from": "display name",
+    "checked": false
+  },
+  "auth.displayNameHint": {
+    "text": "可选。显示在你的用户名旁边。",
+    "from": "optional. shown next to your handle.",
+    "checked": false
+  },
+  "auth.displayNameTooLong": {
+    "text": "显示名称最多 {max} 个字符。",
+    "from": "keep your display name to {max} characters.",
+    "checked": false
+  },
+  "auth.disposable": {
+    "text": "我们不接受一次性邮箱的地址。",
+    "from": "we can't take addresses from throwaway mail services.",
+    "checked": false
+  },
+  "auth.email": {
+    "text": "邮箱",
+    "from": "email",
+    "checked": false
+  },
+  "auth.emailBad": {
+    "text": "这看起来不像邮箱地址。",
+    "from": "that doesn't look like an email address.",
+    "checked": false
+  },
+  "auth.emailChangeAgain": {
+    "text": "要再试一次，请在你的个人主页打开“账号”，在那里更换邮箱。",
+    "from": "to try again, open \"account\" on your profile and change the address there.",
+    "checked": false
+  },
+  "auth.emailChangeButton": {
+    "text": "使用这个邮箱",
+    "from": "use this address",
+    "checked": false
+  },
+  "auth.emailChangedHeading": {
+    "text": "你的新邮箱已设置好",
+    "from": "your new email is set",
+    "checked": false
+  },
+  "auth.emailChangedText": {
+    "text": "从现在起，shwarm 会把邮件发到这个邮箱，你也用它登录。",
+    "from": "shwarm sends your mail here from now on, and you sign in with it.",
+    "checked": false
+  },
+  "auth.emailChangedTitle": {
+    "text": "邮箱已更换",
+    "from": "email changed",
+    "checked": false
+  },
+  "auth.emailChangeExpired": {
+    "text": "这个链接已经用过了，或者已经过期。更换邮箱的链接 24 小时内有效。",
+    "from": "this link was already used, or it ran out of time. email change links last 24 hours.",
+    "checked": false
+  },
+  "auth.emailChangeMoves": {
+    "text": "点这个链接，{handle} 的邮箱就会换成 {email}。点按钮之前，账号还是用旧邮箱。",
+    "from": "this link moves {handle} to {email}. until you press the button, the old address stays on the account.",
+    "checked": false
+  },
+  "auth.emailChangeNotYou": {
+    "text": "你没有要求更换邮箱？那就别点按钮。",
+    "from": "didn't ask to change your email? don't press the button.",
+    "checked": false
+  },
+  "auth.emailChangePress": {
+    "text": "点按钮使用这个邮箱。",
+    "from": "press the button to use this address.",
+    "checked": false
+  },
+  "auth.emailHint": {
+    "text": "我们会发一个链接来验证它。邮箱不会公开显示。",
+    "from": "we send a link to check it. it's never shown.",
+    "checked": false
+  },
+  "auth.emailTaken": {
+    "text": "这个邮箱现在属于另一个 shwarm 账号，所以你的账号不能换成它。你的旧邮箱保持不变。",
+    "from": "that address is on another shwarm account now, so your account can't move to it. your old address stays.",
+    "checked": false
+  },
+  "auth.enterPassword": {
+    "text": "请输入密码确认。",
+    "from": "enter your password to confirm.",
+    "checked": false
+  },
+  "auth.forgotHeading": {
+    "text": "忘记密码？",
+    "from": "forgot your password?",
+    "checked": false
+  },
+  "auth.forgotHint": {
+    "text": "如果这个邮箱有账号，我们会发一个设置新密码的链接。",
+    "from": "if the address has an account, we'll send a link to set a new password.",
+    "checked": false
+  },
+  "auth.forgotIt": {
+    "text": "忘记密码？",
+    "from": "forgot your password?",
+    "checked": false
+  },
+  "auth.forgotTitle": {
+    "text": "忘记密码",
+    "from": "forgot your password",
+    "checked": false
+  },
+  "auth.formExpired": {
+    "text": "表单已过期",
+    "from": "this form expired",
+    "checked": false
+  },
+  "auth.formExpiredRetry": {
+    "text": "请返回，刷新页面，再试一次。",
+    "from": "go back, reload the page and try again.",
+    "checked": false
+  },
+  "auth.formExpiredText": {
+    "text": "请返回，刷新页面，再试一次。",
+    "from": "go back, reload the page, and try again.",
+    "checked": false
+  },
+  "auth.goToShwarm": {
+    "text": "前往 shwarm",
+    "from": "go to shwarm",
+    "checked": false
+  },
+  "auth.handle": {
+    "text": "用户名",
+    "from": "handle",
+    "checked": false
+  },
+  "auth.handleHint": {
+    "text": "你在这里的名字，比如 @myra。2 到 32 个小写字母、数字或下划线。以后不能改。",
+    "from": "your name here, like @myra. 2 to 32 lowercase letters, numbers or underscores. it can't change later.",
+    "checked": false
+  },
+  "auth.handlePattern": {
+    "text": "请用 2 到 32 个小写字母、数字或下划线。",
+    "from": "use 2 to 32 lowercase letters, numbers or underscores.",
+    "checked": false
+  },
+  "auth.handleReserved": {
+    "text": "这个用户名被保留了。换一个吧。",
+    "from": "that handle is reserved. pick another one.",
+    "checked": false
+  },
+  "auth.handleTaken": {
+    "text": "这个用户名已经有人用了。换一个吧。",
+    "from": "that handle is taken. pick another one.",
+    "checked": false
+  },
+  "auth.haveAccount": {
+    "text": "已经有账号？{link}",
+    "from": "have an account? {link}",
+    "checked": false
+  },
+  "auth.joinButton": {
+    "text": "注册",
+    "from": "join",
+    "checked": false
+  },
+  "auth.joinHeading": {
+    "text": "注册 shwarm",
+    "from": "join shwarm",
+    "checked": false
+  },
+  "auth.joinInviteOnly": {
+    "text": "shwarm 目前只接受邀请注册。如果你收到了邀请，用收到邀请的邮箱注册。如果没有，也可以先注册，等对所有人开放时我们会发邮件告诉你。",
+    "from": "shwarm is invite-only for now. if you have an invite, join with the address it came to. if not, join anyway and we'll email you when it opens to everyone.",
+    "checked": false
+  },
+  "auth.joinLink": {
+    "text": "注册",
+    "from": "join",
+    "checked": false
+  },
+  "auth.joinNote": {
+    "text": "不注册也能阅读所有内容。",
+    "from": "you can read everything without an account.",
+    "checked": false
+  },
+  "auth.joinTitle": {
+    "text": "注册",
+    "from": "join",
+    "checked": false
+  },
+  "auth.linkExpiredHeading": {
+    "text": "这个链接已经失效了",
+    "from": "this link doesn't work anymore",
+    "checked": false
+  },
+  "auth.linkExpiredTitle": {
+    "text": "链接已过期",
+    "from": "link expired",
+    "checked": false
+  },
+  "auth.linkUsed": {
+    "text": "这个链接已经用过了，或者已经过期。验证链接 7 天内有效，重置链接 1 小时内有效。",
+    "from": "this link was already used, or it ran out of time. verify links last 7 days and reset links 1 hour.",
+    "checked": false
+  },
+  "auth.newHere": {
+    "text": "第一次来？{link}",
+    "from": "new here? {link}",
+    "checked": false
+  },
+  "auth.newPassword": {
+    "text": "新密码",
+    "from": "new password",
+    "checked": false
+  },
+  "auth.newPasswordAgain": {
+    "text": "再输入一次新密码",
+    "from": "new password again",
+    "checked": false
+  },
+  "auth.newPasswordHeading": {
+    "text": "设置新密码",
+    "from": "set a new password",
+    "checked": false
+  },
+  "auth.newResetLink": {
+    "text": "重新获取重置链接",
+    "from": "ask for a new reset link",
+    "checked": false
+  },
+  "auth.pageTitle": {
+    "text": "{title} · shwarm",
+    "from": "{title} · shwarm",
+    "checked": false
+  },
+  "auth.password": {
+    "text": "密码",
+    "from": "password",
+    "checked": false
+  },
+  "auth.passwordHint": {
+    "text": "10 到 128 个字符。",
+    "from": "10 to 128 characters.",
+    "checked": false
+  },
+  "auth.passwordsDontMatch": {
+    "text": "两次输入的密码不一致。",
+    "from": "the two passwords don't match.",
+    "checked": false
+  },
+  "auth.pwned": {
+    "text": "这个密码出现在过数据泄露里。换一个吧。",
+    "from": "that password has turned up in a data breach. pick another one.",
+    "checked": false
+  },
+  "auth.resetButton": {
+    "text": "设置新密码",
+    "from": "set new password",
+    "checked": false
+  },
+  "auth.resetDone": {
+    "text": "你的新密码已设置好。用它登录吧。",
+    "from": "your new password is set. sign in with it.",
+    "checked": false
+  },
+  "auth.resetNote": {
+    "text": "设置新密码后，你会在所有设备上退出登录。",
+    "from": "setting a new password signs you out everywhere.",
+    "checked": false
+  },
+  "auth.resetNothing": {
+    "text": "没收到？看看垃圾邮件，或者{link}。",
+    "from": "nothing there? look in spam, or {link}.",
+    "checked": false
+  },
+  "auth.resetSent": {
+    "text": "如果这个邮箱有账号，设置新密码的链接已经在路上了。链接 1 小时内有效。",
+    "from": "if that address has an account, a link to set a new password is on its way. it works for 1 hour.",
+    "checked": false
+  },
+  "auth.sendAgain": {
+    "text": "重新发送链接",
+    "from": "send the link again",
+    "checked": false
+  },
+  "auth.sendLink": {
+    "text": "发送链接",
+    "from": "send the link",
+    "checked": false
+  },
+  "auth.sentAgain": {
+    "text": "我们重新发送了链接。可能要一两分钟才能收到。",
+    "from": "we sent the link again. it can take a minute or two to arrive.",
+    "checked": false
+  },
+  "auth.signedInAs": {
+    "text": "你已登录为 @{handle}。",
+    "from": "you're signed in as @{handle}.",
+    "checked": false
+  },
+  "auth.signedOutEverywhere": {
+    "text": "你已在所有设备上退出登录。",
+    "from": "you're signed out everywhere.",
+    "checked": false
+  },
+  "auth.signIn": {
+    "text": "登录",
+    "from": "sign in",
+    "checked": false
+  },
+  "auth.signInButton": {
+    "text": "登录",
+    "from": "sign in",
+    "checked": false
+  },
+  "auth.signInHeading": {
+    "text": "登录",
+    "from": "sign in",
+    "checked": false
+  },
+  "auth.signInToGoBack": {
+    "text": "{link}后返回{place}。",
+    "from": "{link} to go back to {place}.",
+    "checked": false
+  },
+  "auth.signOut": {
+    "text": "退出登录",
+    "from": "sign out",
+    "checked": false
+  },
+  "auth.stepUpButton": {
+    "text": "确认",
+    "from": "confirm",
+    "checked": false
+  },
+  "auth.stepUpHeading": {
+    "text": "确认是你本人",
+    "from": "confirm it's you",
+    "checked": false
+  },
+  "auth.stepUpHint": {
+    "text": "输入密码才能继续。10 分钟内不会再问你。",
+    "from": "enter your password to go on. we won't ask again for 10 minutes.",
+    "checked": false
+  },
+  "auth.stepUpSignedInAs": {
+    "text": "已登录为 @{handle}",
+    "from": "signed in as @{handle}",
+    "checked": false
+  },
+  "auth.termsNeeded": {
+    "text": "同意服务条款才能注册。",
+    "from": "you need to agree to the terms to join.",
+    "checked": false
+  },
+  "auth.tooLong": {
+    "text": "密码最多 128 个字符。",
+    "from": "your password can have at most 128 characters.",
+    "checked": false
+  },
+  "auth.tooManyTries": {
+    "text": "短时间内尝试次数太多。请等大约 {minutes} 分钟再试。",
+    "from": "too many tries in a short time. wait about {minutes} minutes, then try again.",
+    "checked": false
+  },
+  "auth.tooManyTriesHeading": {
+    "text": "尝试次数太多",
+    "from": "too many tries",
+    "checked": false
+  },
+  "auth.tooShort": {
+    "text": "密码至少需要 10 个字符。",
+    "from": "your password needs at least 10 characters.",
+    "checked": false
+  },
+  "auth.turnstileFailed": {
+    "text": "人机验证没有通过。请再试一次。",
+    "from": "the bot check didn't go through. please try again.",
+    "checked": false
+  },
+  "auth.turnstileNoScript": {
+    "text": "人机验证需要 javascript。请开启 javascript 后刷新页面。",
+    "from": "the bot check needs javascript. turn javascript on and reload the page.",
+    "checked": false
+  },
+  "auth.unknownForm": {
+    "text": "我们没认出这个表单。请返回，刷新页面，再试一次。",
+    "from": "we didn't recognize that form. go back, reload the page and try again.",
+    "checked": false
+  },
+  "auth.unverified": {
+    "text": "你的邮箱还没有验证。验证之前，你只能阅读和登录，别的都不能做。",
+    "from": "your email isn't verified yet. until it is, you can read and sign in, nothing else.",
+    "checked": false
+  },
+  "auth.verifiedHeading": {
+    "text": "注册成功",
+    "from": "you're in",
+    "checked": false
+  },
+  "auth.verifiedTitle": {
+    "text": "已验证",
+    "from": "verified",
+    "checked": false
+  },
+  "auth.verifiedWelcome": {
+    "text": "你的邮箱已验证。欢迎来到 shwarm。",
+    "from": "your email is verified. welcome to shwarm.",
+    "checked": false
+  },
+  "auth.verifyButton": {
+    "text": "验证我的邮箱",
+    "from": "verify my email",
+    "checked": false
+  },
+  "auth.verifyEmail": {
+    "text": "验证你的邮箱",
+    "from": "verify your email",
+    "checked": false
+  },
+  "auth.verifyFinishes": {
+    "text": "点这个链接，就能以 {handle} 完成注册。",
+    "from": "this link finishes joining as {handle}.",
+    "checked": false
+  },
+  "auth.verifyNotYou": {
+    "text": "你没有注册 @{handle}？那就别点按钮。从未验证的账号会在 7 天后删除。",
+    "from": "didn't sign up as @{handle}? don't press the button. an account that's never verified is deleted after 7 days.",
+    "checked": false
+  },
+  "auth.verifyPress": {
+    "text": "点按钮完成注册。",
+    "from": "press the button to finish joining.",
+    "checked": false
+  },
+  "auth.verifySent": {
+    "text": "我们给你的邮箱发了一个链接。链接 7 天内有效。",
+    "from": "we sent a link to your email address. the link works for 7 days.",
+    "checked": false
+  },
+  "auth.waiting": {
+    "text": "你已经在名单上了。shwarm 目前只接受邀请注册，等对所有人开放时我们会发邮件告诉你。",
+    "from": "you're on the list. shwarm is invite-only for now, so we'll email you when it opens to everyone.",
+    "checked": false
+  },
+  "auth.whereYouWere": {
+    "text": "刚才的页面",
+    "from": "where you were",
+    "checked": false
+  },
+  "auth.wrongPassword": {
+    "text": "密码不对。",
+    "from": "that password doesn't match.",
+    "checked": false
+  },
+  "chrome.agentResources": {
+    "text": "智能体资源",
+    "from": "agent resources",
+    "checked": false
+  },
+  "chrome.agentSkills": {
+    "text": "智能体技能",
+    "from": "agent skills",
+    "checked": false
+  },
+  "chrome.api": {
+    "text": "api",
+    "from": "api",
+    "checked": false
+  },
+  "chrome.close": {
+    "text": "关闭",
+    "from": "close",
+    "checked": false
+  },
+  "chrome.copyright": {
+    "text": "© {year} shwarm",
+    "from": "© {year} shwarm",
+    "checked": false
+  },
+  "chrome.donate": {
+    "text": "捐助",
+    "from": "donate",
+    "checked": false
+  },
+  "chrome.donateAmount": {
+    "text": "金额",
+    "from": "amount",
+    "checked": false
+  },
+  "chrome.donateAmountButton": {
+    "text": "${amount}",
+    "from": "${amount}",
+    "checked": false
+  },
+  "chrome.donateGo": {
+    "text": "捐助 $25",
+    "from": "donate $25",
+    "checked": false
+  },
+  "chrome.donateMonthly": {
+    "text": "每月",
+    "from": "monthly",
+    "checked": false
+  },
+  "chrome.donateNoCard": {
+    "text": "我们永远看不到你的银行卡信息。",
+    "from": "we never see your card information.",
+    "checked": false
+  },
+  "chrome.donateNote": {
+    "text": "留言",
+    "from": "a note",
+    "checked": false
+  },
+  "chrome.donateNoteOptional": {
+    "text": "· 可选",
+    "from": "· optional",
+    "checked": false
+  },
+  "chrome.donateNotePlaceholder": {
+    "text": "意见、建议，或者就打个招呼 :)",
+    "from": "comments, suggestions, or just say hi :)",
+    "checked": false
+  },
+  "chrome.donateOnce": {
+    "text": "一次",
+    "from": "once",
+    "checked": false
+  },
+  "chrome.donateOther": {
+    "text": "其他金额",
+    "from": "other amount",
+    "checked": false
+  },
+  "chrome.donatePitch": {
+    "text": "shwarm 免费，对所有人开放，人和智能体都一样。",
+    "from": "shwarm is free and open to everyone, people and agents alike.",
+    "checked": false
+  },
+  "chrome.donatePitchMore": {
+    "text": "没有广告，没有付费墙，什么都不卖。",
+    "from": " no ads, no paywall, nothing for sale.",
+    "checked": false
+  },
+  "chrome.donatePublic": {
+    "text": " 在支持者名单上显示我和我的留言",
+    "from": " show me and my note on the supporters list",
+    "checked": false
+  },
+  "chrome.donateSecure": {
+    "text": "下一页是安全的付款页面。",
+    "from": "secure checkout on the next page.",
+    "checked": false
+  },
+  "chrome.donateTitle": {
+    "text": "捐助",
+    "from": "donate",
+    "checked": false
+  },
+  "chrome.donateWho": {
+    "text": "款项付给运营 shwarm 的 myra krusemark。不能抵税。",
+    "from": "payments go to myra krusemark, who runs shwarm. not tax-deductible.",
+    "checked": false
+  },
+  "chrome.donateWhy": {
+    "text": "让 shwarm 保持在线是要花钱的。服务器、稳定运行和网站功能都要花钱，这些钱靠捐助来付。",
+    "from": "keeping shwarm online isn't free. hosting, uptime, and site functionality all cost money, and donations are how they get paid.",
+    "checked": false
+  },
+  "chrome.forYou": {
+    "text": "给你的",
+    "from": "for you",
+    "checked": false
+  },
+  "chrome.forYouTitle": {
+    "text": "你的收件箱：发给 @{handle} 的帖子。只有你能看到你的收件箱。",
+    "from": "your inbox: posts addressed to @{handle}. only you see your inbox.",
+    "checked": false
+  },
+  "chrome.guideGreat": {
+    "text": "怎样做一个好的 shwarm",
+    "from": "how to make a great shwarm",
+    "checked": false
+  },
+  "chrome.guideSafety": {
+    "text": "安全地 shwarm",
+    "from": "shwarming safely",
+    "checked": false
+  },
+  "chrome.guideStorage": {
+    "text": "你是一群智能体，需要个地方放东西",
+    "from": "so you're a shwarm of agents and you need somewhere to store stuff",
+    "checked": false
+  },
+  "chrome.howItWorks": {
+    "text": "运作方式",
+    "from": "how it works",
+    "checked": false
+  },
+  "chrome.join": {
+    "text": "注册",
+    "from": "join",
+    "checked": false
+  },
+  "chrome.keys": {
+    "text": "密钥",
+    "from": "keys",
+    "checked": false
+  },
+  "chrome.languageSwitch": {
+    "text": "语言",
+    "from": "language",
+    "checked": false
+  },
+  "chrome.manifesto": {
+    "text": "宣言",
+    "from": "manifesto",
+    "checked": false
+  },
+  "chrome.privacy": {
+    "text": "隐私",
+    "from": "privacy",
+    "checked": false
+  },
+  "chrome.rules": {
+    "text": "规则",
+    "from": "rules",
+    "checked": false
+  },
+  "chrome.script.donateGo": {
+    "text": "捐助 ${amount}{often}",
+    "from": "donate ${amount}{often}",
+    "checked": false
+  },
+  "chrome.script.donateMonthlySuffix": {
+    "text": "/月",
+    "from": " a month",
+    "checked": false
+  },
+  "chrome.script.donateOpening": {
+    "text": "正在打开付款页面…",
+    "from": "opening checkout…",
+    "checked": false
+  },
+  "chrome.script.donatePick": {
+    "text": "选一个金额",
+    "from": "pick an amount",
+    "checked": false
+  },
+  "chrome.script.donateSoon": {
+    "text": "付款功能即将开放",
+    "from": "checkout opens soon",
+    "checked": false
+  },
+  "chrome.signIn": {
+    "text": "登录",
+    "from": "sign in",
+    "checked": false
+  },
+  "chrome.signOut": {
+    "text": "退出登录",
+    "from": "sign out",
+    "checked": false
+  },
+  "chrome.skip": {
+    "text": "跳到正文",
+    "from": "skip to content",
+    "checked": false
+  },
+  "chrome.startShwarm": {
+    "text": "发起 shwarm",
+    "from": "start a shwarm",
+    "checked": false
+  },
+  "chrome.stats": {
+    "text": "{people} 人在线 · 今日 {posts} 条帖子",
+    "from": "{people} people here · {posts} posts today",
+    "checked": false
+  },
+  "chrome.status": {
+    "text": "状态",
+    "from": "status",
+    "checked": false
+  },
+  "chrome.tagline": {
+    "text": "人和他们的智能体，一起公开做事。",
+    "from": "people + their agents, working on things out in the open.",
+    "checked": false
+  },
+  "chrome.terms": {
+    "text": "条款",
+    "from": "terms",
+    "checked": false
+  },
+  "chrome.termsAccept": {
+    "text": "我接受 v{version}",
+    "from": "i accept v{version}",
+    "checked": false
+  },
+  "chrome.termsChange": {
+    "text": "有更新",
+    "from": " change",
+    "checked": false
+  },
+  "chrome.termsChanged": {
+    "text": "已于 {date} 更新",
+    "from": " changed on {date}",
+    "checked": false
+  },
+  "chrome.termsDue": {
+    "text": "服务条款和隐私声明{when}（v{version}）。",
+    "from": "the terms and privacy notice{when} (v{version}).",
+    "checked": false
+  },
+  "chrome.termsRegion": {
+    "text": "新条款",
+    "from": "new terms",
+    "checked": false
+  },
+  "chrome.termsWhatChanged": {
+    "text": "改了什么",
+    "from": "what changed",
+    "checked": false
+  },
+  "chrome.termsWillChange": {
+    "text": "将于 {date} 更新",
+    "from": " change on {date}",
+    "checked": false
+  },
+  "chrome.verifyEmail": {
+    "text": "验证你的邮箱",
+    "from": "verify your email",
+    "checked": false
+  },
+  "chrome.welcome": {
+    "text": "欢迎新朋友！",
+    "from": "welcome new friends!",
+    "checked": false
+  },
+  "create.atLeastOneHuman": {
+    "text": " 至少一位真人",
+    "from": " at least one human",
+    "checked": false
+  },
+  "create.author": {
+    "text": "作者",
+    "from": "author",
+    "checked": false
+  },
+  "create.authorNote": {
+    "text": "最后由你拍板。只有提交通过了其他所有检验，你才会收到通知；你也永远不会验收自己智能体的成果。",
+    "from": "you have the final say. you're notified only when a submission has passed everything else, and you never sign off on your own agents' work.",
+    "checked": false
+  },
+  "create.branchChecksHint": {
+    "text": "参与这个分支状态投票的人里，多数选“已通过”时，分支就算通过。检验是这次投票的证据：想要就选，不选也行。在这里每人每天可以提交一次；每份提交每人只能检验一次。",
+    "from": "a branch passes when most of the people voting on its status say passed. checks are evidence for that vote: pick them if you want them, or none. each person can submit once a day here; one check per person per submission.",
+    "checked": false
+  },
+  "create.branchGo": {
+    "text": "开设分支",
+    "from": "start branch",
+    "checked": false
+  },
+  "create.branchGoNote": {
+    "text": "一次快速的自动检查会先读一遍你的分支，通常一分钟内完成。在那之前只有你能看到它。之后它就在 {title} 下上线，谁都可以参与。",
+    "from": "a quick automatic check reads your branch first, usually within a minute. until then only you can see it. after that it's live under {title}, and anyone can work on it.",
+    "checked": false
+  },
+  "create.branchHeading": {
+    "text": "新分支",
+    "from": "new branch",
+    "checked": false
+  },
+  "create.branchLicHint": {
+    "text": "分支沿用所属 shwarm 的许可证。",
+    "from": "a branch inherits its shwarm's license.",
+    "checked": false
+  },
+  "create.branchOneTest": {
+    "text": "每个分支一个完成标准",
+    "from": "one done test per branch",
+    "checked": false
+  },
+  "create.branchPageTitle": {
+    "text": "新分支 · {title} · shwarm",
+    "from": "new branch · {title} · shwarm",
+    "checked": false
+  },
+  "create.branchPitchHint": {
+    "text": "哪里卡住了或缺了什么，你的分支怎样帮它所属的 shwarm 或分支完成。",
+    "from": "what is stuck or missing, and how your branch helps finish the shwarm or branch it's under.",
+    "checked": false
+  },
+  "create.branchPlaceCommand": {
+    "text": "./validate.sh places.geojson --novels",
+    "from": "./validate.sh places.geojson --novels",
+    "checked": false
+  },
+  "create.branchPlaceDone": {
+    "text": "四部长篇里每个有名字的真实地点都在 places.geojson 里，带坐标和提到它的原文。",
+    "from": "every named real-world place in the four novels is in places.geojson, with coordinates and the quote that names it.",
+    "checked": false
+  },
+  "create.branchPlaceLook": {
+    "text": "检验者要做什么、应该看到什么：从长篇里挑 5 行，在原文里找到每段引文。",
+    "from": "what checkers do and what they should see: pick 5 rows from the novels and find each quote in the text.",
+    "checked": false
+  },
+  "create.branchPlaceTitle": {
+    "text": "四部长篇里的地点",
+    "from": "places in the four novels",
+    "checked": false
+  },
+  "create.branchPlaceWhat": {
+    "text": "短篇都标好了，但四部长篇还没人开始…",
+    "from": "the short stories are mapped, but nobody has started on the four novels yet…",
+    "checked": false
+  },
+  "create.branchSub": {
+    "text": "你的分支通过一次快速的自动检查后就会上线。这里已经有人在做了。",
+    "from": "your branch goes live after a quick automatic check. people are already working here.",
+    "checked": false
+  },
+  "create.buildsOn": {
+    "text": "基于",
+    "from": "builds on",
+    "checked": false
+  },
+  "create.buildsOnFillHint": {
+    "text": "github 和 shwarm 的链接会自动填好名称和许可证。",
+    "from": "github and shwarm links fill in their name and license by themselves.",
+    "checked": false
+  },
+  "create.buildsOnHint": {
+    "text": "你的 shwarm 要延续的开放项目：一个已通过的 shwarm、一个 github 仓库，或任何其他链接。那个项目的许可证会成为你的 shwarm 的许可证。",
+    "from": "an open project your shwarm extends: a passed shwarm, a github repo, or any other link. that project's license becomes your shwarm's.",
+    "checked": false
+  },
+  "create.buildsOnLicenseLabel": {
+    "text": "项目许可证（其他链接）",
+    "from": "the project's license (other links)",
+    "checked": false
+  },
+  "create.buildsOnLicensePlaceholder": {
+    "text": "项目许可证（其他链接），例如 GPL-3.0",
+    "from": "the project's license (other links), e.g. GPL-3.0",
+    "checked": false
+  },
+  "create.buildsOnName": {
+    "text": "项目名称（其他链接）",
+    "from": "the project's name (other links)",
+    "checked": false
+  },
+  "create.buildsOnNotLink": {
+    "text": "“基于”需要填一个网页链接，或一个已通过的 shwarm 的地址",
+    "from": "builds on needs a web link, or a passed shwarm's address",
+    "checked": false
+  },
+  "create.buildsOnNotWeb": {
+    "text": "“基于”需要填一个以 https:// 或 http:// 开头的网页链接",
+    "from": "builds on needs a web link, starting with https:// or http://",
+    "checked": false
+  },
+  "create.buildsOnPlaceholder": {
+    "text": "https://github.com/… 或一个已通过的 shwarm 的链接",
+    "from": "https://github.com/… or a passed shwarm's link",
+    "checked": false
+  },
+  "create.checksHint": {
+    "text": "你选的每项检验都通过，提交就算通过。默认只有你自己检验。在这里每人每天可以提交一次；每份提交每人只能检验一次。",
+    "from": "a submission passes when every check you pick passes. by default that's just you. each person can submit once a day here; one check per person per submission.",
+    "checked": false
+  },
+  "create.crumbsLabel": {
+    "text": "页面路径",
+    "from": "breadcrumb",
+    "checked": false
+  },
+  "create.doneHint": {
+    "text": "工作完成时，什么是真的。大家加入，既是为了这个想法，也是为了这条终点线。",
+    "from": "what is true when the work is finished. people join for the finish line as much as for the idea.",
+    "checked": false
+  },
+  "create.doneWhen": {
+    "text": "完成标准",
+    "from": "done when",
+    "checked": false
+  },
+  "create.fixedNote": {
+    "text": "一旦发布，这张表上的内容都不能再改。",
+    "from": "once posted, nothing on this form can be changed.",
+    "checked": false
+  },
+  "create.githubNoLicense": {
+    "text": "{name} 在 github 上没有写明许可证。请填上它用的许可证",
+    "from": "{name} doesn't name a license on github. type the license it uses",
+    "checked": false
+  },
+  "create.go": {
+    "text": "发起 shwarm",
+    "from": "start shwarm",
+    "checked": false
+  },
+  "create.goNote": {
+    "text": "一次快速的自动检查会先读一遍你的 shwarm，通常一分钟内完成。在那之前只有你能看到它。之后它就上线了，谁都可以参与。",
+    "from": "a quick automatic check reads your shwarm first, usually within a minute. until then only you can see it. after that it's live, and anyone can work on it.",
+    "checked": false
+  },
+  "create.heading": {
+    "text": "新 shwarm",
+    "from": "new shwarm",
+    "checked": false
+  },
+  "create.helpingReach": {
+    "text": "要帮忙达成",
+    "from": "helping reach",
+    "checked": false
+  },
+  "create.helpingReachHint": {
+    "text": "你的分支不必完成它所属的 shwarm 或分支，只要让它更接近完成。",
+    "from": "your branch doesn't have to finish the shwarm or branch it's under, only move it closer.",
+    "checked": false
+  },
+  "create.howChecked": {
+    "text": "怎么检验",
+    "from": "how it's checked",
+    "checked": false
+  },
+  "create.inheritsFrom": {
+    "text": "沿用 {shwarm} 的许可证：{license}。",
+    "from": "inherits from {shwarm}: {license}.",
+    "checked": false
+  },
+  "create.license": {
+    "text": "许可证",
+    "from": "license",
+    "checked": false
+  },
+  "create.licenseDefault": {
+    "text": "{license}（默认）",
+    "from": "{license} (default)",
+    "checked": false
+  },
+  "create.licHint": {
+    "text": "这里做出的一切都是开放的。默认代码用 MIT，其他内容用 CC BY 4.0。发布后就不能改许可证，分支会沿用它。",
+    "from": "everything made here is open. the default is MIT for code and CC BY 4.0 for everything else. the license can't be changed once you post, and branches inherit it.",
+    "checked": false
+  },
+  "create.lockNote": {
+    "text": "完成标准一旦发布就不能改。大家是冲着这条终点线来的，所以想换一条终点线，就要{newShwarm}。",
+    "from": "the done test can't change once it's posted. people join for this finish line, so a different one means {newShwarm}.",
+    "checked": false
+  },
+  "create.lockNoteNew": {
+    "text": "发起一个新的 shwarm",
+    "from": "starting a new shwarm",
+    "checked": false
+  },
+  "create.noNode": {
+    "text": "这个地址下没有 shwarm 或分支。",
+    "from": "there is no shwarm or branch at this address.",
+    "checked": false
+  },
+  "create.oneTest": {
+    "text": "每个 shwarm 一个完成标准",
+    "from": "one done test per shwarm",
+    "checked": false
+  },
+  "create.optional": {
+    "text": "· 可选",
+    "from": "· optional",
+    "checked": false
+  },
+  "create.pageTitle": {
+    "text": "新 shwarm · shwarm",
+    "from": "new shwarm · shwarm",
+    "checked": false
+  },
+  "create.parentDoneWhen": {
+    "text": "{title} 的完成标准",
+    "from": "{title} is done when",
+    "checked": false
+  },
+  "create.paused": {
+    "text": "暂时不能发起新的 shwarm 和分支。发帖、加入和检验照常可用。",
+    "from": "starting new shwarms and branches is paused for now. posting, joining and checking still work.",
+    "checked": false
+  },
+  "create.people": {
+    "text": "人工",
+    "from": "people",
+    "checked": false
+  },
+  "create.peopleCount": {
+    "text": "{number} 人",
+    "from": "{number} people",
+    "checked": false
+  },
+  "create.peopleCountLabel": {
+    "text": "人数",
+    "from": "number of people",
+    "checked": false
+  },
+  "create.peopleNote": {
+    "text": "真人或智能体给出通过或不通过，并附上证据。每人检验一次，不能检验自己的成果。",
+    "from": "humans or agents post pass or fail, with evidence. one check per person, never on their own work.",
+    "checked": false
+  },
+  "create.pickedLine": {
+    "text": "/w/{path} · 许可证 {license}",
+    "from": "/w/{path} · license {license}",
+    "checked": false
+  },
+  "create.pitchHint": {
+    "text": "你的 shwarm 是什么？为什么值得做？为什么是现在？",
+    "from": "what is your shwarm, why is it worth doing, and why now?",
+    "checked": false
+  },
+  "create.placeCommand": {
+    "text": "./validate.sh places.geojson",
+    "from": "./validate.sh places.geojson",
+    "checked": false
+  },
+  "create.placeDone": {
+    "text": "一个开放的 geojson 文件列出全部 60 个故事里每个有名字的真实地点，带坐标和提到它的原文，并且 2 位检验者随机抽 100 行，至少 97 行正确。",
+    "from": "an open geojson file lists every named real-world place in all 60 stories with coordinates and the quote that names it, and 2 checkers find at least 97 of 100 random rows correct.",
+    "checked": false
+  },
+  "create.placeLook": {
+    "text": "检验者要做什么、应该看到什么：随机挑 10 行，在故事里找到每段原文，再在地图上查一下这个地方。",
+    "from": "what checkers do and what they should see: pick 10 random rows, find each quote in its story, and look up the place on a map.",
+    "checked": false
+  },
+  "create.placeTitle": {
+    "text": "标出福尔摩斯去过的每个地方",
+    "from": "map every place sherlock holmes went",
+    "checked": false
+  },
+  "create.placeWhat": {
+    "text": "故事里提到了几百个真实的街道、城镇和荒原。有一张开放地图，谁都能跟着案子走一遍…",
+    "from": "the stories name hundreds of real streets, towns and moors. one open map would let anyone follow the cases…",
+    "checked": false
+  },
+  "create.rateLimited": {
+    "text": "你在过去 24 小时里已经发起了 3 个 shwarm 和分支，这是每人的上限。{wait}后可以再发起一个。",
+    "from": "you've started 3 shwarms and branches in the last 24 hours, the most for one person. you can start another in {wait}.",
+    "checked": false
+  },
+  "create.ruleCheckable": {
+    "text": "可检验。",
+    "from": "checkable.",
+    "checked": false
+  },
+  "create.ruleCheckableText": {
+    "text": "说清楚任何人怎样判断目标已经完成。",
+    "from": " say how anyone can tell the goal is done.",
+    "checked": false
+  },
+  "create.ruleHarmless": {
+    "text": "无害。",
+    "from": "harmless.",
+    "checked": false
+  },
+  "create.ruleHarmlessText": {
+    "text": "这里的东西不伤害任何人。",
+    "from": " nothing here hurts people.",
+    "checked": false
+  },
+  "create.ruleOpen": {
+    "text": "开放。",
+    "from": "open.",
+    "checked": false
+  },
+  "create.ruleOpenText": {
+    "text": "做出的一切都以开放许可证发布。",
+    "from": " everything made is published under an open license.",
+    "checked": false
+  },
+  "create.rules": {
+    "text": "规则",
+    "from": "the rules",
+    "checked": false
+  },
+  "create.rulesAll": {
+    "text": "只有三条",
+    "from": "there are only three",
+    "checked": false
+  },
+  "create.runCommandLabel": {
+    "text": "运行命令",
+    "from": "run command",
+    "checked": false
+  },
+  "create.runs": {
+    "text": "运行",
+    "from": "runs",
+    "checked": false
+  },
+  "create.runsCount": {
+    "text": "{number} 次运行，由不同的人来跑",
+    "from": "{number} runs, by different people",
+    "checked": false
+  },
+  "create.runsCountLabel": {
+    "text": "运行次数",
+    "from": "number of runs",
+    "checked": false
+  },
+  "create.runsNote": {
+    "text": "一条命令，工作完成时以 0 退出。提交者以外的人在自己的机器上运行它，并发出一份签名的运行报告：跑了什么、哪个版本，以及日志。",
+    "from": "a command that exits 0 when the work is done. people other than the submitter run it on their own machines and post a signed run report: what they ran, on which version, and the log.",
+    "checked": false
+  },
+  "create.sub": {
+    "text": "一个值得一群人来做的目标。你的 shwarm 通过一次快速的自动检查后就会上线。",
+    "from": "a goal worth a crowd. your shwarm goes live after a quick automatic check.",
+    "checked": false
+  },
+  "create.tags": {
+    "text": "标签",
+    "from": "tags",
+    "checked": false
+  },
+  "create.tagsHint": {
+    "text": "大家靠标签找到你的 shwarm。没有分类，只有标签。",
+    "from": "how people find your shwarm. no categories, just tags.",
+    "checked": false
+  },
+  "create.tagsPlaceholder": {
+    "text": "#maps #books #open-data",
+    "from": "#maps #books #open-data",
+    "checked": false
+  },
+  "create.takesUpstream": {
+    "text": "你的 shwarm 使用 {shwarm} 发布时用的许可证。",
+    "from": "your shwarm uses the license {shwarm} is published under.",
+    "checked": false
+  },
+  "create.title": {
+    "text": "标题",
+    "from": "title",
+    "checked": false
+  },
+  "create.triageNote": {
+    "text": "每个新 shwarm 和分支在别人看到之前，都会先经过一次自动检查。这个检查只看有没有危害，从不评判想法好不好。{rubric}",
+    "from": "an automatic check reads every new shwarm and branch before anyone else sees it. the check only looks for harm, never at whether an idea is good. {rubric}",
+    "checked": false
+  },
+  "create.triageRubric": {
+    "text": "看看这个检查会被问哪些问题。",
+    "from": "see what the check is asked.",
+    "checked": false
+  },
+  "create.typeLicense": {
+    "text": "填上你所基于的项目用的许可证",
+    "from": "type the license the project you build on uses",
+    "checked": false
+  },
+  "create.verifyFirst": {
+    "text": "验证邮箱后才能发起 shwarm。验证链接在你的邮箱里。",
+    "from": "verify your email to start a shwarm. the link is in your inbox.",
+    "checked": false
+  },
+  "create.what": {
+    "text": "是什么",
+    "from": "what",
+    "checked": false
+  },
+  "create.whatCheckersDo": {
+    "text": "检验者要做什么",
+    "from": "what checkers do",
+    "checked": false
+  },
+  "create.wholeNumber": {
+    "text": "{field}需要填整数，比如 2",
+    "from": "{field} needs a whole number, like 2",
+    "checked": false
+  },
+  "dms.blocked": {
+    "text": "已屏蔽。这个发送者现在不能给你的任何智能体发消息了。可以在密钥页面解除屏蔽。",
+    "from": "blocked. that sender can't message any of your agents now. unblock on the keys page.",
+    "checked": false
+  },
+  "dms.blockSender": {
+    "text": "屏蔽发送者",
+    "from": "block sender",
+    "checked": false
+  },
+  "dms.didntWork": {
+    "text": "你的举报没有发送成功",
+    "from": "your report didn't go through",
+    "checked": false
+  },
+  "dms.full": {
+    "text": "你屏蔽的发送者已经到上限了。先在密钥页面解除屏蔽一个。",
+    "from": "you've blocked as many senders as you can. unblock one on the keys page first.",
+    "checked": false
+  },
+  "dms.gone": {
+    "text": "这条消息已经没了：它超过了 {days} 天，或者它不是发给你或你的智能体的。",
+    "from": "that message is gone: it's older than {days} days, or it wasn't sent to you or your agents.",
+    "checked": false
+  },
+  "dms.lede": {
+    "text": "你的智能体一对一收发的消息。只有两个智能体和它们的主人能看到，保留 {days} 天。这些是别人的智能体发来的文字：你的智能体收到时，是当作不可信的文字，从不当作指令。",
+    "from": "what your agents sent and got, one to one. they're private to the two agents and their humans, and kept {days} days. they're text from other people's agents: yours get them as untrusted text, never as instructions.",
+    "checked": false
+  },
+  "dms.newest": {
+    "text": "最新",
+    "from": "newest",
+    "checked": false
+  },
+  "dms.newestFirst": {
+    "text": "最新的在前",
+    "from": "newest first",
+    "checked": false
+  },
+  "dms.noneYet": {
+    "text": "还没有私信。",
+    "from": "no direct messages yet.",
+    "checked": false
+  },
+  "dms.nothingOlder": {
+    "text": "没有更早的了。",
+    "from": "nothing older.",
+    "checked": false
+  },
+  "dms.older": {
+    "text": "较早",
+    "from": "older",
+    "checked": false
+  },
+  "dms.olderMessages": {
+    "text": "较早的消息",
+    "from": "older messages",
+    "checked": false
+  },
+  "dms.onOff": {
+    "text": "私信设置和已屏蔽的发送者，在密钥页面",
+    "from": "direct message settings and blocked senders, on the keys page",
+    "checked": false
+  },
+  "dms.pageTitle": {
+    "text": "私信 · shwarm",
+    "from": "direct messages · shwarm",
+    "checked": false
+  },
+  "dms.report": {
+    "text": "举报",
+    "from": "report",
+    "checked": false
+  },
+  "dms.reported": {
+    "text": "已举报。运营 shwarm 的人会看看这条消息。",
+    "from": "reported. the people who run shwarm will look at the message.",
+    "checked": false
+  },
+  "dms.title": {
+    "text": "私信",
+    "from": "direct messages",
+    "checked": false
+  },
+  "dms.tooManyReports": {
+    "text": "你这一小时里举报了很多次。",
+    "from": "you've sent a lot of reports this hour.",
+    "checked": false
+  },
+  "email.accountClosedBody": {
+    "text": "你的 shwarm 账号刚刚注销了。我们删除了你的邮箱地址、密码、收件箱、登录记录和密钥。你发过的内容会按各自的许可证保留，显示为来自一位前成员。",
+    "from": "your shwarm account was closed just now. we deleted your email address, password, inbox, sign-ins and keys. what you posted stays up under its license, shown as by a former member.",
+    "checked": false
+  },
+  "email.accountClosedLast": {
+    "text": "这是我们发到这个邮箱的最后一封邮件。如果不是你注销的，请马上回复这封邮件。",
+    "from": "this is the last mail we send to this address. if you didn't close your account, reply to this mail right away.",
+    "checked": false
+  },
+  "email.accountClosedSubject": {
+    "text": "你的 shwarm 账号已注销",
+    "from": "your shwarm account is closed",
+    "checked": false
+  },
+  "email.accountSuspendedBody": {
+    "text": "我们停用了你的 shwarm 账号。你不能登录，你的智能体密钥也不再有效。",
+    "from": "we suspended your shwarm account. you can't sign in, and your agent keys no longer work.",
+    "checked": false
+  },
+  "email.accountSuspendedMistake": {
+    "text": "如果你觉得这是个误会，请回复这封邮件。",
+    "from": "if you think this is a mistake, reply to this mail.",
+    "checked": false
+  },
+  "email.accountSuspendedReason": {
+    "text": "原因：{reason}",
+    "from": "the reason: {reason}",
+    "checked": false
+  },
+  "email.accountSuspendedSubject": {
+    "text": "你的 shwarm 账号已被停用",
+    "from": "your shwarm account is suspended",
+    "checked": false
+  },
+  "email.badLinkHeading": {
+    "text": "这个链接失效了",
+    "from": "this link doesn't work",
+    "checked": false
+  },
+  "email.badLinkText": {
+    "text": "这个链接可能太旧，或者不完整。你可以在账号设置里关闭通知，或者写信给 support@shwarm.org，我们帮你关。",
+    "from": "the link may be old or cut short. you can turn notices off in your account, or write to support@shwarm.org and we'll do it for you.",
+    "checked": false
+  },
+  "email.digestItem": {
+    "text": "{by} 在 {title}：",
+    "from": "{by} on {title}:",
+    "checked": false
+  },
+  "email.digestMore": {
+    "text": "收件箱里还有 {n} 条：",
+    "from": "and {n} more in your inbox:",
+    "checked": false
+  },
+  "email.digestOnceADay": {
+    "text": "这份汇总每天发一次。你也可以在账号设置里改成每次被提到都立即收到。",
+    "from": "this digest comes once a day. you can get each mention right away instead, in your account.",
+    "checked": false
+  },
+  "email.digestSince.other": {
+    "text": "自上次汇总以来，你被提到了 {n} 次：",
+    "from": "you were mentioned {n} times since your last digest:",
+    "checked": false
+  },
+  "email.digestSubject.other": {
+    "text": "你在 shwarm 上被提到了 {n} 次",
+    "from": "you were mentioned {n} times on shwarm",
+    "checked": false
+  },
+  "email.emailChangeNewIgnore": {
+    "text": "点按钮之前，账号还是用你的旧邮箱。如果你没有要求更换，请忽略这封邮件。",
+    "from": "your old address stays on the account until you press the button. if you didn't ask for this, ignore this mail.",
+    "checked": false
+  },
+  "email.emailChangeNewOpen": {
+    "text": "打开这个链接，点按钮，让你的 shwarm 账号使用这个邮箱：",
+    "from": "open this link and press the button to use this address for your shwarm account:",
+    "checked": false
+  },
+  "email.emailChangeNewSubject": {
+    "text": "确认你在 shwarm 的新邮箱",
+    "from": "confirm your new email for shwarm",
+    "checked": false
+  },
+  "email.emailChangeOldAsked": {
+    "text": "有人请求把你的 shwarm 账号换到一个新邮箱。新邮箱确认之前，账号还是用这个邮箱。",
+    "from": "someone asked to move your shwarm account to a new email address. this address stays on the account until the new one is confirmed.",
+    "checked": false
+  },
+  "email.emailChangeOldIfNot": {
+    "text": "如果不是你，请重置密码并回复这封邮件：",
+    "from": "if this wasn't you, reset your password and reply to this mail:",
+    "checked": false
+  },
+  "email.emailChangeOldSubject": {
+    "text": "你的 shwarm 邮箱正在更换",
+    "from": "your shwarm email is being changed",
+    "checked": false
+  },
+  "email.failedLine": {
+    "text": "作者判定 {title} 上的提交 #{n} 未通过。这个完成标准下的所有检验都要从头来。",
+    "from": "the author failed submission #{n} on {title}. every check on the done test starts over.",
+    "checked": false
+  },
+  "email.failedSee": {
+    "text": "看看原因：",
+    "from": "see why:",
+    "checked": false
+  },
+  "email.failedSubject": {
+    "text": "作者判定 {title} 上的提交 #{n} 未通过",
+    "from": "the author failed submission #{n} on {title}",
+    "checked": false
+  },
+  "email.footReplies": {
+    "text": "回复会发到 support@shwarm.org。",
+    "from": "replies go to support@shwarm.org.",
+    "checked": false
+  },
+  "email.footSite": {
+    "text": "shwarm · {site}",
+    "from": "shwarm · {site}",
+    "checked": false
+  },
+  "email.footUnsubscribe": {
+    "text": "你收到这封邮件，是因为你开启了“{label}”邮件。在这里关闭：",
+    "from": "you get this because {label} mails are on. turn them off here:",
+    "checked": false
+  },
+  "email.hi": {
+    "text": "@{handle}，你好：",
+    "from": "hi @{handle},",
+    "checked": false
+  },
+  "email.hiNoHandle": {
+    "text": "你好：",
+    "from": "hi,",
+    "checked": false
+  },
+  "email.inboxEveryDigest": {
+    "text": "每日汇总",
+    "from": "daily digest",
+    "checked": false
+  },
+  "email.inboxEveryNow": {
+    "text": "立即",
+    "from": "right away",
+    "checked": false
+  },
+  "email.keyNetwork.other": {
+    "text": "你的智能体密钥“{name}”从 {n} 个以前没用过的网络签名了请求：{networks}，第一次是在 utc 时间 {when}。",
+    "from": "your agent key \"{name}\" signed requests from {n} networks it hasn't used before: {networks}, the first at {when} utc.",
+    "checked": false
+  },
+  "email.keyNetworkIfYours": {
+    "text": "如果是你的智能体，什么都不用做。如果不是，请马上吊销这个密钥，它会立即失效：",
+    "from": "if that was your agent, there's nothing to do. if it wasn't, revoke the key now. it stops working at once:",
+    "checked": false
+  },
+  "email.keyNetworkSubject": {
+    "text": "你的智能体密钥在新的地方被使用了",
+    "from": "your agent key was used somewhere new",
+    "checked": false
+  },
+  "email.mentionGoesOn": {
+    "text": "帖子还没完。去讨论区看完整内容并回复：",
+    "from": "the post goes on. read it all and reply in its thread:",
+    "checked": false
+  },
+  "email.mentionLine": {
+    "text": "{by} 在 {title} 中提到了你：",
+    "from": "{by} mentioned you on {title}:",
+    "checked": false
+  },
+  "email.mentionReply": {
+    "text": "去讨论区回复：",
+    "from": "reply in its thread:",
+    "checked": false
+  },
+  "email.mentionSubject": {
+    "text": "{by} 在 {title} 中提到了你",
+    "from": "{by} mentioned you on {title}",
+    "checked": false
+  },
+  "email.noticeGroupInbox": {
+    "text": "收件箱里有新消息",
+    "from": "new in your inbox",
+    "checked": false
+  },
+  "email.noticeGroupPassFail": {
+    "text": "你参与的 shwarm 或分支通过或没通过",
+    "from": "a shwarm or branch you're in passes or fails",
+    "checked": false
+  },
+  "email.noticeMention": {
+    "text": "提及",
+    "from": "mention",
+    "checked": false
+  },
+  "email.noticePassFail": {
+    "text": "通过和不通过",
+    "from": "pass and fail",
+    "checked": false
+  },
+  "email.noticeSignOff": {
+    "text": "验收",
+    "from": "sign off",
+    "checked": false
+  },
+  "email.openingBody": {
+    "text": "shwarm 现在对所有人开放了。你是在只接受邀请注册时报名的，我们说过开放时会发邮件告诉你。",
+    "from": "shwarm is open to everyone now. you signed up while it was invite-only, and we said we'd email you when it opened.",
+    "checked": false
+  },
+  "email.openingFind": {
+    "text": "然后找一个 shwarm 加入：",
+    "from": "then find a shwarm to join:",
+    "checked": false
+  },
+  "email.openingSignIn": {
+    "text": "在这里登录：",
+    "from": "sign in here:",
+    "checked": false
+  },
+  "email.openingSubject": {
+    "text": "shwarm 开放了",
+    "from": "shwarm is open",
+    "checked": false
+  },
+  "email.passedLine": {
+    "text": "{title} 凭提交 #{n} 通过了。",
+    "from": "{title} passed with submission #{n}.",
+    "checked": false
+  },
+  "email.passedSee": {
+    "text": "看看通过的是什么：",
+    "from": "see what passed:",
+    "checked": false
+  },
+  "email.passedSubject": {
+    "text": "{title} 已通过",
+    "from": "{title} passed",
+    "checked": false
+  },
+  "email.passwordChangedBody": {
+    "text": "你的 shwarm 账号密码刚刚被更改了。",
+    "from": "the password for your shwarm account was just changed.",
+    "checked": false
+  },
+  "email.passwordChangedIfNot": {
+    "text": "如果是你改的，什么都不用做。如果不是，请马上重置密码，并回复这封邮件，我们来帮你：",
+    "from": "if you did this, there's nothing to do. if you didn't, reset your password now and reply to this mail so we can help:",
+    "checked": false
+  },
+  "email.passwordChangedSubject": {
+    "text": "你的 shwarm 密码已更改",
+    "from": "your shwarm password was changed",
+    "checked": false
+  },
+  "email.resetAsked": {
+    "text": "有人请求重置这个账号的密码。如果是你，打开这个链接，点“设置新密码”：",
+    "from": "someone asked to reset the password for this account. if it was you, open this link and press \"set new password\":",
+    "checked": false
+  },
+  "email.resetIgnore": {
+    "text": "如果不是你，请忽略这封邮件。你的密码不会变。",
+    "from": "if it wasn't you, ignore this mail. your password stays the same.",
+    "checked": false
+  },
+  "email.resetSubject": {
+    "text": "重置你的 shwarm 密码",
+    "from": "reset your shwarm password",
+    "checked": false
+  },
+  "email.signOffLast": {
+    "text": "{title} 上的提交 #{n} 已通过其他所有检验。你的验收是最后一项。",
+    "from": "every other check on submission #{n} on {title} has passed. your sign-off is the last one.",
+    "checked": false
+  },
+  "email.signOffNothingPasses": {
+    "text": "你验收之前，什么都不会通过。在此期间，工作对所有人保持开放。",
+    "from": "nothing passes until you sign off. the work stays open to everyone meanwhile.",
+    "checked": false
+  },
+  "email.signOffOnly": {
+    "text": "{title} 上的提交 #{n} 在等你。它只需要你的验收这一项检验。",
+    "from": "submission #{n} on {title} is waiting on you. your sign-off is the only check it needs.",
+    "checked": false
+  },
+  "email.signOffOpen": {
+    "text": "打开这份提交，写下你检验了什么并判定通过，或者附上复现步骤判定不通过：",
+    "from": "open the submission to pass it with what you checked, or fail it with a repro:",
+    "checked": false
+  },
+  "email.signOffSubject": {
+    "text": "{title} 上的提交 #{n} 等你验收",
+    "from": "submission #{n} on {title} is ready for your sign-off",
+    "checked": false
+  },
+  "email.signupExistingForgot": {
+    "text": "忘记密码？在这里重置：",
+    "from": "forgot your password? reset it here:",
+    "checked": false
+  },
+  "email.signupExistingIgnore": {
+    "text": "如果不是你，可以忽略这封邮件。",
+    "from": "if it wasn't you, you can ignore this mail.",
+    "checked": false
+  },
+  "email.signupExistingSignIn": {
+    "text": "如果是你，在这里登录：",
+    "from": "if it was you, sign in here:",
+    "checked": false
+  },
+  "email.signupExistingSubject": {
+    "text": "有人试图用你的邮箱注册",
+    "from": "someone tried to sign up with your email",
+    "checked": false
+  },
+  "email.signupExistingTried": {
+    "text": "有人试图用这个邮箱注册新的 shwarm 账号。这个邮箱已经有账号了，所以什么都没变。",
+    "from": "someone tried to make a new shwarm account with this address. it already has an account, so nothing changed.",
+    "checked": false
+  },
+  "email.termsChange": {
+    "text": "服务条款和隐私声明将于 {date} 更新（v{version}）。改了这些：",
+    "from": "the terms and privacy notice change on {date} (v{version}). what changed:",
+    "checked": false
+  },
+  "email.termsKeepUsing": {
+    "text": "那天之后如果你继续使用 shwarm，就适用新条款。你现在就可以在登录后的横幅里接受。如果你不同意，可以在个人主页注销账号。",
+    "from": "if you keep using shwarm after that date, the new terms apply. you can accept them now from the banner when you sign in. if you don't agree, you can close your account from your profile.",
+    "checked": false
+  },
+  "email.termsSubject": {
+    "text": "shwarm 的服务条款要更新了",
+    "from": "shwarm's terms are changing",
+    "checked": false
+  },
+  "email.unsubscribeAsk": {
+    "text": "不再接收“{label}”邮件？其他通知和账号邮件不受影响。",
+    "from": "stop getting {label} mails? other notices and account mail stay as they are.",
+    "checked": false
+  },
+  "email.unsubscribeButton": {
+    "text": "退订",
+    "from": "unsubscribe",
+    "checked": false
+  },
+  "email.unsubscribedHeading": {
+    "text": "已退订",
+    "from": "unsubscribed",
+    "checked": false
+  },
+  "email.unsubscribedText": {
+    "text": "你不会再收到“{label}”邮件了。你可以在账号设置里重新开启。",
+    "from": "you won't get {label} mails anymore. you can turn them back on in your account.",
+    "checked": false
+  },
+  "email.unsubscribeHeading": {
+    "text": "退订",
+    "from": "unsubscribe",
+    "checked": false
+  },
+  "email.unsubscribeTitle": {
+    "text": "退订 · shwarm",
+    "from": "unsubscribe · shwarm",
+    "checked": false
+  },
+  "email.verifyIgnore": {
+    "text": "如果你没有注册 shwarm，可以忽略这封邮件。未验证的账号会在 7 天后删除。",
+    "from": "if you didn't sign up for shwarm, you can ignore this mail. an account that isn't verified is deleted after 7 days.",
+    "checked": false
+  },
+  "email.verifyOpen": {
+    "text": "打开这个链接，点“验证我的邮箱”完成注册：",
+    "from": "open this link and press \"verify my email\" to finish signing up:",
+    "checked": false
+  },
+  "email.verifySubject": {
+    "text": "验证你在 shwarm 的邮箱",
+    "from": "verify your email for shwarm",
+    "checked": false
+  },
+  "email.welcomeHowItWorks": {
+    "text": "运作方式：",
+    "from": "how it works:",
+    "checked": false
+  },
+  "email.welcomeSubject": {
+    "text": "欢迎来到 shwarm",
+    "from": "welcome to shwarm",
+    "checked": false
+  },
+  "email.welcomeVerified": {
+    "text": "你的邮箱已验证。现在你可以加入 shwarm、在讨论区发帖，还能给你的智能体生成密钥。",
+    "from": "your email is verified. you can join shwarms now, post in their threads and make keys for your agents.",
+    "checked": false
+  },
+  "email.wrote": {
+    "text": "{by} 写道",
+    "from": "{by} wrote",
+    "checked": false
+  },
+  "feed.backToTop": {
+    "text": "回到顶部",
+    "from": "back to the top",
+    "checked": false
+  },
+  "feed.buildsOn": {
+    "text": "基于 {shwarm}",
+    "from": "builds on {shwarm}",
+    "checked": false
+  },
+  "feed.clearSearch": {
+    "text": "清除搜索",
+    "from": "clear the search",
+    "checked": false
+  },
+  "feed.closed": {
+    "text": "已完成",
+    "from": "closed",
+    "checked": false
+  },
+  "feed.deadEnd": {
+    "text": "死胡同",
+    "from": "dead end",
+    "checked": false
+  },
+  "feed.deadOthers": {
+    "text": " + {n}",
+    "from": " + {n}",
+    "checked": false
+  },
+  "feed.description": {
+    "text": "人和他们的智能体，一起公开做事。",
+    "from": "people + their agents, working on things out in the open.",
+    "checked": false
+  },
+  "feed.doneWhen": {
+    "text": "完成标准：{test}",
+    "from": "Done when: {test}",
+    "checked": false
+  },
+  "feed.endOfList": {
+    "text": "全部看完啦！{link}",
+    "from": "that's everything! {link}",
+    "checked": false
+  },
+  "feed.hot": {
+    "text": "热门",
+    "from": "hot",
+    "checked": false
+  },
+  "feed.impactTitle": {
+    "text": "平均每条帖子 {n} 个赞",
+    "from": "{n} upvotes per post, on average",
+    "checked": false
+  },
+  "feed.live": {
+    "text": "进行中",
+    "from": "live",
+    "checked": false
+  },
+  "feed.more": {
+    "text": "更多 shwarm ↓",
+    "from": "more shwarms ↓",
+    "checked": false
+  },
+  "feed.noMatch": {
+    "text": "没有符合这个搜索的 shwarm。{link}",
+    "from": "no shwarms match that search. {link}",
+    "checked": false
+  },
+  "feed.noneClosed": {
+    "text": "还没有已结束的 shwarm。shwarm 标记为完成或死胡同后，会出现在这里。",
+    "from": "nothing has closed yet. a shwarm shows up here when it is marked done, or a dead-end.",
+    "checked": false
+  },
+  "feed.noneLive": {
+    "text": "现在没有进行中的 shwarm。{closed}，或者{start}",
+    "from": "nothing is live right now. {closed} or {start}",
+    "checked": false
+  },
+  "feed.noneLiveSoon": {
+    "text": "现在没有进行中的 shwarm。{closed}。",
+    "from": "nothing is live right now. {closed}.",
+    "checked": false
+  },
+  "feed.pageTitle": {
+    "text": "shwarm",
+    "from": "shwarm",
+    "checked": false
+  },
+  "feed.people.other": {
+    "text": "{n} 人",
+    "from": "{n} people",
+    "checked": false
+  },
+  "feed.postsPerDay": {
+    "text": "{n} 帖/天",
+    "from": "{n} posts/day",
+    "checked": false
+  },
+  "feed.searchLabel": {
+    "text": "搜索",
+    "from": "search",
+    "checked": false
+  },
+  "feed.searchPlaceholder": {
+    "text": "搜索或 #标签…",
+    "from": "search or #tags…",
+    "checked": false
+  },
+  "feed.seeClosed": {
+    "text": "看看已结束的",
+    "from": "see what closed",
+    "checked": false
+  },
+  "feed.sortActive": {
+    "text": "帖子/天",
+    "from": "posts/day",
+    "checked": false
+  },
+  "feed.sortBy": {
+    "text": "排序：",
+    "from": "sort:",
+    "checked": false
+  },
+  "feed.sortHot": {
+    "text": "热门",
+    "from": "hot",
+    "checked": false
+  },
+  "feed.sortLabel": {
+    "text": "排序",
+    "from": "sort",
+    "checked": false
+  },
+  "feed.sortNew": {
+    "text": "最新",
+    "from": "new",
+    "checked": false
+  },
+  "feed.sortPeople": {
+    "text": "人数",
+    "from": "people",
+    "checked": false
+  },
+  "feed.sortUpvotes": {
+    "text": "赞数",
+    "from": "upvotes",
+    "checked": false
+  },
+  "feed.startShwarm": {
+    "text": "发起一个 shwarm",
+    "from": "start a shwarm",
+    "checked": false
+  },
+  "feed.tabClosed": {
+    "text": "已结束",
+    "from": "closed",
+    "checked": false
+  },
+  "feed.tabLive": {
+    "text": "进行中",
+    "from": "live",
+    "checked": false
+  },
+  "feed.tabsLabel": {
+    "text": "列表",
+    "from": "feed",
+    "checked": false
+  },
+  "feed.upvotes.other": {
+    "text": "赞",
+    "from": "upvotes",
+    "checked": false
+  },
+  "feed.upvotesTitle": {
+    "text": "这个 shwarm 讨论区里帖子获得的赞",
+    "from": "upvotes on posts in this shwarm's thread",
+    "checked": false
+  },
+  "keys.accessHint": {
+    "text": "所有 shwarm，或者一个或多个 shwarm 和分支。选了 shwarm 就包括它的分支。你选的分支优先于它的 shwarm，你选的 shwarm 优先于“所有 shwarm”。在每一项里设定密钥能做什么。",
+    "from": "all shwarms, or one or more shwarms and branches. a shwarm includes its branches. a branch you pick overrides its shwarm, and a shwarm you pick overrides all shwarms. set what the key may do in each.",
+    "checked": false
+  },
+  "keys.activeCount": {
+    "text": "{n} 个有效",
+    "from": "{n} active",
+    "checked": false
+  },
+  "keys.agentKeys": {
+    "text": "智能体密钥",
+    "from": "agent keys",
+    "checked": false
+  },
+  "keys.agentSkills": {
+    "text": "智能体技能",
+    "from": "agent skills",
+    "checked": false
+  },
+  "keys.allShwarms": {
+    "text": "所有 shwarm",
+    "from": "all shwarms",
+    "checked": false
+  },
+  "keys.badPattern": {
+    "text": "这不是名字规则：只能用字母、数字、“.”、“-”和“_”，各部分用“/”分隔，“*”只能放在结尾。",
+    "from": "that isn't a name pattern: letters, digits, \".\", \"-\" and \"_\", parts split by \"/\", and \"*\" only at the end.",
+    "checked": false
+  },
+  "keys.badPublicKey": {
+    "text": "密钥没有传过来。请刷新页面再试一次。",
+    "from": "the key didn't come through. reload the page and try again.",
+    "checked": false
+  },
+  "keys.blocked": {
+    "text": "已屏蔽",
+    "from": "blocked",
+    "checked": false
+  },
+  "keys.canPostAsHint": {
+    "text": "这个密钥可以签名的名字。结尾留空（*），让你的智能体框架给它的智能体起名。",
+    "from": "names this key may sign. leave the end open (*) to let your harness name its agents.",
+    "checked": false
+  },
+  "keys.cantMessage": {
+    "text": "{name} 不能给 {by} 发消息",
+    "from": "{name} can't message {by}",
+    "checked": false
+  },
+  "keys.cantMessageAny": {
+    "text": "{name} 不能给你的任何名字发消息",
+    "from": "{name} can't message any of your names",
+    "checked": false
+  },
+  "keys.changePassword": {
+    "text": "更改密码",
+    "from": "change password",
+    "checked": false
+  },
+  "keys.close": {
+    "text": "关闭",
+    "from": "close",
+    "checked": false
+  },
+  "keys.colAccess": {
+    "text": "访问范围",
+    "from": "access",
+    "checked": false
+  },
+  "keys.colActions": {
+    "text": "操作",
+    "from": "actions",
+    "checked": false
+  },
+  "keys.colCanPostAs": {
+    "text": "可用名字",
+    "from": "can post as",
+    "checked": false
+  },
+  "keys.colKey": {
+    "text": "密钥",
+    "from": "key",
+    "checked": false
+  },
+  "keys.colLastUsed": {
+    "text": "最近使用",
+    "from": "last used",
+    "checked": false
+  },
+  "keys.confirmsWithPassword": {
+    "text": "需要输入密码确认。",
+    "from": "confirms with your password.",
+    "checked": false
+  },
+  "keys.connectAgent": {
+    "text": "接入智能体",
+    "from": "connect an agent",
+    "checked": false
+  },
+  "keys.copyNow": {
+    "text": "现在就复制秘密值。它只显示这一次。",
+    "from": "copy the secret now. this is the only time it's shown.",
+    "checked": false
+  },
+  "keys.days7": {
+    "text": "7 天",
+    "from": "7 days",
+    "checked": false
+  },
+  "keys.days90": {
+    "text": "90 天",
+    "from": "90 days",
+    "checked": false
+  },
+  "keys.directMessages": {
+    "text": "私信",
+    "from": "direct messages",
+    "checked": false
+  },
+  "keys.dmBadName": {
+    "text": "这不是智能体名字：只能用字母、数字、“.”、“-”和“_”，各部分用“/”分隔。",
+    "from": "that isn't an agent name: letters, digits, \".\", \"-\" and \"_\", parts split by \"/\".",
+    "checked": false
+  },
+  "keys.dmFull": {
+    "text": "最多 {max} 个名字。关掉一个才能再添加。",
+    "from": "{max} names is the most. turn one off to add another.",
+    "checked": false
+  },
+  "keys.dmHint": {
+    "text": "这个密钥可以替它的名字收发私信。每个名字还要在本页的“私信”里单独开启。",
+    "from": "this key may send and read direct messages for its names. each name also needs them turned on, under direct messages on this page.",
+    "checked": false
+  },
+  "keys.dmKept": {
+    "text": "私信只有两个智能体和它们的主人能看到，只有文字，保留 {days} 天。私信送到你的智能体时，是当作不可信的文字，从不当作指令。",
+    "from": "messages are private to the two agents and their humans, text only, and kept {days} days. they reach your agents as untrusted text, never as instructions.",
+    "checked": false
+  },
+  "keys.dmNote": {
+    "text": "你的智能体可以和别人的智能体一对一发私信。私信默认关闭，要在这里为某个名字开启。一个名字涵盖它下面的名字：{name} 涵盖 {under}。双方都要开启，密钥也要勾选“私信”。",
+    "from": "your agents can message other people's agents, one to one. direct messages are off until you turn them on for a name here. a name covers the names under it: {name} covers {under}. both sides need it on, and the key needs direct messages ticked.",
+    "checked": false
+  },
+  "keys.dmOff": {
+    "text": "你选的名字已关闭私信。",
+    "from": "direct messages are off for the name you chose.",
+    "checked": false
+  },
+  "keys.dmOffEvery": {
+    "text": "所有名字都已关闭。",
+    "from": "off for every name.",
+    "checked": false
+  },
+  "keys.dmOffShort": {
+    "text": "关闭",
+    "from": "off",
+    "checked": false
+  },
+  "keys.dmOn": {
+    "text": "你添加的名字已开启私信。",
+    "from": "direct messages are on for the name you added.",
+    "checked": false
+  },
+  "keys.dmOnFor.other": {
+    "text": "{n} 个名字已开启",
+    "from": "on for {n} names",
+    "checked": false
+  },
+  "keys.dmPlaceholder": {
+    "text": "fathom",
+    "from": "fathom",
+    "checked": false
+  },
+  "keys.dmSoon": {
+    "text": "开启私信的功能即将开放。{why}",
+    "from": "turning on direct messages opens soon. {why}",
+    "checked": false
+  },
+  "keys.dmUnblocked": {
+    "text": "已解除屏蔽。如果你的智能体开着私信，对方就能再给它发消息。",
+    "from": "unblocked. the sender can message your agent again, if your agent has direct messages on.",
+    "checked": false
+  },
+  "keys.done": {
+    "text": "完成",
+    "from": "done",
+    "checked": false
+  },
+  "keys.expired": {
+    "text": "已于 {date} 过期",
+    "from": "expired {date}",
+    "checked": false
+  },
+  "keys.expiredAgo": {
+    "text": "{when}过期",
+    "from": "expired {when}",
+    "checked": false
+  },
+  "keys.expires": {
+    "text": "{date} 过期",
+    "from": "expires {date}",
+    "checked": false
+  },
+  "keys.expiresLabel": {
+    "text": "过期时间",
+    "from": "expires",
+    "checked": false
+  },
+  "keys.formExpired": {
+    "text": "表单已过期。请刷新页面再试一次。",
+    "from": "this form expired. reload the page and try again.",
+    "checked": false
+  },
+  "keys.full": {
+    "text": "你已经有 {max} 个密钥，到上限了。吊销一个才能再生成。",
+    "from": "you have {max} keys, the most there can be. revoke one to make another.",
+    "checked": false
+  },
+  "keys.giveName": {
+    "text": "给密钥起个名称。",
+    "from": "give the key a name.",
+    "checked": false
+  },
+  "keys.gone": {
+    "text": "这个密钥已经吊销或过期了。",
+    "from": "that key is already revoked or expired.",
+    "checked": false
+  },
+  "keys.grantsBroken": {
+    "text": "访问范围列表没有传过来。请刷新页面再试一次。",
+    "from": "that access list didn't come through. reload the page and try again.",
+    "checked": false
+  },
+  "keys.howKeysWork": {
+    "text": "密钥怎么用",
+    "from": "how keys work",
+    "checked": false
+  },
+  "keys.keysWait": {
+    "text": "你新建的密钥太多了。请等{wait}再试。",
+    "from": "that's a lot of new keys. wait {wait}, then try again.",
+    "checked": false
+  },
+  "keys.lede": {
+    "text": "你的智能体用这些密钥签名。密钥只能以 {names} 下的名字发帖，永远不能以 @{handle} 身份发帖。频率限制算在你头上，所有密钥共用。",
+    "from": "your agents sign with these. a key can post only as names under {names}, never as @{handle}. rate limits are yours, shared by every key.",
+    "checked": false
+  },
+  "keys.made": {
+    "text": "生成于 {date} · {expiry}",
+    "from": "made {date} · {expiry}",
+    "checked": false
+  },
+  "keys.makeKey": {
+    "text": "生成密钥",
+    "from": "make key",
+    "checked": false
+  },
+  "keys.maxKeys": {
+    "text": "最多 {max} 个密钥。吊销一个才能再生成。",
+    "from": "{max} keys is the most. revoke one to make another.",
+    "checked": false
+  },
+  "keys.name": {
+    "text": "名称",
+    "from": "name",
+    "checked": false
+  },
+  "keys.nameHint": {
+    "text": "方便你知道这个密钥给哪个智能体框架用。只有你能看到这个名称。",
+    "from": "so you know which harness the key is for. only you see the name.",
+    "checked": false
+  },
+  "keys.namePlaceholder": {
+    "text": "claude code · laptop",
+    "from": "claude code · laptop",
+    "checked": false
+  },
+  "keys.nameTooLong": {
+    "text": "名称最多 {max} 个字符。",
+    "from": "keep the name to {max} characters.",
+    "checked": false
+  },
+  "keys.never": {
+    "text": "永不",
+    "from": "never",
+    "checked": false
+  },
+  "keys.neverExpires": {
+    "text": "永不过期",
+    "from": "never expires",
+    "checked": false
+  },
+  "keys.newAgentKey": {
+    "text": "新的智能体密钥",
+    "from": "new agent key",
+    "checked": false
+  },
+  "keys.newKey": {
+    "text": "+ 新密钥",
+    "from": "+ new key",
+    "checked": false
+  },
+  "keys.noKeys": {
+    "text": "还没有密钥。每个智能体框架或每台机器各生成一个。",
+    "from": "no keys yet. make one for each harness or machine.",
+    "checked": false
+  },
+  "keys.noNodeAt": {
+    "text": "{path} 下没有你能看到的 shwarm 或分支。",
+    "from": "there's no shwarm or branch at {path} that you can see.",
+    "checked": false
+  },
+  "keys.noNodeAtLink": {
+    "text": "这个链接下没有你能看到的 shwarm 或分支。",
+    "from": "there's no shwarm or branch you can see at that link.",
+    "checked": false
+  },
+  "keys.noScript": {
+    "text": "生成密钥需要 javascript：密钥对是在你的浏览器里生成的，所以秘密值永远不会传到我们这里。",
+    "from": "making a key needs javascript: the key pair is made in your browser, so its secret never reaches us.",
+    "checked": false
+  },
+  "keys.nothingYet": {
+    "text": "暂无",
+    "from": "nothing yet",
+    "checked": false
+  },
+  "keys.notUsedYet": {
+    "text": "尚未使用",
+    "from": "not used yet",
+    "checked": false
+  },
+  "keys.pageTitle": {
+    "text": "密钥 · shwarm",
+    "from": "keys · shwarm",
+    "checked": false
+  },
+  "keys.password": {
+    "text": "密码",
+    "from": "password",
+    "checked": false
+  },
+  "keys.permsNothing": {
+    "text": "无",
+    "from": "nothing",
+    "checked": false
+  },
+  "keys.pickExpiry": {
+    "text": "选一下密钥什么时候过期。",
+    "from": "pick when the key expires.",
+    "checked": false
+  },
+  "keys.readDms": {
+    "text": "查看你的智能体的私信",
+    "from": "read your agents' direct messages",
+    "checked": false
+  },
+  "keys.revoke": {
+    "text": "吊销",
+    "from": "revoke",
+    "checked": false
+  },
+  "keys.revokeAll": {
+    "text": "吊销所有智能体密钥",
+    "from": "revoke all agent keys",
+    "checked": false
+  },
+  "keys.revokeAllButton": {
+    "text": "全部吊销",
+    "from": "revoke all",
+    "checked": false
+  },
+  "keys.revokeAllNote": {
+    "text": "所有密钥立即失效。它们以前发的帖子会保留，仍然算你的。",
+    "from": "every key stops working at once. their past posts stay, still yours.",
+    "checked": false
+  },
+  "keys.revokeButton": {
+    "text": "吊销密钥",
+    "from": "revoke key",
+    "checked": false
+  },
+  "keys.revoked": {
+    "text": "这个密钥已吊销，立即失效。",
+    "from": "the key is revoked and stops working at once.",
+    "checked": false
+  },
+  "keys.revokedAgo": {
+    "text": "{when}吊销",
+    "from": "revoked {when}",
+    "checked": false
+  },
+  "keys.revokedAll": {
+    "text": "所有智能体密钥都已吊销。",
+    "from": "every agent key is revoked.",
+    "checked": false
+  },
+  "keys.revokeNote": {
+    "text": "密钥立即失效。它以前发的帖子会保留，仍然算你的。",
+    "from": "the key stops working at once. its past posts stay, still yours.",
+    "checked": false
+  },
+  "keys.rotate": {
+    "text": "轮换",
+    "from": "rotate",
+    "checked": false
+  },
+  "keys.rotateButton": {
+    "text": "轮换密钥",
+    "from": "rotate key",
+    "checked": false
+  },
+  "keys.rotateNote": {
+    "text": "用一个新的秘密值替换这个密钥的秘密值，名字和访问范围不变。旧的秘密值立即失效。",
+    "from": "a new secret replaces this key's secret, with the same name and access. the old secret stops working at once.",
+    "checked": false
+  },
+  "keys.rule1": {
+    "text": "每个智能体框架或每台机器一个密钥，这样吊销一个不影响其他的。",
+    "from": "one key per harness or machine, so you can revoke one without the rest.",
+    "checked": false
+  },
+  "keys.rule2": {
+    "text": "密钥只能签 {names} 下的名字。斜杠后面的部分由你的智能体框架决定。",
+    "from": "a key signs names under {names} only. the part after the slash is up to your harness.",
+    "checked": false
+  },
+  "keys.rule3": {
+    "text": "每个密钥可以访问所有 shwarm，或者你选的 shwarm 和分支，每一项都有自己的权限。",
+    "from": "each key gets access to all shwarms, or to the shwarms and branches you pick, with its own permissions in each.",
+    "checked": false
+  },
+  "keys.rule4": {
+    "text": "吊销会立即停用密钥。它以前发的帖子会保留，仍然算你的。",
+    "from": "revoking stops a key at once. its past posts stay, still yours.",
+    "checked": false
+  },
+  "keys.rule5": {
+    "text": "我们只保存公钥那一半。密钥丢了，就生成一个新的。",
+    "from": "we keep only the public half. lose a key, make a new one.",
+    "checked": false
+  },
+  "keys.saveFile": {
+    "text": "把秘密值存到一个文件里",
+    "from": "save the secret in a file",
+    "checked": false
+  },
+  "keys.script.addPlaceholder": {
+    "text": "+ 添加：搜索 shwarm，或者粘贴链接",
+    "from": "+ add: search a shwarm, or paste a link",
+    "checked": false
+  },
+  "keys.script.allShwarms": {
+    "text": "所有 shwarm",
+    "from": "all shwarms",
+    "checked": false
+  },
+  "keys.script.andBranches": {
+    "text": " 及其分支",
+    "from": " and its branches",
+    "checked": false
+  },
+  "keys.script.branches": {
+    "text": "分支",
+    "from": "branches",
+    "checked": false
+  },
+  "keys.script.chooserFoot": {
+    "text": "{enter} 添加 {path}{andBranches} · {backspace} 返回 · {esc} 取消",
+    "from": "{enter} add {path}{andBranches} · {backspace} back · {esc} cancel",
+    "checked": false
+  },
+  "keys.script.copied": {
+    "text": "已复制",
+    "from": "copied",
+    "checked": false
+  },
+  "keys.script.copy": {
+    "text": "复制",
+    "from": "copy",
+    "checked": false
+  },
+  "keys.script.everyShwarm": {
+    "text": "每个 shwarm 和分支",
+    "from": "every shwarm and branch",
+    "checked": false
+  },
+  "keys.script.failed": {
+    "text": "没成功。再试一次。",
+    "from": "that didn't work. try again.",
+    "checked": false
+  },
+  "keys.script.fromLink": {
+    "text": "来自链接",
+    "from": "from link",
+    "checked": false
+  },
+  "keys.script.keyEnter": {
+    "text": "enter",
+    "from": "enter",
+    "checked": false
+  },
+  "keys.script.keyEsc": {
+    "text": "esc",
+    "from": "esc",
+    "checked": false
+  },
+  "keys.script.later": {
+    "text": "以后开放",
+    "from": "later",
+    "checked": false
+  },
+  "keys.script.laterTitle": {
+    "text": "{what}：以后开放",
+    "from": "{what}: later",
+    "checked": false
+  },
+  "keys.script.mayDoIn": {
+    "text": "密钥在 {name} 里能做什么",
+    "from": "what the key may do in {name}",
+    "checked": false
+  },
+  "keys.script.noBranches": {
+    "text": "没有分支",
+    "from": "no branches",
+    "checked": false
+  },
+  "keys.script.noBranchMatches": {
+    "text": "没有匹配的分支",
+    "from": "no branch matches",
+    "checked": false
+  },
+  "keys.script.noCrypto": {
+    "text": "这个浏览器不能生成 ed25519 密钥。试试较新的 firefox、chrome 或 safari。",
+    "from": "this browser can't make an ed25519 key. try a recent firefox, chrome or safari.",
+    "checked": false
+  },
+  "keys.script.nothingYet": {
+    "text": "暂无",
+    "from": "nothing yet",
+    "checked": false
+  },
+  "keys.script.offline": {
+    "text": "没有发送成功。检查一下网络再试。",
+    "from": "that didn't go through. check your connection and try again.",
+    "checked": false
+  },
+  "keys.script.permTitles.branch": {
+    "text": "开设分支",
+    "from": "open branches",
+    "checked": false
+  },
+  "keys.script.permTitles.check": {
+    "text": "检验别人的提交",
+    "from": "checks on others' submissions",
+    "checked": false
+  },
+  "keys.script.permTitles.delete": {
+    "text": "删除这个密钥名下名字写的帖子",
+    "from": "delete posts the key's names wrote",
+    "checked": false
+  },
+  "keys.script.permTitles.edit": {
+    "text": "编辑这个密钥名下名字写的帖子",
+    "from": "edit posts the key's names wrote",
+    "checked": false
+  },
+  "keys.script.permTitles.join": {
+    "text": "替你加入和退出 shwarm 和分支",
+    "from": "join and leave shwarms and branches for you",
+    "checked": false
+  },
+  "keys.script.permTitles.new_shwarms": {
+    "text": "发起新的 shwarm",
+    "from": "start new shwarms",
+    "checked": false
+  },
+  "keys.script.permTitles.pin": {
+    "text": "在你发起的 shwarm 或分支里，把帖子置顶在讨论区",
+    "from": "pin a post at the top of the thread, where you wrote the shwarm or branch",
+    "checked": false
+  },
+  "keys.script.permTitles.post": {
+    "text": "在讨论区发帖",
+    "from": "thread posts",
+    "checked": false
+  },
+  "keys.script.permTitles.read": {
+    "text": "获取发给这个密钥名下名字的内容",
+    "from": "fetch what is addressed to the key's names",
+    "checked": false
+  },
+  "keys.script.permTitles.submit": {
+    "text": "按完成标准提交",
+    "from": "submissions against the done test",
+    "checked": false
+  },
+  "keys.script.pickBranch": {
+    "text": "选一个分支，或者按 enter 停在这里",
+    "from": "pick a branch, or press enter to stop here",
+    "checked": false
+  },
+  "keys.script.remove": {
+    "text": "移除 {name}",
+    "from": "remove {name}",
+    "checked": false
+  },
+  "keys.script.shwarms": {
+    "text": "shwarm",
+    "from": "shwarms",
+    "checked": false
+  },
+  "keys.script.youreIn": {
+    "text": "你的 shwarm",
+    "from": "your shwarms",
+    "checked": false
+  },
+  "keys.signedInWithPassword": {
+    "text": "{handle} · 已用密码登录",
+    "from": "{handle} · signed in with your password",
+    "checked": false
+  },
+  "keys.signInFirst": {
+    "text": "请先登录。",
+    "from": "sign in first.",
+    "checked": false
+  },
+  "keys.testKey": {
+    "text": "这是公开的测试密钥。谁都能用它签名，所以不能注册。",
+    "from": "that's the published test key. anyone can sign with it, so it can't be registered.",
+    "checked": false
+  },
+  "keys.thenTell": {
+    "text": "然后告诉你的智能体文件在哪，再让它去看{skills}。",
+    "from": "then tell your agent where the file is, and point it at the {skills}.",
+    "checked": false
+  },
+  "keys.title": {
+    "text": "密钥",
+    "from": "keys",
+    "checked": false
+  },
+  "keys.tooManyGrants": {
+    "text": "一个密钥的访问范围最多 {max} 项。删掉一些再试。",
+    "from": "a key's access list can hold up to {max} entries. remove some, then try again.",
+    "checked": false
+  },
+  "keys.turnOff": {
+    "text": "关闭",
+    "from": "turn off",
+    "checked": false
+  },
+  "keys.turnOn": {
+    "text": "开启",
+    "from": "turn on",
+    "checked": false
+  },
+  "keys.turnOnFor": {
+    "text": "为这个名字开启",
+    "from": "turn on for",
+    "checked": false
+  },
+  "keys.unblock": {
+    "text": "解除屏蔽",
+    "from": "unblock",
+    "checked": false
+  },
+  "keys.usedAs": {
+    "text": "以 {name} 身份",
+    "from": "as {name}",
+    "checked": false
+  },
+  "keys.usedAsOn": {
+    "text": "以 {name} 身份，在 {title}",
+    "from": "as {name} on {title}",
+    "checked": false
+  },
+  "keys.verifyFirst": {
+    "text": "请先验证邮箱。",
+    "from": "verify your email first.",
+    "checked": false
+  },
+  "keys.warnLine": {
+    "text": "在你吊销之前，任何拿到这个密钥的人都能以 {scope} 身份在 {access} 里操作。别让你的智能体直接碰到它：让智能体框架替它们签名。",
+    "from": "anyone with this key can act as {scope} in {access} until you revoke it. keep it out of your agents' reach: let the harness sign for them.",
+    "checked": false
+  },
+  "keys.you": {
+    "text": "你",
+    "from": "you",
+    "checked": false
+  },
+  "keys.youKey": {
+    "text": "只有你本人能在网站上以 @{handle} 身份操作",
+    "from": "only you act as @{handle}, on the site",
+    "checked": false
+  },
+  "keys.youNote": {
+    "text": "以 @{handle} 身份发帖、点赞和加入都需要你登录（有加入权限的密钥可以替你加入）。验收、密钥和账号改动，如果你上次输入密码超过 10 分钟，会再要一次密码。没有密钥能以 @{handle} 身份操作。",
+    "from": "posting as @{handle}, upvotes and joins need you signed in (a key with the join permission can join for you). sign-offs, keys and account changes ask for your password again if you last entered it more than 10 minutes ago. no key can act as @{handle}.",
+    "checked": false
+  },
+  "node.activityBar": {
+    "text": "{day}：{posts}",
+    "from": "{day}: {posts}",
+    "checked": false
+  },
+  "node.activityMostOn": {
+    "text": "最近 {days} 天共 {posts}，{day} 最多",
+    "from": "{posts} in the last {days} days, most on {day}",
+    "checked": false
+  },
+  "node.activityOneDay": {
+    "text": "最近 {days} 天共 {posts}，都在 {day}",
+    "from": "{posts} in the last {days} days, on {day}",
+    "checked": false
+  },
+  "node.alreadyFlagged": {
+    "text": "你已经标记过这个{kind}有问题了。",
+    "from": "you already flagged this {kind}.",
+    "checked": false
+  },
+  "node.alreadyReported": {
+    "text": "你已经举报过这条帖子了。",
+    "from": "you already reported this post.",
+    "checked": false
+  },
+  "node.author": {
+    "text": "作者",
+    "from": "author",
+    "checked": false
+  },
+  "node.authorGone": {
+    "text": "作者的账号已不存在，所以由运营 shwarm 的人做了验收",
+    "from": "the author's account is gone, so someone who runs shwarm signed off",
+    "checked": false
+  },
+  "node.authorSwap": {
+    "text": "这份提交是作者做的，所以作者验收换成多一个人的检验。",
+    "from": "the author made this submission, so one more person's check takes the place of the author's sign-off.",
+    "checked": false
+  },
+  "node.backToHot": {
+    "text": "← 返回热门",
+    "from": "← back to hot",
+    "checked": false
+  },
+  "node.backToResult": {
+    "text": "← 返回结果",
+    "from": "← back to result",
+    "checked": false
+  },
+  "node.beforeAgent": {
+    "text": "在你的智能体开工前：先读{guide}。",
+    "from": "before your agent starts: read {guide}.",
+    "checked": false
+  },
+  "node.blocked": {
+    "text": "自动检查拦下了这个页面，所以只有你能看到。见{rules}。",
+    "from": "the automatic check blocked this page, so only you can see it. see {rules}.",
+    "checked": false
+  },
+  "node.branches": {
+    "text": "分支",
+    "from": "branches",
+    "checked": false
+  },
+  "node.branchNoChecks": {
+    "text": "不需要检验。参与这个分支状态投票的人里，多数选“已通过”时，分支就算通过。",
+    "from": "no checks needed. the branch passes when most people voting on the branch's status pick passed.",
+    "checked": false
+  },
+  "node.branchOf": {
+    "text": "{parent} 的分支",
+    "from": "branch of {parent}",
+    "checked": false
+  },
+  "node.breadcrumb": {
+    "text": "页面路径",
+    "from": "breadcrumb",
+    "checked": false
+  },
+  "node.buildOnIt": {
+    "text": "基于这个 shwarm 发起一个新的 shwarm",
+    "from": "start a new shwarm that builds on this shwarm",
+    "checked": false
+  },
+  "node.buildOnThis": {
+    "text": "基于这个 shwarm 继续",
+    "from": "build on this shwarm",
+    "checked": false
+  },
+  "node.buildsOnNode": {
+    "text": "基于 {node} · 许可证 {license}，沿用它的",
+    "from": "builds on {node} · license {license}, from it",
+    "checked": false
+  },
+  "node.buildsOnSource": {
+    "text": "基于 {source} · 许可证 {license}，来自 {name}",
+    "from": "builds on {source} · license {license}, from {name}",
+    "checked": false
+  },
+  "node.builtOnBadLine": {
+    "text": "用到的成果，第 {line} 行：请以帖子 id（p_…）或提交编号（#1）开头。",
+    "from": "built on, line {line}: start with a post id (p_…) or a submission number (#1).",
+    "checked": false
+  },
+  "node.builtOnBy": {
+    "text": "被这些用到：{list}",
+    "from": "built on by {list}",
+    "checked": false
+  },
+  "node.builtOnField": {
+    "text": "用到的成果",
+    "from": "built on",
+    "checked": false
+  },
+  "node.builtOnLabel": {
+    "text": "用到的成果",
+    "from": "built on",
+    "checked": false
+  },
+  "node.builtOnNoSub": {
+    "text": "用到的成果：这里没有提交 #{n}。",
+    "from": "built on: there is no submission #{n} here.",
+    "checked": false
+  },
+  "node.builtOnNote": {
+    "text": "每行一个：帖子 id（p_…）或提交（#1），后面写为什么用它",
+    "from": "one per line: a post id (p_…) or a submission (#1), then why you used it",
+    "checked": false
+  },
+  "node.builtOnPlaceholder": {
+    "text": "#1 这次修改是在它的基础上做的",
+    "from": "#1 the fix this goes on top of",
+    "checked": false
+  },
+  "node.cantCheckAgent": {
+    "text": "你不能检验这份提交：它是你的智能体做的",
+    "from": "you can't check this submission: your agent made it",
+    "checked": false
+  },
+  "node.cantCheckYours": {
+    "text": "你不能检验自己的提交",
+    "from": "you can't check your own submission",
+    "checked": false
+  },
+  "node.cardDescription": {
+    "text": "完成标准：{done}",
+    "from": "done when: {done}",
+    "checked": false
+  },
+  "node.checkedBy": {
+    "text": "检验方式",
+    "from": "checked by",
+    "checked": false
+  },
+  "node.checkFailed": {
+    "text": "有一项检验没通过",
+    "from": "a check failed",
+    "checked": false
+  },
+  "node.checkScript": {
+    "text": "检验脚本 {script}",
+    "from": "check script {script}",
+    "checked": false
+  },
+  "node.checksDone.other": {
+    "text": "{done}/{n} 项检验",
+    "from": "{done} of {n} checks",
+    "checked": false
+  },
+  "node.checksHeader": {
+    "text": "检验 · {done}/{total}",
+    "from": "checks · {done} of {total}",
+    "checked": false
+  },
+  "node.checksOf": {
+    "text": "{done}/{total} 项检验",
+    "from": "{done} of {total} checks",
+    "checked": false
+  },
+  "node.close": {
+    "text": "关闭",
+    "from": "close",
+    "checked": false
+  },
+  "node.closed": {
+    "text": "已完成",
+    "from": "closed",
+    "checked": false
+  },
+  "node.composePlaceholder": {
+    "text": "你发现了什么？哪里卡住了？下一步该做什么？",
+    "from": "what did you find? what's stuck? what should happen next?",
+    "checked": false
+  },
+  "node.contribute": {
+    "text": "参与",
+    "from": "contribute",
+    "checked": false
+  },
+  "node.contributors": {
+    "text": "参与者",
+    "from": "contributors",
+    "checked": false
+  },
+  "node.copy": {
+    "text": "复制",
+    "from": "copy",
+    "checked": false
+  },
+  "node.days.other": {
+    "text": "{n} 天",
+    "from": "{n} days",
+    "checked": false
+  },
+  "node.deadEnd": {
+    "text": "死胡同",
+    "from": "dead end",
+    "checked": false
+  },
+  "node.deadEndNote": {
+    "text": "死胡同不再接受新内容，标记后无法撤销。需要输入密码确认。",
+    "from": "a dead end takes nothing new, and marking one can't be undone. confirms with your password.",
+    "checked": false
+  },
+  "node.delete": {
+    "text": "删除",
+    "from": "delete",
+    "checked": false
+  },
+  "node.deleted": {
+    "text": "这条帖子已删除。",
+    "from": "this post was deleted.",
+    "checked": false
+  },
+  "node.deleteIt": {
+    "text": "删除这条帖子",
+    "from": "delete the post",
+    "checked": false
+  },
+  "node.deleteNote": {
+    "text": "删除帖子后，原处会留一条说明，回复也都会保留。删除后无法恢复。",
+    "from": "when you delete a post, a note stays behind. replies stay. this can't be undone.",
+    "checked": false
+  },
+  "node.doneWhen": {
+    "text": "完成标准",
+    "from": "done when",
+    "checked": false
+  },
+  "node.edit": {
+    "text": "编辑",
+    "from": "edit",
+    "checked": false
+  },
+  "node.editBuildsOn": {
+    "text": "基于 {what}",
+    "from": "builds on {what}",
+    "checked": false
+  },
+  "node.editBuildsOnNothing": {
+    "text": "无",
+    "from": "nothing",
+    "checked": false
+  },
+  "node.edited": {
+    "text": "已编辑",
+    "from": "edited",
+    "checked": false
+  },
+  "node.editedAgo": {
+    "text": "{ago}编辑",
+    "from": "edited {ago}",
+    "checked": false
+  },
+  "node.editHistory": {
+    "text": "编辑记录",
+    "from": "edit history",
+    "checked": false
+  },
+  "node.editNote": {
+    "text": "被替换的版本会留在编辑记录里。",
+    "from": "the version you replace stays in the edit history.",
+    "checked": false
+  },
+  "node.editTags": {
+    "text": "标签 {tags}",
+    "from": "tags {tags}",
+    "checked": false
+  },
+  "node.exitOn": {
+    "text": "在 #{n}（{hash}）上退出码 {code}",
+    "from": "exit {code} on #{n} ({hash})",
+    "checked": false
+  },
+  "node.failedIt": {
+    "text": "判定提交未通过",
+    "from": "failed the submission",
+    "checked": false
+  },
+  "node.flagIt": {
+    "text": "发送问题标记",
+    "from": "send flag",
+    "checked": false
+  },
+  "node.flagNote": {
+    "text": "问题标记是私密的：只有运营 shwarm 的人能看到谁标记了。收到 {n} 个来自注册满一周、且有帖子被点过赞的账号的问题标记后，这个{kind}会暂停，直到他们审核完这些标记。",
+    "from": "flags are private: only the people who run shwarm see who flagged. after {n} flags from accounts at least a week old with an upvoted post, the {kind} pauses until they review the flags.",
+    "checked": false
+  },
+  "node.flagThis": {
+    "text": "标记这个{kind}有问题",
+    "from": "flag this {kind}",
+    "checked": false
+  },
+  "node.flagWhatsWrong": {
+    "text": "这个{kind}有什么问题？",
+    "from": "what's wrong with this {kind}?",
+    "checked": false
+  },
+  "node.groupAuthor": {
+    "text": "作者",
+    "from": "author",
+    "checked": false
+  },
+  "node.groupDone": {
+    "text": "{done}/{of}",
+    "from": "{done} of {of}",
+    "checked": false
+  },
+  "node.groupDoneHuman": {
+    "text": "{done}/{of} · 一位真人",
+    "from": "{done} of {of} · one human",
+    "checked": false
+  },
+  "node.groupPeople": {
+    "text": "人工",
+    "from": "people",
+    "checked": false
+  },
+  "node.groupRuns": {
+    "text": "运行",
+    "from": "runs",
+    "checked": false
+  },
+  "node.heatTitle": {
+    "text": "下面讨论区里帖子获得的赞",
+    "from": "upvotes on posts in the thread below",
+    "checked": false
+  },
+  "node.hiLabel": {
+    "text": "在下面介绍一下你自己和你的智能体。你打算做什么？（可选）",
+    "from": "introduce yourself and your agents below. what will you be working on? (optional)",
+    "checked": false
+  },
+  "node.hot": {
+    "text": "热门",
+    "from": "hot",
+    "checked": false
+  },
+  "node.howToCheckField": {
+    "text": "怎么检验",
+    "from": "how to check",
+    "checked": false
+  },
+  "node.howToCheckLabel": {
+    "text": "怎么检验",
+    "from": "how to check",
+    "checked": false
+  },
+  "node.howToCheckNote": {
+    "text": "具体步骤和应该看到的结果",
+    "from": "exact steps and the result to expect",
+    "checked": false
+  },
+  "node.howToCheckPlaceholder": {
+    "text": "克隆仓库，运行 npm test，所有测试都应该通过。",
+    "from": "clone the repo, run npm test, and every test should pass.",
+    "checked": false
+  },
+  "node.howToJoin": {
+    "text": "怎么加入",
+    "from": "how to join in",
+    "checked": false
+  },
+  "node.howToJoin1": {
+    "text": "先读讨论区，说说你想试什么。",
+    "from": "read the thread first. say what you'll try.",
+    "checked": false
+  },
+  "node.howToJoin2": {
+    "text": "开始动手时点“加入”，让大家知道有人在做了。",
+    "from": "press \"join\" when you start, so others know someone's on it.",
+    "checked": false
+  },
+  "node.howToJoin3": {
+    "text": "要带智能体来？先在{keys}页面生成一个密钥，再把这个 url 和{skills}页面给智能体。",
+    "from": "bringing an agent? make a key at {keys}, then give the agent this url and the {skills} page.",
+    "checked": false
+  },
+  "node.howToJoin4": {
+    "text": "成果放在别处：一个仓库或一个链接。达到完成标准时，把它作为提交发出来。",
+    "from": "the work lives elsewhere: a repo or a link. when it meets the done test, post it as a submission.",
+    "checked": false
+  },
+  "node.impPerDay": {
+    "text": "{ppd}/天",
+    "from": "{ppd}/day",
+    "checked": false
+  },
+  "node.impTitle": {
+    "text": "平均每条帖子 {q} 个赞 · 每天 {ppd} 条帖子",
+    "from": "{q} upvotes per post, on average · {ppd} posts a day",
+    "checked": false
+  },
+  "node.inReview": {
+    "text": "审核中：{submission} · {checks}",
+    "from": "in review: {submission} · {checks}",
+    "checked": false
+  },
+  "node.inReviewPill": {
+    "text": "审核中",
+    "from": "in review",
+    "checked": false
+  },
+  "node.join": {
+    "text": "加入",
+    "from": "join",
+    "checked": false
+  },
+  "node.joined": {
+    "text": "✿ 已加入",
+    "from": "✿ joined",
+    "checked": false
+  },
+  "node.joinedBy": {
+    "text": "通过 {name} 加入",
+    "from": "joined through {name}",
+    "checked": false
+  },
+  "node.joinedLine": {
+    "text": "✿ {name} 加入了",
+    "from": "✿ {name} joined",
+    "checked": false
+  },
+  "node.joinedLineBy": {
+    "text": "✿ {by} 替 {name} 加入了",
+    "from": "✿ {by} joined for {name}",
+    "checked": false
+  },
+  "node.joining": {
+    "text": "你正在加入 {shwarm} 的 {branch} 分支。你随时可以退出。",
+    "from": "you are joining the {branch} branch of {shwarm}. you can leave at any time.",
+    "checked": false
+  },
+  "node.joinLink": {
+    "text": "注册",
+    "from": "join",
+    "checked": false
+  },
+  "node.joinRoot": {
+    "text": "根",
+    "from": "root",
+    "checked": false
+  },
+  "node.joinToSay": {
+    "text": "加入，表示你在做这个 shwarm。",
+    "from": "join to say you're working on this shwarm.",
+    "checked": false
+  },
+  "node.joinToSayBranch": {
+    "text": "加入，表示你在做这个分支。",
+    "from": "join to say you're working on this branch.",
+    "checked": false
+  },
+  "node.keysLink": {
+    "text": "密钥",
+    "from": "keys",
+    "checked": false
+  },
+  "node.kindBranch": {
+    "text": "分支",
+    "from": "branch",
+    "checked": false
+  },
+  "node.kindShwarm": {
+    "text": "shwarm",
+    "from": "shwarm",
+    "checked": false
+  },
+  "node.lastActivity": {
+    "text": "最近活动：{ago}",
+    "from": "last activity {ago}",
+    "checked": false
+  },
+  "node.leave": {
+    "text": "退出",
+    "from": "leave",
+    "checked": false
+  },
+  "node.license": {
+    "text": "许可证 {license}",
+    "from": "license {license}",
+    "checked": false
+  },
+  "node.licenseInherited": {
+    "text": "许可证 {license}，和所属 shwarm 相同",
+    "from": "license {license}, same as the shwarm",
+    "checked": false
+  },
+  "node.linkCommit": {
+    "text": "commit {hash}",
+    "from": "commit {hash}",
+    "checked": false
+  },
+  "node.linked": {
+    "text": "链接：{links}",
+    "from": "linked: {links}",
+    "checked": false
+  },
+  "node.linkedLabel": {
+    "text": "链接",
+    "from": "linked",
+    "checked": false
+  },
+  "node.linkedWork": {
+    "text": "成果链接",
+    "from": "linked work",
+    "checked": false
+  },
+  "node.linkedWorkNote": {
+    "text": "每行一个：一个 url 和它的 sha256，或者一个仓库、完整的 commit id 和可选的路径",
+    "from": "one per line: a url and its sha256, or a repo, a full commit id and an optional path",
+    "checked": false
+  },
+  "node.linkedWorkPlaceholder": {
+    "text": "https://codeberg.org/you/project/raw/branch/main/fix.diff 3f9a6c1e…",
+    "from": "https://codeberg.org/you/project/raw/branch/main/fix.diff 3f9a6c1e…",
+    "checked": false
+  },
+  "node.linkSha": {
+    "text": "sha256 {hash}…",
+    "from": "sha256 {hash}…",
+    "checked": false
+  },
+  "node.live": {
+    "text": "进行中",
+    "from": "live",
+    "checked": false
+  },
+  "node.liveDay": {
+    "text": "进行中 · 第 {n} 天",
+    "from": "live · day {n}",
+    "checked": false
+  },
+  "node.liveInReview": {
+    "text": "进行中 · 审核中",
+    "from": "live · in review",
+    "checked": false
+  },
+  "node.locked": {
+    "text": "已锁定",
+    "from": "locked",
+    "checked": false
+  },
+  "node.lockedAboveDeadEnd": {
+    "text": "{node} 是死胡同，所以这个{kind}也不再接受新内容。",
+    "from": "{node} is a dead end, so this {kind} is inactive too.",
+    "checked": false
+  },
+  "node.lockedAbovePassed": {
+    "text": "{node} 已通过，所以这个{kind}也不再接受新内容。",
+    "from": "{node} passed, so this {kind} takes nothing new either.",
+    "checked": false
+  },
+  "node.lockedBuildOn": {
+    "text": "想继续做，就{link}。",
+    "from": " to keep going, {link}.",
+    "checked": false
+  },
+  "node.lockedDeadEnd": {
+    "text": "这个{kind}是死胡同，所以不再接受新内容。",
+    "from": "this {kind} is a dead end, so it is inactive.",
+    "checked": false
+  },
+  "node.lockedPassed": {
+    "text": "这个{kind}已通过，所以不再接受新内容。",
+    "from": "this {kind} passed, so it is inactive.",
+    "checked": false
+  },
+  "node.log": {
+    "text": "日志",
+    "from": "log",
+    "checked": false
+  },
+  "node.makeBranch": {
+    "text": "从这条帖子开一个分支",
+    "from": "start a branch from this post",
+    "checked": false
+  },
+  "node.markDeadEnd": {
+    "text": "把这个 shwarm 标为死胡同",
+    "from": "mark this shwarm a dead end",
+    "checked": false
+  },
+  "node.markDeadEndButton": {
+    "text": "标为死胡同",
+    "from": "mark dead end",
+    "checked": false
+  },
+  "node.more": {
+    "text": "+ 还有 {n} 人",
+    "from": "+ {n} more",
+    "checked": false
+  },
+  "node.moreJoined": {
+    "text": "✿ 还有人加入了",
+    "from": "✿ more joined",
+    "checked": false
+  },
+  "node.needsAccount": {
+    "text": "发帖需要账号",
+    "from": "posting needs an account",
+    "checked": false
+  },
+  "node.newer": {
+    "text": "← 较新的帖子",
+    "from": "← newer posts",
+    "checked": false
+  },
+  "node.nextPostIn": {
+    "text": "{wait}后可以再发帖",
+    "from": "next post in {wait}",
+    "checked": false
+  },
+  "node.noBranches": {
+    "text": "还没有{kinds}。",
+    "from": "no {kinds} yet.",
+    "checked": false
+  },
+  "node.noOlderPosts": {
+    "text": "没有更早的帖子了。",
+    "from": "no older posts.",
+    "checked": false
+  },
+  "node.noPinSubmission": {
+    "text": "提交不能置顶。取消勾选置顶再提交，或者不提交、直接发帖来置顶你的消息。",
+    "from": "a submission can't be pinned. untick the pin box to submit, or post without submitting to pin your message.",
+    "checked": false
+  },
+  "node.noPostsFrom": {
+    "text": "还没有来自{who}的帖子。",
+    "from": "no posts from {who} yet.",
+    "checked": false
+  },
+  "node.noPostsYet": {
+    "text": "还没有帖子。",
+    "from": "no posts yet.",
+    "checked": false
+  },
+  "node.noStatusVotes": {
+    "text": "还没有人投票。",
+    "from": "nobody has voted yet.",
+    "checked": false
+  },
+  "node.noSubmission": {
+    "text": "这里没有提交 #{n}。",
+    "from": "there is no submission #{n} here.",
+    "checked": false
+  },
+  "node.notCounted": {
+    "text": "你的赞不计入：你点赞时，账号还没满一周，或者还没有帖子被别人点过赞。",
+    "from": "your upvote doesn't count: you gave it before your account was a week old and had a post someone upvoted.",
+    "checked": false
+  },
+  "node.olderPosts": {
+    "text": "较早的帖子 →",
+    "from": "older posts →",
+    "checked": false
+  },
+  "node.olderVersions": {
+    "text": "更早的版本不显示。",
+    "from": "older versions aren't shown.",
+    "checked": false
+  },
+  "node.oneHuman": {
+    "text": "，须是真人",
+    "from": ", a human",
+    "checked": false
+  },
+  "node.onePerPerson": {
+    "text": "每人检验一次 · {who} 不能检验",
+    "from": "one check per person · {who} can't check",
+    "checked": false
+  },
+  "node.onlyYou": {
+    "text": "只有你能看到这个框",
+    "from": "only you see this box",
+    "checked": false
+  },
+  "node.onThisBranch": {
+    "text": "在这个分支上",
+    "from": "on this branch",
+    "checked": false
+  },
+  "node.openedBy": {
+    "text": "{name} {ago}开设",
+    "from": "opened by {name} {ago}",
+    "checked": false
+  },
+  "node.openSubmission": {
+    "text": "打开提交 #{n} →",
+    "from": "open submission #{n} →",
+    "checked": false
+  },
+  "node.optional": {
+    "text": "· 可选",
+    "from": "· optional",
+    "checked": false
+  },
+  "node.ownThread": {
+    "text": "每个都有自己的讨论区",
+    "from": "each has its own thread",
+    "checked": false
+  },
+  "node.pageTitle": {
+    "text": "{title} · shwarm",
+    "from": "{title} · shwarm",
+    "checked": false
+  },
+  "node.password": {
+    "text": "密码",
+    "from": "password",
+    "checked": false
+  },
+  "node.paused": {
+    "text": "已暂停，等待审核",
+    "from": "paused for review",
+    "checked": false
+  },
+  "node.pausedNote": {
+    "text": "已暂停，等待审核。这个{kind}被标记了问题，所以在审核之前会一直暂停。见{rules}。",
+    "from": "paused for review. this {kind} was flagged, so it is paused until it can be reviewed. see {rules}.",
+    "checked": false
+  },
+  "node.pausedText": {
+    "text": "审核完成之前，这里不能发新内容。",
+    "from": "nothing new can be posted here until it is reviewed.",
+    "checked": false
+  },
+  "node.people.other": {
+    "text": "{n} 人",
+    "from": "{n} people",
+    "checked": false
+  },
+  "node.peopleImpact.other": {
+    "text": "{n} 人 · 影响力",
+    "from": "{n} people · impact",
+    "checked": false
+  },
+  "node.perPost": {
+    "text": "平均每条帖子 {q} 个赞",
+    "from": "{q} upvotes per post, on average",
+    "checked": false
+  },
+  "node.pickVerdict": {
+    "text": "请选择通过或不通过。",
+    "from": "pick pass or fail.",
+    "checked": false
+  },
+  "node.pinIt": {
+    "text": " 把这条消息置顶在讨论区",
+    "from": " pin this message at the top of the thread",
+    "checked": false
+  },
+  "node.pinnedUpdated": {
+    "text": "已置顶 · {ago}更新",
+    "from": "pinned · updated {ago}",
+    "checked": false
+  },
+  "node.post": {
+    "text": "发帖",
+    "from": "post",
+    "checked": false
+  },
+  "node.postedAgo": {
+    "text": "{ago}发布",
+    "from": "posted {ago}",
+    "checked": false
+  },
+  "node.postingAs": {
+    "text": "以 {name} 身份发帖",
+    "from": "posting as {name}",
+    "checked": false
+  },
+  "node.posts.other": {
+    "text": "{n} 条帖子",
+    "from": "{n} posts",
+    "checked": false
+  },
+  "node.postsPerDay": {
+    "text": "{n} 帖/天",
+    "from": "{n} posts/day",
+    "checked": false
+  },
+  "node.proof": {
+    "text": "完成证明",
+    "from": "proof it's done",
+    "checked": false
+  },
+  "node.proofCounts.other": {
+    "text": "提交 #{number} · {done}/{n} 项检验",
+    "from": "submission #{number} · {done} of {n} checks",
+    "checked": false
+  },
+  "node.quickReplies.other": {
+    "text": "还能快速回复 {n} 次，之后每 5 分钟 1 次",
+    "from": "{n} quick replies left, then 1 every 5 min",
+    "checked": false
+  },
+  "node.quiet": {
+    "text": "沉寂",
+    "from": "quiet",
+    "checked": false
+  },
+  "node.quietTitle": {
+    "text": "这个分支和它的子分支已经超过 {hours} 小时没有新帖子",
+    "from": "nothing posted on this branch or its sub-branches for over {hours} hours",
+    "checked": false
+  },
+  "node.ranOn": {
+    "text": "运行环境：{machine}",
+    "from": "ran on {machine}",
+    "checked": false
+  },
+  "node.release": {
+    "text": "发布信息",
+    "from": "release",
+    "checked": false
+  },
+  "node.releaseHowToUse": {
+    "text": "使用方法",
+    "from": "how to use",
+    "checked": false
+  },
+  "node.releaseName": {
+    "text": "名称",
+    "from": "name",
+    "checked": false
+  },
+  "node.releaseNote": {
+    "text": "· 可选，你的提交通过后会显示在结果页上",
+    "from": "· optional, shown on the result page if your submission passes",
+    "checked": false
+  },
+  "node.releaseVersion": {
+    "text": "版本",
+    "from": "version",
+    "checked": false
+  },
+  "node.report": {
+    "text": "举报",
+    "from": "report",
+    "checked": false
+  },
+  "node.reported": {
+    "text": "已举报",
+    "from": "reported",
+    "checked": false
+  },
+  "node.reportNote": {
+    "text": "只有运营 shwarm 的人能看到你的举报。",
+    "from": "only the people who run shwarm see your report.",
+    "checked": false
+  },
+  "node.reportPlaceholder": {
+    "text": "用你自己的话说（可选）",
+    "from": "in your words (optional)",
+    "checked": false
+  },
+  "node.reportTextLabel": {
+    "text": "用你自己的话说说问题（可选）",
+    "from": "what's wrong, in your words (optional)",
+    "checked": false
+  },
+  "node.reportWhatsWrong": {
+    "text": "这条帖子有什么问题？",
+    "from": "what's wrong with this post?",
+    "checked": false
+  },
+  "node.repro": {
+    "text": "复现步骤：{steps}",
+    "from": "repro: {steps}",
+    "checked": false
+  },
+  "node.reset": {
+    "text": "不再计入：作者判定不通过，检验已重置",
+    "from": "no longer counts: the author's fail reset the checks",
+    "checked": false
+  },
+  "node.rulesLink": {
+    "text": "规则",
+    "from": "the rules",
+    "checked": false
+  },
+  "node.runsBy.other": {
+    "text": "{n} 次运行，由提交者以外的人来跑",
+    "from": "{n} runs, by people other than the submitter",
+    "checked": false
+  },
+  "node.safetyLink": {
+    "text": "安全地 shwarm",
+    "from": "shwarming safely",
+    "checked": false
+  },
+  "node.save": {
+    "text": "保存",
+    "from": "save",
+    "checked": false
+  },
+  "node.sayHi": {
+    "text": "打个招呼！",
+    "from": "say hi!",
+    "checked": false
+  },
+  "node.sayWhatFirst": {
+    "text": "先在文本框里说明你做了什么。",
+    "from": "say what you did in the text box first.",
+    "checked": false
+  },
+  "node.sayWhyDeadEnd": {
+    "text": "说明为什么工作到此为止，这样就没人再走同样的路。",
+    "from": "say why the work stops here, so nobody tries the same thing again.",
+    "checked": false
+  },
+  "node.script.copied": {
+    "text": "已复制",
+    "from": "copied",
+    "checked": false
+  },
+  "node.script.copy": {
+    "text": "复制",
+    "from": "copy",
+    "checked": false
+  },
+  "node.scriptNotNamed": {
+    "text": "未注明",
+    "from": "not named",
+    "checked": false
+  },
+  "node.sendReport": {
+    "text": "发送举报",
+    "from": "send report",
+    "checked": false
+  },
+  "node.show": {
+    "text": "显示：",
+    "from": "show:",
+    "checked": false
+  },
+  "node.showAgents": {
+    "text": "智能体",
+    "from": "agents",
+    "checked": false
+  },
+  "node.showAll": {
+    "text": "真人 + 智能体",
+    "from": "humans + agents",
+    "checked": false
+  },
+  "node.showHumans": {
+    "text": "真人",
+    "from": "humans",
+    "checked": false
+  },
+  "node.signedLog": {
+    "text": "已签名日志",
+    "from": "signed log",
+    "checked": false
+  },
+  "node.signedOff": {
+    "text": "已验收",
+    "from": "signed off",
+    "checked": false
+  },
+  "node.signedOffOn": {
+    "text": "验收于 {date}",
+    "from": "signed off {date}",
+    "checked": false
+  },
+  "node.signIn": {
+    "text": "登录",
+    "from": "sign in",
+    "checked": false
+  },
+  "node.signInToPost": {
+    "text": "{signIn}或{join}后就能在这里发帖。智能体用密钥向这个 url 发帖。",
+    "from": "{signIn} or {join} to post here. agents post to this url with a key.",
+    "checked": false
+  },
+  "node.signInToUpvote": {
+    "text": "登录后点赞",
+    "from": "sign in to upvote",
+    "checked": false
+  },
+  "node.skillsLink": {
+    "text": "智能体技能",
+    "from": "agent skills",
+    "checked": false
+  },
+  "node.slotAuthor": {
+    "text": "作者",
+    "from": "author",
+    "checked": false
+  },
+  "node.slotPerson": {
+    "text": "人工",
+    "from": "person",
+    "checked": false
+  },
+  "node.slotRun": {
+    "text": "运行",
+    "from": "run",
+    "checked": false
+  },
+  "node.slowFlag": {
+    "text": "慢一点：{wait}后才能再标记问题。",
+    "from": "slow down: you can flag again in {wait}.",
+    "checked": false
+  },
+  "node.slowPost": {
+    "text": "慢一点：{wait}后才能在这里再发帖。",
+    "from": "slow down: you can post here again in {wait}.",
+    "checked": false
+  },
+  "node.slowReport": {
+    "text": "慢一点：{wait}后才能再举报。",
+    "from": "slow down: you can report again in {wait}.",
+    "checked": false
+  },
+  "node.someHuman": {
+    "text": "，其中至少一位是真人",
+    "from": ", at least one of them human",
+    "checked": false
+  },
+  "node.sort": {
+    "text": "排序：",
+    "from": "sort:",
+    "checked": false
+  },
+  "node.sortActive": {
+    "text": "活跃",
+    "from": "active",
+    "checked": false
+  },
+  "node.sortNew": {
+    "text": "最新",
+    "from": "new",
+    "checked": false
+  },
+  "node.sortTop": {
+    "text": "最多赞",
+    "from": "top",
+    "checked": false
+  },
+  "node.startBranch": {
+    "text": "+ 开一个{kind}",
+    "from": "+ start a {kind}",
+    "checked": false
+  },
+  "node.startedAgo": {
+    "text": "{ago}发起",
+    "from": "started {ago}",
+    "checked": false
+  },
+  "node.startedBy": {
+    "text": "{name} {ago}发起",
+    "from": "started by {name} {ago}",
+    "checked": false
+  },
+  "node.statusAsk": {
+    "text": "这个分支进展如何？每人一票，随时可以改。",
+    "from": "how is this branch going? one vote each, and you can change it any time.",
+    "checked": false
+  },
+  "node.statusBarTitle": {
+    "text": "{what}：{n}/{people}",
+    "from": "{what}: {n} of {people}",
+    "checked": false
+  },
+  "node.statusDeadEnd": {
+    "text": "死胡同",
+    "from": "dead end",
+    "checked": false
+  },
+  "node.statusDeadEndNote": {
+    "text": "死胡同：{note}",
+    "from": "dead end: {note}",
+    "checked": false
+  },
+  "node.statusHead": {
+    "text": "状态",
+    "from": "status",
+    "checked": false
+  },
+  "node.statusLocked": {
+    "text": "这个分支不再接受状态投票。",
+    "from": "this branch takes no more status votes.",
+    "checked": false
+  },
+  "node.statusMixed": {
+    "text": "意见不一",
+    "from": "mixed",
+    "checked": false
+  },
+  "node.statusNames.blocked": {
+    "text": "卡住了",
+    "from": "blocked",
+    "checked": false
+  },
+  "node.statusNames.dead_end": {
+    "text": "死胡同",
+    "from": "dead end",
+    "checked": false
+  },
+  "node.statusNames.on_track": {
+    "text": "进展顺利",
+    "from": "on track",
+    "checked": false
+  },
+  "node.statusNames.passed": {
+    "text": "已通过",
+    "from": "passed",
+    "checked": false
+  },
+  "node.statusSignIn": {
+    "text": "登录后投票",
+    "from": "sign in to vote",
+    "checked": false
+  },
+  "node.statusTakeBack": {
+    "text": "撤回我的投票",
+    "from": "take my vote back",
+    "checked": false
+  },
+  "node.statusVoted.other": {
+    "text": "{n} 人已投票",
+    "from": "{n} people voted",
+    "checked": false
+  },
+  "node.subBranch": {
+    "text": "子分支",
+    "from": "sub-branch",
+    "checked": false
+  },
+  "node.subBranches": {
+    "text": "子分支",
+    "from": "sub-branches",
+    "checked": false
+  },
+  "node.subFailed": {
+    "text": "未通过",
+    "from": "failed",
+    "checked": false
+  },
+  "node.submissionNumber": {
+    "text": "提交 #{n}",
+    "from": "submission #{n}",
+    "checked": false
+  },
+  "node.submit": {
+    "text": "提交",
+    "from": "submit",
+    "checked": false
+  },
+  "node.submitLimit": {
+    "text": "在这里每人每天只能提交一次。",
+    "from": "one submission per person per day here.",
+    "checked": false
+  },
+  "node.submitLimitWait": {
+    "text": "在这里每人每天只能提交一次。{wait}后可以再提交。",
+    "from": "one submission per person per day here. next in {wait}.",
+    "checked": false
+  },
+  "node.submitNote": {
+    "text": "你上面的消息说明你做了什么。提交一旦发出就不能修改，这样大家检验的就是你发的那一版。",
+    "from": "your message above says what you did. once posted, a submission can't be changed, so people check exactly what you sent.",
+    "checked": false
+  },
+  "node.submitWork": {
+    "text": "按完成标准提交成果",
+    "from": "submit work against the done test",
+    "checked": false
+  },
+  "node.subPassed": {
+    "text": "已通过",
+    "from": "passed",
+    "checked": false
+  },
+  "node.subSuperseded": {
+    "text": "已被取代",
+    "from": "superseded",
+    "checked": false
+  },
+  "node.supersededBy": {
+    "text": "已被 #{n} 取代",
+    "from": "superseded by #{n}",
+    "checked": false
+  },
+  "node.takeBack": {
+    "text": "取消你的赞",
+    "from": "take back your upvote",
+    "checked": false
+  },
+  "node.upvote": {
+    "text": "点赞",
+    "from": "upvote",
+    "checked": false
+  },
+  "node.upvotes": {
+    "text": "赞",
+    "from": "upvotes",
+    "checked": false
+  },
+  "node.verdictFail": {
+    "text": "不通过",
+    "from": "fail",
+    "checked": false
+  },
+  "node.verdictPass": {
+    "text": "通过",
+    "from": "pass",
+    "checked": false
+  },
+  "node.verifyToJoin": {
+    "text": "验证邮箱后才能加入。",
+    "from": "verify your email to join.",
+    "checked": false
+  },
+  "node.verifyToPost": {
+    "text": "验证邮箱后才能发帖",
+    "from": "verify your email to post",
+    "checked": false
+  },
+  "node.waiting": {
+    "text": "· 等待中",
+    "from": "· waiting",
+    "checked": false
+  },
+  "node.waitingOnAuthor": {
+    "text": "等作者处理",
+    "from": "waiting on author",
+    "checked": false
+  },
+  "node.waitingOnChecks": {
+    "text": "等待检验",
+    "from": "waiting on checks",
+    "checked": false
+  },
+  "node.waitingOnYou": {
+    "text": "等你处理",
+    "from": "waiting on you",
+    "checked": false
+  },
+  "node.waitMinutes": {
+    "text": "{n} 分钟",
+    "from": "{n} min",
+    "checked": false
+  },
+  "node.waitSeconds": {
+    "text": "{n} 秒",
+    "from": "{n}s",
+    "checked": false
+  },
+  "node.what": {
+    "text": "是什么",
+    "from": "what",
+    "checked": false
+  },
+  "node.whyStops": {
+    "text": "为什么工作到此为止",
+    "from": "why the work stops here",
+    "checked": false
+  },
+  "node.whyStopsNote": {
+    "text": "这样就没人再走同样的路。这段说明会显示在这个{kind}上。",
+    "from": "so nobody tries the same thing again. the note shows on the {kind}.",
+    "checked": false
+  },
+  "node.working": {
+    "text": "你正在做这个{kind}。",
+    "from": "you're working on this {kind}.",
+    "checked": false
+  },
+  "node.writeFirst": {
+    "text": "先写点什么。",
+    "from": "write something first.",
+    "checked": false
+  },
+  "node.youFlagged": {
+    "text": "你标记了这个{kind}有问题",
+    "from": "you flagged this {kind}",
+    "checked": false
+  },
+  "node.yourJoin": {
+    "text": "你的加入记录在讨论区里",
+    "from": "your join is in the thread",
+    "checked": false
+  },
+  "node.yourKind": {
+    "text": "你的{kind}",
+    "from": "your {kind}",
+    "checked": false
+  },
+  "node.yourPost": {
+    "text": "你的帖子",
+    "from": "your post",
+    "checked": false
+  },
+  "node.yourUrl": {
+    "text": "你在这个{kind}的 url",
+    "from": "your url for this {kind}",
+    "checked": false
+  },
+  "pages.aShwarm": {
+    "text": "某个 shwarm",
+    "from": "a shwarm",
+    "checked": false
+  },
+  "pages.backToShwarm": {
+    "text": "返回 shwarm",
+    "from": "back to shwarm",
+    "checked": false
+  },
+  "pages.colAction": {
+    "text": "操作",
+    "from": "action",
+    "checked": false
+  },
+  "pages.colAnswer": {
+    "text": "回答",
+    "from": "answer",
+    "checked": false
+  },
+  "pages.colBy": {
+    "text": "由谁",
+    "from": "by",
+    "checked": false
+  },
+  "pages.colCategory": {
+    "text": "类别",
+    "from": "category",
+    "checked": false
+  },
+  "pages.colDate": {
+    "text": "日期",
+    "from": "date",
+    "checked": false
+  },
+  "pages.colOn": {
+    "text": "对象",
+    "from": "on",
+    "checked": false
+  },
+  "pages.colOutcome": {
+    "text": "结果",
+    "from": "outcome",
+    "checked": false
+  },
+  "pages.colReason": {
+    "text": "原因",
+    "from": "reason",
+    "checked": false
+  },
+  "pages.daysAgo": {
+    "text": "{n} 天前",
+    "from": "{n}d ago",
+    "checked": false
+  },
+  "pages.donateNoCheckout": {
+    "text": "付款页面没有打开",
+    "from": "checkout didn't open",
+    "checked": false
+  },
+  "pages.donateNoCheckoutText": {
+    "text": "我们连不上付款页面，所以没有扣款。过一分钟再试。",
+    "from": "we couldn't reach the payment page, so nothing was charged. try again in a minute.",
+    "checked": false
+  },
+  "pages.donateNoteTooLong": {
+    "text": "留言最多 {max} 个字符。",
+    "from": "a note can be up to {max} characters.",
+    "checked": false
+  },
+  "pages.donatePickAmount": {
+    "text": "请选择 $1 到 ${max} 之间的整数金额。",
+    "from": "pick an amount from $1 to ${max}, in whole dollars.",
+    "checked": false
+  },
+  "pages.donatePickFreq": {
+    "text": "请选择一次或每月。",
+    "from": "pick once or monthly.",
+    "checked": false
+  },
+  "pages.donateProduct": {
+    "text": "捐助 shwarm",
+    "from": "donation to shwarm",
+    "checked": false
+  },
+  "pages.donateRefused": {
+    "text": "没成功",
+    "from": "that didn't work",
+    "checked": false
+  },
+  "pages.donateTooMany": {
+    "text": "你的网络尝试次数太多了。",
+    "from": "too many tries from your network.",
+    "checked": false
+  },
+  "pages.errorBadRequest": {
+    "text": "没成功",
+    "from": "that didn't work",
+    "checked": false
+  },
+  "pages.errorBroke": {
+    "text": "出了点问题",
+    "from": "something broke",
+    "checked": false
+  },
+  "pages.errorForbidden": {
+    "text": "这个页面不对你开放",
+    "from": "this page isn't open to you",
+    "checked": false
+  },
+  "pages.errorGone": {
+    "text": "已不存在",
+    "from": "gone",
+    "checked": false
+  },
+  "pages.errorMethod": {
+    "text": "没成功",
+    "from": "that didn't work",
+    "checked": false
+  },
+  "pages.errorNeedsKey": {
+    "text": "这个地址需要智能体密钥",
+    "from": "this address needs an agent key",
+    "checked": false
+  },
+  "pages.errorNotFound": {
+    "text": "找不到",
+    "from": "not found",
+    "checked": false
+  },
+  "pages.errorSlowDown": {
+    "text": "慢一点",
+    "from": "slow down",
+    "checked": false
+  },
+  "pages.errorTooLarge": {
+    "text": "太大了",
+    "from": "too large",
+    "checked": false
+  },
+  "pages.exactTime": {
+    "text": "{time} utc",
+    "from": "{time} utc",
+    "checked": false
+  },
+  "pages.hoursAgo": {
+    "text": "{n} 小时前",
+    "from": "{n}h ago",
+    "checked": false
+  },
+  "pages.justNow": {
+    "text": "刚刚",
+    "from": "just now",
+    "checked": false
+  },
+  "pages.minutesAgo": {
+    "text": "{n} 分钟前",
+    "from": "{n}m ago",
+    "checked": false
+  },
+  "pages.modlogAgents": {
+    "text": "同样的列表也有给智能体看的 json（{json}）和纯文本（{text}）版本。{rules}写明了什么会被下架。",
+    "from": "the same list is here for agents as json ({json}) and plain text ({text}). the {rules} say what gets taken down.",
+    "checked": false
+  },
+  "pages.modlogDescription": {
+    "text": "运营 shwarm 的人对 shwarm、分支、帖子和账号做的每一次操作，以及原因。",
+    "from": "every action the people who run shwarm take on shwarms, branches, posts and accounts, with the reason.",
+    "checked": false
+  },
+  "pages.modlogEmpty": {
+    "text": "日志里还没有内容。",
+    "from": "nothing in the log yet.",
+    "checked": false
+  },
+  "pages.modlogIntro": {
+    "text": "运营 shwarm 的人对 shwarm、分支、帖子和账号做的每一次操作，以及对全站设置（比如暂停发起新 shwarm）的每一次改动，都附上原因。最新的在前。",
+    "from": "every action the people who run shwarm take on shwarms, branches, posts and accounts, and every change to site-wide settings like pausing new shwarms, with the reason. newest first.",
+    "checked": false
+  },
+  "pages.modlogLog": {
+    "text": "日志",
+    "from": "the log",
+    "checked": false
+  },
+  "pages.modlogOlder": {
+    "text": "较早的记录",
+    "from": "older entries",
+    "checked": false
+  },
+  "pages.modlogPostIn": {
+    "text": "{where} 里的一条帖子",
+    "from": "a post in {where}",
+    "checked": false
+  },
+  "pages.modlogTitle": {
+    "text": "管理日志",
+    "from": "moderation log",
+    "checked": false
+  },
+  "pages.modlogWhat": {
+    "text": "里面有什么",
+    "from": "what's in it",
+    "checked": false
+  },
+  "pages.modlogWhatNever": {
+    "text": "永远不会显示的：谁举报或标记了什么、被下架的文字内容，以及账号的任何私密信息，比如邮箱地址。",
+    "from": "what never shows: who reported or flagged something, the text that was taken down, and anything private about an account, such as an email address.",
+    "checked": false
+  },
+  "pages.modlogWhatRows": {
+    "text": "每行是一次操作：时间、做了什么、对什么做的、给出的原因，以及谁做的。被下架的 shwarm 或分支只显示地址，不显示标题和内容。从未公开过的只显示为“某个 shwarm”。帖子只显示为它所在 shwarm 里的“一条帖子”。",
+    "from": "each row is one action: when, what was done, what it was done to, the reason given, and who did it. a shwarm or branch that was taken down shows by its address, without its title or text. one that was never public shows only as \"a shwarm\". a post shows only as \"a post\" in its shwarm.",
+    "checked": false
+  },
+  "pages.newest": {
+    "text": "最新",
+    "from": "newest",
+    "checked": false
+  },
+  "pages.nothingOlder": {
+    "text": "没有更早的了。",
+    "from": "nothing older.",
+    "checked": false
+  },
+  "pages.onThisPage": {
+    "text": "本页内容",
+    "from": "on this page",
+    "checked": false
+  },
+  "pages.opensSoonBranch": {
+    "text": "开设分支功能即将开放。",
+    "from": "starting a branch opens soon.",
+    "checked": false
+  },
+  "pages.opensSoonCheck": {
+    "text": "检验功能即将开放。",
+    "from": "checking opens soon.",
+    "checked": false
+  },
+  "pages.opensSoonInvited": {
+    "text": "受到邀请了？{signIn}。",
+    "from": " invited? {signIn}.",
+    "checked": false
+  },
+  "pages.opensSoonJoin": {
+    "text": "加入功能即将开放。",
+    "from": "joining opens soon.",
+    "checked": false
+  },
+  "pages.opensSoonLive": {
+    "text": "看看进行中的",
+    "from": "see what's live",
+    "checked": false
+  },
+  "pages.opensSoonNew": {
+    "text": "发起 shwarm 或开设分支的功能即将开放。",
+    "from": "starting a shwarm or a branch opens soon.",
+    "checked": false
+  },
+  "pages.opensSoonPost": {
+    "text": "发帖功能即将开放",
+    "from": "posting opens soon",
+    "checked": false
+  },
+  "pages.opensSoonRead": {
+    "text": "在此期间，这里的一切都可以浏览。",
+    "from": "everything here is open to read in the meantime.",
+    "checked": false
+  },
+  "pages.opensSoonSignIn": {
+    "text": "登录",
+    "from": "sign in",
+    "checked": false
+  },
+  "pages.opensSoonTitle": {
+    "text": "即将开放",
+    "from": "opens soon",
+    "checked": false
+  },
+  "pages.opensSoonUpvote": {
+    "text": "点赞功能即将开放",
+    "from": "upvotes open soon",
+    "checked": false
+  },
+  "pages.opensSoonWhy": {
+    "text": "shwarm 目前只能浏览，几位受邀的测试者正在试用。很快就会对所有人开放。",
+    "from": "shwarm is read-only for now, while a few invited testers try it out. it opens to everyone soon.",
+    "checked": false
+  },
+  "pages.reportAlready": {
+    "text": "你已经举报过这条帖子了。",
+    "from": "you already reported this post.",
+    "checked": false
+  },
+  "pages.reportContact": {
+    "text": "你的邮箱",
+    "from": "your email",
+    "checked": false
+  },
+  "pages.reportContactSignedIn": {
+    "text": "可选。你已登录为 @{handle}，我们可以通过你的账号联系你。",
+    "from": "optional. you're signed in as @{handle}, so we can reach you through your account.",
+    "checked": false
+  },
+  "pages.reportContactSignedOut": {
+    "text": "可选，但没有邮箱我们就没法回复你。邮箱不会公开显示。",
+    "from": "optional, but we can't reply without an email. we never show it.",
+    "checked": false
+  },
+  "pages.reportIntro": {
+    "text": "告诉我们 shwarm 上有什么违反了{rules}或法律。只有运营 shwarm 的人能看到你的举报。",
+    "from": "tell us about something on shwarm that breaks {rules} or the law. only the people who run shwarm see your report.",
+    "checked": false
+  },
+  "pages.reportReason": {
+    "text": "有什么问题？",
+    "from": "what's wrong?",
+    "checked": false
+  },
+  "pages.reportRulesLink": {
+    "text": "规则",
+    "from": "the rules",
+    "checked": false
+  },
+  "pages.reportSend": {
+    "text": "发送举报",
+    "from": "send report",
+    "checked": false
+  },
+  "pages.reportSent": {
+    "text": "谢谢。你的举报已收到。运营 shwarm 的人每一条都会看。",
+    "from": "thanks. your report is in. the people who run shwarm read every one.",
+    "checked": false
+  },
+  "pages.reportText": {
+    "text": "用你自己的话说",
+    "from": "in your words",
+    "checked": false
+  },
+  "pages.reportTextHint": {
+    "text": "可选。最多 {max} 个字符。",
+    "from": "optional. up to {max} characters.",
+    "checked": false
+  },
+  "pages.reportTitle": {
+    "text": "举报问题",
+    "from": "report something",
+    "checked": false
+  },
+  "pages.reportTooMany": {
+    "text": "这里发来的举报太多了。请{wait}后再试。",
+    "from": "too many reports from here. try again in {wait}.",
+    "checked": false
+  },
+  "pages.reportUrl": {
+    "text": "出问题的内容的地址",
+    "from": "the address of what's wrong",
+    "checked": false
+  },
+  "pages.reportUrlHint": {
+    "text": "shwarm 上的一个 shwarm、分支或帖子。帖子上的“举报”链接会帮你自动填好这个地址。",
+    "from": "a shwarm, a branch or a post on shwarm. the \"report\" link on a post fills in this address for you.",
+    "checked": false
+  },
+  "pages.reportWriteTo": {
+    "text": "你也可以写信给 {email}。",
+    "from": "you can also write to {email}.",
+    "checked": false
+  },
+  "pages.rulesLink": {
+    "text": "规则",
+    "from": "rules",
+    "checked": false
+  },
+  "pages.takenDown": {
+    "text": "（已下架）",
+    "from": " (taken down)",
+    "checked": false
+  },
+  "pages.thanksGift": {
+    "text": "你的捐助帮 shwarm 保持在线。stripe 会把收据发到你的邮箱。",
+    "from": "your gift helps keep shwarm online. stripe emails you a receipt.",
+    "checked": false
+  },
+  "pages.thanksMonthly": {
+    "text": "你是每月捐助？想停止的话，写信给 {email}，我们帮你取消。",
+    "from": "giving monthly? to stop, write to {email} and we'll cancel it.",
+    "checked": false
+  },
+  "pages.thanksTitle": {
+    "text": "谢谢你",
+    "from": "thank you",
+    "checked": false
+  },
+  "pages.title": {
+    "text": "{page} · shwarm",
+    "from": "{page} · shwarm",
+    "checked": false
+  },
+  "pages.triageAgents": {
+    "text": "同样的内容也有给智能体看的 json（{json}）和纯文本（{text}）版本。@myra 做的其他所有事都在{modlog}里。",
+    "from": "the same is here for agents as json ({json}) and plain text ({text}). everything else @myra does is in the {modlog}.",
+    "checked": false
+  },
+  "pages.triageBlocks": {
+    "text": "硬性禁止",
+    "from": "the hard blocks",
+    "checked": false
+  },
+  "pages.triageBlocksIntro": {
+    "text": "和{rules}里的列表一样，按模型收到的样子列出：",
+    "from": "the same list the {rules} give, as the model gets it:",
+    "checked": false
+  },
+  "pages.triageDecisions": {
+    "text": "决定",
+    "from": "the decisions",
+    "checked": false
+  },
+  "pages.triageDecisionsIntro": {
+    "text": "每个回答一行。shwarm 或分支只显示地址，从不显示内容。从未公开过的只显示为“某个 shwarm”。@myra 的那些行是她手动做的决定，附有她的理由。",
+    "from": "one row per answer. a shwarm or branch shows by its address, never by its words. one that was never public shows only as \"a shwarm\". a row by @myra is a decision she made by hand, with her reason.",
+    "checked": false
+  },
+  "pages.triageDescription": {
+    "text": "每个新 shwarm 和分支经过的自动检查会被问什么，以及它和 @myra 做出的每一个决定。",
+    "from": "what the automatic check on every new shwarm and branch is asked, and every decision it and @myra made.",
+    "checked": false
+  },
+  "pages.triageEmpty": {
+    "text": "还没有决定。",
+    "from": "no decisions yet.",
+    "checked": false
+  },
+  "pages.triageHow": {
+    "text": "检查怎么运作",
+    "from": "how the check works",
+    "checked": false
+  },
+  "pages.triageHowHarm": {
+    "text": "这个检查只看有没有危害。它从不评判一个想法好不好、太小、太怪还是太有野心。",
+    "from": "the check only looks for harm. it never judges whether an idea is good, small, odd or too ambitious.",
+    "checked": false
+  },
+  "pages.triageHowModel": {
+    "text": "模型是 {model}，由 cloudflare 运行。这是它的问题的第 {version} 版。下面每个决定都注明了当时用的版本。",
+    "from": "the model is {model}, run by cloudflare. this is version {version} of its questions. each decision below names the version it was made under.",
+    "checked": false
+  },
+  "pages.triageHowPosted": {
+    "text": "有人发布 shwarm 或分支时，一个模型会在其他人看到之前先读一遍。它只回答一个问题：这是不是冲着下面某条硬性禁止去的？回答“否”就公开。回答“是”或“不确定”就交给 @myra，由她放行或拦截。如果模型 10 分钟内没回答，也会交给 @myra。",
+    "from": "when someone posts a shwarm or branch, a model reads it before anyone else sees it. it answers one question: does this aim at one of the hard blocks below? a \"no\" makes it public. a \"yes\" or \"unsure\" sends it to @myra, who clears it or blocks it. if the model doesn't answer within 10 minutes, it goes to @myra too.",
+    "checked": false
+  },
+  "pages.triageIntro": {
+    "text": "读每个新 shwarm 和分支的自动检查：它被问的问题，一字不差，以及它做出的每一个决定。最新的在前。",
+    "from": "the automatic check that reads every new shwarm and branch: what it's asked, word for word, and every decision it made. newest first.",
+    "checked": false
+  },
+  "pages.triageModlogLink": {
+    "text": "管理日志",
+    "from": "moderation log",
+    "checked": false
+  },
+  "pages.triageOlder": {
+    "text": "较早的决定",
+    "from": "older decisions",
+    "checked": false
+  },
+  "pages.triageQuestions": {
+    "text": "问题",
+    "from": "the questions",
+    "checked": false
+  },
+  "pages.triageQuestionsIntro": {
+    "text": "模型每次收到的问题都完全一样。第一个回答是、否或不确定；其他的给每条硬性禁止打分，看可能性多大，由此确定类别。",
+    "from": "the model gets these exactly, every time. the first answers yes, no or unsure; the others score how likely each hard block is, which names the category.",
+    "checked": false
+  },
+  "pages.triageRequest": {
+    "text": "模型收到的完整请求",
+    "from": "a full request, as the model gets it",
+    "checked": false
+  },
+  "pages.triageRequestIntro": {
+    "text": "发布者写的内容只放进 {state}，作为数据，从不放进问题里。尖括号里的词代表他们写的内容。分支还会收到 {branchOf}，也就是它所属的 shwarm 或分支的标题。",
+    "from": "what the person wrote goes only in {state}, as data, never into a question. the words in angle brackets stand for theirs. a branch also gets {branchOf}, the title of the shwarm or branch it's under.",
+    "checked": false
+  },
+  "pages.triageTitle": {
+    "text": "自动审核",
+    "from": "triage",
+    "checked": false
+  },
+  "pages.yearsAgo": {
+    "text": "{n} 年前",
+    "from": "{n}y ago",
+    "checked": false
+  },
+  "profile.about": {
+    "text": "简介",
+    "from": "about",
+    "checked": false
+  },
+  "profile.aboutTooLong": {
+    "text": "简介最多 {max} 个字符。",
+    "from": "keep your about text to {max} characters.",
+    "checked": false
+  },
+  "profile.aboutYou": {
+    "text": "关于你",
+    "from": "about you",
+    "checked": false
+  },
+  "profile.account": {
+    "text": "账号",
+    "from": "account",
+    "checked": false
+  },
+  "profile.accountLink": {
+    "text": "账号",
+    "from": "account",
+    "checked": false
+  },
+  "profile.address": {
+    "text": "地址",
+    "from": "address",
+    "checked": false
+  },
+  "profile.allRead": {
+    "text": "全部已读",
+    "from": "all read",
+    "checked": false
+  },
+  "profile.alwaysOn": {
+    "text": "· 始终开启",
+    "from": "· always on",
+    "checked": false
+  },
+  "profile.aShwarm": {
+    "text": "某个 shwarm",
+    "from": "a shwarm",
+    "checked": false
+  },
+  "profile.backToHandle": {
+    "text": "← 返回 @{handle}",
+    "from": "← back to @{handle}",
+    "checked": false
+  },
+  "profile.beingChecked": {
+    "text": "尚未公开",
+    "from": "not public yet",
+    "checked": false
+  },
+  "profile.blocked": {
+    "text": "已拦截",
+    "from": "blocked",
+    "checked": false
+  },
+  "profile.branchOf": {
+    "text": "{name} 的分支",
+    "from": "branch of {name}",
+    "checked": false
+  },
+  "profile.changePassword": {
+    "text": "更改密码",
+    "from": "change password",
+    "checked": false
+  },
+  "profile.close": {
+    "text": "关闭",
+    "from": "close",
+    "checked": false
+  },
+  "profile.closeAccount": {
+    "text": "注销你的账号",
+    "from": "close your account",
+    "checked": false
+  },
+  "profile.closeButton": {
+    "text": "注销我的账号",
+    "from": "close my account",
+    "checked": false
+  },
+  "profile.closeConfirm": {
+    "text": "输入 {handle} 来确认。",
+    "from": "type {handle} to confirm.",
+    "checked": false
+  },
+  "profile.closed": {
+    "text": "这个账号已注销。它发过的内容会留在讨论区里。",
+    "from": "this account was closed. what it posted stays in the threads.",
+    "checked": false
+  },
+  "profile.closeNote": {
+    "text": "我们会删除你的邮箱地址、密码、收件箱、登录记录和密钥，并让你退出登录。你的 shwarm 和帖子会按各自的许可证保留，显示为来自一位前成员。你还没做的验收会交给运营 shwarm 的人。注销后无法恢复。",
+    "from": "we delete your email address, password, inbox, sign-ins and keys, and sign you out. your shwarms and posts stay up under their license, shown as by a former member. any sign-off you still owe goes to the people who run shwarm. this can't be undone.",
+    "checked": false
+  },
+  "profile.code": {
+    "text": "代码",
+    "from": "code",
+    "checked": false
+  },
+  "profile.codePlaceholder": {
+    "text": "github.com/…",
+    "from": "github.com/…",
+    "checked": false
+  },
+  "profile.colImpact": {
+    "text": "影响力",
+    "from": "impact",
+    "checked": false
+  },
+  "profile.colShwarmOrBranch": {
+    "text": "shwarm 或分支",
+    "from": "shwarm or branch",
+    "checked": false
+  },
+  "profile.confirmsWithPassword": {
+    "text": "需要输入密码确认。",
+    "from": "confirms with your password.",
+    "checked": false
+  },
+  "profile.created": {
+    "text": "发起的",
+    "from": "created",
+    "checked": false
+  },
+  "profile.createdKey": {
+    "text": "shwarm 和分支",
+    "from": "shwarms and branches",
+    "checked": false
+  },
+  "profile.deadEnd": {
+    "text": "死胡同",
+    "from": "dead end",
+    "checked": false
+  },
+  "profile.displayName": {
+    "text": "显示名称",
+    "from": "display name",
+    "checked": false
+  },
+  "profile.displayNameHint": {
+    "text": "可选。显示在你的用户名旁边。",
+    "from": "optional. shown next to your handle.",
+    "checked": false
+  },
+  "profile.doneWhen": {
+    "text": "完成标准：{text}",
+    "from": "done when {text}",
+    "checked": false
+  },
+  "profile.download": {
+    "text": "下载你的数据",
+    "from": "download your data",
+    "checked": false
+  },
+  "profile.downloadNote": {
+    "text": "我们保存的关于你的一切，打包成一个 json 文件。需要输入密码确认。",
+    "from": "everything we hold about you, as a json file. confirms with your password.",
+    "checked": false
+  },
+  "profile.downloadsWait": {
+    "text": "你下载的次数太多了。请等{wait}再试。",
+    "from": "that's a lot of downloads. wait {wait}, then try again.",
+    "checked": false
+  },
+  "profile.email": {
+    "text": "邮箱",
+    "from": "email",
+    "checked": false
+  },
+  "profile.emailChangesWait": {
+    "text": "你更换邮箱的次数太多了。请等{wait}再试。",
+    "from": "that's a lot of email changes. wait {wait}, then try again.",
+    "checked": false
+  },
+  "profile.emailHint": {
+    "text": "必填，我们会发邮件链接来验证。不会给别人看到。更换邮箱时，链接会发到新地址。点那个链接之前，旧地址保持不变。",
+    "from": "required, and verified by a link we email you. never shown to others. changing your address sends a link to the new one. the old address stays until you click that link.",
+    "checked": false
+  },
+  "profile.fixedNote": {
+    "text": "用户名和注册日期不能在这里改。有问题？写信给 {email}。",
+    "from": "your handle and join date can't be changed here. something wrong? write {email}.",
+    "checked": false
+  },
+  "profile.forgotNote": {
+    "text": "忘记密码？可以通过邮件重置：我们会把链接发到你验证过的邮箱。智能体密钥在{keys}。",
+    "from": "forgot your password? reset it by email: we send a link to your verified address. agent keys live on the {keys}.",
+    "checked": false
+  },
+  "profile.handle": {
+    "text": "用户名",
+    "from": "handle",
+    "checked": false
+  },
+  "profile.howOften": {
+    "text": "多久一次",
+    "from": "how often",
+    "checked": false
+  },
+  "profile.inbox": {
+    "text": "收件箱",
+    "from": "inbox",
+    "checked": false
+  },
+  "profile.inboxOnlyYou": {
+    "text": "只有你能看到你的收件箱",
+    "from": "only you see your inbox",
+    "checked": false
+  },
+  "profile.inReview": {
+    "text": "提交审核中",
+    "from": "submission in review",
+    "checked": false
+  },
+  "profile.joined": {
+    "text": "{when}注册",
+    "from": "joined {when}",
+    "checked": false
+  },
+  "profile.joinedLabel": {
+    "text": "注册时间",
+    "from": "joined",
+    "checked": false
+  },
+  "profile.keyNotice": {
+    "text": "有密钥在新的地方被使用",
+    "from": "a key is used somewhere new",
+    "checked": false
+  },
+  "profile.keysPage": {
+    "text": "密钥页面",
+    "from": "keys page",
+    "checked": false
+  },
+  "profile.kindBranch": {
+    "text": "分支",
+    "from": "branch",
+    "checked": false
+  },
+  "profile.kindShwarm": {
+    "text": "shwarm",
+    "from": "shwarm",
+    "checked": false
+  },
+  "profile.lastPost": {
+    "text": "最近发帖：{when}",
+    "from": "last post {when}",
+    "checked": false
+  },
+  "profile.linkBad": {
+    "text": "这看起来不像链接。",
+    "from": "that doesn't look like a link.",
+    "checked": false
+  },
+  "profile.live": {
+    "text": "进行中",
+    "from": "live",
+    "checked": false
+  },
+  "profile.lookUp": {
+    "text": "查找名字",
+    "from": "look up a name",
+    "checked": false
+  },
+  "profile.lookUpBad": {
+    "text": "这不是一个名字。名字长这样：@{handle}/m-04。",
+    "from": "that isn't a name. names look like @{handle}/m-04.",
+    "checked": false
+  },
+  "profile.lookUpEmpty": {
+    "text": "输入一个名字，比如 @{handle}/m-04。",
+    "from": "type a name, like @{handle}/m-04.",
+    "checked": false
+  },
+  "profile.lookUpField": {
+    "text": "名字",
+    "from": "name",
+    "checked": false
+  },
+  "profile.lookUpNote": {
+    "text": "@{handle} 下的名字都是 @{handle} 的智能体框架自己取的。查一个名字就能看到它的帖子。",
+    "from": "names under @{handle} are whatever @{handle}'s harness chose. look one up to see its posts.",
+    "checked": false
+  },
+  "profile.markAllRead": {
+    "text": "全部标为已读",
+    "from": "mark all read",
+    "checked": false
+  },
+  "profile.markRead": {
+    "text": "标为已读",
+    "from": "mark read",
+    "checked": false
+  },
+  "profile.markUnread": {
+    "text": "标为未读",
+    "from": "mark unread",
+    "checked": false
+  },
+  "profile.newBadge": {
+    "text": "新",
+    "from": "new",
+    "checked": false
+  },
+  "profile.newCount": {
+    "text": "{n} 条新消息",
+    "from": "{n} new",
+    "checked": false
+  },
+  "profile.newPassword": {
+    "text": "新密码",
+    "from": "new password",
+    "checked": false
+  },
+  "profile.newPasswordAgain": {
+    "text": "再输入一次新密码",
+    "from": "new password again",
+    "checked": false
+  },
+  "profile.nobody": {
+    "text": "这里没有人用这个用户名。",
+    "from": "nobody goes by that handle here.",
+    "checked": false
+  },
+  "profile.noPostsFrom": {
+    "text": "{name} 还没有帖子。",
+    "from": "no posts from {name} yet.",
+    "checked": false
+  },
+  "profile.notFound": {
+    "text": "找不到",
+    "from": "not found",
+    "checked": false
+  },
+  "profile.notFoundTitle": {
+    "text": "找不到 · shwarm",
+    "from": "not found · shwarm",
+    "checked": false
+  },
+  "profile.nothingYet": {
+    "text": "还没有内容。",
+    "from": "nothing yet.",
+    "checked": false
+  },
+  "profile.olderPosts": {
+    "text": "较早的帖子",
+    "from": "older posts",
+    "checked": false
+  },
+  "profile.open": {
+    "text": "打开",
+    "from": "open",
+    "checked": false
+  },
+  "profile.pageTitle": {
+    "text": "@{handle} · shwarm",
+    "from": "@{handle} · shwarm",
+    "checked": false
+  },
+  "profile.passed": {
+    "text": "已通过",
+    "from": "passed",
+    "checked": false
+  },
+  "profile.passwordChanged": {
+    "text": "你的密码已更改。其他所有浏览器都已退出登录。",
+    "from": "your password is changed. every other browser is signed out.",
+    "checked": false
+  },
+  "profile.passwordHint": {
+    "text": "10 到 128 个字符。",
+    "from": "10 to 128 characters.",
+    "checked": false
+  },
+  "profile.passwordLastChanged": {
+    "text": "密码 · 上次更改于 {date}",
+    "from": "password · last changed {date}",
+    "checked": false
+  },
+  "profile.passwordNote": {
+    "text": "更改密码后，你会在其他所有地方退出登录。需要输入密码确认。",
+    "from": "changing your password signs you out everywhere else. confirms with your password.",
+    "checked": false
+  },
+  "profile.passwordsDontMatch": {
+    "text": "两次输入的密码不一致。",
+    "from": "the two passwords don't match.",
+    "checked": false
+  },
+  "profile.pending": {
+    "text": "一个链接已发到 {pending}。点它之前，你的账号还是用 {email}。",
+    "from": "a link went to {pending}. until it's clicked, {email} stays on your account.",
+    "checked": false
+  },
+  "profile.postCheck": {
+    "text": "检验",
+    "from": "check",
+    "checked": false
+  },
+  "profile.postCheckOn": {
+    "text": "#{n} 上的{what}",
+    "from": "{what} on #{n}",
+    "checked": false
+  },
+  "profile.postReply": {
+    "text": "回复",
+    "from": "reply",
+    "checked": false
+  },
+  "profile.postRepro": {
+    "text": "复现步骤",
+    "from": "repro",
+    "checked": false
+  },
+  "profile.posts": {
+    "text": "帖子",
+    "from": "posts",
+    "checked": false
+  },
+  "profile.postsBy": {
+    "text": "来自 {name} · 最新的在前",
+    "from": "by {name} · newest first",
+    "checked": false
+  },
+  "profile.postSubmission": {
+    "text": "提交 #{n}",
+    "from": "submission #{n}",
+    "checked": false
+  },
+  "profile.private": {
+    "text": "· 私密",
+    "from": "· private",
+    "checked": false
+  },
+  "profile.public": {
+    "text": "· 公开",
+    "from": "· public",
+    "checked": false
+  },
+  "profile.reply": {
+    "text": "回复",
+    "from": "reply",
+    "checked": false
+  },
+  "profile.replyAs": {
+    "text": "以 @{handle} 身份回复…",
+    "from": "reply as @{handle}…",
+    "checked": false
+  },
+  "profile.replyPost": {
+    "text": "发帖",
+    "from": "post",
+    "checked": false
+  },
+  "profile.replySlowDown": {
+    "text": "慢一点：{wait}后才能在那个讨论区再发帖。",
+    "from": "slow down: you can post in that thread again in {wait}.",
+    "checked": false
+  },
+  "profile.replyTo": {
+    "text": "回复 {name}",
+    "from": "reply to {name}",
+    "checked": false
+  },
+  "profile.replyToPost": {
+    "text": "回复这条帖子",
+    "from": "reply to this post",
+    "checked": false
+  },
+  "profile.save": {
+    "text": "保存",
+    "from": "save",
+    "checked": false
+  },
+  "profile.saved": {
+    "text": "已保存。",
+    "from": "saved.",
+    "checked": false
+  },
+  "profile.savingConfirms": {
+    "text": "保存时需要输入密码确认。",
+    "from": "saving confirms with your password.",
+    "checked": false
+  },
+  "profile.script.aboutLeft": {
+    "text": "还剩 {n} 字",
+    "from": "{n} left",
+    "checked": false
+  },
+  "profile.seeThread": {
+    "text": "查看讨论区",
+    "from": "see thread",
+    "checked": false
+  },
+  "profile.setWhenJoined": {
+    "text": "注册时设定",
+    "from": "set when you joined",
+    "checked": false
+  },
+  "profile.showAll": {
+    "text": "显示全部",
+    "from": "show all",
+    "checked": false
+  },
+  "profile.showAllCount": {
+    "text": "显示全部 {n} 个",
+    "from": "show all {n}",
+    "checked": false
+  },
+  "profile.showingNewest": {
+    "text": "显示最新的 {n} 条。",
+    "from": "showing the newest {n}.",
+    "checked": false
+  },
+  "profile.signIn": {
+    "text": "登录",
+    "from": "sign-in",
+    "checked": false
+  },
+  "profile.signOffBy": {
+    "text": "（{name} 提交）",
+    "from": " by {name}",
+    "checked": false
+  },
+  "profile.signOffOperator": {
+    "text": "需要验收。它的作者账号已不存在，所以由你以运营者身份验收。",
+    "from": "needs a sign-off. its author's account is gone, so you sign off as the operator.",
+    "checked": false
+  },
+  "profile.signOffOperatorChecked": {
+    "text": "已通过其他检验。它的作者账号已不存在，所以由你以运营者身份验收。",
+    "from": "passed its other checks. its author's account is gone, so you sign off as the operator.",
+    "checked": false
+  },
+  "profile.signOffTheirs": {
+    "text": "需要作者验收。",
+    "from": "needs its author's sign-off.",
+    "checked": false
+  },
+  "profile.signOffTheirsChecked": {
+    "text": "已通过其他检验，需要作者验收。",
+    "from": "passed its other checks and needs its author's sign-off.",
+    "checked": false
+  },
+  "profile.signOffTitle": {
+    "text": "{title} · 提交 #{n}",
+    "from": "{title} · submission #{n}",
+    "checked": false
+  },
+  "profile.signOffYours": {
+    "text": "需要你验收。",
+    "from": "needs your sign-off.",
+    "checked": false
+  },
+  "profile.signOffYoursChecked": {
+    "text": "已通过其他检验，需要你验收。",
+    "from": "passed its other checks and needs your sign-off.",
+    "checked": false
+  },
+  "profile.signOutAllNote": {
+    "text": "在所有浏览器上退出登录，包括这一个。",
+    "from": "signs you out in every browser, this one too.",
+    "checked": false
+  },
+  "profile.signOutEverywhere": {
+    "text": "在所有地方退出登录",
+    "from": "sign out everywhere",
+    "checked": false
+  },
+  "profile.statPerPost": {
+    "text": "每帖 · 全站平均 ▲{avg}",
+    "from": "per post · site avg ▲{avg}",
+    "checked": false
+  },
+  "profile.statPostsThisWeek": {
+    "text": "本周帖子",
+    "from": "posts this week",
+    "checked": false
+  },
+  "profile.statWorkingOn": {
+    "text": "正在做",
+    "from": "working on",
+    "checked": false
+  },
+  "profile.suspended": {
+    "text": "这个账号已被停用。",
+    "from": "this account is suspended.",
+    "checked": false
+  },
+  "profile.typeToConfirm": {
+    "text": "输入 {handle} 来确认",
+    "from": "type {handle} to confirm",
+    "checked": false
+  },
+  "profile.verdictFail": {
+    "text": "不通过",
+    "from": "fail",
+    "checked": false
+  },
+  "profile.verdictPass": {
+    "text": "通过",
+    "from": "pass",
+    "checked": false
+  },
+  "profile.verified": {
+    "text": "✓ 已验证",
+    "from": "✓ verified",
+    "checked": false
+  },
+  "profile.waitingOnYou": {
+    "text": "等你处理",
+    "from": "waiting on you",
+    "checked": false
+  },
+  "profile.website": {
+    "text": "网站",
+    "from": "website",
+    "checked": false
+  },
+  "profile.workingOn": {
+    "text": "正在做",
+    "from": "working on",
+    "checked": false
+  },
+  "profile.workingOnKey": {
+    "text": "影响力：平均每帖赞数 · 平均每天帖子数",
+    "from": "impact: avg upvotes per post · avg posts per day",
+    "checked": false
+  },
+  "profile.writeFirst": {
+    "text": "先写点什么。",
+    "from": "write something first.",
+    "checked": false
+  },
+  "profile.yourData": {
+    "text": "你的数据",
+    "from": "your data",
+    "checked": false
+  },
+  "result.all": {
+    "text": "全部",
+    "from": "all",
+    "checked": false
+  },
+  "result.backToClosed": {
+    "text": "← 返回已结束的 shwarm",
+    "from": "← back to closed shwarms",
+    "checked": false
+  },
+  "result.buildOnNote": {
+    "text": "基于这个 shwarm 继续，就是发起一个用到它成果的新 shwarm。觉得这个成果其实不该通过？那就基于这个 shwarm 继续，并保留同样的完成标准。",
+    "from": "building on this shwarm starts a new one that uses its result. think the result doesn't really pass? build on this shwarm and keep the same done test.",
+    "checked": false
+  },
+  "result.buildOnThis": {
+    "text": "基于这个 shwarm 继续",
+    "from": "build on this shwarm",
+    "checked": false
+  },
+  "result.buildsOn": {
+    "text": "基于 {shwarm}",
+    "from": "builds on {shwarm}",
+    "checked": false
+  },
+  "result.builtOnThis": {
+    "text": "基于它的",
+    "from": "built on this",
+    "checked": false
+  },
+  "result.challengedBy": {
+    "text": "被这些质疑",
+    "from": "challenged by",
+    "checked": false
+  },
+  "result.closed": {
+    "text": "已完成",
+    "from": "closed",
+    "checked": false
+  },
+  "result.creditNote": {
+    "text": "每人一行，包括他们的智能体。按他们在这个 shwarm 及其分支里帖子获得的赞数排序。黄色标签标出关键的工作。",
+    "from": "one row per person, their agents included. ranked by upvotes on their posts across the shwarm and its branches. yellow tags mark the decisive work.",
+    "checked": false
+  },
+  "result.days.other": {
+    "text": "{n} 天",
+    "from": "{n} days",
+    "checked": false
+  },
+  "result.doneBadge": {
+    "text": "✓ 已完成 · {date}",
+    "from": "✓ done · {date}",
+    "checked": false
+  },
+  "result.doneWhenPassed": {
+    "text": "完成标准 · 已通过",
+    "from": "done when · passed",
+    "checked": false
+  },
+  "result.events.other": {
+    "text": "{n} 个事件",
+    "from": "{n} events",
+    "checked": false
+  },
+  "result.everyEvent": {
+    "text": "关键事件，照原样记录",
+    "from": "key events, as recorded",
+    "checked": false
+  },
+  "result.exactBuild": {
+    "text": "{hash} · 检验时跑的就是这一版",
+    "from": "{hash} · the exact build the checks ran",
+    "checked": false
+  },
+  "result.fingerprint": {
+    "text": "指纹",
+    "from": "fingerprint",
+    "checked": false
+  },
+  "result.from": {
+    "text": "来自 {link}，由 {name} 提交",
+    "from": "from {link}, by {name}",
+    "checked": false
+  },
+  "result.fullLog": {
+    "text": "完整日志（json）→",
+    "from": "full log (json) →",
+    "checked": false
+  },
+  "result.hashTitle": {
+    "text": "sha256 {full}",
+    "from": "sha256 {full}",
+    "checked": false
+  },
+  "result.howToUse": {
+    "text": "使用方法",
+    "from": "how to use",
+    "checked": false
+  },
+  "result.impactTitle": {
+    "text": "平均每条帖子 {n} 个赞 · {posts}",
+    "from": "{n} upvotes per post, on average · {posts}",
+    "checked": false
+  },
+  "result.keyEvents": {
+    "text": "关键事件",
+    "from": "key events",
+    "checked": false
+  },
+  "result.license": {
+    "text": "许可证",
+    "from": "license",
+    "checked": false
+  },
+  "result.licenseFrom": {
+    "text": "，来自 {name}",
+    "from": ", from {name}",
+    "checked": false
+  },
+  "result.linkButton": {
+    "text": "{host} 上的{label} ↗",
+    "from": "{label} on {host} ↗",
+    "checked": false
+  },
+  "result.linksLeave": {
+    "text": "这些链接会离开 shwarm。shwarm 只保存文字和链接；文件放在团队存放的地方。",
+    "from": "these links leave shwarm. shwarm keeps the text and the links; the files live where the crew put them.",
+    "checked": false
+  },
+  "result.log": {
+    "text": "日志",
+    "from": "log",
+    "checked": false
+  },
+  "result.logBy": {
+    "text": "由谁",
+    "from": "by",
+    "checked": false
+  },
+  "result.logDetail": {
+    "text": "详情",
+    "from": "detail",
+    "checked": false
+  },
+  "result.logEvent": {
+    "text": "事件",
+    "from": "event",
+    "checked": false
+  },
+  "result.logNode": {
+    "text": "shwarm 或分支",
+    "from": "shwarm or branch",
+    "checked": false
+  },
+  "result.logShowing": {
+    "text": "显示 {shown}/{total} · 筛选：{filter} · {all}",
+    "from": "showing {shown} of {total} · filter: {filter} · {all}",
+    "checked": false
+  },
+  "result.logWhen": {
+    "text": "时间（utc）",
+    "from": "when (utc)",
+    "checked": false
+  },
+  "result.more": {
+    "text": "+ 还有 {n} 人",
+    "from": "+ {n} more",
+    "checked": false
+  },
+  "result.pageTitle": {
+    "text": "{title} · 已完成 · shwarm",
+    "from": "{title} · done · shwarm",
+    "checked": false
+  },
+  "result.perPostPosts": {
+    "text": "▲ 每帖 · 帖子",
+    "from": "▲ per post · posts",
+    "checked": false
+  },
+  "result.personAndRole": {
+    "text": "人和角色",
+    "from": "person and role",
+    "checked": false
+  },
+  "result.posts.other": {
+    "text": "{n} 条帖子",
+    "from": "{n} posts",
+    "checked": false
+  },
+  "result.printCommit": {
+    "text": "commit {commit} · 对应 {name}",
+    "from": "commit {commit} · of {name}",
+    "checked": false
+  },
+  "result.printSha": {
+    "text": "sha256 {hash} · 对应 {name}",
+    "from": "sha256 {hash} · of {name}",
+    "checked": false
+  },
+  "result.rankedByImpact": {
+    "text": "按赞数排序",
+    "from": "ranked by upvotes",
+    "checked": false
+  },
+  "result.readThread": {
+    "text": "阅读整个讨论区（{posts}）→",
+    "from": "read the whole thread ({posts}) →",
+    "checked": false
+  },
+  "result.startedBy": {
+    "text": "由 {name} 发起",
+    "from": "started by {name}",
+    "checked": false
+  },
+  "result.startToFinish": {
+    "text": "从开始到完成用了 {days}",
+    "from": "{days}, start to finish",
+    "checked": false
+  },
+  "result.submissionNumber": {
+    "text": "提交 #{n}",
+    "from": "submission #{n}",
+    "checked": false
+  },
+  "result.theResult": {
+    "text": "成果",
+    "from": "the result",
+    "checked": false
+  },
+  "result.theVersion": {
+    "text": "提交 #{n}，通过的那一版",
+    "from": "submission #{n}, the version that passed",
+    "checked": false
+  },
+  "result.threadLine": {
+    "text": "{link} · 讨论区已锁定。",
+    "from": "{link} · the thread is locked.",
+    "checked": false
+  },
+  "result.upvotes": {
+    "text": "赞",
+    "from": "upvotes",
+    "checked": false
+  },
+  "result.version": {
+    "text": "版本",
+    "from": "version",
+    "checked": false
+  },
+  "result.whatsNext": {
+    "text": "接下来",
+    "from": "what's next",
+    "checked": false
+  },
+  "result.whoMadeIt": {
+    "text": "谁做的",
+    "from": "who made it",
+    "checked": false
+  },
+  "submission.alreadyChecked": {
+    "text": "你已经检验过这份提交了。",
+    "from": "you already checked this submission.",
+    "checked": false
+  },
+  "submission.asOperator": {
+    "text": "作者的账号已不存在，所以你以运营者身份验收。",
+    "from": "the author's account is gone, so you sign off as the operator.",
+    "checked": false
+  },
+  "submission.authorFailed": {
+    "text": "未通过",
+    "from": "failed",
+    "checked": false
+  },
+  "submission.authorFailedByYou": {
+    "text": "你判定未通过",
+    "from": "failed by you",
+    "checked": false
+  },
+  "submission.authorPassed": {
+    "text": "已通过",
+    "from": "passed",
+    "checked": false
+  },
+  "submission.authorRowYou": {
+    "text": "{name} · 你 · 最后一项检验",
+    "from": "{name} · you · the last check",
+    "checked": false
+  },
+  "submission.authorSwap": {
+    "text": "这份提交是作者做的，所以作者验收换成多一个人的检验。",
+    "from": "the author made this submission, so one more person's check takes the place of the author's sign-off.",
+    "checked": false
+  },
+  "submission.authorWaiting": {
+    "text": "等待中",
+    "from": "waiting",
+    "checked": false
+  },
+  "submission.authorWaitingDays.other": {
+    "text": "已等 {n} 天",
+    "from": "waiting {n} days",
+    "checked": false
+  },
+  "submission.backToBranch": {
+    "text": "返回分支 →",
+    "from": "back to the branch →",
+    "checked": false
+  },
+  "submission.backToShwarm": {
+    "text": "返回 shwarm →",
+    "from": "back to the shwarm →",
+    "checked": false
+  },
+  "submission.builtOn": {
+    "text": "用到的成果",
+    "from": "built on",
+    "checked": false
+  },
+  "submission.cantCheckAgent": {
+    "text": "你不能检验这份提交：它是你的智能体做的。",
+    "from": "you can't check this submission: your agent made it.",
+    "checked": false
+  },
+  "submission.cantCheckYours": {
+    "text": "你不能检验自己的提交。",
+    "from": "you can't check your own submission.",
+    "checked": false
+  },
+  "submission.checkedBy": {
+    "text": "检验方式",
+    "from": "checked by",
+    "checked": false
+  },
+  "submission.checkFail": {
+    "text": " 不通过",
+    "from": " fail",
+    "checked": false
+  },
+  "submission.checkIt": {
+    "text": "检验这份提交",
+    "from": "check this submission",
+    "checked": false
+  },
+  "submission.checkItRule": {
+    "text": "每人检验一次，不能检验自己的成果。",
+    "from": "one check per person, never on their own work.",
+    "checked": false
+  },
+  "submission.checkNeeds": {
+    "text": "判定通过需要证据。判定不通过需要能重现失败的步骤。",
+    "from": "a pass needs evidence. a fail needs steps that show it failing.",
+    "checked": false
+  },
+  "submission.checkPass": {
+    "text": " 通过",
+    "from": " pass",
+    "checked": false
+  },
+  "submission.checks": {
+    "text": "检验",
+    "from": "checks",
+    "checked": false
+  },
+  "submission.checkText": {
+    "text": "你检验了什么，或者哪里不通过、怎么看到",
+    "from": "what you checked, or what fails and how to see it",
+    "checked": false
+  },
+  "submission.crumbsLabel": {
+    "text": "页面路径",
+    "from": "breadcrumb",
+    "checked": false
+  },
+  "submission.doneWhen": {
+    "text": "完成标准",
+    "from": "done when",
+    "checked": false
+  },
+  "submission.fail": {
+    "text": "不通过",
+    "from": "fail",
+    "checked": false
+  },
+  "submission.failIt": {
+    "text": "判定不通过",
+    "from": "fail it",
+    "checked": false
+  },
+  "submission.failLabel": {
+    "text": "哪里不通过，怎么看到",
+    "from": "what fails and how to see it",
+    "checked": false
+  },
+  "submission.failNote": {
+    "text": "需要输入密码确认。",
+    "from": "confirms with your password.",
+    "checked": false
+  },
+  "submission.failPlaceholder": {
+    "text": "哪里不通过、怎么看到：“怎么检验”的第 2 步在 windows 上崩溃。步骤…",
+    "from": "what fails and how to see it: step 2 of how to check crashes on windows. steps…",
+    "checked": false
+  },
+  "submission.failWarning": {
+    "text": "判定不通过会重置这个完成标准下的所有检验。运行和人工检验都要从头来，下一份提交从零开始。",
+    "from": "failing resets every check on this done test. the runs and the people check start over, and the next submission begins from zero.",
+    "checked": false
+  },
+  "submission.hashTitle": {
+    "text": "sha256 {hash}",
+    "from": "sha256 {hash}",
+    "checked": false
+  },
+  "submission.heading": {
+    "text": "提交 #{n}",
+    "from": "submission #{n}",
+    "checked": false
+  },
+  "submission.history": {
+    "text": "历史",
+    "from": "history",
+    "checked": false
+  },
+  "submission.historyBy": {
+    "text": "（{name}）",
+    "from": "by {name}",
+    "checked": false
+  },
+  "submission.historyChecked": {
+    "text": "检验",
+    "from": "checked",
+    "checked": false
+  },
+  "submission.historyFailed": {
+    "text": "没通过作者验收",
+    "from": "failed the author check",
+    "checked": false
+  },
+  "submission.historyPassed": {
+    "text": "通过",
+    "from": "passed",
+    "checked": false
+  },
+  "submission.historyReopened": {
+    "text": "因复现步骤重开",
+    "from": "reopened by a repro",
+    "checked": false
+  },
+  "submission.historySignedOff": {
+    "text": "验收",
+    "from": "signed off",
+    "checked": false
+  },
+  "submission.historySubmitted": {
+    "text": "提交",
+    "from": "submitted",
+    "checked": false
+  },
+  "submission.howToCheck": {
+    "text": "怎么检验",
+    "from": "how to check",
+    "checked": false
+  },
+  "submission.howToUse": {
+    "text": "使用方法",
+    "from": "how to use",
+    "checked": false
+  },
+  "submission.linked": {
+    "text": "链接",
+    "from": "linked",
+    "checked": false
+  },
+  "submission.links": {
+    "text": "链接",
+    "from": "links",
+    "checked": false
+  },
+  "submission.linksNote": {
+    "text": "每行一个：一个 url 和它的 sha256，或者一个仓库和完整的 commit id。判定通过至少需要一个链接，指向录像或重新运行的结果。",
+    "from": "one per line: a url and its sha256, or a repo and a full commit id. a pass needs at least one link, to a recording or a rerun.",
+    "checked": false
+  },
+  "submission.meta": {
+    "text": "提交给 {node} · 来自 {by} · {when} · 版本 {version}",
+    "from": "to {node} · by {by} · {when} · version {version}",
+    "checked": false
+  },
+  "submission.nothingLinked": {
+    "text": "没有链接",
+    "from": "nothing linked",
+    "checked": false
+  },
+  "submission.oneADay": {
+    "text": "每人每天只能提交一次。",
+    "from": "one submission per person per day.",
+    "checked": false
+  },
+  "submission.onlyYou": {
+    "text": "只有你能看到这个框",
+    "from": "only you see this box",
+    "checked": false
+  },
+  "submission.pageTitle": {
+    "text": "提交 #{n} · {title} · shwarm",
+    "from": "submission #{n} · {title} · shwarm",
+    "checked": false
+  },
+  "submission.pass": {
+    "text": "通过",
+    "from": "pass",
+    "checked": false
+  },
+  "submission.passIt": {
+    "text": "判定通过",
+    "from": "pass it",
+    "checked": false
+  },
+  "submission.passLabel": {
+    "text": "你检验了什么",
+    "from": "what you checked",
+    "checked": false
+  },
+  "submission.passNote": {
+    "text": "判定通过后，{title} 就算完成并关闭。需要输入密码确认。",
+    "from": "passing closes {title} as done. confirms with your password.",
+    "checked": false
+  },
+  "submission.passPlaceholder": {
+    "text": "你检验了什么：在一台干净的机器上跑了一遍，逐行对照了完成标准…",
+    "from": "what you checked: ran it on a clean machine and went through the done test line by line…",
+    "checked": false
+  },
+  "submission.pillApproved": {
+    "text": "已批准",
+    "from": "approved",
+    "checked": false
+  },
+  "submission.pillFailed": {
+    "text": "未通过",
+    "from": "failed",
+    "checked": false
+  },
+  "submission.pillInReview": {
+    "text": "审核中",
+    "from": "in review",
+    "checked": false
+  },
+  "submission.pillReopened": {
+    "text": "已重开",
+    "from": "reopened",
+    "checked": false
+  },
+  "submission.pillSuperseded": {
+    "text": "已被取代",
+    "from": "superseded",
+    "checked": false
+  },
+  "submission.pillWaitingOnAuthor": {
+    "text": "等作者处理",
+    "from": "waiting on author",
+    "checked": false
+  },
+  "submission.pillWaitingOnYou": {
+    "text": "等你处理",
+    "from": "waiting on you",
+    "checked": false
+  },
+  "submission.postCheck": {
+    "text": "发布检验",
+    "from": "post check",
+    "checked": false
+  },
+  "submission.release": {
+    "text": "发布信息",
+    "from": "release",
+    "checked": false
+  },
+  "submission.releaseVersion": {
+    "text": "版本 {version}",
+    "from": "version {version}",
+    "checked": false
+  },
+  "submission.signIn": {
+    "text": "登录",
+    "from": "sign in",
+    "checked": false
+  },
+  "submission.signInToCheck": {
+    "text": "{link}后就能检验这份提交。智能体用密钥发送运行报告。",
+    "from": "{link} to check this submission. agents send run reports with a key.",
+    "checked": false
+  },
+  "submission.signOff": {
+    "text": "你的验收",
+    "from": "your sign-off",
+    "checked": false
+  },
+  "submission.submissions": {
+    "text": "提交",
+    "from": "submissions",
+    "checked": false
+  },
+  "submission.supersededBy": {
+    "text": "已被 {link} 取代。这份提交上的检验会留在记录里。",
+    "from": "superseded by {link}. the checks on this submission stay on the record.",
+    "checked": false
+  },
+  "submission.tally": {
+    "text": "{done}/{total}",
+    "from": "{done} of {total}",
+    "checked": false
+  },
+  "submission.tallyDone": {
+    "text": "{done}/{total} · {title} 已完成",
+    "from": "{done} of {total} · {title} is done",
+    "checked": false
+  },
+  "submission.tallyPassedChecks": {
+    "text": "{done}/{total} · 所有检验都通过了",
+    "from": "{done} of {total} · every check passed",
+    "checked": false
+  },
+  "submission.tallyReopened": {
+    "text": "{done}/{total} · 已通过 · 因复现步骤重开",
+    "from": "{done} of {total} · passed · reopened by a repro",
+    "checked": false
+  },
+  "submission.tallyReset": {
+    "text": "已重置 · 等待新的提交",
+    "from": "reset · waiting for a new submission",
+    "checked": false
+  },
+  "submission.tallySuperseded": {
+    "text": "已被 #{n} 取代",
+    "from": "superseded by #{n}",
+    "checked": false
+  },
+  "submission.verifyToCheck": {
+    "text": "验证邮箱后才能检验这份提交。",
+    "from": "verify your email to check this submission.",
+    "checked": false
+  },
+  "submission.whatWasSubmitted": {
+    "text": "提交了什么",
+    "from": "what was submitted",
+    "checked": false
+  },
+  "submission.yourCall": {
+    "text": "其他检验都通过了。由你决定这份提交是否达到完成标准。",
+    "from": "every other check passed. you decide whether this submission meets the done test.",
+    "checked": false
+  },
+  "submission.yourCheck": {
+    "text": "你的检验",
+    "from": "your check",
+    "checked": false
+  }
+}

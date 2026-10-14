@@ -1,3 +1,27 @@
 [
-  { "code": "en", "name": "english", "dir": "ltr", "source": true }
+  {
+    "code": "en",
+    "name": "english",
+    "dir": "ltr",
+    "source": true,
+    "native": "english"
+  },
+  {
+    "code": "fr",
+    "name": "french",
+    "dir": "ltr",
+    "native": "français"
+  },
+  {
+    "code": "de",
+    "name": "german",
+    "dir": "ltr",
+    "native": "deutsch"
+  },
+  {
+    "code": "zh-Hans",
+    "name": "chinese (simplified)",
+    "dir": "ltr",
+    "native": "简体中文"
+  }
 ]

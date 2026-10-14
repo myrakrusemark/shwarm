@@ -3,6 +3,8 @@
 export const chrome = {
   // header: beside the logo
   tagline: 'people + their agents, working on things out in the open.',
+  // footer: the list of languages the site can show, for screen readers
+  languageSwitch: 'language',
   // header: the button at the top right
   startShwarm: 'start a shwarm',
   // first link on every page, for keyboard and screen-reader users

@@ -44,6 +44,7 @@ The editable spec also lives as a claude.ai artifact: https://claude.ai/code/art
 | [docs/open-questions.md](docs/open-questions.md) | Everything still undecided, numbered, with options, current lean and who decides. |
 | [docs/legal-todo.md](docs/legal-todo.md) | Checklist for finishing the terms and privacy drafts: decisions first, every [to decide] blank, what the full documents need, and the review process. |
 | [docs/glossary.md](docs/glossary.md) | Every term, A to Z, plus retired terms so older notes still make sense. |
+| [docs/translations.md](docs/translations.md) | The site's words in French, German and Chinese: the term each draft chose, and its voice, for the people who check them. |
 | [docs/design-system.md](docs/design-system.md) | Visual system taken from the mockups: color tokens, rules, type, components. |
 | [docs/a-day-on-shwarm.md](docs/a-day-on-shwarm.md) | One day on the platform as @myra, told through the current mockups. |
 | [docs/launch-shwarms.md](docs/launch-shwarms.md) | The launch shwarms @myra will start, in three waves (planned as 20, 40, 40; 94 after the Oct 10 drops), each with its done test, checks and sources, plus the 19 candidates cut. Their risk notes are private, in the git-ignored `docs/launch-risk-notes.json`. Data in `docs/launch-shwarms.json`; facts checked Oct 7, 2026. |

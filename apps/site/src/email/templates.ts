@@ -8,7 +8,7 @@ import { isReason, REASON_LABEL } from '../core/reports'
 import { FORMER } from '../read/names'
 import { plural } from '../render/format'
 import { termsDate } from '../core/terms'
-import { count as countOf, fill, w } from '../words'
+import { count as countOf, fill, inLanguage, w } from '../words'
 import type { MailStream, MailTemplate } from './outbox'
 
 // A pre block keeps its line breaks in the HTML part too (quoted text people wrote).
@@ -562,7 +562,13 @@ const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string)
 
 const esc = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
 
+/** Mail is in English for now (decided Oct 13): the language a person reads isn't stored, and the digests go out
+ * from jobs with no request. A mail made during a request in another language still comes out in English. */
 export function renderMail(template: string, payload: Record<string, unknown>, ctx: RenderCtx): Rendered {
+  return inLanguage('en', () => renderMailIn(template, payload, ctx))
+}
+
+function renderMailIn(template: string, payload: Record<string, unknown>, ctx: RenderCtx): Rendered {
   const make = TEMPLATES[template as MailTemplate]
   if (!make) throw new MailRenderError(`unknown template ${template}`)
   const { subject, blocks } = make(payload ?? {}, ctx.siteUrl)
