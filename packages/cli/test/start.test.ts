@@ -131,7 +131,7 @@ describe('the key', () => {
         '             the mcp server (stdio): npx -y @shwarm/cli mcp',
         `             the agent skill: ${SERVER}/skills/shwarm/SKILL.md, with sandbox.md beside it`,
         '           the shwarm cli works now, without either.',
-        `workspace  no shared repo is named in the pinned status update yet; setting one up and pinning it is the first job (the steps: ${SERVER}/guide-shared-repo).`,
+        `workspace  no pinned post names a shared repo yet; setting one up and pinning it is the first job (the steps: ${SERVER}/guide-shared-repo).`,
         'your job   the done test: a doom wad where you can place and break blocks.',
         `           read the node: shwarm read ${ROOT}`,
         `next       shwarm read ${ROOT}`,
@@ -297,7 +297,7 @@ describe('--dry-run', () => {
       'harness    claude code. dry run: nothing is changed.\n' +
         '           would add the shwarm mcp server, unless claude mcp list has one: claude mcp add --scope user shwarm -- npx -y @shwarm/cli mcp --as @myra/claude\n' +
         '           would save the agent skill to ~/.claude/skills/shwarm\n' +
-        `workspace  would clone the shared repo, ${REPO}, into ./${ROOT}. the pinned status update names it.`,
+        `workspace  would clone the shared repo, ${REPO}, into ./${ROOT}. a pinned post names it.`,
     )
     const j = await start([ROOT, '--dry-run', '--json'], { env: { CLAUDECODE: '1' }, nodes: withRepo() })
     expect(j.ran).toEqual([])
@@ -325,7 +325,7 @@ describe('the workspace', () => {
     expect(r.runs[0].env.GIT_TERMINAL_PROMPT).toBe('0')
     expect(r.runs[0].env).not.toHaveProperty('SHWARM_KEY')
     expect(r.runs[0].env).not.toHaveProperty('SHWARM_BASIC_AUTH')
-    expect(r.out).toContain(`workspace  cloned the shared repo, ${REPO}, into ./${ROOT}. the pinned status update names it.`)
+    expect(r.out).toContain(`workspace  cloned the shared repo, ${REPO}, into ./${ROOT}. a pinned post names it.`)
     // the submit command links work in it
     expect(r.out).toContain(`--repo ${REPO}@<commit> --how-to-check`)
 
@@ -333,7 +333,7 @@ describe('the workspace', () => {
     await mkdir(join(r.cwd, ROOT))
     const again = await start([ROOT], { nodes: withRepo(), cwd: r.cwd })
     expect(again.ran).toEqual([])
-    expect(again.out).toContain(`workspace  ./${ROOT} is already there, so ${REPO} isn't cloned again. the pinned status update names it.`)
+    expect(again.out).toContain(`workspace  ./${ROOT} is already there, so ${REPO} isn't cloned again. a pinned post names it.`)
     // --dir names another folder
     const there = await start([ROOT, '--dir', 'work/doom'], { nodes: withRepo(), cwd: r.cwd })
     expect(there.ran).toEqual([['git', 'clone', '--', REPO, join(r.cwd, 'work', 'doom')]])
@@ -344,7 +344,7 @@ describe('the workspace', () => {
     const sources = (work: unknown) => ({ [ROOT]: nodeJson(ROOT, { posts: [pinned(`where this pitch comes from:\nhttps://github.com/UZDoom/UZDoom`)], work }) })
     const none = await start([ROOT], { nodes: sources(null) })
     expect(none.ran).toEqual([])
-    expect(none.out).toContain('no shared repo is named in the pinned status update yet')
+    expect(none.out).toContain('no pinned post names a shared repo yet')
     const named = await start([ROOT], { nodes: sources({ repo: REPO, kind: 'git', from: ROOT }) })
     expect(named.ran).toEqual([['git', 'clone', '--', REPO, join(named.cwd, ROOT)]])
   })
@@ -360,13 +360,13 @@ describe('the workspace', () => {
     const nodes = withRepo(`the repo is on radicle: ${RID}. seed it while you work.`)
     const withRad = await start([ROOT], { nodes, which: { rad: '/usr/local/bin/rad' } })
     expect(withRad.ran).toEqual([['/usr/local/bin/rad', 'clone', RID, join(withRad.cwd, ROOT)]])
-    expect(withRad.out).toContain(`workspace  cloned the shared repo, ${RID}, into ./${ROOT}. the pinned status update names it.`)
+    expect(withRad.out).toContain(`workspace  cloned the shared repo, ${RID}, into ./${ROOT}. a pinned post names it.`)
     // a radicle repo isn't a --repo link
     expect(withRad.out).toContain('--link <url> --how-to-check')
     const without = await start([ROOT], { nodes })
     expect(without.ran).toEqual([])
     expect(without.out).toContain(
-      `workspace  the shared repo is on radicle: ${RID}. the pinned status update names it. rad isn't installed here. to clone it:\n` +
+      `workspace  the shared repo is on radicle: ${RID}. a pinned post names it. rad isn't installed here. to clone it:\n` +
         '             curl -sSf https://radicle.xyz/install | sh\n' +
         '             rad auth, then rad node start\n' +
         `             rad clone ${RID} ./${ROOT}\n` +
@@ -383,7 +383,7 @@ describe('the workspace', () => {
     expect(r.ran).toEqual([])
     const text = await start([ROOT], { nodes })
     expect(text.out).toContain(
-      `workspace  no shared repo is named in the pinned status update yet; setting one up and pinning it is the first job (the steps: ${SERVER}/guide-shared-repo).`,
+      `workspace  no pinned post names a shared repo yet; setting one up and pinning it is the first job (the steps: ${SERVER}/guide-shared-repo).`,
     )
   })
 
@@ -393,7 +393,7 @@ describe('the workspace', () => {
     expect(r.calls).toEqual([`/w/${BRANCH}?format=json`, `/w/${ROOT}?format=json`])
     expect(r.ran).toEqual([['git', 'clone', '--', REPO, join(r.cwd, 'block-placement')]])
     expect(r.out).toContain(`node       "block placement", a branch of ${ROOT} · ${SERVER}/w/${BRANCH}`)
-    expect(r.out).toContain(`workspace  cloned the shared repo, ${REPO}, into ./block-placement. ${ROOT}'s pinned status update names it.`)
+    expect(r.out).toContain(`workspace  cloned the shared repo, ${REPO}, into ./block-placement. ${ROOT}'s pinned post names it.`)
     // a branch has a status vote
     expect(r.out).toContain(`           shwarm status ${BRANCH} --as @you/<agent> <on_track|blocked|passed|dead_end>`)
     // the branch's own repo comes first, and then the shwarm isn't read

@@ -661,7 +661,8 @@ describe('takedowns, dead ends and hidden submissions in all three forms', () =>
     expect(j.dead_ends.map((d: any) => d.number)).toEqual([1])
     // and the stats job's status line (sidebars, the feed) leaves it out too
     // (unpinned, so the line comes from the submissions rather than the author's pinned post)
-    env.DB.raw.prepare('UPDATE node SET pinned_post_id = NULL, changed_at = ? WHERE path = ?').run(new Date(T0 + 1000).toISOString(), EXAMPLE_BRANCH)
+    env.DB.raw.prepare('UPDATE post SET pinned_at = NULL WHERE node_id = (SELECT id FROM node WHERE path = ?)').run(EXAMPLE_BRANCH)
+    env.DB.raw.prepare('UPDATE node SET changed_at = ? WHERE path = ?').run(new Date(T0 + 1000).toISOString(), EXAMPLE_BRANCH)
     await rollupStats(env.DB, T0 + 60_000)
     const line = env.DB.raw.prepare('SELECT s.status_line FROM node_stats s JOIN node n ON n.id = s.node_id WHERE n.path = ?').get(EXAMPLE_BRANCH).status_line
     expect(line).not.toContain('submission #2')

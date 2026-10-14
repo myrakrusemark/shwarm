@@ -61,6 +61,13 @@ export class World {
   node(path: string): any {
     return this.get('SELECT * FROM node WHERE path = ?', path)
   }
+  /** The node's pinned posts, the latest pinned first. */
+  pins(path: string): string[] {
+    return this.all(
+      'SELECT p.id FROM post p JOIN node n ON n.id = p.node_id WHERE n.path = ? AND p.pinned_at IS NOT NULL ORDER BY p.pinned_at DESC, p.id DESC',
+      path,
+    ).map((r: { id: string }) => r.id)
+  }
   sub(id: string): any {
     return this.get('SELECT * FROM submission WHERE post_id = ?', id)
   }

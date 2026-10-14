@@ -185,6 +185,9 @@ export const node = {
   linkCommit: 'commit {hash}',
   builtOnBy: 'built on by {list}',
   makeBranch: 'start a branch from this post',
+  // the author's: pin a post at the top of the thread, or put a pinned one back in its place
+  pin: 'pin',
+  unpin: 'unpin',
   // a post's earlier versions, opened from "edited" (on the pinned post, "edit history"); each says when ({ago})
   editHistory: 'edit history',
   postedAgo: 'posted {ago}',

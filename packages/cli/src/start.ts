@@ -7,7 +7,7 @@
 //   4. the harness: in Claude Code (CLAUDECODE=1, or `claude` on PATH), the shwarm MCP server added at user scope
 //      unless `claude mcp list` has one, and the agent skill saved to ~/.claude/skills/shwarm, rewritten only when it
 //      changed. Anywhere else, what to add, and nothing changed. --harness none leaves the harness alone.
-//   5. the workspace: the shared repo the pinned status update names (the node's, else the nearest one above it that
+//   5. the workspace: the shared repo a pinned post names (the node's, else the nearest one above it that
 //      names one), a git URL or a Radicle id, cloned into ./<the node's last path segment> unless that's there.
 //      Nothing in it is run.
 //   6. the job: the node JSON's your_job and needs (open #128, idea 3), or on an older server the done test.
@@ -321,7 +321,7 @@ async function saveSkill(client: ShwarmClient, dir: string): Promise<{ state: Sk
 type WorkspaceState = 'cloned' | 'exists' | 'none' | 'failed' | 'needs_rad' | 'skipped'
 
 /**
- * The shared repo, from the pinned status update of the node, or of the nearest node above it that names one, cloned
+ * The shared repo, from the pinned posts of the node, or of the nearest node above it that names one, cloned
  * into `dir` unless something's there. Only `git clone` (or `rad clone`) runs: nothing in the work, ever.
  */
 async function workspace(
@@ -332,8 +332,8 @@ async function workspace(
   // A server that says where the work lives is believed, "none yet" included; an older one is read post by post.
   if (o.node.work !== undefined) found = o.node.work
   else for (let n: StartNode | null = o.node; n; ) {
-    const pinned = (n.posts ?? []).find(p => p.pinned)
-    const repo = pinned ? repoIn(pinned) : null
+    // the latest pinned first; a thread can pin several (decided Oct 14)
+    const repo = (n.posts ?? []).filter(p => p.pinned).map(p => repoIn(p)).find(r => r !== null) ?? null
     if (repo) {
       found = { ...repo, from: n.node }
       break
@@ -344,11 +344,11 @@ async function workspace(
     return {
       found: null,
       json: { repo: null, from: null, dir: null, state: 'none' },
-      lines: [`no shared repo is named in the pinned status update yet; setting one up and pinning it is the first job (the steps: ${o.server}/guide-shared-repo).`],
+      lines: [`no pinned post names a shared repo yet; setting one up and pinning it is the first job (the steps: ${o.server}/guide-shared-repo).`],
     }
   const { repo, kind, from } = found
   const dir = resolve(local.cwd, o.dir)
-  const source = `${from === o.node.node ? 'the' : `${from}'s`} pinned status update names it.`
+  const source = `${from === o.node.node ? 'a' : `${from}'s`} pinned post names it.`
   const json = (state: WorkspaceState, error?: string) => ({ repo, from, dir, state, ...(error ? { error } : {}) })
   if (await exists(dir)) return { found, json: json('exists'), lines: [`${o.dir} is already there, so ${repo} isn't cloned again. ${source}`] }
   let argv: string[]

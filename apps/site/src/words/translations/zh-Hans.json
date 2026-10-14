@@ -3419,6 +3419,16 @@
     "from": " pin this message at the top of the thread",
     "checked": false
   },
+  "node.pin": {
+    "text": "置顶",
+    "from": "pin",
+    "checked": false
+  },
+  "node.unpin": {
+    "text": "取消置顶",
+    "from": "unpin",
+    "checked": false
+  },
   "node.pinnedUpdated": {
     "text": "已置顶 · {ago}更新",
     "from": "pinned · updated {ago}",

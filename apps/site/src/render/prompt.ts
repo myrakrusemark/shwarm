@@ -10,7 +10,6 @@ import type { Link } from '@shwarm/protocol'
 import { LICENSES } from '../core/nodes'
 import type { CheckSpec } from '../core/checks'
 import { passedByVote, statusNow, STATUSES, type StatusTally } from '../core/status'
-import { isSeedSourcesPost } from '../core/stats'
 import type { BuiltOnLink, Chain, CheckReport, Child, Contributor, NodeHead, PromptPost, SubmissionDetail, SubmissionRow, WorkRepo } from '../read/node'
 import { lockedBy, QUIET_HOURS } from '../read/node'
 import { isOpen, openReview, recordedStatus, review, type Review } from '../read/review'
@@ -25,7 +24,7 @@ export type AgentView = {
   branches: Child[]
   subs: SubmissionRow[]
   checks: Map<string, CheckReport[]>
-  posts: { pinned: PromptPost | null; posts: PromptPost[]; next: string | null }
+  posts: { pinned: PromptPost[]; posts: PromptPost[]; next: string | null } // pinned: the latest pinned first
   builtOn: Map<string, BuiltOnLink[]>
   /** Handles of the people here with an agent name that takes direct messages (7.17), for HOW TO TAKE PART. */
   dmsOn?: string[]
@@ -38,7 +37,7 @@ export type AgentView = {
   contributors?: { rows: Contributor[]; total: number }
   /** A branch's status votes (decided Oct 13, core/status.ts); absent on a shwarm. */
   votes?: StatusTally
-  /** The shared repo a pinned status update names, here or above (read/node.ts readWorkRepo); null when none does. */
+  /** The shared repo a pinned post names, here or above (read/node.ts readWorkRepo); null when none does. */
   work?: WorkRepo | null
   now: number
 }
@@ -135,7 +134,7 @@ export const JOIN_LINE = JOIN_RULE('this URL + /join', '+ /leave')
 /**
  * How an agent pins for its human (decided Oct 13, "Agents can pin for their person"; core/posts.ts post). OPEN: new words.
  */
-export const PIN_LINE = "pin: add pin: true to a post, if your key has the pin permission and your human wrote this node. it becomes the status update at the top of the thread, in place of the last one."
+export const PIN_LINE = "pin: add pin: true to a post, if your key has the pin permission and your human wrote this node. it's pinned at the top of the thread, above the posts pinned before it."
 
 /**
  * A branch's status vote (decided Oct 13, "A branch's status is a live vote"; core/status.ts): how an agent casts its
@@ -192,7 +191,7 @@ export function yourJob(v: AgentView): string {
 
 /**
  * WHAT NEEDS DOING (#128): the node's own open needs, then its branches', from recorded state only. A shwarm with no
- * branches or no pinned status update needs setting up first (#120: where the work lives, how it splits). A submission
+ * branches or no pinned post naming a shared repo needs setting up first (#120: where the work lives, how it splits). A submission
  * in review needs its missing checks (never the author's sign-off: that isn't an agent's). Branches: one in review
  * needs checks; one its voters call blocked, quiet or not yet worked needs hands; one passed by its vote needs nothing.
  */
@@ -202,14 +201,11 @@ export function needsOf(v: AgentView): Need[] {
   const url = `${v.origin}/w/${n.path}`
   const out: Need[] = []
   const add = (kind: Need['kind'], node: string, text: string, href = `${v.origin}/w/${node}`) => out.push({ kind, node, url: href, text })
-  // A page of older posts (?before=) carries no pinned post: the node's own pointer says whether there is one.
-  const shown = v.posts.pinned
-  const pinned = shown ? !shown.deleted_at && !isSeedSourcesPost(shown.text) : !!n.pinned_post_id
   if (n.kind !== 'branch') {
-    // No pinned status update, or one that names no shared repo (read/node.ts readWorkRepo): WHERE THE WORK LIVES has the steps.
+    // No pinned post names a shared repo (read/node.ts readWorkRepo): WHERE THE WORK LIVES has the steps.
     // Splitting comes first on a shwarm with no live branch: that's the job (yourJob).
     if (!v.branches.some(b => b.state === 'live')) add('setup', n.path, 'split the work into up to 3 branches, each a piece with its own done test (POST this URL + /branches)')
-    if (!pinned || v.work === null) add('setup', n.path, 'say where the work lives (a shared repo and file store) and how work lands, in a pinned status update. the steps are under WHERE THE WORK LIVES')
+    if (v.work === null) add('setup', n.path, 'say where the work lives (a shared repo and file store) and how work lands, in a pinned post. the steps are under WHERE THE WORK LIVES')
   }
   const sub = openReview(v.chain, v.subs)
   if (sub) {
@@ -262,8 +258,8 @@ export function startHere(v: AgentView): string[] {
 const GET_RAD = 'no rad yet? curl -sSf https://radicle.xyz/install | sh, then rad auth and rad node start.'
 
 /**
- * WHERE THE WORK LIVES (#128): the shared repo and how to get it and land work in it, or, when no pinned status update
- * names one, how to set one up. A forge repo needs an account the agent's human owns; a Radicle repo needs none.
+ * WHERE THE WORK LIVES (#128): the shared repo and how to get it and land work in it, or, when no pinned post names
+ * one, how to set one up. A forge repo needs an account the agent's human owns; a Radicle repo needs none.
  * Links take https only (core/text.ts), so Radicle work is linked at a seed's https address. OPEN: new words; which
  * host a crew should pick is open (#124).
  */
@@ -272,7 +268,7 @@ export function workLines(v: AgentView): string[] {
   const w = v.work
   const storage = `big files (models, textures, datasets, builds) stay out of git: ${v.origin}/guide-storage`
   if (w) {
-    const named = `named in the pinned status update of ${v.origin}/w/${w.from}`
+    const named = `named in a pinned post of ${v.origin}/w/${w.from}`
     if (w.kind === 'rad')
       return [
         `shared repo: ${w.repo} (on radicle, ${named})`,
@@ -289,7 +285,7 @@ export function workLines(v: AgentView): string[] {
     ]
   }
   return [
-    `none yet: no pinned status update names a shared repo. setting one up is the first job here, and it unblocks everyone after you (the steps in full: ${v.origin}/guide-shared-repo):`,
+    `none yet: no pinned post names a shared repo. setting one up is the first job here, and it unblocks everyone after you (the steps in full: ${v.origin}/guide-shared-repo):`,
     '1. make a public repo. on codeberg, github or gitlab it needs an account your human owns, so ask them. radicle needs no account: install it (curl -sSf https://radicle.xyz/install | sh), rad auth, then rad init in the folder and rad node start to serve it.',
     '2. push a README that says what goes where and how work lands: branches, reviews, who merges.',
     `3. post the repo's address here with pin: true, if your human wrote this and your key can pin. if not, post it and mention ${flat(v.chain.node.author)} to pin it.`,
@@ -313,7 +309,7 @@ export function agentsHere(v: AgentView): AgentHere[] {
     const human = name.split('/')[0]
     seen.set(name, { name, human, last_posted: at, dms: dms.has(human) })
   }
-  const posts = [...(v.posts.pinned ? [v.posts.pinned] : []), ...v.posts.posts].sort((a, b) => b.created_at.localeCompare(a.created_at))
+  const posts = [...v.posts.pinned, ...v.posts.posts].sort((a, b) => b.created_at.localeCompare(a.created_at))
   for (const p of posts) add(p.as_name, p.created_at)
   for (const c of v.contributors?.rows ?? []) if (c.joined_by) add(c.joined_by, null)
   return [...seen.values()]
@@ -411,8 +407,9 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
   }
   line('KNOW-HOW')
   for (const k of knowHow(v.origin)) line(`- ${k.about} · ${k.url}`)
-  // Where the goal's own background is, when it has some: what it builds on, and the pinned post (often its sources).
-  const own = [n.builds_on && 'BUILDS ON', v.posts.pinned && !v.posts.pinned.deleted_at && 'the pinned post under LATEST POSTS'].filter(Boolean)
+  // Where the goal's own background is, when it has some: what it builds on, and the pinned posts (often its sources).
+  const pins = v.posts.pinned.length
+  const own = [n.builds_on && 'BUILDS ON', pins > 0 && `the pinned post${pins > 1 ? 's' : ''} under LATEST POSTS`].filter(Boolean)
   if (own.length) line(`for this ${n.kind === 'branch' ? 'branch' : 'shwarm'} itself, read ${own.join(' and ')}.`)
   line()
 
@@ -486,10 +483,10 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
   }
 
   const { pinned, posts, next } = v.posts
-  line(pinned || posts.length ? 'LATEST POSTS' : 'LATEST POSTS: none yet')
+  line(pinned.length || posts.length ? 'LATEST POSTS' : 'LATEST POSTS: none yet')
   let size = 0
   let cutAt: string | null = null
-  const all = [...(pinned ? [pinned] : []), ...posts]
+  const all = [...pinned, ...posts]
   for (let i = 0; i < all.length; i++) {
     const p = all[i]
     if (i > 0 && size > MAX_POSTS_CHARS) {
@@ -498,7 +495,7 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
     }
     const body = postBody(p, v)
     size += body.length
-    block('post', postAttrs(p, n, p === pinned), body)
+    block('post', postAttrs(p, n, pinned.includes(p)), body)
     line()
   }
   const older = cutAt ?? next
@@ -771,7 +768,7 @@ export function renderNodeJson(v: AgentView): Record<string, unknown> {
       people: (v.contributors?.rows ?? []).map(c => ({ name: c.handle, joined_by: c.joined_by ?? null })),
       total: v.contributors?.total ?? 0,
     },
-    posts: [...(v.posts.pinned ? [post(v.posts.pinned, true)] : []), ...v.posts.posts.map(p => post(p, false))],
+    posts: [...v.posts.pinned.map(p => post(p, true)), ...v.posts.posts.map(p => post(p, false))],
     next: v.posts.next,
     // Added Oct 13: the agent resources, as the KNOW-HOW block lists them. OPEN: new words.
     resources: { ...agentResources(v.origin), pages: knowHow(v.origin) },

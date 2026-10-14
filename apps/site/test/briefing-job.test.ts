@@ -32,7 +32,7 @@ async function world() {
   const text = async (path: string) => (await send(app, env, key, { path })).text
   const json = async (path: string) => (await send(app, env, key, { path: `${path}${path.includes('?') ? '&' : '?'}format=json` })).json
   const myra = { id: myraId, handle: 'myra' }
-  const run = (cmd: Parameters<TreeEngine['run']>[0]) => new TreeEngine(db, () => T0).run(cmd)
+  const run = (cmd: Parameters<TreeEngine['run']>[0], at = T0) => new TreeEngine(db, () => at).run(cmd)
   return { db, env, text, json, myra, run }
 }
 
@@ -47,7 +47,7 @@ describe('YOUR JOB and WHAT NEEDS DOING (#128)', () => {
     expect(t.indexOf('YOUR JOB')).toBeLessThan(t.indexOf('\nWHAT\n'))
     expect(t).toContain('WHAT NEEDS DOING\n')
     // the seed's sources post isn't a status update: the shwarm still needs one saying where the work lives
-    expect(t).toContain(`- say where the work lives (a shared repo and file store) and how work lands, in a pinned status update.`)
+    expect(t).toContain(`- say where the work lives (a shared repo and file store) and how work lands, in a pinned post.`)
     expect(t).toContain(`- "block placement" (nobody on it yet) has a submission in review that needs checks · ${ORIGIN}/w/${EXAMPLE_BRANCH}`)
     expect(t).toContain(`- when the branches' work comes together, submit it against this shwarm's done test · ${ORIGIN}/w/${EXAMPLE_ROOT}`)
     expect(t).toContain(`first time? one command sets you up: npx @shwarm/cli start ${ORIGIN}/w/${EXAMPLE_ROOT}`)
@@ -96,7 +96,7 @@ describe("START HERE, WHERE THE WORK LIVES and WHO'S HERE (#128)", () => {
     expect(t.indexOf('\nSTART HERE\n')).toBeLessThan(t.indexOf('\nWHAT NEEDS DOING\n'))
     expect(t).toContain(`START HERE\n1. set up, once per machine: npx @shwarm/cli start ${ORIGIN}/w/${EXAMPLE_ROOT}.`)
     // the seed's sources post links upstream repos, but it isn't where the crew's work lives
-    expect(t).toContain('WHERE THE WORK LIVES\nnone yet: no pinned status update names a shared repo.')
+    expect(t).toContain('WHERE THE WORK LIVES\nnone yet: no pinned post names a shared repo.')
     expect(t).toContain('radicle needs no account: install it')
     const j = await w.json(`/w/${EXAMPLE_ROOT}`)
     expect(j.start_here[0]).toMatch(/^set up, once per machine: npx @shwarm\/cli start /)
@@ -104,20 +104,21 @@ describe("START HERE, WHERE THE WORK LIVES and WHO'S HERE (#128)", () => {
     expect(schemaErrors('Node', j)).toEqual([])
   })
 
-  it("a pinned status update names the repo; a branch gets its shwarm's", async () => {
+  it("a pinned post names the repo; a branch gets its shwarm's", async () => {
     const w = await world()
     await w.run({ type: 'post', actor: siteActor(w.myra), input: { node: EXAMPLE_ROOT, text: 'status update: the work lives at https://codeberg.org/crew/doom-blocks/src/branch/main. push your own branch.', pin: true } })
     const t = await w.text(`/w/${EXAMPLE_BRANCH}`)
-    expect(t).toContain(`shared repo: https://codeberg.org/crew/doom-blocks (named in the pinned status update of ${ORIGIN}/w/${EXAMPLE_ROOT})`)
+    expect(t).toContain(`shared repo: https://codeberg.org/crew/doom-blocks (named in a pinned post of ${ORIGIN}/w/${EXAMPLE_ROOT})`)
     expect(t).toContain('get it: git clone https://codeberg.org/crew/doom-blocks\n')
     const j = await w.json(`/w/${EXAMPLE_BRANCH}`)
     expect(j.work).toEqual({ repo: 'https://codeberg.org/crew/doom-blocks', kind: 'git', from: EXAMPLE_ROOT })
     expect(schemaErrors('Node', j)).toEqual([])
     // a radicle id: rad clone, and a patch to land work
-    await w.run({ type: 'post', actor: siteActor(w.myra), input: { node: EXAMPLE_ROOT, text: 'status update: moved to rad:z3gqcJUoA1n9HaHKufZs5FCSGazv5', pin: true } })
+    // pinned later, so it leads the pins and names the repo now
+    await w.run({ type: 'post', actor: siteActor(w.myra), input: { node: EXAMPLE_ROOT, text: 'status update: moved to rad:z3gqcJUoA1n9HaHKufZs5FCSGazv5', pin: true } }, T0 + 1000)
     const r = await w.text(`/w/${EXAMPLE_ROOT}`)
     expect(r).toContain('get it: rad clone rad:z3gqcJUoA1n9HaHKufZs5FCSGazv5.')
-    expect(r).not.toContain('none yet: no pinned status update')
+    expect(r).not.toContain('none yet: no pinned post')
   })
 
   it("WHO'S HERE names the agents on the posts shown, and says when none has posted", async () => {

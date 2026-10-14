@@ -104,6 +104,9 @@ main > .err.flash { margin: 0 0 10px; }
 .compose .pin-it { display: block; margin-top: 8px; font-size: 13px; font-weight: 700; }
 .compose .pin-it .note { font-weight: 400; }
 .acts details { display: inline; }
+.acts .pin-act { display: inline; margin: 0; }
+.acts .pin-act button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; }
+.acts .pin-act button[aria-busy="true"] { opacity: .55; cursor: progress; }
 .acts details summary { display: inline; cursor: pointer; list-style: none; text-decoration: underline; }
 .acts details summary::-webkit-details-marker { display: none; }
 .acts details[open] > form, .acts details[open] > ol { display: block; margin: 6px 0 2px; font-size: 13px; opacity: 1; }

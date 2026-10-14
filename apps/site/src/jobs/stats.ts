@@ -65,8 +65,6 @@ type NodeRow = {
   author_id: number
   dead_end_note: string | null
   created_at: string
-  pinned: string | null
-  pinned_by_seed: number // 1 when the pinned post is the launch seed's sources post (core/stats isSeedSourcesPost)
 }
 
 export type NodeStats = {
@@ -181,13 +179,20 @@ export async function computeNodes(db: D1Database, ids: number[], now: number, r
   const decayed = (col: string, half: string) => `pow(0.5, (julianday(?2) - julianday(${col})) * 24.0 / ${half})`
 
   const nodes = await all<NodeRow>(
-    // The seed (A18) creates a node and pins its sources post in one go at the same clock time, as the author with no
-    // key; that post never sets the status line (table B #40, see core/stats statusLine).
-    `SELECT n.id, n.path, n.kind, n.state, n.author_id, n.dead_end_note, n.created_at, pp.text AS pinned,
-            COALESCE(n.seeded = 1 AND pp.person_id = n.author_id AND pp.key_id IS NULL AND pp.created_at = n.created_at
-                     AND pp.edited_at IS NULL, 0) AS pinned_by_seed
-     FROM node n LEFT JOIN post pp ON pp.id = n.pinned_post_id AND pp.node_id = n.id AND pp.hidden = 0 WHERE n.id ${IN}`,
+    `SELECT n.id, n.path, n.kind, n.state, n.author_id, n.dead_end_note, n.created_at FROM node n WHERE n.id ${IN}`,
   )
+  // The pinned posts, the latest pinned first (decided Oct 14, "A thread can pin several posts"). The seed (A18) creates
+  // a node and pins its sources post in one go at the same clock time, as the author with no key; that post never sets
+  // the status line (table B #40, see core/stats statusLine).
+  const pins = await all<{ node_id: number; text: string; by_seed: number }>(
+    `SELECT pp.node_id, pp.text,
+            (n.seeded = 1 AND pp.person_id = n.author_id AND pp.key_id IS NULL AND pp.created_at = n.created_at AND pp.edited_at IS NULL) AS by_seed
+     FROM post pp JOIN node n ON n.id = pp.node_id
+     WHERE pp.node_id ${IN} AND pp.pinned_at IS NOT NULL AND pp.hidden = 0 AND pp.deleted_at IS NULL
+     ORDER BY pp.pinned_at DESC, pp.id DESC`,
+  )
+  const pinsBy = new Map<number, { text: string; bySeed: boolean }[]>()
+  for (const p of pins) (pinsBy.get(p.node_id) ?? pinsBy.set(p.node_id, []).get(p.node_id)!).push({ text: p.text, bySeed: p.by_seed === 1 })
   // People (table B #44): everyone who joined (said they're working on it), humans who posted (themselves or by agent) in the last 7 days, and the author.
   const people = await all<{ node_id: number; n: number }>(
     `SELECT node_id, COUNT(*) AS n FROM (
@@ -308,8 +313,7 @@ export async function computeNodes(db: D1Database, ids: number[], now: number, r
       status_line: statusLine({
         kind: n.kind,
         state: n.state,
-        pinned: n.pinned,
-        pinnedBySeed: n.pinned_by_seed === 1,
+        pins: pinsBy.get(n.id) ?? [],
         deadEndNote: n.dead_end_note,
         submissions: subsBy.get(n.id) ?? [],
         branches: { live: br?.live ?? 0, closed: br?.closed ?? 0 },

@@ -438,7 +438,7 @@ export async function actOnPost(db: D1Database, by: Admin, id: string, act: unkn
     // A hidden pinned post leaves the feed's status line at once, as a deleted one does (core/posts.ts deletePost); the
     // stats job fills the line in again. It stays pinned, so restoring it brings it back.
     ...(hide
-      ? [db.prepare("UPDATE node_stats SET status_line = '' WHERE node_id = ?1 AND EXISTS (SELECT 1 FROM node WHERE id = ?1 AND pinned_post_id = ?2)").bind(p.node_id, p.id)]
+      ? [db.prepare("UPDATE node_stats SET status_line = '' WHERE node_id = ?1 AND EXISTS (SELECT 1 FROM post WHERE id = ?2 AND pinned_at IS NOT NULL)").bind(p.node_id, p.id)]
       : []),
     ...end,
     // The parent's branch list shows a dead end's note, so its page moves too.
@@ -457,7 +457,7 @@ function deadEndNoteStatements(
   hide: boolean,
   was: { sql: string; args: unknown[] },
 ): D1PreparedStatement[] {
-  const line = (note: string) => statusLine({ state: 'dead_end', pinned: null, deadEndNote: note, submissions: [], branches: { live: 0, closed: 0 } })
+  const line = (note: string) => statusLine({ state: 'dead_end', pins: [], deadEndNote: note, submissions: [], branches: { live: 0, closed: 0 } })
   const [from, to] = hide ? [p.text, ''] : ['', p.text]
   return [
     db.prepare(`UPDATE node SET dead_end_note = ? WHERE id = ? AND state = 'dead_end' AND ${was.sql}`).bind(to, p.node_id, ...was.args),

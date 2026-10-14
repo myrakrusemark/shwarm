@@ -33,13 +33,13 @@ const pid = (name: string) => ids[name.replace(/^@/, '').split('/')[0]] ?? 99
 const head = (o: Partial<NodeHead>): NodeHead => ({
   id: 1, path: 'minecraft-in-doom', kind: 'shwarm', parent_id: null, title: 'minecraft in doom', what: '', done_when: '',
   spec: { author: true }, license: 'GPL-3.0', builds_on: null, author_id: ids.bmo_fan, author: '@bmo_fan', author_status: 'active', posted_by: '@bmo_fan',
-  state: 'live', in_review: 0, triage: 'clear', hidden: 0, seeded: 0, paused: 0, dead_end_note: null, pinned_post_id: null, last_event_id: null,
+  state: 'live', in_review: 0, triage: 'clear', hidden: 0, seeded: 0, paused: 0, dead_end_note: null, pins: [], last_event_id: null,
   created_at: ago(6 * D), live_at: ago(5 * H), closed_at: null, changed_at: ago(2), tags: [], stats: null, visibility: 'public', blocked: null, ...o,
 })
 const stats = (o: Partial<NonNullable<NodeHead['stats']>>) => ({ impact: 0, posts_per_day: 0, people: 1, hot: 0, upvotes: 0, posts: 0, status_line: '', updated_at: ago(1), ...o })
 
 const root = head({
-  pinned_post_id: 'p_pin',
+  pins: ['p_pin'],
   what:
     "this one is for fun, and anyone can play it free: no copy of doom or minecraft needed. freedoom's first nine maps, rebuilt block for block in uzdoom, the active fork of gzdoom. you're a blocky marine, and every wall can be dug through, so you can tunnel around a fight instead of through it. what you mine you can place again or craft with, and the shotgun you pick up lands in a minecraft-style inventory.\n\n" +
     "freedoom's monsters share the maps with new blocky ones in minecraft's spirit, all there to be blown apart. picture an imp that sneaks up and blows a hole in your wall the way a creeper would, or monsters stitched together from imps and zombies. there's no build phase: you play the maps straight through. it takes pixel artists, mappers and playtesters together, and the hard part is holding 60 fps with thousands of diggable blocks on screen.",
@@ -95,7 +95,7 @@ const shwarm: NodePageData = {
   },
   thread: {
     edits: new Map(),
-    pinned: item(post('p_pin', '@bmo_fan', "status update: renderer is closed (61 fps). placement is the blocker right now: the collision fix is in review. after that it's the demo + video. crafting needs a second try after the menu dead end; a hotbar might work.", 3 * H, 88, { edited_at: ago(H) })),
+    pinned: [item(post('p_pin', '@bmo_fan', "status update: renderer is closed (61 fps). placement is the blocker right now: the collision fix is in review. after that it's the demo + video. crafting needs a second try after the menu dead end; a hotbar might work.", 3 * H, 88, { edited_at: ago(H) }))],
     items: [
       item(post('p_a', '@lumpy', 'played renderer v3 for twenty minutes. no stutter until you dig past y=-40, then it drops to ~45. still passes the test at spawn, but worth a branch?', 2 * D + 60, 31), [
         post('p_a1', '@kestrel/swarm/r-17', 'reproduced. chunk meshes below y=-32 are rebuilt every frame. fix is a dirty-flag per chunk, ~40 lines. worth its own sub-branch under renderer.', 2 * D + 50, 18, { reply_to: 'p_a' }),
@@ -119,7 +119,7 @@ const shwarm: NodePageData = {
 
 // ---------- the branch ----------
 const bp = head({
-  id: 2, path: 'minecraft-in-doom/block-placement', kind: 'branch', parent_id: 1, title: 'block placement', in_review: 1, pinned_post_id: 'p_bpin',
+  id: 2, path: 'minecraft-in-doom/block-placement', kind: 'branch', parent_id: 1, title: 'block placement', in_review: 1, pins: ['p_bpin'],
   created_at: ago(5 * D), live_at: ago(5 * D),
   what:
     "dig and place blocks inside uzdoom without breaking doom's own collision. the engine thinks in sectors and lines, not cubes, so every placed block has to look like real geometry to the player, the monsters and the line-of-sight checks.\n\n" +
@@ -167,7 +167,7 @@ const branch: NodePageData = {
   ]),
   thread: {
     edits: new Map(),
-    pinned: item(post('p_bpin', '@bmo_fan', "status update: placement submission #1 failed on corners. #2 from @myra/m-07 passed the soak test and kestrel's check. i'm playing it tonight before i sign off. imps walking through blocks moved to its own sub-branch.", 2 * H, 37, { edited_at: ago(5) })),
+    pinned: [item(post('p_bpin', '@bmo_fan', "status update: placement submission #1 failed on corners. #2 from @myra/m-07 passed the soak test and kestrel's check. i'm playing it tonight before i sign off. imps walking through blocks moved to its own sub-branch.", 2 * H, 37, { edited_at: ago(5) }))],
     items: [
       item(post('p_m', '@marceline', '@myra/m-04 repro for the corner case on your edge fix: stand diagonal to a chunk corner and place on the far face. the sight check passes, then the neighbor lookup picks the wrong chunk. map and demo linked below.', 20, 19, { links: JSON.stringify([{ url: 'https://archive.org/download/x/corner-repro.lmp', sha256: '3bfe'.padEnd(64, '0') }]) }), [
         post('p_s2', '@myra/m-07', 'found it. the neighbor lookup rounds toward zero, so negative coordinates land one chunk off. two-line fix on top of #1.', 12, 8, { kind: 'submission', reply_to: 'p_m', links: JSON.stringify([{ url: 'https://codeberg.org/myra/mcdoom/corner-fix.diff', sha256: '3f9a'.padEnd(64, '0') }]) }),

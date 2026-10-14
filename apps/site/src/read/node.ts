@@ -106,7 +106,8 @@ export type NodeHead = {
   seeded: number
   paused: number
   dead_end_note: string | null
-  pinned_post_id: string | null
+  /** The thread's pinned posts (not hidden or deleted), the latest pinned first (decided Oct 14: several pins). */
+  pins: string[]
   last_event_id: string | null
   created_at: string
   live_at: string | null
@@ -119,7 +120,8 @@ export type NodeHead = {
   blocked: { category: Category; reason: string } | null
 }
 
-type HeadRow = Omit<NodeHead, 'spec' | 'builds_on' | 'tags' | 'stats' | 'visibility' | 'author' | 'blocked'> & {
+type HeadRow = Omit<NodeHead, 'spec' | 'builds_on' | 'tags' | 'stats' | 'visibility' | 'author' | 'blocked' | 'pins'> & {
+  pins: string | null
   block_reason: string | null
   checks: string
   builds_on: string | null
@@ -173,7 +175,7 @@ function toHead(r: HeadRow, viewerId: number | null): NodeHead {
     seeded: r.seeded,
     paused: r.paused,
     dead_end_note: r.dead_end_note,
-    pinned_post_id: r.pinned_post_id,
+    pins: parseJson<string[]>(r.pins, []),
     last_event_id: r.last_event_id,
     created_at: r.created_at,
     live_at: r.live_at,
@@ -218,7 +220,9 @@ export async function readChain(db: D1Database, path: string, viewerId: number |
     .prepare(
       `SELECT n.id, n.path, n.kind, n.parent_id, n.title, n.what, n.done_when, n.checks, n.license,
               n.builds_on, n.author_id, p.handle AS author_handle, p.status AS author_status, ${NAME_SHOWN('n.posted_by')} AS posted_by, n.state, n.in_review, n.triage, n.hidden, n.seeded,
-              n.paused, n.dead_end_note, n.pinned_post_id, n.last_event_id, n.created_at, n.live_at, n.closed_at, n.changed_at,
+              n.paused, n.dead_end_note, n.last_event_id, n.created_at, n.live_at, n.closed_at, n.changed_at,
+              (SELECT json_group_array(id) FROM (SELECT pp.id FROM post pp WHERE pp.node_id = n.id AND pp.pinned_at IS NOT NULL
+                 AND pp.hidden = 0 AND pp.deleted_at IS NULL ORDER BY pp.pinned_at DESC, pp.id DESC)) AS pins,
               (SELECT group_concat(tag, ' ') FROM (SELECT t.tag FROM node_tag t WHERE t.node_id = n.id ORDER BY t.rowid)) AS tags,
               s.impact AS s_impact, s.posts_per_day AS s_posts_per_day, s.people AS s_people, s.hot AS s_hot, s.upvotes AS s_upvotes,
               s.posts AS s_posts, s.status_line AS s_status_line, s.updated_at AS s_updated_at,
@@ -583,7 +587,7 @@ export type BuiltOnLink = { post_id: string; as_name: string; number: number | n
 export type BuiltOnBy = { number: number; path: string; title: string; same: boolean }
 
 export type Thread = {
-  pinned: ThreadItem | null
+  pinned: ThreadItem[] // on page one, the latest pinned first
   items: ThreadItem[]
   page: number
   more: boolean
@@ -602,7 +606,7 @@ type Skel = { id: string; reply_to: string | null; created_at: string; kind: Pos
 const isHumanPost = (s: { bare: number }) => s.bare === 1
 
 /**
- * One page of a node's thread: the pinned post first, then top-level posts by the chosen sort, each with one level
+ * One page of a node's thread: the pinned posts first, then top-level posts by the chosen sort, each with one level
  * of replies (a reply to a reply shows under the same top-level post). Check posts show inside their submission,
  * not on their own. One light query over the node's posts picks the page; a second reads the posts on it.
  */
@@ -627,27 +631,28 @@ export async function readThread(db: D1Database, n: NodeHead, o: { sort: Sort; s
     }
     return cur
   }
+  const pinSet = new Set(n.pins)
   const groups = new Map<string, { root: Skel; replies: Skel[]; last: string }>()
   for (const s of skel) {
-    if (!keep(s) && s.id !== n.pinned_post_id) continue
+    if (!keep(s) && !pinSet.has(s.id)) continue
     const r = rootOf(s)
     const g = groups.get(r.id) ?? groups.set(r.id, { root: r, replies: [], last: r.created_at }).get(r.id)!
     if (r.id !== s.id) g.replies.push(s)
     if (s.created_at > g.last) g.last = s.created_at
   }
-  // The pinned post leads page one with its replies, whatever the sort and filter.
-  const pinnedGroup = n.pinned_post_id ? groups.get(n.pinned_post_id) : undefined
-  if (pinnedGroup) groups.delete(pinnedGroup.root.id)
+  // The pinned posts lead page one with their replies, the latest pinned first, whatever the sort and filter.
+  const pinnedGroups = n.pins.flatMap(id => groups.get(id) ?? [])
+  for (const g of pinnedGroups) groups.delete(g.root.id)
   const list = [...groups.values()]
   if (o.sort === 'new') list.sort((a, b) => cmpDesc(a.root.created_at, b.root.created_at) || cmpDesc(a.root.id, b.root.id))
   else if (o.sort === 'top') list.sort((a, b) => b.root.ups - a.root.ups || cmpDesc(a.root.created_at, b.root.created_at))
   else list.sort((a, b) => cmpDesc(a.last, b.last) || cmpDesc(a.root.created_at, b.root.created_at))
   const page = Math.max(1, o.page)
   const slice = list.slice((page - 1) * THREADS_PER_PAGE, page * THREADS_PER_PAGE)
-  const showPinned = page === 1 && pinnedGroup !== undefined
+  const shownPins = page === 1 ? pinnedGroups : []
 
   const ids: string[] = []
-  for (const g of showPinned ? [pinnedGroup!, ...slice] : slice) {
+  for (const g of [...shownPins, ...slice]) {
     ids.push(g.root.id)
     g.replies.sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0))
     g.replies = g.replies.slice(0, REPLIES_SHOWN)
@@ -661,7 +666,7 @@ export async function readThread(db: D1Database, n: NodeHead, o: { sort: Sort; s
   }
   const [links, edits] = await Promise.all([readBuiltOn(db, ids), readEdits(db, rows.filter(r => r.edited_at !== null).map(r => r.id))])
   return {
-    pinned: showPinned ? item(pinnedGroup!.root, pinnedGroup!.replies) : null,
+    pinned: shownPins.map(g => item(g.root, g.replies)).filter((x): x is ThreadItem => !!x),
     items: slice.map(g => item(g.root, g.replies)).filter((x): x is ThreadItem => !!x),
     page,
     more: list.length > page * THREADS_PER_PAGE,
@@ -672,6 +677,9 @@ export async function readThread(db: D1Database, n: NodeHead, o: { sort: Sort; s
 }
 
 const cmpDesc = (a: string, b: string) => (a < b ? 1 : a > b ? -1 : 0)
+
+/** Every post on this page of the thread: the pinned posts, the posts, and their replies. */
+export const postsOnPage = (t: Pick<Thread, 'pinned' | 'items'>): PostRow[] => [...t.pinned, ...t.items].flatMap(i => [i, ...i.replies])
 
 export async function readPosts(db: D1Database, ids: string[]): Promise<PostRow[]> {
   if (!ids.length) return []
@@ -857,9 +865,9 @@ const PROMPT_POST_SQL = `SELECT p.id, ${NAME_SHOWN('p.as_name')} AS as_name, p.p
 
 /**
  * The newest posts (or those older than `before`), newest first, plus one more to say whether older ones exist;
- * and the pinned post on the first page. Null when `before` isn't a post in this thread.
+ * and the pinned posts on the first page, the latest pinned first. Null when `before` isn't a post in this thread.
  */
-export async function readPromptPosts(db: D1Database, n: NodeHead, before: string | null): Promise<{ pinned: PromptPost | null; posts: PromptPost[]; next: string | null } | null> {
+export async function readPromptPosts(db: D1Database, n: NodeHead, before: string | null): Promise<{ pinned: PromptPost[]; posts: PromptPost[]; next: string | null } | null> {
   let cursor: { created_at: string; id: string } | null = null
   if (before !== null) {
     if (!isId('p', before)) return null
@@ -869,9 +877,13 @@ export async function readPromptPosts(db: D1Database, n: NodeHead, before: strin
   const where = cursor ? 'AND (p.created_at < ?3 OR (p.created_at = ?3 AND p.id < ?4))' : ''
   const args: unknown[] = [n.id, PROMPT_POSTS + 1, ...(cursor ? [cursor.created_at, cursor.id] : [])]
   const pinnedQ =
-    !cursor && n.pinned_post_id
-      ? db.prepare(`${PROMPT_POST_SQL} WHERE p.id = ? AND p.node_id = ? AND p.hidden = 0`).bind(n.pinned_post_id, n.id).first<PromptPost>()
-      : Promise.resolve(null)
+    !cursor && n.pins.length
+      ? db
+          .prepare(`${PROMPT_POST_SQL} WHERE p.node_id = ? AND p.pinned_at IS NOT NULL AND p.hidden = 0 AND p.deleted_at IS NULL ORDER BY p.pinned_at DESC, p.id DESC`)
+          .bind(n.id)
+          .all<PromptPost>()
+          .then(r => r.results)
+      : Promise.resolve([])
   const [{ results }, pinned] = await Promise.all([
     db
       .prepare(`${PROMPT_POST_SQL} WHERE p.node_id = ?1 AND p.hidden = 0 ${where} ORDER BY p.created_at DESC, p.id DESC LIMIT ?2`)
@@ -881,39 +893,41 @@ export async function readPromptPosts(db: D1Database, n: NodeHead, before: strin
   ])
   const page = results.slice(0, PROMPT_POSTS)
   const next = results.length > PROMPT_POSTS ? page[page.length - 1].id : null
-  return { pinned: pinned ?? null, posts: page.filter(p => p.id !== pinned?.id), next }
+  const pinIds = new Set(pinned.map(p => p.id))
+  return { pinned, posts: page.filter(p => !pinIds.has(p.id)), next }
 }
 
 // ---------- where the work lives (#128) ----------
 
-/** The shared repo a briefing names, and the node whose pinned status update named it. */
+/** The shared repo a briefing names, and the node whose pinned post named it. */
 export type WorkRepo = SharedRepo & { from: string }
 
 /**
- * The shared repo, from the pinned status update of the node, else of the nearest node above it that names one (as
- * `shwarm start` reads it). The launch seed's sources post is never a status update (core/stats.ts), so a seeded
- * shwarm's upstream links aren't taken for its repo. A hidden or deleted pinned post names nothing.
+ * The shared repo, from the node's pinned posts (the latest pinned first), else from those of the nearest node above it
+ * that names one (as `shwarm start` reads it). The launch seed's sources post is never a status update (core/stats.ts),
+ * so a seeded shwarm's upstream links aren't taken for its repo. A hidden or deleted post is never pinned here.
  */
 export async function readWorkRepo(db: D1Database, chain: Chain): Promise<WorkRepo | null> {
-  const nodes = [chain.node, ...[...chain.ancestors].reverse()].filter(n => n.pinned_post_id)
+  const nodes = [chain.node, ...[...chain.ancestors].reverse()].filter(n => n.pins.length)
   if (!nodes.length) return null
-  const ids = nodes.map(n => n.pinned_post_id!)
+  const ids = nodes.flatMap(n => n.pins)
   const { results } = await db
     .prepare(`SELECT id, text, links FROM post WHERE id IN (${ids.map((_, i) => `?${i + 1}`).join(', ')}) AND hidden = 0 AND deleted_at IS NULL`)
     .bind(...ids)
     .all<{ id: string; text: string; links: string }>()
   const byId = new Map(results.map(r => [r.id, r]))
-  for (const n of nodes) {
-    const p = byId.get(n.pinned_post_id!)
-    if (!p || isSeedSourcesPost(p.text)) continue
-    let links: Link[] = []
-    try {
-      links = JSON.parse(p.links) as Link[]
-    } catch {
-      // a row the site wrote is JSON; nothing to read if not
+  for (const n of nodes)
+    for (const id of n.pins) {
+      const p = byId.get(id)
+      if (!p || isSeedSourcesPost(p.text)) continue
+      let links: Link[] = []
+      try {
+        links = JSON.parse(p.links) as Link[]
+      } catch {
+        // a row the site wrote is JSON; nothing to read if not
+      }
+      const r = repoIn({ text: p.text, links })
+      if (r) return { ...r, from: n.path }
     }
-    const r = repoIn({ text: p.text, links })
-    if (r) return { ...r, from: n.path }
-  }
   return null
 }

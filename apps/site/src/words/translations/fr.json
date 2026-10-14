@@ -3519,6 +3519,16 @@
     "from": " pin this message at the top of the thread",
     "checked": false
   },
+  "node.pin": {
+    "text": "épingler",
+    "from": "pin",
+    "checked": false
+  },
+  "node.unpin": {
+    "text": "désépingler",
+    "from": "unpin",
+    "checked": false
+  },
   "node.pinnedUpdated": {
     "text": "épinglé · mis à jour {ago}",
     "from": "pinned · updated {ago}",

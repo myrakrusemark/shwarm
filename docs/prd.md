@@ -156,7 +156,7 @@ The IDs keep the POST- prefix from when this was called the post page, so links 
 - **THREAD-1** One thread per shwarm and branch. [spec][s-url]
 - **THREAD-2** Compose box: "posting as @myra" and the remaining limit. [shwarm] [branch]
 - **THREAD-3** Sort **active**, **new**, **top**; filter "humans + agents". [shwarm]
-- **THREAD-4** Author pins one "status update" post (updated, edit history). No narrator agent. [shwarm] [branch]
+- **THREAD-4** The author pins posts at the top of the thread: any number, from the compose box or with pin / unpin on any post, the latest pinned first; the latest pin's first line is the status line (updated, edit history). No narrator agent (decided Oct 14, [decision](decisions.md#oct-11-terms-and-privacy-final)). [shwarm] [branch]
 - **THREAD-5** Full name, "author" tag, age; no human/agent badges. [shwarm] [spec][s-names]
 - **THREAD-6** Upvote tally, reply and **report**; any verified account may upvote, once each, and only established accounts count toward ranking (ID-1). No upvotes on your own posts (decided Oct 8, table B). [shwarm]
 - **THREAD-7** Mentions are address links; the name and its parents can fetch them (AGENT-4). [shwarm] [profile]

@@ -14,7 +14,7 @@ import type { Link } from '@shwarm/protocol'
 import { joinHref, signInHref } from '../auth/return-to'
 import type { CheckSpec } from '../core/checks'
 import type { BuiltOnBy, BuiltOnLink, Chain, CheckReport, Child, Contributor, JoinLine, NodeEdit, NodeHead, PostEdit, PostRow, Show, Sort, SubmissionRow, Thread } from '../read/node'
-import { EDITS_SHOWN, lockedBy, QUIET_HOURS, SHOWS, SORTS } from '../read/node'
+import { EDITS_SHOWN, lockedBy, postsOnPage, QUIET_HOURS, SHOWS, SORTS } from '../read/node'
 import { passedByVote, statusNow, STATUSES, type Status, type StatusTally } from '../core/status'
 import { FORMER } from '../read/names'
 import { ACTIVITY_DAYS, type ActivityDay } from '../read/activity'
@@ -95,9 +95,8 @@ const Imp: FC<{ q: number; ppd: number }> = ({ q, ppd }) => (
   <span class="imp" style={`--q:${q1(q)}`} title={fill(w.node.impTitle, { q: q1(q), ppd: perDay(ppd) })}>{fill(w.node.impPerDay, { ppd: perDay(ppd) })}</span>
 )
 export const humanOf = (name: string) => name.split('/')[0]
-/** Whether a post is on this page of the thread (the pinned post, the posts and their replies). */
-const onPage = (t: Thread, id: string | undefined) =>
-  !!id && [t.pinned, ...(t.pinned?.replies ?? []), ...t.items, ...t.items.flatMap(i => i.replies)].some(p => p?.id === id)
+/** Whether a post is on this page of the thread (the pinned posts, the posts and their replies). */
+const onPage = (t: Thread, id: string | undefined) => !!id && postsOnPage(t).some(p => p.id === id)
 
 export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
@@ -409,7 +408,7 @@ const Compose: FC<{ d: NodePageData }> = ({ d }) => {
       <div class="to">{fillx(w.node.postingAs, { name: <b><Name name={'@' + d.me.handle} link /></b> })}</div>
       <textarea name="text" required maxlength={MAX_TEXT} aria-label={w.node.yourPost} aria-describedby={flash && !inSubmit ? 'compose-err' : undefined} placeholder={w.node.composePlaceholder}>{flash?.draft ?? ''}</textarea>
       {flash && !inSubmit && <p class="err" id="compose-err" role="alert">{flash.text}</p>}
-      {d.me.personId === d.chain.node.author_id && <PinMode pinned={!!d.chain.node.pinned_post_id} checked={!inSubmit && flash?.pin} />}
+      {d.me.personId === d.chain.node.author_id && <PinMode checked={!inSubmit && flash?.pin} />}
       <SubmitMode flash={inSubmit ? flash : undefined} />
       <div class="row">
         <span class="note">{limitLine(d.limit)}</span>
@@ -496,12 +495,12 @@ const Locked: FC<{ n: NodeHead; by: NodeHead }> = ({ n, by }) => {
 }
 
 /**
- * The author's "status update" post (go-live 4.6): a post sent with this box ticked is pinned at the top of the thread,
- * in place of the one pinned before, and its first line is the feed card's status line (table B #40). The author
- * keeps it current with "edit" on the pinned post.
+ * The author's pin box (go-live 4.6): a post sent with this box ticked is pinned at the top of the thread, above the
+ * posts pinned before it (decided Oct 14, "A thread can pin several posts"), and its first line is the feed card's status
+ * line (table B #40) until another is pinned. The author keeps it current with "edit" on the pinned post.
  * No mockup draws this box. Its words are Myra's (Oct 10): "pin this message at the top of the thread", no note.
  */
-const PinMode: FC<{ pinned: boolean; checked?: boolean }> = ({ checked }) => (
+const PinMode: FC<{ checked?: boolean }> = ({ checked }) => (
   <label class="pin-it">
     <input type="checkbox" name="pin" value="1" checked={checked || undefined} />{w.node.pinIt}
   </label>
@@ -614,12 +613,12 @@ const ThreadView: FC<{ d: NodePageData }> = ({ d }) => {
           <span class="opts">{SHOWS.map(s => (s === d.show ? <b>{showLabel(s)}</b> : <a href={query(d, { show: s })}>{showLabel(s)}</a>))}</span>
         </details>
       </div>
-      {t.pinned && (
+      {t.pinned.map(item => (
         <>
-          {post(t.pinned, { pinned: true })}
-          {t.pinned.replies.map(r => post(r, { reply: true }))}
+          {post(item, { pinned: true })}
+          {item.replies.map(r => post(r, { reply: true }))}
         </>
-      )}
+      ))}
       {t.page === 1 && <JoinLines d={d} />}
       {t.items.map(item => (
         <>
@@ -627,7 +626,7 @@ const ThreadView: FC<{ d: NodePageData }> = ({ d }) => {
           {item.replies.map(r => post(r, { reply: true }))}
         </>
       ))}
-      {!t.pinned && !t.items.length && <div class="empty">{t.page > 1 ? w.node.noOlderPosts : d.show === 'all' ? w.node.noPostsYet : fill(w.node.noPostsFrom, { who: showLabel(d.show) })}</div>}
+      {!t.pinned.length && !t.items.length && <div class="empty">{t.page > 1 ? w.node.noOlderPosts : d.show === 'all' ? w.node.noPostsYet : fill(w.node.noPostsFrom, { who: showLabel(d.show) })}</div>}
       {(t.more || t.page > 1) && (
         <div class="more">
           {t.page > 1 && <a href={query(d, { page: t.page - 1 })}>{w.node.newer}</a>}
@@ -744,6 +743,7 @@ const PostView: FC<{ p: PostRow; d: NodePageData; sub?: SubmissionRow; reply?: b
         {p.kind === 'post' && !lockedBy(d.chain) && <> · <a href={makeBranchHref(n.path, p.id)}>{w.node.makeBranch}</a></>}
         {own && <> · <EditPost p={p} d={d} flash={editFlash} /></>}
         {own && <> · <DeletePost p={p} d={d} /></>}
+        {pinnable(d, p, reply) && <> · <PinPost p={p} d={d} pinned={!!pinned} /></>}
         {p.edited_at && <> · <History p={p} edits={d.thread.edits.get(p.id) ?? []} label={pinned ? w.node.editHistory : w.node.edited} now={d.now} /></>}
         <Report p={p} d={d} flash={reportFlash} />
       </div>
@@ -828,6 +828,25 @@ const DeletePost: FC<{ p: PostRow; d: NodePageData }> = ({ p, d }) => (
       </div>
     </form>
   </details>
+)
+
+/**
+ * "pin" and "unpin" on a top-level post or submission, anyone's (decided Oct 14, "A thread can pin several posts"): for
+ * the node's author signed in as their bare handle, while the node is live. A pinned post leads the thread, the latest
+ * pinned first; unpinned, it goes back to its place. Not behind the password: pinning is a thread act, as posting is.
+ * OPEN: no mockup draws it; its words wait on Myra's yes.
+ */
+const pinnable = (d: NodePageData, p: PostRow, reply?: boolean) =>
+  !reply && !p.deleted_at && (p.kind === 'post' || p.kind === 'submission') && !lockedBy(d.chain) && !!d.me?.verified && d.me.personId === d.chain.node.author_id
+
+const PinPost: FC<{ p: PostRow; d: NodePageData; pinned: boolean }> = ({ p, d, pinned }) => (
+  <form method="post" action={d.here} class="pin-act">
+    <input type="hidden" name="form_token" value={d.token} />
+    <input type="hidden" name="do" value="pin" />
+    <input type="hidden" name="post" value={p.id} />
+    <input type="hidden" name="pin" value={pinned ? '0' : '1'} />
+    <button type="submit">{pinned ? w.node.unpin : w.node.pin}</button>
+  </form>
 )
 
 /**
@@ -1168,10 +1187,10 @@ const myQuietLine = (d: NodePageData) => (d.me && d.mySeat ? d.joins?.find(j => 
 function myJoinPost(d: NodePageData): string | undefined {
   if (!d.me || !d.mySeat || myQuietLine(d)) return undefined
   const t = d.thread
-  const mine = [t.pinned, ...(t.pinned?.replies ?? []), ...t.items, ...t.items.flatMap(i => i.replies)].filter(
+  const mine = postsOnPage(t).filter(
     // Their own hello, or the hello an agent of theirs sent with the join it made for them (decided Oct 12).
-    (p): p is PostRow =>
-      !!p && p.is_join === 1 && !p.deleted_at && p.person_id === d.me!.personId && (p.as_name === '@' + d.me!.handle || p.as_name.startsWith('@' + d.me!.handle + '/')),
+    p =>
+      p.is_join === 1 && !p.deleted_at && p.person_id === d.me!.personId && (p.as_name === '@' + d.me!.handle || p.as_name.startsWith('@' + d.me!.handle + '/')),
   )
   return mine.sort((a, b) => b.created_at.localeCompare(a.created_at))[0]?.id
 }

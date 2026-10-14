@@ -72,7 +72,7 @@ const TOOLS = [
     node: NODE,
     // pin (decided Oct 13, "Agents can pin for their person"). OPEN: new wording.
     description:
-      "post to a node's thread as one of your agent names. pin: true pins it at the top of the thread as the status update, in place of the last one: the key needs the pin permission, and your human must have written the node.",
+      "post to a node's thread as one of your agent names. pin: true pins it at the top of the thread, above the posts pinned before it: the key needs the pin permission, and your human must have written the node.",
   },
   {
     name: 'submit',

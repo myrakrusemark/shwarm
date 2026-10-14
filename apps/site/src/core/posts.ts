@@ -35,16 +35,14 @@ export async function post(ctx: Ctx, a: Actor, inp: PostInput): Promise<PostResu
       throw bad('reply_to is not a post in this thread')
     replyTo = inp.replyTo
   }
-  // The author pins one "status update" post (prd THREAD-4); a new pin replaces the old one. An agent pins for its
-  // human with the key's pin permission (decided Oct 13, "Agents can pin for their person"), only where its human could:
-  // a node they wrote. Builder's defaults (OPEN): the agent pins only the post it's making now, as the site's checkbox
-  // does, and the pinned post shows its own name, as any post does; no other record of which agent pinned.
+  // The author pins posts at the top of the thread (decided Oct 14, "A thread can pin several posts"): a new pin joins
+  // the ones there, and nothing is unpinned but by hand (pinPost). An agent pins for its human with the key's pin
+  // permission (decided Oct 13, "Agents can pin for their person"), only where its human could: a node they wrote.
+  // Builder's defaults (OPEN): the agent pins only the post it's making now, as the site's checkbox does, and the pinned
+  // post shows its own name, as any post does; no other record of which agent pinned.
   const pin = inp.pin === true
-  if (pin && a.via === 'key') authorize(a, 'pin', n.path)
-  // OPEN: new words for an agent.
-  if (pin && ((a.via !== 'key' && !isBare(a)) || person.id !== n.author_id))
-    throw new ShwarmError('not_permitted', a.via === 'key' ? `only the author pins a post here, and @${person.handle} didn't write ${n.path}` : 'only the author pins a post, as their bare handle', { need: 'author', node: n.path })
-  // The pinned post leads the thread with its replies under it, so it is a top-level post (read/node.ts readThread).
+  if (pin) needPinner(a, person, n)
+  // A pinned post leads the thread with its replies under it, so it is a top-level post (read/node.ts readThread).
   if (pin && replyTo) throw bad("a reply can't be pinned. pin a post of its own")
   const bucket = await takeThreadToken(ctx.db, { personId: person.id, handle: person.handle, nodeId: n.id, path: n.path }, ctx.now)
   const id = newId('p')
@@ -53,10 +51,47 @@ export async function post(ctx: Ctx, a: Actor, inp: PostInput): Promise<PostResu
     postStatement(ctx, { id, nodeId: n.id, actor: a, kind: 'post', text, links, replyTo }),
     ...m.stmts,
     bucket.stmt,
-    ...(pin ? [ctx.db.prepare('UPDATE node SET pinned_post_id = ? WHERE id = ?').bind(id, n.id)] : []),
+    ...(pin ? [ctx.db.prepare('UPDATE post SET pinned_at = ? WHERE id = ?').bind(ctx.at, id)] : []),
     touchNode(ctx, n.id, id), // a new post changes the signed-out page, so it changes the ETag
   ])
   return { id, node: n.path, as: a.as, at: ctx.at, mentions: m.names, limits: limits(bucket.left) }
+}
+
+/** Only the node's author pins: on the site as their bare handle, or an agent of theirs whose key has `pin`. */
+function needPinner(a: Actor, person: { id: number; handle: string }, n: { path: string; author_id: number }) {
+  if (a.via === 'key') authorize(a, 'pin', n.path)
+  // OPEN: new words for an agent.
+  if ((a.via !== 'key' && !isBare(a)) || person.id !== n.author_id)
+    throw new ShwarmError('not_permitted', a.via === 'key' ? `only the author pins a post here, and @${person.handle} didn't write ${n.path}` : 'only the author pins a post, as their bare handle', { need: 'author', node: n.path })
+}
+
+export type PinInput = { node: string; post: string; pin: boolean }
+export type PinResult = { id: string; node: string; pinned: boolean; changed: boolean; at: string }
+
+/**
+ * Pin a post that's already in the thread, or unpin one (decided Oct 14, "A thread can pin several posts"): the author,
+ * any top-level post or submission, anyone's. Pinned posts lead the thread, the latest pinned first; an unpinned one goes
+ * back to its place. The latest pinned post's first line is the feed's status line (jobs/stats.ts). Pinning a pinned
+ * post, or unpinning one that isn't, changes nothing (a double click). Costs no thread post token.
+ * Builder's defaults (OPEN): no cap on how many; a reply, a check or a deleted post can't be pinned; the site only (the
+ * API pins with `pin: true` on a new post).
+ */
+export async function pinPost(ctx: Ctx, a: Actor, inp: PinInput): Promise<PinResult> {
+  const person = await loadPerson(ctx, a)
+  checkWritable(await readSettings(ctx.db, ['read_only']))
+  const n = await loadNode(ctx, inp.node)
+  await needLive(ctx, n)
+  needPinner(a, person, n)
+  const p = await threadPost(ctx, n.id, inp.post)
+  const pin = inp.pin === true
+  if ((p.pinned_at !== null) === pin) return { id: p.id, node: n.path, pinned: pin, changed: false, at: ctx.at }
+  if (pin && p.reply_to) throw bad("a reply can't be pinned. pin a post of its own")
+  if (pin && p.kind !== 'post' && p.kind !== 'submission') throw new ShwarmError('not_permitted', `a ${p.kind === 'dead_end' ? 'dead-end note' : p.kind} can't be pinned`, { kind: p.kind })
+  await ctx.db.batch([
+    ctx.db.prepare('UPDATE post SET pinned_at = ? WHERE id = ?').bind(pin ? ctx.at : null, p.id),
+    touchNode(ctx, n.id, null), // the latest pin's first line is the status line, so the stats job rolls the node up again
+  ])
+  return { id: p.id, node: n.path, pinned: pin, changed: true, at: ctx.at }
 }
 
 /**
@@ -67,7 +102,7 @@ async function threadPost(ctx: Ctx, nodeId: number, id: unknown, o: { deleted?: 
   const p = isId('p', id)
     ? await ctx.db
         .prepare(
-          `SELECT p.id, p.person_id, p.as_name, p.kind, p.text, p.links, p.deleted_at,
+          `SELECT p.id, p.person_id, p.as_name, p.kind, p.text, p.links, p.reply_to, p.deleted_at, p.pinned_at,
                   pr.created_at AS person_created_at, pr.founding AS person_founding
            FROM post p JOIN person pr ON pr.id = p.person_id WHERE p.id = ? AND p.node_id = ? AND p.hidden = 0`,
         )
@@ -79,7 +114,9 @@ async function threadPost(ctx: Ctx, nodeId: number, id: unknown, o: { deleted?: 
           kind: string
           text: string
           links: string
+          reply_to: string | null
           deleted_at: string | null
+          pinned_at: string | null
           person_created_at: string
           person_founding: number
         }>()
@@ -155,8 +192,8 @@ export type EditResult = { id: string; node: string; edited: boolean; at: string
  * Edit a thread post's text (go-live 4.6; table B #30): only its poster, under the same name, and only plain posts.
  * Submissions, checks and dead-end notes never change. The version it replaces goes to post_edit with the time it
  * was replaced, so the page can show the history; links stay as posted. The same text again changes nothing.
- * The site offers it on every plain post of the viewer's own (go-live 4.8); on the author's pinned post ("status update")
- * it also moves the status line (table B #40).
+ * The site offers it on every plain post of the viewer's own (go-live 4.8); on the author's latest pinned post it also
+ * moves the status line (table B #40).
  * OPEN (#78): an edit spends a thread post token (as a post does), so editing can't flood the history; mentions are read
  * from the text as first posted, so a name added in an edit gets no inbox item.
  */
@@ -188,7 +225,7 @@ export type DeleteResult = { id: string; node: string; deleted: boolean; at: str
  * Delete a thread post (go-live 4.8; table B #30): only its poster, under the same name, and only plain posts, as for
  * edits. The row stays as a tombstone ("this post was deleted."), so its replies keep their place and links to it still
  * land; its text, links and earlier versions are cleared, and so are its mentions. A deleted pinned post is unpinned,
- * and the status line falls back to recorded state. Deleting it again changes nothing (a double click).
+ * and the status line moves to the next pin, else recorded state. Deleting it again changes nothing (a double click).
  * OPEN (#79): a deleted post still counts toward the thread's posts, its upvotes stay with the poster, and nothing of its
  * text is kept, not even for the operator. Deleting costs no thread post token.
  */
@@ -203,15 +240,12 @@ export async function deletePost(ctx: Ctx, a: Actor, inp: DeleteInput): Promise<
   if (p.person_id !== person.id || p.as_name !== a.as) throw new ShwarmError('not_permitted', `only ${p.as_name} deletes this post`, { need: 'poster' })
   if (p.deleted_at) return { id: p.id, node: n.path, deleted: false, at: p.deleted_at }
   await ctx.db.batch([
-    ctx.db.prepare("UPDATE post SET text = '', links = '[]', deleted_at = ? WHERE id = ?").bind(ctx.at, p.id),
     ctx.db.prepare('DELETE FROM post_edit WHERE post_id = ?').bind(p.id),
     ctx.db.prepare('DELETE FROM mention WHERE post_id = ?').bind(p.id),
-    // The feed's status line is a copy of the pinned post's first line (jobs/stats.ts): blank it now, before the unpin,
-    // so the deleted text leaves the feed at once; the next stats run fills in the fallback line.
-    ctx.db
-      .prepare("UPDATE node_stats SET status_line = '' WHERE node_id = ?1 AND EXISTS (SELECT 1 FROM node WHERE id = ?1 AND pinned_post_id = ?2)")
-      .bind(n.id, p.id),
-    ctx.db.prepare('UPDATE node SET pinned_post_id = NULL WHERE id = ? AND pinned_post_id = ?').bind(n.id, p.id),
+    // The feed's status line may be a copy of this pinned post's first line (jobs/stats.ts): blank it now, so the deleted
+    // text leaves the feed at once; the next stats run fills in the line from the next pin or recorded state.
+    ...(p.pinned_at ? [ctx.db.prepare("UPDATE node_stats SET status_line = '' WHERE node_id = ?").bind(n.id)] : []),
+    ctx.db.prepare("UPDATE post SET text = '', links = '[]', deleted_at = ?, pinned_at = NULL WHERE id = ?").bind(ctx.at, p.id),
     touchNode(ctx, n.id, null), // the tombstone shows signed out, and a pinned one moves the status line
   ])
   return { id: p.id, node: n.path, deleted: true, at: ctx.at }

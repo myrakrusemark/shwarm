@@ -79,12 +79,12 @@ export const openReview = (c: Pick<Chain, 'node' | 'ancestors'>, subs: Submissio
 /** Whether this submission is the one collecting checks (see openReview). */
 export const isOpen = (c: Pick<Chain, 'node' | 'ancestors'>, sub: SubmissionRow) => !lockedBy(c) && sub.status === 'in_review'
 
-/** The status line from recorded state (table B #40, without the pinned post: the page shows that post itself). */
+/** The status line from recorded state (table B #40, without the pinned posts: the page shows them itself). */
 export function recordedStatus(n: NodeHead, subs: SubmissionRow[], branches: Child[]): string {
   const s: StatusInput = {
     kind: n.kind,
     state: n.state,
-    pinned: null,
+    pins: [],
     deadEndNote: n.dead_end_note,
     submissions: subs.map(x => ({ number: x.number, status: x.status })),
     branches: { live: branches.filter(b => b.state === 'live').length, closed: branches.filter(b => b.state === 'closed').length },

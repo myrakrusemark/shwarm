@@ -131,8 +131,8 @@ export function isSeedSourcesPost(text: string | null | undefined, bySeed = fals
 export type StatusInput = {
   kind?: string // 'branch' or a shwarm's; a branch whose submission passed its checks stays live (decided Oct 13)
   state: 'live' | 'closed' | 'dead_end'
-  pinned: string | null // text of the author's pinned post, if any (not hidden)
-  pinnedBySeed?: boolean // that post is the one the launch seed pinned (see isSeedSourcesPost)
+  pins: { text: string; bySeed?: boolean }[] // the thread's pinned posts (not hidden), the latest pinned first; bySeed: the
+  // launch seed pinned it (see isSeedSourcesPost)
   deadEndNote: string | null
   submissions: { number: number; status: 'in_review' | 'passed' | 'failed' | 'superseded' }[]
   branches: { live: number; closed: number }
@@ -141,15 +141,16 @@ export type StatusInput = {
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
 /**
- * The status line (table B #40): the first line of the author's pinned post, else a line from recorded state.
+ * The status line (table B #40): the first line of the post the author pinned last, else a line from recorded state.
  * Never the latest post. Recorded-state lines follow the mockups ("submission in review",
  * "no submission yet · 2 branches closed, 2 live").
  * The launch seed's pinned sources post (A18) never counts as the author's pinned post here: a seeded shwarm says
  * "no submission yet." until its author pins a post of their own.
+ * Builder's default (OPEN, Oct 14): with several pins, the one pinned last speaks for the thread.
  */
 export function statusLine(s: StatusInput): string {
-  const pinned = isSeedSourcesPost(s.pinned, s.pinnedBySeed) ? '' : firstLine(s.pinned)
-  if (pinned) return pinned
+  const pin = s.pins.find(p => !isSeedSourcesPost(p.text, p.bySeed) && firstLine(p.text))
+  if (pin) return firstLine(pin.text)
   if (s.state === 'dead_end') return firstLine(s.deadEndNote) || 'dead end.'
   const subs = [...s.submissions].sort((a, b) => b.number - a.number)
   if (s.state === 'closed') {

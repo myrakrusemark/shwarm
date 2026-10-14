@@ -69,10 +69,10 @@ describe('formulas', () => {
   })
 
   const st = (o: Partial<StatusInput>): string =>
-    statusLine({ state: 'live', pinned: null, deadEndNote: null, submissions: [], branches: { live: 0, closed: 0 }, ...o })
+    statusLine({ state: 'live', pins: [], deadEndNote: null, submissions: [], branches: { live: 0, closed: 0 }, ...o })
 
   it('status line: the pinned post first, else recorded state, never the latest post', () => {
-    expect(st({ pinned: '\n  status update: renderer at 61 fps.  \nmore below' })).toBe('status update: renderer at 61 fps.')
+    expect(st({ pins: [{ text: '\n  status update: renderer at 61 fps.  \nmore below' }] })).toBe('status update: renderer at 61 fps.')
     expect(st({})).toBe('no submission yet.')
     expect(st({ branches: { live: 2, closed: 2 } })).toBe('no submission yet · 2 branches closed, 2 live.')
     expect(st({ branches: { live: 1, closed: 0 } })).toBe('no submission yet · 1 branch live.')
@@ -88,12 +88,15 @@ describe('formulas', () => {
 
   it("status line: the launch seed's pinned sources post never counts (table B #40, A18)", () => {
     const sources = 'where this pitch comes from:\nhttps://example.org/a\n\nbuilds on: gzdoom'
-    expect(st({ pinned: sources })).toBe('no submission yet.')
-    expect(st({ pinned: '  Where this pitch comes from:  \nx' })).toBe('no submission yet.')
+    expect(st({ pins: [{ text: sources }] })).toBe('no submission yet.')
+    expect(st({ pins: [{ text: '  Where this pitch comes from:  \nx' }] })).toBe('no submission yet.')
     // posted by the seed, whatever its first line (a builds-on line only)
-    expect(st({ pinned: 'builds on: gzdoom', pinnedBySeed: true })).toBe('no submission yet.')
+    expect(st({ pins: [{ text: 'builds on: gzdoom', bySeed: true }] })).toBe('no submission yet.')
+    // with several pins, the one pinned last speaks, skipping the seed's (decided Oct 14)
+    expect(st({ pins: [{ text: 'demo friday.' }, { text: 'renderer closed.' }] })).toBe('demo friday.')
+    expect(st({ pins: [{ text: sources, bySeed: true }, { text: 'renderer closed.' }] })).toBe('renderer closed.')
     // the author's own pin still leads
-    expect(st({ pinned: 'demo friday.\nwhere this pitch comes from: below' })).toBe('demo friday.')
+    expect(st({ pins: [{ text: 'demo friday.\nwhere this pitch comes from: below' }] })).toBe('demo friday.')
     expect(isSeedSourcesPost('where this pitch comes from:\nx')).toBe(true)
     expect(isSeedSourcesPost('status update: 61 fps')).toBe(false)
   })
@@ -164,7 +167,7 @@ async function fixture() {
   w.now = T0 - 2 * HOUR
   const gammaPosts = await posts(w, site(bob), 'gamma', 2)
   const pin = (await w.post(site(myra), 'gamma', 'status update: renderer at 61 fps.\nplacement is next.')).id
-  w.db.raw.prepare("UPDATE node SET pinned_post_id = ? WHERE path = 'gamma'").run(pin)
+  w.db.raw.prepare('UPDATE post SET pinned_at = created_at WHERE id = ?').run(pin)
   const deltaPosts = await posts(w, site(bob), 'delta', 5)
   await w.join(site(dave), 'quiet-a')
   await w.join(site(erin), 'quiet-a')

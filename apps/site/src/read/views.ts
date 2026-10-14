@@ -4,6 +4,7 @@ import type { NodePageData, Me } from '../web/node-page'
 import type { ResultPageData } from '../web/result-page'
 import type { AgentView } from '../render/prompt'
 import {
+  postsOnPage,
   readBuiltOn,
   readChecks,
   readChildren,
@@ -49,13 +50,13 @@ export async function loadPageData(
   ])
   // Checks for the submissions on this page of the thread, and for the one in review (the head's status line).
   const shown = new Set<string>()
-  for (const p of [thread.pinned, ...thread.items, ...thread.items.flatMap(i => i.replies)]) if (p?.kind === 'submission') shown.add(p.id)
+  for (const p of postsOnPage(thread)) if (p.kind === 'submission') shown.add(p.id)
   for (const s of subs) if (s.status === 'in_review') shown.add(s.post_id)
   // A passed branch's "proof it's done" (web/node-page.tsx Proof): the checks on what passed it.
   const passed = n.state === 'closed' ? subs.find(s => s.status === 'passed') : undefined
   if (passed) shown.add(passed.post_id)
   // The viewer's own upvotes on the posts shown, so each ▲ says whether it's theirs.
-  const onPage = [thread.pinned, ...thread.pinned?.replies ?? [], ...thread.items, ...thread.items.flatMap(i => i.replies)].flatMap(p => (p ? [p.id] : []))
+  const onPage = postsOnPage(thread).map(p => p.id)
   // And whether the viewer joined (said they're working on it): the contributors box lists only the first few.
   // And whether the viewer flagged this node (core/flags.ts), so "flag this shwarm" says so instead.
   const [checks, myUps, mySeat, myReports, myFlag, myStatus] = await Promise.all([
@@ -84,7 +85,7 @@ export async function loadAgentView(db: D1Database, chain: Chain, o: { origin: s
   if (!posts) return null
   // Checks on the submission in review (STATUS) and on the failed or superseded ones (DEAD ENDS); what the listed submissions built on.
   const subIds = subs.filter(s => s.status !== 'passed').map(s => s.post_id)
-  const listedSubs = [posts.pinned, ...posts.posts].filter(p => p?.kind === 'submission').map(p => p!.id)
+  const listedSubs = [...posts.pinned, ...posts.posts].filter(p => p.kind === 'submission').map(p => p.id)
   const [checks, links] = await Promise.all([readChecks(db, subIds), readBuiltOn(db, listedSubs)])
   const dmsOn = contributors.rows.filter(r => r.dms).map(r => r.handle)
   return { origin: o.origin, chain, branches: children.branches, subs, checks, posts, builtOn: links.builtOn, dmsOn, contributors, ...(votes ? { votes } : {}), work, now: o.now }

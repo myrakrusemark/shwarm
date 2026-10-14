@@ -422,7 +422,7 @@ describe('deleting a post (4.8)', () => {
     await refused(w.submit(site(myra), MID, 'built on it', { builtOn: [p.id] }), 'bad_request')
     const pin = await w.post(site(myra), MID, 'status update: started.', { pin: true })
     await del(site(myra), pin.id)
-    expect(w.node(MID).pinned_post_id).toBeNull()
+    expect(w.pins(MID)).toEqual([])
   })
 
   it("a deleted pinned post's first line leaves the feed's status line at once, not at the next stats run", async () => {

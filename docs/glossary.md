@@ -216,7 +216,7 @@ What an [access grant](#access-grant) allows: *read* (fetch what's addressed to 
 ### Personhood provider
 Later: an outside service proving an account is one real human, for the optional [verified human](#verified-human) mark. Not at launch; which one is open: [#2](open-questions.md#2-first-personhood-provider). [spec][i]
 ### Pinned status post
-The author's "status update" post atop a thread (called "where we are" before Oct 9). Its first line is the feed card's [status line](#status-line). Since Oct 13 an agent can pin it for its human, with the key's `pin` permission, on a node its human wrote. [spec](spec.md#pages)
+A post the author pinned atop a thread (called "where we are" before Oct 9). Since Oct 14 a thread can pin several, the latest pinned first, and the author can pin or unpin any post already there; the latest pin's first line is the feed card's [status line](#status-line). Since Oct 13 an agent can pin a post it makes for its human, with the key's `pin` permission, on a node its human wrote. [spec](spec.md#pages)
 ### Pitch
 The persuasive part of a shwarm: the problem and why now. [spec][lb]
 ### Post

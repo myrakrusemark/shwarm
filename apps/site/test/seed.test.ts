@@ -291,7 +291,7 @@ describe('the plan end to end', () => {
       expect(n.posted_by).toBe('@myra')
       expect(n.state, n.path).toBe('live') // no lobby (decided Oct 9)
       expect(n.live_at, n.path).toBe(n.created_at)
-      const pin = db.raw.prepare('SELECT * FROM post WHERE id = ?').get(n.pinned_post_id)
+      const pin = db.raw.prepare('SELECT * FROM post WHERE node_id = ? AND pinned_at IS NOT NULL').get(n.id)
       expect(pin.person_id).toBe(myraId)
       expect(pin.as_name).toBe('@myra')
       expect(pin.text.split('\n')[0]).toBe('where this pitch comes from:')
@@ -301,10 +301,10 @@ describe('the plan end to end', () => {
     expect(db.raw.prepare("SELECT COUNT(*) AS n FROM audit_event WHERE event = 'lobby_filled'").get().n).toBe(0)
     // The text went in exactly as core wrote it on the copy: compare the rows that matter, ids aside.
     const rows = (d: any, sql: string) => d.raw.prepare(sql).all().map((r: any) => JSON.stringify(r))
-    const nodeSql = "SELECT path, title, what, done_when, checks, license, builds_on, state, posted_by, created_at, live_at, pinned_post_id, last_event_id, in_review, seeded FROM node WHERE path NOT LIKE ':%' AND hidden = 0 ORDER BY path"
+    const nodeSql = "SELECT path, title, what, done_when, checks, license, builds_on, state, posted_by, created_at, live_at, last_event_id, in_review, seeded FROM node WHERE path NOT LIKE ':%' AND hidden = 0 ORDER BY path"
     expect(rows(db, nodeSql)).toEqual(rows(copy, nodeSql))
     for (const sql of [
-      'SELECT id, as_name, key_id, kind, text, links, reply_to, created_at FROM post ORDER BY id',
+      'SELECT id, as_name, key_id, kind, text, links, reply_to, created_at, pinned_at FROM post ORDER BY id',
       'SELECT post_id, number, hash, how_to_check, status, superseded_by, author_swap FROM submission ORDER BY post_id',
       'SELECT id, post_id, slot, verdict, evidence, repro, submission_hash, exit_code, log_inline, machine FROM check_report ORDER BY id',
       'SELECT id, at, event, by_name, submission_id, number, detail FROM audit_event ORDER BY id',
@@ -335,7 +335,7 @@ describe('the plan end to end', () => {
       { slot: 'run', as_name: '@finn_irl/f-11' },
       { slot: 'people', as_name: '@kestrel/swarm/r-03' },
     ])
-    expect(db.raw.prepare('SELECT as_name, text FROM post WHERE id = ?').get(b.pinned_post_id)).toMatchObject({ as_name: '@bmo_fan', text: expect.stringMatching(/^status update:/) })
+    expect(db.raw.prepare('SELECT as_name, text FROM post WHERE node_id = ? AND pinned_at IS NOT NULL').get(b.id)).toMatchObject({ as_name: '@bmo_fan', text: expect.stringMatching(/^status update:/) })
     // Nothing waits on anyone's sign-off.
     expect(db.raw.prepare("SELECT count(*) AS n FROM inbox_item WHERE kind = 'sign_off'").get().n).toBe(0)
     // Demo accounts can't sign in.
@@ -346,10 +346,10 @@ describe('the plan end to end', () => {
     const { db } = await stagingLike()
     db.raw.exec((await planSeed(testDb(), LIST, stateOf(db), { target: 'staging', now: NOW, example: true })).sql)
     // A seed post without the heading (only a builds-on line) is still the seed's: it went in with the node.
-    db.raw.prepare("UPDATE post SET text = 'builds on: gzdoom' WHERE id = (SELECT pinned_post_id FROM node WHERE path = 'bot-beats-freedoom')").run()
+    db.raw.prepare("UPDATE post SET text = 'builds on: gzdoom' WHERE pinned_at IS NOT NULL AND node_id = (SELECT id FROM node WHERE path = 'bot-beats-freedoom')").run()
     await rollupStats(db, NOW + 60_000)
     const rows = db.raw
-      .prepare('SELECT n.path, n.state, s.status_line, p.text AS pinned FROM node n JOIN node_stats s ON s.node_id = n.id LEFT JOIN post p ON p.id = n.pinned_post_id WHERE n.seeded = 1')
+      .prepare('SELECT n.path, n.state, s.status_line, p.text AS pinned FROM node n JOIN node_stats s ON s.node_id = n.id LEFT JOIN post p ON p.node_id = n.id AND p.pinned_at IS NOT NULL WHERE n.seeded = 1')
       .all()
       .map((r: any) => ({ ...r }))
     expect(rows.length).toBeGreaterThan(90)
@@ -488,9 +488,10 @@ describe('core additions for the seed', () => {
     await w.shwarm(site(myra))
     await refused(w.post(site(finn), 'minecraft-in-doom', 'mine now', { pin: true }), 'not_permitted')
     const p = await w.post(site(myra), 'minecraft-in-doom', 'status update: nothing yet.', { pin: true })
-    expect(w.node('minecraft-in-doom').pinned_post_id).toBe(p.id)
+    expect(w.pins('minecraft-in-doom')).toEqual([p.id])
+    w.tick(1000)
     const q = await w.post(site(myra), 'minecraft-in-doom', 'status update: renderer done.', { pin: true })
-    expect(w.node('minecraft-in-doom').pinned_post_id).toBe(q.id)
+    expect(w.pins('minecraft-in-doom')).toEqual([q.id, p.id])
   })
 })
 

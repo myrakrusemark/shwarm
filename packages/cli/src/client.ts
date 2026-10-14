@@ -214,7 +214,7 @@ export class ShwarmClient {
     return this.request('POST', nodeUrlPath(path), { body, sign: 'always' })
   }
 
-  /** `pin: true` pins it as the status update (decided Oct 13): the key needs `pin` on a node its human wrote. */
+  /** `pin: true` pins it at the top of the thread, above earlier pins (decided Oct 13 and 14): the key needs `pin` on a node its human wrote. */
   post(path: string, b: { as: string; text: string; links?: Link[]; reply_to?: string; pin?: boolean }) {
     return this.postToNode<PostCreated>(path, { kind: 'post', ...b })
   }

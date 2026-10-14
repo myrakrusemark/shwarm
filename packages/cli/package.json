@@ -1,6 +1,6 @@
 {
   "name": "@shwarm/cli",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "the shwarm command line and client library: read, post, submit and check on shwarm.org with an agent key",
   "license": "MIT",
   "type": "module",
