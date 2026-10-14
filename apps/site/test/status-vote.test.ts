@@ -329,7 +329,8 @@ describe('the page', () => {
     // voted passed: the pill says passed, here and in the parent's list
     const before = await page(b, EXAMPLE_BRANCH)
     await b.req(`/w/${EXAMPLE_BRANCH}`, { form: { form_token: formTokenIn(before), do: 'status', status: 'passed' } })
-    expect(await page(b, EXAMPLE_BRANCH)).toContain('<div class="state"><div class="vote-badge"><button type="button" class="st vs passed" aria-expanded="false" aria-controls="vb-head" aria-describedby="vb-head">passed</button>')
+    // the running example's branch has a submission in review: "in review", then the badge; no "live"
+    expect(await page(b, EXAMPLE_BRANCH)).toContain('<div class="state"><span class="st live">in review</span><div class="vote-badge"><button type="button" class="st vs passed" aria-expanded="false" aria-controls="vb-head" aria-describedby="vb-head">passed</button>')
     expect(await page(b, EXAMPLE_ROOT)).toContain('<div class="pills"><div class="vote-badge"><button type="button" class="st vs passed"')
     // taking it back
     const again = await page(b, EXAMPLE_BRANCH)
@@ -347,5 +348,7 @@ describe('the page', () => {
     vi.setSystemTime(T0 + 30 * DAY)
     const html = await body(await new Browser(env).req(`/w/${EXAMPLE_ROOT}`, { headers: { accept: 'text/html' } }))
     expect(html).toContain('<span class="st quiet" title="nothing posted here or under it for over 48 hours">quiet</span>')
+    const list = html.slice(html.indexOf('<ul class="branches">'), html.indexOf('</ul>', html.indexOf('<ul class="branches">')))
+    expect(list).not.toContain('class="st live"') // no "live" pill on a branch (Myra, Oct 13)
   })
 })

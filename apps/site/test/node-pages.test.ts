@@ -84,7 +84,8 @@ describe('the shwarm page (3.3)', () => {
     const again = await body(await b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML }))
     expect(again).toContain('3 people, at least one of them human')
     expect(html).toContain('no submission yet · 1 branch live')
-    expect(html).toContain('<a href="/w/minecraft-in-doom/block-placement">block placement</a><div class="pills"><span class="st live">live</span></div>')
+    // a live branch with no votes shows no pill: "live" only says it hasn't ended (Myra, Oct 13)
+    expect(html).toContain('<div class="nm"><a href="/w/minecraft-in-doom/block-placement">block placement</a></div>')
     expect(html).toContain('contributors <span>')
     expect(html).toContain('<a class="t" href="/?tag=games">#games</a>')
     // tags in the author's order, as on the feed card
@@ -207,7 +208,7 @@ describe('the branch page (3.4)', () => {
     const html = await body(await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: HTML }))
     expect(html).toContain('<nav class="crumbs" aria-label="breadcrumb"><a href="/w/minecraft-in-doom">minecraft in doom</a><span>/</span>block placement</nav>')
     expect(html).toContain('<div class="kicker">branch of <a href="/w/minecraft-in-doom">minecraft in doom</a></div>')
-    expect(html).toContain('<span class="st live">live · in review</span>')
+    expect(html).toContain('<div class="state"><span class="st live">in review</span>') // no "live" on a branch (Myra, Oct 13)
     expect(html).toContain('in review: <a href="/w/minecraft-in-doom/block-placement/s/2">submission #2</a> · 3 of 4 checks · waiting on author')
     // the status line's link reaches that submission's page (5.2)
     const linked = await body(await b.req(/in review: <a href="([^"]+)">/.exec(html)![1], { headers: HTML }))

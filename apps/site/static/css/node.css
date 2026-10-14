@@ -193,7 +193,7 @@ main > .err.flash { margin: 0 0 10px; }
 /* A branch's status vote (decided Oct 13): a badge in place of "live", its bars in a panel on hover, keyboard focus, or a
    tap (static/js/node.js). The quiet tag sits beside a live branch's badge or pill when nothing was posted for a while. */
 .branches .pills { display: inline-flex; gap: 4px; align-items: flex-start; }
-.st.quiet { background: var(--paper); color: var(--ink); border-style: dashed; }
+.st.quiet { background: none; color: var(--ink); border-color: transparent; } /* no border (Myra, Oct 13); transparent keeps it lined up with the badges */
 .vote-badge { position: relative; display: inline-block; }
 .vote-badge > button.st { font-family: inherit; font-size: 11px; font-weight: 700; line-height: inherit; cursor: pointer; }
 .st.vs.on-track { background: var(--leaf); color: var(--paper); border-color: var(--leaf); }

@@ -232,10 +232,15 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
         </div>
       </div>
       <div class="state">
-        {n.kind === 'branch' && n.state === 'live' && d.status && statusNow(d.status.votes) ? (
-          <VoteBadge votes={d.status.votes} mine={d.status.mine} id="vb-head" />
-        ) : (
+        {/* A live branch shows its vote badge, or nothing: "live" only says it hasn't ended (Myra, Oct 13: "What is
+            live? If it exists it's live yeah?"). A shwarm keeps its "live · day n". */}
+        {n.kind !== 'branch' || n.state !== 'live' ? (
           <Pill n={n} now={d.now} />
+        ) : (
+          <>
+            {n.in_review === 1 && <span class="st live">{w.node.inReviewPill}</span>}
+            {d.status && statusNow(d.status.votes) && <VoteBadge votes={d.status.votes} mine={d.status.mine} id="vb-head" />}
+          </>
         )}
         <HeadJoin d={d} />
       </div>
@@ -1325,6 +1330,24 @@ const VoteBadge: FC<{ votes: StatusTally; mine?: Status | null; id: string }> = 
 /** A badge's id in a list of branches: from the branch's path, which is unique. */
 const badgeId = (path: string) => `vb-${path.replace(/[^a-z0-9]+/g, '-')}`
 
+/**
+ * What sits beside a branch in a list: "quiet" after QUIET_HOURS with no post (measured, unless its vote says passed),
+ * then its vote badge. No "live" pill (Myra, Oct 13: "What is live? If it exists it's live yeah?"): an ended branch
+ * keeps its closed or dead-end pill, and a live one with no votes shows nothing there.
+ */
+const BranchPills: FC<{ b: Child; now: number }> = ({ b, now }) => {
+  const live = b.state === 'live'
+  const quiet = live && b.quiet && !passedByVote(b.votes)
+  const badge = live && !!statusNow(b.votes)
+  if (live && !quiet && !badge) return null
+  return (
+    <div class="pills">
+      {quiet && <span class="st quiet" title={fill(w.node.quietTitle, { hours: QUIET_HOURS })}>{w.node.quiet}</span>}
+      {badge ? <VoteBadge votes={b.votes} id={badgeId(b.path)} /> : !live && <Pill n={b} now={now} short />}
+    </div>
+  )
+}
+
 /** The viewer may vote on this branch's status here: a live branch, not under an ended node. */
 const hasStatusForm = (d: NodePageData) => d.chain.node.kind === 'branch' && d.chain.node.state === 'live' && !lockedBy(d.chain)
 
@@ -1392,10 +1415,7 @@ const Branches: FC<{ d: NodePageData }> = ({ d }) => {
             <li>
               <div class="nm">
                 <a href={nodeHref(b.path)}><Plain text={b.title} /></a>
-                <div class="pills">
-                  {b.quiet && b.state === 'live' && !passedByVote(b.votes) && <span class="st quiet" title={fill(w.node.quietTitle, { hours: QUIET_HOURS })}>{w.node.quiet}</span>}
-                  {b.state === 'live' && statusNow(b.votes) ? <VoteBadge votes={b.votes} id={badgeId(b.path)} /> : <Pill n={b} now={d.now} short />}
-                </div>
+                <BranchPills b={b} now={d.now} />
               </div>
               <ChildSub c={b} />
             </li>

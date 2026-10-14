@@ -78,6 +78,8 @@ export const node = {
   deadEnd: 'dead end',
   live: 'live',
   liveInReview: 'live · in review',
+  // a live branch with a submission in review (no "live" on a branch, Oct 13)
+  inReviewPill: 'in review',
   liveDay: 'live · day {n}',
   // head: the join button under the pill, and what it says once you've joined
   join: 'join',
