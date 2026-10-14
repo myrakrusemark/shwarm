@@ -1,7 +1,9 @@
 // Server-side traffic counts (go-live 11.4, decided Oct 9: "Analytics: our own counts, a funnel first, on an admin
-// page"). After each response, one row of traffic_daily goes up by one: the day, what kind of answer it was, the other
-// site that linked here, the country and the status class. No IP, user agent, path, query or account id is kept, and
-// no cookie is set or read for it. Only the admin page (/admin/beta) and the daily summary mail read the counts; agent
+// page"). After each response, one row of traffic_count goes up by one: the day, what kind of answer it was, the other
+// site that linked here, the country, the status class, who sent it (a person's browser, a crawler, a script or a
+// signed agent) and, for people, the browser's first language (decided Oct 13). The user agent is read to pick who
+// and never kept. traffic_daily holds the counts from before Oct 13, with no who or language. No IP, user agent, path,
+// query or account id is kept, and no cookie is set or read for it. Only the admin page (/admin/beta) and the daily summary mail read the counts; agent
 // traffic (kind 'api', and much of 'prompt' and 'json') is never shown publicly as agent counts.
 //
 // Cost: one UPSERT per counted request, after the answer (waitUntil), so it adds no time to the response. D1's free
@@ -14,7 +16,8 @@ import { countsD1, flushUsage, tallied } from '../core/d1-usage'
 import { errorFormat, type Format } from './format'
 
 export type TrafficKind = 'page' | 'prompt' | 'json' | 'api' | 'other'
-export type TrafficRow = { day: string; kind: TrafficKind; referrer: string; country: string; status_class: number }
+export type TrafficWho = 'person' | 'crawler' | 'script' | 'agent'
+export type TrafficRow = { day: string; kind: TrafficKind; referrer: string; country: string; status_class: number; who: TrafficWho; lang: string }
 
 // Not counted: the uptime check, mail provider hooks, and static files (Workers Assets serves those before the Worker
 // runs; these catch the misses that fall through).
@@ -50,28 +53,55 @@ export function trafficKind(req: Request, res: Response): TrafficKind {
   return BY_FORMAT[errorFormat(url.pathname, url.searchParams.get('format') ?? undefined, req.headers.get('accept') ?? undefined)]
 }
 
+// A user agent that says what it is: search and AI crawlers, link previews, feed readers, monitors and headless
+// browsers. Anything here is a crawler even when it also claims to be Mozilla.
+const CRAWLER = /bot\b|bot\/|crawl|spider|slurp|archiver|preview|facebookexternalhit|embedly|feedfetcher|monitor|uptime|lighthouse|headless|phantom|scrapy|\+https?:\/\//i
+
+/**
+ * Who sent a request, from its headers alone (decided Oct 13; Claude's defaults). A signed call is an agent. A person
+ * is a browser: a Mozilla/ user agent with no crawler words that sends Sec-Fetch-Mode, which every current browser
+ * sends and few tools bother to fake. A user agent that names itself a crawler, or none at all, is a crawler. Anything
+ * else (curl, a library, an agent reading unsigned) is a script. A guess, not proof: a careful bot can pass as a person.
+ */
+export function trafficWho(req: Request): TrafficWho {
+  if (isSigned(req)) return 'agent'
+  const ua = req.headers.get('user-agent') ?? ''
+  if (!ua.trim() || CRAWLER.test(ua)) return 'crawler'
+  if (/^Mozilla\//.test(ua) && req.headers.get('sec-fetch-mode')) return 'person'
+  return 'script'
+}
+
+/** The first language an Accept-Language header lists, as its two or three letters ('ja' from 'ja-JP,en;q=0.8'). */
+export function firstLanguage(header: string | null): string {
+  const m = /^\s*([a-z]{2,3})(?:[-_][a-z0-9-]*)?\s*(?:[;,]|$)/i.exec(header ?? '')
+  return m ? m[1].toLowerCase() : ''
+}
+
 /** The row a request and its response add to, or null when it isn't counted. */
 export function trafficRow(req: Request, res: Response, now = Date.now()): TrafficRow | null {
   const url = new URL(req.url)
   if (req.method === 'OPTIONS' || SKIP.test(url.pathname)) return null
   const cf = (req as Request & { cf?: { country?: unknown } }).cf
   const country = typeof cf?.country === 'string' && /^[A-Z0-9]{2}$/.test(cf.country) ? cf.country : ''
+  const who = trafficWho(req)
   return {
     day: new Date(now).toISOString().slice(0, 10),
     kind: trafficKind(req, res),
     referrer: referrerHost(req.headers.get('referer') ?? undefined, url.hostname.toLowerCase()),
     country,
     status_class: Math.min(5, Math.max(1, Math.floor(res.status / 100))),
+    who,
+    lang: who === 'person' ? firstLanguage(req.headers.get('accept-language')) : '',
   }
 }
 
 export function countStatement(db: D1Database, r: TrafficRow): D1PreparedStatement {
   return db
     .prepare(
-      `INSERT INTO traffic_daily (day, kind, referrer, country, status_class, hits) VALUES (?, ?, ?, ?, ?, 1)
-       ON CONFLICT (day, kind, referrer, country, status_class) DO UPDATE SET hits = hits + 1`,
+      `INSERT INTO traffic_count (day, kind, referrer, country, status_class, who, lang, hits) VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+       ON CONFLICT (day, kind, referrer, country, status_class, who, lang) DO UPDATE SET hits = hits + 1`,
     )
-    .bind(r.day, r.kind, r.referrer, r.country, r.status_class)
+    .bind(r.day, r.kind, r.referrer, r.country, r.status_class, r.who, r.lang)
 }
 
 // 5xx answers by 10-minute bucket (go-live 11.3), for the watchdog's "errors in the last hour" (jobs/watch.ts):

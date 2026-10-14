@@ -221,7 +221,7 @@ describe('5xx counter', () => {
     expect(db.raw.prepare("SELECT scope, count, window_start FROM auth_throttle WHERE scope LIKE 'watch:5xx:%'").all()).toEqual([
       { scope: 'watch:5xx:2026-10-08T12:0', count: 2, window_start: '2026-10-08T12:00:00.000Z' },
     ])
-    expect(db.raw.prepare('SELECT SUM(hits) AS n FROM traffic_daily WHERE status_class = 5').get().n).toBe(2)
+    expect(db.raw.prepare('SELECT SUM(hits) AS n FROM traffic_count WHERE status_class = 5').get().n).toBe(2)
   })
 
   it('stops counting a bucket at its cap, so an outage writes a bounded number of rows', async () => {

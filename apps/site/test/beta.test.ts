@@ -11,7 +11,7 @@ import { renderMail } from '../src/email/templates'
 import { MAIL_CRON, scheduled } from '../src/jobs'
 import { dayUsage, sendSummary, summaryDay, USAGE_FLOOR } from '../src/jobs/summary'
 import { activity, daySummary, funnel, lastDays, STEPS, testers, through } from '../src/read/beta'
-import { countTraffic, referrerHost, resetTrafficLog, trafficKind, trafficRow } from '../src/web/traffic'
+import { countTraffic, firstLanguage, referrerHost, resetTrafficLog, trafficKind, trafficRow, trafficWho } from '../src/web/traffic'
 import { addPerson, T0, testDb } from './d1'
 import { body, Browser, fakeFetch, GOOD_PASSWORD, pepper, testEnv } from './browser'
 
@@ -186,6 +186,25 @@ describe('the beta funnel page', () => {
     expect(page).toContain('DE')
     expect(page).not.toContain('old.example')
   })
+
+  it('splits traffic by who sent it, old days as unknown, and lists people’s languages', async () => {
+    const w = await world()
+    w.run("INSERT INTO traffic_daily (day, kind, referrer, country, status_class, hits) VALUES ('2026-10-06', 'page', '', 'JP', 2, 50)")
+    const ins = (who: string, lang: string, hits: number) =>
+      w.run("INSERT INTO traffic_count (day, kind, referrer, country, status_class, who, lang, hits) VALUES ('2026-10-07', 'page', '', 'JP', 2, ?, ?, ?)", who, lang, hits)
+    ins('person', 'ja', 12)
+    ins('person', 'en', 3)
+    ins('crawler', '', 70)
+    ins('script', '', 9)
+    const myra = await signIn(testEnv(w.db), 'myra@example.org')
+    const page = await body(await myra.get('/admin/beta'))
+    expect(page).toContain('who sent them')
+    expect(page).toMatch(/<td class="day">2026-10-07<\/td><td class="num">15<\/td><td class="num">70<\/td><td class="num">9<\/td><td class="num">0<\/td><td class="num">0<\/td>/)
+    expect(page).toMatch(/<td class="day">2026-10-06<\/td><td class="num">0<\/td><td class="num">0<\/td><td class="num">0<\/td><td class="num">0<\/td><td class="num">50<\/td>/)
+    // JP: all, people, crawlers, scripts, agents, unknown
+    expect(page).toMatch(/<td>JP<\/td><td class="num">144<\/td><td class="num">15<\/td><td class="num">70<\/td><td class="num">9<\/td><td class="num">0<\/td><td class="num">50<\/td>/)
+    expect(page).toMatch(/people's browser languages<\/h3><ol><li>ja <span class="mk">12<\/span><\/li><li>en <span class="mk">3<\/span><\/li><\/ol>/)
+  })
 })
 
 describe('the traffic counter', () => {
@@ -205,6 +224,34 @@ describe('the traffic counter', () => {
     expect(trafficKind(req('/signin'), res(null, 303))).toBe('page')
   })
 
+  it('tells people from crawlers, scripts and agents by the headers', () => {
+    const chrome = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'
+    expect(trafficWho(req('/', { 'user-agent': chrome, 'sec-fetch-mode': 'navigate' }))).toBe('person')
+    // a browser's user agent without the browser's fetch headers: a script dressed up
+    expect(trafficWho(req('/', { 'user-agent': chrome }))).toBe('script')
+    for (const ua of [
+      'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+      'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; ClaudeBot/1.0; +claudebot@anthropic.com)',
+      'Mozilla/5.0 (compatible; Bytespider; spider-feedback@bytedance.com)',
+      'Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)',
+      'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.0.0 Safari/537.36',
+      'facebookexternalhit/1.1',
+      '',
+    ])
+      expect(trafficWho(req('/', { 'user-agent': ua, 'sec-fetch-mode': 'navigate' })), ua).toBe('crawler')
+    expect(trafficWho(req('/'))).toBe('crawler') // no user agent at all
+    for (const ua of ['curl/8.5.0', 'python-requests/2.32.3', 'node', 'Go-http-client/2.0']) expect(trafficWho(req('/', { 'user-agent': ua })), ua).toBe('script')
+    expect(trafficWho(req('/', { 'user-agent': 'curl/8.5.0', 'signature-input': 'sig1=()', signature: 'sig1=:x:' }))).toBe('agent')
+  })
+
+  it('keeps the first language a browser asks for, two or three letters', () => {
+    expect(firstLanguage('ja-JP,ja;q=0.9,en-US;q=0.8')).toBe('ja')
+    expect(firstLanguage('en')).toBe('en')
+    expect(firstLanguage('fil-PH, en;q=0.5')).toBe('fil')
+    expect(firstLanguage('ZH_tw')).toBe('zh')
+    for (const h of ['*', '', null, 'x-pirate', 'english please', '12-AB']) expect(firstLanguage(h), String(h)).toBe('')
+  })
+
   it('keeps only another site’s host as the referrer', () => {
     expect(referrerHost('https://news.ycombinator.com/item?id=42', 'shwarm.org')).toBe('news.ycombinator.com')
     expect(referrerHost('https://Lobste.rs/', 'shwarm.org')).toBe('lobste.rs')
@@ -219,33 +266,36 @@ describe('the traffic counter', () => {
   it('skips health, hooks, static files and preflights', () => {
     for (const p of ['/healthz', '/hooks/resend', '/css/site.css', '/js/site.js', '/img/shwarm-mark.png']) expect(trafficRow(req(p), res('text/plain')), p).toBeNull()
     expect(trafficRow(new Request('https://shwarm.org/w/x', { method: 'OPTIONS' }), res(null, 204))).toBeNull()
-    expect(trafficRow(req('/', {}, { country: 'not a country' }), res('text/html'), T0)).toEqual({ day: '2026-10-08', kind: 'page', referrer: '', country: '', status_class: 2 })
+    expect(trafficRow(req('/', {}, { country: 'not a country' }), res('text/html'), T0)).toEqual({ day: '2026-10-08', kind: 'page', referrer: '', country: '', status_class: 2, who: 'crawler', lang: '' })
   })
 
   it('counts through the site on staging and production only, with nothing personal kept', async () => {
     const db = testDb()
     const env = { ...testEnv(db), ENV: 'production', SITE_MODE: 'open' }
+    const browser = { 'user-agent': 'Mozilla/5.0 SecretBrowser/9', 'sec-fetch-mode': 'navigate', 'accept-language': 'ja-JP,ja;q=0.9,en;q=0.8' }
     const send = (path: string, headers: Record<string, string> = {}, country = 'DE') =>
-      app.fetch(req(path, { 'cf-connecting-ip': '203.0.113.77', 'user-agent': 'Mozilla/5.0 SecretBrowser/9', ...headers }, { country }), env)
+      app.fetch(req(path, { 'cf-connecting-ip': '203.0.113.77', ...browser, ...headers }, { country }), env)
     expect((await send('/rules', { referer: 'https://news.ycombinator.com/item?id=42' })).status).toBe(200)
     await send('/rules', { referer: 'https://news.ycombinator.com/' })
     await send('/how-it-works', { referer: 'https://shwarm.org/rules' }, 'US')
-    await send('/no-such-page', { accept: 'application/json' })
+    await send('/no-such-page', { accept: 'application/json', 'user-agent': 'curl/8.5.0', 'sec-fetch-mode': '' })
+    await send('/rules', { 'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' }, 'US')
     await send('/healthz')
-    const rows = db.raw.prepare('SELECT * FROM traffic_daily ORDER BY kind, referrer, country').all().map((r: any) => ({ ...r }))
+    const rows = db.raw.prepare('SELECT * FROM traffic_count ORDER BY kind, who, referrer, country').all().map((r: any) => ({ ...r }))
     expect(rows).toEqual([
-      { day: '2026-10-08', kind: 'json', referrer: '', country: 'DE', status_class: 4, hits: 1 },
-      { day: '2026-10-08', kind: 'page', referrer: '', country: 'US', status_class: 2, hits: 1 },
-      { day: '2026-10-08', kind: 'page', referrer: 'news.ycombinator.com', country: 'DE', status_class: 2, hits: 2 },
+      { day: '2026-10-08', kind: 'json', referrer: '', country: 'DE', status_class: 4, who: 'script', lang: '', hits: 1 },
+      { day: '2026-10-08', kind: 'page', referrer: '', country: 'US', status_class: 2, who: 'crawler', lang: '', hits: 1 },
+      { day: '2026-10-08', kind: 'page', referrer: '', country: 'US', status_class: 2, who: 'person', lang: 'ja', hits: 1 },
+      { day: '2026-10-08', kind: 'page', referrer: 'news.ycombinator.com', country: 'DE', status_class: 2, who: 'person', lang: 'ja', hits: 2 },
     ])
     // No IP, user agent, path or account anywhere in the table, and no column that could hold one.
-    expect(Object.keys(rows[0]).sort()).toEqual(['country', 'day', 'hits', 'kind', 'referrer', 'status_class'])
+    expect(Object.keys(rows[0]).sort()).toEqual(['country', 'day', 'hits', 'kind', 'lang', 'referrer', 'status_class', 'who'])
     expect(JSON.stringify(rows)).not.toMatch(/203\.0\.113|SecretBrowser|rules|how-it-works|item\?id/)
 
     // Tests and local runs count nothing.
     const quiet = testDb()
     await app.fetch(req('/rules'), { ...testEnv(quiet) })
-    expect(quiet.raw.prepare('SELECT COUNT(*) AS n FROM traffic_daily').get().n).toBe(0)
+    expect(quiet.raw.prepare('SELECT COUNT(*) AS n FROM traffic_count').get().n).toBe(0)
   })
 
   it('counts after the answer when there is an ExecutionContext', async () => {
@@ -256,7 +306,7 @@ describe('the traffic counter', () => {
     expect(r.status).toBe(401) // the staging lock's answer is counted too
     expect(pending).toHaveLength(1)
     await Promise.all(pending)
-    expect(db.raw.prepare('SELECT kind, status_class, hits FROM traffic_daily').all().map((x: any) => ({ ...x }))).toEqual([{ kind: 'prompt', status_class: 4, hits: 1 }])
+    expect(db.raw.prepare('SELECT kind, status_class, hits FROM traffic_count').all().map((x: any) => ({ ...x }))).toEqual([{ kind: 'prompt', status_class: 4, hits: 1 }])
   })
 
   it('never lets a counting error touch the response, and logs it once', async () => {

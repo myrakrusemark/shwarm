@@ -140,42 +140,75 @@ export async function activity(db: D1Database, days: string[]): Promise<DayActiv
 }
 
 export type TrafficKinds = { page: number; prompt: number; json: number; api: number; other: number }
-export type TrafficDay = TrafficKinds & { day: string; errors: number }
+export type TrafficWhos = { person: number; crawler: number; script: number; agent: number; unknown: number }
+export type TrafficDay = TrafficKinds & { day: string; errors: number; who: TrafficWhos }
 export type Ranked = { name: string; hits: number }
+export type CountryWho = { name: string; person: number; crawler: number; script: number; agent: number; unknown: number; hits: number }
 
 const noKinds = (): TrafficKinds => ({ page: 0, prompt: 0, json: 0, api: 0, other: 0 })
+const noWhos = (): TrafficWhos => ({ person: 0, crawler: 0, script: 0, agent: 0, unknown: 0 })
+
+// Every count, old and new: traffic_count (from Oct 13, with who and language) and traffic_daily (before, who unknown).
+// Each day is in only one of them, so nothing counts twice.
+const TRAFFIC = `(SELECT day, kind, referrer, country, status_class, who, lang, hits FROM traffic_count
+  UNION ALL SELECT day, kind, referrer, country, status_class, 'unknown' AS who, '' AS lang, hits FROM traffic_daily)`
 
 /** Requests per day by kind (every status), and how many of them were 4xx or 5xx. On the table's key: day first. */
 export async function trafficByDay(db: D1Database, days: string[]): Promise<TrafficDay[]> {
   const { results } = await db
     .prepare(
-      `SELECT day, kind, SUM(hits) AS hits, SUM(CASE WHEN status_class >= 4 THEN hits ELSE 0 END) AS errors
-       FROM traffic_daily WHERE day >= ? AND day <= ? GROUP BY day, kind`,
+      `SELECT day, kind, who, SUM(hits) AS hits, SUM(CASE WHEN status_class >= 4 THEN hits ELSE 0 END) AS errors
+       FROM ${TRAFFIC} WHERE day >= ? AND day <= ? GROUP BY day, kind, who`,
     )
     .bind(days[0], days.at(-1))
-    .all<{ day: string; kind: keyof TrafficKinds; hits: number; errors: number }>()
-  const out = new Map(days.map(d => [d, { day: d, ...noKinds(), errors: 0 } as TrafficDay]))
+    .all<{ day: string; kind: keyof TrafficKinds; who: keyof TrafficWhos; hits: number; errors: number }>()
+  const out = new Map(days.map(d => [d, { day: d, ...noKinds(), errors: 0, who: noWhos() } as TrafficDay]))
   for (const r of results) {
     const d = out.get(r.day)
-    if (!d || !(r.kind in d)) continue
+    if (!d || !(r.kind in noKinds())) continue
     d[r.kind] += r.hits
     d.errors += r.errors
+    if (r.who in d.who) d.who[r.who] += r.hits
   }
   return [...out.values()]
 }
 
-/** The top referring sites and countries over the days. */
-export async function trafficTop(db: D1Database, days: string[], limit = 10): Promise<{ referrers: Ranked[]; countries: Ranked[] }> {
-  const top = (col: 'referrer' | 'country') =>
+/**
+ * The top referring sites over the days; the top countries, each split by who sent the requests; and the languages
+ * people's browsers ask for first (people only, counted from Oct 13).
+ */
+export async function trafficTop(
+  db: D1Database,
+  days: string[],
+  limit = 10,
+): Promise<{ referrers: Ranked[]; countries: CountryWho[]; languages: Ranked[] }> {
+  const [r, c, l] = await Promise.all([
     db
       .prepare(
-        `SELECT ${col} AS name, SUM(hits) AS hits FROM traffic_daily
-         WHERE day >= ? AND day <= ? AND ${col} <> '' GROUP BY ${col} ORDER BY hits DESC, name LIMIT ?`,
+        `SELECT referrer AS name, SUM(hits) AS hits FROM ${TRAFFIC}
+         WHERE day >= ? AND day <= ? AND referrer <> '' GROUP BY referrer ORDER BY hits DESC, name LIMIT ?`,
       )
       .bind(days[0], days.at(-1), limit)
-      .all<Ranked>()
-  const [r, c] = await Promise.all([top('referrer'), top('country')])
-  return { referrers: r.results, countries: c.results }
+      .all<Ranked>(),
+    db
+      .prepare(
+        `SELECT country AS name, SUM(hits) AS hits,
+           SUM(CASE WHEN who = 'person' THEN hits ELSE 0 END) AS person, SUM(CASE WHEN who = 'crawler' THEN hits ELSE 0 END) AS crawler,
+           SUM(CASE WHEN who = 'script' THEN hits ELSE 0 END) AS script, SUM(CASE WHEN who = 'agent' THEN hits ELSE 0 END) AS agent,
+           SUM(CASE WHEN who = 'unknown' THEN hits ELSE 0 END) AS unknown
+         FROM ${TRAFFIC} WHERE day >= ? AND day <= ? AND country <> '' GROUP BY country ORDER BY hits DESC, name LIMIT ?`,
+      )
+      .bind(days[0], days.at(-1), limit)
+      .all<CountryWho>(),
+    db
+      .prepare(
+        `SELECT lang AS name, SUM(hits) AS hits FROM traffic_count
+         WHERE day >= ? AND day <= ? AND who = 'person' AND lang <> '' GROUP BY lang ORDER BY hits DESC, name LIMIT ?`,
+      )
+      .bind(days[0], days.at(-1), limit)
+      .all<Ranked>(),
+  ])
+  return { referrers: r.results, countries: c.results, languages: l.results }
 }
 
 export type DaySummary = {
@@ -197,7 +230,7 @@ export async function daySummary(db: D1Database, day: string): Promise<DaySummar
   const end = new Date(Date.parse(start) + 86_400_000).toISOString()
   const real = `SELECT id FROM person WHERE NOT ${SEED('person')}`
   const [traffic, counts] = await Promise.all([
-    db.prepare('SELECT kind, SUM(hits) AS hits FROM traffic_daily WHERE day = ? GROUP BY kind').bind(day).all<{ kind: keyof TrafficKinds; hits: number }>(),
+    db.prepare(`SELECT kind, SUM(hits) AS hits FROM ${TRAFFIC} WHERE day = ? GROUP BY kind`).bind(day).all<{ kind: keyof TrafficKinds; hits: number }>(),
     db
       .prepare(
         `SELECT

@@ -5,7 +5,7 @@
 // address isn't advertised. A reading page: prose under headings, tables for the numbers, the sidebar's boxes only.
 import { Hono } from 'hono'
 import type { FC } from 'hono/jsx'
-import { activity, funnel, lastDays, STEPS, testers, trafficByDay, trafficTop, type DayActivity, type Funnel, type Ranked, type Tester, type TrafficDay } from '../read/beta'
+import { activity, funnel, lastDays, STEPS, testers, trafficByDay, trafficTop, type DayActivity, type Funnel, type CountryWho, type Ranked, type Tester, type TrafficDay } from '../read/beta'
 import { adminGate, type AdminEnv } from './admin-gate'
 import { AdminNav } from './admin-nav'
 import { AgentResources, Layout } from './layout'
@@ -28,7 +28,7 @@ admin.get('/admin/beta', async c => {
   return page(c, <BetaPage v={{ funnel: f, people, activity: act, traffic, top, now }} />)
 })
 
-type View = { funnel: Funnel; people: Tester[]; activity: DayActivity[]; traffic: TrafficDay[]; top: { referrers: Ranked[]; countries: Ranked[] }; now: number }
+type View = { funnel: Funnel; people: Tester[]; activity: DayActivity[]; traffic: TrafficDay[]; top: { referrers: Ranked[]; countries: CountryWho[]; languages: Ranked[] }; now: number }
 
 const SECTIONS: [string, string][] = [
   ['loop', 'the loop'],
@@ -115,6 +115,31 @@ const TrafficTable: FC<{ rows: TrafficDay[] }> = ({ rows }) => (
   </table>
 )
 
+const WhoTable: FC<{ rows: TrafficDay[] }> = ({ rows }) => (
+  <table class="adm">
+    <thead><tr><th>day</th><th class="num">people</th><th class="num">crawlers</th><th class="num">scripts</th><th class="num">agents</th><th class="num">unknown</th></tr></thead>
+    <tbody>
+      {[...rows].reverse().map(r => (
+        <tr><td class="day">{r.day}</td><td class="num">{n(r.who.person)}</td><td class="num">{n(r.who.crawler)}</td><td class="num">{n(r.who.script)}</td><td class="num">{n(r.who.agent)}</td><td class="num">{n(r.who.unknown)}</td></tr>
+      ))}
+    </tbody>
+  </table>
+)
+
+const CountryTable: FC<{ rows: CountryWho[] }> = ({ rows }) =>
+  rows.length ? (
+    <table class="adm">
+      <thead><tr><th>country</th><th class="num">all</th><th class="num">people</th><th class="num">crawlers</th><th class="num">scripts</th><th class="num">agents</th><th class="num">unknown</th></tr></thead>
+      <tbody>
+        {rows.map(r => (
+          <tr><td>{r.name}</td><td class="num">{n(r.hits)}</td><td class="num">{n(r.person)}</td><td class="num">{n(r.crawler)}</td><td class="num">{n(r.script)}</td><td class="num">{n(r.agent)}</td><td class="num">{n(r.unknown)}</td></tr>
+        ))}
+      </tbody>
+    </table>
+  ) : (
+    <p>no countries yet.</p>
+  )
+
 const Top: FC<{ title: string; rows: Ranked[]; none: string }> = ({ title, rows, none }) => (
   <>
     <h3>{title}</h3>
@@ -158,8 +183,13 @@ const BetaPage: FC<{ v: View }> = ({ v }) => (
           <div class="body">
             <p>requests per day, counted on the server. these are requests, not people: there are no cookies, so one person reading ten pages counts ten. api is signed agent calls; prompts are text answers.</p>
             <TrafficTable rows={v.traffic} />
+            <h3>who sent them</h3>
+            <p>people are browsers. crawlers say they are one (search engines, ai crawlers, link previews), or send no name. scripts are everything else, like curl or a code library. agents are signed api calls. this is a guess from the request's headers: a careful bot can pass as a person. unknown is before oct 13, when this wasn't counted.</p>
+            <WhoTable rows={v.traffic} />
             <Top title="top referring sites" rows={v.top.referrers} none="no other sites linked here yet." />
-            <Top title="top countries" rows={v.top.countries} none="no countries yet." />
+            <h3>top countries</h3>
+            <CountryTable rows={v.top.countries} />
+            <Top title="people's browser languages" rows={v.top.languages} none="no languages yet. counted from oct 13." />
           </div>
         </section>
       </article>
