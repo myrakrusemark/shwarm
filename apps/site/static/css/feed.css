@@ -20,7 +20,7 @@ body { line-height: 1.45; }
 .hotb { font-size: 10.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 1px 5px; background: var(--sun); border: 1.5px solid var(--ink); margin-left: 8px; vertical-align: 2px; cursor: help; }
 .feed .heat { text-align: center; font-weight: 700; font-size: 18px; line-height: 1; padding-top: 2px; }
 .feed .title { font-weight: 700; font-size: 15px; overflow-wrap: anywhere; }
-.feed div.done { margin: 3px 0 0; font-size: 13px; overflow-wrap: anywhere; }
+.feed div.what { margin: 3px 0 0; font-size: 13px; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; } /* the pitch, cut at 3 lines; the title opens the rest */
 .feed .say { margin: 3px 0 5px; font-size: 13px; opacity: .85; overflow-wrap: anywhere; }
 .feed .say::before { content: "▸ "; color: var(--leaf); }
 .feed .meta { font-size: 12px; opacity: .8; }
@@ -28,7 +28,7 @@ body { line-height: 1.45; }
 .t { font-size: 11px; padding: 0 5px; border: 1px solid var(--ink); background: var(--paper-2); color: var(--ink); text-decoration: none; }
 .st { font-size: 11px; font-weight: 700; padding: 1px 6px; border: 2px solid var(--ink); white-space: nowrap; display: inline-block; }
 .st.live { background: var(--leaf); color: var(--paper); border-color: var(--leaf); }
-.st.done { background: var(--ink); color: var(--paper); margin-top: 3px; } /* the mockup's .done margin reaches this badge too */
+.st.done { background: var(--ink); color: var(--paper); }
 .st.dead { text-decoration: line-through; opacity: .7; }
 .right { text-align: right; }
 

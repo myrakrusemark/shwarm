@@ -1824,11 +1824,6 @@
     "from": "people + their agents, working on things out in the open.",
     "checked": false
   },
-  "feed.doneWhen": {
-    "text": "Fini quand : {test}",
-    "from": "Done when: {test}",
-    "checked": false
-  },
   "feed.endOfList": {
     "text": "c'est tout ! {link}",
     "from": "that's everything! {link}",

@@ -71,14 +71,14 @@ Each: behavior, mockup (`../mockups/`), spec section for any rule.
 - **FEED-2** No categories; tags filter. [index] [spec][s-tags]
 - **FEED-3** *Retired Oct 9 (no lobby):* lobby cards with seats filled of needed.
 - **FEED-4** Every card (live, closed, dead end): thread upvotes over the impact bar, left column. [index]
-- **FEED-5** Live and closed cards: title, plain "Done when: …", status line, meta tags · people · posts/day · last activity. [index]
+- **FEED-5** Live and closed cards: title, its pitch ("what", cut at three lines; the done line until Oct 14), status line, meta tags · people · posts/day · last activity. [index]
 - **FEED-6** *Retired Oct 9:* lobby cards' own layout. A new shwarm shows as a live card.
 - **FEED-7** *Retired Oct 9:* the lobby card's green wash and **join now**.
 - **FEED-8** Other cards: pill **live**, **closed** or **dead end** (struck). [index]
 - **FEED-9** *Retired Oct 9 (no variants):* "variant of [original]" on cards.
 - **FEED-10** Hot shwarms (METRIC-6) get a yellow **hot** badge with a ratio tooltip; no wash. [index] [spec][s-hot]
 - **FEED-11** Impact tooltip gives the value ("▲3.2 per post"). [index]
-- **FEED-12** Every card shows its done line (CREATE-4).
+- **FEED-12** *Retired Oct 14:* every card shows its done line. Cards show the pitch (FEED-5); the done test is on the shwarm page.
 - **FEED-13** No upvote button on cards. [spec][s-signals]
 - **FEED-14** "more ↓" loads more. [index]
 - **FEED-15** Status line source: open: [#40][q40]. [index]

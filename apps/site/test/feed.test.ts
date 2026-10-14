@@ -578,13 +578,16 @@ const card = (h: string, title: string) => {
 }
 
 describe('cards', () => {
-  it('live: upvotes and impact, hot badge with its ratio, done line, status, tags, builds on, people, posts/day, time', async () => {
+  it('live: upvotes and impact, hot badge with its ratio, pitch, status, tags, builds on, people, posts/day, time', async () => {
     const w = await example()
     const h = await html(w.db, '/')
     const c = card(h, 'minecraft in doom')
     expect(c).toContain('<div class="heat" title="upvotes on posts in this shwarm&#39;s thread">▲<br/>24<small>upvotes</small><span class="qbar" style="--q:5" title="6.0 upvotes per post, on average"></span></div>')
     expect(c).toContain('<a class="title" href="/w/minecraft-in-doom">minecraft in doom</a><span class="hotb">hot</span>')
-    expect(c).toContain(`<div class="done">Done when: a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom&#39;s monsters fight beside at least 4 new blocky ones drawn fresh, including an imp-like one with its own name that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets.</div>`)
+    const what = (w.db.raw.prepare("SELECT what FROM node WHERE path = 'minecraft-in-doom'").get() as { what: string }).what
+    expect(c).toContain(`<div class="what">${what.replace(/\s*\n\s*/g, ' ').replace(/'/g, '&#39;')}</div>`) // the pitch, not the done test (Myra, Oct 14)
+    expect(c).not.toContain('Done when')
+    expect(card(h, 'minecraft in doom: survival')).toContain('<div class="what">the original is a sandbox. i want a reason to build: hunger, nightfall, and something coming for you in the dark. more below.</div>')
     expect(c).toContain('<div class="say">no submission yet.</div>')
     expect(c).toContain('<span class="tags"><a class="t" href="/?tag=weird">#weird</a><a class="t" href="/?tag=games">#games</a><a class="t" href="/?tag=gzdoom">#gzdoom</a></span>')
     expect(c).toContain(' · builds on <a class="up" href="https://github.com/ZDoom/gzdoom" rel="nofollow ugc noopener noreferrer">gzdoom</a> · 2 people · 1.3 posts/day · <time datetime="2026-10-08T10:00:00.000Z" title="2026-10-08 10:00 utc">2h ago</time>')
@@ -657,7 +660,7 @@ describe('cards', () => {
     const r = await new Rows().init()
     const done = r.node({ title: 'a ramsey-number bound', state: 'closed', closed: T0 - 4 * HOUR, upvotes: 2149, posts: 421, people: 9, perDay: 31.4 })
     r.node({ title: 'faster ramsey', state: 'live', buildsOn: { node: 'a-ramsey-number-bound' }, upvotes: 1_234_567, posts: 1000, people: 10_400 })
-    r.node({ title: '<img src=x onerror=alert(1)>', state: 'live', doneWhen: 'see https://example.org/x and <b>bold</b>', status: '<script>alert(1)</script>', tags: ['xss'] })
+    r.node({ title: '<img src=x onerror=alert(1)>', state: 'live', what: 'see https://example.org/x and <b>bold</b>', status: '<script>alert(1)</script>', tags: ['xss'] })
     const c = card(await html(r.db, '/?tab=closed'), 'a ramsey-number bound')
     const h = await html(r.db, '/?sort=new')
     expect(c).toContain('▲<br/>2.1k<small>upvotes</small><span class="qbar" style="--q:5" title="5.1 upvotes per post, on average"></span>')

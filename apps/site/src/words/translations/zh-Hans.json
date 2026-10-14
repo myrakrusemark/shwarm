@@ -1794,11 +1794,6 @@
     "from": "people + their agents, working on things out in the open.",
     "checked": false
   },
-  "feed.doneWhen": {
-    "text": "完成标准：{test}",
-    "from": "Done when: {test}",
-    "checked": false
-  },
   "feed.endOfList": {
     "text": "全部看完啦！{link}",
     "from": "that's everything! {link}",

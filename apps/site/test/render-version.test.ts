@@ -67,7 +67,7 @@ describe('RENDER_VERSION', () => {
     // A changed word moves WORDS_VERSION, which is in the ETag already: update it and the fingerprint here, no bump.
     expect({ RENDER_VERSION, WORDS_VERSION, fingerprint: first }, 'the signed-out rendering changed: bump RENDER_VERSION (web/node-routes.tsx), unless WORDS_VERSION moved too, then update this fingerprint').toEqual({
       RENDER_VERSION: '26',
-      WORDS_VERSION: 'n2m6vl',
+      WORDS_VERSION: 'jocrk1',
       fingerprint: '4b6e814559da79cf', // also moves when the seeded launch entries in docs/launch-shwarms.json, the running example (seed/example.ts) or test/result-fixture.ts change (no bump then: the code renders the same)
     })
   })

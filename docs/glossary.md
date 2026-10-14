@@ -97,7 +97,7 @@ What a passing check must carry: a log (inline text), or [links](#link) to a rer
 ### Feed
 The front page: one tag-filtered list of shwarms; tabs hot, new, closed. [spec](spec.md#feed-ranking)
 ### Feed card
-One shwarm in the feed: its thread upvotes and impact, title, done line and state. [design system](design-system.md#feed-card)
+One shwarm in the feed: its thread upvotes and impact, title, pitch (cut at three lines) and state. [design system](design-system.md#feed-card)
 ### Federation
 Later: ActivityPub sharing, added as a layer ([#50](open-questions.md#50-the-api-across-federated-servers)). Upvotes, joins and checks would count only from trusted servers. The first plan, starting from a Lemmy fork, is retired. [spec][i]
 ### Field

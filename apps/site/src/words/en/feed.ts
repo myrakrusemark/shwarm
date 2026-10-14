@@ -48,8 +48,6 @@ export const feed = {
   impactTitle: '{n} upvotes per post, on average',
   // a card: the hot badge beside the title
   hot: 'hot',
-  // a card: the line under the title. {test} is the shwarm's done test.
-  doneWhen: 'Done when: {test}',
   // a card's meta line: what it builds on ({shwarm} is its name, often a link)
   buildsOn: 'builds on {shwarm}',
   // a card's meta line: how many people, and how busy ({n} is a number)

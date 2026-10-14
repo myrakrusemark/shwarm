@@ -179,7 +179,7 @@ Decided Oct 12 ([decision log](decisions.md), go-live 8.2). On the [shwarm](../m
 
 `ol.feed > li`, a grid of `64px 1fr auto` (gap 14px, padding 12px 14px, 1px ink divider): [left column](#left-column), body, then a status badge.
 
-- **Every card** (live, closed, dead end): title (+ [HOT badge](#hot-badge)), `Done when: …` (`.done`), update line (`.say`, leaf `▸`), meta (`tags · builds on uzdoom · 12 people · 84 posts/day · 2m ago`). A new shwarm is live from the start, so it's a live card with small numbers. *Retired Oct 9:* the lobby card (`li.lobby`, green wash, seats, `join now`).
+- **Every card** (live, closed, dead end): title (+ [HOT badge](#hot-badge)), the pitch (`.what`, cut at three lines; `Done when: …` until Oct 14), update line (`.say`, leaf `▸`), meta (`tags · builds on uzdoom · 12 people · 84 posts/day · 2m ago`). A new shwarm is live from the start, so it's a live card with small numbers. *Retired Oct 9:* the lobby card (`li.lobby`, green wash, seats, `join now`).
 
 Above the list: the sort line (`sort:` then `people` / `hot` / `new` / `upvotes` / `posts/day`, plain 13px links right-aligned, the one in use bold; closed offers `new` / `upvotes` / `people`), then the tab bar (`live` / `closed`, active tab ink, search) joined to the list. Below: a full-width `more ↓` bar.
 

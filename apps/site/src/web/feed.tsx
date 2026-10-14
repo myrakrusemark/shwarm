@@ -195,7 +195,7 @@ export const Card: FC<{ card: FeedCard; now: number }> = ({ card, now }) => {
       <Heat card={card} mark={!dead} />
       <div>
         <Title card={card} />
-        <div class="done">{fillx(w.feed.doneWhen, { test: <Text inline text={card.doneWhen} /> })}</div>
+        <div class="what"><Text inline text={card.what.replace(/\s*\n\s*/g, ' ')} /></div>
         <Say card={card} />
         <div class="meta">
           <Tags tags={card.tags} />
