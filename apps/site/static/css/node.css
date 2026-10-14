@@ -190,11 +190,20 @@ main > .err.flash { margin: 0 0 10px; }
 .c.ev.more-joins summary { cursor: pointer; }
 .c.ev.more-joins > .c.ev { padding: 4px 0 0; background: none; border: 0; }
 
-/* A branch's status vote (decided Oct 13): small bars, one per status, filled by its share of the people who voted.
-   The quiet tag sits beside a live branch's pill when nothing was posted in it or under it for a while. */
+/* A branch's status vote (decided Oct 13): a badge in place of "live", its bars in a panel on hover, keyboard focus, or a
+   tap (static/js/node.js). The quiet tag sits beside a live branch's badge or pill when nothing was posted for a while. */
 .branches .pills { display: inline-flex; gap: 4px; align-items: flex-start; }
 .st.quiet { background: var(--paper); color: var(--ink); border-style: dashed; }
-.votes { margin-top: 6px; font-size: 11px; }
+.vote-badge { position: relative; display: inline-block; }
+.vote-badge > button.st { font-family: inherit; font-size: 11px; font-weight: 700; line-height: inherit; cursor: pointer; }
+.st.vs.on-track { background: var(--leaf); color: var(--paper); border-color: var(--leaf); }
+.st.vs.blocked { background: var(--sun); color: var(--ink); }
+.st.vs.passed { background: var(--ink); color: var(--paper); }
+.st.vs.dead-end { background: var(--paper); color: var(--ink); text-decoration: line-through; }
+.st.vs.mixed { background: var(--paper); color: var(--ink); border-style: dashed; }
+.vb-panel { display: none; position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; width: 250px; background: var(--paper); border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); padding: 8px 10px; text-align: left; font-weight: 400; }
+.vote-badge:hover .vb-panel, .vote-badge.open .vb-panel, .vote-badge button:focus-visible + .vb-panel { display: block; }
+.votes { font-size: 11px; }
 .votes ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: max-content 1fr max-content; gap: 2px 6px; align-items: center; }
 .votes li { display: contents; }
 .votes .vb { height: 8px; border: 1px solid var(--ink); background: var(--paper); display: block; }
@@ -202,13 +211,11 @@ main > .err.flash { margin: 0 0 10px; }
 .votes li.mine .vl { font-weight: 700; }
 .votes li.mine .vb i { background: var(--sun); }
 .votes .vn { text-align: right; font-variant-numeric: tabular-nums; }
-.votes .vp { margin-top: 2px; }
-.status-vote .in > .votes { margin: 0 0 8px; }
+.votes .vp { margin-top: 4px; }
+.status-vote .vote-line { display: flex; gap: 8px; align-items: center; margin: 0 0 8px; }
 .status-vote .vote-btns { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
 .status-vote .vote-btns .btn { font-size: 12px; padding: 3px 8px; }
 .status-vote .vote-btns .btn.on { background: var(--sun); color: var(--ink); }
 .status-vote .linkish { font: inherit; font-size: 12px; background: none; border: 0; padding: 0; color: var(--sky); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 .status-vote .linkish:hover { background: var(--sun); color: var(--ink); }
 .status-vote .linkish:focus-visible { outline: 3px solid var(--ink); }
-/* A branch passed by its vote (decided Oct 13): the closed pill's look, dashed, since the vote can change it back. */
-.st.done.voted { border-style: dashed; }

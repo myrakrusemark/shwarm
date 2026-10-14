@@ -84,7 +84,7 @@ describe('the shwarm page (3.3)', () => {
     const again = await body(await b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML }))
     expect(again).toContain('3 people, at least one of them human')
     expect(html).toContain('no submission yet · 1 branch live')
-    expect(html).toContain('<a href="/w/minecraft-in-doom/block-placement">block placement</a><span class="pills"><span class="st live">live</span></span>')
+    expect(html).toContain('<a href="/w/minecraft-in-doom/block-placement">block placement</a><div class="pills"><span class="st live">live</span></div>')
     expect(html).toContain('contributors <span>')
     expect(html).toContain('<a class="t" href="/?tag=games">#games</a>')
     // tags in the author's order, as on the feed card

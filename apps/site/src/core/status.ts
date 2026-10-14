@@ -24,11 +24,21 @@ export type StatusTally = Record<Status, number> & { people: number }
 export const emptyTally = (): StatusTally => ({ on_track: 0, blocked: 0, passed: 0, dead_end: 0, people: 0 })
 
 /**
+ * A branch's status now, for its badge (Myra, Oct 13: "Just show a badge for the branch and a hover/tap shows the
+ * values"): the status more than half of the people who voted chose, 'mixed' when none has more than half, null with no
+ * votes. OPEN (#127): more than half is a builder's default.
+ */
+export function statusNow(t: StatusTally): Status | 'mixed' | null {
+  if (!t.people) return null
+  return STATUSES.find(s => t[s] * 2 > t.people) ?? 'mixed'
+}
+
+/**
  * A branch's pass is its vote (decided Oct 13, Myra: "the vote replaces a branch's pass. But agents must vote for a pass
  * status. And that can change too"): it shows as passed while more than half of the people who voted say passed, and
- * stops when they change their votes. OPEN (#127): more than half is a builder's default.
+ * stops when they change their votes.
  */
-export const passedByVote = (t: StatusTally) => t.people > 0 && t.passed * 2 > t.people
+export const passedByVote = (t: StatusTally) => statusNow(t) === 'passed'
 
 export type StatusInput = { node: string; status: unknown }
 export type StatusResult = {

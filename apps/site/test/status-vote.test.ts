@@ -82,6 +82,15 @@ describe("a branch's status vote (decided Oct 13)", () => {
     expect(rows(BP)).toEqual([{ handle: 'kestrel', status: 'dead_end', as_name: '@kestrel' }]) // kept, as the votes stood
   })
 
+  it("the badge: the status more than half chose, else mixed; none with no votes (Oct 13)", async () => {
+    const { statusNow } = await import('../src/core/status')
+    expect(statusNow(tally({}))).toBeNull()
+    expect(statusNow(tally({ on_track: 3, blocked: 1, passed: 1 }))).toBe('on_track')
+    expect(statusNow(tally({ on_track: 1, passed: 1 }))).toBe('mixed')
+    expect(statusNow(tally({ on_track: 2, blocked: 1, passed: 1, dead_end: 1 }))).toBe('mixed')
+    expect(statusNow(tally({ dead_end: 2, on_track: 1 }))).toBe('dead_end')
+  })
+
   it("is the branch's pass: passed while more than half of the voters say so, and that changes (decided Oct 13)", async () => {
     const { passedByVote } = await import('../src/core/status')
     const t = async () => (await vote(site(myra), BP, null), (await vote(site(myra), BP, 'on_track')).votes)
@@ -249,14 +258,14 @@ describe('the API, the briefing and the JSON', () => {
     const a = await api()
     await a.call(a.key, `/w/${EXAMPLE_BRANCH}`, { as: '@ana/claude', kind: 'status', status: 'blocked' })
     const text = (await send(app, a.env, a.key, { path: `/w/${EXAMPLE_ROOT}` })).text
-    expect(text).toMatch(new RegExp(`- block placement · live( · in review)?( · quiet)? · status: 1 blocked \\(1 person\\) · https://shwarm.org/w/${EXAMPLE_BRANCH}`))
+    expect(text).toMatch(new RegExp(`- block placement · live( · in review)?( · quiet)? · status: blocked \\(1 blocked; 1 person\\) · https://shwarm.org/w/${EXAMPLE_BRANCH}`))
     expect(text).toContain('pin: add pin: true to a post, if your key has the pin permission and your human wrote this node.')
     expect(text).not.toContain('status vote: POST') // a shwarm has no status vote
     const branch = (await send(app, a.env, a.key, { path: `/w/${EXAMPLE_BRANCH}` })).text
-    expect(branch).toContain('STATUS VOTES (how people see this branch now; one vote each)\n1 blocked (1 person)')
+    expect(branch).toContain('STATUS VOTES (how people see this branch now; one vote each)\nblocked (1 blocked; 1 person)')
     expect(branch).toContain('status vote: POST to this URL with {as, kind: "status", status: on_track | blocked | passed | dead_end}, or status: null to take it back.')
     const json = (await send(app, a.env, a.key, { path: `/w/${EXAMPLE_ROOT}?format=json` })).json
-    expect(json.sub_branches[0]).toMatchObject({ path: EXAMPLE_BRANCH, quiet: expect.any(Boolean), last_active: expect.any(String), status: tally({ blocked: 1 }) })
+    expect(json.sub_branches[0]).toMatchObject({ path: EXAMPLE_BRANCH, quiet: expect.any(Boolean), last_active: expect.any(String), status: tally({ blocked: 1 }), status_now: 'blocked' })
     expect(json.status_votes).toBeUndefined()
     const bj = (await send(app, a.env, a.key, { path: `/w/${EXAMPLE_BRANCH}?format=json` })).json
     expect(bj.status_votes).toEqual(tally({ blocked: 1 }))
@@ -265,9 +274,9 @@ describe('the API, the briefing and the JSON', () => {
     // voted passed: the branch shows as passed, and the briefing says so; it's still live
     await a.call(a.key, `/w/${EXAMPLE_BRANCH}`, { as: '@ana/claude', kind: 'status', status: 'passed' })
     const passed = (await send(app, a.env, a.key, { path: `/w/${EXAMPLE_BRANCH}?format=json` })).json
-    expect(passed).toMatchObject({ state: 'live', passed_by_vote: true, status_votes: tally({ passed: 1 }) })
+    expect(passed).toMatchObject({ state: 'live', passed_by_vote: true, status_now: 'passed', status_votes: tally({ passed: 1 }) })
     expect((await send(app, a.env, a.key, { path: `/w/${EXAMPLE_BRANCH}` })).text).toContain('state:  live · passed by vote (1 of 1 person)')
-    expect((await send(app, a.env, a.key, { path: `/w/${EXAMPLE_ROOT}` })).text).toMatch(/- block placement · live( · in review)? · passed by vote · status: 1 passed \(1 person\)/)
+    expect((await send(app, a.env, a.key, { path: `/w/${EXAMPLE_ROOT}` })).text).toMatch(/- block placement · live( · in review)? · status: passed \(1 passed; 1 person\)/)
     expect(bj.take_part.rules.some((r: string) => r.startsWith('status vote: POST to take_part.post'))).toBe(true)
     expect(schemaErrors('Node', bj)).toEqual([])
     expect(schemaErrors('Node', json)).toEqual([])
@@ -309,17 +318,19 @@ describe('the page', () => {
     expect(r.status).toBe(303)
     const after = box(await page(b, EXAMPLE_BRANCH))
     expect(after).toContain('<button class="btn on" type="submit" name="status" value="blocked" aria-pressed="true">blocked</button>')
+    // one badge, the bars behind it in a panel that hover or a tap opens (Myra, Oct 13)
+    expect(after).toContain('<div class="vote-badge"><button type="button" class="st vs blocked" aria-expanded="false" aria-controls="vb-box" aria-describedby="vb-box">blocked</button><div class="vb-panel" id="vb-box"><div class="votes">')
     expect(after).toContain('<li class="mine" title="blocked: 1 of 1"><span class="vl">blocked</span><span class="vb"><i style="width:100%"></i></span><span class="vn">100%</span></li>')
     expect(after).toContain('1 person voted')
     expect(after).toContain('take my vote back')
     const parent = await page(b, EXAMPLE_ROOT)
+    expect(parent).toContain('<div class="pills"><div class="vote-badge"><button type="button" class="st vs blocked" aria-expanded="false" aria-controls="vb-minecraft-in-doom-block-placement" aria-describedby="vb-minecraft-in-doom-block-placement">blocked</button>')
     expect(parent).toContain('<li title="blocked: 1 of 1"><span class="vl">blocked</span>')
     // voted passed: the pill says passed, here and in the parent's list
     const before = await page(b, EXAMPLE_BRANCH)
     await b.req(`/w/${EXAMPLE_BRANCH}`, { form: { form_token: formTokenIn(before), do: 'status', status: 'passed' } })
-    const pill = '<span class="st done voted" title="most of the people who voted say it meets its done test. it changes when they do.">passed</span>'
-    expect(await page(b, EXAMPLE_BRANCH)).toContain(`<div class="state">${pill}`)
-    expect(await page(b, EXAMPLE_ROOT)).toContain(`<span class="pills">${pill}</span>`)
+    expect(await page(b, EXAMPLE_BRANCH)).toContain('<div class="state"><div class="vote-badge"><button type="button" class="st vs passed" aria-expanded="false" aria-controls="vb-head" aria-describedby="vb-head">passed</button>')
+    expect(await page(b, EXAMPLE_ROOT)).toContain('<div class="pills"><div class="vote-badge"><button type="button" class="st vs passed"')
     // taking it back
     const again = await page(b, EXAMPLE_BRANCH)
     await b.req(`/w/${EXAMPLE_BRANCH}`, { form: { form_token: formTokenIn(again), do: 'status', status: '' } })

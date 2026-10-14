@@ -15,7 +15,7 @@ import { joinHref, signInHref } from '../auth/return-to'
 import type { CheckSpec } from '../core/checks'
 import type { BuiltOnBy, BuiltOnLink, Chain, CheckReport, Child, Contributor, JoinLine, NodeEdit, NodeHead, PostEdit, PostRow, Show, Sort, SubmissionRow, Thread } from '../read/node'
 import { EDITS_SHOWN, lockedBy, QUIET_HOURS, SHOWS, SORTS } from '../read/node'
-import { passedByVote, STATUSES, type Status, type StatusTally } from '../core/status'
+import { passedByVote, statusNow, STATUSES, type Status, type StatusTally } from '../core/status'
 import { FORMER } from '../read/names'
 import { ACTIVITY_DAYS, type ActivityDay } from '../read/activity'
 import { groupBySlot, isOpen, openReview, recordedStatus, review, waitingDays, type ReviewRow } from '../read/review'
@@ -232,7 +232,11 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
         </div>
       </div>
       <div class="state">
-        {n.kind === 'branch' && n.state === 'live' && d.status && passedByVote(d.status.votes) ? <VotedPassed /> : <Pill n={n} now={d.now} />}
+        {n.kind === 'branch' && n.state === 'live' && d.status && statusNow(d.status.votes) ? (
+          <VoteBadge votes={d.status.votes} mine={d.status.mine} id="vb-head" />
+        ) : (
+          <Pill n={n} now={d.now} />
+        )}
         <HeadJoin d={d} />
       </div>
     </section>
@@ -1251,32 +1255,29 @@ const ChildSub: FC<{ c: Child }> = ({ c }) => {
   const imp = c.posts_per_day && c.posts_per_day > 0 ? <Imp q={c.impact ?? 0} ppd={c.posts_per_day} /> : null
   const say = c.state === 'dead_end' ? c.dead_end_note ?? '' : c.status_line ?? ''
   return (
-    <>
-      <div class="sub">
-        {imp}
-        {imp && say && ' · '}
-        {say && <Text inline text={cut(say, 90)} />}
-      </div>
-      <StatusBars votes={c.votes} />
-    </>
+    <div class="sub">
+      {imp}
+      {imp && say && ' · '}
+      {say && <Text inline text={cut(say, 90)} />}
+    </div>
   )
 }
 
+/** Each status's name in the word list, by its API name; mixed is the badge's when no status has more than half. */
+export const statusName = (s: Status | 'mixed'): string =>
+  ({
+    on_track: w.node.statusNames.on_track,
+    blocked: w.node.statusNames.blocked,
+    passed: w.node.statusNames.passed,
+    dead_end: w.node.statusNames.dead_end,
+    mixed: w.node.statusMixed,
+  })[s]
+
 /**
  * A branch's status votes as small bars (decided Oct 13, "A branch's status is a live vote"; Myra: "little progress
- * bars"): one per status, filled by its share of the people who voted, then how many voted. Nothing when nobody has.
- * They sort nothing: activity orders the list (read/node.ts readChildren). OPEN (#127): the statuses and words.
+ * bars"): one per status, filled by its share of the people who voted, then how many voted. Only inside the badge's
+ * panel (VoteBadge). They sort nothing: activity orders the list (read/node.ts readChildren). OPEN (#127): the words.
  */
-/**
- * A live branch whose voters mostly say passed (decided Oct 13: the vote is a branch's pass, and it can change): the
- * "passed" pill in place of "live", on its page and in its parent's list. It locks nothing.
- */
-const VotedPassed: FC = () => <span class="st done voted" title={w.node.votedPassedTitle}>{w.node.votedPassed}</span>
-
-/** Each status's name in the word list, by its API name. */
-export const statusName = (s: Status): string =>
-  ({ on_track: w.node.statusNames.on_track, blocked: w.node.statusNames.blocked, passed: w.node.statusNames.passed, dead_end: w.node.statusNames.dead_end })[s]
-
 const StatusBars: FC<{ votes: StatusTally; mine?: Status | null }> = ({ votes, mine }) => {
   if (!votes.people) return null
   return (
@@ -1299,13 +1300,39 @@ const StatusBars: FC<{ votes: StatusTally; mine?: Status | null }> = ({ votes, m
   )
 }
 
+/**
+ * A branch's status badge (Myra, Oct 13: "We don't need to show all the bars right away. Just show a badge for the branch
+ * and a hover/tap shows the values"): the status more than half of the voters chose, or mixed (core/status.ts
+ * statusNow), in place of "live" on the branch's page and in its parent's list. Hover or keyboard focus shows the bars;
+ * with scripts on, a tap or click opens and closes them (static/js/node.js). Screen readers get the bars as the badge's
+ * description. Nothing when nobody has voted. "passed" is the branch's pass, and it can change (decided Oct 13).
+ */
+const VoteBadge: FC<{ votes: StatusTally; mine?: Status | null; id: string }> = ({ votes, mine, id }) => {
+  const now = statusNow(votes)
+  if (!now) return null
+  return (
+    <div class="vote-badge">
+      <button type="button" class={`st vs ${now.replace('_', '-')}`} aria-expanded="false" aria-controls={id} aria-describedby={id}>
+        {statusName(now)}
+      </button>
+      <div class="vb-panel" id={id}>
+        <StatusBars votes={votes} mine={mine} />
+      </div>
+    </div>
+  )
+}
+
+/** A badge's id in a list of branches: from the branch's path, which is unique. */
+const badgeId = (path: string) => `vb-${path.replace(/[^a-z0-9]+/g, '-')}`
+
 /** The viewer may vote on this branch's status here: a live branch, not under an ended node. */
 const hasStatusForm = (d: NodePageData) => d.chain.node.kind === 'branch' && d.chain.node.state === 'live' && !lockedBy(d.chain)
 
 /**
- * The status box on a branch's page (decided Oct 13): the bars, and a button per status for the viewer's one vote, which
- * they change any time or take back. Signed out it says how to vote; in the beta and for an unverified email, as join
- * does, it shows only the bars. A locked branch keeps its bars and takes no votes.
+ * The status box on a branch's page (decided Oct 13): the badge (its bars on hover or tap) and how many voted, and a
+ * button per status for the viewer's one vote, which they change any time or take back. Signed out it says how to vote;
+ * in the beta and for an unverified email, as join does, it shows only the badge. A locked branch keeps its votes and
+ * takes no more.
  */
 const StatusBox: FC<{ d: NodePageData }> = ({ d }) => {
   const opensSoon = useContext(PageContext).opensSoon
@@ -1317,7 +1344,14 @@ const StatusBox: FC<{ d: NodePageData }> = ({ d }) => {
     <div class="box status-vote">
       <h2>{w.node.statusHead}</h2>
       <div class="in">
-        {votes.people ? <StatusBars votes={votes} mine={mine} /> : <p class="note">{w.node.noStatusVotes}</p>}
+        {votes.people ? (
+          <div class="vote-line">
+            <VoteBadge votes={votes} mine={mine} id="vb-box" />
+            <span class="note">{count(w.node.statusVoted, votes.people)}</span>
+          </div>
+        ) : (
+          <p class="note">{w.node.noStatusVotes}</p>
+        )}
         {!form ? (
           <p class="note">{w.node.statusLocked}</p>
         ) : !d.me ? (
@@ -1358,16 +1392,10 @@ const Branches: FC<{ d: NodePageData }> = ({ d }) => {
             <li>
               <div class="nm">
                 <a href={nodeHref(b.path)}><Plain text={b.title} /></a>
-                <span class="pills">
-                  {b.state === 'live' && passedByVote(b.votes) ? (
-                    <VotedPassed />
-                  ) : (
-                    <>
-                      {b.quiet && b.state === 'live' && <span class="st quiet" title={fill(w.node.quietTitle, { hours: QUIET_HOURS })}>{w.node.quiet}</span>}
-                      <Pill n={b} now={d.now} short />
-                    </>
-                  )}
-                </span>
+                <div class="pills">
+                  {b.quiet && b.state === 'live' && !passedByVote(b.votes) && <span class="st quiet" title={fill(w.node.quietTitle, { hours: QUIET_HOURS })}>{w.node.quiet}</span>}
+                  {b.state === 'live' && statusNow(b.votes) ? <VoteBadge votes={b.votes} id={badgeId(b.path)} /> : <Pill n={b} now={d.now} short />}
+                </div>
               </div>
               <ChildSub c={b} />
             </li>

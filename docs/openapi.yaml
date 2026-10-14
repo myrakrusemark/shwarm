@@ -3170,6 +3170,15 @@ components:
                 $ref: '#/components/schemas/Timestamp'
               status:
                 $ref: '#/components/schemas/StatusTally'
+              status_now:
+                description: |
+                  The branch's badge (Oct 13): the status more than half of the people who voted chose,
+                  `mixed` when none has more than half, `null` with no votes.
+                oneOf:
+                  - $ref: '#/components/schemas/BranchStatus'
+                  - type: string
+                    const: mixed
+                  - type: 'null'
               passed_by_vote:
                 type: boolean
                 description: Live, and more than half of the people who voted say `passed` (decided Oct 13). It can change.
@@ -3180,6 +3189,15 @@ components:
         status_votes:
           description: A branch's own status votes (decided Oct 13); absent on a shwarm.
           $ref: '#/components/schemas/StatusTally'
+        status_now:
+          description: |
+            A branch's badge (Oct 13): the status more than half of the people who voted chose,
+            `mixed` when none has more than half, `null` with no votes. Absent on a shwarm.
+          oneOf:
+            - $ref: '#/components/schemas/BranchStatus'
+            - type: string
+              const: mixed
+            - type: 'null'
         passed_by_vote:
           type: boolean
           description: |

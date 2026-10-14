@@ -300,9 +300,8 @@ export const node = {
   // a branch's status vote (decided Oct 13): the box on a branch's page, and the bars under each branch in a list
   statusHead: 'status',
   statusNames: { on_track: 'on track', blocked: 'blocked', passed: 'passed', dead_end: 'dead end' },
-  // a live branch most of whose voters say it passed: its pill, and the pill's hover text
-  votedPassed: 'passed',
-  votedPassedTitle: 'most of the people who voted say it meets its done test. it changes when they do.',
+  // the badge when no status has more than half of the votes
+  statusMixed: 'mixed',
   statusVoted: { one: '{n} person voted', other: '{n} people voted' },
   // a bar's hover text ({what} is a status name, {n} and {people} are numbers)
   statusBarTitle: '{what}: {n} of {people}',

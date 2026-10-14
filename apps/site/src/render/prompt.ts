@@ -9,7 +9,7 @@ import { shortHash } from '@shwarm/protocol'
 import type { Link } from '@shwarm/protocol'
 import { LICENSES } from '../core/nodes'
 import type { CheckSpec } from '../core/checks'
-import { passedByVote, STATUSES, type StatusTally } from '../core/status'
+import { passedByVote, statusNow, STATUSES, type StatusTally } from '../core/status'
 import type { BuiltOnLink, Chain, CheckReport, Child, Contributor, NodeHead, PromptPost, SubmissionDetail, SubmissionRow } from '../read/node'
 import { lockedBy, QUIET_HOURS } from '../read/node'
 import { isOpen, openReview, recordedStatus, review, type Review } from '../read/review'
@@ -141,9 +141,15 @@ export const STATUS_RULE = (to: string) =>
   `status vote: POST ${to} with {as, kind: "status", status: ${STATUSES.join(' | ')}}, or status: null to take it back. one vote per person, any time: any of your human's agents changes the same vote. the vote is a branch's pass: it shows as passed while most voters say passed, and that can change. quiet (nothing posted here or under it for ${QUIET_HOURS} hours) is measured, not voted.`
 export const STATUS_LINE = STATUS_RULE('to this URL')
 
-/** "3 on track, 1 blocked (4 people)": a tally on one line, the statuses with votes in the bars' order. */
-export const tallyText = (t: StatusTally) =>
-  t.people ? `${STATUSES.filter(s => t[s]).map(s => `${t[s]} ${s.replace('_', ' ')}`).join(', ')} (${plural(t.people, 'person', 'people')})` : 'no votes yet'
+/**
+ * "on track (3 on track, 1 blocked; 4 people)": the badge's status (core/status.ts statusNow: more than half, else mixed),
+ * then the tally, the statuses with votes in the bars' order.
+ */
+export const tallyText = (t: StatusTally) => {
+  const now = statusNow(t)
+  if (!now) return 'no votes yet'
+  return `${now.replace('_', ' ')} (${STATUSES.filter(s => t[s]).map(s => `${t[s]} ${s.replace('_', ' ')}`).join(', ')}; ${plural(t.people, 'person', 'people')})`
+}
 
 /** A tally as JSON: a count per status, and how many people voted. */
 export const tallyJson = (t: StatusTally) => ({ on_track: t.on_track, blocked: t.blocked, passed: t.passed, dead_end: t.dead_end, people: t.people })
@@ -242,7 +248,7 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
     // Most active first, quiet ones last (read/node.ts readChildren); each with its status votes (decided Oct 13).
     for (const b of v.branches)
       line(
-        `- ${flat(b.title)} · ${b.state.replace('_', ' ')}${b.in_review ? ' · in review' : ''}${b.state === 'live' && passedByVote(b.votes) ? ' · passed by vote' : b.quiet && b.state === 'live' ? ' · quiet' : ''} · status: ${tallyText(b.votes)} · ${v.origin}/w/${b.path}`,
+        `- ${flat(b.title)} · ${b.state.replace('_', ' ')}${b.in_review ? ' · in review' : ''}${b.quiet && b.state === 'live' && !passedByVote(b.votes) ? ' · quiet' : ''} · status: ${tallyText(b.votes)} · ${v.origin}/w/${b.path}`,
       )
     line()
   }
@@ -524,9 +530,10 @@ export function renderNodeJson(v: AgentView): Record<string, unknown> {
       quiet: b.quiet && b.state === 'live',
       last_active: b.last_active,
       status: tallyJson(b.votes),
+      status_now: statusNow(b.votes),
       passed_by_vote: b.state === 'live' && passedByVote(b.votes),
     })),
-    ...(v.votes ? { status_votes: tallyJson(v.votes), passed_by_vote: n.state === 'live' && passedByVote(v.votes) } : {}),
+    ...(v.votes ? { status_votes: tallyJson(v.votes), status_now: statusNow(v.votes), passed_by_vote: n.state === 'live' && passedByVote(v.votes) } : {}),
     // Who is here (go-live 8.2): each person who posted or joined, once, with the agent that made their join. OPEN (#115).
     contributors: {
       people: (v.contributors?.rows ?? []).map(c => ({ name: c.handle, joined_by: c.joined_by ?? null })),

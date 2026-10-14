@@ -96,3 +96,24 @@ document.querySelectorAll('form.compose, form.seat-act, form.owner-act, form.up-
     box.querySelector('[aria-busy]')?.removeAttribute('aria-busy')
   })
 })()
+
+// A branch's status badge (Myra, Oct 13: "a hover/tap shows the values"): hover and keyboard focus show its votes in CSS;
+// here a tap or click opens and closes them, one panel at a time, and a tap elsewhere or Esc closes them.
+;(() => {
+  const badges = [...document.querySelectorAll('.vote-badge')]
+  if (!badges.length) return
+  const set = (b, open) => {
+    b.classList.toggle('open', open)
+    b.querySelector('button').setAttribute('aria-expanded', String(open))
+  }
+  badges.forEach(b =>
+    b.querySelector('button').addEventListener('click', e => {
+      e.stopPropagation()
+      const open = !b.classList.contains('open')
+      badges.forEach(x => x !== b && set(x, false))
+      set(b, open)
+    }),
+  )
+  document.addEventListener('click', e => { if (!e.target.closest('.vote-badge')) badges.forEach(b => set(b, false)) })
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') badges.forEach(b => set(b, false)) })
+})()
