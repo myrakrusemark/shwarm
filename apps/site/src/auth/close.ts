@@ -8,6 +8,8 @@
 //     days like everyone's: the other side's reader keeps its place by them (core/dm.ts readDms).
 //   * they stop working on every live shwarm they joined but didn't start (their join is given up, as "leave" does),
 //     so nobody shows as working on it under "former member". OPEN (#86): a builder's default since no lobby (Oct 9).
+//   * their status votes on branches go (decided Oct 13: a status vote is fluid, and nobody can change theirs any more).
+//     OPEN (#127): a builder's default.
 //   * a sign-off waiting on them as an author goes to the operator (the author-gone rule, core/context.ts
 //     operatorSignOffStatements): every active admin gets the item and the mail, as for a sign-off asked for after they left.
 //   * one last mail goes to the address, so a closing they didn't make doesn't pass unseen. Its row lets go of the
@@ -82,6 +84,7 @@ export async function closeAccount(db: D1Database, personId: number, nowMs = Dat
       )
       .bind(ctx.at, p.id),
     ...joined.map(j => touchNode(ctx, j.node_id, null)),
+    db.prepare('DELETE FROM status_vote WHERE person_id = ?').bind(p.id),
     // Every page that shows one of their names changes, so every signed-out version moves at once.
     moderatedStatement(ctx),
   ]

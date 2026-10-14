@@ -181,7 +181,8 @@ describe('the pinned post and edits (4.6): the rules', () => {
     expect(w.node(MID).pinned_post_id).toBe(two.id)
     await refused(w.post(site(myra), MID, 'pinned reply?', { pin: true, replyTo: one.id }), 'bad_request')
     await refused(w.post(site(kestrel), MID, 'mine now', { pin: true }), 'not_permitted', { need: 'author' })
-    await refused(w.post(agent(myra), MID, 'from my agent', { pin: true }), 'not_permitted', { need: 'author' })
+    // an agent pins only with the key's pin permission (decided Oct 13; status-vote.test.ts has the rest)
+    await refused(w.post(agent(myra), MID, 'from my agent', { pin: true }), 'not_permitted', { need: 'pin' })
     expect(w.node(MID).pinned_post_id).toBe(two.id)
   })
 

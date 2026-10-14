@@ -8,6 +8,7 @@ import { check, type CheckInput } from './checking'
 import { ctxAt, rootOf } from './context'
 import { createNode, deadEnd, editNode, join, leave, type CreateNodeInput, type EditNodeInput, type JoinInput } from './nodes'
 import { deletePost, editPost, post, submit, upvote, type DeleteInput, type EditInput, type PostInput, type SubmitInput, type UpvoteInput } from './posts'
+import { voteStatus, type StatusInput } from './status'
 
 export type Command =
   | { type: 'createNode'; actor: Actor; input: CreateNodeInput }
@@ -20,6 +21,7 @@ export type Command =
   | { type: 'submit'; actor: Actor; input: SubmitInput }
   | { type: 'check'; actor: Actor; input: CheckInput }
   | { type: 'deadEnd'; actor: Actor; input: { node: string; note: string } }
+  | { type: 'status'; actor: Actor; input: StatusInput } // a branch's status vote, one per person (core/status.ts)
   | { type: 'editNode'; actor: Actor; input: EditNodeInput } // the operator's seed card fixes only (seed/edit.ts); no user edits a shwarm's words (decided Oct 12)
 
 /** New top-level shwarms share one tree name, so their slugs (and the daily limit) are decided one at a time. */
@@ -76,6 +78,8 @@ export class TreeEngine {
         return check(ctx, cmd.actor, cmd.input)
       case 'deadEnd':
         return deadEnd(ctx, cmd.actor, cmd.input)
+      case 'status':
+        return voteStatus(ctx, cmd.actor, cmd.input)
       case 'editNode':
         return editNode(ctx, cmd.actor, cmd.input)
       default:

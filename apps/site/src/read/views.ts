@@ -24,6 +24,7 @@ import { readLog } from './log'
 import { readBuiltOnThis, readCredits, readResult } from './result'
 import { readMyReports } from '../core/reports'
 import { flaggedBy } from '../core/flags'
+import { readMyStatus, readTally } from '../core/status'
 
 export async function loadPageData(
   db: D1Database,
@@ -32,8 +33,9 @@ export async function loadPageData(
 ): Promise<NodePageData> {
   const n = chain.node
   const mine = o.me?.personId === n.author_id
-  const [children, contributors, subs, thread, nodeEdits, activity, joins] = await Promise.all([
-    readChildren(db, n.id),
+  const isBranch = n.kind === 'branch'
+  const [children, contributors, subs, thread, nodeEdits, activity, joins, votes] = await Promise.all([
+    readChildren(db, n.id, o.now),
     readContributors(db, n),
     readSubmissions(db, n.id),
     readThread(db, n, o),
@@ -42,6 +44,7 @@ export async function loadPageData(
     n.kind === 'branch' ? Promise.resolve([]) : readNodeEdits(db, n.id, mine),
     readActivity(db, n.id, o.now),
     readJoins(db, n), // the thread's quiet join lines (go-live 8.2)
+    isBranch ? readTally(db, n.id) : Promise.resolve(null), // a branch's status votes (decided Oct 13)
   ])
   // Checks for the submissions on this page of the thread, and for the one in review (the head's status line).
   const shown = new Set<string>()
@@ -54,24 +57,27 @@ export async function loadPageData(
   const onPage = [thread.pinned, ...thread.pinned?.replies ?? [], ...thread.items, ...thread.items.flatMap(i => i.replies)].flatMap(p => (p ? [p.id] : []))
   // And whether the viewer joined (said they're working on it): the contributors box lists only the first few.
   // And whether the viewer flagged this node (core/flags.ts), so "flag this shwarm" says so instead.
-  const [checks, myUps, mySeat, myReports, myFlag] = await Promise.all([
+  const [checks, myUps, mySeat, myReports, myFlag, myStatus] = await Promise.all([
     readChecks(db, [...shown]),
     o.me ? readMyUpvotes(db, o.me.personId, onPage) : Promise.resolve(new Map<string, boolean>()),
     o.me ? readMySeat(db, n.id, o.me.personId) : Promise.resolve(null), // branches are joined too (decided Oct 12)
     o.me ? readMyReports(db, o.me.personId, onPage) : Promise.resolve(new Set<string>()),
     o.me && o.me.personId !== n.author_id ? flaggedBy(db, o.me.personId, n.id) : Promise.resolve(false),
+    o.me && isBranch ? readMyStatus(db, n.id, o.me.personId) : Promise.resolve(null),
   ])
-  return { chain, branches: children.branches, contributors, subs, checks, thread, myUps, mySeat, joins, myReports, myFlag, nodeEdits, activity, sort: o.sort, show: o.show, url: o.url, here: o.here, me: o.me, now: o.now }
+  const status = votes ? { votes, mine: myStatus } : undefined
+  return { chain, branches: children.branches, contributors, subs, checks, thread, myUps, mySeat, joins, myReports, myFlag, nodeEdits, activity, status, sort: o.sort, show: o.show, url: o.url, here: o.here, me: o.me, now: o.now }
 }
 
 /** The prompt's and the JSON's data; null when ?before= doesn't name a post in this thread. */
 export async function loadAgentView(db: D1Database, chain: Chain, o: { origin: string; before: string | null; now: number }): Promise<AgentView | null> {
   const n = chain.node
-  const [children, subs, posts, contributors] = await Promise.all([
-    readChildren(db, n.id),
+  const [children, subs, posts, contributors, votes] = await Promise.all([
+    readChildren(db, n.id, o.now),
     readSubmissions(db, n.id),
     readPromptPosts(db, n, o.before),
     readContributors(db, n),
+    n.kind === 'branch' ? readTally(db, n.id) : Promise.resolve(null), // a branch's status votes (decided Oct 13)
   ])
   if (!posts) return null
   // Checks on the submission in review (STATUS) and on the failed or superseded ones (DEAD ENDS); what the listed submissions built on.
@@ -79,7 +85,7 @@ export async function loadAgentView(db: D1Database, chain: Chain, o: { origin: s
   const listedSubs = [posts.pinned, ...posts.posts].filter(p => p?.kind === 'submission').map(p => p!.id)
   const [checks, links] = await Promise.all([readChecks(db, subIds), readBuiltOn(db, listedSubs)])
   const dmsOn = contributors.rows.filter(r => r.dms).map(r => r.handle)
-  return { origin: o.origin, chain, branches: children.branches, subs, checks, posts, builtOn: links.builtOn, dmsOn, contributors, now: o.now }
+  return { origin: o.origin, chain, branches: children.branches, subs, checks, posts, builtOn: links.builtOn, dmsOn, contributors, ...(votes ? { votes } : {}), now: o.now }
 }
 
 /** How many key events the result page's log box lists, newest ones, oldest first. OPEN: not decided; 20. */

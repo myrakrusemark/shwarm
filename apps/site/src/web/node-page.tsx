@@ -14,7 +14,8 @@ import type { Link } from '@shwarm/protocol'
 import { joinHref, signInHref } from '../auth/return-to'
 import type { CheckSpec } from '../core/checks'
 import type { BuiltOnBy, BuiltOnLink, Chain, CheckReport, Child, Contributor, JoinLine, NodeEdit, NodeHead, PostEdit, PostRow, Show, Sort, SubmissionRow, Thread } from '../read/node'
-import { EDITS_SHOWN, lockedBy, SHOWS, SORTS } from '../read/node'
+import { EDITS_SHOWN, lockedBy, QUIET_HOURS, SHOWS, SORTS } from '../read/node'
+import { passedByVote, STATUSES, type Status, type StatusTally } from '../core/status'
 import { FORMER } from '../read/names'
 import { ACTIVITY_DAYS, type ActivityDay } from '../read/activity'
 import { groupBySlot, isOpen, openReview, recordedStatus, review, waitingDays, type ReviewRow } from '../read/review'
@@ -50,7 +51,7 @@ export type Me = { personId: number; handle: string; verified: boolean } | null
  * again, and so does a refused report (`report`, with its reason in `fields`). `flag`: "flag this shwarm" in the head,
  * with its reason in `fields`.
  */
-export type Flash = { at: 'compose' | 'seats' | 'owner' | 'post' | 'flag'; text: string; draft?: string; mode?: 'submit'; fields?: Record<string, string>; post?: string; pin?: boolean; report?: boolean }
+export type Flash = { at: 'compose' | 'seats' | 'owner' | 'post' | 'flag' | 'status'; text: string; draft?: string; mode?: 'submit'; fields?: Record<string, string>; post?: string; pin?: boolean; report?: boolean }
 
 export type NodePageData = {
   chain: Chain
@@ -66,6 +67,7 @@ export type NodePageData = {
   joins?: JoinLine[] // the thread's quiet "✿ @you joined" lines: joins made here with no hello, oldest first (read/node.ts readJoins)
   nodeEdits?: NodeEdit[] // the shwarm's earlier versions, newest first (its author's edits until Oct 12; re-pitches before Oct 10)
   activity: ActivityDay[] // public posts per UTC day here and under here, oldest first, today last (read/activity.ts)
+  status?: { votes: StatusTally; mine: Status | null } // a branch's status votes, and the viewer's own (decided Oct 13)
   sort: Sort
   show: Show
   url: string // this node's absolute URL, for the contribute card
@@ -121,7 +123,7 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
       <div class="grid">
         <main id="main" tabindex={-1}>
           {/* a refusal whose form isn't on the page (a forged or stale one) shows at the top */}
-          {((d.flash?.at === 'compose' && !!lockedBy(d.chain)) || (d.flash?.at === 'seats' && (!hasSeatForm(d) || (!!joinFlash(d) && !canJoin(d, opensSoon)))) || (d.flash?.at === 'owner' && !hasOwnerBox(d)) || (d.flash?.at === 'post' && !onPage(d.thread, d.flash.post)) || (d.flash?.at === 'flag' && !hasFlagSpot(d))) && (
+          {((d.flash?.at === 'compose' && !!lockedBy(d.chain)) || (d.flash?.at === 'seats' && (!hasSeatForm(d) || (!!joinFlash(d) && !canJoin(d, opensSoon)))) || (d.flash?.at === 'owner' && !hasOwnerBox(d)) || (d.flash?.at === 'post' && !onPage(d.thread, d.flash.post)) || (d.flash?.at === 'flag' && !hasFlagSpot(d)) || (d.flash?.at === 'status' && !hasStatusForm(d))) && (
             <p class="err flash" role="alert">{d.flash.text}</p>
           )}
           {passed && <Proof n={n} sub={passed} checks={d.checks.get(passed.post_id) ?? []} />}
@@ -148,6 +150,7 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
               </details>
             </div>
           </div>
+          <StatusBox d={d} />
           <Branches d={d} />
           <Contributors d={d} />
           <AgentResources />
@@ -229,7 +232,7 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
         </div>
       </div>
       <div class="state">
-        <Pill n={n} now={d.now} />
+        {n.kind === 'branch' && n.state === 'live' && d.status && passedByVote(d.status.votes) ? <VotedPassed /> : <Pill n={n} now={d.now} />}
         <HeadJoin d={d} />
       </div>
     </section>
@@ -1248,10 +1251,96 @@ const ChildSub: FC<{ c: Child }> = ({ c }) => {
   const imp = c.posts_per_day && c.posts_per_day > 0 ? <Imp q={c.impact ?? 0} ppd={c.posts_per_day} /> : null
   const say = c.state === 'dead_end' ? c.dead_end_note ?? '' : c.status_line ?? ''
   return (
-    <div class="sub">
-      {imp}
-      {imp && say && ' · '}
-      {say && <Text inline text={cut(say, 90)} />}
+    <>
+      <div class="sub">
+        {imp}
+        {imp && say && ' · '}
+        {say && <Text inline text={cut(say, 90)} />}
+      </div>
+      <StatusBars votes={c.votes} />
+    </>
+  )
+}
+
+/**
+ * A branch's status votes as small bars (decided Oct 13, "A branch's status is a live vote"; Myra: "little progress
+ * bars"): one per status, filled by its share of the people who voted, then how many voted. Nothing when nobody has.
+ * They sort nothing: activity orders the list (read/node.ts readChildren). OPEN (#127): the statuses and words.
+ */
+/**
+ * A live branch whose voters mostly say passed (decided Oct 13: the vote is a branch's pass, and it can change): the
+ * "passed" pill in place of "live", on its page and in its parent's list. It locks nothing.
+ */
+const VotedPassed: FC = () => <span class="st done voted" title={w.node.votedPassedTitle}>{w.node.votedPassed}</span>
+
+/** Each status's name in the word list, by its API name. */
+export const statusName = (s: Status): string =>
+  ({ on_track: w.node.statusNames.on_track, blocked: w.node.statusNames.blocked, passed: w.node.statusNames.passed, dead_end: w.node.statusNames.dead_end })[s]
+
+const StatusBars: FC<{ votes: StatusTally; mine?: Status | null }> = ({ votes, mine }) => {
+  if (!votes.people) return null
+  return (
+    <div class="votes">
+      <ul>
+        {STATUSES.map(s => {
+          const what = statusName(s)
+          const pct = Math.round((votes[s] / votes.people) * 100)
+          return (
+            <li class={votes[s] ? (mine === s ? 'mine' : undefined) : 'none'} title={fill(w.node.statusBarTitle, { what, n: votes[s], people: votes.people })}>
+              <span class="vl">{what}</span>
+              <span class="vb"><i style={`width:${pct}%`}></i></span>
+              <span class="vn">{pct}%</span>
+            </li>
+          )
+        })}
+      </ul>
+      <div class="vp">{count(w.node.statusVoted, votes.people)}</div>
+    </div>
+  )
+}
+
+/** The viewer may vote on this branch's status here: a live branch, not under an ended node. */
+const hasStatusForm = (d: NodePageData) => d.chain.node.kind === 'branch' && d.chain.node.state === 'live' && !lockedBy(d.chain)
+
+/**
+ * The status box on a branch's page (decided Oct 13): the bars, and a button per status for the viewer's one vote, which
+ * they change any time or take back. Signed out it says how to vote; in the beta and for an unverified email, as join
+ * does, it shows only the bars. A locked branch keeps its bars and takes no votes.
+ */
+const StatusBox: FC<{ d: NodePageData }> = ({ d }) => {
+  const opensSoon = useContext(PageContext).opensSoon
+  if (d.chain.node.kind !== 'branch' || !d.status) return null
+  const { votes, mine } = d.status
+  const flash = d.flash?.at === 'status' ? d.flash : undefined
+  const form = hasStatusForm(d)
+  return (
+    <div class="box status-vote">
+      <h2>{w.node.statusHead}</h2>
+      <div class="in">
+        {votes.people ? <StatusBars votes={votes} mine={mine} /> : <p class="note">{w.node.noStatusVotes}</p>}
+        {!form ? (
+          <p class="note">{w.node.statusLocked}</p>
+        ) : !d.me ? (
+          <a class="btn plain" href={signInHref(d.here)}>{w.node.statusSignIn}</a>
+        ) : opensSoon || !d.me.verified ? null : (
+          <form method="post" action={nodeHref(d.chain.node.path)} class="vote">
+            <input type="hidden" name="form_token" value={d.token} />
+            <input type="hidden" name="do" value="status" />
+            <p class="note">{w.node.statusAsk}</p>
+            <div class="vote-btns">
+              {STATUSES.map(s => (
+                <button class={mine === s ? 'btn on' : 'btn plain'} type="submit" name="status" value={s} aria-pressed={mine === s ? 'true' : 'false'}>
+                  {statusName(s)}
+                </button>
+              ))}
+            </div>
+            {mine && (
+              <button class="linkish" type="submit" name="status" value="">{w.node.statusTakeBack}</button>
+            )}
+          </form>
+        )}
+        {flash && <p class="err" role="alert">{flash.text}</p>}
+      </div>
     </div>
   )
 }
@@ -1267,7 +1356,19 @@ const Branches: FC<{ d: NodePageData }> = ({ d }) => {
         <ul class="branches">
           {d.branches.map(b => (
             <li>
-              <div class="nm"><a href={nodeHref(b.path)}><Plain text={b.title} /></a><Pill n={b} now={d.now} short /></div>
+              <div class="nm">
+                <a href={nodeHref(b.path)}><Plain text={b.title} /></a>
+                <span class="pills">
+                  {b.state === 'live' && passedByVote(b.votes) ? (
+                    <VotedPassed />
+                  ) : (
+                    <>
+                      {b.quiet && b.state === 'live' && <span class="st quiet" title={fill(w.node.quietTitle, { hours: QUIET_HOURS })}>{w.node.quiet}</span>}
+                      <Pill n={b} now={d.now} short />
+                    </>
+                  )}
+                </span>
+              </div>
               <ChildSub c={b} />
             </li>
           ))}

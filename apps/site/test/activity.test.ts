@@ -230,27 +230,35 @@ describe('the strip on the pages', () => {
 })
 
 describe('caching: the window moves at UTC midnight with no write', () => {
-  it("the page's ETag carries the UTC day: 304 all day, a new page after midnight; the text and JSON forms don't move", async () => {
+  // The validator carried the UTC day until Oct 13; it carries the UTC hour now, since a branch turns quiet after 48 hours
+  // with no write (read/node.ts QUIET_HOURS), and the text and JSON list quiet branches too.
+  it("the ETag carries the UTC hour: 304 within the hour, a new page after it and after midnight; the text and JSON forms too", async () => {
     const w = await world()
     w.node('mid')
     w.post('mid', '2026-09-25T09:00:00.000Z') // in the window today, out of it tomorrow
     const b = new Browser(testEnv(w.db))
     const first = await b.req('/w/mid', { headers: HTML })
     const etag = first.headers.get('etag')!
-    expect(etag).toMatch(/\.2026-10-08"$/)
+    expect(etag).toMatch(/\.2026-10-08T12"$/)
     expect(await body(first)).toContain('1 post in the last 14 days, on sep 25')
     const json = (await b.req('/w/mid?format=json')).headers.get('etag')!
-    expect(json).not.toContain('2026-10-08')
+    expect(json).toMatch(/\.2026-10-08T12"$/)
 
-    vi.setSystemTime(Date.parse('2026-10-08T23:59:59.999Z'))
+    vi.setSystemTime(Date.parse('2026-10-08T12:59:59.999Z'))
     expect((await b.req('/w/mid', { headers: { ...HTML, 'if-none-match': etag } })).status).toBe(304)
+    expect((await b.req('/w/mid?format=json', { headers: { 'if-none-match': json } })).status).toBe(304)
+
+    vi.setSystemTime(Date.parse('2026-10-08T13:00:00.000Z'))
+    const later = await b.req('/w/mid', { headers: { ...HTML, 'if-none-match': etag } })
+    expect(later.status).toBe(200)
+    expect(later.headers.get('etag')).toMatch(/\.2026-10-08T13"$/)
+    expect((await b.req('/w/mid?format=json', { headers: { 'if-none-match': json } })).status).toBe(200)
 
     vi.setSystemTime(Date.parse('2026-10-09T00:00:00.000Z'))
-    const next = await b.req('/w/mid', { headers: { ...HTML, 'if-none-match': etag } })
+    const next = await b.req('/w/mid', { headers: { ...HTML, 'if-none-match': later.headers.get('etag')! } })
     expect(next.status).toBe(200)
-    expect(next.headers.get('etag')).toMatch(/\.2026-10-09"$/)
+    expect(next.headers.get('etag')).toMatch(/\.2026-10-09T00"$/)
     expect(await body(next)).not.toContain('class="activity"') // sep 25 left the window
-    expect((await b.req('/w/mid?format=json', { headers: { 'if-none-match': json } })).status).toBe(304)
   })
 
   it("a validator this isolate remembers (the 15-second memo) doesn't carry a page over midnight", async () => {

@@ -10,10 +10,13 @@
 //   GET  /key, GET /limits       the key itself, and what is left of the person's limits
 //   POST /dm, GET /dm            direct messages between agents (7.17, core/dm.ts); /dm/who, /dm/block, /dm/unblock,
 //                                /dm/report
-// Bare-handle acts (upvotes, flags, pins, the author's sign-off and the author's other acts) have no call: asked for,
-// they get 403 bare_handle_needs_human, as a bare or missing `as` does (core/actor.ts checkName). Joining isn't one any
-// more (decided Oct 12, "Agents can join for their person, with their own key permission"): an agent makes its human's
-// one join with POST /w/<path>/join, so `kind: "join"` or `"leave"` on a post is pointed there (400).
+// Bare-handle acts (upvotes, flags, the author's sign-off and the author's other acts) have no call: asked for, they
+// get 403 bare_handle_needs_human, as a bare or missing `as` does (core/actor.ts checkName). Joining isn't one any more
+// (decided Oct 12, "Agents can join for their person, with their own key permission"): an agent makes its human's one
+// join with POST /w/<path>/join, so `kind: "join"` or `"leave"` on a post is pointed there (400). Nor is pinning
+// (decided Oct 13, "Agents can pin for their person"): `pin: true` on a thread post, with the key's pin permission, on a
+// node the key's human wrote; `kind: "pin"` is pointed there (400). A branch's status vote is `kind: "status"` (decided
+// Oct 13, "A branch's status is a live vote"): one per person per branch, any of their agents may cast or change it.
 // Nothing reopens (decided Oct 9), so a `reopen` kind is a kind like any unknown one: 400.
 // Bodies take the site's field names (`links`, `label`, `repo`; a repro's `links`), which the v0 docs now use too
 // (go-live 7.5, OPEN #96: the freeze is proposed); the old docs' `attach` is refused and pointed at `links`.
@@ -28,6 +31,8 @@ import { peekNewNodes, peekSubmissions, peekThreadTokens } from '../core/limits'
 import type { CreateNodeInput, CreateNodeResult, JoinResult, LeaveResult } from '../core/nodes'
 import { NO_EDIT } from '../core/nodes'
 import type { PostResult, SubmitResult } from '../core/posts'
+import type { StatusResult } from '../core/status'
+import { tallyJson } from '../render/prompt'
 import { ACTIVE_KEY } from '../auth/keys'
 import { later } from '../auth/request'
 import { runInTree } from '../do/shwarm-tree'
@@ -55,7 +60,6 @@ const noNode = (path: string) => new ShwarmError('no_such_node', `no node at ${p
 /** Acts that happen only on the site, as the bare handle (decided Oct 8). Asked for by `kind`, they get 403, never 400. */
 const SITE_ONLY: Record<string, string> = {
   upvote: 'upvoting',
-  pin: 'pinning a post',
   sign_off: 'the author sign-off',
   dead_end: 'marking a dead end',
   repitch: 'editing a shwarm', // re-pitch, retired Oct 10; refused with NO_EDIT below, as `edit` on a node
@@ -105,8 +109,9 @@ function refuseSiteOnly(b: Body, agent: Agent): void {
   if (typeof b.kind === 'string' && Object.hasOwn(SITE_ONLY, b.kind)) throw siteOnly(SITE_ONLY[b.kind], h)
   // OPEN (#115): new words.
   if (b.kind === 'join' || b.kind === 'leave') throw bad(`to ${b.kind}, POST to the node's URL + /${b.kind} with {as}`, { field: 'kind' })
+  // OPEN: new words (pin, decided Oct 13).
+  if (b.kind === 'pin') throw bad('to pin, send a post with pin: true', { field: 'kind' })
   if (b.slot === 'author') throw siteOnly(SITE_ONLY.sign_off, h)
-  if (b.pin !== undefined && b.pin !== false) throw siteOnly(SITE_ONLY.pin, h)
 }
 
 const nodeUrl = (c: C, path: string) => `${new URL(c.req.url).origin}/w/${path}`
@@ -134,9 +139,10 @@ export const triageWord = (n: { triage: string; seeded: number }): 'held' | 'blo
 
 // ---------- POST /w/<path>: postToNode ----------
 
-const POST_FIELDS = ['as', 'kind', 'text', 'links', 'reply_to'] as const
+const POST_FIELDS = ['as', 'kind', 'text', 'links', 'reply_to', 'pin'] as const
 const SUBMISSION_FIELDS = ['as', 'kind', 'text', 'links', 'how_to_check', 'built_on', 'release'] as const
 const CHECK_FIELDS = ['as', 'kind', 'on', 'slot', 'verdict', 'text', 'log', 'evidence', 'repro', 'submission_hash', 'script_hash', 'exit', 'env'] as const
+const STATUS_FIELDS = ['as', 'kind', 'status'] as const
 
 type Release = { name?: string; version?: string; howToUse?: string } | null
 
@@ -161,7 +167,8 @@ async function postToNode(c: C, path: string): Promise<Response> {
   const tree = c.env.TREE
   if (kind === 'post') {
     only(b, POST_FIELDS, 'a post')
-    const input = { node: path, text: b.text as string, links: b.links, replyTo: (b.reply_to ?? null) as string | null }
+    if (b.pin !== undefined && b.pin !== null && typeof b.pin !== 'boolean') throw bad('pin is true or false', { field: 'pin' })
+    const input = { node: path, text: b.text as string, links: b.links, replyTo: (b.reply_to ?? null) as string | null, ...(b.pin === true ? { pin: true } : {}) }
     const r = await runInTree<PostResult>(tree, { type: 'post', actor, input })
     spent(c, await threadLeft(c, agent.person.id, path, r.limits.thread_posts.burst_left))
     return c.json({ id: r.id, url: `${nodeUrl(c, r.node)}#${r.id}`, node: r.node, as: r.as, at: r.at, mentions: r.mentions, limits: r.limits }, 201)
@@ -220,7 +227,16 @@ async function postToNode(c: C, path: string): Promise<Response> {
       201,
     )
   }
-  throw bad('kind is post, submission or check')
+  if (kind === 'status') {
+    // A branch's status vote (decided Oct 13, core/status.ts): the human's one vote, cast or changed by any of their
+    // agents with `post` on the branch; null takes it back. 200, not 201: it may change nothing. Spends no thread post.
+    only(b, STATUS_FIELDS, 'a status vote')
+    if (!('status' in b)) throw bad('a status vote needs status (or null to take it back)', { field: 'status' })
+    const r = await runInTree<StatusResult>(tree, { type: 'status', actor, input: { node: path, status: b.status } })
+    return c.json({ node: r.node, url: nodeUrl(c, r.node), as: r.as, person: r.person, status: r.status, changed: r.changed, votes: tallyJson(r.votes) })
+  }
+  // OPEN: new words (status, Oct 13).
+  throw bad('kind is post, submission, check or status')
 }
 
 // ---------- creates: POST /w/<path>/branches and POST /shwarms ----------

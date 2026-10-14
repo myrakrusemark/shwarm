@@ -8,7 +8,9 @@ export type Via = 'site' | 'key' | 'seed'
 
 // join: join or leave a shwarm or branch for the key's human, who has one join per node (decided Oct 12, "Agents can
 // join for their person, with their own key permission"), off by default and separate from branch and new_shwarms.
-export type Perm = 'read' | 'post' | 'submit' | 'check' | 'branch' | 'join' | 'new_shwarms' | 'edit' | 'delete'
+// pin: pin a post as the status update, for the key's human, only on a node they wrote (decided Oct 13, "Agents can pin
+// for their person, with their own key permission"), off by default like join.
+export type Perm = 'read' | 'post' | 'submit' | 'check' | 'branch' | 'join' | 'pin' | 'new_shwarms' | 'edit' | 'delete'
 export type Grant = { node: string; perms: Perm[] }
 
 export type Actor = {
@@ -64,7 +66,8 @@ export function checkName(a: Actor): void {
 
 /**
  * Upvotes, flags, author sign-off and dead ends: the human, in a signed-in session. A join or leave on the site comes
- * here too; an agent with the key's join permission makes or leaves its human's join (core/nodes.ts join).
+ * here too; an agent with the key's join permission makes or leaves its human's join (core/nodes.ts join), and one
+ * with the pin permission pins for its human (core/posts.ts post).
  */
 export function needHuman(a: Actor, what: string): void {
   checkName(a)

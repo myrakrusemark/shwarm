@@ -44,7 +44,6 @@ import { loadAgentView, loadPageData, loadResultData } from '../read/views'
 import { BAD_FILTER, logFilter, readLog, renderLogJson } from '../read/log'
 import { readTreeVersion } from '../read/result'
 import { readTombstone } from '../read/tombstone'
-import { utcDay } from '../read/activity'
 import { sendError, waitText } from './errors'
 import { pickFormat, type Format } from './format'
 import { NodePage, type Flash } from './node-page'
@@ -65,7 +64,7 @@ type C = Context<Env>
 const TYPES: Record<Format, string> = { html: 'text/html', text: 'text/plain', json: 'application/json' }
 
 /** Bump to change every ETag when the rendering changes (test/render-version.test.ts fails until you do). */
-export const RENDER_VERSION = '21' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9). 4: the log's `key` field (v0, Oct 9). 5: the activity strip (Oct 10). 6: edit until join, the safety guide link, how to join in (Oct 10). 7: links for agents under how to take part, count wording (Oct 10). 8: npx @shwarm/cli under how to take part (Oct 10). 9: direct messages and who takes them, under how to take part; take_part in the JSON; "report" on every post (Oct 10). 10: "flag this shwarm" in the head, the "paused for review" banner, paused in the text and JSON (Oct 10). 11: the manifesto link in the header strip (Oct 10). 12: the donate modal is a form posting to /donate (Oct 10). 13: the canonical link and link-preview meta tags (go-live 11.7, Oct 11). 14: shwarming safely, how to sign, what impact means and the beta line in the text and JSON (go-live 7.11, 7.14, Oct 11). 15: the 7.14 review: the beta line before the keys page, a run's pass rule and where it runs, a license off the list, the note in the JSON, "shwarms or branches" (Oct 11). 16: joins (go-live 8.2): CONTRIBUTORS with each person's joined agents, the join line under how to take part, join posts marked, contributors and take_part.join/leave in the JSON (Oct 12). 17: the join page (go-live 8.2): join in the head and on branches, the say-hi modal, "✿ joined" posts and quiet join lines, agents under their person in contributors (Oct 12). 18: one join per person (Myra, Oct 12): contributors are people only, with "joined by @you/agent" when an agent made the join; the join rule says an agent joins for its human (Oct 12). 19: the join rule names an agent's optional hello and that it leaves only a join it made (Myra, Oct 12); no "edit" on a shwarm's own words (Myra, Oct 12; signed-in only, so the signed-out fingerprint doesn't move). 20: "status" in the footer's links (go-live 11.3, Oct 12). 21: /js/words.js before site.js, the word list (go-live 11.8, Oct 13); from here a changed word moves the ETag by itself (WORDS_VERSION), no bump
+export const RENDER_VERSION = '22' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9). 4: the log's `key` field (v0, Oct 9). 5: the activity strip (Oct 10). 6: edit until join, the safety guide link, how to join in (Oct 10). 7: links for agents under how to take part, count wording (Oct 10). 8: npx @shwarm/cli under how to take part (Oct 10). 9: direct messages and who takes them, under how to take part; take_part in the JSON; "report" on every post (Oct 10). 10: "flag this shwarm" in the head, the "paused for review" banner, paused in the text and JSON (Oct 10). 11: the manifesto link in the header strip (Oct 10). 12: the donate modal is a form posting to /donate (Oct 10). 13: the canonical link and link-preview meta tags (go-live 11.7, Oct 11). 14: shwarming safely, how to sign, what impact means and the beta line in the text and JSON (go-live 7.11, 7.14, Oct 11). 15: the 7.14 review: the beta line before the keys page, a run's pass rule and where it runs, a license off the list, the note in the JSON, "shwarms or branches" (Oct 11). 16: joins (go-live 8.2): CONTRIBUTORS with each person's joined agents, the join line under how to take part, join posts marked, contributors and take_part.join/leave in the JSON (Oct 12). 17: the join page (go-live 8.2): join in the head and on branches, the say-hi modal, "✿ joined" posts and quiet join lines, agents under their person in contributors (Oct 12). 18: one join per person (Myra, Oct 12): contributors are people only, with "joined by @you/agent" when an agent made the join; the join rule says an agent joins for its human (Oct 12). 19: the join rule names an agent's optional hello and that it leaves only a join it made (Myra, Oct 12); no "edit" on a shwarm's own words (Myra, Oct 12; signed-in only, so the signed-out fingerprint doesn't move). 20: "status" in the footer's links (go-live 11.3, Oct 12). 21: /js/words.js before site.js, the word list (go-live 11.8, Oct 13); from here a changed word moves the ETag by itself (WORDS_VERSION), no bump. 22: a branch's status votes (bars, the vote box), quiet branches and the activity order, the pin permission and the status vote in how to take part (Oct 13)
 
 // Production's reading pages stay closed in holding mode and open in beta (go-live 3.10); core/site-mode.ts.
 import { actsLimited, readingOpen } from '../core/site-mode'
@@ -99,7 +98,8 @@ async function gone(c: C, f: Format, path: string): Promise<Response | null> {
  * moderation act anywhere, the form. A takedown (a hidden post or branch, a held node, a node that something here
  * builds on or is built on by) can change this page without writing to this node, so every moderation act moves
  * one site-wide version (core/context.ts moderatedStatement) and with it every signed-out ETag. Moderation is rare,
- * so the extra misses cost little. `day` is the UTC date on a page with the activity strip (its window moves at midnight).
+ * so the extra misses cost little. `day` is the UTC hour on a node's page, text and JSON: the activity strip's window moves
+ * at midnight, and a branch turns quiet once QUIET_HOURS pass with no write (read/node.ts readChildren).
  * A post in a branch moves the branch's version, not the parent's; the parent's strip counts it once the stats job
  * rolls the parent up (every 5 minutes, with the changed node's ancestors), which moves its stats' time.
  * `checkout`: the Worker has a Stripe key, so the page's donate modal posts (go-live 10.1). The key goes in or out with
@@ -163,8 +163,10 @@ nodeRoutes.get('/*', async c => {
   const view = subNumber === null ? '' : `s${subNumber}`
   const thread = c.req.query('thread') !== undefined
   const now = Date.now()
-  // The activity strip's window moves with the UTC day (read/activity.ts): the node page's validator carries the day.
-  const day = f === 'html' && subNumber === null ? utcDay(now) : undefined
+  // The activity strip's window moves with the UTC day (read/activity.ts), and a branch turns quiet with no write at all
+  // once QUIET_HOURS pass (read/node.ts readChildren; the page, the text and the JSON say so): the node's validator
+  // carries the UTC hour, so a cached copy is at most an hour behind.
+  const day = subNumber === null ? new Date(now).toISOString().slice(0, 13) : undefined
   // Only an HTML page has the donate modal.
   const checkout = f === 'html' && checkoutOn(c)
   // Only the text and JSON carry the beta line (render/prompt.ts BETA_LINE).
@@ -386,12 +388,12 @@ async function submissionPost(c: C, path: string, number: number, session: Sessi
 // as the bare handle, pinned as "status update" when the author ticks it. edit, delete: one of your own plain posts.
 // upvote: the ▲ on a post, either way. submit: the compose box's submit mode, which lands on the new submission's page.
 // join (with the say-hi modal's optional hello), leave: say you're working on a live shwarm or branch, or stop. dead_end (with a note): the author's own box, behind the
-// password. Nobody edits a shwarm's or a branch's own words (decided Oct 12; it superseded "edit replaces re-pitch" of
+// password. status: the viewer's one vote on a branch's status, changed or taken back (decided Oct 13). Nobody edits a shwarm's or a branch's own words (decided Oct 12; it superseded "edit replaces re-pitch" of
 // Oct 10): once posted, they're fixed. Thread posts keep edit and delete.
 // Nothing reopens (decided Oct 9). Each runs in the shwarm's tree (do/shwarm-tree.ts), then goes back to the page (303). A refusal re-renders the page with the reason next to the form and the draft kept.
 // Signed out, it goes to sign-in and back.
 // POST /w/<path>/s/<n> (5.3, 5.5): check (a people check) and signoff (the author's, behind the password).
-const ACTS = ['post', 'edit', 'delete', 'upvote', 'submit', 'join', 'leave', 'dead_end'] as const
+const ACTS = ['post', 'edit', 'delete', 'upvote', 'submit', 'join', 'leave', 'dead_end', 'status'] as const
 type Act = (typeof ACTS)[number]
 
 /** Same person, same thread, same text within this long: a double click, so the first post stands. */
@@ -520,6 +522,12 @@ nodeRoutes.post('/*', async c => {
       const r = await runInTree<SubmitResult>(c.env.TREE, { type: 'submit', actor, input })
       return c.redirect(`${back}/s/${r.number}`, 303)
     }
+    if (act === 'status') {
+      // One button per status; "take my vote back" sends an empty one (core/status.ts). The same vote twice changes nothing.
+      const status = f.status ? f.status : null
+      await runInTree(c.env.TREE, { type: 'status', actor, input: { node: parsed.path, status } })
+      return c.redirect(back, 303)
+    }
     if (act === 'join') {
       // The say-hi modal's words (go-live 8.2): core posts them as a join post; empty, the thread shows a quiet line.
       const hello = (f.hello ?? '').trim()
@@ -531,7 +539,7 @@ nodeRoutes.post('/*', async c => {
   } catch (e) {
     if (!(e instanceof ShwarmError)) throw e
     const at =
-      act === 'post' || act === 'submit' ? 'compose' : act === 'dead_end' ? 'owner' : act === 'edit' || act === 'delete' || act === 'upvote' ? 'post' : 'seats'
+      act === 'post' || act === 'submit' ? 'compose' : act === 'dead_end' ? 'owner' : act === 'edit' || act === 'delete' || act === 'upvote' ? 'post' : act === 'status' ? 'status' : 'seats'
     // A refused join keeps the say-hi words, and the page opens the modal again with them.
     const draft = act === 'post' || act === 'submit' || act === 'edit' ? f.text ?? '' : act === 'dead_end' ? f.note : act === 'join' && (f.hello ?? '').trim() ? f.hello : undefined
     // A refused upvote, edit or delete shows under its post; a refused pinned post keeps its box ticked.

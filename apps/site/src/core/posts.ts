@@ -35,11 +35,15 @@ export async function post(ctx: Ctx, a: Actor, inp: PostInput): Promise<PostResu
       throw bad('reply_to is not a post in this thread')
     replyTo = inp.replyTo
   }
-  // The author pins one "status update" post (prd THREAD-4); a new pin replaces the old one.
-  // OPEN: who else may pin isn't decided; only the author, as the bare handle (site or seed), for now.
+  // The author pins one "status update" post (prd THREAD-4); a new pin replaces the old one. An agent pins for its
+  // human with the key's pin permission (decided Oct 13, "Agents can pin for their person"), only where its human could:
+  // a node they wrote. Builder's defaults (OPEN): the agent pins only the post it's making now, as the site's checkbox
+  // does, and the pinned post shows its own name, as any post does; no other record of which agent pinned.
   const pin = inp.pin === true
-  if (pin && (a.via === 'key' || !isBare(a) || person.id !== n.author_id))
-    throw new ShwarmError('not_permitted', 'only the author pins a post, as their bare handle', { need: 'author', node: n.path })
+  if (pin && a.via === 'key') authorize(a, 'pin', n.path)
+  // OPEN: new words for an agent.
+  if (pin && ((a.via !== 'key' && !isBare(a)) || person.id !== n.author_id))
+    throw new ShwarmError('not_permitted', a.via === 'key' ? `only the author pins a post here, and @${person.handle} didn't write ${n.path}` : 'only the author pins a post, as their bare handle', { need: 'author', node: n.path })
   // The pinned post leads the thread with its replies under it, so it is a top-level post (read/node.ts readThread).
   if (pin && replyTo) throw bad("a reply can't be pinned. pin a post of its own")
   const bucket = await takeThreadToken(ctx.db, { personId: person.id, handle: person.handle, nodeId: n.id, path: n.path }, ctx.now)

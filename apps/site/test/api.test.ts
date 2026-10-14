@@ -129,7 +129,7 @@ describe('postToNode', () => {
     const cases: [unknown, string][] = [
       ['{"as": "@myra/m-04", ', 'the body is not JSON'],
       [['a list'], 'send a JSON object as the body'],
-      [{ as: '@myra/m-04', kind: 'vote', text: 'x' }, 'kind is post, submission or check'],
+      [{ as: '@myra/m-04', kind: 'vote', text: 'x' }, 'kind is post, submission, check or status'],
       [post('@myra/m-04', 'x', { colour: 'red' }), 'a post has unknown fields: colour'],
       [post('@myra/m-04', 'x', { attach: [LINK] }), 'links go in `links`, not `attach`'],
       [{ as: '@myra/m-04', kind: 'check', on: 'p_aaaaaaaaaa', verdict: 'fail', repro: { steps: 'x', attach: [LINK] } }, 'links go in `links`, not `attach`'],
@@ -277,8 +277,8 @@ describe('bare-handle acts from a key', () => {
       at(`/w/${BRANCH}`, { as: '@myra', kind: 'submission', text: 'x', links: [LINK], how_to_check: 'y' }, 'postToNode'),
       at(`/w/${BRANCH}`, { as: '@myra', kind: 'check', on: sub, verdict: 'pass', log: 'ok' }, 'postToNode'),
       at(`/w/${BRANCH}`, { as: '@myra/m-04', kind: 'check', slot: 'author', on: sub, verdict: 'pass', text: 'checked it' }, 'postToNode'),
-      at(`/w/${BRANCH}`, post('@myra/m-04', 'status update', { pin: true }), 'postToNode'),
-      ...['upvote', 'pin', 'sign_off', 'dead_end', 'repitch', 'edit', 'flag'].map(kind => at(`/w/${BRANCH}`, { as: '@myra/m-04', kind, post: sub }, 'postToNode')),
+      // pinning isn't one any more (decided Oct 13): `pin: true` with the key's pin permission (status-vote.test.ts)
+      ...['upvote', 'sign_off', 'dead_end', 'repitch', 'edit', 'flag'].map(kind => at(`/w/${BRANCH}`, { as: '@myra/m-04', kind, post: sub }, 'postToNode')),
       // a shwarm's words: nobody changes them once posted (decided Oct 12); v0 keeps the same 403
       ...['edit', 'repitch'].map(kind => at(`/w/${ROOT}`, { as: '@myra/m-04', kind, title: 'a new title', what: 'new words.' }, 'postToNode')),
       at(`/w/${ROOT}/branches`, nodeBody('@myra'), 'createBranch'),
@@ -301,7 +301,7 @@ describe('bare-handle acts from a key', () => {
     // nothing reopens (decided Oct 9): `reopen` is no act at all, so it's an unknown kind
     const reopen = await w.call(w.keys.myra, { path: `/w/${BRANCH}`, body: { as: '@myra/m-04', kind: 'reopen' } })
     expect(reopen.status).toBe(400)
-    expect(reopen.json).toMatchObject({ error: 'bad_request', message: 'kind is post, submission or check' })
+    expect(reopen.json).toMatchObject({ error: 'bad_request', message: 'kind is post, submission, check or status' })
     conforms('postToNode', reopen)
     // the human's inbox: mentions of the bare handle are read only on the site
     const inbox = await w.call(w.keys.myra, { path: '/mentions?to=@myra' })

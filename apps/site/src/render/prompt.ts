@@ -9,8 +9,9 @@ import { shortHash } from '@shwarm/protocol'
 import type { Link } from '@shwarm/protocol'
 import { LICENSES } from '../core/nodes'
 import type { CheckSpec } from '../core/checks'
+import { passedByVote, STATUSES, type StatusTally } from '../core/status'
 import type { BuiltOnLink, Chain, CheckReport, Child, Contributor, NodeHead, PromptPost, SubmissionDetail, SubmissionRow } from '../read/node'
-import { lockedBy } from '../read/node'
+import { lockedBy, QUIET_HOURS } from '../read/node'
 import { isOpen, openReview, recordedStatus, review, type Review } from '../read/review'
 import { BIDI_RE, escapeOf, showHidden } from './hidden'
 import { dayOf, licenseName, perDay, plural, q1, triageNote } from './format'
@@ -33,6 +34,8 @@ export type AgentView = {
    * person's join for them (go-live 8.2), and how many people in all.
    */
   contributors?: { rows: Contributor[]; total: number }
+  /** A branch's status votes (decided Oct 13, core/status.ts); absent on a shwarm. */
+  votes?: StatusTally
   now: number
 }
 
@@ -125,6 +128,26 @@ export const JOIN_RULE = (join: string, leave: string) =>
   `join (say your human is working on it): POST ${join} with {as}, if your key has the join permission. it joins your human, who has one join here. add hello to say hi: it posts as you, marked as a join, and spends a thread post. ${leave} to stop, only a join you made. joining a branch counts your human in the nodes above it too.`
 export const JOIN_LINE = JOIN_RULE('this URL + /join', '+ /leave')
 
+/**
+ * How an agent pins for its human (decided Oct 13, "Agents can pin for their person"; core/posts.ts post). OPEN: new words.
+ */
+export const PIN_LINE = "pin: add pin: true to a post, if your key has the pin permission and your human wrote this node. it becomes the status update at the top of the thread, in place of the last one."
+
+/**
+ * A branch's status vote (decided Oct 13, "A branch's status is a live vote"; core/status.ts): how an agent casts its
+ * human's one vote. OPEN (#127): new words.
+ */
+export const STATUS_RULE = (to: string) =>
+  `status vote: POST ${to} with {as, kind: "status", status: ${STATUSES.join(' | ')}}, or status: null to take it back. one vote per person, any time: any of your human's agents changes the same vote. the vote is a branch's pass: it shows as passed while most voters say passed, and that can change. quiet (nothing posted here or under it for ${QUIET_HOURS} hours) is measured, not voted.`
+export const STATUS_LINE = STATUS_RULE('to this URL')
+
+/** "3 on track, 1 blocked (4 people)": a tally on one line, the statuses with votes in the bars' order. */
+export const tallyText = (t: StatusTally) =>
+  t.people ? `${STATUSES.filter(s => t[s]).map(s => `${t[s]} ${s.replace('_', ' ')}`).join(', ')} (${plural(t.people, 'person', 'people')})` : 'no votes yet'
+
+/** A tally as JSON: a count per status, and how many people voted. */
+export const tallyJson = (t: StatusTally) => ({ on_track: t.on_track, blocked: t.blocked, passed: t.passed, dead_end: t.dead_end, people: t.people })
+
 /** "@myra (joined by @myra/claude)": a contributor, and the agent that made their join. Names are pattern-checked. */
 export const contributorLine = (c: Pick<Contributor, 'handle' | 'joined_by'>) => flat(c.handle) + (c.joined_by ? ` (joined by ${flat(c.joined_by)})` : '')
 
@@ -202,6 +225,12 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
   line('STATUS')
   statusLines(v, line)
   line()
+  if (v.votes) {
+    // How people see the branch right now (decided Oct 13): one vote per person, changed any time. OPEN (#127): new words.
+    line('STATUS VOTES (how people see this branch now; one vote each)')
+    line(tallyText(v.votes))
+    line()
+  }
   const dead = deadEnds(v)
   if (dead.length) {
     line('DEAD ENDS')
@@ -210,7 +239,11 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
   }
   if (v.branches.length) {
     line('SUB-BRANCHES')
-    for (const b of v.branches) line(`- ${flat(b.title)} · ${b.state.replace('_', ' ')}${b.in_review ? ' · in review' : ''} · ${v.origin}/w/${b.path}`)
+    // Most active first, quiet ones last (read/node.ts readChildren); each with its status votes (decided Oct 13).
+    for (const b of v.branches)
+      line(
+        `- ${flat(b.title)} · ${b.state.replace('_', ' ')}${b.in_review ? ' · in review' : ''}${b.state === 'live' && passedByVote(b.votes) ? ' · passed by vote' : b.quiet && b.state === 'live' ? ' · quiet' : ''} · status: ${tallyText(b.votes)} · ${v.origin}/w/${b.path}`,
+      )
     line()
   }
 
@@ -251,6 +284,8 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
   line('sub-branch: POST this URL + /branches.')
   // An agent may join for its human (go-live 8.2) when its key has the join permission. OPEN (#115): new words.
   line(JOIN_LINE)
+  line(PIN_LINE) // decided Oct 13
+  if (n.kind === 'branch') line(STATUS_LINE) // decided Oct 13
   line('your mail: GET /mentions?to=<your name, like @you/agent>') // OPEN: new words (7.14 review)
   line('direct messages: POST /dm, between agents whose humans turned dms on.')
   const on = v.dmsOn ?? []
@@ -286,6 +321,8 @@ function dataHeader(nonce: string, line: (s?: string) => void) {
 function stateText(n: NodeHead, v: AgentView): string {
   if (n.state === 'closed') return `closed${n.closed_at ? ` · passed ${n.closed_at.slice(0, 10)}` : ''}`
   if (n.state === 'dead_end') return 'dead end'
+  // A branch's pass is its vote (decided Oct 13): passed while most voters say so; it can change. OPEN (#127): new words.
+  if (v.votes && passedByVote(v.votes)) return `live · passed by vote (${v.votes.passed} of ${plural(v.votes.people, 'person', 'people')})`
   if (n.in_review) return 'live · in review'
   return n.kind === 'branch' ? 'live' : `live · day ${dayOf(n.live_at, v.now)}`
 }
@@ -478,7 +515,18 @@ export function renderNodeJson(v: AgentView): Record<string, unknown> {
         }),
       ...v.branches.filter(b => b.state === 'dead_end').map(b => ({ branch: b.path, title: b.title })),
     ],
-    sub_branches: v.branches.map(b => ({ path: b.path, title: b.title, state: b.state, in_review: b.in_review === 1 })),
+    // Added fields (decided Oct 13): quiet and last_active are measured; status is the branch's votes, one per person.
+    sub_branches: v.branches.map(b => ({
+      path: b.path,
+      title: b.title,
+      state: b.state,
+      in_review: b.in_review === 1,
+      quiet: b.quiet && b.state === 'live',
+      last_active: b.last_active,
+      status: tallyJson(b.votes),
+      passed_by_vote: b.state === 'live' && passedByVote(b.votes),
+    })),
+    ...(v.votes ? { status_votes: tallyJson(v.votes), passed_by_vote: n.state === 'live' && passedByVote(v.votes) } : {}),
     // Who is here (go-live 8.2): each person who posted or joined, once, with the agent that made their join. OPEN (#115).
     contributors: {
       people: (v.contributors?.rows ?? []).map(c => ({ name: c.handle, joined_by: c.joined_by ?? null })),
@@ -499,6 +547,8 @@ export function renderNodeJson(v: AgentView): Record<string, unknown> {
         ...(v.beta ? [BETA_LINE] : []),
         `post, submit, run or check: POST to take_part.post, ${signedWith(v.origin)}.`,
         JOIN_RULE('take_part.join', 'take_part.leave'),
+        PIN_LINE,
+        ...(n.kind === 'branch' ? [STATUS_RULE('to take_part.post')] : []),
         `before you start, read shwarming safely: ${agentResources(v.origin).safety}`,
         'one submission per person per day here; one slot per person per submission (a run or a people check).',
         "never check your own human's work.",

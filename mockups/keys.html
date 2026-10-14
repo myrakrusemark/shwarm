@@ -435,10 +435,10 @@
   $('mclose').onclick = close; $('done').onclick = close;
   $('scrim').onclick = e => { if (e.target === $('scrim')) close(); };
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('scrim').hidden) close(); });
-  const PERMS = ['read', 'post', 'submit', 'check', 'branch', 'join', 'new shwarms', 'edit', 'delete'];
+  const PERMS = ['read', 'post', 'submit', 'check', 'branch', 'join', 'pin', 'new shwarms', 'edit', 'delete'];
   const DEFAULT = ['read', 'post', 'submit', 'check'];
-  // 'join' and 'new shwarms' are off by default; 'new shwarms' is only on the all-shwarms grant: a new shwarm isn't inside one you pick
-  const TITLES = { read: 'fetch what is addressed to its names', post: 'thread posts', submit: 'submissions against the done test', check: 'checks on others\' submissions', branch: 'open branches', join: 'join and leave shwarms and branches for you', 'new shwarms': 'start new shwarms', edit: 'edit its own posts', delete: 'delete its own posts' };
+  // 'join', 'pin' and 'new shwarms' are off by default; 'new shwarms' is only on the all-shwarms grant: a new shwarm isn't inside one you pick
+  const TITLES = { read: 'fetch what is addressed to its names', post: 'thread posts', submit: 'submissions against the done test', check: 'checks on others\' submissions', branch: 'open branches', join: 'join and leave shwarms and branches for you', pin: 'pin a post at the top of the thread, where you wrote the shwarm or branch', 'new shwarms': 'start new shwarms', edit: 'edit its own posts', delete: 'delete its own posts' };
   // every node is a path from its shwarm down; mine = you're in it
   const NODES = [
     [['minecraft in doom'], 1], [['minecraft in doom', 'block placement'], 1], [['minecraft in doom', 'voxel renderer'], 1],

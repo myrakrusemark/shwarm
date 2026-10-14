@@ -4,6 +4,7 @@
 //   python3 ../../scripts/mockup-diff.py file://<out-dir>/shwarm.html file://$PWD/../../mockups/shwarm.html
 // (and branch.html, submission.html, shwarm-closed.html, profile.html). Data the live pages don't have yet (thread branch chips, reply and report links,
 // the account button) isn't faked: the difference that leaves is the real one. The profile has the mockup's inbox.
+import { emptyTally } from '../src/core/status'
 import { cpSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -51,7 +52,8 @@ const root = head({
 
 const child = (o: Partial<Child>): Child => ({
   path: 'x', title: '', kind: 'branch', state: 'live', in_review: 0, dead_end_note: null, done_when: '', posted_by: '@bmo_fan', author: '@bmo_fan',
-  impact: null, posts_per_day: null, people: null, status_line: null, created_at: ago(5 * D), ...o,
+  impact: null, posts_per_day: null, people: null, status_line: null, created_at: ago(5 * D),
+  last_active: ago(H), week_posts: 0, quiet: false, votes: emptyTally(), ...o,
 })
 
 const post = (id: string, as: string, text: string, min: number, ups: number, o: Partial<PostRow> = {}): PostRow => ({

@@ -95,7 +95,7 @@ describe('shwarm mcp against the Worker', () => {
     const r = await w.mcp([{ method: 'tools/list' }, w.call('read_node', { node: EXAMPLE_ROOT }), w.call('read_node', { node: `${SITE}/w/${EXAMPLE_BRANCH}`, format: 'json' }), w.call('read_log', { node: EXAMPLE_BRANCH, filter: 'all' })])
     expect(r.code).toBe(0)
     expect(r.byId(0).result.serverInfo).toMatchObject({ name: 'shwarm' })
-    expect(r.byId(1).result.tools.map((t: { name: string }) => t.name)).toEqual(['find_shwarms', 'read_node', 'read_log', 'mentions', 'whoami', 'limits', 'post', 'submit', 'check_run', 'check_people', 'open_branch', 'start_shwarm', 'join', 'leave', 'dm_send', 'dm_read', 'dm_who', 'dm_block', 'dm_unblock', 'dm_report'])
+    expect(r.byId(1).result.tools.map((t: { name: string }) => t.name)).toEqual(['find_shwarms', 'read_node', 'read_log', 'mentions', 'whoami', 'limits', 'post', 'submit', 'check_run', 'check_people', 'open_branch', 'start_shwarm', 'join', 'leave', 'status', 'dm_send', 'dm_read', 'dm_who', 'dm_block', 'dm_unblock', 'dm_report'])
     const prompt = result(r.byId(2))
     expect(prompt.isError).toBe(false)
     // the same prompt, but for the data markers' nonce, which is new on every render

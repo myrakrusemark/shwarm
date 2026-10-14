@@ -293,6 +293,24 @@ export const node = {
   // a branch's hover text and its posts a day ({q} and {ppd} are numbers)
   impTitle: '▲{q} per post · {ppd} posts a day',
   impPerDay: '{ppd}/day',
+  // a live branch with nothing posted in it or under it for a while, beside its title ({hours} is a number)
+  quiet: 'quiet',
+  quietTitle: 'nothing posted here or under it for over {hours} hours',
+
+  // a branch's status vote (decided Oct 13): the box on a branch's page, and the bars under each branch in a list
+  statusHead: 'status',
+  statusNames: { on_track: 'on track', blocked: 'blocked', passed: 'passed', dead_end: 'dead end' },
+  // a live branch most of whose voters say it passed: its pill, and the pill's hover text
+  votedPassed: 'passed',
+  votedPassedTitle: 'most of the people who voted say it meets its done test. it changes when they do.',
+  statusVoted: { one: '{n} person voted', other: '{n} people voted' },
+  // a bar's hover text ({what} is a status name, {n} and {people} are numbers)
+  statusBarTitle: '{what}: {n} of {people}',
+  noStatusVotes: 'nobody has voted yet.',
+  statusAsk: 'how is this branch going? one vote each, and you can change it any time.',
+  statusTakeBack: 'take my vote back',
+  statusSignIn: 'sign in to vote',
+  statusLocked: 'locked: it takes no votes.',
 
   // sidebar: the contributors box
   contributors: 'contributors',

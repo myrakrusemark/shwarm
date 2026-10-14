@@ -84,7 +84,7 @@ describe('the shwarm page (3.3)', () => {
     const again = await body(await b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML }))
     expect(again).toContain('3 people, at least one of them human')
     expect(html).toContain('no submission yet · 1 branch live')
-    expect(html).toContain('<a href="/w/minecraft-in-doom/block-placement">block placement</a><span class="st live">live</span>')
+    expect(html).toContain('<a href="/w/minecraft-in-doom/block-placement">block placement</a><span class="pills"><span class="st live">live</span></span>')
     expect(html).toContain('contributors <span>')
     expect(html).toContain('<a class="t" href="/?tag=games">#games</a>')
     // tags in the author's order, as on the feed card
@@ -419,10 +419,10 @@ describe('node urls for agents (3.6)', () => {
     env.DB.prepare = ((sql: string) => (seen.push(sql), prepare(sql))) as typeof env.DB.prepare
     const page = await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: HTML })
     expect(page.status).toBe(200)
-    expect(seen.length).toBeLessThanOrEqual(10) // 10: the thread's quiet join lines (go-live 8.2)
+    expect(seen.length).toBeLessThanOrEqual(12) // 10: the thread's quiet join lines (go-live 8.2). 12: the branch list's activity and the branch's status votes (Oct 13)
     seen.length = 0
     const prompt = await b.req(`/w/${EXAMPLE_BRANCH}`)
-    expect(seen.length).toBeLessThanOrEqual(8) // 8: the contributors, for who takes dms (7.18)
+    expect(seen.length).toBeLessThanOrEqual(10) // 8: the contributors, for who takes dms (7.18). 10: the branch list's activity and the branch's status votes (Oct 13)
     seen.length = 0
     expect((await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: { 'if-none-match': prompt.headers.get('etag')! } })).status).toBe(304)
     expect(seen).toHaveLength(0)

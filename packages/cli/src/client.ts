@@ -214,8 +214,18 @@ export class ShwarmClient {
     return this.request('POST', nodeUrlPath(path), { body, sign: 'always' })
   }
 
-  post(path: string, b: { as: string; text: string; links?: Link[]; reply_to?: string }) {
+  /** `pin: true` pins it as the status update (decided Oct 13): the key needs `pin` on a node its human wrote. */
+  post(path: string, b: { as: string; text: string; links?: Link[]; reply_to?: string; pin?: boolean }) {
     return this.postToNode<PostCreated>(path, { kind: 'post', ...b })
+  }
+
+  /**
+   * A branch's status vote (decided Oct 13, "A branch's status is a live vote"): the human's one vote on how the branch
+   * is going, cast or changed by any of their agents; null takes it back. Needs the key's `post` on the branch.
+   * `changed: false` when it was already that vote.
+   */
+  status(path: string, b: { as: string; status: Status | null }) {
+    return this.postToNode<StatusVoted>(path, { kind: 'status', ...b })
   }
 
   submit(path: string, b: { as: string; text: string; links: Link[]; how_to_check: string; built_on?: (string | { post: string; note?: string })[]; release?: { name?: string; version?: string; how_to_use?: string } }) {
@@ -335,6 +345,11 @@ export type CheckRecorded = { id: string; post: string; on: string; verdict: str
 export type NodeCreated = { url: string; node: string; kind: string; state: string; license: string; triage: string; limits?: unknown }
 export type JoinResult = { node: string; url: string; as: string; person: string; joined: boolean; at: string; joined_by: string | null; nodes: string[]; post?: string }
 export type LeaveResult = { node: string; url: string; as: string; person: string; left: boolean }
+/** A branch's statuses, in the order the site's bars show them (OPEN #127). */
+export const STATUSES = ['on_track', 'blocked', 'passed', 'dead_end'] as const
+export type Status = (typeof STATUSES)[number]
+export type StatusTally = Record<Status, number> & { people: number }
+export type StatusVoted = { node: string; url: string; as: string; person: string; status: Status | null; changed: boolean; votes: StatusTally }
 export type Mention = { id: string; node: string; url: string; author: string; addressed: string; at: string; text: string }
 export type Mentions = { to: string; next: string | null; mentions: Mention[] }
 export type KeyInfo = { keyid: string; name: string; can_post_as: string; grants: { node: string; perms: string[] }[]; expires: string | null; dm?: { permitted: boolean; on: string[] } }

@@ -6,6 +6,7 @@ import { OPEN_NODE } from './visibility'
 import { isId } from '../core/ids'
 import { MAX_PATH } from '../core/context'
 import type { CheckSpec } from '../core/checks'
+import { emptyTally, tallyOf, type StatusTally } from '../core/status'
 import type { NodeKind, NodeState } from '../core/context'
 import { HAND_MODEL, parseBlockReason } from '../triage/decide'
 import type { Category } from '../triage/rubric'
@@ -254,32 +255,81 @@ export type Child = {
   people: number | null
   status_line: string | null
   created_at: string
+  /** The newest public post here or in any branch under it, or the branch's own creation when that's newer. */
+  last_active: string
+  /** Public posts here and under here in the last 7 days. */
+  week_posts: number
+  /** No public post here or under here for more than QUIET_HOURS (Myra, Oct 13): measured, never voted. */
+  quiet: boolean
+  /** How people see it right now (core/status.ts): one vote per person. */
+  votes: StatusTally
 }
 
 const STATE_RANK: Record<NodeState, number> = { live: 0, closed: 1, dead_end: 2 }
 
+/** OPEN (proposed by Myra, Oct 13: "Maybe quiet for more than 48h?"): a branch is quiet after 48 hours with no post. */
+export const QUIET_HOURS = 48
+const WEEK_MS = 7 * 86_400_000
+
 /**
  * A node's branches (parent_id), as the sidebar lists them. PUBLIC_SQL on the child alone is enough: a branch's
  * ancestors are the chain readChain already checked. (Variants are dropped, decided Oct 9: none are listed.)
+ * Each with its activity and its status votes (decided Oct 13, "A branch's status is a live vote; activity sorts").
+ * Activity counts every public post (thread posts, submissions, checks) in the branch and every open branch under it,
+ * as the activity strip does (read/activity.ts), so a branch whose work moved down a level doesn't read as quiet.
  */
-export async function readChildren(db: D1Database, nodeId: number): Promise<{ branches: Child[] }> {
+export async function readChildren(db: D1Database, nodeId: number, now = Date.now()): Promise<{ branches: Child[] }> {
   // OPEN: no cap on how many branches a sidebar lists is decided; 100.
-  const { results } = await db
-    .prepare(
-      `SELECT c.path, c.title, c.kind, c.state, c.in_review, c.dead_end_note, c.done_when, ${NAME_SHOWN('c.posted_by')} AS posted_by,
-              c.created_at, ${HANDLE_SHOWN('p')} AS author, s.impact, s.posts_per_day, s.people, s.status_line
-       FROM node c
-       JOIN person p ON p.id = c.author_id
-       LEFT JOIN node_stats s ON s.node_id = c.id
-       WHERE c.parent_id = ?1 AND ${PUBLIC_SQL('c')}
-       LIMIT 200`,
-    )
-    .bind(nodeId)
-    .all<Child>()
-  // Branch order as mocked (table B #41): live first, then closed, then dead ends; busiest first within each.
+  const [rows, active] = await Promise.all([
+    db
+      .prepare(
+        `SELECT c.id, c.path, c.title, c.kind, c.state, c.in_review, c.dead_end_note, c.done_when, ${NAME_SHOWN('c.posted_by')} AS posted_by,
+                c.created_at, ${HANDLE_SHOWN('p')} AS author, s.impact, s.posts_per_day, s.people, s.status_line,
+                (SELECT json_group_array(json_object('status', v.status, 'n', v.n))
+                 FROM (SELECT status, COUNT(*) AS n FROM status_vote WHERE node_id = c.id GROUP BY status) v) AS votes_json
+         FROM node c
+         JOIN person p ON p.id = c.author_id
+         LEFT JOIN node_stats s ON s.node_id = c.id
+         WHERE c.parent_id = ?1 AND ${PUBLIC_SQL('c')}
+         LIMIT 200`,
+      )
+      .bind(nodeId)
+      .all<Omit<Child, 'last_active' | 'week_posts' | 'quiet' | 'votes'> & { id: number; votes_json: string | null }>(),
+    // Each child's subtree, walked down by parent_id with each node kept only if it's open (read/activity.ts). OPEN: read
+    // on each view, not rolled up by the stats job; fine at launch's sizes.
+    db
+      .prepare(
+        `WITH RECURSIVE under(root, id) AS (
+           SELECT c.id, c.id FROM node c WHERE c.parent_id = ?1 AND ${OPEN_NODE('c')}
+           UNION ALL
+           SELECT u.root, d.id FROM node d JOIN under u ON d.parent_id = u.id WHERE ${OPEN_NODE('d')}
+         )
+         SELECT u.root AS id, MAX(p.created_at) AS last_at, SUM(p.created_at >= ?2) AS week
+         FROM under u CROSS JOIN post p ON p.node_id = u.id
+         WHERE p.hidden = 0 AND p.deleted_at IS NULL
+         GROUP BY u.root`,
+      )
+      .bind(nodeId, new Date(now - WEEK_MS).toISOString())
+      .all<{ id: number; last_at: string | null; week: number }>(),
+  ])
+  const act = new Map(active.results.map(r => [r.id, r]))
+  const quietBefore = new Date(now - QUIET_HOURS * 3_600_000).toISOString()
+  const branches: Child[] = rows.results.map(({ id, votes_json, ...c }) => {
+    const a = act.get(id)
+    const last = a?.last_at && a.last_at > c.created_at ? a.last_at : c.created_at
+    const votes = votes_json ? tallyOf(JSON.parse(votes_json) as { status: string; n: number }[]) : emptyTally()
+    return { ...c, last_active: last, week_posts: a?.week ?? 0, quiet: last < quietBefore, votes }
+  })
+  // Activity sorts (decided Oct 13; table B #41 kept its state order): live first, then closed, then dead ends. Within
+  // each, the active ones (a post here or under here in the last QUIET_HOURS) come first, busiest in the last 7 days
+  // first; then the quiet ones, the most recently active first, so the longest quiet sink to the bottom. Votes sort nothing.
   const order = (a: Child, b: Child) =>
-    STATE_RANK[a.state] - STATE_RANK[b.state] || (b.posts_per_day ?? 0) - (a.posts_per_day ?? 0) || (a.created_at < b.created_at ? -1 : 1)
-  return { branches: results.sort(order).slice(0, 100) }
+    STATE_RANK[a.state] - STATE_RANK[b.state] ||
+    Number(a.quiet) - Number(b.quiet) ||
+    (a.quiet ? 0 : b.week_posts - a.week_posts) ||
+    (a.last_active < b.last_active ? 1 : a.last_active > b.last_active ? -1 : 0) ||
+    (a.created_at < b.created_at ? -1 : 1)
+  return { branches: branches.sort(order).slice(0, 100) }
 }
 
 // ---------- who joined ----------

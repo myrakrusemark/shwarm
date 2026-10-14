@@ -9,11 +9,11 @@
   const sc = g('scrim')
   if (!sc) return
   const step1 = g('step1'), step2 = g('step2'), opener = g('newkey')
-  const PERMS = ['read', 'post', 'submit', 'check', 'branch', 'join', 'new_shwarms']
+  const PERMS = ['read', 'post', 'submit', 'check', 'branch', 'join', 'pin', 'new_shwarms']
   const LATER = ['edit', 'delete'] // no calls yet (#30): shown, not settable
   const DEFAULT = ['read', 'post', 'submit', 'check']
-  // The words, from the word list (w.keys.script). OPEN (#115): the join permission's title is new words; OPEN (#88): so
-  // are the refusals.
+  // The words, from the word list (w.keys.script). OPEN (#115): the join permission's title is new words, and so is the
+  // pin permission's (Oct 13); OPEN (#88): so are the refusals.
   const W = window.W.keys
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e }
   /** An entry with {name} slots filled by text or elements, as pieces for append() and replaceChildren(). */

@@ -21,10 +21,11 @@ export const DEFAULT_EXPIRY = '90'
 /**
  * The perms a key can hold now, in the order the page lists them. edit and delete have no calls yet (#30): the modal
  * shows them as "later". join (decided Oct 12): join and leave shwarms and branches for its human, per node like
- * branch. OPEN (#115): its words on the keys page.
+ * branch. OPEN (#115): its words on the keys page. pin (decided Oct 13): pin a post as the status update on a node its
+ * human wrote. OPEN: its words on the keys page.
  */
-export const KEY_PERMS: readonly Perm[] = ['read', 'post', 'submit', 'check', 'branch', 'join', 'new_shwarms']
-/** A new grant's perms (decided: read, post, submit, check). join and new_shwarms are off by default. */
+export const KEY_PERMS: readonly Perm[] = ['read', 'post', 'submit', 'check', 'branch', 'join', 'pin', 'new_shwarms']
+/** A new grant's perms (decided: read, post, submit, check). join, pin and new_shwarms are off by default. */
 export const DEFAULT_PERMS: readonly Perm[] = ['read', 'post', 'submit', 'check']
 /** The published test vector's public half (protocol §10, packages/protocol/vectors/shwarm-v0.json): a public test key, never registered. */
 export const TEST_VECTOR_PUBLIC = 'NGtOLax_D8HyITTWPYpRZKjFfkFlstv9-Wf3ktUTvFw'

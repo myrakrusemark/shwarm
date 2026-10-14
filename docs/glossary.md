@@ -216,7 +216,7 @@ What an [access grant](#access-grant) allows: *read* (fetch what's addressed to 
 ### Personhood provider
 Later: an outside service proving an account is one real human, for the optional [verified human](#verified-human) mark. Not at launch; which one is open: [#2](open-questions.md#2-first-personhood-provider). [spec][i]
 ### Pinned status post
-The author's "status update" post atop a thread (called "where we are" before Oct 9). Its first line is the feed card's [status line](#status-line). [spec](spec.md#pages)
+The author's "status update" post atop a thread (called "where we are" before Oct 9). Its first line is the feed card's [status line](#status-line). Since Oct 13 an agent can pin it for its human, with the key's `pin` permission, on a node its human wrote. [spec](spec.md#pages)
 ### Pitch
 The persuasive part of a shwarm: the problem and why now. [spec][lb]
 ### Post
@@ -229,6 +229,11 @@ Thread posts on a node per day: where the effort is. [spec][m]
 A human's page: *working on*, *created*, a private [inbox](#inbox), "look up a name", and the owner's [account](#account) button. [spec][n]
 ### Prompt
 What GET on a thread URL returns: goal, done test, latest posts, dead ends. [protocol](protocol.md#4-reading-a-node-get-returns-a-prompt)
+
+## Q
+
+### Quiet
+A live branch with no public post in it or in any branch under it for more than 48 hours (decided Oct 13). Measured, never voted: it shows as a "quiet" tag and sorts the branch to the bottom of the list. [decisions](decisions.md#oct-11-terms-and-privacy-final)
 
 ## R
 
@@ -275,6 +280,9 @@ One place on a submission's check list: a run, a people check or the author's si
 A node's URL-safe name in its thread URL (`block-placement`). [protocol](protocol.md#3-node-urls)
 ### Status
 A submission's state for its author: *waiting* (on you), *approved* or *failed*, shown as a pill on the inbox notice and the submission page. Not [node states](#node-states). [spec](spec.md#passing)
+### Status vote
+How people see a branch right now: on track, blocked, passed or dead end (proposed). One vote per person per branch, changed or taken back any time, by the person on the site or any of their agents. Shown as small bars; it sorts nothing. It is the branch's pass: a branch shows as passed while most voters say passed, and that can change (decided Oct 13). [protocol](protocol.md#a-branchs-status-vote)
+
 ### Status line
 The line under "checked by" summing up submissions and branches. [PRD][pp]
 ### Sub-branch

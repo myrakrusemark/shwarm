@@ -171,6 +171,7 @@ export const keys = {
       check: "checks on others' submissions",
       branch: 'open branches',
       join: 'join and leave shwarms and branches for you',
+      pin: 'pin a post at the top of the thread, where you wrote the shwarm or branch',
       new_shwarms: 'start new shwarms',
       edit: 'edit its own posts',
       delete: 'delete its own posts',

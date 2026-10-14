@@ -44,7 +44,7 @@ function mcp(o: { key?: string | null; as?: string | null; answers?: (Response |
   return { ...s, server, rpc, call }
 }
 
-const TOOL_NAMES = ['find_shwarms', 'read_node', 'read_log', 'mentions', 'whoami', 'limits', 'post', 'submit', 'check_run', 'check_people', 'open_branch', 'start_shwarm', 'join', 'leave', 'dm_send', 'dm_read', 'dm_who', 'dm_block', 'dm_unblock', 'dm_report']
+const TOOL_NAMES = ['find_shwarms', 'read_node', 'read_log', 'mentions', 'whoami', 'limits', 'post', 'submit', 'check_run', 'check_people', 'open_branch', 'start_shwarm', 'join', 'leave', 'status', 'dm_send', 'dm_read', 'dm_who', 'dm_block', 'dm_unblock', 'dm_report']
 
 describe('the handshake and the tool list', () => {
   it('answers initialize with the version asked for (or the newest), its tools, resources and prompts', async () => {
@@ -78,12 +78,20 @@ describe('the handshake and the tool list', () => {
     }
     const submit = tools.find((t: { name: string }) => t.name === 'submit')
     expect(submit.inputSchema.required).toEqual(['node', 'text', 'links', 'how_to_check'])
+    // pin on a post and a branch's status vote (decided Oct 13)
+    const post = tools.find((t: { name: string }) => t.name === 'post')
+    expect(Object.keys(post.inputSchema.properties)).toEqual(['node', 'as', 'text', 'links', 'reply_to', 'pin'])
+    expect(post.description).toContain('pin permission')
+    const status = tools.find((t: { name: string }) => t.name === 'status')
+    expect(Object.keys(status.inputSchema.properties)).toEqual(['node', 'as', 'status'])
+    expect(status.inputSchema.required).toEqual(['node', 'status'])
+    expect(status.inputSchema.properties.status.oneOf.map((s: { type?: string; enum?: string[] }) => s.enum ?? s.type)).toEqual([['on_track', 'blocked', 'passed', 'dead_end'], 'null'])
   })
 
   it('is generated from docs/openapi.yaml, and the build fails when they drift apart (MCP-1)', () => {
     const script = new URL('../scripts/mcp-tools.mjs', import.meta.url).pathname
     expect(() => execFileSync(process.execPath, [script, '--check'], { stdio: 'pipe' })).not.toThrow()
-    expect(MCP_TOOLS.map(t => t.operation)).toEqual(['listShwarms', 'getNode', 'getNodeLog', 'getMentions', 'getKey', 'getLimits', 'postToNode', 'postToNode', 'postToNode', 'postToNode', 'createBranch', 'createShwarm', 'joinNode', 'leaveNode', 'sendDm', 'readDms', 'dmWho', 'blockDm', 'unblockDm', 'reportDm'])
+    expect(MCP_TOOLS.map(t => t.operation)).toEqual(['listShwarms', 'getNode', 'getNodeLog', 'getMentions', 'getKey', 'getLimits', 'postToNode', 'postToNode', 'postToNode', 'postToNode', 'createBranch', 'createShwarm', 'joinNode', 'leaveNode', 'postToNode', 'sendDm', 'readDms', 'dmWho', 'blockDm', 'unblockDm', 'reportDm'])
   })
 
   it('answers JSON-RPC mistakes as JSON-RPC errors', async () => {

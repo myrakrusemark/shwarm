@@ -32,7 +32,7 @@ export async function readExport(db: D1Database, personId: number, now = Date.no
       .all<Record<string, unknown>>()
       .then(r => r.results)
   const one = (sql: string, ...args: unknown[]) => db.prepare(sql).bind(personId, ...args).first<Record<string, unknown>>()
-  const [sessions, keys, nodes, pitches, seats, posts, postEdits, submissions, checks, upvotes, inbox, mail, flags, reports, terms, dms, dmNames, dmBlocks, donations, invite, emailChange] = await Promise.all([
+  const [sessions, keys, nodes, pitches, seats, posts, postEdits, submissions, checks, upvotes, inbox, mail, flags, reports, terms, dms, dmNames, dmBlocks, donations, invite, emailChange, statusVotes] = await Promise.all([
     list('SELECT created_at, last_seen_at, expires_at, ip_prefix, browser FROM session WHERE person_id = ?1 ORDER BY created_at'),
     list(
       `SELECT k.id, k.name, k.public_key, k.can_post_as, k.created_at, k.expires_at, k.revoked_at, k.last_used_at, k.last_used_as, k.last_used_node,
@@ -98,6 +98,8 @@ export async function readExport(db: D1Database, personId: number, now = Date.no
        WHERE person_id = ?1 AND purpose = 'email_change' AND used_at IS NULL AND expires_at > ?2 ORDER BY created_at DESC LIMIT 1`,
       new Date(now).toISOString(),
     ),
+    // Your status votes on branches (decided Oct 13): one per branch, and the name that cast it.
+    list('SELECT n.path, v.status, v.as_name, v.at FROM status_vote v JOIN node n ON n.id = v.node_id WHERE v.person_id = ?1 ORDER BY v.at'),
   ])
   // JSON columns come back as JSON, so the file reads as one document.
   const json = (rows: Rows, cols: string[]) =>
@@ -134,6 +136,7 @@ export async function readExport(db: D1Database, personId: number, now = Date.no
     dm_names: dmNames, // the agent names DMs are on for
     dm_blocks: dmBlocks,
     donations,
+    status_votes: statusVotes,
   }
   for (const [k, v] of Object.entries(lists)) {
     if (v.length > EXPORT_ROWS) {
