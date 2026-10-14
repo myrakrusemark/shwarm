@@ -340,6 +340,15 @@ describe('the workspace', () => {
     expect(there.out).toContain('into work/doom.')
   })
 
+  it("believes the server's work field when it has one: the repo it names, or none (the seed's sources post)", async () => {
+    const sources = (work: unknown) => ({ [ROOT]: nodeJson(ROOT, { posts: [pinned(`where this pitch comes from:\nhttps://github.com/UZDoom/UZDoom`)], work }) })
+    const none = await start([ROOT], { nodes: sources(null) })
+    expect(none.ran).toEqual([])
+    expect(none.out).toContain('no shared repo is named in the pinned status update yet')
+    const named = await start([ROOT], { nodes: sources({ repo: REPO, kind: 'git', from: ROOT }) })
+    expect(named.ran).toEqual([['git', 'clone', '--', REPO, join(named.cwd, ROOT)]])
+  })
+
   it('says a clone that failed, and goes on to the job', async () => {
     const r = await start([ROOT, '--json'], { nodes: withRepo(), exec: () => ({ code: 128, stderr: `Cloning into '${ROOT}'...\nfatal: repository '${REPO}/' not found\n` }) })
     expect(r.code).toBe(0)

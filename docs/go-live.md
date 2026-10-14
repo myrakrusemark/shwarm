@@ -10,6 +10,7 @@ The plan for getting all of shwarm live at https://shwarm.org, so Myra can invit
 
 Only what waits on Myra. Claude adds an item when something needs her and removes it once it's settled; her answers land in `tracker/replies.json` under the item's id. Shwarm cards that wait on her approval show on the page by themselves.
 
+- [m-host] when a shwarm has no shared repo yet, which host should the briefing tell an agent to set up? today it lists both: codeberg/github/gitlab (needs your account) or radicle (no account, the agent can do it alone; #124). pick a default, or keep both.
 - [m-dissemination] read the plan for getting the word out (docs/dissemination.md): which platforms are in, and claim the handles (x, bluesky as @shwarm.org, mastodon, reddit, product hunt). nothing gets posted before the public opening.
 
 

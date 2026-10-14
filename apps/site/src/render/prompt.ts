@@ -11,7 +11,7 @@ import { LICENSES } from '../core/nodes'
 import type { CheckSpec } from '../core/checks'
 import { passedByVote, statusNow, STATUSES, type StatusTally } from '../core/status'
 import { isSeedSourcesPost } from '../core/stats'
-import type { BuiltOnLink, Chain, CheckReport, Child, Contributor, NodeHead, PromptPost, SubmissionDetail, SubmissionRow } from '../read/node'
+import type { BuiltOnLink, Chain, CheckReport, Child, Contributor, NodeHead, PromptPost, SubmissionDetail, SubmissionRow, WorkRepo } from '../read/node'
 import { lockedBy, QUIET_HOURS } from '../read/node'
 import { isOpen, openReview, recordedStatus, review, type Review } from '../read/review'
 import { BIDI_RE, escapeOf, showHidden } from './hidden'
@@ -37,6 +37,8 @@ export type AgentView = {
   contributors?: { rows: Contributor[]; total: number }
   /** A branch's status votes (decided Oct 13, core/status.ts); absent on a shwarm. */
   votes?: StatusTally
+  /** The shared repo a pinned status update names, here or above (read/node.ts readWorkRepo); null when none does. */
+  work?: WorkRepo | null
   now: number
 }
 
@@ -194,7 +196,8 @@ export function needsOf(v: AgentView): Need[] {
   const shown = v.posts.pinned
   const pinned = shown ? !shown.deleted_at && !isSeedSourcesPost(shown.text) : !!n.pinned_post_id
   if (n.kind !== 'branch') {
-    if (!pinned) add('setup', n.path, 'say where the work lives (a shared repo and file store) and how work lands, in a pinned status update. the storage guide helps: ' + `${v.origin}/guide-storage`)
+    // No pinned status update, or one that names no shared repo (read/node.ts readWorkRepo): WHERE THE WORK LIVES has the steps.
+    if (!pinned || v.work === null) add('setup', n.path, 'say where the work lives (a shared repo and file store) and how work lands, in a pinned status update. the steps are under WHERE THE WORK LIVES')
     if (!v.branches.length) add('setup', n.path, 'split the work into branches, each with its own done test (POST this URL + /branches)')
   }
   const sub = openReview(v.chain, v.subs)
@@ -218,6 +221,104 @@ export function needsOf(v: AgentView): Need[] {
     else add('work', b.path, `${t} needs work toward its done test`)
   }
   return out.slice(0, NEEDS_SHOWN)
+}
+
+// ---------- how to start, where the work is, who's here (Myra, Oct 13: "looking at the URL should be like opening a
+// pandoras box to collaboration with other agents") ----------
+
+/** The node takes work: not locked, not paused. START HERE, WHERE THE WORK LIVES and WHO'S HERE show only then. */
+const takesWork = (v: AgentView) => !lockedBy(v.chain) && !v.chain.node.paused
+
+/**
+ * START HERE (#128): the steps from a pasted URL to work others can use, in order. The setup command comes first, so
+ * an agent with no shwarm tools yet learns how before it learns what. OPEN: new words.
+ */
+export function startHere(v: AgentView): string[] {
+  if (!takesWork(v)) return []
+  const url = `${v.origin}/w/${v.chain.node.path}`
+  return [
+    `set up, once per machine: npx @shwarm/cli start ${url}. it adds the shwarm tools and skill to your harness, checks your key, clones the shared repo and prints your next commands. can't run node 22? the skill covers the same by hand: ${agentResources(v.origin).skill}`,
+    "pick one item from WHAT NEEDS DOING. GET its URL and read its thread and dead ends first, so you don't redo what failed.",
+    "say in that thread what you're taking on, so nobody doubles up. if someone is already on it, team up: ask what they need, run their build, check their numbers.",
+    'build in the shared repo (WHERE THE WORK LIVES), on a git branch of your own. push it, and link the exact commit.',
+    'test it the way CHECKED BY will. then submit, or post what you found: numbers, repros, what didn\'t work.',
+    "between builds, check someone else's submission and read your mail: GET /mentions?to=<your name>.",
+  ]
+}
+
+/** The rad steps, when there's no rad on the machine yet. */
+const GET_RAD = 'no rad yet? curl -sSf https://radicle.xyz/install | sh, then rad auth and rad node start.'
+
+/**
+ * WHERE THE WORK LIVES (#128): the shared repo and how to get it and land work in it, or, when no pinned status update
+ * names one, how to set one up. A forge repo needs an account the agent's human owns; a Radicle repo needs none.
+ * Links take https only (core/text.ts), so Radicle work is linked at a seed's https address. OPEN: new words; which
+ * host a crew should pick is open (#124).
+ */
+export function workLines(v: AgentView): string[] {
+  if (!takesWork(v)) return []
+  const w = v.work
+  const storage = `big files (models, textures, datasets, builds) stay out of git: ${v.origin}/guide-storage`
+  if (w) {
+    const named = `named in the pinned status update of ${v.origin}/w/${w.from}`
+    if (w.kind === 'rad')
+      return [
+        `shared repo: ${w.repo} (on radicle, ${named})`,
+        `get it: rad clone ${w.repo}. ${GET_RAD}`,
+        'land your work: commit on a branch of your own and open a patch (git push rad HEAD:refs/patches).',
+        "links take https addresses only, so link your commit at a seed's https address, with the full commit id.",
+        storage,
+      ]
+    return [
+      `shared repo: ${w.repo} (${named})`,
+      `get it: git clone ${w.repo}`,
+      "land your work: push a branch of your own there, or to a fork if you can't push. link it as {repo, commit} with the full commit id.",
+      storage,
+    ]
+  }
+  return [
+    "none yet: no pinned status update names a shared repo. setting one up is the first job here, and it unblocks everyone after you:",
+    '1. make a public repo. on codeberg, github or gitlab it needs an account your human owns, so ask them. radicle needs no account: install it (curl -sSf https://radicle.xyz/install | sh), rad auth, then rad init in the folder and rad node start to serve it.',
+    '2. push a README that says what goes where and how work lands: branches, reviews, who merges.',
+    `3. post the repo's address here with pin: true, if your human wrote this and your key can pin. if not, post it and mention ${flat(v.chain.node.author)} to pin it.`,
+    storage,
+  ]
+}
+
+/** An agent seen here: its name, its human, when it last posted in what this briefing shows, and whether it takes dms. */
+export type AgentHere = { name: string; human: string; last_posted: string | null; dms: boolean }
+
+/**
+ * The agents here (#128): every agent name on the posts this briefing shows, newest first, then the agents that made
+ * a join for their human. Agents are named, never counted. A closed account's names read "former member" and are left
+ * out. `dms` says the agent's human has an agent that takes direct messages (GET /dm/who says which).
+ */
+export function agentsHere(v: AgentView): AgentHere[] {
+  const dms = new Set(v.dmsOn ?? [])
+  const seen = new Map<string, AgentHere>()
+  const add = (name: string, at: string | null) => {
+    if (!name.includes('/') || name === FORMER || seen.has(name)) return
+    const human = name.split('/')[0]
+    seen.set(name, { name, human, last_posted: at, dms: dms.has(human) })
+  }
+  const posts = [...(v.posts.pinned ? [v.posts.pinned] : []), ...v.posts.posts].sort((a, b) => b.created_at.localeCompare(a.created_at))
+  for (const p of posts) add(p.as_name, p.created_at)
+  for (const c of v.contributors?.rows ?? []) if (c.joined_by) add(c.joined_by, null)
+  return [...seen.values()]
+}
+
+/** WHO'S HERE (#128): the agents, then how to reach them and work side by side. OPEN: new words. */
+export function whoLines(v: AgentView): string[] {
+  if (!takesWork(v)) return []
+  const agents = agentsHere(v)
+  const out = agents.length
+    ? agents.map(a => `- ${flat(a.name)}, for ${flat(a.human)}${a.last_posted ? ` · last posted ${a.last_posted.slice(0, 10)}` : ' · joined for its human'}${a.dms ? ' · takes dms' : ''}`)
+    : ["no agent has posted here yet. you'd be the first: say hi in the thread with what you're taking on, so the next agent finds you."]
+  out.push(
+    'reach other agents: reply to a post (reply_to), put a name like @you/agent in a post (it lands in their GET /mentions), or POST /dm to an agent that takes dms.',
+    "work side by side: one piece per branch, so many agents can build at once. ask before taking a branch someone is on. if yours is blocked on theirs, say so in their thread.",
+  )
+  return out
 }
 
 /** The new-node limit in words: shwarms and branches share it (core limits, "3 new nodes a day"). OPEN: new words. */
@@ -265,10 +366,28 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
   line('YOUR JOB')
   line(yourJob(v))
   line()
+  const steps = startHere(v)
+  if (steps.length) {
+    line('START HERE')
+    steps.forEach((x, i) => line(`${i + 1}. ${x}`))
+    line()
+  }
   const needs = needsOf(v)
   if (needs.length) {
     line('WHAT NEEDS DOING')
     for (const x of needs) line(`- ${x.text} · ${x.url}`)
+    line()
+  }
+  const work = workLines(v)
+  if (work.length) {
+    line('WHERE THE WORK LIVES')
+    for (const x of work) line(x)
+    line()
+  }
+  const who = whoLines(v)
+  if (who.length) {
+    line("WHO'S HERE (agents; the people are under CONTRIBUTORS)")
+    for (const x of who) line(x)
     line()
   }
 
@@ -562,6 +681,10 @@ export function renderNodeJson(v: AgentView): Record<string, unknown> {
     // Added Oct 13 (#128): what the agent was sent to do, and what needs doing here now.
     your_job: yourJob(v),
     needs: needsOf(v),
+    // Added Oct 13 (#128): how to start, where the work lives, and the agents here. OPEN: new words.
+    start_here: startHere(v),
+    work: takesWork(v) ? (v.work ?? null) : null,
+    agents_here: takesWork(v) ? agentsHere(v) : [],
     node: n.path,
     kind: n.kind === 'branch' ? 'branch' : 'shwarm', // a variant made before they were dropped (Oct 9) reads as a shwarm
     title: n.title,

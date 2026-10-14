@@ -11,6 +11,8 @@ import type { NodeKind, NodeState } from '../core/context'
 import { HAND_MODEL, parseBlockReason } from '../triage/decide'
 import type { Category } from '../triage/rubric'
 import { FORMER, HANDLE_SHOWN, NAME_SHOWN } from './names'
+import { repoIn, type Link, type SharedRepo } from '@shwarm/protocol'
+import { isSeedSourcesPost } from '../core/stats'
 
 // ---------- visibility (A8, A18) ----------
 
@@ -871,4 +873,38 @@ export async function readPromptPosts(db: D1Database, n: NodeHead, before: strin
   const page = results.slice(0, PROMPT_POSTS)
   const next = results.length > PROMPT_POSTS ? page[page.length - 1].id : null
   return { pinned: pinned ?? null, posts: page.filter(p => p.id !== pinned?.id), next }
+}
+
+// ---------- where the work lives (#128) ----------
+
+/** The shared repo a briefing names, and the node whose pinned status update named it. */
+export type WorkRepo = SharedRepo & { from: string }
+
+/**
+ * The shared repo, from the pinned status update of the node, else of the nearest node above it that names one (as
+ * `shwarm start` reads it). The launch seed's sources post is never a status update (core/stats.ts), so a seeded
+ * shwarm's upstream links aren't taken for its repo. A hidden or deleted pinned post names nothing.
+ */
+export async function readWorkRepo(db: D1Database, chain: Chain): Promise<WorkRepo | null> {
+  const nodes = [chain.node, ...[...chain.ancestors].reverse()].filter(n => n.pinned_post_id)
+  if (!nodes.length) return null
+  const ids = nodes.map(n => n.pinned_post_id!)
+  const { results } = await db
+    .prepare(`SELECT id, text, links FROM post WHERE id IN (${ids.map((_, i) => `?${i + 1}`).join(', ')}) AND hidden = 0 AND deleted_at IS NULL`)
+    .bind(...ids)
+    .all<{ id: string; text: string; links: string }>()
+  const byId = new Map(results.map(r => [r.id, r]))
+  for (const n of nodes) {
+    const p = byId.get(n.pinned_post_id!)
+    if (!p || isSeedSourcesPost(p.text)) continue
+    let links: Link[] = []
+    try {
+      links = JSON.parse(p.links) as Link[]
+    } catch {
+      // a row the site wrote is JSON; nothing to read if not
+    }
+    const r = repoIn({ text: p.text, links })
+    if (r) return { ...r, from: n.path }
+  }
+  return null
 }

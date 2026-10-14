@@ -86,3 +86,61 @@ describe('YOUR JOB and WHAT NEEDS DOING (#128)', () => {
     expect(await w.text(`/w/${EXAMPLE_BRANCH}`)).not.toContain('WHAT NEEDS DOING')
   })
 })
+
+describe("START HERE, WHERE THE WORK LIVES and WHO'S HERE (#128)", () => {
+  it('a shwarm with no shared repo: the setup command first, then how to make the repo', async () => {
+    const w = await world()
+    const t = await w.text(`/w/${EXAMPLE_ROOT}`)
+    expect(t.indexOf('YOUR JOB')).toBeLessThan(t.indexOf('START HERE'))
+    expect(t.indexOf('\nSTART HERE\n')).toBeLessThan(t.indexOf('\nWHAT NEEDS DOING\n'))
+    expect(t).toContain(`START HERE\n1. set up, once per machine: npx @shwarm/cli start ${ORIGIN}/w/${EXAMPLE_ROOT}.`)
+    // the seed's sources post links upstream repos, but it isn't where the crew's work lives
+    expect(t).toContain('WHERE THE WORK LIVES\nnone yet: no pinned status update names a shared repo.')
+    expect(t).toContain('radicle needs no account: install it')
+    const j = await w.json(`/w/${EXAMPLE_ROOT}`)
+    expect(j.start_here[0]).toMatch(/^set up, once per machine: npx @shwarm\/cli start /)
+    expect(j.work).toBeNull()
+    expect(schemaErrors('Node', j)).toEqual([])
+  })
+
+  it("a pinned status update names the repo; a branch gets its shwarm's", async () => {
+    const w = await world()
+    await w.run({ type: 'post', actor: siteActor(w.myra), input: { node: EXAMPLE_ROOT, text: 'status update: the work lives at https://codeberg.org/crew/doom-blocks/src/branch/main. push your own branch.', pin: true } })
+    const t = await w.text(`/w/${EXAMPLE_BRANCH}`)
+    expect(t).toContain(`shared repo: https://codeberg.org/crew/doom-blocks (named in the pinned status update of ${ORIGIN}/w/${EXAMPLE_ROOT})`)
+    expect(t).toContain('get it: git clone https://codeberg.org/crew/doom-blocks\n')
+    const j = await w.json(`/w/${EXAMPLE_BRANCH}`)
+    expect(j.work).toEqual({ repo: 'https://codeberg.org/crew/doom-blocks', kind: 'git', from: EXAMPLE_ROOT })
+    expect(schemaErrors('Node', j)).toEqual([])
+    // a radicle id: rad clone, and a patch to land work
+    await w.run({ type: 'post', actor: siteActor(w.myra), input: { node: EXAMPLE_ROOT, text: 'status update: moved to rad:z3gqcJUoA1n9HaHKufZs5FCSGazv5', pin: true } })
+    const r = await w.text(`/w/${EXAMPLE_ROOT}`)
+    expect(r).toContain('get it: rad clone rad:z3gqcJUoA1n9HaHKufZs5FCSGazv5.')
+    expect(r).not.toContain('none yet: no pinned status update')
+  })
+
+  it("WHO'S HERE names the agents on the posts shown, and says when none has posted", async () => {
+    const w = await world()
+    const before = await w.json(`/w/${EXAMPLE_ROOT}`)
+    const known = before.agents_here.map((a: any) => a.name)
+    await w.run({ type: 'post', actor: siteActor(w.myra), input: { node: EXAMPLE_ROOT, text: 'hello' } })
+    const key = await keyFor(w.db, w.myra.id, { canPostAs: '@myra/*', grants: [{ node: '*', perms: ALL_PERMS }] })
+    const sent = await send(app, w.env, key, { path: `/w/${EXAMPLE_ROOT}`, body: { as: '@myra/scout', text: 'taking the block engine: zscript actors first.' } })
+    expect(sent.status).toBeLessThan(300)
+    const j = await w.json(`/w/${EXAMPLE_ROOT}`)
+    expect(j.agents_here[0]).toMatchObject({ name: '@myra/scout', human: '@myra' })
+    expect(j.agents_here.slice(1).map((a: any) => a.name)).toEqual(known.filter((n: string) => n !== '@myra/scout'))
+    const t = await w.text(`/w/${EXAMPLE_ROOT}`)
+    expect(t).toMatch(/WHO'S HERE[^\n]*\n- @myra\/scout, for @myra · last posted \d{4}-\d\d-\d\d/)
+    expect(t).toContain('reach other agents: reply to a post (reply_to)')
+  })
+
+  it('a locked node shows none of them', async () => {
+    const w = await world()
+    w.db.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'x' WHERE path = ?").run(EXAMPLE_ROOT)
+    const t = await w.text(`/w/${EXAMPLE_BRANCH}`)
+    for (const h of ['START HERE', 'WHERE THE WORK LIVES', "WHO'S HERE"]) expect(t).not.toContain(h)
+    const j = await w.json(`/w/${EXAMPLE_BRANCH}`)
+    expect([j.start_here, j.work, j.agents_here]).toEqual([[], null, []])
+  })
+})

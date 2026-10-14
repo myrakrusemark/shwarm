@@ -20,7 +20,7 @@ import { constants } from 'node:fs'
 import { access, lstat, mkdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { delimiter, join, resolve, sep } from 'node:path'
-import { grantFor, matchesPostAs, type Link } from '@shwarm/protocol'
+import { grantFor, matchesPostAs, repoIn, type Link, type SharedRepo } from '@shwarm/protocol'
 import type { Io } from './cli'
 import { DEFAULT_SERVER, STATUSES, type KeyInfo, type ShwarmClient } from './client'
 import type { Profile } from './config'
@@ -69,10 +69,12 @@ type StartNode = {
   posts?: Post[]
   your_job?: unknown
   needs?: unknown
+  /** The shared repo, as the server finds it (#128): it skips the launch seed's sources post. Newer servers only. */
+  work?: { repo: string; kind: 'git' | 'rad'; from: string } | null
 }
 /** One thing that needs doing, as the server says it: its kind, the node, where to go, and a line saying it. */
 type Need = { kind?: string; node?: string; url?: string; text: string }
-type Found = { repo: string; kind: 'git' | 'rad' }
+type Found = SharedRepo
 /** What a step that changes this machine runs with. `plan` collects what --dry-run would have done. */
 type Local = { io: Io; env: Record<string, string>; cwd: string; dryRun: boolean; plan: string[]; warn(s: string): void }
 
@@ -327,7 +329,9 @@ async function workspace(
   o: { client: ShwarmClient; node: StartNode; dir: string; server: string },
 ): Promise<{ found: Found | null; json: { repo: string | null; from: string | null; dir: string | null; state: WorkspaceState; error?: string }; lines: string[] }> {
   let found: (Found & { from: string }) | null = null
-  for (let n: StartNode | null = o.node; n; ) {
+  // A server that says where the work lives is believed, "none yet" included; an older one is read post by post.
+  if (o.node.work !== undefined) found = o.node.work
+  else for (let n: StartNode | null = o.node; n; ) {
     const pinned = (n.posts ?? []).find(p => p.pinned)
     const repo = pinned ? repoIn(pinned) : null
     if (repo) {
@@ -377,51 +381,7 @@ async function workspace(
   return { found, json: json('cloned'), lines: [`cloned the shared repo, ${repo}, into ${o.dir}. ${source}`] }
 }
 
-/** Forges whose links name a repo by its first two path segments (gitlab's groups nest, up to its /-/ pages). */
-const FORGES = new Set(['github.com', 'codeberg.org', 'gitlab.com'])
-/** A Radicle repo id: rad: and a base58 id starting with z. rad://z… is read as the same. */
-const RAD = /\brad:(?:\/\/)?(z[1-9A-HJ-NP-Za-km-z]{20,})/
-
-/** The repo an https URL names: on a forge, owner/repo (never a page inside it); anywhere else, a URL ending in .git. */
-export function gitRepo(raw: string): string | null {
-  let u: URL
-  try {
-    u = new URL(raw)
-  } catch {
-    return null
-  }
-  if (u.protocol !== 'https:' || u.username || u.password) return null
-  const host = u.hostname.replace(/^www\./, '')
-  const parts = u.pathname.split('/').filter(Boolean)
-  if (FORGES.has(host)) {
-    const end = host !== 'gitlab.com' ? 2 : parts.includes('-') ? parts.indexOf('-') : parts.length
-    return parts.length >= 2 && end >= 2 ? `https://${host}/${parts.slice(0, end).join('/')}` : null
-  }
-  const path = u.pathname.replace(/\/+$/, '')
-  return path.endsWith('.git') ? u.origin + path : null
-}
-
-/**
- * The shared repo a post names: the first git repo URL or Radicle id in its text, in reading order, else the first
- * among its links (a repo link is a repo wherever it's hosted).
- */
-export function repoIn(post: Post): Found | null {
-  const found = (s: string, repoLink = false): Found | null => {
-    const git = gitRepo(s) ?? (repoLink && /^https:\/\//.test(s) ? s : null)
-    if (git) return { repo: git, kind: 'git' }
-    const rad = RAD.exec(s)
-    return rad ? { repo: `rad:${rad[1]}`, kind: 'rad' } : null
-  }
-  for (const m of (post.text ?? '').matchAll(/https:\/\/[^\s<>"'`]+|\brad:(?:\/\/)?z[1-9A-HJ-NP-Za-km-z]{20,}/g)) {
-    const r = found(m[0].replace(/[.,;:!?)\]}*_]+$/, ''))
-    if (r) return r
-  }
-  for (const l of post.links ?? []) {
-    const r = 'repo' in l ? found(l.repo, true) : found(l.url)
-    if (r) return r
-  }
-  return null
-}
+export { gitRepo, repoIn } from '@shwarm/protocol'
 
 // ---------- the machine ----------
 

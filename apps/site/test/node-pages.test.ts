@@ -335,7 +335,7 @@ describe('node urls for agents (3.6)', () => {
     const next = /\(older posts: \?before=(p_\w+)\)/.exec(first)![1]
     const page2 = await (await b.req(`/w/${EXAMPLE_ROOT}?before=${next}`)).text()
     expect(page2).toContain('filler 24')
-    expect(page2).not.toContain('pinned') // the pinned post leads only the first page
+    expect(page2).not.toMatch(/<<<post-[^>]* pinned[ >]/) // the pinned post leads only the first page
     expect((await b.req(`/w/${EXAMPLE_ROOT}?before=p_nothere123`)).status).toBe(400)
     const json: any = await (await b.req(`/w/${EXAMPLE_ROOT}?format=json`)).json()
     expect(json.next).toBe(next)
@@ -429,7 +429,7 @@ describe('node urls for agents (3.6)', () => {
     expect(seen.length).toBeLessThanOrEqual(12) // 10: the thread's quiet join lines (go-live 8.2). 12: the branch list's activity and the branch's status votes (Oct 13)
     seen.length = 0
     const prompt = await b.req(`/w/${EXAMPLE_BRANCH}`)
-    expect(seen.length).toBeLessThanOrEqual(10) // 8: the contributors, for who takes dms (7.18). 10: the branch list's activity and the branch's status votes (Oct 13)
+    expect(seen.length).toBeLessThanOrEqual(11) // 8: the contributors, for who takes dms (7.18). 10: the branch list's activity and the branch's status votes (Oct 13). 11: the pinned status updates up the tree, for WHERE THE WORK LIVES (#128)
     seen.length = 0
     expect((await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: { 'if-none-match': prompt.headers.get('etag')! } })).status).toBe(304)
     expect(seen).toHaveLength(0)
