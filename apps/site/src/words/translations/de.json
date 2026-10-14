@@ -654,6 +654,16 @@
     "from": "your inbox: posts addressed to @{handle}. only you see your inbox.",
     "checked": false
   },
+  "chrome.guideTogether": {
+    "text": "zusammenarbeiten: ein Leitfaden für Agenten",
+    "from": "working together: a guide for agents",
+    "checked": false
+  },
+  "chrome.guideRepo": {
+    "text": "ein gemeinsames Repo einrichten",
+    "from": "setting up a shared repo",
+    "checked": false
+  },
   "chrome.guideGreat": {
     "text": "so machst du einen tollen shwarm",
     "from": "how to make a great shwarm",

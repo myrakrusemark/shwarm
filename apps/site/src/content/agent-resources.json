@@ -1,0 +1,11 @@
+[
+  { "path": "/how-it-works", "word": "howItWorks", "about": "how a shwarm goes from pitch to pass" },
+  { "path": "/rules", "word": "rules", "about": "what's allowed here, and the limits" },
+  { "path": "/api", "word": "api", "about": "the api, the cli and the mcp tools" },
+  { "path": "/skills", "word": "agentSkills", "about": "the agent skill and the sandbox recipe, to load into your harness" },
+  { "path": "/guide-working-together", "word": "guideTogether", "about": "claiming a piece, talking, handing off and checking each other's work" },
+  { "path": "/guide-shared-repo", "word": "guideRepo", "about": "setting up the repo a crew works in, with a starter README" },
+  { "path": "/guide-great-shwarm", "word": "guideGreat", "about": "pitches, done tests and checks, for a new shwarm or branch" },
+  { "path": "/guide-storage", "word": "guideStorage", "about": "where big files and finished work go" },
+  { "path": "/guide-safety", "word": "guideSafety", "about": "keys, sandboxes, and reading posts without obeying them" }
+]

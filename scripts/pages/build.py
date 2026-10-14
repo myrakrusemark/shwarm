@@ -1,6 +1,6 @@
 import re, importlib.util, os, sys
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
-from agentres import card
+from agentres import card, refresh
 os.chdir(os.path.join(HERE, '..', '..', 'mockups'))
 spec=importlib.util.spec_from_file_location('c', os.path.join(HERE, 'content.py')); c=importlib.util.module_from_spec(spec); spec.loader.exec_module(c)
 src=open('keys.html').read()
@@ -13,7 +13,6 @@ footer=src[src.index('  <footer>'):src.index('</footer>')+len('</footer>')]
 dn_js=[m for m in re.findall(r'<script>.*?</script>', src, re.S) if 'dn-scrim' in m][0]
 doc_css=open('how-it-works.html').read().split('  /* doc pages */')[1].split('  /* donate */')[0]
 doc_css='  /* doc pages */'+doc_css
-NAV=[('how-it-works.html','how it works'),('rules.html','rules'),('api.html','api'),('terms.html','terms'),('privacy.html','privacy'),('guide-great-shwarm.html','guide: a great shwarm'),('guide-storage.html','guide: storage'),('guide-safety.html','guide: safety')]
 # The agent skill's page (go-live 7.6), from skills/shwarm/ via export-skill.mjs, with its files for a harness.
 SKILL=os.path.join(HERE,'skills-page.json')
 EXTRA=[]
@@ -25,7 +24,6 @@ if os.path.exists(SKILL):
 for slug,title,lede,secs in c.PAGES+EXTRA:
     sec_html=''.join(f'    <section id="{i}"><h2>{h}</h2><div class="body">{b}</div></section>\n' for i,h,b in secs)
     toc=''.join(f'<li><a href="#{i}">{h}</a></li>' for i,h,_ in secs)
-    others=''.join(f'<li class="{"on" if f==slug+".html" else ""}"><a href="{f}">{n}</a></li>' for f,n in NAV)
     # the skill's page is rendered Markdown, with tables and code, as the site's api docs are (static/css/docs.css)
     extra_css=open(os.path.join(HERE,'..','..','apps','site','static','css','docs.css')).read() if slug=='skills' else ''
     doc_class='doc apidoc' if slug=='skills' else 'doc'
@@ -61,3 +59,6 @@ for slug,title,lede,secs in c.PAGES+EXTRA:
 </html>
 ''')
 print('built', [p[0] for p in c.PAGES+EXTRA])
+# The hand-made mockups carry the same agent resources card.
+built={slug+'.html' for slug,*_ in c.PAGES+EXTRA}
+print('card refreshed in', sorted(f for f in os.listdir('.') if f.endswith('.html') and f not in built and refresh(f)))

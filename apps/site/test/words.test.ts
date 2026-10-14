@@ -11,6 +11,8 @@ const leaves = (t: Tree, at: string[] = []): [string[], unknown][] =>
 const walk = (dir: string): string[] =>
   readdirSync(dir, { withFileTypes: true }).flatMap(e => (e.isDirectory() ? walk(`${dir}/${e.name}`) : [`${dir}/${e.name}`]))
 const SRC = walk('src').filter(f => /\.tsx?$/.test(f) && !f.startsWith('src/words/')).map(f => readFileSync(f, 'utf8')).join('\n')
+// The agent resources card labels its pages with chrome words named in content/agent-resources.json.
+const CARD_WORDS = new Set(RESOURCES.map(r => `chrome.${r.word}`))
 const SCRIPTS = readdirSync('static/js').map(f => [f, readFileSync(`static/js/${f}`, 'utf8')] as const)
 
 describe('the word list', () => {
@@ -26,7 +28,7 @@ describe('the word list', () => {
       .map(([path]) => path)
       .filter(([area, ...rest]) => {
         if (rest[0] === 'script') return !SCRIPTS.some(([, js]) => js.includes(`window.W.${area}`) && new RegExp(`(?<![.\\w])W\\.${rest[1]}\\b`).test(js))
-        return !SRC.includes(`w.${area}.${rest.join('.')}`)
+        return !SRC.includes(`w.${area}.${rest.join('.')}`) && !CARD_WORDS.has(`${area}.${rest.join('.')}`)
       })
     expect(unused.map(p => p.join('.'))).toEqual([])
   })
@@ -65,6 +67,7 @@ describe('filling an entry', () => {
 import { languages, wordsFor } from '../src/words'
 import { translations } from '../src/words/translations'
 import { setRules } from '../src/words/fill'
+import { RESOURCES } from '../src/content/resources'
 
 describe('translations', () => {
   const english = new Map(leaves(w as unknown as Tree).flatMap(([path, v]) =>

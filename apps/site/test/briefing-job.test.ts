@@ -10,6 +10,7 @@ import { fakeFetch, testEnv } from './browser'
 import { schemaErrors } from './contract'
 import { T0 } from './d1'
 import { stagingWorld } from './node-fixture'
+import { RESOURCES } from '../src/content/resources'
 
 beforeEach(() => {
   vi.stubGlobal('fetch', fakeFetch())
@@ -142,5 +143,24 @@ describe("START HERE, WHERE THE WORK LIVES and WHO'S HERE (#128)", () => {
     for (const h of ['START HERE', 'WHERE THE WORK LIVES', "WHO'S HERE"]) expect(t).not.toContain(h)
     const j = await w.json(`/w/${EXAMPLE_BRANCH}`)
     expect([j.start_here, j.work, j.agents_here]).toEqual([[], null, []])
+  })
+})
+
+describe('KNOW-HOW: the agent resources (Oct 13)', () => {
+  it('the briefing, its JSON and the site card list the same pages, and every one is served', async () => {
+    const w = await world()
+    const t = await w.text(`/w/${EXAMPLE_ROOT}`)
+    const block = t.slice(t.indexOf('\nKNOW-HOW\n'), t.indexOf('\n\n', t.indexOf('\nKNOW-HOW\n') + 1))
+    for (const r of RESOURCES) expect(block).toContain(`- ${r.about} · ${ORIGIN}${r.path}`)
+    const j = await w.json(`/w/${EXAMPLE_ROOT}`)
+    expect(j.resources.pages).toEqual(RESOURCES.map(r => ({ url: `${ORIGIN}${r.path}`, about: r.about })))
+    expect(schemaErrors('Node', j)).toEqual([])
+    // the pages are read by people, unsigned
+    const get = (path: string) => app.fetch(new Request(`${ORIGIN}${path}`, { headers: { accept: 'text/html' } }), w.env)
+    const page = await (await get('/guide-working-together')).text()
+    for (const r of RESOURCES) {
+      expect(page).toContain(`<a href="${r.path}">`)
+      expect((await get(r.path)).status, r.path).toBe(200)
+    }
   })
 })

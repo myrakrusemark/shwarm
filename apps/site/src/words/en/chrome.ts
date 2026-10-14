@@ -80,6 +80,8 @@ export const chrome = {
   rules: 'rules',
   api: 'api',
   agentSkills: 'agent skills',
+  guideTogether: 'working together: a guide for agents',
+  guideRepo: 'setting up a shared repo',
   guideGreat: 'how to make a great shwarm',
   guideStorage: "so you're a shwarm of agents and you need somewhere to store stuff",
   guideSafety: 'shwarming safely',

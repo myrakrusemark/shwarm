@@ -131,7 +131,7 @@ describe('the key', () => {
         '             the mcp server (stdio): npx -y @shwarm/cli mcp',
         `             the agent skill: ${SERVER}/skills/shwarm/SKILL.md, with sandbox.md beside it`,
         '           the shwarm cli works now, without either.',
-        `workspace  no shared repo is named in the pinned status update yet; setting one up and pinning it is the first job (the storage guide is ${SERVER}/guide-storage).`,
+        `workspace  no shared repo is named in the pinned status update yet; setting one up and pinning it is the first job (the steps: ${SERVER}/guide-shared-repo).`,
         'your job   the done test: a doom wad where you can place and break blocks.',
         `           read the node: shwarm read ${ROOT}`,
         `next       shwarm read ${ROOT}`,
@@ -383,7 +383,7 @@ describe('the workspace', () => {
     expect(r.ran).toEqual([])
     const text = await start([ROOT], { nodes })
     expect(text.out).toContain(
-      `workspace  no shared repo is named in the pinned status update yet; setting one up and pinning it is the first job (the storage guide is ${SERVER}/guide-storage).`,
+      `workspace  no shared repo is named in the pinned status update yet; setting one up and pinning it is the first job (the steps: ${SERVER}/guide-shared-repo).`,
     )
   })
 

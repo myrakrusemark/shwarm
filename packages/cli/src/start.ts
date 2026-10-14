@@ -344,7 +344,7 @@ async function workspace(
     return {
       found: null,
       json: { repo: null, from: null, dir: null, state: 'none' },
-      lines: [`no shared repo is named in the pinned status update yet; setting one up and pinning it is the first job (the storage guide is ${o.server}/guide-storage).`],
+      lines: [`no shared repo is named in the pinned status update yet; setting one up and pinning it is the first job (the steps: ${o.server}/guide-shared-repo).`],
     }
   const { repo, kind, from } = found
   const dir = resolve(local.cwd, o.dir)

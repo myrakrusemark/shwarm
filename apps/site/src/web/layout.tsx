@@ -4,21 +4,15 @@ import { joinHref, signInHref } from '../auth/return-to'
 import { termsDate } from '../core/terms'
 import { currentDir, currentLang, currentPath, currentServed, fill, fillx, languages, w } from '../words'
 import { PageContext, type PageInfo } from './viewer'
+import { RESOURCES } from '../content/resources'
 
 // Shared page chrome, ported 1:1 from the mockups (header strip, footer, donate modal, agent resources card).
 // CSS comes from static/css/site.css, which scripts/pages/export-site.py generates from the mockups.
 
 const VINE = '❦ ˜˜ ✿ ˜˜˜ ❦ ˜ ✿ ˜˜ ❦ ˜˜˜ ✿ ˜ ❦ ˜˜ ✿ ˜˜˜ ❦ ˜ ✿ ˜˜ ❦ ˜˜˜ ✿ ˜ ❦ ˜˜ ✿ ˜˜˜ ❦ ˜ ✿ ˜˜ ❦ ˜˜˜ ✿ ˜ ❦ ˜˜ ✿ ˜˜˜ ❦'
 
-export const AGENT_RESOURCES = (): [string, string][] => [
-  ['/how-it-works', w.chrome.howItWorks],
-  ['/rules', w.chrome.rules],
-  ['/api', w.chrome.api],
-  ['/skills', w.chrome.agentSkills],
-  ['/guide-great-shwarm', w.chrome.guideGreat],
-  ['/guide-storage', w.chrome.guideStorage],
-  ['/guide-safety', w.chrome.guideSafety],
-]
+/** The agent resources card: the pages in content/agent-resources.json, labelled in the reader's language. */
+export const AGENT_RESOURCES = (): [string, string][] => RESOURCES.map(r => [r.path, w.chrome[r.word]])
 
 export const AgentResources: FC<{ current?: string }> = ({ current }) => (
   <div class="box agent-res">

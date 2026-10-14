@@ -17,6 +17,7 @@ import { allowRead } from '../api/cors'
 import { readingOpen } from '../core/site-mode'
 import { markdown, inline, type Heading, type LinkMap } from '../render/markdown'
 import { notFoundHandler } from './errors'
+import { PAGES } from './doc'
 import { AgentResources, Layout } from './layout'
 import { page } from './viewer'
 
@@ -25,8 +26,8 @@ type Env = { Bindings: { DB: D1Database; CSRF_SECRET: string; ENV?: string; SITE
 type Schema = Record<string, any>
 const SPEC = docs.openapi as Schema
 
-/** Our own pages a doc may link to: the footer pages and guides, the create form, the keys page. */
-const SITE_PAGES = new Set(['how-it-works', 'rules', 'api', 'terms', 'privacy', 'guide-great-shwarm', 'guide-storage', 'guide-safety', 'new', 'keys'])
+/** Our own pages a doc may link to: the footer pages and guides (content/pages.json), the create form, the keys page. */
+const SITE_PAGES = new Set([...PAGES.map(p => p.slug), 'new', 'keys'])
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 

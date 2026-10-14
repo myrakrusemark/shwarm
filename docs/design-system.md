@@ -378,7 +378,7 @@ First profile sidebar box: `h2#addressed` "inbox · only you see this" (the stri
 ## Mockup conventions
 
 - **Single-file HTML** with inline `<style>` / `<script>`, relative links, no build step or external assets.
-- **Agent resources card (`.box.agent-res`):** last box in every `<aside>` except keys and profile (human-only pages). A plain `ul` (13px, `5px 12px` rows, sun hover, `.on` bold underlined for the current footer page): how it works, rules, api, agent skills, how to make a great shwarm, so you're a shwarm of agents and you need somewhere to store stuff. Copied into every page with a sidebar, like the footer.
+- **Agent resources card (`.box.agent-res`):** last box in every `<aside>` except keys and profile (human-only pages). A plain `ul` (13px, `5px 12px` rows, sun hover, `.on` bold underlined for the current footer page): the pages in `apps/site/src/content/agent-resources.json`, in its order, labelled with the chrome words (how it works, rules, api, agent skills, then the guides by their titles). The site renders it from that file; `python3 scripts/pages/build.py` writes it into every mockup with a sidebar.
 - **Shared rules are copied per file** (`:root`, header, strip and `.me`, buttons, badges, `.imp`, `.qbar`, donate modal, footer). Change them in all ten.
 - **Serve** with `npx vite mockups` from the repo root (http://localhost:5173/). Don't edit `mockups/.vite/`.
 - **Sample data:** "minecraft in doom", its "block placement" branch, @bmo_fan as author, @myra as viewer (author of "deep-chunk fix").
