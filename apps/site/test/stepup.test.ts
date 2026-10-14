@@ -2,11 +2,14 @@ import { Hono } from 'hono'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { hashPassword } from '../src/auth/password'
 import { requireStepUp, requireVerified } from '../src/auth/stepup'
+import { siteActor } from '../src/core/actor'
+import { TreeEngine, type Command } from '../src/core/engine'
 import app from '../src/index'
-import { EXAMPLE_BRANCH } from '../src/seed/example'
+import { EXAMPLE_ROOT } from '../src/seed/example'
 import { resetReadLimit } from '../src/web/read-limit'
 import { addPerson, T0 } from './d1'
 import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv } from './browser'
+import { agent, type P } from './core-fixtures'
 import { stagingWorld } from './node-fixture'
 
 const MIN = 60_000
@@ -113,18 +116,30 @@ describe('step-up', () => {
 })
 
 describe('the inline step-up (the sign-off, dead ends, reopening)', () => {
-  const S2 = `/w/${EXAMPLE_BRANCH}/s/2`
-  /** @bmo_fan, the example branch's author, signed in; #2 waits on their sign-off. */
+  const S1 = `/w/${EXAMPLE_ROOT}/s/1`
+  /**
+   * @myra, the example shwarm's author, signed in. Its #1 waits on her sign-off (a branch has none since Oct 13):
+   * @kestrel's agent submitted it, @lumpy posted the run and @marceline the human people check.
+   */
   async function author() {
     const { db } = await stagingWorld()
     const env = testEnv(db)
-    db.raw.prepare("UPDATE person SET password_hash = ?, email = 'bmo_fan@example.org', email_norm = 'bmo_fan@example.org', email_verified_at = ? WHERE handle = 'bmo_fan'")
+    const p = (handle: string) => db.raw.prepare('SELECT id, handle FROM person WHERE handle = ?').get(handle) as P
+    const run = (cmd: Command) => new TreeEngine(db, () => T0).run(cmd) as Promise<any>
+    const node = EXAMPLE_ROOT
+    const mod = { url: 'https://zenodo.org/records/17346201/files/mcdoom-v1.pk3', sha256: '9c'.repeat(32) }
+    const sub = await run({ type: 'submit', actor: agent(p('kestrel'), 'swarm/r-40'), input: { node, text: 'nine maps of blocks.', links: [mod], howToCheck: 'run it, then play e1m1.' } })
+    const log = 'bench.sh: min 61 fps\nexit 0'
+    await run({ type: 'check', actor: siteActor(p('lumpy')), input: { node, on: sub.id, slot: 'run', submissionHash: sub.hash.slice(0, 7), scriptHash: '5d02b7e', exit: 0, log, env: 'linux, gtx 1660' } })
+    const video = { url: 'https://archive.org/download/mcdoom-checks/e1m1.mp4', sha256: '7'.repeat(64) }
+    await run({ type: 'check', actor: siteActor(p('marceline')), input: { node, on: sub.id, verdict: 'pass', text: 'played e1m1 from a pistol start.', evidence: [video] } })
+    db.raw.prepare("UPDATE person SET password_hash = ?, email = 'myra@example.org', email_norm = 'myra@example.org', email_verified_at = ? WHERE handle = 'myra'")
       .run(await hashPassword(GOOD_PASSWORD, pepper, 1000), new Date(T0).toISOString())
     const b = new Browser(env)
-    expect((await b.post('/signin', { email: 'bmo_fan@example.org', password: GOOD_PASSWORD })).status).toBe(303)
+    expect((await b.post('/signin', { email: 'myra@example.org', password: GOOD_PASSWORD })).status).toBe(303)
     const signOff = async (fields: Record<string, string>) => {
-      const token = formTokenIn(await (await b.req(S2, { headers: { accept: 'text/html' } })).text())
-      return b.req(S2, { form: { form_token: token, do: 'signoff', ...fields } })
+      const token = formTokenIn(await (await b.req(S1, { headers: { accept: 'text/html' } })).text())
+      return b.req(S1, { form: { form_token: token, do: 'signoff', ...fields } })
     }
     const window = () => (db.raw.prepare('SELECT step_up_until FROM session').get() as { step_up_until: string }).step_up_until
     return { db, b, signOff, window }
@@ -133,7 +148,7 @@ describe('the inline step-up (the sign-off, dead ends, reopening)', () => {
   it('opens the 10-minute window on the session, as /step-up does, even when the act itself is then refused', async () => {
     const { b, signOff, window } = await author()
     vi.setSystemTime(T0 + 11 * MIN)
-    expect(await body(await b.req(S2, { headers: { accept: 'text/html' } }))).toContain('type="password"')
+    expect(await body(await b.req(S1, { headers: { accept: 'text/html' } }))).toContain('type="password"')
     // the right password, but nothing said about what was checked: core refuses the pass, the window is open anyway
     const res = await signOff({ verdict: 'pass', text: '', password: GOOD_PASSWORD })
     expect(res.status).toBe(400)

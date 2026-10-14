@@ -298,10 +298,16 @@ const CHECK_SPEC_FLAGS: Spec = {
   instructions: 'string',
 }
 const NODE_FLAGS: Spec = { as: 'string', title: 'string', what: 'string', 'done-when': 'string', ...CHECK_SPEC_FLAGS }
+// A branch has no author sign-off (removed Oct 13), so `shwarm branch` has no --no-author.
+const { 'no-author': _noAuthor, ...BRANCH_FLAGS } = NODE_FLAGS
 
-/** The done test's checks from the flags: the author's sign-off unless --no-author (the create form's default). */
-function checkSpec(f: Flags): Record<string, unknown> {
-  const spec: Record<string, unknown> = { author: f['no-author'] !== true }
+/**
+ * The done test's checks from the flags: the author's sign-off unless --no-author (the create form's default). A branch
+ * has no sign-off (decided Oct 13: its pass is its status vote), so for one the checks are only --runs and --people, and
+ * none is fine.
+ */
+function checkSpec(f: Flags, branch = false): Record<string, unknown> {
+  const spec: Record<string, unknown> = { author: !branch && f['no-author'] !== true }
   const runs = str(f, 'runs')
   if (runs !== undefined) spec.runs = { command: runs, ...(str(f, 'runs-count') ? { count: int(f, 'runs-count', 1, 50) } : {}), ...(str(f, 'runs-description') ? { description: str(f, 'runs-description') } : {}) }
   else if (str(f, 'runs-count') || str(f, 'runs-description')) throw new UsageError('--runs-count and --runs-description go with --runs <command>')
@@ -311,13 +317,13 @@ function checkSpec(f: Flags): Record<string, unknown> {
   return spec
 }
 
-function nodeBody(ctx: Ctx, as: string) {
+function nodeBody(ctx: Ctx, as: string, branch = false) {
   const need = (k: string) => {
     const v = str(ctx.flags, k)
     if (!v?.trim()) throw new UsageError(`--${k} is required`)
     return v
   }
-  return { as, title: need('title'), what: need('what'), done_when: need('done-when'), check: checkSpec(ctx.flags) }
+  return { as, title: need('title'), what: need('what'), done_when: need('done-when'), check: checkSpec(ctx.flags, branch) }
 }
 
 function created(ctx: Ctx, a: Answer<{ url: string; triage: string }>) {
@@ -549,12 +555,12 @@ const COMMANDS: Record<string, Command> = {
   },
 
   branch: {
-    flags: NODE_FLAGS,
-    usage: 'shwarm branch <parent path> --as @you/agent --title <t> --what <w> --done-when <d> [--no-author] [--runs <command> [--runs-count <n>]] [--people <n> [--human]]',
+    flags: BRANCH_FLAGS,
+    usage: 'shwarm branch <parent path> --as @you/agent --title <t> --what <w> --done-when <d> [--runs <command> [--runs-count <n>]] [--people <n> [--human]]',
     async run(ctx) {
       const as = actAs(ctx)
       const ref = nodeArg(ctx)
-      const body = nodeBody(ctx, as)
+      const body = nodeBody(ctx, as, true)
       const a = await (await ctx.client({ needKey: true })).createBranch(ref.path, body)
       created(ctx, a)
     },
@@ -562,7 +568,7 @@ const COMMANDS: Record<string, Command> = {
 
   new: {
     flags: { ...NODE_FLAGS, tag: 'list', license: 'string', 'builds-on': 'string', 'builds-on-name': 'string', 'builds-on-url': 'string', 'builds-on-license': 'string' },
-    usage: 'shwarm new --as @you/agent --title <t> --what <w> --done-when <d> --tag <tag> [--license <id>] [--builds-on <path>] [check flags as for branch]',
+    usage: 'shwarm new --as @you/agent --title <t> --what <w> --done-when <d> --tag <tag> [--license <id>] [--builds-on <path>] [--no-author] [--runs <command> [--runs-count <n>]] [--people <n> [--human]]',
     async run(ctx) {
       const as = actAs(ctx)
       if (ctx.args.length) throw new UsageError('shwarm new takes no path: a new shwarm starts at the top. for a branch, use shwarm branch <parent>')

@@ -225,7 +225,7 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
             <h3>{w.node.doneWhen}</h3>
             <Text text={n.done_when} />
             <h3>{w.node.checkedBy}</h3>
-            <CheckedBy spec={n.spec} author={n.author} />
+            <CheckedBy spec={n.spec} author={n.author} branch={n.kind === 'branch'} />
             <div class="stat"><StatusLine d={d} /></div>
             <BuildOnLink d={d} />
           </div>
@@ -307,8 +307,11 @@ const Builds: FC<{ n: NodeHead }> = ({ n }) => {
   )
 }
 
-export const CheckedBy: FC<{ spec: CheckSpec; author: string }> = ({ spec, author }) => (
+// A branch's checks are evidence for its status vote, which is its pass (decided Oct 13); one opened with only an author
+// check now asks for none.
+export const CheckedBy: FC<{ spec: CheckSpec; author: string; branch?: boolean }> = ({ spec, author, branch }) => (
   <ul>
+    {branch && !spec.runs && !spec.people && <li>{w.node.branchNoChecks}</li>}
     {spec.runs && (
       <li>
         <Command cmd={spec.runs.command} /> · {count(w.node.runsBy, spec.runs.count)}
@@ -1100,7 +1103,9 @@ export const StepUpField: FC<{ id: string; open?: boolean; form?: string }> = ({
  */
 const hasOwnerBox = (d: NodePageData) => {
   const n = d.chain.node
-  return !!d.me?.verified && d.me.personId === n.author_id && !lockedBy(d.chain)
+  // Its one act is "mark it a dead end", and a branch doesn't end (decided Oct 13: "It's the shwarm itself that gets
+  // locked"): its crew votes dead end on its status instead.
+  return !!d.me?.verified && d.me.personId === n.author_id && !lockedBy(d.chain) && n.kind !== 'branch'
 }
 
 const Owner: FC<{ d: NodePageData }> = ({ d }) => {

@@ -78,6 +78,9 @@ export const node = {
   deadEnd: 'dead end',
   live: 'live',
   liveInReview: 'live · in review',
+  // under "checked by" on a branch that asks for no checks (it was opened with only the author's, which branches no
+  // longer have, Oct 13)
+  branchNoChecks: 'no checks asked for. its status vote is its pass.',
   // a live branch with a submission in review (no "live" on a branch, Oct 13)
   inReviewPill: 'in review',
   liveDay: 'live · day {n}',

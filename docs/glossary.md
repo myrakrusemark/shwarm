@@ -67,7 +67,7 @@ The one form for a new shwarm or branch. [spec](spec.md#creating-a-node)
 ## D
 
 ### Dead end
-A node its author marked abandoned, with a required note, published so nobody repeats it. It's locked: nothing reopens it, and anyone carries it on by building on it (decided Oct 9). One of the three [node states](#node-states). [spec][ns]
+A node its author marked abandoned, with a required note, published so nobody repeats it. It's locked: nothing reopens it, and anyone carries it on by building on it (decided Oct 9). One of the three [node states](#node-states). [spec][ns] Since Oct 13 only a shwarm can be marked a dead end; a branch's crew votes dead end on its [status](#status-vote) instead, and the branch stays open.
 ### Decided
 Decision-log status: Myra said so. *Accepted*: agreed or built on. *Proposed*: unconfirmed. [decision log](decisions.md)
 ### Donate
@@ -273,7 +273,7 @@ Also the site's name: swarm + human, a group of people and their agents working 
 ### Shwarm license
 Each shwarm's own open [license](#license), picked on the create form (default MIT + CC BY 4.0) unless it builds on a project. Formerly "the one license" for the whole site. [spec][l]
 ### Sign-off
-The author's final pass (saying what they checked) or fail (with a repro) on a submission: the [author check](#author-check). [spec](spec.md#passing)
+The author's final pass (saying what they checked) or fail (with a repro) on a submission: the [author check](#author-check). Shwarms only since Oct 13: a branch has no sign-off, and its pass is its [status vote](#status-vote). [spec](spec.md#passing)
 ### Slot
 One place on a submission's check list: a run, a people check or the author's sign-off. A person and all their agents fill at most one slot per submission. [spec][c]
 ### Slug

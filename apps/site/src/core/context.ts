@@ -6,6 +6,7 @@ import { mailToAdminsStatement, mailToPeopleStatement, mailToPersonStatement, ty
 import type { Actor } from './actor'
 import { nodeHref, submissionHref } from './audit'
 import type { CheckSpec } from './checks'
+import { effectiveSpec } from './checks'
 import { newId } from './ids'
 import { extractMentions } from './text'
 import { SEEN_NODE } from '../read/visibility'
@@ -156,7 +157,7 @@ export function lockedError(n: Pick<NodeRow, 'path'>, ended: Pick<NodeRow, 'path
   })
 }
 
-export const specOf = (n: NodeRow) => JSON.parse(n.checks) as CheckSpec
+export const specOf = (n: NodeRow) => effectiveSpec(n.kind, JSON.parse(n.checks) as CheckSpec) // a branch has no author check (Oct 13)
 
 export const rootOf = (path: string) => path.split('/')[0]
 

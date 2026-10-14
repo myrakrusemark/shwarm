@@ -1,18 +1,19 @@
 // Go-live 5.7: a closed shwarm's result page at /w/<path>. The pass at the hash its checks ran, with its links and release
 // fields; the proof with evidence; who made it, ranked by counted upvotes with agents rolled up and only derived role tags;
-// the shwarms challenging it and the rest built on it; the key events; its thread at ?thread=1, locked; a passed branch's
-// proof box; a node reopened before Oct 9 back on the live template with the pass on record; and an ETag that moves with
-// the tree. A passed shwarm stays passed (decided Oct 9): nothing on it offers a repro.
+// the shwarms challenging it and the rest built on it; the key events; its thread at ?thread=1, locked; a branch whose
+// submission passed its checks, still live and locked only by the shwarm's pass (decided Oct 13), and one that closed on its
+// pass before then, still credited; a node reopened before Oct 9 back on the live template with the pass on record; and an
+// ETag that moves with the tree. A passed shwarm stays passed (decided Oct 9): nothing on it offers a repro.
 import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { hashPassword } from '../src/auth/password'
 import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
 import { resetReadLimit } from '../src/web/read-limit'
 import { forgetVersions } from '../src/web/version-memo'
-import { refused, site, stepped } from './core-fixtures'
+import { refused, site } from './core-fixtures'
 import { T0 } from './d1'
 import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv } from './browser'
-import { closedWorld, PK3, RECORDING, SOURCE } from './result-fixture'
+import { branchPassesItsChecks, closedWorld, PK3, RECORDING, SOURCE } from './result-fixture'
 
 beforeEach(() => {
   vi.stubGlobal('fetch', fakeFetch())
@@ -35,12 +36,6 @@ async function world(o?: Parameters<typeof closedWorld>[0]) {
   const get = (sql: string, ...args: unknown[]) => w.db.raw.prepare(sql).get(...args) as any
   const page = async (path = ROOT) => body(await b.req(path, { headers: HTML }))
   return { ...w, b, get, page }
-}
-
-/** Block placement passes on #2 (@myra's agent), with @bmo_fan's sign-off, before the shwarm does: after, it's locked with it (OPEN #92). */
-const branchPasses: NonNullable<Parameters<typeof closedWorld>[0]>['before'] = async ({ run, p, db }) => {
-  const sub2 = (db.raw.prepare('SELECT s.post_id FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ? AND s.number = 2').get(EXAMPLE_BRANCH) as { post_id: string }).post_id
-  await run({ type: 'check', actor: stepped(p('bmo_fan')), input: { node: EXAMPLE_BRANCH, on: sub2, slot: 'author', verdict: 'pass', text: 'every corner holds.' } })
 }
 
 /** The "who made it" rows: handle, role tags (a * marks a decisive one), upvotes, posts. */
@@ -121,9 +116,18 @@ describe('the result page (5.7)', () => {
     expect(readFileSync(new URL('../static/css/result.css', import.meta.url), 'utf8')).toMatch(/table\.credit td\.rk \{[^}]*white-space: nowrap; overflow-wrap: normal;/)
   })
 
-  it("names a passed branch's submitter, and shows a decisive tag below the cut", async () => {
-    const w = await world({ before: branchPasses })
+  it("credits the submitter of branch work that passed its checks, and of a branch closed before Oct 13; a decisive tag shows below the cut", async () => {
+    const w = await world({ before: branchPassesItsChecks })
+    // block placement's #2, by @myra's agent, passed its checks; the branch stays live (its pass is its status vote,
+    // decided Oct 13), and the work is credited for passing its checks
     let rows = credits(await w.page())
+    expect(rows.find(r => r.who === '@myra')!.roles).toEqual(['*author', 'passed its checks on block placement'])
+    // a branch that closed on its pass before Oct 13 stays as it was, and names whoever submitted the passing work
+    w.db.raw
+      .prepare("UPDATE node SET state = 'closed', closed_at = (SELECT s.decided_at FROM submission s WHERE s.node_id = node.id AND s.status = 'passed') WHERE path = ?")
+      .run(EXAMPLE_BRANCH)
+    forgetVersions()
+    rows = credits(await w.page())
     expect(rows.find(r => r.who === '@myra')!.roles).toEqual(['*author', 'block placement passed'])
     // nine busier people push everyone else below the first eight: the decisive tags still show, the rest fold into "+ N more"
     const node = w.get('SELECT id FROM node WHERE path = ?', EXAMPLE_ROOT).id
@@ -251,15 +255,41 @@ describe('the result page (5.7)', () => {
     expect(w.get('SELECT COUNT(*) AS n FROM post').n).toBe(posts)
   })
 
-  it("a passed branch keeps the live template, with the closed pill and its proof", async () => {
-    const w = await world({ before: branchPasses })
-    const html = await w.page(`/w/${EXAMPLE_BRANCH}`)
+  it('a branch whose submission passed its checks stays live, with no closed pill or proof, locked once its shwarm passed; one closed before Oct 13 keeps both', async () => {
+    const w = await world({ before: branchPassesItsChecks })
+    const BRANCH = `/w/${EXAMPLE_BRANCH}`
+    // #2 passed its checks and the branch didn't close (decided Oct 13: a branch's pass is its status vote)
+    expect(w.get('SELECT state, closed_at FROM node WHERE path = ?', EXAMPLE_BRANCH)).toEqual({ state: 'live', closed_at: null })
+    expect(w.get('SELECT s.status FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ? AND s.number = 2', EXAMPLE_BRANCH).status).toBe('passed')
+    let html = await w.page(BRANCH)
+    expect(html).not.toContain('class="done-head"')
+    expect(html).not.toContain('/css/result.css')
+    expect(html).not.toContain('<span class="st done">closed</span>')
+    expect(html).not.toContain('class="box proof"')
+    // it's locked only because the shwarm above it passed, and its locked box says so
+    expect(html).toContain(
+      '<div class="compose locked"><div class="to">locked</div><p><a href="/w/minecraft-in-doom">minecraft in doom</a> passed, so this branch takes nothing new either. to carry it on, <a href="/new?builds_on=minecraft-in-doom">build on it</a>.</p></div>',
+    )
+    // its submission page keeps the pass on record, four of four, and takes no more checks
+    const sub = await w.page(`${BRANCH}/s/2`)
+    expect(sub).toContain('<h2>checks <span>4 of 4 · passed')
+    expect(sub).not.toContain('name="verdict"')
+    // the shwarm's key events say what happened to it: it passed its checks
+    expect(await w.page()).toMatch(
+      /<td class="node">block placement<\/td><td class="by">submission #2<\/td><td><a href="\/w\/minecraft-in-doom\/block-placement\/s\/2">#2 \([0-9a-f]{7}\) passed its checks<\/a>/,
+    )
+    // a branch that closed on its pass before Oct 13 stays as it was: the live template, with the closed pill and its proof
+    w.db.raw
+      .prepare("UPDATE node SET state = 'closed', closed_at = (SELECT s.decided_at FROM submission s WHERE s.node_id = node.id AND s.status = 'passed') WHERE path = ?")
+      .run(EXAMPLE_BRANCH)
+    forgetVersions()
+    html = await w.page(BRANCH)
     expect(html).not.toContain('class="done-head"')
     expect(html).toContain('<link rel="stylesheet" href="/css/result.css"/>')
     expect(html).toContain('<span class="st done">closed</span>')
     expect(html).toContain("<h2>proof it's done <span>submission #2 · 4 of 4 checks</span></h2>")
     expect(html).toContain('<h4><span>runs</span><span class="note">2 of 2</span></h4>')
-    expect(html).toContain('<h4><span>author</span><span class="note">signed off oct 8</span></h4>')
+    expect(html).toContain('<h4><span>people</span><span class="note">2 of 2</span></h4>')
     expect(html.indexOf('class="box proof"')).toBeLessThan(html.indexOf('class="compose locked"'))
     // a branch isn't built on: its locked box says only that it's locked
     expect(html).toContain('<p>this branch passed, so it takes nothing new.</p>')

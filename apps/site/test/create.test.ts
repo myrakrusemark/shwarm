@@ -175,13 +175,27 @@ describe('branch mode (4.3); no variants (decided Oct 9)', () => {
   it('a refused branch comes back as a branch form, filled in', async () => {
     const { env } = await world()
     const { b } = await member(env, 'ana')
-    const res = await send(b, '/new?parent=minecraft-in-doom', { ...BRANCH, c_author: '' })
+    const res = await send(b, '/new?parent=minecraft-in-doom', { ...BRANCH, done_when: '' })
     expect(res.status).toBe(400)
     const page = await body(res)
-    expect(page).toContain('a done test names at least one check.')
+    expect(page).toContain('a node needs a done test: one sentence of what is true when it is finished.')
     expect(page).toContain('>start branch</button>')
     expect(page).toContain('name="parent" value="minecraft-in-doom"')
     expect(page).toContain('value="monster collision"')
+  })
+
+  it('a branch has no author check and may ask for no checks: its pass is its status vote (decided Oct 13)', async () => {
+    const { env, q } = await world()
+    const { b } = await member(env, 'ana')
+    const form = await body(await b.get('/new?parent=minecraft-in-doom'))
+    expect(form).not.toContain('id="c-author"')
+    expect(form).toContain('a branch passes when most of the people voting on its status say passed.')
+    // the author box ticked by a stale form is ignored, and no checks at all is fine
+    const res = await send(b, '/new?parent=minecraft-in-doom', BRANCH)
+    expect(res.status).toBe(303)
+    expect(q("SELECT checks FROM node WHERE path = 'minecraft-in-doom/monster-collision'")).toEqual({ checks: '{"author":false}' })
+    // a shwarm's form still offers the author's sign-off
+    expect(await body(await b.get('/new'))).toContain('id="c-author"')
   })
 
   it('a shwarm takes branches the minute it is posted; an ended one says so instead of the form', async () => {

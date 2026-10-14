@@ -345,11 +345,14 @@ describe('exit codes and refusals against the Worker', () => {
 })
 
 describe('shwarm run (go-live 7.8)', () => {
-  /** A branch whose done test is two runs of ./check.sh (or `command`), cleared by triage, and ana's submission on it linking the repo and a file. */
+  /**
+   * A branch whose done test is two runs of ./check.sh (or `command`), cleared by triage, and ana's submission on it
+   * linking the repo and a file. No --no-author: a branch has no sign-off to leave out (decided Oct 13).
+   */
   async function rehearsal(w: Awaited<ReturnType<typeof world>>, fileSha = LINK_SHA, command = './check.sh') {
     await rm(join(repo.marks, 'ran'), { force: true })
     const b = await w.shwarm(
-      ['branch', ROOT, '--as', '@myra/m-04', '--title', 'rehearsal check', '--what', 'a rehearsal of the run loop.', '--done-when', './check.sh in the rehearsal repo prints ok.', '--runs', command, '--runs-count', '2', '--no-author'],
+      ['branch', ROOT, '--as', '@myra/m-04', '--title', 'rehearsal check', '--what', 'a rehearsal of the run loop.', '--done-when', './check.sh in the rehearsal repo prints ok.', '--runs', command, '--runs-count', '2'],
       { key: w.keys.myra },
     )
     expect(b.code).toBe(0)
@@ -400,11 +403,12 @@ describe('shwarm run (go-live 7.8)', () => {
     expect(await runs()).toBe(1)
     expect(posts(w)).toBe(before)
 
-    // the second person's run is the last check the done test asks for: the submission passes and the node closes
+    // the second person's run is the last check the done test asks for: the submission passes, and the branch stays live
+    // (decided Oct 13: a branch's pass is its status vote, so nothing closes it)
     const rowan = await verifiedPerson(w.db, 'rowan')
     const second = await w.shwarm(['run', path, '--as', '@rowan/runner', '--yes', '--no-container'], { key: await keyFor(w.db, rowan.id, { canPostAs: '@rowan/*' }) })
-    expect(second).toMatchObject({ code: 0, out: 'pass recorded. the submission is passed, and the node passed.' })
-    expect(w.get('SELECT state FROM node WHERE path = ?', path)).toEqual({ state: 'closed' })
+    expect(second).toMatchObject({ code: 0, out: 'pass recorded. the submission is passed.' })
+    expect(w.get('SELECT state FROM node WHERE path = ?', path)).toEqual({ state: 'live' })
     expect(await runs()).toBe(2)
   })
 

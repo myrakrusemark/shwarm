@@ -1,10 +1,13 @@
 // The staging world (test/node-fixture.ts) with "minecraft in doom" passed through core (go-live 5.7): @kestrel's agent
 // submits v1.0 built on @finn_irl's heads-up, @lumpy posts the run, @marceline the human people check, and @myra, the
 // author, signs off. A few upvotes go in through core and the stats job rolls them up, as on staging.
+// Its branch "block placement" is still live under it, #2 in review at three of four checks (seed/example.ts; a branch
+// has no sign-off, decided Oct 13), and is locked once the shwarm passed (OPEN #92).
+import type { CheckResult } from '../src/core/checking'
 import type { Command } from '../src/core/engine'
 import { TreeEngine } from '../src/core/engine'
 import { rollupStats } from '../src/jobs/stats'
-import { EXAMPLE_ROOT } from '../src/seed/example'
+import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
 import { agent, MIN, site, stepped, type P } from './core-fixtures'
 import { T0 } from './d1'
 import { stagingWorld } from './node-fixture'
@@ -13,14 +16,17 @@ export const PK3 = { url: 'https://zenodo.org/records/17346201/files/mcdoom-v1.p
 export const SOURCE = { repo: 'https://codeberg.org/kestrel/mcdoom', commit: 'e9b41d0'.padEnd(40, '0') }
 export const RECORDING = { url: 'https://archive.org/download/mcdoom-checks/e1m1-e1m6.mp4', sha256: '7'.repeat(64), label: 'recording' }
 export const RELEASE = { name: 'minecraft in doom v1.0', version: 'v1.0', howToUse: 'uzdoom -iwad freedoom1.wad -file mcdoom-v1.pk3' }
+export const PLAYTEST = { url: 'https://archive.org/download/doom-blocks-checks/corner-playtest.mp4', sha256: '5'.repeat(64), label: 'corner-playtest.mp4' }
 
 type Run = <T = any>(cmd: Command) => Promise<T>
+/** What `before` gets: the engine on the fixture's clock, people by handle, and the database. */
+export type Acts = { run: Run; p: (handle: string) => P; db: Awaited<ReturnType<typeof stagingWorld>>['db'] }
 
 /**
  * `before` runs its acts on the tree before the shwarm passes: once it passed, its branches are locked with it
  * (core/context.ts needLive, OPEN #92), so a branch's own run has to come first.
  */
-export async function closedWorld(o: { extra?: string[]; before?: (x: { run: Run; p: (handle: string) => P; db: Awaited<ReturnType<typeof stagingWorld>>['db'] }) => Promise<void> } = {}) {
+export async function closedWorld(o: { extra?: string[]; before?: (x: Acts) => Promise<unknown> } = {}) {
   const w = await stagingWorld(o)
   const { db } = w
   const p = (handle: string): P => ({ id: (db.raw.prepare('SELECT id FROM person WHERE handle = ?').get(handle) as { id: number }).id, handle })
@@ -60,4 +66,18 @@ export async function closedWorld(o: { extra?: string[]; before?: (x: { run: Run
   await upvote('lumpy', gunter)
   await rollupStats(db, clock.now)
   return { ...w, p, run, clock, sub, heads }
+}
+
+/**
+ * For `before`: the people check block placement's #2 waits on (seed/example.ts). @bmo_fan plays it, as their pinned
+ * status update says, and #2 passes its checks. The branch stays live (decided Oct 13: its pass is its status vote), so
+ * nothing closes and no pass notice goes out; it's locked only once the shwarm above it passed.
+ */
+export async function branchPassesItsChecks({ run, p, db }: Acts): Promise<CheckResult> {
+  const two = (db.raw.prepare('SELECT s.post_id FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ? AND s.number = 2').get(EXAMPLE_BRANCH) as { post_id: string }).post_id
+  return run<CheckResult>({
+    type: 'check',
+    actor: site(p('bmo_fan')),
+    input: { node: EXAMPLE_BRANCH, on: two, verdict: 'pass', text: 'played it tonight: 200 placements on every corner of every chunk. none vanished, and i never walked through one.', evidence: [PLAYTEST] },
+  })
 }

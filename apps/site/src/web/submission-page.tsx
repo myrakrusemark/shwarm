@@ -144,9 +144,10 @@ const closingNumber = (d: SubmissionPageData) => (d.chain.node.state === 'closed
 
 /**
  * A passed submission whose pass no longer closes the node: a repro reopened it, before Oct 9. Nothing reopens now (decided
- * Oct 9), but the record stays: its pass, and the pill that says what became of it.
+ * Oct 9), but the record stays: its pass, and the pill that says what became of it. A branch's passed submission never
+ * closed it (decided Oct 13: it passed its checks, and the branch's pass is its status vote), so it isn't reopened.
  */
-const reopened = (d: SubmissionPageData, s: SubmissionRow) => s.status === 'passed' && closingNumber(d) !== s.number
+const reopened = (d: SubmissionPageData, s: SubmissionRow) => s.status === 'passed' && d.chain.node.kind !== 'branch' && closingNumber(d) !== s.number
 
 /**
  * Which forms the viewer gets. The sign-off box: the author (or, author gone, the operator) once every other check has
@@ -236,6 +237,7 @@ const Submitted: FC<{ d: SubmissionPageData }> = ({ d }) => {
 function checksNote(d: SubmissionPageData, r: Review): string {
   const s = d.sub
   // OPEN (#76): "reopened by a repro" isn't in a mockup; only passes reopened before Oct 9 show it.
+  if (s.status === 'passed' && d.chain.node.kind === 'branch') return fill(w.submission.tallyPassedChecks, { done: r.done, total: r.total }) // Oct 13
   if (s.status === 'passed') return reopened(d, s) ? fill(w.submission.tallyReopened, { done: r.done, total: r.total }) : fill(w.submission.tallyDone, { done: r.done, total: r.total, title: showHidden(d.chain.node.title) })
   if (s.status === 'failed') return w.submission.tallyReset
   if (s.status === 'superseded') return fill(w.submission.tallySuperseded, { n: s.superseded_number ?? '?' })

@@ -77,8 +77,9 @@ describe("a branch's status vote (decided Oct 13)", () => {
     await refused(vote(site(kestrel), MID, 'on_track'), 'bad_request', { field: 'node' })
     for (const s of ['stale', 'working', 'done', 'On_Track', '', 3, undefined]) await refused(vote(site(kestrel), BP, s), 'bad_request', { field: 'status' })
     await vote(site(kestrel), BP, 'dead_end')
-    await w.deadEnd(myra, BP)
-    await refused(vote(site(kestrel), BP, 'passed'), 'shwarm_closed')
+    // a branch never ends on its own (decided Oct 13): it's locked once its shwarm ends
+    await w.deadEnd(myra, MID)
+    await refused(vote(site(kestrel), BP, 'passed'), 'shwarm_closed', { node: BP, state: 'dead_end', locked_by: MID })
     expect(rows(BP)).toEqual([{ handle: 'kestrel', status: 'dead_end', as_name: '@kestrel' }]) // kept, as the votes stood
   })
 

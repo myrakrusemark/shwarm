@@ -129,6 +129,7 @@ export function isSeedSourcesPost(text: string | null | undefined, bySeed = fals
 }
 
 export type StatusInput = {
+  kind?: string // 'branch' or a shwarm's; a branch whose submission passed its checks stays live (decided Oct 13)
   state: 'live' | 'closed' | 'dead_end'
   pinned: string | null // text of the author's pinned post, if any (not hidden)
   pinnedBySeed?: boolean // that post is the one the launch seed pinned (see isSeedSourcesPost)
@@ -160,8 +161,9 @@ export function statusLine(s: StatusInput): string {
   let head: string
   if (review) head = `submission #${review.number} in review`
   else if (latest?.status === 'failed') head = `submission #${latest.number} failed`
-  // Only a node reopened before Oct 9 is live with a passed submission: nothing reopens now.
-  else if (latest?.status === 'passed') head = `reopened after a repro on submission #${latest.number}`
+  // A branch's submission passes its checks and the branch stays live (decided Oct 13). Otherwise only a node reopened
+  // before Oct 9 is live with a passed submission: nothing reopens now. OPEN (#127): new words.
+  else if (latest?.status === 'passed') head = s.kind === 'branch' ? `submission #${latest.number} passed its checks` : `reopened after a repro on submission #${latest.number}`
   else head = 'no submission yet'
   const parts: string[] = []
   if (s.branches.closed) parts.push(`${plural(s.branches.closed, 'branch', 'branches')} closed`)

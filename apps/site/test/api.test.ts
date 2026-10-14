@@ -163,11 +163,12 @@ describe('postToNode', () => {
 })
 
 describe('submissions and checks', () => {
-  async function submitted() {
+  /** @ana's submission on the branch (author @bmo_fan), or on `path`. */
+  async function submitted(path = BRANCH) {
     const w = await world()
-    const built = w.get("SELECT p.id FROM post p JOIN node n ON n.id = p.node_id WHERE n.path = ? AND p.kind = 'post' LIMIT 1", BRANCH).id
+    const built = w.get("SELECT p.id FROM post p JOIN node n ON n.id = p.node_id WHERE n.path = ? AND p.kind = 'post' LIMIT 1", path).id
     const sub = await w.call(w.keys.ana, {
-      path: `/w/${BRANCH}`,
+      path: `/w/${path}`,
       body: {
         as: '@ana/scout',
         kind: 'submission',
@@ -186,11 +187,12 @@ describe('submissions and checks', () => {
     expect(w.sub.status).toBe(201)
     conforms('postToNode', w.sub, 'SubmissionCreated')
     expect(w.sub.json).toMatchObject({ node: BRANCH, as: '@ana/scout', number: 3, hash: expect.stringMatching(/^[0-9a-f]{7}$/) })
+    // a branch's done test has no sign-off (decided Oct 13): two runs and two people, evidence for its status vote
     expect(w.sub.json.checks).toEqual([
       { id: null, slot: 'run', verdict: 'waiting' },
       { id: null, slot: 'run', verdict: 'waiting' },
       { id: null, slot: 'people', verdict: 'waiting' },
-      { id: null, slot: 'author', as: '@bmo_fan', verdict: 'waiting' },
+      { id: null, slot: 'people', verdict: 'waiting' },
     ])
     expect(w.sub.res.headers.get('ratelimit')).toBe('"thread";r=4;t=0, "submissions";r=0;t=86400, "requests";r=119;t=0')
     expect(w.get('SELECT release_title, release_version, release_how_to_use FROM submission WHERE post_id = ?', w.sub.json.id)).toEqual({
@@ -250,18 +252,29 @@ describe('submissions and checks', () => {
     await want(check(lee.key, { as: '@lee/other', verdict: 'fail', repro: { steps: 'corner 3 still lets the player through.', links: [LINK] } }), 409, 'slot_taken')
   })
 
-  it("refuses the author's agents a check or a run when the done test asks for the sign-off: that's their part, on the site (skills/shwarm/SKILL.md)", async () => {
-    const w = await submitted()
-    const on = w.sub.json.id
-    const bmo = await keyFor(w.db, w.get("SELECT id FROM person WHERE handle = 'bmo_fan'").id, { canPostAs: '@bmo_fan/*', grants: [{ node: '*', perms: ALL_PERMS }] })
-    for (const body of [
-      { as: '@bmo_fan/checker', verdict: 'pass', log: 'corner 0: 0/200 failed' },
-      { as: '@bmo_fan/runner', slot: 'run', submission_hash: w.sub.json.hash, script_hash: '5d02b7e', exit: 0, log: 'ok', env: 'linux' },
-    ]) {
-      const r = await w.call(bmo, { path: `/w/${BRANCH}`, body: { kind: 'check', on, ...body } })
+  it("refuses the author's agents a check or a run when the done test asks for the sign-off: that's their part, on the site; a branch asks for none, so there they check like anyone (skills/shwarm/SKILL.md)", async () => {
+    const checks = (who: string, hash: string) => ({
+      people: { as: `${who}/checker`, verdict: 'pass', log: 'corner 0: 0/200 failed' },
+      run: { as: `${who}/runner`, slot: 'run', submission_hash: hash, script_hash: '5d02b7e', exit: 0, log: 'ok', env: 'linux' },
+    })
+    // a shwarm: @myra wrote minecraft in doom, and its done test asks for her sign-off
+    const w = await submitted(ROOT)
+    expect(w.sub.json.checks).toContainEqual({ id: null, slot: 'author', as: '@myra', verdict: 'waiting' })
+    for (const body of Object.values(checks('@myra', w.sub.json.hash))) {
+      const r = await w.call(w.keys.myra, { path: `/w/${ROOT}`, body: { kind: 'check', on: w.sub.json.id, ...body } })
       expect(r.status, body.as).toBe(403)
       expect(r.json).toMatchObject({ error: 'not_permitted', reason: 'sign_off' })
       conforms('postToNode', r)
+    }
+    // a branch has no sign-off (decided Oct 13): @bmo_fan's agents check others' work on it like anyone, a people check
+    // or a run (one slot per person, so each on a submission of its own)
+    for (const slot of ['people', 'run'] as const) {
+      const b = await submitted()
+      const bmo = await keyFor(b.db, b.get("SELECT id FROM person WHERE handle = 'bmo_fan'").id, { canPostAs: '@bmo_fan/*', grants: [{ node: '*', perms: ALL_PERMS }] })
+      const r = await b.call(bmo, { path: `/w/${BRANCH}`, body: { kind: 'check', on: b.sub.json.id, ...checks('@bmo_fan', b.sub.json.hash)[slot] } })
+      expect(r.status, slot).toBe(201)
+      conforms('postToNode', r, 'CheckCreated')
+      expect(r.json).toMatchObject({ slot, verdict: 'pass', submission_state: 'in_review', node_state: 'live' })
     }
   })
 })
@@ -350,11 +363,13 @@ describe('createBranch', () => {
     conforms('getNode', blocked)
   })
 
-  it('takes a branch under a shwarm the minute it is posted; refuses one under an ended shwarm, without the branch permission, or with fields a branch has no use for', async () => {
+  it('takes a branch under a shwarm the minute it is posted, even one naming no checks; refuses one under an ended shwarm, without the branch permission, or with fields a branch has no use for', async () => {
     const w = await world()
     const fresh = await w.call(w.keys.myra, { path: `/w/${PLAIN}/branches`, body: nodeBody('@myra/m-04') })
     expect(fresh.status).toBe(202)
     expect(fresh.json).toMatchObject({ kind: 'branch', state: 'live' })
+    // a branch never keeps an author check, so the one nodeBody asks for is dropped (decided Oct 13)
+    expect(JSON.parse(w.get('SELECT checks FROM node WHERE path = ?', fresh.json.node).checks)).toEqual({ author: false })
     w.db.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'x' WHERE path = ?").run(PLAIN)
     const ended = await w.call(w.keys.myra, { path: `/w/${PLAIN}/branches`, body: nodeBody('@myra/m-04', { title: 'another' }) })
     expect(ended.status).toBe(409)
@@ -367,7 +382,9 @@ describe('createBranch', () => {
     conforms('createBranch', denied)
     const tags = await w.call(w.keys.myra, { path: `/w/${BRANCH}/branches`, body: nodeBody('@myra/m-04', { tags: ['#x'] }) })
     expect(tags.json).toMatchObject({ error: 'bad_request', message: 'a branch has unknown fields: tags' })
-    const empty = await w.call(w.keys.myra, { path: `/w/${BRANCH}/branches`, body: nodeBody('@myra/m-04', { check: {} }) })
+    // a branch may name no checks: its pass is its status vote (decided Oct 13). it still needs a done test
+    expect((await w.call(w.keys.myra, { path: `/w/${BRANCH}/branches`, body: nodeBody('@myra/m-04', { check: {} }) })).status).toBe(202)
+    const empty = await w.call(w.keys.myra, { path: `/w/${BRANCH}/branches`, body: nodeBody('@myra/m-04', { done_when: ' ' }) })
     expect(empty.status).toBe(422)
     expect(empty.json.error).toBe('no_done_test')
     conforms('createBranch', empty)

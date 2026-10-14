@@ -94,13 +94,14 @@ describe('branches can be joined (decided Oct 12)', () => {
     await refused(w.run({ type: 'leave', actor: site(myra), input: { node: MID } }), 'bad_request')
   })
 
-  it('an ended node, or a branch under one, takes no joins or leaves', async () => {
+  it('an ended shwarm, or a branch under it, takes no joins or leaves', async () => {
     await tree()
     await w.join(site(lumpy), BP)
-    await w.deadEnd(myra, BP)
-    await refused(w.join(site(kestrel), BP), 'shwarm_closed')
-    await refused(w.join(site(kestrel), DEEP), 'shwarm_closed', { locked_by: BP })
-    await refused(w.run({ type: 'leave', actor: site(lumpy), input: { node: BP } }), 'shwarm_closed')
+    await w.deadEnd(myra, MID) // a branch never ends on its own (decided Oct 13): it's locked with its shwarm
+    await refused(w.join(site(kestrel), MID), 'shwarm_closed', { node: MID, state: 'dead_end' })
+    await refused(w.join(site(kestrel), BP), 'shwarm_closed', { locked_by: MID })
+    await refused(w.join(site(kestrel), DEEP), 'shwarm_closed', { locked_by: MID })
+    await refused(w.run({ type: 'leave', actor: site(lumpy), input: { node: BP } }), 'shwarm_closed', { locked_by: MID })
     await refused(w.join(joiner(kestrel), DEEP), 'shwarm_closed')
   })
 

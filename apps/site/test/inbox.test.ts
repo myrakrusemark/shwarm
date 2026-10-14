@@ -1,15 +1,18 @@
 // Go-live 6.1: the owner's inbox on their profile. Nobody else sees it or acts on it; reading an item lowers the
 // "for you" count; mark read, unread and all read; the inline reply (as the bare handle, a reply in the thread, paced
 // by that thread's limit); sign-off items with their live pill; system items; "waiting on you" on working on and created.
+// Sign-off items come from the example shwarm: a branch has no sign-off (decided Oct 13).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { hashPassword } from '../src/auth/password'
+import { TreeEngine, type Command } from '../src/core/engine'
 import { THREAD_BURST } from '../src/core/limits'
 import { INBOX_SHOWN, unreadCount } from '../src/read/inbox'
 import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
 import { resetReadLimit } from '../src/web/read-limit'
 import { forgetVersions } from '../src/web/version-memo'
+import { agent, site, type P } from './core-fixtures'
 import { addPerson, T0 } from './d1'
-import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv } from './browser'
+import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv, type TestEnv } from './browser'
 import { stagingWorld } from './node-fixture'
 
 beforeEach(() => {
@@ -54,6 +57,40 @@ async function post(b: Browser, path: string, text: string) {
   const token = formTokenIn(await (await b.req(`/w/${path}`, { headers: HTML })).text())
   const res = await b.req(`/w/${path}`, { form: { form_token: token, do: 'post', text } })
   expect(res.status).toBe(303)
+}
+
+/** Runs a core act at T0 (the acts the example doesn't make), as one of its people (`who`, a handle) or their agents. */
+const core = (db: TestEnv['DB'], cmd: Command): Promise<any> => new TreeEngine(db, () => T0).run(cmd)
+const who = (db: TestEnv['DB'], handle: string): P => ({ id: db.raw.prepare('SELECT id FROM person WHERE handle = ?').get(handle).id, handle })
+
+/**
+ * #1 on the example shwarm, by @kestrel's agent at T0: a shwarm keeps its author's sign-off, a branch has none (decided
+ * Oct 13). Unless `checked` is false, @lumpy's run and @marceline's human people check pass it, and it waits on @myra.
+ */
+async function shwarmSubmission(db: TestEnv['DB'], checked = true): Promise<{ id: string; hash: string }> {
+  const sub = await core(db, {
+    type: 'submit',
+    actor: agent(who(db, 'kestrel'), 'swarm/r-40'),
+    input: {
+      node: EXAMPLE_ROOT,
+      text: "freedoom's first nine maps rebuilt from blocks. every wall digs out.",
+      links: [{ url: 'https://codeberg.org/kestrel/mcdoom/archive/v0.9.zip', sha256: '9c'.repeat(32) }],
+      howToCheck: 'run ./bench.sh, then play e1m1 from a pistol start for 15 minutes.',
+    },
+  })
+  if (checked) {
+    await core(db, {
+      type: 'check',
+      actor: site(who(db, 'lumpy')),
+      input: { node: EXAMPLE_ROOT, on: sub.id, slot: 'run', submissionHash: sub.hash.slice(0, 7), scriptHash: '5d02b7e', exit: 0, log: 'bench.sh: min 61 fps\nexit 0', env: 'linux, ryzen 5 3600, gtx 1660' },
+    })
+    await core(db, {
+      type: 'check',
+      actor: site(who(db, 'marceline')),
+      input: { node: EXAMPLE_ROOT, on: sub.id, verdict: 'pass', text: 'played e1m1 from a pistol start for 15 minutes.', evidence: [{ url: 'https://archive.org/download/mcdoom-checks/e1m1.mp4', sha256: '7'.repeat(64) }] },
+    })
+  }
+  return sub
 }
 
 /** Sends one of the inbox's forms from the owner's profile, with the token from the page. */
@@ -323,75 +360,99 @@ describe('the inline reply (6.1)', () => {
 })
 
 describe('sign-off items and "waiting on you" (6.1, PROF-9)', () => {
-  it("@bmo_fan's sign-off item has a live pill, opens the submission, and the node says waiting on you", async () => {
-    const { env, get } = await world()
-    const bmo = await signIn(env, 'bmo_fan', true)
-    const pid = get("SELECT id FROM person WHERE handle = 'bmo_fan'").id
-    const item = get("SELECT id, post_id FROM inbox_item WHERE person_id = ? AND kind = 'sign_off'", pid)
-    const S2 = `/w/${EXAMPLE_BRANCH}/s/2`
-    let html = await body(await bmo.get('/@bmo_fan'))
+  it("@myra's sign-off item has a live pill, opens the submission, and the node says waiting on you", async () => {
+    const { env, get, myraId } = await world()
+    await shwarmSubmission(env.DB)
+    const myra = await signIn(env, 'myra', true)
+    const item = get("SELECT id, post_id FROM inbox_item WHERE person_id = ? AND kind = 'sign_off'", myraId)
+    const S1 = `/w/${EXAMPLE_ROOT}/s/1`
+    let html = await body(await myra.get('/@myra'))
     let entry = itemOf(html, item.id)!
     expect(html).toContain(`<div class="c new signoff" id="i${item.id}">`)
     expect(entry).toContain('<span class="stp wait">waiting on you</span><span class="newb">new</span>')
-    expect(entry).toContain(`<a href="${S2}"><b>block placement · submission #2</b></a> by @myra/m-07 passed its other checks and needs your sign-off.`)
-    expect(entry).toContain(`<a href="${S2}">open</a>`)
+    expect(entry).toContain(`<a href="${S1}"><b>minecraft in doom · submission #1</b></a> by @kestrel/swarm/r-40 passed its other checks and needs your sign-off.`)
+    expect(entry).toContain(`<a href="${S1}">open</a>`)
     for (const s of ['>pass<', '>fail<', 'sign off as']) expect(entry).not.toContain(s) // the author decides only on the submission page
-    expect(html).toMatch(/>block placement<\/a><div class="sub">branch of minecraft in doom · done when [^<]+<\/div><\/div><span class="st live">waiting on you<\/span>/)
-    expect(html).toMatch(/>block placement<\/a><span class="sub">minecraft in doom · waiting on you · last post/)
-    expect((await bmo.req(S2, { headers: HTML })).status).toBe(200)
-    // nobody else sees "waiting on you" on bmo's profile
-    for (const b of [new Browser(env), await signIn(env, 'ana')]) expect(await body(await b.get('/@bmo_fan'))).not.toContain('waiting on you')
+    expect(html).toMatch(/>minecraft in doom<\/a><div class="sub">shwarm · done when [^<]+<\/div><\/div><span class="st live">waiting on you<\/span>/)
+    expect(html).toMatch(/>minecraft in doom<\/a><span class="sub">shwarm · waiting on you · last post/)
+    expect((await myra.req(S1, { headers: HTML })).status).toBe(200)
+    // nobody else sees "waiting on you" on myra's profile
+    for (const b of [new Browser(env), await signIn(env, 'ana')]) expect(await body(await b.get('/@myra'))).not.toContain('waiting on you')
 
     // The pill follows the submission: approved on a pass, failed on a fail; the node stops waiting.
     env.DB.raw.prepare("UPDATE submission SET status = 'passed' WHERE post_id = ?").run(item.post_id)
-    env.DB.raw.prepare("UPDATE node SET state = 'closed', in_review = 0 WHERE path = ?").run(EXAMPLE_BRANCH)
+    env.DB.raw.prepare("UPDATE node SET state = 'closed', in_review = 0 WHERE path = ?").run(EXAMPLE_ROOT)
     env.DB.raw.prepare('UPDATE inbox_item SET done_at = ? WHERE id = ?').run(new Date(T0).toISOString(), item.id)
-    html = await body(await bmo.get('/@bmo_fan'))
+    html = await body(await myra.get('/@myra'))
     expect(itemOf(html, item.id)).toContain('<span class="stp ok">approved</span>')
     expect(html).not.toContain('waiting on you')
     env.DB.raw.prepare("UPDATE submission SET status = 'failed' WHERE post_id = ?").run(item.post_id)
-    env.DB.raw.prepare("UPDATE node SET state = 'live' WHERE path = ?").run(EXAMPLE_BRANCH)
-    expect(itemOf(await body(await bmo.get('/@bmo_fan')), item.id)).toContain('<span class="stp no">failed</span>')
-    // reading it lowers bmo's count
-    const n = await unreadCount(env.DB, pid)
-    await inboxAct(bmo, 'bmo_fan', { do: 'read', item: String(item.id) })
-    expect(await unreadCount(env.DB, pid)).toBe(n - 1)
+    env.DB.raw.prepare("UPDATE node SET state = 'live' WHERE path = ?").run(EXAMPLE_ROOT)
+    expect(itemOf(await body(await myra.get('/@myra')), item.id)).toContain('<span class="stp no">failed</span>')
+    // reading it lowers myra's count
+    const n = await unreadCount(env.DB, myraId)
+    await inboxAct(myra, 'myra', { do: 'read', item: String(item.id) })
+    expect(await unreadCount(env.DB, myraId)).toBe(n - 1)
+  })
+
+  it("a branch asks its author for no sign-off (decided Oct 13): no item, never \"waiting on you\", and its pass sends no notice", async () => {
+    const { env, get, all } = await world()
+    expect(all("SELECT id FROM inbox_item WHERE kind = 'sign_off'")).toEqual([])
+    const bmo = await signIn(env, 'bmo_fan', true)
+    let html = await body(await bmo.get('/@bmo_fan'))
+    expect(html).not.toContain('signoff')
+    expect(html).not.toContain('waiting on you')
+    expect(html).toMatch(/>block placement<\/a><div class="sub">branch of minecraft in doom · done when [^<]+<\/div><\/div><span class="st live">live<\/span>/)
+    expect(html).toMatch(/>block placement<\/a><span class="sub">minecraft in doom · submission in review · last post/)
+    // @bmo_fan's people check is the last one #2 needs (their pinned post): #2 passes its checks, the branch stays live,
+    // and nothing lands in anyone's inbox, neither a sign-off nor a pass notice
+    const two = get('SELECT s.post_id FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ? AND s.number = 2', EXAMPLE_BRANCH).post_id
+    const evidence = [{ url: 'https://archive.org/download/doom-blocks-checks/corners-tonight.mp4', sha256: '7'.repeat(64) }]
+    await core(env.DB, { type: 'check', actor: site(who(env.DB, 'bmo_fan')), input: { node: EXAMPLE_BRANCH, on: two, verdict: 'pass', text: 'played it tonight: 200 places on every corner, none vanished.', evidence } })
+    expect(get('SELECT status FROM submission WHERE post_id = ?', two).status).toBe('passed')
+    expect(all('SELECT kind, text FROM inbox_item')).toEqual([])
+    html = await body(await bmo.get('/@bmo_fan'))
+    expect(html).toMatch(/>block placement<\/a><div class="sub">branch of minecraft in doom · done when [^<]+<\/div><\/div><span class="st live">live<\/span>/)
+    expect(html).not.toContain('waiting on you')
   })
 
   it('an author-only sign-off and the operator\'s say what is true for them', async () => {
     const { env, get, myraId } = await world()
-    const pid = get("SELECT id FROM person WHERE handle = 'bmo_fan'").id
-    const item = get("SELECT id, node_id, post_id FROM inbox_item WHERE person_id = ? AND kind = 'sign_off'", pid)
-    // the author is the only check: nothing else passed before them
-    env.DB.raw.prepare(`UPDATE node SET checks = '{"author":true}' WHERE id = ?`).run(item.node_id)
-    const bmo = await signIn(env, 'bmo_fan', true)
-    expect(itemOf(await body(await bmo.get('/@bmo_fan')), item.id)).toContain('</b></a> by @myra/m-07 needs your sign-off.')
-    // author gone: the operator's own item for the same submission
-    const op = Number(
-      env.DB.raw.prepare("INSERT INTO inbox_item (person_id, kind, node_id, post_id, text, created_at) VALUES (?, 'sign_off', ?, ?, '', ?)").run(myraId, item.node_id, item.post_id, new Date(T0).toISOString()).lastInsertRowid,
-    )
-    env.DB.raw.prepare("UPDATE person SET status = 'suspended' WHERE id = ?").run(pid)
-    env.DB.raw.prepare('UPDATE person SET is_admin = 1 WHERE id = ?').run(myraId)
+    // the author is the only check: core asks @myra as the submission lands, with nothing passed before her
+    env.DB.raw.prepare(`UPDATE node SET checks = '{"author":true}' WHERE path = ?`).run(EXAMPLE_ROOT)
+    await shwarmSubmission(env.DB, false)
+    const item = get("SELECT id, node_id, post_id FROM inbox_item WHERE person_id = ? AND kind = 'sign_off'", myraId)
     const myra = await signIn(env, 'myra', true)
-    let html = await body(await myra.get('/@myra'))
+    expect(itemOf(await body(await myra.get('/@myra')), item.id)).toContain('</b></a> by @kestrel/swarm/r-40 needs your sign-off.')
+    // author gone: the operator's own item for the same submission. @myra is the author, so the operator is another admin,
+    // @opal, who posted in the thread (so the shwarm is among what they're working on).
+    const opal = await signIn(env, 'opal')
+    await post(opal, EXAMPLE_ROOT, 'i keep the site running. say if a sign-off gets stuck.')
+    const opalId = get("SELECT id FROM person WHERE handle = 'opal'").id
+    const op = Number(
+      env.DB.raw.prepare("INSERT INTO inbox_item (person_id, kind, node_id, post_id, text, created_at) VALUES (?, 'sign_off', ?, ?, '', ?)").run(opalId, item.node_id, item.post_id, new Date(T0).toISOString()).lastInsertRowid,
+    )
+    env.DB.raw.prepare("UPDATE person SET status = 'suspended' WHERE id = ?").run(myraId)
+    env.DB.raw.prepare('UPDATE person SET is_admin = 1 WHERE id = ?').run(opalId)
+    let html = await body(await opal.get('/@opal'))
     let entry = itemOf(html, op)!
-    expect(entry).toContain("by @myra/m-07 needs a sign-off. its author's account is gone, so you sign off as the operator.")
+    expect(entry).toContain("by @kestrel/swarm/r-40 needs a sign-off. its author's account is gone, so you sign off as the operator.")
     expect(entry).toContain('<span class="stp wait">waiting on you</span>')
-    expect(html).toMatch(/>block placement<\/a><span class="sub">minecraft in doom · waiting on you · last post/)
+    expect(html).toMatch(/>minecraft in doom<\/a><span class="sub">shwarm · waiting on you · last post/)
 
     // The author is back before signing: the sign-off is theirs again (core and the submission page refuse the operator),
     // so the operator's item and rows stop saying it waits on them.
-    env.DB.raw.prepare("UPDATE person SET status = 'active' WHERE id = ?").run(pid)
-    html = await body(await myra.get('/@myra'))
+    env.DB.raw.prepare("UPDATE person SET status = 'active' WHERE id = ?").run(myraId)
+    html = await body(await opal.get('/@opal'))
     entry = itemOf(html, op)!
     expect(entry).toContain('<span class="stp wait">waiting on author</span>')
-    expect(entry).toContain("by @myra/m-07 needs its author's sign-off.")
+    expect(entry).toContain("by @kestrel/swarm/r-40 needs its author's sign-off.")
     expect(entry).not.toContain('operator')
     expect(html).not.toContain('waiting on you')
     // the same while the author is still gone but the item's owner is no longer an admin
-    env.DB.raw.prepare("UPDATE person SET status = 'closed' WHERE id = ?").run(pid)
-    env.DB.raw.prepare('UPDATE person SET is_admin = 0 WHERE id = ?').run(myraId)
-    html = await body(await myra.get('/@myra'))
+    env.DB.raw.prepare("UPDATE person SET status = 'closed' WHERE id = ?").run(myraId)
+    env.DB.raw.prepare('UPDATE person SET is_admin = 0 WHERE id = ?').run(opalId)
+    html = await body(await opal.get('/@opal'))
     expect(itemOf(html, op)).toContain('<span class="stp wait">waiting on author</span>')
     expect(html).not.toContain('waiting on you')
   })

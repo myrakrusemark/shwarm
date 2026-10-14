@@ -360,7 +360,8 @@ async function submissionPost(c: C, path: string, number: number, session: Sessi
   let input: CheckInput
   if (act === 'signoff') {
     // Only someone who may sign off is asked for the password; anyone else is refused by core (only the author signs off).
-    if (session.personId === n.author_id || (await isOperatorFor(db, n, session.personId))) {
+    // A branch has no sign-off (decided Oct 13), so nobody there is asked for one: core refuses it as it is.
+    if (n.kind !== 'branch' && (session.personId === n.author_id || (await isOperatorFor(db, n, session.personId)))) {
       const s = await steppedUp(c, session, f.password, now)
       if ('refuse' in s) {
         if (s.wait) c.header('Retry-After', String(s.wait))
@@ -455,8 +456,9 @@ nodeRoutes.post('/*', async c => {
       const note = (f.note ?? '').trim()
       // OPEN (#76): the words for a missing note wait on Myra's yes. Said before the password is checked, so it isn't spent.
       if (!note) return refuse(w.node.sayWhyDeadEnd)
-      // Only the author is asked for the password; anyone else is refused by core (only the author marks a dead end).
-      const s = n.author_id === session.personId ? await steppedUp(c, session, f.password, now) : { actor }
+      // Only the author is asked for the password; anyone else is refused by core (only the author marks a dead end), and
+      // so is a dead end on a branch (decided Oct 13: a branch doesn't lock), without asking for one.
+      const s = n.author_id === session.personId && n.kind !== 'branch' ? await steppedUp(c, session, f.password, now) : { actor }
       if ('refuse' in s) {
         if (s.wait) c.header('Retry-After', String(s.wait))
         return refuse(s.refuse, s.status)

@@ -79,6 +79,8 @@ describe('formulas', () => {
     expect(st({ submissions: [{ number: 1, status: 'superseded' }, { number: 2, status: 'in_review' }] })).toBe('submission #2 in review.')
     expect(st({ submissions: [{ number: 1, status: 'failed' }] })).toBe('submission #1 failed.')
     expect(st({ submissions: [{ number: 3, status: 'passed' }] })).toBe('reopened after a repro on submission #3.')
+    // a branch's submission passes its checks and the branch stays live (decided Oct 13): not a reopen
+    expect(st({ kind: 'branch', submissions: [{ number: 3, status: 'passed' }] })).toBe('submission #3 passed its checks.')
     expect(st({ state: 'closed', submissions: [{ number: 2, status: 'failed' }, { number: 3, status: 'passed' }] })).toBe('passed on submission #3.')
     expect(st({ state: 'dead_end', deadEndNote: "menus can't nest.\nnotes published" })).toBe("menus can't nest.")
     expect(firstLine('x'.repeat(200))).toHaveLength(140)
@@ -127,7 +129,7 @@ async function posts(w: World, by: Parameters<World['post']>[0], node: string, n
  *   beta     live; 10 posts 6 days ago; 140 upvotes 2–6 days ago and 25 half an hour ago           → not hot (surge too small)
  *   gamma    live; 3 posts, one pinned; 10 counted upvotes an hour ago                              → under the floor
  *   delta    live; 5 posts; 25 upvotes from accounts that aren't established                       → nothing counts
- *   epsilon  live; its branch got submission #1 an hour ago                                         → +5 bump on both
+ *   epsilon  live; its branch (one people check) got submission #1 an hour ago                      → +5 bump on both
  *   zeta     dead end
  *   lobby-a  5 seats, 2 joins 2h ago; lobby-b 10 seats, 1 join 2h ago
  */
@@ -150,7 +152,7 @@ async function fixture() {
   }
   await w.shwarm(seed(myra), { title: 'quiet a' })
   await w.shwarm(seed(myra), { title: 'quiet b' })
-  await w.branch(seed(myra), 'epsilon')
+  await w.branch(seed(myra), 'epsilon', { check: { people: { count: 1 } } })
 
   w.now = T0 - 6 * DAY
   const betaPosts = await posts(w, site(bob), 'beta', 10)
@@ -283,14 +285,18 @@ describe('stats rollup', () => {
     expect(await rollupStats(w.db, T0 + 5 * MIN)).toMatchObject({ nodes: 1, changed: 1, warm: 0 })
     expect(stats(w).gamma.posts).toBe(4)
 
-    // the branch passes: the branch and its shwarm are rolled up, and the shwarm gets the +20 bump
+    // the branch's submission passes its checks: the branch and its shwarm are rolled up, and the shwarm gets the +20 bump.
+    // A branch has no sign-off (decided Oct 13): its author's check is the one people check it asks for. It stays live, so
+    // it keeps a score, with the same bump
     w.now = T0 + 6 * MIN
-    await w.signOff(myra, 'epsilon/block-placement', sub.id, 'pass', { text: 'placed 200 times per corner. no failures.' })
+    await w.pass(site(myra), 'epsilon/block-placement', sub.id)
+    expect(w.sub(sub.id).status).toBe('passed')
     expect(await rollupStats(w.db, T0 + 10 * MIN)).toMatchObject({ nodes: 2, changed: 2 })
     const s = stats(w)
-    expect(s.epsilon.status_line).toBe('no submission yet · 1 branch closed.')
+    expect(s.epsilon.status_line).toBe('no submission yet · 1 branch live.')
     expect(s.epsilon.score).toBeCloseTo(5 * half(70 / 60) + 20 * half(4 / 60), 3)
-    expect(s['epsilon/block-placement']).toMatchObject({ score: 0, status_line: 'passed on submission #1.' })
+    expect(w.node('epsilon/block-placement').state).toBe('live')
+    expect(s['epsilon/block-placement'].score).toBeCloseTo(5 * half(70 / 60) + 20 * half(4 / 60), 3)
   })
 
   it('lets warm nodes decay hourly, then cool off and cost nothing', async () => {

@@ -1,6 +1,7 @@
 // Rule tests for the domain core (go-live 2.3): every refusal, every state transition, the audit log.
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { Actor } from '../src/core/actor'
+import { readChain } from '../src/read/node'
 import { agent, DAY, HOUR, MIN, person, refused, site, SHA, stepped, World, WORK, type P } from './core-fixtures'
 
 let w: World
@@ -500,6 +501,61 @@ describe('author sign-off and passing', () => {
   })
 })
 
+// A branch's pass is its status vote (decided Oct 13: "they should keep taking submissions. It's the shwarm itself that
+// gets locked"): its submissions and checks are evidence for the vote. It has no author check, and passing ends nothing.
+describe('a branch has no sign-off, and its checks end nothing (decided Oct 13)', () => {
+  it('asks for no checks when opened with only the author check: no sign-off, no A9 swap', async () => {
+    await live()
+    await w.branch(site(myra), MID) // { author: true }
+    expect((await readChain(w.db, BP, myra.id))!.node.spec).toEqual({ author: false })
+    const s = await w.submit(agent(kestrel), BP)
+    expect(s).toMatchObject({ authorSwap: false, checks: [] })
+    expect(w.all("SELECT 1 FROM inbox_item WHERE kind = 'sign_off'")).toEqual([]) // a shwarm's author would be asked at once
+    // with nothing asked, any first passing check passes it
+    expect(await w.pass(site(lumpy), BP, s.id)).toMatchObject({ slot: 'people', submission_state: 'passed', node_state: 'live' })
+    // the author's own work gets no extra people check in its place
+    expect(await w.submit(agent(myra, 'm-07'), BP)).toMatchObject({ authorSwap: false, checks: [] })
+  })
+
+  it('passes a submission on its checks with no sign-off asked; the branch stays live, tells no one, and takes more', async () => {
+    await live()
+    await w.branch(site(myra), MID, { check: { people: 1, author: true } })
+    w.db.raw.prepare('UPDATE person SET notice_prefs = ? WHERE id = ?').run(JSON.stringify({ pass_fail: true }), kestrel.id) // a shwarm's pass would mail him
+    const s = await w.submit(agent(kestrel), BP)
+    expect(s.checks).toEqual([{ id: null, slot: 'people', verdict: 'waiting' }]) // the author check it was opened with is left out
+    expect(await w.pass(site(lumpy), BP, s.id)).toMatchObject({ slot: 'people', submission_state: 'passed', node_state: 'live' })
+    expect(w.sub(s.id).status).toBe('passed')
+    expect(w.node(BP)).toMatchObject({ state: 'live', closed_at: null, in_review: 0 })
+    expect(w.events(BP, 'passed')).toMatchObject([{ by_name: null, number: 1, submission_id: s.id, detail: `#1 (${s.hash.slice(0, 7)}) passed its checks` }])
+    // nobody was asked to sign off, and no pass notice or mail went out
+    expect(w.all('SELECT kind FROM inbox_item')).toEqual([])
+    expect(w.all('SELECT template FROM email_outbox')).toEqual([])
+    // it takes new posts, submissions and checks
+    expect((await w.post(site(finn), BP, 'does it hold on slabs?')).node).toBe(BP)
+    const s2 = await w.submit(agent(finn), BP, 'slabs too.')
+    expect(w.sub(s.id).status).toBe('passed') // a new submission replaces none that passed
+    expect(w.node(BP).in_review).toBe(1)
+    expect(await w.fail(site(lumpy), BP, s2.id)).toMatchObject({ submission_state: 'in_review', node_state: 'live' })
+  })
+
+  it("refuses the author slot on a branch; its author checks others' work as anyone does: people checks, run reports", async () => {
+    await live()
+    await w.branch(site(myra), MID, { check: { runs: { command: './soak.sh', count: 1 }, people: 1, author: true } })
+    const s = await w.submit(agent(kestrel), BP)
+    const e = await refused(w.signOff(myra, BP, s.id), 'bad_request')
+    expect(e.message).toBe('a branch has no sign-off. its pass is its status vote')
+    await refused(w.signOff(lumpy, BP, s.id), 'bad_request') // whoever asks for it
+    expect(w.all('SELECT 1 FROM check_report')).toEqual([])
+    // the author's check here is a people check, never a sign-off
+    expect(await w.pass(site(myra), BP, s.id)).toMatchObject({ slot: 'people', verdict: 'pass', submission_state: 'in_review' })
+    expect(await w.runReport(agent(lumpy), BP, s.id, s.hash)).toMatchObject({ slot: 'run', submission_state: 'passed', node_state: 'live' })
+    // and the author's agent runs the next one
+    const s2 = await w.submit(agent(finn), BP)
+    expect(await w.runReport(agent(myra), BP, s2.id, s2.hash)).toMatchObject({ slot: 'run', verdict: 'pass', submission_state: 'in_review' })
+    expect(w.all("SELECT 1 FROM inbox_item WHERE kind = 'sign_off'")).toEqual([])
+  })
+})
+
 describe('dead ends, and an ended node is locked (decided Oct 9)', () => {
   /** Every act an ended node refuses, by someone who could do it on a live one; each answers shwarm_closed and writes nothing. */
   async function expectLocked(path: string, o: { own: string; sub: string; state: 'closed' | 'dead_end' }) {
@@ -562,12 +618,29 @@ describe('dead ends, and an ended node is locked (decided Oct 9)', () => {
     expect((await w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: MID, note: 'x' } })).state).toBe('dead_end')
   })
 
+  it("refuses the author's dead end on a branch (decided Oct 13); a shwarm's still ends it and locks its branches", async () => {
+    await live()
+    await w.branch(site(myra), MID)
+    const e = await refused(w.deadEnd(myra, BP), 'bad_request')
+    expect(e.message).toBe("a branch doesn't lock. vote dead_end on its status instead")
+    expect(w.node(BP)).toMatchObject({ state: 'live', dead_end_note: null, closed_at: null })
+    expect(w.events(BP, 'dead_end')).toEqual([])
+    // its crew votes dead_end on its status instead, and it stays open
+    await w.run({ type: 'status', actor: site(kestrel), input: { node: BP, status: 'dead_end' } })
+    expect((await w.post(site(kestrel), BP, 'the engine caps it. voted dead end.')).node).toBe(BP)
+    expect(await w.deadEnd(myra, MID)).toMatchObject({ node: MID, state: 'dead_end' })
+    await refused(w.post(site(kestrel), BP), 'shwarm_closed', { node: BP, state: 'dead_end', locked_by: MID })
+    expect(w.node(BP).state).toBe('live')
+  })
+
   it('never lets a branch passing touch its parent', async () => {
     await live()
     await w.branch(site(myra), MID, { check: { people: 1 } })
     const s = await w.submit(agent(kestrel), BP)
-    await w.pass(site(lumpy), BP, s.id)
-    expect(w.node(BP).state).toBe('closed')
+    // its submission passes its checks and it stays live (decided Oct 13); its pass is its status vote
+    expect(await w.pass(site(lumpy), BP, s.id)).toMatchObject({ submission_state: 'passed', node_state: 'live' })
+    await w.run({ type: 'status', actor: site(lumpy), input: { node: BP, status: 'passed' } })
+    expect(w.node(BP).state).toBe('live')
     expect(w.node(MID).state).toBe('live')
     expect(w.events(MID).map(e => e.event)).toEqual([])
   })
@@ -593,7 +666,10 @@ describe('dead ends, and an ended node is locked (decided Oct 9)', () => {
       await refused(w.submit(agent(lumpy), BP), 'shwarm_closed', locked)
       await refused(w.pass(site(lumpy), BP, s.id), 'shwarm_closed', locked)
       await refused(w.branch(site(kestrel), BP, { title: 'monster collision' }), 'shwarm_closed', locked)
-      await refused(w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: BP, note: 'x' } }), 'shwarm_closed', locked)
+      await refused(w.join(site(finn), BP), 'shwarm_closed', locked)
+      // nor a vote on its status, its pass (decided Oct 13): no branch passes after its shwarm ended
+      await refused(w.run({ type: 'status', actor: site(finn), input: { node: BP, status: 'passed' } }), 'shwarm_closed', locked)
+      expect(w.all('SELECT 1 FROM status_vote')).toEqual([])
       expect(w.node(BP).state).toBe('live')
       expect({ posts: w.all('SELECT COUNT(*) AS n FROM post')[0].n, nodes: w.all('SELECT COUNT(*) AS n FROM node')[0].n, events: w.events(BP).length }).toEqual(before)
     })
@@ -937,7 +1013,11 @@ describe('every audit row links its evidence', () => {
   it('as a site path: the node, the post, the submission or one check on it', async () => {
     await live({ people: 1, author: true })
     await w.branch(site(myra), MID, { check: { people: 1 } })
-    const d = await w.deadEnd(myra, BP) // before the pass: a branch under a passed shwarm is locked with it
+    const b1 = await w.submit(agent(finn), BP) // before the pass: a branch under a passed shwarm is locked with it
+    await w.pass(site(lumpy), BP, b1.id) // passed its checks; the branch stays live (decided Oct 13)
+    // a dead end is a shwarm's: a branch never ends on its own (decided Oct 13)
+    await w.shwarm(site(kestrel), { title: 'doom speedruns' })
+    const d = await w.deadEnd(kestrel, 'doom-speedruns')
     const s1 = await w.submit(agent(kestrel), MID)
     const c1 = await w.pass(site(lumpy), MID, s1.id)
     const f1 = await w.signOff(myra, MID, s1.id, 'fail')
@@ -957,6 +1037,7 @@ describe('every audit row links its evidence', () => {
     expect(ev(MID, 'signed_off')).toEqual([`/w/${MID}/s/1#${f1.id}`, `/w/${MID}/s/2#${p2.id}`])
     expect(ev(MID, 'failed')).toEqual([`/w/${MID}/s/1`])
     expect(ev(MID, 'passed')).toEqual([`/w/${MID}/s/2`])
-    expect(ev(BP, 'dead_end')).toEqual([`/w/${BP}#${d.post}`])
+    expect(ev(BP, 'passed')).toEqual([`/w/${BP}/s/1`])
+    expect(ev('doom-speedruns', 'dead_end')).toEqual([`/w/doom-speedruns#${d.post}`])
   })
 })

@@ -48,6 +48,8 @@ export const create = {
   oneTest: 'one done test per shwarm',
   branchOneTest: 'one done test per branch',
   checksHint: "a submission passes when every check you pick passes. by default that's just you. each person can submit once a day here; one check per person per submission.",
+  // the same box on a branch (decided Oct 13: a branch's pass is its status vote, and it has no author sign-off)
+  branchChecksHint: "a branch passes when most of the people voting on its status say passed. checks are evidence for that vote: pick them if you want them, or none. each person can submit once a day here; one check per person per submission.",
   // the runs check. {number} is the box where the number of runs goes.
   runs: 'runs',
   runsNote: 'a command that exits 0 when the work is done. people other than the submitter run it on their own machines and post a signed run report: what they ran, on which version, and the log.',

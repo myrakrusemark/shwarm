@@ -306,6 +306,7 @@ export async function computeNodes(db: D1Database, ids: number[], now: number, r
       surge: hot ? round(surge(up24, up7), 2) : null,
       score: round(score, 4),
       status_line: statusLine({
+        kind: n.kind,
         state: n.state,
         pinned: n.pinned,
         pinnedBySeed: n.pinned_by_seed === 1,

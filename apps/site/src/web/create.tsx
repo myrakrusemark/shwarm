@@ -226,7 +226,7 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refus
                 <h2 class="sunny">{w.create.howChecked} <span>{t.oneTest}</span></h2>
                 <div class="f">
                   {/* OPEN (#92): the mockup's "anyone can reopen a pass with a failing repro." is dropped (decided Oct 9: nothing reopens). */}
-                  <p class="hint">{w.create.checksHint}</p>
+                  <p class="hint">{branch ? w.create.branchChecksHint : w.create.checksHint}</p>
                   <div class="chk">
                     <input type="checkbox" id="c-machine" name="c_runs" checked={on('c_runs')} />
                     <div class="body">
@@ -255,13 +255,16 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refus
                       <div class="row"><textarea id="look" name="instructions" aria-label={w.create.whatCheckersDo} maxlength={4000} style="min-height:52px" placeholder={t.place.look}>{v.instructions ?? ''}</textarea></div>
                     </div>
                   </div>
-                  <div class="chk">
-                    <input type="checkbox" id="c-author" name="c_author" checked={on('c_author')} />
-                    <div class="body">
-                      <label for="c-author"><b>{w.create.author}</b></label>
-                      <span class="note">{w.create.authorNote}</span>
+                  {/* A branch has no author sign-off (decided Oct 13): its pass is its status vote. */}
+                  {!branch && (
+                    <div class="chk">
+                      <input type="checkbox" id="c-author" name="c_author" checked={on('c_author')} />
+                      <div class="body">
+                        <label for="c-author"><b>{w.create.author}</b></label>
+                        <span class="note">{w.create.authorNote}</span>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
                 <div class="f">
                   {/* OPEN (#69): variants are dropped, so this no longer says "starting a variant"; the words wait on Myra's yes. */}

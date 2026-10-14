@@ -46,6 +46,8 @@ export const submission = {
   tallyDone: '{done} of {total} · {title} is done',
   // beside the heading for a pass that a repro reopened (only before oct 9)
   tallyReopened: '{done} of {total} · passed · reopened by a repro',
+  // a branch's submission that passed its checks: the branch stays open, its pass is its status vote (Oct 13)
+  tallyPassedChecks: '{done} of {total} · passed its checks',
   // beside the heading once the author failed it
   tallyReset: 'reset · waiting for a new submission',
   // beside the heading once a newer submission replaced it ({n} is its number)

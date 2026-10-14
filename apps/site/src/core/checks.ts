@@ -24,9 +24,12 @@ const count = (v: unknown, what: string, fallback?: number): number => {
 
 /**
  * Accepts the flat form of protocol §8 (`people: 3, human: true, instructions`) and the grouped form of
- * openapi.yaml (`people: {count, human, instructions}`). A done test names at least one check (#26).
+ * openapi.yaml (`people: {count, human, instructions}`). A done test names at least one check (#26). A branch's may
+ * name none (`branch`; decided Oct 13: a branch's pass is its status vote, and its checks are evidence for it), and
+ * a branch never keeps an author check.
  */
-export function parseCheckSpec(v: unknown): CheckSpec {
+export function parseCheckSpec(v: unknown, opts: { branch?: boolean } = {}): CheckSpec {
+  if (opts.branch && (v === undefined || v === null)) return { author: false }
   if (!v || typeof v !== 'object' || Array.isArray(v)) throw noTest('a done test says how it is checked')
   const o = v as Record<string, unknown>
   const spec: CheckSpec = { author: false }
@@ -58,10 +61,17 @@ export function parseCheckSpec(v: unknown): CheckSpec {
     spec.people = { count: n, human, ...(instructions ? { instructions } : {}) }
   } else if (human) throw bad('"at least one human" needs a people check')
   if (instructions && instructions.length > 4000) throw bad('check instructions are too long')
-  spec.author = o.author === true
-  if (!spec.runs && !spec.people && !spec.author) throw noTest('a done test names at least one check')
+  spec.author = !opts.branch && o.author === true
+  if (!spec.runs && !spec.people && !spec.author && !opts.branch) throw noTest('a done test names at least one check')
   return spec
 }
+
+/**
+ * The checks a node's submissions take. A branch's never include its author (decided Oct 13: the human owns only the
+ * shwarm's done test, and a branch's pass is its status vote, "the shwarm itself gets locked"): its runs and people
+ * checks stay, as evidence for the vote, and an author check it was opened with is left out.
+ */
+export const effectiveSpec = (kind: string, spec: CheckSpec): CheckSpec => (kind === 'branch' ? { ...spec, author: false } : spec)
 
 /** A check already on a submission, as the tally sees it (reset checks are left out by the caller). */
 export type CheckRow = { slot: 'run' | 'people' | 'author'; verdict: 'pass' | 'fail'; human: boolean }

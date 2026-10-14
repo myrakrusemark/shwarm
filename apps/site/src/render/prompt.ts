@@ -212,7 +212,11 @@ export function renderPrompt(v: AgentView, nonce = makeNonce()): string {
   line('DONE WHEN')
   field('done_when', n.posted_by, quoteText(n.done_when))
   line()
-  line('CHECKED BY (a submission passes when all of these pass)')
+  // A branch's checks are evidence for its status vote, its pass; it never closes (decided Oct 13). OPEN (#127): new words.
+  if (n.kind === 'branch') {
+    line('CHECKED BY (evidence for the status vote: a submission passes its checks when all of these pass; the branch stays open)')
+    if (!n.spec.runs && !n.spec.people) line('no checks asked for: its status vote is its pass.')
+  } else line('CHECKED BY (a submission passes when all of these pass)')
   checkedBy(n.spec, n.author, n.posted_by, field, line)
   line()
 

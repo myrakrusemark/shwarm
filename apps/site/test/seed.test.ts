@@ -314,19 +314,30 @@ describe('the plan end to end', () => {
       expect(rows(db, sql), sql).toEqual(rows(copy, sql))
   })
 
-  test('the running example matches the mockups: live branch, #2 in review with 3 of 4 checks, author pin', async () => {
+  test('the running example: a live branch with no sign-off, #2 in review at 3 of 4 checks waiting on one more person, author pin', async () => {
     const { db } = await stagingLike()
     const plan = await planSeed(testDb(), LIST, stateOf(db), { target: 'staging', now: NOW, example: true })
     db.raw.exec(plan.sql)
     const b = db.raw.prepare('SELECT n.*, p.handle AS author FROM node n JOIN person p ON p.id = n.author_id WHERE path = ?').get(EXAMPLE_BRANCH)
     expect(b).toMatchObject({ kind: 'branch', state: 'live', in_review: 1, license: 'GPL-3.0', author: 'bmo_fan', seeded: 0 })
+    // A branch has no author sign-off (decided Oct 13): two runs and two people checks, evidence for its status vote.
+    expect(JSON.parse(b.checks)).toEqual({ runs: { command: './soak.sh', count: 2 }, people: { count: 2, human: false }, author: false })
     const subs = db.raw.prepare('SELECT number, status FROM submission WHERE node_id = ? ORDER BY number').all(b.id).map((r: any) => ({ ...r }))
     expect(subs).toEqual([{ number: 1, status: 'superseded' }, { number: 2, status: 'in_review' }])
     const two = db.raw.prepare('SELECT post_id FROM submission WHERE node_id = ? AND number = 2').get(b.id).post_id
-    expect(db.raw.prepare("SELECT count(*) AS n FROM check_report WHERE submission_id = ? AND verdict = 'pass'").get(two).n).toBe(3)
-    expect(db.raw.prepare('SELECT text FROM post WHERE id = ?').get(b.pinned_post_id).text).toMatch(/^status update:/)
-    const bmo = db.raw.prepare("SELECT id FROM person WHERE handle = 'bmo_fan'").get().id
-    expect(db.raw.prepare("SELECT count(*) AS n FROM inbox_item WHERE person_id = ? AND kind = 'sign_off'").get(bmo).n).toBe(1)
+    // #2's three: both runs and a people check. The fourth is one more people check, which @bmo_fan means to make.
+    const passes = db.raw
+      .prepare("SELECT c.slot, p.as_name FROM check_report c JOIN post p ON p.id = c.post_id WHERE c.submission_id = ? AND c.verdict = 'pass' ORDER BY c.created_at")
+      .all(two)
+      .map((r: any) => ({ ...r }))
+    expect(passes).toEqual([
+      { slot: 'run', as_name: '@lumpy' },
+      { slot: 'run', as_name: '@finn_irl/f-11' },
+      { slot: 'people', as_name: '@kestrel/swarm/r-03' },
+    ])
+    expect(db.raw.prepare('SELECT as_name, text FROM post WHERE id = ?').get(b.pinned_post_id)).toMatchObject({ as_name: '@bmo_fan', text: expect.stringMatching(/^status update:/) })
+    // Nothing waits on anyone's sign-off.
+    expect(db.raw.prepare("SELECT count(*) AS n FROM inbox_item WHERE kind = 'sign_off'").get().n).toBe(0)
     // Demo accounts can't sign in.
     for (const h of EXAMPLE_PEOPLE) expect(db.raw.prepare('SELECT password_hash FROM person WHERE handle = ?').get(h).password_hash).toMatch(/^!/)
   })

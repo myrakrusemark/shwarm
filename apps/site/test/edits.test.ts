@@ -206,13 +206,16 @@ describe("core editNode, the operator's seed card-fix tool only (no user edits s
     expect(e.message).toBe(`${MID} has a submission. its words stay as they are`)
   })
 
-  it("an ended branch keeps the license it ended under; a shwarm can't build on its own branch", async () => {
+  it("a branch that ended before Oct 13 keeps the license it ended under; a shwarm can't build on its own branch", async () => {
     await w.branch(site(myra), MID)
-    await w.deadEnd(myra, `${MID}/block-placement`)
+    // A branch no longer ends on its own (decided Oct 13: it passes by its status vote, and can't be a dead end); one
+    // that passed or was a dead end before then is still ended.
+    w.db.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'x', closed_at = ? WHERE path = ?").run(iso(w.now), `${MID}/block-placement`)
     expect(await edit(stepped(myra), { license: 'GPL-3.0' })).toMatchObject({ edited: true })
     expect(w.node(MID).license).toBe('GPL-3.0')
     expect(w.node(`${MID}/block-placement`).license).not.toBe('GPL-3.0')
-    await refused(edit(stepped(myra), { buildsOn: `${MID}/block-placement` }), 'bad_request')
+    const e = await refused(edit(stepped(myra), { buildsOn: `${MID}/block-placement` }), 'bad_request')
+    expect(e.message).toBe('builds_on names a shwarm on shwarm, or an outside project as {name, url, license}') // its own, not "still live"
     expect(w.node(`${MID}/block-placement`).builds_on).toBeNull()
   })
 

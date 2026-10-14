@@ -5,7 +5,7 @@ import { OPEN_NODE } from './visibility'
 // other, so a page costs a few round trips whatever the thread's size (Workers Free: 10 ms of CPU).
 import { isId } from '../core/ids'
 import { MAX_PATH } from '../core/context'
-import type { CheckSpec } from '../core/checks'
+import { effectiveSpec, type CheckSpec } from '../core/checks'
 import { emptyTally, tallyOf, type StatusTally } from '../core/status'
 import type { NodeKind, NodeState } from '../core/context'
 import { HAND_MODEL, parseBlockReason } from '../triage/decide'
@@ -157,7 +157,7 @@ function toHead(r: HeadRow, viewerId: number | null): NodeHead {
     title: r.title,
     what: r.what,
     done_when: r.done_when,
-    spec: parseJson<CheckSpec>(r.checks, { author: false }),
+    spec: effectiveSpec(r.kind, parseJson<CheckSpec>(r.checks, { author: false })), // a branch has no author check (Oct 13)
     license: r.license,
     builds_on,
     author_id: r.author_id,

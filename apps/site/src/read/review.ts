@@ -82,6 +82,7 @@ export const isOpen = (c: Pick<Chain, 'node' | 'ancestors'>, sub: SubmissionRow)
 /** The status line from recorded state (table B #40, without the pinned post: the page shows that post itself). */
 export function recordedStatus(n: NodeHead, subs: SubmissionRow[], branches: Child[]): string {
   const s: StatusInput = {
+    kind: n.kind,
     state: n.state,
     pinned: null,
     deadEndNote: n.dead_end_note,

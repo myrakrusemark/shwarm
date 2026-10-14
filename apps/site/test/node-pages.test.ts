@@ -209,7 +209,9 @@ describe('the branch page (3.4)', () => {
     expect(html).toContain('<nav class="crumbs" aria-label="breadcrumb"><a href="/w/minecraft-in-doom">minecraft in doom</a><span>/</span>block placement</nav>')
     expect(html).toContain('<div class="kicker">branch of <a href="/w/minecraft-in-doom">minecraft in doom</a></div>')
     expect(html).toContain('<div class="state"><span class="st live">in review</span>') // no "live" on a branch (Myra, Oct 13)
-    expect(html).toContain('in review: <a href="/w/minecraft-in-doom/block-placement/s/2">submission #2</a> · 3 of 4 checks · waiting on author')
+    // a branch has no sign-off (decided Oct 13): checked by two runs and two people, so #2 waits on checks, not its author
+    expect(html).toContain('<h3>checked by</h3><ul><li><code class="cmd">./soak.sh</code> · 2 runs, by people other than the submitter</li><li>2 people</li></ul>')
+    expect(html).toContain('in review: <a href="/w/minecraft-in-doom/block-placement/s/2">submission #2</a> · 3 of 4 checks · waiting on checks')
     // the status line's link reaches that submission's page (5.2)
     const linked = await body(await b.req(/in review: <a href="([^"]+)">/.exec(html)![1], { headers: HTML }))
     expect(linked).toContain('<h1>submission #2</h1>')
@@ -217,7 +219,8 @@ describe('the branch page (3.4)', () => {
     expect(html).toContain('license GPL-3.0, inherited')
     expect(html).toContain('<b>checks · 3 of 4</b><span>one per person · not @myra</span>')
     expect(html).toContain('<b>failed</b><span>superseded by #2</span>')
-    expect(html).toContain('<a href="/@bmo_fan">@bmo_fan</a> · author <span class="note">· waiting</span>')
+    expect(html).toContain('<li><span class="ck">○</span><span>person <span class="note">· waiting</span></span></li>')
+    expect(html).not.toContain('· author <span class="note">· waiting</span>')
     expect(html).toMatch(/built on by <a href="\/w\/minecraft-in-doom\/block-placement\/s\/1">#1<\/a>, <a href="\/w\/minecraft-in-doom\/block-placement\/s\/2">#2<\/a>/)
     expect(html).toContain('sub-branches <span>each has its own thread</span>')
     expect(html).toContain('on this branch <span>')
@@ -286,9 +289,12 @@ describe('node urls for agents (3.6)', () => {
     const nonce = /<<<…-([0-9a-f]{8})>>>/.exec(text)![1]
     for (const s of ['node:   https://shwarm.org/w/minecraft-in-doom/block-placement', 'kind:   branch of "minecraft in doom"', 'state:  live · in review', 'WHAT', 'DONE WHEN', 'CHECKED BY', "PARENT'S DONE TEST", 'STATUS', 'DEAD ENDS', 'LATEST POSTS', 'HOW TO TAKE PART'])
       expect(text).toContain(s)
+    // a branch's checks are evidence for its status vote, and none is its author's (decided Oct 13)
+    expect(text).toContain('CHECKED BY (evidence for the status vote: a submission passes its checks when all of these pass; the branch stays open)')
     expect(text).toContain(`<<<node-${nonce} field=runs.command author=@bmo_fan>>>\n./soak.sh\n<<<end-${nonce}>>>`)
     expect(text).toMatch(/submission #2 \(p_\w+ · [0-9a-f]{7}, by @myra\/m-07\) in review: 3 of 4 checks\./)
-    expect(text).toContain('○ @bmo_fan · author · waiting')
+    expect(text).toContain('  ○ open · person · waiting')
+    expect(text).not.toMatch(/signs off last|· author · waiting/)
     expect(text).toMatch(new RegExp(`<<<post-${nonce} id=p_\\w+ author=@bmo_fan role=author pinned`))
     // a fresh nonce on every response
     const again = await (await b.req(`/w/${EXAMPLE_BRANCH}`)).text()
@@ -357,12 +363,12 @@ describe('node urls for agents (3.6)', () => {
       state: 'live',
       in_review: true,
       author: '@bmo_fan',
-      check: { runs: { command: './soak.sh', count: 2 }, people: { count: 1 }, author: true },
+      check: { runs: { command: './soak.sh', count: 2 }, people: { count: 2 }, author: false }, // no sign-off on a branch (decided Oct 13)
       review: { number: 2 },
     })
     expect(j.review.hash).toMatch(/^[0-9a-f]{7}$/)
     expect(j.review.checks.map((c: any) => c.verdict)).toEqual(['pass', 'pass', 'pass', 'waiting'])
-    expect(j.review.checks[3]).toEqual({ id: null, slot: 'author', as: '@bmo_fan', verdict: 'waiting' })
+    expect(j.review.checks[3]).toEqual({ id: null, slot: 'people', verdict: 'waiting' })
     expect(j.dead_ends[0]).toMatchObject({ number: 1, status: 'superseded' })
     expect(j.dead_ends[0].check).toMatch(/^c_/)
     expect(j.posts[0]).toMatchObject({ author: '@bmo_fan', pinned: true })

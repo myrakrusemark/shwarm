@@ -9,6 +9,10 @@
 //     author's account is suspended or closed, the operator signs off in their place (table B "author gone")
 //   * a pass closes the node in the same batch. An ended node, closed or a dead end, is locked: it takes no checks,
 //     and nothing reopens it (decided Oct 9). Doubts about a pass become a shwarm that builds on it.
+//   * a branch is different (decided Oct 13: "they should keep taking submissions. It's the shwarm itself that gets
+//     locked"): its submissions and checks are evidence for its status vote, which is its pass. It has no author check
+//     (core/checks.ts effectiveSpec), and a submission that passes its checks is marked passed while the branch stays
+//     live: nothing closes it, and no pass notice goes out.
 import { hashMatches, shortHash, ShwarmError } from '@shwarm/protocol'
 import { authorize, isBare, needHuman, needStepUp, type Actor } from './actor'
 import { auditStatement, submissionHref } from './audit'
@@ -146,6 +150,9 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
     // Never an implicit sign-off: a check the author sends without asking for the author slot is refused, so no form
     // can sign off without the step-up. OPEN: an author who also wants to post a run report isn't described.
     throw new ShwarmError('not_permitted', 'your check here is the sign-off, on the submission page', { reason: 'sign_off', node: n.path })
+  } else if (inp.slot === 'author' && n.kind === 'branch') {
+    // OPEN (#127): new words.
+    throw bad("a branch has no sign-off. its pass is its status vote")
   } else if (inp.slot === 'author') {
     throw new ShwarmError('not_permitted', 'only the author signs off', { need: 'author', node: n.path })
   } else if (inp.slot === 'run') {
@@ -281,9 +288,11 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
   } else if (sub.status === 'in_review' && after.passed) {
     // The pass, in one batch: the submission passes, the node closes, anything else in review is superseded, and
     // nothing is left waiting on the author. Its release fields came with it at submit. A branch passing never
-    // touches its parent.
+    // touches its parent. A branch's submission passes its checks and the branch stays live (decided Oct 13): its
+    // pass is its status vote, so nothing closes and no pass notice goes out. OPEN (#127): the audit words.
+    const branch = n.kind === 'branch'
     subState = 'passed'
-    nodeState = 'closed'
+    if (!branch) nodeState = 'closed'
     stmts.push(
       ctx.db.prepare("UPDATE submission SET status = 'passed', decided_at = ? WHERE post_id = ?").bind(ctx.at, sub.post_id),
       ctx.db
@@ -291,17 +300,29 @@ export async function check(ctx: Ctx, a: Actor, inp: CheckInput): Promise<CheckR
         .bind(sub.post_id, n.id, sub.post_id),
       signOffDoneStatement(ctx, n.id, { on: sub.post_id }),
       signOffDoneStatement(ctx, n.id, { replacedBy: sub.post_id }),
-      ctx.db.prepare("UPDATE node SET state = 'closed', closed_at = ? WHERE id = ?").bind(ctx.at, n.id),
+      ...(branch ? [] : [ctx.db.prepare("UPDATE node SET state = 'closed', closed_at = ? WHERE id = ?").bind(ctx.at, n.id)]),
     )
     last = auditStatement(
       ctx.db,
-      { event: 'passed', node: n.id, by: null, submissionId: sub.post_id, number: sub.number, detail: `#${sub.number} (${shortHash(sub.hash)}) passed`, evidence: subHref },
+      {
+        event: 'passed',
+        node: n.id,
+        by: null,
+        submissionId: sub.post_id,
+        number: sub.number,
+        detail: `#${sub.number} (${shortHash(sub.hash)}) passed${branch ? ' its checks' : ''}`,
+        evidence: subHref,
+      },
       ctx.at,
     )
     stmts.push(
       last.stmt,
-      notifyStatement(ctx, n.id, `${n.title} passed on #${sub.number}.`, 'involved'),
-      noticeMailStatement(ctx, n.id, 'involved', { template: 'node_news', payload: { ...news, event: 'passed' } }),
+      ...(branch
+        ? []
+        : [
+            notifyStatement(ctx, n.id, `${n.title} passed on #${sub.number}.`, 'involved'),
+            noticeMailStatement(ctx, n.id, 'involved', { template: 'node_news', payload: { ...news, event: 'passed' } }),
+          ]),
     )
   } else if (sub.status === 'in_review' && slot !== 'author' && need.author && after.othersDone && !wasReady) {
     // Ready for the author (go-live 5.4): their inbox gets the sign-off notice, and they get a mail.

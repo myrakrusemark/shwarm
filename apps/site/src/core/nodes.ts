@@ -134,7 +134,7 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
   const what = needText(lf(inp.what), 'what')
   if (typeof inp.doneWhen !== 'string' || !inp.doneWhen.trim()) throw new ShwarmError('no_done_test', 'a node needs a done test: one sentence of what is true when it is finished')
   const doneWhen = needText(lf(inp.doneWhen), 'done_when', 2000)
-  const spec = parseCheckSpec(inp.check)
+  const spec = parseCheckSpec(inp.check, { branch: kind === 'branch' }) // a branch has no author check and may ask for none (Oct 13)
 
   let parent = null
   let license: string
@@ -605,6 +605,9 @@ export async function deadEnd(ctx: Ctx, a: Actor, inp: { node: string; note: str
   const person = await loadPerson(ctx, a)
   checkWritable(await readSettings(ctx.db, ['read_only']))
   const n = await loadNode(ctx, inp?.node)
+  // A branch doesn't end (decided Oct 13: "It's the shwarm itself that gets locked"): its crew votes dead_end on its
+  // status instead, and it stays open. OPEN (#127): new words.
+  if (n.kind === 'branch') throw bad("a branch doesn't lock. vote dead_end on its status instead")
   if (n.author_id !== person.id) throw new ShwarmError('not_permitted', 'only the author marks a dead end', { need: 'author', node: n.path })
   needStepUp(a, 'marking a dead end')
   if (n.state !== 'live') throw new ShwarmError('shwarm_closed', `${n.path} is ${n.state.replace('_', ' ')}`, { node: n.path })

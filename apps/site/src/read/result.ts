@@ -69,13 +69,15 @@ export async function readCredits(db: D1Database, chain: Chain, r: Result): Prom
       .all<{ handle: string; posts: number; upvotes: number }>(),
     db
       .prepare(
-        `SELECT DISTINCT b.title, ${HANDLE_SHOWN('p')} AS handle
+        // Branch work that passed: a branch closed by its pass before Oct 13, or (since Oct 13, when a branch stopped
+        // closing) a branch submission that passed its checks, whatever the branch's vote says. OPEN (#127).
+        `SELECT DISTINCT b.title, b.state = 'closed' AS closed, ${HANDLE_SHOWN('p')} AS handle
          FROM node b JOIN submission s ON s.node_id = b.id AND s.status = 'passed' JOIN post sp ON sp.id = s.post_id AND sp.hidden = 0
          JOIN person p ON p.id = sp.person_id
-         WHERE b.root_id = ?1 AND b.state = 'closed' AND ${PUBLIC_NODE('b')} ORDER BY b.closed_at`,
+         WHERE b.root_id = ?1 AND b.kind = 'branch' AND ${PUBLIC_NODE('b')} ORDER BY s.decided_at`,
       )
       .bind(root)
-      .all<{ title: string; handle: string }>(),
+      .all<{ title: string; closed: number; handle: string }>(),
     db.prepare(`SELECT ${HANDLE_SHOWN('person')} AS handle FROM person WHERE id = ?`).bind(r.sub.person_id).first<{ handle: string }>(),
   ])
   const human = (name: string) => name.split('/')[0]
@@ -88,7 +90,8 @@ export async function readCredits(db: D1Database, chain: Chain, r: Result): Prom
   for (const b of r.builtOn) add(human(b.as_name), { tag: 'built_on', label: 'built on', key: true })
   add(n.author, { tag: 'author', label: 'author', key: true })
   for (const c of r.checks) if (c.slot !== 'author') add(human(c.as_name), { tag: 'checked', label: 'ran a check', key: false })
-  for (const p of passes) add(p.handle, { tag: 'branch_passed', label: `${p.title} passed`, key: false })
+  // OPEN (#127): "passed its checks on <branch>" is new wording (Oct 13).
+  for (const p of passes) add(p.handle, { tag: 'branch_passed', label: p.closed ? `${p.title} passed` : `passed its checks on ${p.title}`, key: false })
   // Decisive tags first, as mocked.
   for (const list of roles.values()) list.sort((a, b) => Number(b.key) - Number(a.key))
 
