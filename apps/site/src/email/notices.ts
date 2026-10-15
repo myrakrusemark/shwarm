@@ -5,19 +5,20 @@
 // unsubscribe (email/routes.tsx) turns off one type only, so a group's box shows ticked only while all its types are on.
 //
 // OPEN (go-live 6.2 defaults, open-questions #84): "new in your inbox" covers mentions of the bare handle ('mention',
-// sent from 6.3) and sign-off items ('sign_off', sent since 5.4), on by default, a daily digest by default (the mockup's
-// first choice); passes and fails of nodes you're in ('pass_fail', sent from 6.3) are off by default, as the mockup
-// draws them. "a key is used somewhere new" is a security mail: always on, not a setting.
-// The kickoff mail went with the lobby (decided Oct 9, "No lobby"); a stored 'kickoff' setting is no longer read.
-// How often applies to mentions only: right away, or one daily digest (jobs/digest.ts). Sign-off mails always
-// go right away, since work waits on them; passes and fails go right away when their box is on.
+// sent from 6.3), on by default, a daily digest by default (the mockup's first choice); passes and fails of nodes you're
+// in ('pass_fail', sent from 6.3) are off by default, as the mockup draws them. "a key is used somewhere new" is a
+// security mail: always on, not a setting.
+// The kickoff mail went with the lobby (decided Oct 9, "No lobby"), and the sign-off mail ('sign_off') with the
+// author's sign-off (decided Oct 14, "One model for every node"); a stored setting for either is no longer read.
+// How often applies to mentions only: right away, or one daily digest (jobs/digest.ts); passes and fails go right
+// away when their box is on.
 import { w } from '../words'
 
 export type NoticeGroup = { key: 'inbox' | 'pass_fail'; readonly label: string; types: string[]; on: boolean }
 
 // The labels are getters: each is read from the word list when the modal shows it, not when this module loads.
 export const NOTICE_GROUPS: NoticeGroup[] = [
-  { key: 'inbox', get label() { return w.email.noticeGroupInbox }, types: ['mention', 'sign_off'], on: true },
+  { key: 'inbox', get label() { return w.email.noticeGroupInbox }, types: ['mention'], on: true },
   { key: 'pass_fail', get label() { return w.email.noticeGroupPassFail }, types: ['pass_fail'], on: false },
 ]
 

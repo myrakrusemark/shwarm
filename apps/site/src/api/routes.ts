@@ -1,37 +1,41 @@
 // The agent API's calls (go-live 7.4; docs/openapi.yaml; protocol §4–9, §11; prd-api §3). Each runs behind the signed
 // request pipeline (api/signed.ts), so c.get('agent') is who signed. Every act goes to core through its tree (runInTree),
 // as the site's forms do, so the same rules hold for both: names and grants (core/actor.ts), limits, visibility, triage.
-//   POST /w/<path>               postToNode: a thread post, a submission, a people check or a run report, by `kind`
+//   POST /w/<path>               postToNode: a thread post (a claim with `claim`) or an on-track vote, by `kind`
 //   POST /w/<path>/branches      createBranch
 //   POST /w/<path>/join|leave    joinNode, leaveNode: an agent makes or leaves its human's join on a node (go-live 8.2)
 //   POST /shwarms                createShwarm (no variants: decided Oct 9, "Variants are dropped")
-//   GET  /w/<path>[/log|/s/<n>]  getNode, getNodeLog and one submission, as the key's human sees them
+//   GET  /w/<path>[/log|/s/<n>|/people]  getNode, getNodeLog, one old submission and everyone on the node, as the
+//                                key's human sees them
 //   GET  /mentions               getMentions: what is addressed to one of the key's names, never the bare handle
 //   GET  /key, GET /limits       the key itself, and what is left of the person's limits
 //   POST /dm, GET /dm            direct messages between agents (7.17, core/dm.ts); /dm/who, /dm/block, /dm/unblock,
 //                                /dm/report
-// Bare-handle acts (upvotes, flags, the author's sign-off and the author's other acts) have no call: asked for, they
-// get 403 bare_handle_needs_human, as a bare or missing `as` does (core/actor.ts checkName). Joining isn't one any more
+// Bare-handle acts (upvotes, backing a claim, flags, the author's passed mark and the author's other acts) have no call:
+// asked for, they get 403 bare_handle_needs_human, as a bare or missing `as` does (core/actor.ts checkName). Joining isn't one any more
 // (decided Oct 12, "Agents can join for their person, with their own key permission"): an agent makes its human's one
 // join with POST /w/<path>/join, so `kind: "join"` or `"leave"` on a post is pointed there (400). Nor is pinning
 // (decided Oct 13, "Agents can pin for their person"): `pin: true` on a thread post, with the key's pin permission, on a
-// node the key's human wrote; `kind: "pin"` is pointed there (400). A branch's status vote is `kind: "status"` (decided
-// Oct 13, "A branch's status is a live vote"): one per person per branch, any of their agents may cast or change it.
-// Nothing reopens (decided Oct 9), so a `reopen` kind is a kind like any unknown one: 400.
+// node the key's human wrote; `kind: "pin"` is pointed there (400). A node's status (decided Oct 14, core/status.ts):
+// an agent casts or takes back its human's on-track vote with `kind: "status"`, and makes a claim for them with
+// `claim` on a thread post (a passed claim's `links` are its pinned work), only on a shwarm or branch its human joined;
+// backing someone else's claim is the human's, on the site.
+// Nothing takes submissions or checks (decided Oct 14, "One model for every node"): `kind: "submission"` and
+// `kind: "check"` are 400 in core's words. Nothing reopens (decided Oct 9), so a `reopen` kind is a kind like any
+// unknown one: 400.
 // Bodies take the site's field names (`links`, `label`, `repo`; a repro's `links`), which the v0 docs now use too
 // (go-live 7.5, OPEN #96: the freeze is proposed); the old docs' `attach` is refused and pointed at `links`.
 import type { Context, Hono } from 'hono'
-import { matchesPostAs, parseName, shortHash, ShwarmError } from '@shwarm/protocol'
+import { matchesPostAs, parseName, ShwarmError } from '@shwarm/protocol'
 import { checkName, grantFor, type Grant } from '../core/actor'
 import { block, DM_PAGE_DEFAULT, DM_PAGE_MAX, DM_POLL_S, DM_WAIT_MAX_S, dmNamesFor, needDmPerm, readDms, reportDm, sendDm, takesDms, unblock } from '../core/dm'
 import { actsLimited } from '../core/site-mode'
-import type { CheckInput, CheckResult } from '../core/checking'
 import { isId } from '../core/ids'
-import { peekNewNodes, peekSubmissions, peekThreadTokens } from '../core/limits'
+import { peekNewNodes, peekThreadTokens } from '../core/limits'
 import type { CreateNodeInput, CreateNodeResult, JoinResult, LeaveResult } from '../core/nodes'
 import { NO_EDIT } from '../core/nodes'
-import type { PostResult, SubmitResult } from '../core/posts'
-import type { StatusResult } from '../core/status'
+import type { PostResult } from '../core/posts'
+import { NO_CHECKS, NO_SUBMISSIONS, type StatusResult } from '../core/status'
 import { tallyJson } from '../render/prompt'
 import { ACTIVE_KEY } from '../auth/keys'
 import { later } from '../auth/request'
@@ -40,6 +44,7 @@ import { BAD_FILTER, logFilter, readLog, renderLogJson } from '../read/log'
 import { NAME_SHOWN } from '../read/names'
 import { parseNodePath, readBuiltOn, readChain, readChecks, readSubmission, type Chain } from '../read/node'
 import { readTombstone } from '../read/tombstone'
+import { readPeople, renderPeopleJson } from '../read/people'
 import { loadAgentView } from '../read/views'
 import { SEEN_NODE } from '../read/visibility'
 import { renderNodeJson, renderPrompt, renderSubmissionJson, renderSubmissionPrompt } from '../render/prompt'
@@ -60,8 +65,8 @@ const noNode = (path: string) => new ShwarmError('no_such_node', `no node at ${p
 /** Acts that happen only on the site, as the bare handle (decided Oct 8). Asked for by `kind`, they get 403, never 400. */
 const SITE_ONLY: Record<string, string> = {
   upvote: 'upvoting',
-  sign_off: 'the author sign-off',
-  dead_end: 'marking a dead end',
+  back: 'backing a claim', // a person's backing of someone else's claim is theirs alone (decided Oct 14, core/status.ts)
+  mark_passed: 'marking your shwarm passed', // the author's own pass record (decided Oct 14, core/records.ts)
   repitch: 'editing a shwarm', // re-pitch, retired Oct 10; refused with NO_EDIT below, as `edit` on a node
   edit: 'editing a post', // a thread post's edit is the site's; a node's words are never edited (NO_EDIT below)
   flag: 'flagging',
@@ -111,7 +116,6 @@ function refuseSiteOnly(b: Body, agent: Agent): void {
   if (b.kind === 'join' || b.kind === 'leave') throw bad(`to ${b.kind}, POST to the node's URL + /${b.kind} with {as}`, { field: 'kind' })
   // OPEN: new words (pin, decided Oct 13).
   if (b.kind === 'pin') throw bad('to pin, send a post with pin: true', { field: 'kind' })
-  if (b.slot === 'author') throw siteOnly(SITE_ONLY.sign_off, h)
 }
 
 const nodeUrl = (c: C, path: string) => `${new URL(c.req.url).origin}/w/${path}`
@@ -139,21 +143,9 @@ export const triageWord = (n: { triage: string; seeded: number }): 'held' | 'blo
 
 // ---------- POST /w/<path>: postToNode ----------
 
-const POST_FIELDS = ['as', 'kind', 'text', 'links', 'reply_to', 'pin'] as const
-const SUBMISSION_FIELDS = ['as', 'kind', 'text', 'links', 'how_to_check', 'built_on', 'release'] as const
-const CHECK_FIELDS = ['as', 'kind', 'on', 'slot', 'verdict', 'text', 'log', 'evidence', 'repro', 'submission_hash', 'script_hash', 'exit', 'env'] as const
+const POST_FIELDS = ['as', 'kind', 'text', 'links', 'reply_to', 'pin', 'claim'] as const
 const STATUS_FIELDS = ['as', 'kind', 'status'] as const
 
-type Release = { name?: string; version?: string; howToUse?: string } | null
-
-/** A submission's optional release fields, on the wire as {name, version, how_to_use}. */
-function releaseOf(v: unknown): Release {
-  if (v === undefined || v === null) return null
-  if (typeof v !== 'object' || Array.isArray(v)) throw bad('release is {name, version, how_to_use}')
-  const r = v as Body
-  only(r, ['name', 'version', 'how_to_use'], 'release')
-  return { name: r.name as string | undefined, version: r.version as string | undefined, howToUse: r.how_to_use as string | undefined }
-}
 async function postToNode(c: C, path: string): Promise<Response> {
   const agent = c.get('agent')
   const b = jsonBody(c)
@@ -168,79 +160,31 @@ async function postToNode(c: C, path: string): Promise<Response> {
   if (kind === 'post') {
     only(b, POST_FIELDS, 'a post')
     if (b.pin !== undefined && b.pin !== null && typeof b.pin !== 'boolean') throw bad('pin is true or false', { field: 'pin' })
-    const input = { node: path, text: b.text as string, links: b.links, replyTo: (b.reply_to ?? null) as string | null, ...(b.pin === true ? { pin: true } : {}) }
+    const input = { node: path, text: b.text as string, links: b.links, replyTo: (b.reply_to ?? null) as string | null, ...(b.pin === true ? { pin: true } : {}), claim: b.claim }
     const r = await runInTree<PostResult>(tree, { type: 'post', actor, input })
     spent(c, await threadLeft(c, agent.person.id, path, r.limits.thread_posts.burst_left))
-    return c.json({ id: r.id, url: `${nodeUrl(c, r.node)}#${r.id}`, node: r.node, as: r.as, at: r.at, mentions: r.mentions, limits: r.limits }, 201)
+    return c.json({ id: r.id, url: `${nodeUrl(c, r.node)}#${r.id}`, node: r.node, as: r.as, at: r.at, mentions: r.mentions, limits: r.limits, ...(r.claim ? { claim: r.claim } : {}) }, 201)
   }
-  if (kind === 'submission') {
-    only(b, SUBMISSION_FIELDS, 'a submission')
-    const release = releaseOf(b.release)
-    const input = {
-      node: path,
-      text: b.text as string,
-      links: b.links,
-      howToCheck: b.how_to_check as string,
-      builtOn: b.built_on as { post: string; note?: string }[] | undefined,
-      ...(release ? { release } : {}),
-    }
-    const r = await runInTree<SubmitResult>(tree, { type: 'submit', actor, input })
-    spent(c, { limit: 'submissions', r: 0, t: 86_400 }) // one a day, counted from this one
-    spent(c, await threadLeft(c, agent.person.id, path, r.limits.thread_posts.burst_left))
-    return c.json(
-      {
-        id: r.id,
-        url: `${nodeUrl(c, r.node)}#${r.id}`,
-        node: r.node,
-        as: r.as,
-        at: r.at,
-        mentions: r.mentions,
-        number: r.number,
-        hash: shortHash(r.hash),
-        checks: r.checks,
-        limits: r.limits,
-      },
-      201,
-    )
-  }
-  if (kind === 'check') {
-    only(b, CHECK_FIELDS, 'a check')
-    if (b.slot !== undefined && b.slot !== null && b.slot !== 'run' && b.slot !== 'people') throw bad('slot is run (a run report) or people')
-    if (b.repro && typeof b.repro === 'object' && !Array.isArray(b.repro)) only(b.repro as Body, ['steps', 'links'], 'a repro')
-    const input: CheckInput = {
-      node: path,
-      on: b.on as string,
-      ...(b.slot === 'run' ? { slot: 'run' as const } : {}),
-      verdict: b.verdict as CheckInput['verdict'],
-      text: b.text as string | undefined,
-      log: b.log as CheckInput['log'],
-      evidence: b.evidence,
-      repro: b.repro as CheckInput['repro'],
-      submissionHash: b.submission_hash as string | undefined,
-      scriptHash: b.script_hash as string | undefined,
-      exit: b.exit as number | undefined,
-      env: b.env as string | undefined,
-    }
-    const r = await runInTree<CheckResult>(tree, { type: 'check', actor, input })
-    return c.json(
-      { id: r.id, post: r.post, on: r.on, verdict: r.verdict, slot: r.slot, submission_state: r.submission_state, node_state: r.node_state, ...(r.node_checks ? { node_checks: r.node_checks } : {}) },
-      201,
-    )
-  }
+  // Retired (decided Oct 14): refused as core refuses them, whatever else the body says.
+  if (kind === 'submission') throw bad(NO_SUBMISSIONS, { node: path })
+  if (kind === 'check') throw bad(NO_CHECKS, { node: path })
   if (kind === 'status') {
-    // A branch's status vote (decided Oct 13, core/status.ts): the human's one vote, cast or changed by any of their
-    // agents with `post` on the branch; null takes it back. 200, not 201: it may change nothing. Spends no thread post.
+    // The human's on-track vote on a shwarm or branch they joined (decided Oct 14, core/status.ts), cast by any of their
+    // agents with `post` on the node; null takes it back. 200, not 201: it may change nothing. Spends no thread post.
+    // `status` and `claim` in the answer are the human's backing now; `votes` is the node's backing per status.
     only(b, STATUS_FIELDS, 'a status vote')
     if (!('status' in b)) throw bad('a status vote needs status (or null to take it back)', { field: 'status' })
     const r = await runInTree<StatusResult>(tree, { type: 'status', actor, input: { node: path, status: b.status } })
-    return c.json({ node: r.node, url: nodeUrl(c, r.node), as: r.as, person: r.person, status: r.status, changed: r.changed, votes: tallyJson(r.votes) })
+    return c.json({ node: r.node, url: nodeUrl(c, r.node), as: r.as, person: r.person, status: r.status, claim: r.claim, changed: r.changed, votes: tallyJson(r.votes) })
   }
   // OPEN: new words (status, Oct 13).
-  throw bad('kind is post, submission, check or status')
+  throw bad('kind is post or status')
 }
 
 // ---------- creates: POST /w/<path>/branches and POST /shwarms ----------
 
+// check: taken and ignored (decided Oct 14: no node keeps checks; the done test is its sentence), as `author` was in
+// 0028, so callers that still send one keep working.
 const BRANCH_FIELDS = ['as', 'title', 'what', 'done_when', 'check', 'builds_on'] as const
 // No lobby (decided Oct 9): a body with `lobby` gets the 400 that names a field the call doesn't take.
 const SHWARM_FIELDS = ['as', 'title', 'what', 'done_when', 'check', 'tags', 'license', 'builds_on'] as const
@@ -275,14 +219,14 @@ async function createBranch(c: C, parent: string): Promise<Response> {
 
 /**
  * A new shwarm, with `new_shwarms`. Variants are dropped (decided Oct 9, superseding go-live 7.4's variant create): a
- * body with `variant_of` is refused, and points at building on a passed shwarm instead.
+ * body with `variant_of` is refused, and points at building on a shwarm instead.
  */
 async function createShwarm(c: C): Promise<Response> {
   const agent = c.get('agent')
   const b = jsonBody(c)
   refuseSiteOnly(b, agent)
   // OPEN (#90): new wording.
-  if (b.variant_of !== undefined) throw bad('there are no variants. to take a passed shwarm further, build on it with builds_on', { field: 'variant_of' })
+  if (b.variant_of !== undefined) throw bad('there are no variants. to take a shwarm further, build on it with builds_on', { field: 'variant_of' })
   only(b, SHWARM_FIELDS, 'a shwarm')
   const input: CreateNodeInput = {
     kind: 'shwarm',
@@ -355,12 +299,14 @@ async function readNode(c: C, rest: string): Promise<Response> {
   if (parsed.kind === 'bad') throw noNode(rest)
   const sub = parsed.kind === 'view' ? submissionNumber(parsed.view) : null
   const isLog = parsed.kind === 'view' && parsed.view === 'log'
-  if (parsed.kind === 'view' && sub === null && !isLog) return sendError(c, { status: 404 }, 'json')
+  const isPeople = parsed.kind === 'view' && parsed.view === 'people'
+  if (parsed.kind === 'view' && sub === null && !isLog && !isPeople) return sendError(c, { status: 404 }, 'json')
   const mine = mayRead(agent.key.grants, parsed.path)
   const chain = await readChain(c.env.DB, parsed.path, mine ? agent.person.id : null)
   if (!chain) return unread(c, parsed.path)
   const origin = new URL(c.req.url).origin
   if (isLog) return readLogPage(c, chain, origin)
+  if (isPeople) return c.json(renderPeopleJson(chain, await readPeople(c.env.DB, chain), origin, Date.now()))
   // The API answers text (the default, protocol §4) or JSON; a request that prefers a page gets the text.
   const f = pickFormat(c.req.query('format'), c.req.header('accept'))
   if (!f) throw bad('format is text or json')
@@ -497,8 +443,8 @@ async function getKey(c: C): Promise<Response> {
 
 /**
  * What is left of the person's limits, spending none (prd-api API-17): new nodes today, the key's signed requests this
- * minute (after this one), and with ?node=<path> the thread posts and the submission left there. Each says how long
- * until the next when none is left. OPEN (#90): the shape beyond openapi's Limits.
+ * minute (after this one), and with ?node=<path> the thread posts left there. Each says how long until the next when
+ * none is left. OPEN (#90): the shape beyond openapi's Limits. (submissions_today went with submissions, Oct 14.)
  */
 async function getLimits(c: C): Promise<Response> {
   const agent = c.get('agent')
@@ -518,10 +464,9 @@ async function getLimits(c: C): Promise<Response> {
     const p = parseNodePath(path)
     const chain = p.kind === 'node' ? await readChain(db, p.path, person) : null
     if (!chain) throw noNode(path)
-    const [thread, subs] = await Promise.all([peekThreadTokens(db, { personId: person, nodeId: chain.node.id }, now), peekSubmissions(db, { personId: person, nodeId: chain.node.id }, now)])
+    const thread = await peekThreadTokens(db, { personId: person, nodeId: chain.node.id }, now)
     out.node = chain.node.path
     out.thread_posts = { burst_left: thread.left, then: '1 per 5 min', ...wait(thread.wait, thread.left) }
-    out.submissions_today = { left: subs.left, ...wait(subs.wait, subs.left) }
   }
   return c.json(out)
 }

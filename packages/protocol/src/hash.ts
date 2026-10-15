@@ -3,9 +3,21 @@
 import { canonicalize } from './jcs'
 import { sha256, toHex } from './bytes'
 
-export type Link =
-  | { url: string; sha256: string; label?: string }
-  | { repo: string; commit: string; path?: string; label?: string }
+/** A file at a link, pinned by its sha256. */
+export type FileLink = { url: string; sha256: string; label?: string }
+/** A repo at a full commit: an https repo, or a Radicle `rad:z…` repo (pinned work only). */
+export type RepoLink = { repo: string; commit: string; path?: string; label?: string }
+/** An `ipfs://<cid>[/path]` address: the CID is the content's own hash (pinned work only). */
+export type IpfsLink = { ipfs: string; label?: string }
+/** A `magnet:?xt=urn:btih:…` or `urn:btmh:1220…` link: the infohash is the content's own hash (pinned work only). */
+export type MagnetLink = { magnet: string; label?: string }
+/** A link any post, submission or check may carry: https, pinned by a sha256 or a commit. */
+export type WebLink = FileLink | RepoLink
+/**
+ * Every link shape (#82). The self-hashing ones (ipfs, magnet, a rad: repo) are pinned work on a passed claim only
+ * (decided Oct 14, "One model for every node"); each has its own key, so `'sha256' in l` never mistakes one for a repo.
+ */
+export type Link = WebLink | IpfsLink | MagnetLink
 
 export type SubmissionContent = { text: string; links?: Link[] }
 

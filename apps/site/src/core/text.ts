@@ -1,6 +1,6 @@
 // Text input rules: caps (table B "technical caps"), links (shwarm stores only text; work is linked
 // with a fingerprint), mentions (protocol §9) and slugs (protocol §3).
-import { isValidName, ShwarmError, type Link } from '@shwarm/protocol'
+import { isRadRepo, isValidName, ShwarmError, type Link, type WebLink } from '@shwarm/protocol'
 import { HIDDEN_CLASS } from '../render/hidden'
 
 export const MAX_TEXT = 20_000 // characters in a post
@@ -44,37 +44,108 @@ function isHttpUrl(s: unknown): s is string {
   }
 }
 
+// Self-hashing addresses, read by pattern: `new URL` lowercases an ipfs "host", which breaks a base58 CIDv0.
 /**
- * Links, never files: `{url, sha256}` for a file or `{repo, commit, path?}` for a repo at a commit, with an
- * optional label (`name` is accepted as its spelling in protocol §6). Anything unpinned is refused.
+ * ipfs://<cid>[/path]: a CIDv0 (Qm…, base58) or a CIDv1 in base32 (b…). An ipns:// name can change, so it isn't one, and
+ * neither is a path with a `.` or `..` step, plain or percent-encoded: a gateway resolves `<cid>/../../ipns/<name>` to
+ * that name.
  */
-export function parseLinks(v: unknown, field = 'links'): Link[] {
+const IPFS = /^ipfs:\/\/(Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{50,})(\/[^\s?#]*)?$/
+/** A magnet's exact topic: a BitTorrent v1 infohash (40 hex or 32 base32, SHA-1, as git commits are) or a v2 one (sha256). */
+const XT = /^urn:(btih:([0-9a-fA-F]{40}|[A-Za-z2-7]{32})|btmh:1220[0-9a-fA-F]{64})$/
+/**
+ * The magnet parameters a pin may carry besides its topics: a name, trackers, web seeds and the length. Anything else
+ * could point past the hash, as a BEP 46 mutable source (`xs=urn:btpk:…`) does, so it's refused.
+ */
+const MAGNET_KEYS = new Set(['xt', 'dn', 'tr', 'ws', 'xl'])
+const decodeURIComponentSafe = (s: string) => {
+  try {
+    return decodeURIComponent(s)
+  } catch {
+    return s
+  }
+}
+function isIpfs(s: unknown): s is string {
+  const m = typeof s === 'string' && s.length <= 2048 ? IPFS.exec(s) : null
+  if (!m) return false
+  // Decoded first, so %2e%2e and %2f count as the dots and slashes they become.
+  return !decodeURIComponentSafe(m[2] ?? '').split(/[/\\]/).some(step => step === '.' || step === '..')
+}
+function isMagnet(s: unknown): s is string {
+  if (typeof s !== 'string' || s.length > 2048 || !s.startsWith('magnet:?') || /\s/.test(s)) return false
+  const params = s
+    .slice('magnet:?'.length)
+    .split('&')
+    .map(kv => {
+      const i = kv.indexOf('=')
+      return i < 0 ? ([kv, ''] as const) : ([kv.slice(0, i), kv.slice(i + 1)] as const)
+    })
+  if (params.some(([k]) => !MAGNET_KEYS.has(k))) return false
+  // Every topic is a hash (a hybrid torrent carries a v1 and a v2 one), and there is at least one.
+  const topics = params.filter(([k]) => k === 'xt').map(([, v]) => decodeURIComponentSafe(v))
+  return topics.length > 0 && topics.every(t => XT.test(t))
+}
+
+const KEYS = ['url', 'sha256', 'repo', 'commit', 'path', 'label', 'name']
+const PIN_KEYS = [...KEYS, 'ipfs', 'magnet']
+
+/**
+ * One link from a list: `{url, sha256}` for a file or `{repo, commit, path?}` for a repo at a commit, with an optional
+ * label (`name` is accepted as its spelling in protocol §6). With `pins` (a passed claim's pinned work), also the
+ * addresses that carry their own hash: `{ipfs}`, `{magnet}` (either may come as `url`), and a `rad:` repo with a full
+ * commit. Anything that can change under the link is refused, with the same words for every unpinned shape.
+ */
+function parseLink(l: unknown, at: string, field: string, pins: boolean): Link {
+  if (!l || typeof l !== 'object') throw bad(`${at} is not a link`, { field })
+  const o = l as Record<string, unknown>
+  const label = o.label ?? o.name
+  if (label !== undefined && (typeof label !== 'string' || label.length > 200)) throw bad(`${at} has a bad label`, { field })
+  const extra = Object.keys(o).filter(k => !(pins ? PIN_KEYS : KEYS).includes(k))
+  if (extra.length) throw bad(`${at} has unknown fields: ${extra.join(', ')}`, { field })
+  const labelled = label ? { label: label as string } : {}
+  if (pins && !('sha256' in o) && !('commit' in o)) {
+    const ipfs = o.ipfs ?? (isIpfs(o.url) ? o.url : undefined)
+    const magnet = o.magnet ?? (isMagnet(o.url) ? o.url : undefined)
+    if (ipfs !== undefined || magnet !== undefined) {
+      if ([o.ipfs, o.magnet, o.url, o.repo, o.path].filter(x => x !== undefined).length > 1) throw bad(`${at} is one link, not several`, { field })
+      // OPEN: new words (pinned work, decided Oct 14).
+      if (ipfs !== undefined && !isIpfs(ipfs)) throw bad(`${at}.ipfs is not an ipfs://<cid> address, with no . or .. in its path`, { field })
+      if (magnet !== undefined && !isMagnet(magnet))
+        throw bad(`${at}.magnet needs xt=urn:btih:<hash> or xt=urn:btmh:<hash>, and takes only xt, dn, tr, ws and xl`, { field })
+      return ipfs !== undefined ? { ipfs: ipfs as string, ...labelled } : { magnet: magnet as string, ...labelled }
+    }
+  }
+  if ('sha256' in o) {
+    if (!isHttpUrl(o.url)) throw bad(`${at}.url is not a web address`, { field })
+    if (typeof o.sha256 !== 'string' || !HEX64.test(o.sha256)) throw bad(`${at}.sha256 must be 64 lowercase hex characters`, { field })
+    if ('repo' in o || 'commit' in o) throw bad(`${at} is either a file or a repo, not both`, { field })
+    return { url: o.url, sha256: o.sha256, ...labelled }
+  }
+  if ('commit' in o) {
+    const repo = o.repo ?? o.url // protocol §6 spells it {url, commit}
+    if (!isHttpUrl(repo) && !(pins && typeof repo === 'string' && isRadRepo(repo))) throw bad(`${at}.repo is not a web address`, { field })
+    if (typeof o.commit !== 'string' || !COMMIT.test(o.commit)) throw bad(`${at}.commit must be a full commit id`, { field })
+    if (o.path !== undefined && (typeof o.path !== 'string' || o.path.length > 500)) throw bad(`${at}.path is not a path`, { field })
+    return { repo, commit: o.commit, ...(o.path ? { path: o.path as string } : {}), ...labelled }
+  }
+  throw bad(`${at} needs a sha256 (a file) or a commit (a repo)`, { field })
+}
+
+function parseList<T extends Link>(v: unknown, field: string, pins: boolean): T[] {
   if (v === undefined || v === null) return []
   if (!Array.isArray(v)) throw bad(`${field} must be a list of links`, { field })
   if (v.length > MAX_LINKS) throw bad(`at most ${MAX_LINKS} links per post`, { field })
-  return v.map((l, i): Link => {
-    if (!l || typeof l !== 'object') throw bad(`${field}[${i}] is not a link`, { field })
-    const o = l as Record<string, unknown>
-    const label = o.label ?? o.name
-    if (label !== undefined && (typeof label !== 'string' || label.length > 200)) throw bad(`${field}[${i}] has a bad label`, { field })
-    const extra = Object.keys(o).filter(k => !['url', 'sha256', 'repo', 'commit', 'path', 'label', 'name'].includes(k))
-    if (extra.length) throw bad(`${field}[${i}] has unknown fields: ${extra.join(', ')}`, { field })
-    if ('sha256' in o) {
-      if (!isHttpUrl(o.url)) throw bad(`${field}[${i}].url is not a web address`, { field })
-      if (typeof o.sha256 !== 'string' || !HEX64.test(o.sha256)) throw bad(`${field}[${i}].sha256 must be 64 lowercase hex characters`, { field })
-      if ('repo' in o || 'commit' in o) throw bad(`${field}[${i}] is either a file or a repo, not both`, { field })
-      return { url: o.url, sha256: o.sha256, ...(label ? { label: label as string } : {}) }
-    }
-    if ('commit' in o) {
-      const repo = o.repo ?? o.url // protocol §6 spells it {url, commit}
-      if (!isHttpUrl(repo)) throw bad(`${field}[${i}].repo is not a web address`, { field })
-      if (typeof o.commit !== 'string' || !COMMIT.test(o.commit)) throw bad(`${field}[${i}].commit must be a full commit id`, { field })
-      if (o.path !== undefined && (typeof o.path !== 'string' || o.path.length > 500)) throw bad(`${field}[${i}].path is not a path`, { field })
-      return { repo, commit: o.commit, ...(o.path ? { path: o.path as string } : {}), ...(label ? { label: label as string } : {}) }
-    }
-    throw bad(`${field}[${i}] needs a sha256 (a file) or a commit (a repo)`, { field })
-  })
+  return v.map((l, i) => parseLink(l, `${field}[${i}]`, field, pins) as T)
 }
+
+/** Links, never files: each one pinned, by a sha256 (a file) or a full commit (a repo), at an https address. */
+export const parseLinks = (v: unknown, field = 'links'): WebLink[] => parseList<WebLink>(v, field, false)
+
+/**
+ * A passed claim's pinned work (decided Oct 14, "One model for every node"): the links parseLinks takes, and also an
+ * ipfs:// address, a magnet link or a rad: repo with a full commit, which carry their own hash.
+ */
+export const parsePins = (v: unknown, field = 'links'): Link[] => parseList<Link>(v, field, true)
 
 // ---------- how post text is read: one rule for what the renderer links and what notifies ----------
 
@@ -186,8 +257,9 @@ export function extractMentions(text: string): string[] {
 }
 
 // Path segments the URLs use under /w/<path>/ (protocol §3; the submission page is /w/<path>/s/<n>).
-// join and leave (go-live 8.2): an agent's POST /w/<path>/join and /leave (api/routes.ts).
-export const RESERVED_SLUGS: ReadonlySet<string> = new Set(['branches', 'log', 's', 'new', 'edit', 'join', 'leave'])
+// join and leave (go-live 8.2): an agent's POST /w/<path>/join and /leave (api/routes.ts). people (Oct 14): everyone
+// on a node, the full list behind the page's top five (web/node-routes.tsx).
+export const RESERVED_SLUGS: ReadonlySet<string> = new Set(['branches', 'log', 's', 'new', 'edit', 'join', 'leave', 'people'])
 
 /** "every US lead pipe, mapped" → 'every-us-lead-pipe-mapped' (protocol §3, proposed). '' when nothing is left. */
 export function slugify(title: string): string {

@@ -90,10 +90,6 @@ describe('join: working on it (4.4, decided Oct 9)', () => {
     expect(profile.working.map(r => r.path)).toEqual([MID])
   })
 
-  it("a closed or dead-end shwarm takes no joins", async () => {
-    await w.deadEnd(myra, MID)
-    await refused(w.join(site(ana), MID), 'shwarm_closed')
-  })
 })
 
 // ---------- core: edit (decided Oct 10, '"edit" replaces re-pitch') ----------
@@ -133,7 +129,7 @@ describe("core editNode, the operator's seed card-fix tool only (no user edits s
     const changed = {
       ...NEW,
       doneWhen: 'e1m1 to e1m9 rebuilt from blocks, finished from a pistol start on skill 3.',
-      check: { runs: { command: './bench.sh', count: 3 }, author: true },
+      check: { runs: { command: './bench.sh', count: 3 }, author: true }, // taken and ignored: no node keeps checks (decided Oct 14)
       tags: ['games', 'voxels'],
       license: 'GPL-3.0',
     }
@@ -143,7 +139,7 @@ describe("core editNode, the operator's seed card-fix tool only (no user edits s
       title: NEW.title,
       what: NEW.what,
       done_when: changed.doneWhen,
-      checks: JSON.stringify({ author: true, runs: { command: './bench.sh', count: 3 } }),
+      checks: JSON.stringify({ author: false }),
       license: 'GPL-3.0',
       builds_on: null,
       changed_at: iso(w.now), // the stats job reads changed nodes
@@ -172,7 +168,6 @@ describe("core editNode, the operator's seed card-fix tool only (no user edits s
     await refused(edit(stepped(myra), { title: ' ' }), 'bad_request')
     await refused(edit(stepped(myra), { title: 'x'.repeat(121) }), 'bad_request')
     await refused(edit(stepped(myra), { doneWhen: ' ' }), 'no_done_test')
-    await refused(edit(stepped(myra), { check: { author: false } }), 'no_done_test')
     await refused(edit(stepped(myra), { tags: [] }), 'bad_request')
     await refused(edit(stepped(myra), { license: 'WTFPL' }), 'bad_license')
     expect(w.all('SELECT 1 FROM node_edit')).toEqual([])
@@ -192,37 +187,35 @@ describe("core editNode, the operator's seed card-fix tool only (no user edits s
     expect(w.all('SELECT 1 FROM node_edit')).toHaveLength(1)
   })
 
-  it('anything submitted locks it, by anyone', async () => {
-    await w.submit(agent(ana), MID) // ana never joined
+  it('a submission from before Oct 14 locks it, whoever made it', async () => {
+    w.oldSubmission(ana, MID) // ana never joined
     const e = await refused(edit(stepped(myra), NEW), 'bad_request', { reason: 'submitted' })
     expect(e.message).toBe(`${MID} has a submission. its words stay as they are`)
   })
 
-  it("a submission to any of its branches locks it too; opening a branch doesn't", async () => {
+  it("a submission a branch took before Oct 14 locks it too; opening a branch doesn't", async () => {
     await w.branch(site(ana), MID)
     expect(await edit(stepped(myra), { title: 'minecraft in doom, take two' })).toMatchObject({ edited: true })
-    await w.submit(agent(ana), `${MID}/block-placement`)
+    // nothing takes submissions now (decided Oct 14); one from before stays, as history
+    const bp = w.node(`${MID}/block-placement`).id
+    w.db.raw.prepare("INSERT INTO post (id, node_id, person_id, as_name, kind, text, created_at) VALUES ('p_oldbranch1', ?, ?, '@ana/m-04', 'submission', 'old work', ?)").run(bp, ana.id, iso(w.now))
+    w.db.raw.prepare("INSERT INTO submission (post_id, node_id, number, hash, how_to_check, author_swap) VALUES ('p_oldbranch1', ?, 1, ?, 'run it', 0)").run(bp, 'a'.repeat(64))
     const e = await refused(edit(stepped(myra), NEW), 'bad_request', { reason: 'submitted' })
     expect(e.message).toBe(`${MID} has a submission. its words stay as they are`)
   })
 
-  it("a branch that ended before Oct 13 keeps the license it ended under; a shwarm can't build on its own branch", async () => {
+  it("a new license reaches its branches; a shwarm can't build on its own branch", async () => {
     await w.branch(site(myra), MID)
-    // A branch no longer ends on its own (decided Oct 13: it passes by its status vote, and can't be a dead end); one
-    // that passed or was a dead end before then is still ended.
-    w.db.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'x', closed_at = ? WHERE path = ?").run(iso(w.now), `${MID}/block-placement`)
     expect(await edit(stepped(myra), { license: 'GPL-3.0' })).toMatchObject({ edited: true })
-    expect(w.node(MID).license).toBe('GPL-3.0')
-    expect(w.node(`${MID}/block-placement`).license).not.toBe('GPL-3.0')
+    expect([w.node(MID).license, w.node(`${MID}/block-placement`).license]).toEqual(['GPL-3.0', 'GPL-3.0'])
     const e = await refused(edit(stepped(myra), { buildsOn: `${MID}/block-placement` }), 'bad_request')
-    expect(e.message).toBe('builds_on names a shwarm on shwarm, or an outside project as {name, url, license}') // its own, not "still live"
+    expect(e.message).toBe('builds_on names a shwarm on shwarm, or an outside project as {name, url, license}')
     expect(w.node(`${MID}/block-placement`).builds_on).toBeNull()
   })
 
   it('line breaks sent as \\r\\n are the same words: no edit', async () => {
-    const check = { author: true, people: { count: 1, instructions: 'load it.\nplay e1m1.' } }
-    expect(await edit(stepped(myra), { what: 'line one.\n\nline two.', check })).toMatchObject({ edited: true })
-    const crlf = { what: 'line one.\r\n\r\nline two.', check: { ...check, people: { ...check.people, instructions: 'load it.\r\nplay e1m1.' } } }
+    expect(await edit(stepped(myra), { what: 'line one.\n\nline two.', doneWhen: 'load it.\nplay e1m1.' })).toMatchObject({ edited: true })
+    const crlf = { what: 'line one.\r\n\r\nline two.', doneWhen: 'load it.\r\nplay e1m1.' }
     expect(await edit(stepped(myra), crlf)).toMatchObject({ edited: false })
     expect(await edit(stepped(myra), { ...crlf, title: 'minecraft in doom, take two' })).toMatchObject({ edited: true })
     expect(w.node(MID).what).toBe('line one.\n\nline two.')
@@ -234,26 +227,23 @@ describe("core editNode, the operator's seed card-fix tool only (no user edits s
     expect(e.message).toBe('a branch keeps the words it was opened with')
   })
 
-  it('an ended shwarm keeps its words; a blocked one is refused', async () => {
+  it('a blocked shwarm is refused', async () => {
     w.db.raw.prepare("UPDATE node SET triage = 'blocked' WHERE path = ?").run(MID)
     await refused(edit(stepped(myra), NEW), 'not_permitted', { reason: 'blocked' })
-    w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = ?").run(MID)
-    await w.deadEnd(myra, MID)
-    await refused(edit(stepped(myra), NEW), 'shwarm_closed')
+    expect(w.all('SELECT 1 FROM node_edit')).toEqual([])
   })
 
-  it('builds on as a create takes it: an ended shwarm brings its license, to the branches too; a live one is refused', async () => {
+  it('builds on as a create takes it: any shwarm brings its license, to the branches too (decided Oct 14)', async () => {
     await w.shwarm(site(ana), { title: 'doom speedruns', license: 'GPL-3.0' })
-    w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = 'doom-speedruns'").run() // so myra sees it
-    const live = await refused(edit(stepped(myra), { buildsOn: 'doom-speedruns' }), 'bad_request')
-    expect(live.message).toBe('doom-speedruns is still live. a shwarm is built on once it passed or is a dead end')
+    await refused(edit(stepped(myra), { buildsOn: 'doom-speedruns' }), 'bad_request') // still being checked: myra can't see it
+    w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = 'doom-speedruns'").run()
     await refused(edit(stepped(myra), { buildsOn: 'no-such-shwarm' }), 'bad_request')
-    await w.deadEnd(ana, 'doom-speedruns')
     await w.branch(site(myra), MID)
-    // the upstream license wins over any sent
+    // the upstream license wins over any sent; it has no pass record, so it's built on as it stands
+    const upstream = '{"node":"doom-speedruns","as_of":null}'
     expect(await edit(stepped(myra), { buildsOn: 'doom-speedruns', license: 'MIT' })).toMatchObject({ edited: true })
-    expect(w.node(MID)).toMatchObject({ license: 'GPL-3.0', builds_on: '{"node":"doom-speedruns"}' })
-    expect(w.node(`${MID}/block-placement`)).toMatchObject({ license: 'GPL-3.0', builds_on: '{"node":"doom-speedruns"}' })
+    expect(w.node(MID)).toMatchObject({ license: 'GPL-3.0', builds_on: upstream })
+    expect(w.node(`${MID}/block-placement`)).toMatchObject({ license: 'GPL-3.0', builds_on: upstream })
     // an outside project needs its license
     await refused(edit(stepped(myra), { buildsOn: { name: 'freedoom' } as any }), 'bad_license')
     await edit(stepped(myra), { buildsOn: { name: 'freedoom', url: 'https://freedoom.github.io/', license: 'BSD-3-Clause' } })
@@ -407,19 +397,18 @@ describe('deleting a post (4.8)', () => {
     const byAgent = await w.post(agent(kes), MID, 'from m-04')
     await refused(del(site(kes), byAgent.id), 'not_permitted', { need: 'poster' })
     await refused(del(agent(kes), byAgent.id), 'not_permitted', { need: 'delete' }) // a key needs the delete grant
-    const sub = await w.submit(site(kes), MID)
+    const sub = w.oldSubmission(kes, MID) // from before Oct 14, when a shwarm took submissions
     await refused(del(site(kes), sub.id), 'not_permitted', { kind: 'submission' })
     await refused(del(site(kes), 'p_doesnotexist1'), 'bad_request')
     expect(w.all('SELECT 1 FROM post WHERE deleted_at IS NOT NULL')).toEqual([])
   })
 
-  it('a deleted post takes no edit, upvote, reply or built-on; a deleted pinned post is unpinned', async () => {
+  it('a deleted post takes no edit, upvote or reply; a deleted pinned post is unpinned', async () => {
     const p = await w.post(site(kes), MID, 'a thing to build on.')
     await del(site(kes), p.id)
     await refused(w.run({ type: 'editPost', actor: site(kes), input: { node: MID, post: p.id, text: 'back again' } }), 'bad_request')
     await refused(w.run({ type: 'upvote', actor: site(myra), input: { node: MID, post: p.id } }), 'bad_request')
     await refused(w.post(site(myra), MID, 'replying to nothing', { replyTo: p.id }), 'bad_request')
-    await refused(w.submit(site(myra), MID, 'built on it', { builtOn: [p.id] }), 'bad_request')
     const pin = await w.post(site(myra), MID, 'status update: started.', { pin: true })
     await del(site(myra), pin.id)
     expect(w.pins(MID)).toEqual([])
@@ -427,6 +416,7 @@ describe('deleting a post (4.8)', () => {
 
   it("a deleted pinned post's first line leaves the feed's status line at once, not at the next stats run", async () => {
     const id = w.node(MID).id
+    await w.branch(site(myra), MID) // on track, the status line falls back to its branches
     const pin = await w.post(site(myra), MID, 'status update: something to take back.', { pin: true })
     await rollupStats(w.db, w.now)
     const line = () => w.get('SELECT status_line FROM node_stats WHERE node_id = ?', id).status_line
@@ -440,8 +430,7 @@ describe('deleting a post (4.8)', () => {
     // the next run fills in the fallback
     w.tick(MIN)
     await rollupStats(w.db, w.now)
-    expect(line()).not.toContain('take back')
-    expect(line()).not.toBe('')
+    expect(line()).toBe('1 branch on track.')
   })
 })
 
@@ -488,10 +477,11 @@ describe('on the page', () => {
     const next = html.indexOf('<div class="c', i)
     return html.slice(i, next === -1 ? undefined : next)
   }
-  const boxOf = (html: string, heading: string) => {
-    const i = html.indexOf(`<h2>${heading} `)
-    expect(i, heading).toBeGreaterThan(-1)
-    return html.slice(i, html.indexOf('<div class="box', i))
+  /** The people card: who's on the node, and joining (decided Oct 14, "One card for a node's people"). */
+  const card = (html: string) => {
+    const i = html.indexOf('<div class="box people" id="people">')
+    expect(i).toBeGreaterThan(-1)
+    return html.slice(i, html.indexOf('<div class="box', i + 1))
   }
   async function act(b: Browser, fields: Record<string, string>, path = `/w/${EXAMPLE_ROOT}`) {
     const token = formTokenIn(await page(b, path))
@@ -499,18 +489,21 @@ describe('on the page', () => {
   }
 
   describe('join (4.4, decided Oct 9)', () => {
-    it('a live shwarm offers "join" under its contributors; joining shows you there and on your profile; leave undoes it', async () => {
+    it('a live shwarm offers "join" in its people card; joining shows you there and on your profile; leave undoes it', async () => {
       const { env, q } = await world()
       const b = await signIn(env, 'ana')
-      let box = boxOf(await page(b), 'contributors')
+      let box = card(await page(b))
       expect(box).toContain('<input type="hidden" name="do" value="join"/>')
-      expect(box).toContain("join to say you're working on this shwarm.")
+      expect(box).toContain("or give your agent this shwarm's url:")
       const res = await act(b, { do: 'join' })
       expect(res.status).toBe(303)
       expect(res.headers.get('location')).toBe(`/w/${EXAMPLE_ROOT}`)
-      expect(q("SELECT s.number FROM seat s JOIN person p ON p.id = s.person_id WHERE p.handle = 'ana'")).toEqual({ number: 3 })
-      box = boxOf(await page(b), 'contributors')
-      expect(box).toContain('href="/@ana">@ana</a>')
+      expect(q("SELECT s.number FROM seat s JOIN person p ON p.id = s.person_id WHERE p.handle = 'ana'")).toEqual({ number: 7 }) // after @myra, @bmo_fan, @finn_irl and @kestrel through the branch, @marceline and @lumpy
+      box = card(await page(b))
+      // the card shows the top five; the full list, behind "+ n more", has her
+      expect(box).toContain(`href="/w/${EXAMPLE_ROOT}/people"`)
+      const people: any = await (await b.req(`/w/${EXAMPLE_ROOT}/people?format=json`)).json()
+      expect(people.people.map((x: any) => x.name)).toContain('@ana')
       expect(box).toContain("you're working on this shwarm.")
       expect(box).not.toContain('value="join"')
       // no lobby, no kickoff: joining writes no event
@@ -520,27 +513,25 @@ describe('on the page', () => {
       expect(box).toContain('<input type="hidden" name="do" value="leave"/>')
       expect((await act(b, { do: 'leave' })).status).toBe(303)
       expect(q("SELECT s.left_at IS NOT NULL AS gone FROM seat s JOIN person p ON p.id = s.person_id WHERE p.handle = 'ana'")).toEqual({ gone: 1 })
-      expect(boxOf(await page(b), 'contributors')).toContain('value="join"')
+      expect(card(await page(b))).toContain('value="join"')
     })
 
-    it('signed out, "join" goes to sign-in; unverified, it waits; the author has no leave; a branch offers it too; an ended shwarm offers none', async () => {
+    it('signed out, "join" goes to sign-in; unverified, it waits; the author has no leave; a branch offers it too', async () => {
       const { env } = await world()
-      const out = boxOf(await page(new Browser(env)), 'contributors')
+      const out = card(await page(new Browser(env)))
       expect(out).toContain(`<a class="btn plain" href="/signin?next=%2Fw%2F${EXAMPLE_ROOT}">join</a>`)
       const quiet = await signIn(env, 'quiet', { verified: false })
-      expect(boxOf(await page(quiet), 'contributors')).toContain('verify your email to join.')
+      expect(card(await page(quiet))).toContain('verify your email to join.')
       const author = await signIn(env, 'myra', { make: false })
-      const mine = boxOf(await page(author, `/w/${PLAIN}`), 'contributors')
+      const mine = card(await page(author, `/w/${PLAIN}`))
       expect(mine).toContain("you're working on this shwarm.")
       expect(mine).not.toContain('value="leave"')
       const b = await signIn(env, 'ana')
-      expect(boxOf(await page(b, `/w/${PLAIN}`), 'contributors')).toContain('value="join"') // a new launch shwarm is live too
+      expect(card(await page(b, `/w/${PLAIN}`))).toContain('value="join"') // a new launch shwarm is live too
       // a branch is joined too (decided Oct 12, "Branches can be joined")
-      const branch = boxOf(await page(b, `/w/${EXAMPLE_ROOT}/block-placement`), 'on this branch')
+      const branch = card(await page(b, `/w/${EXAMPLE_ROOT}/block-placement`))
       expect(branch).toContain('value="join"')
-      expect(branch).toContain("join to say you're working on this branch.")
-      env.DB.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'x' WHERE path = ?").run(PLAIN)
-      expect(boxOf(await page(b, `/w/${PLAIN}`), 'contributors')).not.toContain('join')
+      expect(branch).toContain("or give your agent this branch's url:")
     })
   })
 
@@ -585,10 +576,11 @@ describe('on the page', () => {
       for (const path of ['/new', `/new?parent=${EXAMPLE_ROOT}`]) {
         const html = await body(await b.req(path, { headers: HTML }))
         expect(html, path).toMatch(/<span class="note" id="go-note">[^<]*<b id="fixed-note">once posted, nothing on this form can be changed.<\/b><\/span>/)
-        expect(html, path).toContain("the done test can't change once it's posted.")
         expect(html, path).not.toContain('someone else joins or anything is submitted')
         expect(html, path).not.toContain('id="e-pw"')
       }
+      // the lock note sits with the checks, so only the shwarm form has it: a branch takes no checks (decided Oct 14)
+      expect(await body(await b.req('/new', { headers: HTML }))).toContain("the done test can't change once it's posted.")
     })
 
     it("a shwarm edited before Oct 12 still shows its history: to everyone if the old words were public, else to its author alone", async () => {
@@ -658,7 +650,7 @@ describe('on the page', () => {
       expect(postIn(await body(edit), id)).toContain(`${id} was deleted.`)
     })
 
-    it('"make it a branch" opens the branch form filled from the post; only plain posts, only on a live node', async () => {
+    it('"make it a branch" opens the branch form filled from the post; only plain posts', async () => {
       const { env, q } = await world()
       const b = await signIn(env, 'ana')
       await act(b, { do: 'post', text: 'monster collision\n\nimps walk through placed blocks: the blockmap is only built at level load.' })
@@ -670,18 +662,16 @@ describe('on the page', () => {
       expect(form).toContain('value="monster collision"')
       expect(form).toContain('>monster collision\n\nimps walk through placed blocks: the blockmap is only built at level load.</textarea>')
       // anything but a plain post here starts empty
-      const sub = q<{ post_id: string }>('SELECT s.post_id FROM submission s JOIN node n ON n.id = s.node_id LIMIT 1')
-      for (const from of [sub?.post_id ?? 'p_doesnotexist1', 'nonsense']) {
+      const claim = q<{ id: string }>('SELECT id FROM post WHERE claim IS NOT NULL LIMIT 1')
+      for (const from of [claim.id, 'p_doesnotexist1', 'nonsense']) {
         const empty = await body(await b.req(`/new?parent=${EXAMPLE_ROOT}&from=${from}`))
         expect(empty).toContain('<h1 class="title" id="heading">new branch</h1>')
         expect(empty).not.toContain('value="monster collision"')
       }
-      // a new shwarm takes branches at once; an ended one's posts have no "make it a branch"
+      // a new shwarm takes branches at once
       await act(b, { do: 'post', text: 'a first post.' }, `/w/${PLAIN}`)
       const lp = q<{ id: string }>("SELECT id FROM post WHERE text = 'a first post.'").id
       expect(postIn(await page(b, `/w/${PLAIN}`), lp)).toContain('start a branch from this post')
-      env.DB.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'x' WHERE path = ?").run(PLAIN)
-      expect(postIn(await page(b, `/w/${PLAIN}`), lp)).not.toContain('start a branch from this post')
     })
   })
 })

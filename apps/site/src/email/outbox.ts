@@ -15,7 +15,6 @@ export type MailTemplate =
   | 'email_change_old'
   | 'signup_existing'
   | 'triage_alert' // to the admins: a node triage held or flagged (go-live 8.1, triage/run.ts)
-  | 'sign_off_ready' // to a node's author (or, author gone, the admins): a submission waits on their sign-off (go-live 5.4, notice 'sign_off')
   | 'mention' // to someone named as their bare handle, who asked for inbox mail right away (go-live 6.3, notice 'mention')
   | 'digest' // the day's unread mentions in one mail, for everyone else (go-live 6.3, jobs/digest.ts, notice 'mention')
   | 'node_news' // a node you're in passed or failed the author check (go-live 6.3, notice 'pass_fail')
@@ -87,7 +86,8 @@ export function mailToPersonStatement(
 /**
  * The same mail to everyone a SQL query names (`ids`: a SELECT of person ids, with its own binds), each addressed and
  * greeted inside the batch, active accounts only, and only those whose `where` holds (alias `person`). For notices to
- * the people in a node (core/context.ts noticeMailStatement), so the set is read as the batch commits.
+ * the people in a node, so the set is read as the batch commits. OPEN: nothing sends one since a pass stopped being a
+ * submission's (Oct 14); whether a status change mails a node's people ('pass_fail', node_news) isn't decided.
  */
 export function mailToPeopleStatement(
   db: D1Database,
@@ -108,7 +108,7 @@ export function mailToPeopleStatement(
 
 /**
  * The same mail to every active admin (the operator), each addressed and greeted by their own handle (payload.handle).
- * For acts in core that fall to the operator, such as an author-gone sign-off (table B).
+ * For what goes to the operator: a report, a flag, the watchdog, the day's summary.
  * `each`: one mail per admin for every row of a SELECT (alias x, plain placeholders and its own binds), with `set`
  * (more json_set path, value pairs over x) filled in from the row; none when it has no rows. So the batch decides.
  */

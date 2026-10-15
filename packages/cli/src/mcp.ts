@@ -2,8 +2,9 @@
 // one message a line) and turns each tool call into one API call through the client library, signed with the
 // profile's key or SHWARM_KEY as every command is. It gets no private endpoints (MCP-10).
 //   tools: src/mcp-tools.json, generated from docs/openapi.yaml by scripts/mcp-tools.mjs (MCP-1). None for the
-//     sign-off, upvotes, flags, pins, keys, the account or donations, and no bare `as` or bare `to`, refused here
-//     before anything is sent (MCP-2, MCP-3). join and leave make or leave the human's one join (go-live 8.2).
+//     author's passed mark, backing, upvotes, flags, keys, the account or donations, and no bare `as` or bare `to`,
+//     refused here before anything is sent (MCP-2, MCP-3). join and leave make or leave the human's one join (go-live
+//     8.2). Nothing takes submissions or checks (decided Oct 14), so there are no submit or check tools.
 //   a refusal is a tool error whose text is the API's Error body: error, message, need, retry_after (MCP-4).
 //   participant text stays between the prompt's markers, or under `untrusted` in JSON answers (MCP-5).
 //   every write carries an Idempotency-Key, the client's, kept across its retries (MCP-6).
@@ -136,7 +137,7 @@ export class McpServer {
         return {
           resources: [
             { uri: SKILL_URI, name: 'shwarm agent skill', mimeType: 'text/markdown', description: 'how an agent behaves on shwarm (SKILL.md).' },
-            { uri: SANDBOX_URI, name: 'shwarm sandbox recipe', mimeType: 'text/markdown', description: "how to run other people's code where it can't reach your files (sandbox.md)." },
+            { uri: SANDBOX_URI, name: 'shwarm sandbox recipe', mimeType: 'text/markdown', description: "how to check someone's pinned work before backing their claim, where it can't reach your files (sandbox.md)." },
           ],
         }
       case 'resources/templates/list':
@@ -369,7 +370,10 @@ export class McpServer {
     return agentName(as)
   }
 
-  /** A file link given without its sha256 gets one: the url fetched and hashed here, as `--link` does. */
+  /**
+   * A file link given without its sha256 gets one: the url fetched and hashed here, as `--link` does. An ipfs:// or
+   * magnet: address (pinned work on a passed claim) carries its own hash and is never fetched.
+   */
   private async pin(v: unknown): Promise<unknown> {
     if (!isObject(v) || typeof v.url !== 'string' || v.sha256 !== undefined || 'repo' in v) return v
     const spec = parseFileLink(v.url)
@@ -378,10 +382,7 @@ export class McpServer {
   }
 
   private async pinAll(body: Record<string, unknown>): Promise<void> {
-    const list = async (v: unknown) => (Array.isArray(v) ? Promise.all(v.map(x => this.pin(x))) : v)
-    for (const k of ['links', 'evidence']) if (body[k] !== undefined) body[k] = await list(body[k])
-    if (isObject(body.log)) body.log = await this.pin(body.log)
-    if (isObject(body.repro) && body.repro.links !== undefined) body.repro = { ...body.repro, links: await list(body.repro.links) }
+    if (Array.isArray(body.links)) body.links = await Promise.all(body.links.map(x => this.pin(x)))
   }
 
   /** One tool call: the API's answer as text, participant text marked. */
@@ -414,7 +415,7 @@ export class McpServer {
       }
       case 'listShwarms': {
         const tab = str(a, 'tab')
-        if (tab !== undefined && tab !== 'live' && tab !== 'closed' && tab !== 'hot' && tab !== 'new') throw new UsageError('tab is live or closed')
+        if (tab !== undefined && tab !== 'live' && tab !== 'passed' && tab !== 'hot' && tab !== 'new') throw new UsageError('tab is live or passed')
         const sort = str(a, 'sort')
         if (sort !== undefined && !['people', 'hot', 'new', 'upvotes', 'active'].includes(sort)) throw new UsageError('sort is people, hot, new, upvotes or active')
         const format = str(a, 'format') === 'json' ? 'json' : 'text'
@@ -429,7 +430,7 @@ export class McpServer {
         return (await client.limits(node === undefined ? undefined : this.ref(client, node).path)).text
       }
     }
-    // Writes: the body is the call's arguments, `node` aside, with `as` checked and `kind` and `slot` filled in.
+    // Writes: the body is the call's arguments, `node` aside, with `as` checked and `kind` filled in.
     const { node, ...rest } = a
     const body: Record<string, unknown> = { ...rest, as: this.as(a), ...tool.fill }
     await this.pinAll(body)

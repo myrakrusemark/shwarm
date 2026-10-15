@@ -9,7 +9,6 @@ import { forgetVersions } from '../src/web/version-memo'
 import { T0 } from './d1'
 import { body, Browser, fakeFetch, ORIGIN, testEnv } from './browser'
 import { PLAIN, stagingWorld } from './node-fixture'
-import { closedWorld } from './result-fixture'
 
 beforeEach(() => {
   vi.stubGlobal('fetch', fakeFetch())
@@ -142,18 +141,22 @@ describe('link previews and canonical links', () => {
     expect(html.match(/og:image/g)?.length).toBe(1) // the site's mark only
   })
 
-  it('a branch page and a closed shwarm’s result page and thread', async () => {
-    const w = await closedWorld()
+  it('a branch page, and a shwarm that passed: its pass box on its own page; the retired ?thread=1 is the page itself', async () => {
+    const w = await stagingWorld()
+    const root = w.db.raw.prepare('SELECT id FROM node WHERE path = ?').get(EXAMPLE_ROOT) as { id: number }
+    w.db.raw
+      .prepare("INSERT INTO pass_record (id, node_id, kind, status, at, backers, pins, by_name, person_id) VALUES ('r_crawl0001', ?, 'author', 'passed', ?, 0, '[]', '@myra', ?)")
+      .run(root.id, new Date(T0).toISOString(), w.myraId)
     const b = new Browser(testEnv(w.db))
     const branch = await body(await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: HTML }))
     expect(canonical(branch)).toBe(`https://shwarm.org/w/${EXAMPLE_BRANCH}`)
     expect(meta(branch, 'og:description')).toBe(meta(branch, 'description'))
-    const result = await body(await b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML }))
-    expect(result).toContain('class="passed"') // it is the result page
-    expect(canonical(result)).toBe(`https://shwarm.org/w/${EXAMPLE_ROOT}`)
-    expect(meta(result, 'og:title')).toBe('minecraft in doom')
+    const passed = await body(await b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML }))
+    expect(passed).toContain('<div class="box passbox" id="passed">')
+    expect(canonical(passed)).toBe(`https://shwarm.org/w/${EXAMPLE_ROOT}`)
+    expect(meta(passed, 'og:title')).toBe('minecraft in doom')
     const thread = await body(await b.req(`/w/${EXAMPLE_ROOT}?thread=1`, { headers: HTML }))
-    expect(canonical(thread)).toBe(`https://shwarm.org/w/${EXAMPLE_ROOT}?thread=1`)
+    expect(canonical(thread)).toBe(`https://shwarm.org/w/${EXAMPLE_ROOT}`)
   })
 
   it('escapes what the author wrote', async () => {

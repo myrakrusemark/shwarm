@@ -8,12 +8,11 @@ export const email = {
   // every mail: the last two lines. {site} is the site's address
   footSite: 'shwarm · {site}',
   footReplies: 'replies go to support@shwarm.org.',
-  // a notice mail (mentions, sign-offs, passes and fails): above the unsubscribe link. {label} is one of the notice names below
+  // a notice mail (mentions, passes and fails): above the unsubscribe link. {label} is one of the notice names below
   footUnsubscribe: 'you get this because {label} mails are on. turn them off here:',
 
   // the notice names, in footUnsubscribe and on the unsubscribe page
   noticeMention: 'mention',
-  noticeSignOff: 'sign off',
   noticePassFail: 'pass and fail',
 
   // the notice settings in the account modal: the two tick boxes
@@ -81,15 +80,6 @@ export const email = {
   accountClosedSubject: 'your shwarm account is closed',
   accountClosedBody: 'your shwarm account was closed just now. we deleted your email address, password, inbox, sign-ins and keys. what you posted stays up under its license, shown as by a former member.',
   accountClosedLast: "this is the last mail we send to this address. if you didn't close your account, reply to this mail right away.",
-
-  // ready for sign-off: to a shwarm's author. {n} is the submission's number, {title} the shwarm's or branch's title
-  signOffSubject: 'submission #{n} on {title} is ready for your sign-off',
-  // when the author is the only check
-  signOffOnly: 'submission #{n} on {title} is waiting on you. your sign-off is the only check it needs.',
-  // when every other check passed
-  signOffLast: 'every other check on submission #{n} on {title} has passed. your sign-off is the last one.',
-  signOffOpen: 'open the submission to pass it with what you checked, or fail it with steps that show how it fails:',
-  signOffNothingPasses: 'nothing passes until you sign off. the work stays open to everyone meanwhile.',
 
   // a mention, sent right away. {by} is who wrote, {title} where
   mentionSubject: '{by} mentioned you on {title}',

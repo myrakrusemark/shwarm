@@ -1,6 +1,5 @@
-// Go-live docs sync (Oct 9): the mockups, the footer pages the site serves and openapi.yaml follow "No lobby",
-// "Variants are dropped" and "An ended shwarm is locked" / "Continuing an ended shwarm is always build on" (all decided
-// Oct 9). The docs keep these words only as history, so they aren't checked here; the pages people and agents read are.
+// Go-live docs sync (Oct 9): the mockups, the footer pages the site serves and openapi.yaml follow "No lobby" and
+// "Variants are dropped" (decided Oct 9), and since Oct 14 "One model for every node" (nothing locks). The docs keep these words only as history, so they aren't checked here; the pages people and agents read are.
 // holding.html is left out: its manifesto lines wait on Myra's wording (go-live 8.1, open question #94).
 import { readdirSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
@@ -24,29 +23,33 @@ describe('retired terms (docs sync, Oct 9)', () => {
     expect(pages.match(RETIRED) ?? []).toEqual([])
   })
 
-  // Only an ended shwarm has "build on this" and "challenged by" on the site (OPEN #92), so how it works says so.
-  it("how it works offers building on a shwarm, not a branch", () => {
+  // Nothing locks (decided Oct 14, "One model for every node"): any shwarm can be built on, for a different finish line.
+  it("how it works offers building on a shwarm for a different finish line, and says a pass locks nothing", () => {
     const pages = JSON.parse(readFileSync(new URL('../src/content/pages.json', import.meta.url), 'utf8'))
-    const done = pages.find((p: any) => p.slug === 'how-it-works').sections.find((s: any) => s.id === 'done').body as string
-    const carryOn = done.split(/(?<=\.) /).filter(s => /builds on it/.test(s))
+    const passed = pages.find((p: any) => p.slug === 'how-it-works').sections.find((s: any) => s.id === 'passed').body as string
+    const carryOn = passed.split(/(?<=\.) /).filter(s => /builds on this one/.test(s))
     expect(carryOn).toHaveLength(1)
-    expect(carryOn[0]).toMatch(/^to keep a shwarm going\b/)
+    expect(carryOn[0]).toMatch(/^to aim at a different finish line\b/)
+    expect(passed).toContain('a pass locks nothing.')
+    expect(JSON.stringify(pages)).not.toMatch(/\block(ed|s)? (along with|with it)\b|challenged by/)
   })
 
-  it("the PRD's result page keeps the thread locked", () => {
+  it("the PRD's pass box locks nothing, and the result page's requirements are retired", () => {
     const prd = readFileSync(new URL('../../../docs/prd.md', import.meta.url), 'utf8')
-    const closed = prd.split('\n').filter(l => /^- \*\*CLOSED-\d+\*\*/.test(l))
-    expect(closed.length).toBeGreaterThan(10)
-    expect(closed.filter(l => /stays open|\brepros?\b/.test(l))).toEqual([])
-    expect(closed.find(l => l.startsWith('- **CLOSED-12**'))).toMatch(/it's locked\./)
+    const pass = prd.split('\n').filter(l => /^- \*\*PASS-\d+\*\*/.test(l))
+    expect(pass.length).toBeGreaterThan(5)
+    expect(pass.find(l => l.startsWith('- **PASS-7**'))).toMatch(/^- \*\*PASS-7\*\* Nothing locks/)
+    expect(prd.split('\n').filter(l => /^- \*\*CLOSED-\d+\*\*/.test(l))).toEqual([])
   })
 })
 
 describe('openapi.yaml after the docs sync', () => {
   const schemas = spec.components.schemas
 
-  it('has three node states and two kinds', () => {
-    expect(schemas.NodeState.enum).toEqual(['live', 'closed', 'dead_end'])
+  // Nothing locks (decided Oct 14, "One model for every node"): every node is live; how it's going is its status.
+  it('has one node state, four statuses and two kinds', () => {
+    expect(schemas.NodeState.enum).toEqual(['live'])
+    expect(schemas.NodeStatus.enum).toEqual(['on_track', 'blocked', 'passed', 'dead_end'])
     expect(schemas.Node.properties.kind.enum).toEqual(['shwarm', 'branch'])
     expect(schemas.NodeCreated.properties.kind.enum).toEqual(['shwarm', 'branch'])
   })
@@ -60,16 +63,17 @@ describe('openapi.yaml after the docs sync', () => {
   })
 
   it('a new shwarm takes neither variant_of nor lobby', () => {
-    const body = { as: '@myra/m-04', title: 't', what: 'w', done_when: 'd', check: { author: true }, tags: ['#weird'] }
+    const body = { as: '@myra/m-04', title: 't', what: 'w', done_when: 'd', tags: ['#weird'] }
     expect(schemaErrors('CreateShwarm', body)).toEqual([])
     expect(schemaErrors('CreateShwarm', { ...body, lobby: 12 })).not.toEqual([])
     expect(schemaErrors('CreateShwarm', { ...body, variant_of: 'minecraft-in-doom' })).not.toEqual([])
   })
 
-  it("the locked refusal's example is a valid error body", () => {
-    const ex = (spec.components as any).responses.Conflict.content['application/json'].examples.shwarm_closed.value
-    expect(ex).toMatchObject({ error: 'shwarm_closed', state: 'closed', locked_by: 'minecraft-in-doom' })
-    expect(schemaErrors('Error', ex)).toEqual([])
-    expect(schemaErrors('Error', { ...ex, state: 'lobby' })).not.toEqual([])
+  it('has no locked refusal and no lock fields: nothing locks (decided Oct 14)', () => {
+    const responses = JSON.stringify((spec.components as any).responses)
+    expect(responses).not.toContain('"error":"shwarm_closed"')
+    expect(schemas.Node.properties.locked_by).toBeUndefined()
+    expect(schemas.Error.properties.locked_by).toBeUndefined()
+    expect(schemas.Node.properties.take_part.properties.locked).toEqual({ type: 'boolean', const: false })
   })
 })

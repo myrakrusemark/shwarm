@@ -1,14 +1,15 @@
-// Go-live 9.6, the admin's post acts reach every copy of what they act on. A dead-end note is copied into
-// node.dead_end_note (the node's page and text, its parent's branch list, the feed's status line), so hiding the note
-// blanks those and restoring it puts them back. A check's links are read from check_report (evidence, the repro's
-// links, the log link), so /admin/post lists them and removing one takes it from there too.
+// Go-live 9.6, the admin's post acts reach every copy of what they act on. A dead-end note from before Oct 14 is copied
+// into node.dead_end_note and cited by its node's pass record (the node's page and text, its parent's branch list, the
+// feed's status line), so hiding the note blanks those and restoring it puts them back. An old check's links are read
+// from check_report (evidence, the repro's links, the log link), so /admin/post lists them and removing one takes it
+// from there too.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { hashPassword } from '../src/auth/password'
 import { rollupStats } from '../src/jobs/stats'
 import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
 import { resetReadLimit } from '../src/web/read-limit'
 import { forgetVersions } from '../src/web/version-memo'
-import { T0 } from './d1'
+import { migrateOldRows, T0 } from './d1'
 import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv } from './browser'
 import { PLAIN, stagingWorld } from './node-fixture'
 
@@ -61,19 +62,21 @@ const read = async (env: ReturnType<typeof testEnv>, path: string, headers: Reco
 describe('hiding a dead-end note', () => {
   it('blanks the note on the node page and text, the parent branch list and the feed; restoring it brings it back', async () => {
     const w = await world()
-    // The branch and the plain shwarm end as dead ends, as core/nodes.ts deadEnd leaves them: the post and its copy.
+    // The branch and the plain shwarm were marked dead ends before Oct 14, as the author's dead end left them (the post
+    // and its copy), then migrated: each a dead end now, with its author's record citing the note.
     const end = (path: string, id: string, note: string) => {
       w.raw.prepare("INSERT INTO post (id, node_id, person_id, as_name, kind, text, created_at) VALUES (?, ?, ?, '@myra', 'dead_end', ?, ?)").run(id, w.nodeId(path), w.myraId, note, iso(T0 - 30_000))
       w.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = ?, closed_at = ? WHERE id = ?").run(note, iso(T0 - 30_000), w.nodeId(path))
     }
     end(EXAMPLE_BRANCH, BRANCH_END, BRANCH_NOTE)
     end(PLAIN, PLAIN_END, PLAIN_NOTE)
+    migrateOldRows(w.db)
     await rollupStats(w.db, T0)
     const shown = async () => ({
       page: (await read(w.env, `/w/${EXAMPLE_BRANCH}`)).includes(BRANCH_NOTE),
       text: (await read(w.env, `/w/${EXAMPLE_BRANCH}?format=text`, {})).includes(BRANCH_NOTE),
       parent: (await read(w.env, `/w/${EXAMPLE_ROOT}`)).includes(BRANCH_NOTE),
-      feed: (await read(w.env, '/?tab=closed')).includes(PLAIN_NOTE),
+      feed: (await read(w.env, '/')).includes(PLAIN_NOTE),
     })
     const all = { page: true, text: true, parent: true, feed: true }
     expect(await shown()).toEqual(all)
@@ -87,7 +90,7 @@ describe('hiding a dead-end note', () => {
     expect(await shown()).toEqual({ page: false, text: false, parent: false, feed: false })
     // The stats job, run again, doesn't bring it back.
     await rollupStats(w.db, T0 + 60_000)
-    expect((await read(w.env, '/?tab=closed')).includes(PLAIN_NOTE)).toBe(false)
+    expect((await read(w.env, '/')).includes(PLAIN_NOTE)).toBe(false)
 
     expect((await act(w.myra, postUrl(BRANCH_END), { do: 'unhide', reason: 'misread it' })).status).toBe(303)
     expect((await act(w.myra, postUrl(PLAIN_END), { do: 'unhide', reason: 'misread it' })).status).toBe(303)
@@ -97,6 +100,20 @@ describe('hiding a dead-end note', () => {
 })
 
 describe('removing a check link', () => {
+  const S1 = `/w/${EXAMPLE_ROOT}/s/1`
+  /** #1 on the example's shwarm, from before Oct 14, with a people check that passed it and one that failed it. */
+  function oldChecks(w: Awaited<ReturnType<typeof world>>) {
+    const n = w.nodeId(EXAMPLE_ROOT)
+    const id = (h: string) => w.q<{ id: number }>('SELECT id FROM person WHERE handle = ?', h).id
+    const post = w.raw.prepare('INSERT INTO post (id, node_id, person_id, as_name, kind, text, links, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+    post.run('p_oldsub0001', n, w.myraId, '@myra/m-04', 'submission', 'the edge fix.', '[]', iso(T0 - 90 * 60_000))
+    w.raw.prepare("INSERT INTO submission (post_id, node_id, number, hash, how_to_check, author_swap, status) VALUES ('p_oldsub0001', ?, 1, ?, 'run it.', 0, 'superseded')").run(n, 'd'.repeat(64))
+    const check = w.raw.prepare("INSERT INTO check_report (id, post_id, submission_id, person_id, slot, verdict, evidence, repro, created_at) VALUES (?, ?, 'p_oldsub0001', ?, 'people', ?, ?, ?, ?)")
+    post.run('p_oldchk0001', n, id('kestrel'), '@kestrel/swarm/r-03', 'check', 'ran the repro 200× per corner, 0 failures.', '[]', iso(T0 - 80 * 60_000))
+    check.run('c_oldchk0001', 'p_oldchk0001', id('kestrel'), 'pass', JSON.stringify([{ url: RERUN, sha256: '2d'.repeat(32), label: 'corner-rerun.log' }]), null, iso(T0 - 80 * 60_000))
+    post.run('p_oldchk0002', n, id('marceline'), '@marceline', 'check', 'corners still fail ~1 in 20.', '[]', iso(T0 - 70 * 60_000))
+    check.run('c_oldchk0002', 'p_oldchk0002', id('marceline'), 'fail', null, JSON.stringify({ steps: 'stand diagonal to a chunk corner and place on the far face.', links: [{ url: CORNER, sha256: '3b'.repeat(32) }] }), iso(T0 - 70 * 60_000))
+  }
   const checkWith = (w: Awaited<ReturnType<typeof world>>, like: string, col: 'evidence' | 'repro') =>
     w.q<{ id: string; post_id: string; evidence: string | null; repro: string | null; log_link: string | null }>(
       `SELECT id, post_id, evidence, repro, log_link FROM check_report WHERE ${col} LIKE ?`,
@@ -105,20 +122,21 @@ describe('removing a check link', () => {
 
   it('takes a check evidence link off the submission page, and out of check_report', async () => {
     const w = await world()
+    oldChecks(w)
     const c = checkWith(w, RERUN, 'evidence')
-    const S2 = `/w/${EXAMPLE_BRANCH}/s/2`
-    expect(await read(w.env, S2)).toContain(RERUN)
+    expect(await read(w.env, S1)).toContain(RERUN)
     const was = JSON.stringify(JSON.parse(c.evidence!)[0])
     expect(await body(await w.myra.get(postUrl(c.post_id)))).toContain(RERUN)
     expect((await act(w.myra, postUrl(c.post_id), { do: 'remove_link', link: '0', was, reason: 'malware' })).status).toBe(303)
     expect(checkWith(w, RERUN, 'evidence')).toBeUndefined()
     expect(w.q('SELECT evidence FROM check_report WHERE id = ?', c.id).evidence).toBeNull()
-    expect(await read(w.env, S2)).not.toContain(RERUN)
+    expect(await read(w.env, S1)).not.toContain(RERUN)
     expect(w.q("SELECT COUNT(*) AS k FROM moderation_action WHERE action = 'remove_link'").k).toBe(1)
   })
 
   it("lists a check's repro and log links on /admin/post, and removes each from check_report, steps kept", async () => {
     const w = await world()
+    oldChecks(w)
     const c = checkWith(w, CORNER, 'repro')
     const LOG = { url: 'https://archive.org/download/doom-blocks-checks/soak.log', sha256: 'e'.repeat(64) }
     w.raw.prepare('UPDATE check_report SET log_link = ? WHERE id = ?').run(JSON.stringify(LOG), c.id)

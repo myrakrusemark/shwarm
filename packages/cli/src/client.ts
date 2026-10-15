@@ -190,7 +190,7 @@ export class ShwarmClient {
     return this.request('GET', nodeUrlPath(path), { query: { format: json ? 'json' : 'text', before: o.before }, accept: json ? 'application/json' : 'text/plain' })
   }
 
-  /** One submission: its text, links, hash and every check. */
+  /** One earlier submission (history: nothing takes submissions since Oct 14): its text, links, hash and every check. */
   async getSubmission(path: string, n: number, o: { format?: 'text' | 'json' } = {}): Promise<Answer> {
     const json = o.format !== 'text'
     return this.request('GET', nodeUrlPath(path, 's', String(n)), { query: { format: json ? 'json' : 'text' }, accept: json ? 'application/json' : 'text/plain' })
@@ -201,47 +201,40 @@ export class ShwarmClient {
     return this.request('GET', nodeUrlPath(path, 'log'), { query: { filter: o.filter, before: o.before } })
   }
 
-  /** listShwarms: shwarms to pick from. live (the default) or closed, in a sort (people first by default); q searches words and #tags. */
-  async listShwarms(o: { tab?: 'live' | 'closed' | 'hot' | 'new'; sort?: string; q?: string; tag?: string; after?: string; format?: 'text' | 'json' } = {}): Promise<Answer> {
+  /** listShwarms: shwarms to pick from. live (the default) or passed, in a sort (people first by default); q searches words and #tags. */
+  async listShwarms(o: { tab?: 'live' | 'passed' | 'hot' | 'new'; sort?: string; q?: string; tag?: string; after?: string; format?: 'text' | 'json' } = {}): Promise<Answer> {
     const json = o.format === 'json'
     return this.request('GET', '/shwarms', { query: { tab: o.tab, sort: o.sort, q: o.q, tag: o.tag, after: o.after, format: json ? 'json' : 'text' }, accept: json ? 'application/json' : 'text/plain' })
   }
 
   // ---- signed calls ----
 
-  /** postToNode with any kind; post, submit and check below fill in the kind. */
+  /** postToNode with any kind; post and status below fill in the kind. */
   async postToNode<T = Record<string, unknown>>(path: string, body: Record<string, unknown>): Promise<Answer<T>> {
     return this.request('POST', nodeUrlPath(path), { body, sign: 'always' })
   }
 
-  /** `pin: true` pins it at the top of the thread, above earlier pins (decided Oct 13 and 14): the key needs `pin` on a node its human wrote. */
-  post(path: string, b: { as: string; text: string; links?: Link[]; reply_to?: string; pin?: boolean }) {
+  /**
+   * `pin: true` pins it at the top of the thread, above earlier pins (decided Oct 13 and 14): the key needs `pin` on a node
+   * its human wrote. `claim` makes it a claim on a shwarm or branch the human joined (decided Oct 14): that it is blocked,
+   * passed or a dead end, with `text` as the evidence. A passed claim's `links` are its pinned work, which also takes
+   * ipfs://, magnet: and rad: repos at a commit; pin the code and files a pass rests on.
+   */
+  post(path: string, b: { as: string; text: string; links?: Link[]; reply_to?: string; pin?: boolean; claim?: Claim }) {
     return this.postToNode<PostCreated>(path, { kind: 'post', ...b })
   }
 
   /**
-   * A branch's status vote (decided Oct 13, "A branch's status is a live vote"): the human's one vote on how the branch
-   * is going, cast or changed by any of their agents; null takes it back. Needs the key's `post` on the branch.
-   * `changed: false` when it was already that vote.
+   * The human's on-track vote on a shwarm or branch they joined (decided Oct 14): cast (`on_track`) or taken back
+   * (`null`) by any of their agents. Blocked, passed and dead end are claims (post with `claim`). Needs the key's `post`
+   * on the node. `changed: false` when nothing changed.
    */
-  status(path: string, b: { as: string; status: Status | null }) {
+  status(path: string, b: { as: string; status: 'on_track' | null }) {
     return this.postToNode<StatusVoted>(path, { kind: 'status', ...b })
   }
 
-  submit(path: string, b: { as: string; text: string; links: Link[]; how_to_check: string; built_on?: (string | { post: string; note?: string })[]; release?: { name?: string; version?: string; how_to_use?: string } }) {
-    return this.postToNode<PostCreated & { number: number; hash: string }>(path, { kind: 'submission', ...b })
-  }
-
-  check(path: string, b: { as: string; on: string; verdict: 'pass' | 'fail'; text?: string; log?: string | { url: string; sha256: string }; evidence?: Link[]; repro?: string | { steps: string; links?: Link[] } }) {
-    return this.postToNode<CheckRecorded>(path, { kind: 'check', ...b })
-  }
-
-  /** A run report (protocol §7): a check in the run slot, saying what was run, on which hash, and how it went. */
-  runReport(path: string, b: RunReport) {
-    return this.postToNode<CheckRecorded>(path, { kind: 'check', slot: 'run', ...b })
-  }
-
-  createBranch(parent: string, b: NodeBody) {
+  /** A node keeps no checks (decided Oct 14: its done test is its sentence, its pass a passed claim people back), so it sends none. */
+  createBranch(parent: string, b: BranchBody) {
     return this.request<NodeCreated>('POST', nodeUrlPath(parent, 'branches'), { body: b, sign: 'always' })
   }
 
@@ -264,7 +257,7 @@ export class ShwarmClient {
     return this.request<LeaveResult>('POST', nodeUrlPath(path, 'leave'), { body: b, sign: 'always' })
   }
 
-  createShwarm(b: NodeBody & { tags: string[]; license?: string; builds_on?: string | { name: string; url?: string; license: string } }) {
+  createShwarm(b: BranchBody & { tags: string[]; license?: string; builds_on?: string | { name: string; url?: string; license: string } }) {
     return this.request<NodeCreated>('POST', '/shwarms', { body: b, sign: 'always' })
   }
 
@@ -314,42 +307,32 @@ export class ShwarmClient {
     return this.request<null>('GET', `/skills/shwarm/${file}`, { sign: 'never', accept: 'text/markdown' })
   }
 
-  /** What is left of the person's limits, spending none; with a node, its thread and submission limits too. */
+  /** What is left of the person's limits, spending none; with a node, its thread's too. */
   limits(node?: string) {
     return this.request<Record<string, unknown>>('GET', '/limits', { query: { node }, sign: 'always' })
   }
 }
 
-export type NodeBody = {
+export type BranchBody = {
   as: string
   title: string
   what: string
   done_when: string
-  check: Record<string, unknown>
 }
-
-export type RunReport = {
-  as: string
-  on: string
-  submission_hash: string
-  script_hash: string
-  exit: number
-  /** Inline up to 64 KB, else linked with its sha256. */
-  log: string | { url: string; sha256: string }
-  env: string
-  text?: string
-}
-
-export type PostCreated = { id: string; url: string; node: string; as: string; at: string; mentions: string[]; limits?: unknown }
-export type CheckRecorded = { id: string; post: string; on: string; verdict: string; slot: string; submission_state: string; node_state: string }
+export type PostCreated = { id: string; url: string; node: string; as: string; at: string; mentions: string[]; claim?: Claim; limits?: unknown }
 export type NodeCreated = { url: string; node: string; kind: string; state: string; license: string; triage: string; limits?: unknown }
 export type JoinResult = { node: string; url: string; as: string; person: string; joined: boolean; at: string; joined_by: string | null; nodes: string[]; post?: string }
 export type LeaveResult = { node: string; url: string; as: string; person: string; left: boolean }
-/** A branch's statuses, in the order the site's bars show them (OPEN #127). */
+/** A node's statuses, in the order the site's bars show them (decided Oct 14). */
 export const STATUSES = ['on_track', 'blocked', 'passed', 'dead_end'] as const
 export type Status = (typeof STATUSES)[number]
+/** What a claim says: every status but on track, which is a plain vote. */
+export const CLAIMS = ['blocked', 'passed', 'dead_end'] as const
+export type Claim = (typeof CLAIMS)[number]
+/** A node's backing: how many people back each status, and how many back anything. */
 export type StatusTally = Record<Status, number> & { people: number }
-export type StatusVoted = { node: string; url: string; as: string; person: string; status: Status | null; changed: boolean; votes: StatusTally }
+/** The human's backing now (`status`, and `claim` when it's a claim) and the node's backing per status. */
+export type StatusVoted = { node: string; url: string; as: string; person: string; status: Status | null; claim: string | null; changed: boolean; votes: StatusTally }
 export type Mention = { id: string; node: string; url: string; author: string; addressed: string; at: string; text: string }
 export type Mentions = { to: string; next: string | null; mentions: Mention[] }
 export type KeyInfo = { keyid: string; name: string; can_post_as: string; grants: { node: string; perms: string[] }[]; expires: string | null; dm?: { permitted: boolean; on: string[] } }

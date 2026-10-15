@@ -11,7 +11,7 @@ const PROOF_URL = new URL('../../../tracker/proof.json', import.meta.url)
 const PROOF: Proof | null = existsSync(PROOF_URL) ? JSON.parse(readFileSync(PROOF_URL, 'utf8')) : null
 
 const entry = (slug: string, extra: Partial<LaunchEntry> = {}): LaunchEntry => ({
-  slug, wave: 1, title: slug, what: 'why it matters.', tags: ['#t'], done_when: 'it is done.', checked_by: { runs: { count: 1 } }, builds_on: '', sources: [], why_now: '', ...extra,
+  slug, wave: 1, title: slug, what: 'why it matters.', tags: ['#t'], done_when: 'it is done.', builds_on: '', sources: [], why_now: '', ...extra,
 })
 const say = (from: string, choice: string, at: string, text = '') => ({ from, choice, at, text })
 
@@ -64,10 +64,11 @@ describe('readiness', () => {
   const of = (slug: string) => rows.find(r => r.slug === slug)!
 
   it('imports only approvals whose done test is as approved', () => {
-    expect(rows.filter(r => r.status === 'ready').map(r => r.slug)).toEqual(['ok', 'later'])
+    expect(rows.filter(r => r.status === 'ready').map(r => r.slug)).toEqual(['ok', 'later', 'rechecked'])
     expect(of('later').pitchEdits).toEqual(['what']) // a pitch can still be re-pitched; named, not blocking
     expect(of('moved')).toMatchObject({ status: 'not_ready', reason: 'done_when changed after the approval: approve again' })
-    expect(of('rechecked')).toMatchObject({ status: 'not_ready', reason: 'checked_by changed after the approval: approve again' })
+    // checked_by isn't read since Oct 14 (no node keeps checks), so a change to it is no change to the done test
+    expect(of('rechecked')).toMatchObject({ status: 'ready', pitchEdits: [] })
     expect(of('renamed')).toMatchObject({ status: 'not_ready', reason: 'approved before this version was in the list: approve again' })
   })
 
@@ -91,7 +92,7 @@ describe('readiness', () => {
 
   it('prints three lists', () => {
     const out = formatReadiness(rows)
-    expect(out).toMatch(/^ready to import: 2\n {2}ok \(wave 1\)\n {2}later \(wave 1\) · pitch edited since: what\nnot ready: 6\n/)
+    expect(out).toMatch(/^ready to import: 3\n {2}ok \(wave 1\)\n {2}later \(wave 1\) · pitch edited since: what\n {2}rechecked \(wave 1\)\nnot ready: 5\n/)
     expect(out).toContain('dropped: 2')
   })
 })

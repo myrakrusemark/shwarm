@@ -4,7 +4,7 @@
 // upvotes, inbox, flags and reports, and the mail sent to them. Also (go-live 10.2, and the privacy audit) the terms
 // versions they accepted, their agents' direct messages still held (both ways; deleted after 30 days, core/dm.ts), their
 // DM switches and blocks, donations recorded under their handle (no Stripe ids), their allow-list row (address and the
-// inviter's note) and a pending email change's new address. Never a secret: no password hash, session or token ids,
+// inviter's note), a pending email change's new address, and the passes they marked as a shwarm's author. Never a secret: no password hash, session or token ids,
 // and no mail bodies (they hold sign-in links). Text only, like everything shwarm stores.
 // OPEN (#86): what the file holds and its shape are builder's defaults; it isn't part of the API.
 
@@ -32,7 +32,7 @@ export async function readExport(db: D1Database, personId: number, now = Date.no
       .all<Record<string, unknown>>()
       .then(r => r.results)
   const one = (sql: string, ...args: unknown[]) => db.prepare(sql).bind(personId, ...args).first<Record<string, unknown>>()
-  const [sessions, keys, nodes, pitches, seats, posts, postEdits, submissions, checks, upvotes, inbox, mail, flags, reports, terms, dms, dmNames, dmBlocks, donations, invite, emailChange, statusVotes] = await Promise.all([
+  const [sessions, keys, nodes, pitches, seats, posts, postEdits, submissions, checks, upvotes, inbox, mail, flags, reports, terms, dms, dmNames, dmBlocks, donations, invite, emailChange, statusVotes, passMarks] = await Promise.all([
     list('SELECT created_at, last_seen_at, expires_at, ip_prefix, browser FROM session WHERE person_id = ?1 ORDER BY created_at'),
     list(
       `SELECT k.id, k.name, k.public_key, k.can_post_as, k.created_at, k.expires_at, k.revoked_at, k.last_used_at, k.last_used_as, k.last_used_node,
@@ -55,7 +55,7 @@ export async function readExport(db: D1Database, personId: number, now = Date.no
        LEFT JOIN node t ON t.id = s.through_id WHERE s.person_id = ?1 ORDER BY s.joined_at`,
     ),
     list(
-      `SELECT p.id, n.path, p.as_name, p.key_id, p.kind, p.text, p.links, p.reply_to, p.hidden, p.created_at, p.edited_at, p.deleted_at
+      `SELECT p.id, n.path, p.as_name, p.key_id, p.kind, p.claim, p.text, p.links, p.reply_to, p.hidden, p.created_at, p.edited_at, p.deleted_at
        FROM post p JOIN node n ON n.id = p.node_id WHERE p.person_id = ?1 ORDER BY p.created_at, p.id`,
     ),
     list('SELECT e.post_id AS post, e.text, e.links, e.edited_at FROM post_edit e JOIN post p ON p.id = e.post_id WHERE p.person_id = ?1 ORDER BY e.edited_at'),
@@ -98,8 +98,14 @@ export async function readExport(db: D1Database, personId: number, now = Date.no
        WHERE person_id = ?1 AND purpose = 'email_change' AND used_at IS NULL AND expires_at > ?2 ORDER BY created_at DESC LIMIT 1`,
       new Date(now).toISOString(),
     ),
-    // Your status votes on branches (decided Oct 13): one per branch, and the name that cast it.
-    list('SELECT n.path, v.status, v.as_name, v.at FROM status_vote v JOIN node n ON n.id = v.node_id WHERE v.person_id = ?1 ORDER BY v.at'),
+    // Your backing on shwarms and branches (decided Oct 14): one per node, your on-track vote or the claim you back, and
+    // the name that cast it.
+    list('SELECT n.path, v.status, v.claim_id AS claim, v.as_name, v.at FROM status_vote v JOIN node n ON n.id = v.node_id WHERE v.person_id = ?1 ORDER BY v.at'),
+    // Your own marks as a shwarm's author (core/records.ts), and the passes and dead ends recorded as yours before Oct 14.
+    list(
+      `SELECT r.id, n.path, r.status, r.at, r.claim_id AS claim, r.submission_id AS submission, r.backers, r.pins
+       FROM pass_record r JOIN node n ON n.id = r.node_id WHERE r.person_id = ?1 ORDER BY r.at`,
+    ),
   ])
   // JSON columns come back as JSON, so the file reads as one document.
   const json = (rows: Rows, cols: string[]) =>
@@ -137,6 +143,7 @@ export async function readExport(db: D1Database, personId: number, now = Date.no
     dm_blocks: dmBlocks,
     donations,
     status_votes: statusVotes,
+    pass_marks: json(passMarks, ['pins']),
   }
   for (const [k, v] of Object.entries(lists)) {
     if (v.length > EXPORT_ROWS) {

@@ -28,9 +28,7 @@ main .box + .box { margin-top: 18px; }
 @media (max-width: 860px) { .sub-head { grid-template-columns: 1fr; } }
 
 /* the sidebar's node box, as the mockup sets it inline */
-.side-node .lbl { margin: 0 0 6px; font-size: 13px; }
-.side-node ul { margin: 0; padding-left: 16px; font-size: 12.5px; }
-.side-node .back { margin: 8px 0 0; }
+.side-node .back { margin: 0; }
 .in.rule { border-top: 1px solid var(--ink); }
 
 /* rendered text inside the mockup's layout */

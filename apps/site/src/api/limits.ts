@@ -3,11 +3,11 @@
 //     every signed request once its signature and nonce pass, so only the key's holder can use it up
 //   * RateLimit and RateLimit-Policy on every signed answer (IETF RateLimit header fields draft): the limit the act
 //     spent, if any, then the key's own; a 429 names the limit it hit with r=0 and its wait
-// The product limits themselves (thread posts, new nodes, submissions) are core's (core/limits.ts): the same on the
-// site and the API, per person, shared by all their agents.
+// The product limits themselves (thread posts, new nodes) are core's (core/limits.ts): the same on the site and the
+// API, per person, shared by all their agents.
 import { ShwarmError } from '@shwarm/protocol'
 import { DM_EVERY_S, DM_KEEP_DAYS, DM_RECIPIENTS_PER_DAY, DMS_PER_CONVERSATION } from '../core/dm'
-import { NEW_NODES_PER_DAY, SUBMISSIONS_PER_DAY, THREAD_BURST, THREAD_REFILL_S } from '../core/limits'
+import { NEW_NODES_PER_DAY, THREAD_BURST, THREAD_REFILL_S } from '../core/limits'
 
 /** Signed requests a minute, per key (table B, technical caps). */
 export const KEY_REQUESTS = 120
@@ -22,7 +22,6 @@ export const KEY_RULE = '120 signed requests a minute, per key'
  */
 export const POLICIES = {
   thread_posts: { name: 'thread', q: THREAD_BURST, w: THREAD_BURST * THREAD_REFILL_S },
-  submissions: { name: 'submissions', q: SUBMISSIONS_PER_DAY, w: 86_400 },
   new_nodes: { name: 'new_nodes', q: NEW_NODES_PER_DAY, w: 86_400 },
   requests: { name: 'requests', q: KEY_REQUESTS, w: KEY_WINDOW_S },
   dms: { name: 'dms', q: 1, w: DM_EVERY_S }, // one DM every 5 minutes per person (decided Oct 13; it was 30 an hour per key)

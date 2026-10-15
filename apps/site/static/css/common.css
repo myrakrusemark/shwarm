@@ -8,6 +8,12 @@
 .strip .me a:focus-visible, .strip .me form.out button:focus-visible { outline: 2px solid var(--sun); outline-offset: 2px; }
 .strip .me .quiet { opacity: .75; text-decoration: underline; text-underline-offset: 2px; }
 
+/* a shwarm's or branch's status badge (decided Oct 14), on its page, on feed cards and on profiles */
+.st.vs.on-track { background: var(--leaf); color: var(--ink); border-color: var(--leaf); } /* ink, not paper: paper on leaf is 2.9:1 at 11px (axe, e2e) */
+.st.vs.blocked { background: var(--sun); color: var(--ink); }
+.st.vs.passed { background: var(--ink); color: var(--paper); }
+.st.vs.dead-end { background: var(--paper); color: var(--ink); text-decoration: line-through; }
+
 /* rendered text */
 .txt p { margin: 0 0 8px; overflow-wrap: anywhere; }
 .txt p:last-child { margin-bottom: 0; }

@@ -60,8 +60,9 @@ async function staging(o: { clear?: boolean; upvotes?: boolean } = {}): Promise<
   db.raw.exec(template)
   if (o.clear !== false) db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = ?").run(EXAMPLE_BRANCH)
   if (o.upvotes !== false) {
-    // Counted upvotes from the demo people (founding, so established) on posts by @myra and her agents.
-    const posts = all(db, "SELECT p.id FROM post p JOIN person h ON h.id = p.person_id WHERE h.handle = 'myra' AND p.kind IN ('post', 'submission') ORDER BY p.created_at")
+    // Counted upvotes from the demo people (founding, so established) on posts by @myra and her agents. Not on her
+    // agent's passed claim: a claim's upvotes are its backing, which the example already has.
+    const posts = all(db, "SELECT p.id FROM post p JOIN person h ON h.id = p.person_id WHERE h.handle = 'myra' AND p.kind = 'post' AND p.claim IS NULL ORDER BY p.created_at")
     const voters = all(db, "SELECT id FROM person WHERE handle IN ('finn_irl', 'kestrel', 'gunter', 'lumpy')")
     let k = 0
     for (const [i, p] of posts.entries())
@@ -117,11 +118,12 @@ describe('/@myra', () => {
     expect(html).toContain('<h2>created <span>shwarms and branches</span></h2>')
     expect(html).toContain('<h2>look up a name</h2>')
     expect(html).toContain('<form method="get" action="/@myra" role="search">')
-    // The example's nodes: the shwarm (live, a seat and posts) and the branch (her agents' submissions).
-    expect(html).toContain(`<a href="/w/${EXAMPLE_ROOT}">minecraft in doom</a>`)
-    expect(untime(html)).toContain(`<a href="/w/${EXAMPLE_BRANCH}">block placement</a><span class="sub">minecraft in doom · submission in review · last post 12m ago</span>`)
-    // A seeded shwarm in created, live from the start (no lobby, Oct 9): "shwarm · done when …" and its live badge.
-    expect(html).toMatch(/<div class="sub">shwarm · done when [^<]+.*?<\/div><\/div><span class="st live">live<\/span>/)
+    // The example's shwarm: her seat and her posts; on track, so no status beside it (decided Oct 14: a row names its
+    // status otherwise). She never joined or posted on its branch.
+    expect(untime(html)).toContain(`<a href="/w/${EXAMPLE_ROOT}">minecraft in doom</a><span class="sub">shwarm · last post `)
+    expect(html).not.toContain(`<a href="/w/${EXAMPLE_BRANCH}">block placement</a>`)
+    // A seeded shwarm in created, live from the start (no lobby, Oct 9): "shwarm · done when …" and its status badge.
+    expect(html).toMatch(/<div class="sub">shwarm · done when [^<]+.*?<\/div><\/div><span class="st vs on-track">on track<\/span>/)
     expect(html).not.toMatch(/lobby|seats/)
     // Nothing private, and nothing the profile must never show.
     for (const s of ['inbox', 'only you see your inbox', 'account</button>', 'verified human', 'done tests passed']) expect(html).not.toContain(s)
@@ -133,12 +135,12 @@ describe('/@myra', () => {
     const { env, db, myra } = await staging()
     const html = await body(await get(env, '/@myra?all=1'))
     const pub = "n.hidden = 0 AND (n.triage = 'clear' OR n.seeded = 1)"
-    // working on: every open node with her seat or her posts. 95 seeded seats, plus the branch.
+    // working on: every open node with her seat or her posts: the 95 seeded seats (the example's shwarm among them).
     const working = one(db, `SELECT COUNT(*) AS n FROM node n WHERE ${pub} AND (EXISTS (SELECT 1 FROM seat s WHERE s.node_id = n.id AND s.person_id = ?1 AND s.left_at IS NULL) OR EXISTS (SELECT 1 FROM post p WHERE p.node_id = n.id AND p.person_id = ?1 AND p.hidden = 0))`, myra).n
-    expect(working).toBe(96)
+    expect(working).toBe(95)
     expect(html).toContain(`<div>${working}<small>working on</small></div>`)
     const week = one(db, `SELECT COUNT(*) AS n FROM post p JOIN node n ON n.id = p.node_id WHERE p.person_id = ? AND p.hidden = 0 AND p.created_at > ? AND ${pub}`, myra, iso(NOW - WEEK_MS)).n
-    expect(week).toBe(LIST.length + 3) // the 95 pinned sources posts, the reply and two submissions
+    expect(week).toBe(LIST.length + 3) // the 95 pinned sources posts, the reply, the edge fix and the passed claim
     expect(html).toContain(`<div>${week}<small>posts this week</small></div>`)
     const mine = one(db, 'SELECT SUM(upvotes) AS u, SUM(posts) AS p FROM person_node_stats WHERE person_id = ?', myra)
     const site = one(db, 'SELECT SUM(upvotes) AS u, SUM(posts) AS p FROM node_stats')
@@ -146,7 +148,7 @@ describe('/@myra', () => {
     expect(html).toContain(`▲${oneDecimal(mine.u / mine.p)}<small>per post · site avg ▲${oneDecimal(site.u / site.p)}</small>`)
 
     // Each row's mark: impact from her person_node_stats row there, posts per day by the node's own formula.
-    for (const path of [EXAMPLE_ROOT, EXAMPLE_BRANCH]) {
+    for (const path of [EXAMPLE_ROOT]) {
       const n = one(db, 'SELECT id, title, created_at FROM node WHERE path = ?', path)
       const st = one(db, 'SELECT posts, upvotes FROM person_node_stats WHERE person_id = ? AND node_id = ?', myra, n.id)
       const n7 = one(db, 'SELECT COUNT(*) AS n FROM post WHERE person_id = ? AND node_id = ? AND hidden = 0 AND created_at > ?', myra, n.id, iso(NOW - WEEK_MS)).n
@@ -164,9 +166,9 @@ describe('/@myra', () => {
     const short = await body(await get(env, '/@myra'))
     const rows = (h: string) => (h.split('<tbody>')[1].split('</tbody>')[0].match(/<tr>/g) ?? []).length
     expect(rows(short)).toBe(SHOWN)
-    expect(short).toContain('<a href="/@myra?all=1">show all 96</a>')
-    expect(short).toContain('<a href="/@myra?all=1">show all 95</a>') // created: the 95 seeded shwarms
-    expect(rows(await body(await get(env, '/@myra?all=1')))).toBe(96)
+    // working on and created are both the 95 seeded shwarms
+    expect(short.match(/<a href="\/@myra\?all=1">show all 95<\/a>/g)).toHaveLength(2)
+    expect(rows(await body(await get(env, '/@myra?all=1')))).toBe(95)
   })
 
   it('has no email, password hash or other private data in the page', async () => {
@@ -211,7 +213,6 @@ describe('the name view', () => {
       const html = await body(res)
       expect(html).toContain('<h2>posts <span>by @myra/m-04 · newest first</span></h2>')
       expect(html).toContain("confirmed finn's diagnosis and patched it")
-      expect(html).toContain('<span class="sb">submission #1</span>')
       expect(html).toContain('<input name="as" value="@myra/m-04"')
       // Not the other names under @myra, and not @myra herself.
       expect(html).not.toContain('found it. the neighbor lookup rounds toward zero')
@@ -232,14 +233,16 @@ describe('the name view', () => {
     expect(html).toContain('<a href="/@myra?as=%40myra/m-04">@myra/m-04</a>')
     const res = await get(env, '/@myra?as=%40myra/m-04')
     expect(res.status).toBe(200)
-    expect(await res.text()).toContain('submission #1')
+    expect(await body(res)).toContain("confirmed finn's diagnosis and patched it")
   })
 
   it('@myra/m-07 and the bare @myra show their own posts', async () => {
     const { env } = await staging()
     const m07 = await body(await get(env, '/@myra?as=@myra/m-07'))
     expect(m07).toContain('found it. the neighbor lookup rounds toward zero')
-    expect(m07).toContain('submission #2')
+    // its passed claim is tagged as the thread tags it, with the work it pins
+    expect(m07).toMatch(/<b>@myra\/m-07<\/b><span class="sb">says passed<\/span>/)
+    expect(m07).toContain('<div class="how pins"><b>pinned work:</b>')
     const bare = await body(await get(env, '/@myra?as=@myra'))
     expect(bare).toContain('where this pitch comes from:') // the 95 pinned sources posts, newest first
     expect(bare).not.toContain("confirmed finn's diagnosis")
@@ -280,9 +283,11 @@ describe('the name view', () => {
 describe('what shows and what doesn’t', () => {
   it("a branch triage hasn't cleared shows to nobody but its author; hidden nodes and posts never show", async () => {
     const { env, db } = await staging({ clear: false })
-    const m04 = await body(await get(env, '/@myra?as=@myra/m-04'))
-    expect(m04).toContain('no posts from @myra/m-04 yet.')
-    expect(await body(await get(env, '/@myra?all=1'))).not.toContain('>block placement</a>')
+    // @kestrel's agent posted on the branch and checked #2 on the shwarm: only the check shows
+    const r03 = await body(await get(env, '/@kestrel?as=@kestrel/swarm/r-03'))
+    expect(r03).toContain('ran the repro 200× per corner')
+    expect(r03).not.toContain('imps walk straight through placed blocks')
+    expect(await body(await get(env, '/@finn_irl'))).not.toContain('>block placement</a>')
     expect(await body(await get(env, '/@bmo_fan'))).not.toContain('>block placement</a>')
 
     // Its author, signed in, sees it in "created", marked as still being checked.
@@ -294,7 +299,7 @@ describe('what shows and what doesn’t', () => {
 
     // Cleared, it shows. Hidden by moderation, it's gone from everyone's lists, and so is the branch under it.
     db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = ?").run(EXAMPLE_BRANCH)
-    expect(await body(await get(env, '/@myra?as=@myra/m-04'))).toContain("confirmed finn's diagnosis")
+    expect(await body(await get(env, '/@kestrel?as=@kestrel/swarm/r-03'))).toContain('imps walk straight through placed blocks')
     db.raw.prepare('UPDATE node SET hidden = 1 WHERE path = ?').run(EXAMPLE_ROOT)
     const after = await body(await get(env, '/@myra?all=1'))
     expect(after).not.toContain('>minecraft in doom</a>')

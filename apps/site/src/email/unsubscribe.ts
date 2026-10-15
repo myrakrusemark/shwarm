@@ -37,7 +37,7 @@ export async function readUnsubToken(secret: string, token: unknown, now = Date.
 export const unsubUrl = (siteUrl: string, token: string) => `${siteUrl.replace(/\/$/, '')}/unsubscribe?t=${token}`
 
 // OPEN (#85): "pass and fail" is new wording, waiting on Myra's yes.
-const LABELS = (): Record<string, string> => ({ mention: w.email.noticeMention, sign_off: w.email.noticeSignOff, pass_fail: w.email.noticePassFail })
+const LABELS = (): Record<string, string> => ({ mention: w.email.noticeMention, pass_fail: w.email.noticePassFail })
 
 /** "mention" → "mention", "lobby_filled" → "lobby filled", "pass_fail" → "pass and fail". */
 export const noticeLabel = (type: string) => LABELS()[type] ?? type.replace(/_/g, ' ')

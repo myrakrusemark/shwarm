@@ -1,5 +1,5 @@
 // Go-live 6.2: the account modal, end to end through the site as a browser would use it (no script: every form posts).
-// Only the owner sees it; saving and the password change confirm with the password (inline, as the sign-off does);
+// Only the owner sees it; saving and the password change confirm with the password (inline, as the author's mark does);
 // an email change keeps the old address until the new one is confirmed and warns the old one; a password change ends
 // every other session and sends the "password changed" mail; "sign out everywhere" ends every session.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -175,26 +175,25 @@ describe('the account modal (6.2)', () => {
 
     // untick "new in your inbox", tick passes or fails, right away
     expect((await acct(b, 'myra', saveForm('myra', { n_inbox: undefined, n_pass_fail: '1', inbox_every: 'now' }))).status).toBe(303)
-    expect(prefs()).toEqual({ mention: false, sign_off: false, pass_fail: true, inbox_every: 'now' })
+    expect(prefs()).toEqual({ mention: false, pass_fail: true, inbox_every: 'now' })
     let html = modalIn(await body(await b.get('/@myra?account=1')))!
     expect(html).not.toMatch(/id="n-inbox"[^>]*checked/)
     expect(html).toMatch(/id="n-pass_fail"[^>]*checked/)
     expect(html).toContain('<option value="now" selected="">right away</option>')
 
-    // a one-click unsubscribe from a sign-off mail turned sign_off off only; the box shows unticked, and saving the
-    // modal without touching it leaves mentions as they were
-    env.DB.raw.prepare('UPDATE person SET notice_prefs = ? WHERE id = ?').run(JSON.stringify({ sign_off: false }), id)
+    // a one-click unsubscribe from a mention mail turned mention off only; the box shows unticked, and saving the
+    // modal without touching it leaves it as it was
+    env.DB.raw.prepare('UPDATE person SET notice_prefs = ? WHERE id = ?').run(JSON.stringify({ mention: false }), id)
     html = modalIn(await body(await b.get('/@myra?account=1')))!
     expect(html).not.toMatch(/id="n-inbox"[^>]*checked/)
     expect((await acct(b, 'myra', saveForm('myra', { n_inbox: undefined, inbox_every: 'bogus' }))).status).toBe(303)
-    expect(prefs()).toEqual({ sign_off: false })
+    expect(prefs()).toEqual({ mention: false })
     // ticking it turns the whole group on
     expect((await acct(b, 'myra', saveForm('myra'))).status).toBe(303)
-    expect(prefs()).toEqual({ sign_off: true, mention: true, inbox_every: 'digest' })
+    expect(prefs()).toEqual({ mention: true, inbox_every: 'digest' })
   })
 
   it('the notices module: defaults, groups and the sweep honouring them', async () => {
-    expect(noticeOn({}, 'sign_off')).toBe(true)
     expect(noticeOn({}, 'mention')).toBe(true)
     expect(noticeOn({}, 'pass_fail')).toBe(false)
     expect(noticeOn({}, 'lobby_filled')).toBe(true) // a type with no group is on until turned off
@@ -209,8 +208,8 @@ describe('the account modal (6.2)', () => {
     const id = await member(env, 'myra')
     env.DB.raw.prepare("INSERT INTO signup_allow (email_norm, note, added_at) VALUES ('myra@example.org', 'test', ?)").run(new Date(T0).toISOString())
     env.DB.raw
-      .prepare("INSERT INTO email_outbox (to_email, person_id, template, stream, payload, created_at, send_after) VALUES ('myra@example.org', ?, 'sign_off_ready', 'notices', ?, ?, ?)")
-      .run(id, JSON.stringify({ notice: 'pass_fail', number: 1, title: 'x', link: '/w/x/s/1' }), new Date(T0).toISOString(), new Date(T0).toISOString())
+      .prepare("INSERT INTO email_outbox (to_email, person_id, template, stream, payload, created_at, send_after) VALUES ('myra@example.org', ?, 'node_news', 'notices', ?, ?, ?)")
+      .run(id, JSON.stringify({ notice: 'pass_fail', event: 'passed', number: 1, title: 'x', link: '/w/x/s/1' }), new Date(T0).toISOString(), new Date(T0).toISOString())
     const out = await sweepOutbox({ DB: env.DB, ENV: 'test', SITE_URL: 'https://shwarm.org', RESEND_API_KEY: 're_test', MAIL_SECRET: 'm' } as any, { now: T0, fetch: (async () => Response.json({ id: 'x' })) as any })
     expect(out.skipped).toBe(1)
     expect(get(env, 'SELECT last_error FROM email_outbox').last_error).toBe('skipped: turned off pass_fail notices')

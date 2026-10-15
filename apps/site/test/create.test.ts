@@ -1,8 +1,9 @@
-// Go-live 4.2: the create form at /new, shwarm mode, with builds-on.
+// Go-live 4.2: the create form at /new, shwarm mode, with builds-on. No checks box (decided Oct 14: the done test is the
+// "done when" sentence; its people say it passed with a claim they back).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { hashPassword } from '../src/auth/password'
 import { NEW_NODES_PER_DAY } from '../src/core/limits'
-import { buildsOnFromForm, checkFromForm, parseTagField } from '../src/web/create'
+import { buildsOnFromForm, parseTagField } from '../src/web/create'
 import { resetReadLimit } from '../src/web/read-limit'
 import { addPerson, T0 } from './d1'
 import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv } from './browser'
@@ -34,7 +35,7 @@ async function member(env: ReturnType<typeof testEnv>, handle: string, o: { veri
   return { b, pid }
 }
 
-const HELLO = { title: 'hello world', what: 'two test accounts say hello.', done_when: 'both accounts have posted hello world.', c_author: 'on', tags: '#test #hello', license: 'MIT+CC-BY-4.0' }
+const HELLO = { title: 'hello world', what: 'two test accounts say hello.', done_when: 'both accounts have posted hello world.', tags: '#test #hello', license: 'MIT+CC-BY-4.0' }
 
 async function create(b: Browser, fields: Record<string, string>) {
   const token = formTokenIn(await (await b.get('/new')).text())
@@ -60,13 +61,16 @@ describe('create form (4.2)', () => {
     expect(page).toContain(`after that it's live, and anyone can work on it. <b id="fixed-note">once posted, nothing on this form can be changed.</b>`)
     expect(page).toContain("the done test can't change once it's posted. people join for this finish line, so a different one means <b>starting a new shwarm</b>.")
     expect(page).not.toMatch(/lobby|seat|variant/)
-    // a lobby field sent anyway (an old tab) changes nothing
-    const res = await create(b, { ...HELLO, lobby: '7' })
+    // the done test is the sentence: no checks box, and check fields sent from an old tab are ignored
+    expect(page).not.toContain("how it's checked")
+    for (const field of ['c-author', 'c-machine', 'c-people', 'cmd', 'look']) expect(page).not.toContain(`id="${field}"`)
+    // a lobby field sent anyway (an old tab) changes nothing either
+    const res = await create(b, { ...HELLO, lobby: '7', c_runs: 'on', command: './t.sh', runs: '2', c_author: 'on' })
     expect(res.status).toBe(303)
     expect(res.headers.get('location')).toBe('/w/hello-world')
     const n = q("SELECT id, state, live_at, license, checks, triage FROM node WHERE path = 'hello-world'") as any
     expect(n).toMatchObject({ state: 'live', live_at: new Date(T0).toISOString(), license: 'MIT+CC-BY-4.0' })
-    expect(JSON.parse(n.checks)).toEqual({ author: true })
+    expect(JSON.parse(n.checks)).toEqual({ author: false })
     expect(q('SELECT number FROM seat WHERE node_id = ? AND person_id = ?', n.id, pid)).toEqual({ number: 1 })
     expect(await body(await b.req('/w/hello-world', { headers: { accept: 'text/html' } }))).toContain('hello world')
   })
@@ -87,10 +91,10 @@ describe('create form (4.2)', () => {
   it('refusals come back with the form filled in', async () => {
     const { env } = await world()
     const { b } = await member(env, 'ana')
-    const noCheck = await create(b, { ...HELLO, c_author: '' })
-    expect(noCheck.status).toBe(400)
-    const html = await body(noCheck)
-    expect(html).toContain('a done test names at least one check.')
+    const noDone = await create(b, { ...HELLO, done_when: '' })
+    expect(noDone.status).toBe(400)
+    const html = await body(noDone)
+    expect(html).toContain('a node needs a done test: one sentence of what is true when it is finished.')
     expect(html).toContain('>two test accounts say hello.</textarea>')
     expect((await body(await create(b, { ...HELLO, tags: '' })))).toContain('a shwarm needs at least one tag.')
   })
@@ -114,7 +118,7 @@ describe('create form (4.2)', () => {
 })
 
 describe('branch mode (4.3); no variants (decided Oct 9)', () => {
-  const BRANCH = { title: 'monster collision', what: 'imps walk through placed blocks.', done_when: "monsters can't walk through placed blocks.", c_author: 'on' }
+  const BRANCH = { title: 'monster collision', what: 'imps walk through placed blocks.', done_when: "monsters can't walk through placed blocks." }
   const html = (b: Browser, path: string) => b.req(path, { headers: { accept: 'text/html' } })
 
   /** GET the form at `at`, then post `fields` with every field the page carries (its hidden parent too). */
@@ -139,7 +143,7 @@ describe('branch mode (4.3); no variants (decided Oct 9)', () => {
     expect(page).toMatch(/<nav class="crumbs"[^>]*><a href="\/w\/minecraft-in-doom">minecraft in doom<\/a><span>\/<\/span><a href="\/w\/minecraft-in-doom\/block-placement">block placement<\/a><span>\/<\/span>new branch<\/nav>/)
     expect(page).toContain('helping reach')
     expect(page).toContain('block placement is done when')
-    expect(page).toContain('one done test per branch')
+    expect(page).toContain('what is true when the branch is finished. people on the branch say so with a passed claim and their evidence')
     expect(page).toContain('name="parent" value="minecraft-in-doom/block-placement"')
     expect(page).not.toContain('name="tags"')
     expect(page).not.toMatch(/lobby/)
@@ -184,36 +188,30 @@ describe('branch mode (4.3); no variants (decided Oct 9)', () => {
     expect(page).toContain('value="monster collision"')
   })
 
-  it('a branch has no author check and may ask for no checks: its pass is its status vote (decided Oct 13)', async () => {
+  it('a branch asks for no checks: its people say it passed with a claim they back (decided Oct 14)', async () => {
     const { env, q } = await world()
     const { b } = await member(env, 'ana')
     const form = await body(await b.get('/new?parent=minecraft-in-doom'))
-    expect(form).not.toContain('id="c-author"')
-    expect(form).toContain('a branch passes when most of the people voting on its status say passed.')
-    // the author box ticked by a stale form is ignored, and no checks at all is fine
-    const res = await send(b, '/new?parent=minecraft-in-doom', BRANCH)
+    expect(form).not.toContain("how it's checked")
+    for (const field of ['c-author', 'c-machine', 'c-people', 'cmd', 'look']) expect(form).not.toContain(`id="${field}"`)
+    // check boxes ticked by a stale form are ignored
+    const res = await send(b, '/new?parent=minecraft-in-doom', { ...BRANCH, c_runs: 'on', command: './t.sh', runs: '2', c_people: 'on', people: '2' })
     expect(res.status).toBe(303)
     expect(q("SELECT checks FROM node WHERE path = 'minecraft-in-doom/monster-collision'")).toEqual({ checks: '{"author":false}' })
-    // a shwarm's form still offers the author's sign-off
-    expect(await body(await b.get('/new'))).toContain('id="c-author"')
   })
 
-  it('a shwarm takes branches the minute it is posted; an ended one says so instead of the form', async () => {
+  it('a shwarm takes branches the minute it is posted, and still does once it passed or is a dead end (nothing locks)', async () => {
     const { env, q, db } = await world()
     const { b } = await member(env, 'ana')
     const page = await body(await b.get(`/new?parent=${PLAIN}`))
     expect(page).toContain('name="title"')
     expect(page).not.toContain('is still a lobby')
-    const token = formTokenIn(page)
-    db.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'x' WHERE path = ?").run(PLAIN)
-    const ended = await body(await b.get(`/new?parent=${PLAIN}`))
-    expect(ended).toContain(`${PLAIN} is dead end.`)
-    expect(ended).not.toContain('name="title"')
-    // A form sent anyway (an old tab) is refused the same way.
-    const res = await b.req('/new', { form: { form_token: token, parent: PLAIN, ...BRANCH } })
-    expect(res.status).toBe(400)
-    expect(await body(res)).toContain(`${PLAIN} is dead end.`)
-    expect((q("SELECT COUNT(*) AS n FROM node WHERE kind = 'branch' AND path LIKE ?", `${PLAIN}/%`) as { n: number }).n).toBe(0)
+    const id = (q('SELECT id FROM node WHERE path = ?', PLAIN) as { id: number }).id
+    db.raw.prepare("INSERT INTO branch_status (node_id, current, changed_at, at) VALUES (?, 'dead_end', ?, ?)").run(id, new Date(T0).toISOString(), new Date(T0).toISOString())
+    expect(await body(await b.get(`/new?parent=${PLAIN}`))).toContain('name="title"')
+    const res = await send(b, `/new?parent=${PLAIN}`, BRANCH)
+    expect(res.status).toBe(303)
+    expect((q("SELECT COUNT(*) AS n FROM node WHERE kind = 'branch' AND path LIKE ?", `${PLAIN}/%`) as { n: number }).n).toBe(1)
   })
 
   it("a parent the viewer can't see is a 404", async () => {
@@ -242,27 +240,33 @@ describe('branch mode (4.3); no variants (decided Oct 9)', () => {
     expect(await body(await html(b, '/w/minecraft-in-doom'))).not.toMatch(/variant/)
   })
 
-  it('?builds_on= fills the builds-on field and names a closed shwarm, whose license the new one takes', async () => {
+  it('?builds_on= fills the builds-on field and names any shwarm, as of its latest pass, whose license the new one takes', async () => {
     const { env, q, db } = await world()
     const { b } = await member(env, 'ana')
-    // Open: the path is filled in, with no chip (core refuses it on send).
+    // every shwarm offers it (decided Oct 14: build on any shwarm, at any time)
+    expect(await body(await html(b, '/w/minecraft-in-doom'))).toContain('<a href="/new?builds_on=minecraft-in-doom">build on this shwarm</a>')
+    // no pass yet: the chip names it, with nothing to be "as of"
     const open = await body(await b.get('/new?builds_on=minecraft-in-doom'))
-    expect(open).toContain('name="builds_on" aria-describedby="up-hint" placeholder="https://github.com/… or a passed shwarm\'s link" autocomplete="off" value="minecraft-in-doom"')
-    expect(open).not.toContain('id="picked"')
-    // Unknown: the same, as typed (core refuses it on send); nothing about it is looked up or shown (5.7).
+    expect(open).toContain('name="builds_on" aria-describedby="up-hint" placeholder="https://github.com/… or a shwarm\'s link" autocomplete="off" value="minecraft-in-doom"')
+    expect(open).toContain('<div class="picked" id="picked"><div><b>minecraft in doom</b> <span>/w/minecraft-in-doom · license GPL-3.0</span></div></div>')
+    // Unknown: as typed (core refuses it on send); nothing about it is looked up or shown (5.7).
     const unknown = await b.get('/new?builds_on=no-such-shwarm')
     expect(unknown.status).toBe(200)
     const unknownPage = await body(unknown)
     expect(unknownPage).toContain('autocomplete="off" value="no-such-shwarm"')
     expect(unknownPage).not.toContain('id="picked"')
-    db.raw.prepare("UPDATE node SET state = 'closed', closed_at = ? WHERE path = 'minecraft-in-doom'").run(new Date(T0).toISOString())
-    // The closed page links here.
-    expect(await body(await html(b, '/w/minecraft-in-doom'))).toContain('<a href="/new?builds_on=minecraft-in-doom">build on this shwarm</a>')
+    // once it has a pass record, the chip says which pass the new shwarm builds on
+    const up = q("SELECT id FROM node WHERE path = 'minecraft-in-doom'") as { id: number }
+    db.raw
+      .prepare("INSERT INTO pass_record (id, node_id, kind, status, at, backers, pins, by_name, person_id) VALUES ('r_test0001', ?, 'author', 'passed', ?, 0, '[]', '@myra', NULL)")
+      .run(up.id, new Date(T0 - 86_400_000).toISOString())
     const page = await body(await b.get('/new?builds_on=minecraft-in-doom'))
     expect(page).toContain('value="minecraft-in-doom"')
-    expect(page).toContain('<div class="picked" id="picked"><div><b>minecraft in doom</b> <span>/w/minecraft-in-doom · license GPL-3.0</span></div></div>')
+    expect(page).toContain('<div class="picked" id="picked"><div><b>minecraft in doom</b> <span>/w/minecraft-in-doom · license GPL-3.0</span><span> · as passed oct 7</span></div></div>')
     expect(page).toContain('your shwarm uses the license minecraft in doom is published under.')
     expect(page).toMatch(/<select id="license" name="license"[^>]* hidden/)
+    // a different finish line: the done test starts empty, never the upstream's
+    expect(/<textarea id="done" name="done_when"[^>]*>([^<]*)<\/textarea>/.exec(page)?.[1]).toBe('')
     // A full link works the same.
     expect(await body(await b.get(`/new?builds_on=${encodeURIComponent('https://shwarm.org/w/minecraft-in-doom')}`))).toContain('id="picked"')
     // A refused send comes back the same way: the chip shown, the picker hidden.
@@ -275,39 +279,13 @@ describe('branch mode (4.3); no variants (decided Oct 9)', () => {
     const res = await create(b, { ...HELLO, title: 'minecraft in doom 2', builds_on: 'minecraft-in-doom', license: 'MIT' })
     expect(res.status).toBe(303)
     const n = q("SELECT license, builds_on FROM node WHERE path = 'minecraft-in-doom-2'") as any
-    expect(n).toEqual({ license: 'GPL-3.0', builds_on: JSON.stringify({ node: 'minecraft-in-doom' }) })
+    expect(n).toEqual({ license: 'GPL-3.0', builds_on: JSON.stringify({ node: 'minecraft-in-doom', as_of: 'r_test0001' }) })
   })
 
-  it('builds on a dead end too, and starts from the done test of the shwarm it builds on (decided Oct 9)', async () => {
+  it("refuses to build on a shwarm the viewer can't see, as for one that isn't there (7.4 review)", async () => {
     const { env, q, db } = await world()
     const { b } = await member(env, 'ana')
-    const up = q("SELECT done_when FROM node WHERE path = 'minecraft-in-doom'") as { done_when: string }
-    const doneField = (page: string) => /<textarea id="done" name="done_when"[^>]*>([^<]*)<\/textarea>/.exec(page)?.[1]
-    // live: the field starts empty
-    expect(doneField(await body(await b.get('/new?builds_on=minecraft-in-doom')))).toBe('')
-    db.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'gzdoom caps dynamic geometry.', closed_at = ? WHERE path = 'minecraft-in-doom'").run(new Date(T0).toISOString())
-    // the dead end's page offers "build on this", with no way to reopen it
-    const ended = await body(await html(b, '/w/minecraft-in-doom'))
-    expect(ended).toContain('<div class="alt"><a href="/new?builds_on=minecraft-in-doom">build on this shwarm</a></div>')
-    expect(ended).not.toContain('reopen')
-    const page = await body(await b.get('/new?builds_on=minecraft-in-doom'))
-    expect(page).toContain('<div class="picked" id="picked"><div><b>minecraft in doom</b> <span>/w/minecraft-in-doom · license GPL-3.0</span></div></div>')
-    expect(up.done_when.length).toBeGreaterThan(0)
-    expect(doneField(page)).toBe(up.done_when.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'))
-    // editable: a changed done test is sent as typed, and nothing holds it to the upstream's
-    const res = await create(b, { ...HELLO, title: 'minecraft in doom, the sequel', builds_on: 'minecraft-in-doom', done_when: 'a playable demo of one level.' })
-    expect(res.status).toBe(303)
-    expect(q("SELECT license, builds_on, done_when FROM node WHERE path = 'minecraft-in-doom-the-sequel'")).toEqual({
-      license: 'GPL-3.0',
-      builds_on: JSON.stringify({ node: 'minecraft-in-doom' }),
-      done_when: 'a playable demo of one level.',
-    })
-  })
-
-  it("refuses to build on a passed shwarm the viewer can't see, as for one that isn't there (7.4 review)", async () => {
-    const { env, q, db } = await world()
-    const { b } = await member(env, 'ana')
-    db.raw.prepare("UPDATE node SET state = 'closed', closed_at = ?, triage = 'held' WHERE path = 'minecraft-in-doom'").run(new Date(T0).toISOString())
+    db.raw.prepare("UPDATE node SET triage = 'held' WHERE path = 'minecraft-in-doom'").run()
     const unknown = await body(await create(b, { ...HELLO, builds_on: 'no-such-shwarm' }))
     const res = await create(b, { ...HELLO, builds_on: 'minecraft-in-doom' })
     expect(res.status).toBe(400)
@@ -331,11 +309,8 @@ describe('branch mode (4.3); no variants (decided Oct 9)', () => {
 })
 
 describe('form parsing', () => {
-  it('tags, checks and other links', async () => {
+  it('tags and other links', async () => {
     expect(parseTagField('#weird #games, gzdoom')).toEqual(['weird', 'games', 'gzdoom'])
-    expect(checkFromForm({ c_runs: 'on', command: './t.sh', runs: '3', c_people: 'on', people: '2', human: 'on', instructions: 'look' })).toEqual({
-      author: false, runs: { command: './t.sh', count: 3 }, people: { count: 2, human: true, instructions: 'look' },
-    })
     const o = 'https://shwarm.org'
     expect(await buildsOnFromForm({}, o)).toBeNull()
     expect(await buildsOnFromForm({ builds_on: 'https://shwarm.org/w/minecraft-in-doom/' }, o)).toBe('minecraft-in-doom')

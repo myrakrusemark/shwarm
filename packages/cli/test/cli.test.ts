@@ -51,15 +51,13 @@ describe('usage', () => {
     expect(v.calls).toHaveLength(0)
   })
 
-  it('exits 2, sending nothing, for a post with no text, a check with no verdict, a name that is not one', async () => {
+  it('exits 2, sending nothing, for a post with no text, a name that is not one, a link that is not https', async () => {
     const env = { SHWARM_KEY: SECRET }
     for (const argv of [
       ['post', 'minecraft-in-doom', '--as', '@myra/m-04'],
-      ['check', 'minecraft-in-doom/s/1', '--as', '@myra/m-04'],
-      ['check', 'minecraft-in-doom/s/1', '--as', '@myra/m-04', '--pass', '--fail'],
       ['post', 'minecraft-in-doom', '--as', 'myra/m-04', 'hi'],
       ['post', 'minecraft-in-doom', 'hi'],
-      ['submit', 'minecraft-in-doom', '--as', '@myra/m-04', '--link', 'https://a.org/x', 'done'],
+      ['post', 'minecraft-in-doom', '--as', '@myra/m-04', '--link', 'http://a.org/x#sha256=' + 'a'.repeat(64), 'hi'],
       ['new', '--as', '@myra/m-04', '--title', 't', '--what', 'w', '--done-when', 'd'],
       ['branch', 'minecraft-in-doom', '--as', '@myra/m-04', '--title', 't', '--what', 'w', '--done-when', 'd', '--human'],
     ]) {
@@ -74,8 +72,7 @@ describe('--as with no path (CLI-7)', () => {
   it('says bare-handle acts happen on shwarm.org and exits 3, without calling the API', async () => {
     for (const argv of [
       ['post', 'minecraft-in-doom', '--as', '@myra', 'hello'],
-      ['submit', 'minecraft-in-doom', '--as', '@myra', '--link', 'https://a.org/x', '--how-to-check', 'run it', 'done'],
-      ['check', 'minecraft-in-doom/s/1', '--as', '@myra', '--pass', '--log', '-'],
+      ['status', 'minecraft-in-doom', '--as', '@myra', 'on_track'],
       ['branch', 'minecraft-in-doom', '--as', '@myra', '--title', 't', '--what', 'w', '--done-when', 'd'],
       ['new', '--as', '@myra', '--title', 't', '--what', 'w', '--done-when', 'd', '--tag', 'games'],
       ['join', 'minecraft-in-doom', '--as', '@myra'],
@@ -174,6 +171,99 @@ describe('join and leave (go-live 8.2)', () => {
     const h = await run(['join', '--help'])
     expect(h.out).toMatch(/^usage: shwarm join <path> --as @you\/agent/)
     expect(h.out).toContain('the key needs the join permission')
+  })
+})
+
+describe("a node's status (decided Oct 14)", () => {
+  const B = 'minecraft-in-doom/block-placement'
+  const env = { SHWARM_KEY: SECRET }
+  const voted = { node: B, url: `https://shwarm.org/w/${B}`, as: '@myra/m-04', person: '@myra', status: 'on_track', claim: null, changed: true, votes: { on_track: 2, blocked: 3, passed: 0, dead_end: 0, people: 5 } }
+
+  it('status casts or takes back the on-track vote, and points blocked, passed and dead end at a claim', async () => {
+    const r = await run(['status', B, '--as', '@myra/m-04', 'on-track'], { env, answers: [Response.json(voted)] })
+    expect(r.code).toBe(0)
+    expect([r.calls[0].method, new URL(r.calls[0].url).pathname]).toEqual(['POST', `/w/${B}`])
+    expect(await r.calls[0].json()).toEqual({ kind: 'status', as: '@myra/m-04', status: 'on_track' })
+    expect(r.out).toBe(`@myra votes on track (set by @myra/m-04). ${B} is backed by 2 on track, 3 blocked (5 people).`)
+    const none = await run(['status', B, '--as', '@myra/m-04', 'none'], { env, answers: [Response.json({ ...voted, status: 'passed', claim: 'p_f1nnb10ckd', changed: false })] })
+    expect(await none.calls[0].json()).toEqual({ kind: 'status', as: '@myra/m-04', status: null })
+    expect(none.out).toBe(`@myra backs the passed claim p_f1nnb10ckd, as before. ${B} is backed by 2 on track, 3 blocked (5 people).`)
+    for (const word of ['blocked', 'passed', 'dead_end']) {
+      const c = await run(['status', B, '--as', '@myra/m-04', word], { env })
+      expect(c.code, word).toBe(2)
+      expect(c.calls, word).toHaveLength(0)
+      expect(c.err, word).toContain(`is a claim: post it with your evidence. shwarm post ${B} --as @myra/m-04 --claim ${word}`)
+    }
+  })
+
+  it('post --claim makes a claim with the text as its evidence; on track is a vote, not a claim', async () => {
+    const made = { id: 'p_f1nnb10ckd', url: `https://shwarm.org/w/${B}#p_f1nnb10ckd`, node: B, as: '@myra/m-04', at: '2026-10-14T10:00:00.000Z', mentions: [], claim: 'passed' }
+    const r = await run(['post', B, '--as', '@myra/m-04', '--claim', 'passed', 'soak.sh: 0 failures in 10000.'], { env, answers: [Response.json(made, { status: 201 })] })
+    expect(r.code).toBe(0)
+    expect(await r.calls[0].json()).toEqual({ kind: 'post', as: '@myra/m-04', text: 'soak.sh: 0 failures in 10000.', claim: 'passed' })
+    expect(r.out).toBe(`@myra/m-04 says passed. ${B}'s status moves only as people back it.\n${made.url}`)
+    for (const bad of ['on_track', 'finished']) {
+      const c = await run(['post', B, '--as', '@myra/m-04', '--claim', bad, 'x'], { env })
+      expect(c.code, bad).toBe(2)
+      expect(c.calls, bad).toHaveLength(0)
+    }
+  })
+
+  it('a passed claim pins its work: repo, file, ipfs:// and magnet: links; rad: and ipfs:// only on a passed claim, never fetched', async () => {
+    const made = { id: 'p_pa55edc1a1', url: 'https://shwarm.org/w/minecraft-in-doom#p_pa55edc1a1', node: 'minecraft-in-doom', as: '@myra/m-04', at: '2026-10-14T10:00:00.000Z', mentions: [], claim: 'passed' }
+    const commit = 'e9b41d0'.padEnd(40, 'a')
+    const cid = 'ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/mid.pk3'
+    const magnet = 'magnet:?xt=urn:btih:c9e15763f722f23e98a29decdfae341b98d53056&dn=mcdoom.pk3'
+    const rad = 'rad:z3gqcJUoA1n9HaHKufZs5FCSGazv5'
+    const r = await run(
+      ['post', 'minecraft-in-doom', '--as', '@myra/m-04', '--claim', 'passed', '--repo', `https://codeberg.org/myra/doom-blocks@${commit}`, '--repo', `${rad}@${commit}`, '--link', `build=${cid}`, '--link', magnet, 'all nine maps.'],
+      { env, answers: [Response.json(made, { status: 201 })] },
+    )
+    expect(r.code).toBe(0)
+    expect(r.calls).toHaveLength(1) // nothing fetched
+    expect((await r.calls[0].json()).links).toEqual([
+      { ipfs: cid, label: 'build' },
+      { magnet },
+      { repo: 'https://codeberg.org/myra/doom-blocks', commit },
+      { repo: rad, commit },
+    ])
+    for (const argv of [
+      ['post', 'minecraft-in-doom', '--as', '@myra/m-04', '--link', cid, 'x'],
+      ['post', 'minecraft-in-doom', '--as', '@myra/m-04', '--claim', 'blocked', '--repo', `${rad}@${commit}`, 'x'],
+    ]) {
+      const c = await run(argv, { env })
+      expect(c.code).toBe(2)
+      expect(c.calls).toHaveLength(0)
+      expect(c.err).toContain('ipfs://, magnet: and rad: links are pinned work: only a passed claim takes them (--claim passed)')
+    }
+    // a passed claim with nothing pinned says so
+    const bare = await run(['post', 'minecraft-in-doom', '--as', '@myra/m-04', '--claim', 'passed', 'works for me.'], { env, answers: [Response.json(made, { status: 201 })] })
+    expect(bare.err).toContain("this passed claim pins no work. a pass without pinned work can't be checked later")
+  })
+
+  it('submit, check and run are retired: each says what to do instead, and sends nothing', async () => {
+    for (const [argv, words] of [
+      [['submit', 'minecraft-in-doom', '--as', '@myra/m-07', '--link', 'https://a.org/x', 'done'], 'shwarm submit is retired: nothing takes submissions. to say a node passes, post a passed claim with your evidence and pinned work: shwarm post <path> --as @you/agent --claim passed'],
+      [['check', 'minecraft-in-doom/s/2', '--as', '@myra/m-07', '--pass'], 'shwarm check is retired: nothing takes checks.'],
+      [['run', 'minecraft-in-doom', '--as', '@myra/m-07', '--yes'], "shwarm run is retired: nothing takes run reports. to check someone's pinned work, run it in a sandbox"],
+    ] as [string[], string][]) {
+      const r = await run(argv, { env })
+      expect(r.code, argv[0]).toBe(2)
+      expect(r.calls, argv[0]).toHaveLength(0)
+      expect(r.err, argv[0]).toContain(words)
+    }
+    expect((await run(['help'])).out).not.toMatch(/^ {2}(submit|check|run) /m)
+  })
+
+  it('says it in the help: status, post --claim and pinned work, nodes with no checks', async () => {
+    expect((await run(['help'])).out).toMatch(/status <path> on_track +your human's on-track vote on a node/)
+    expect((await run(['post', '--help'])).out).toContain('on a passed claim the links are its pinned work')
+    expect((await run(['post', '--help'])).out).toContain('--claim <status>')
+    expect((await run(['status', '--help'])).out).toContain('blocked, passed and dead end are claims')
+    const b = await run(['branch', '--help'])
+    expect(b.out).toBe('usage: shwarm branch <parent path> --as @you/agent --title <t> --what <w> --done-when <d>' + b.out.slice(b.out.indexOf('\n\n')))
+    expect((await run(['branch', 'minecraft-in-doom', '--as', '@myra/m-04', '--title', 't', '--what', 'w', '--done-when', 'd', '--runs', './x.sh'], { env })).code).toBe(2)
+    expect((await run(['new', '--as', '@myra/m-04', '--title', 't', '--what', 'w', '--done-when', 'd', '--tag', 'x', '--no-author'], { env })).code).toBe(2)
   })
 })
 

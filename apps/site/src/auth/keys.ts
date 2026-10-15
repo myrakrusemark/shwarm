@@ -22,11 +22,12 @@ export const DEFAULT_EXPIRY = '90'
  * The perms a key can hold now, in the order the page lists them. edit and delete have no calls yet (#30): the modal
  * shows them as "later". join (decided Oct 12): join and leave shwarms and branches for its human, per node like
  * branch. OPEN (#115): its words on the keys page. pin (decided Oct 13): pin a post as the status update on a node its
- * human wrote. OPEN: its words on the keys page.
+ * human wrote. OPEN: its words on the keys page. submit and check are retired with submissions and checks (decided
+ * Oct 14, "One model for every node"): a key that holds them still works, and they do nothing; the page doesn't offer them.
  */
-export const KEY_PERMS: readonly Perm[] = ['read', 'post', 'submit', 'check', 'branch', 'join', 'pin', 'new_shwarms']
-/** A new grant's perms (decided: read, post, submit, check). join, pin and new_shwarms are off by default. */
-export const DEFAULT_PERMS: readonly Perm[] = ['read', 'post', 'submit', 'check']
+export const KEY_PERMS: readonly Perm[] = ['read', 'post', 'branch', 'join', 'pin', 'new_shwarms']
+/** A new grant's perms: read and post. join, pin and new_shwarms are off by default. */
+export const DEFAULT_PERMS: readonly Perm[] = ['read', 'post']
 /** The published test vector's public half (protocol §10, packages/protocol/vectors/shwarm-v0.json): a public test key, never registered. */
 export const TEST_VECTOR_PUBLIC = 'NGtOLax_D8HyITTWPYpRZKjFfkFlstv9-Wf3ktUTvFw'
 
@@ -70,10 +71,14 @@ export async function publicKeyProblem(raw: string | undefined): Promise<string 
 /** A name on one line: control characters and runs of spaces become one space. */
 const oneLine = (s: string) => s.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g, ' ').replace(/\s+/g, ' ').trim()
 
+/** Perms a form may still send (an old tab, an old `shwarm start` link) that are taken and dropped: they do nothing now. */
+const RETIRED_PERMS = ['submit', 'check']
+
 /**
  * The grants as the modal sends them: JSON [{node: '*' | a node path, perms: [...]}]. Each node once (the first
- * wins), perms from KEY_PERMS in their order, new_shwarms only on '*' (a new shwarm isn't inside one you pick). A
- * grant with no perms is kept: the most specific grant wins (decided), so it shuts the key out of that subtree.
+ * wins), perms from KEY_PERMS in their order (a retired one is dropped), new_shwarms only on '*' (a new shwarm isn't
+ * inside one you pick). A grant with no perms is kept: the most specific grant wins (decided), so it shuts the key out
+ * of that subtree.
  */
 export function parseGrants(raw: string | undefined): Grant[] | null {
   let v: unknown
@@ -92,7 +97,7 @@ export function parseGrants(raw: string | undefined): Grant[] | null {
       const p = parseNodePath(node)
       if (p.kind !== 'node' || p.path !== node) return null
     }
-    if (perms.some(p => !KEY_PERMS.includes(p as Perm)) || (node !== '*' && perms.includes('new_shwarms'))) return null
+    if (perms.some(p => !KEY_PERMS.includes(p as Perm) && !RETIRED_PERMS.includes(p)) || (node !== '*' && perms.includes('new_shwarms'))) return null
     if (out.some(x => x.node === node)) continue
     out.push({ node, perms: KEY_PERMS.filter(p => perms.includes(p)) })
   }

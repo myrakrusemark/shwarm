@@ -51,7 +51,7 @@ export type EditPlan = {
   after: Map<string, Row> // each edited node's row as the copy holds it after the edit, for the read-back
 }
 
-const COMPARED = ['title', 'what', 'done_when', 'checks', 'license', 'builds_on'] as const
+const COMPARED = ['title', 'what', 'done_when', 'license', 'builds_on'] as const
 
 const errText = (e: unknown) => {
   const x = e as { code?: string; message?: string }
@@ -89,14 +89,14 @@ async function setUpCopy(copy: D1Database & { raw?: { exec(sql: string): void } 
   await insertRows(copy, 'rate_bucket', s.buckets)
 }
 
-/** The edit input for one launch entry: its full content as the import maps it (the /new form's fields). */
+/** The edit input for one launch entry: its full content as the import maps it (the /new form's fields). No checks: editNode ignores any (decided Oct 14). */
 export function editInputOf(entry: unknown): { slug: string; input: EditNodeInput | null; notes: Note[] } {
   const m = mapLaunchShwarm(entry)
   if (m.notes.some(n => n.kind === 'failed')) return { slug: m.slug, input: null, notes: m.notes }
   const i = m.input
   return {
     slug: m.slug,
-    input: { node: m.slug, title: i.title, what: i.what, doneWhen: i.doneWhen, check: i.check, tags: i.tags, license: i.buildsOn ? undefined : (i.license ?? undefined), buildsOn: i.buildsOn ?? null },
+    input: { node: m.slug, title: i.title, what: i.what, doneWhen: i.doneWhen, check: null, tags: i.tags, license: i.buildsOn ? undefined : (i.license ?? undefined), buildsOn: i.buildsOn ?? null },
     notes: m.notes,
   }
 }

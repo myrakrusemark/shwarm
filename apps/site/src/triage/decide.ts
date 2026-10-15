@@ -75,10 +75,9 @@ export function decideStatements(d: HandDecision): Stmt[] {
       args: [by, action, d.path, text, at],
     },
     { sql: 'UPDATE node SET triage = ? WHERE path = ?', args: [d.action === 'block' ? 'blocked' : 'clear', d.path] },
-    // As core/context.ts touchNode: the review flag, a new version (the signed-out ETag) and changed_at (the stats job).
+    // As core/context.ts touchNode: a new version (the signed-out ETag) and changed_at (the stats job).
     ...[`path = ?`, `id = (SELECT parent_id FROM node WHERE path = ?)`].map(where => ({
-      sql: `UPDATE node SET in_review = (state = 'live' AND EXISTS (SELECT 1 FROM submission s WHERE s.node_id = node.id AND s.status = 'in_review')),
-            last_event_id = ?, changed_at = ? WHERE ${where}`,
+      sql: `UPDATE node SET last_event_id = ?, changed_at = ? WHERE ${where}`,
       args: [versionId(), at, d.path],
     })),
     // As core/context.ts moderatedStatement.

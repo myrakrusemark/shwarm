@@ -1,11 +1,12 @@
-// The create form, /new (go-live 4.2), ported from mockups/new.html in shwarm mode: title, what, done when, how
-// it's checked (at least one check), tags, builds on, license. No lobby (decided Oct 9): it publishes a live shwarm
+// The create form, /new (go-live 4.2), ported from mockups/new.html in shwarm mode: title, what, done when, tags,
+// builds on, license. The done test is the "done when" sentence alone (decided Oct 14: no checks; its people say it
+// passed with a claim they back). No lobby (decided Oct 9): it publishes a live shwarm
 // with the author down as working on it, through the shwarm tree (core/nodes.ts createNode), counted toward 3 new
 // nodes a day, and goes to the new page. New nodes start 'pending' and triage (8.1, triage/run.ts) runs right after the redirect;
 // production keeps creation paused (setting pause_new_nodes) until triage is seen running there; the form says so up front.
 // In the beta (go-live 3.10) anyone who isn't invited gets "opens soon" (web/opens-soon.tsx) instead of the form.
 //
-// Builds on: paste the link or path of a shwarm that passed or is a dead end, or any link. GitHub repo links get their name and SPDX license
+// Builds on: paste the link or path of any shwarm here, or any link. GitHub repo links get their name and SPDX license
 // from the GitHub API; any other link is stored as its URL and a name, with the license typed in. A builds-on
 // license replaces the license picker (protocol §8).
 // OPEN: the mockup's live search and the chip with "change" need JavaScript; this first version is a plain form.
@@ -13,9 +14,10 @@
 // Branch mode (go-live 4.3), as mockups/new.html draws it. /new?parent=<path> makes a branch: the parent's done
 // test shown as what it helps reach, no tags or builds-on, the parent's license, live at once. It reaches the parent
 // only as the node page would show it to this viewer. Variants are dropped (decided Oct 9): there is no ?variant= mode.
-// /new?builds_on=<path> fills the builds-on field, and names the shwarm when it's an ended one this viewer can see (the
-// result page's and a dead end's "build on this"); its done test then fills "done when", to keep or change (decided Oct 9:
-// a passed shwarm is challenged by building on it with the same done test; nothing enforces it).
+// /new?builds_on=<path> fills the builds-on field, and names the shwarm when it's one this viewer can see (every
+// shwarm's "build on this"; decided Oct 14, "With nothing locking: build on any shwarm"), with its latest pass, the
+// point the new shwarm builds on ("as passed oct 14"). Building on is for a different finish line, so "done when"
+// starts empty.
 // /new?parent=<path>&from=<post id> is a post's "make it a branch" (go-live 4.8): the branch form, filled from the post.
 //
 // No edit mode (decided Oct 12; it superseded "edit replaces re-pitch" of Oct 10): once posted, a shwarm's or a
@@ -29,14 +31,13 @@ import { formOf, FORM_FIELD, later, postedTokenOk, who, type AuthContext } from 
 import { signInHref } from '../auth/return-to'
 import { siteActor } from '../core/actor'
 import { isId } from '../core/ids'
-import { DEFAULT_RUNS } from '../core/checks'
-import { ENDED, LICENSES, NO_EDIT, needBranchable, type CreateNodeInput } from '../core/nodes'
-import { lockedError } from '../core/context'
+import { LICENSES, NO_EDIT, type CreateNodeInput } from '../core/nodes'
 import { readSettings } from '../core/settings'
 import { MAX_TEXT, MAX_TITLE } from '../core/text'
 import { runInTree } from '../do/shwarm-tree'
-import { lockedBy, parseNodePath, readChain, type Chain, type NodeHead } from '../read/node'
-import { cut, licenseName } from '../render/format'
+import { parseNodePath, readChain, type Chain, type NodeHead } from '../read/node'
+import { readLatestPass } from '../read/status'
+import { cut, licenseName, monthDay } from '../render/format'
 import { showHidden } from '../render/hidden'
 import { Plain, Text } from '../render/text'
 import { triageNew } from '../triage/run'
@@ -51,33 +52,27 @@ type Env = { Bindings: { DB: D1Database; TREE: DurableObjectNamespace; AI: Ai; T
 type C = Context<Env>
 
 /** The form's fields, as posted (and as shown again after a refusal). `edit` only marks a form from an old edit tab. */
-export type CreateForm = Partial<Record<
-  'title' | 'what' | 'done_when' | 'c_runs' | 'command' | 'runs' | 'c_people' | 'people' | 'human' | 'instructions' | 'c_author' | 'tags' | 'license' | 'builds_on' | 'builds_on_name' | 'builds_on_license' | 'parent' | 'edit',
-  string
->>
+export type CreateForm = Partial<Record<'title' | 'what' | 'done_when' | 'tags' | 'license' | 'builds_on' | 'builds_on_name' | 'builds_on_license' | 'parent' | 'edit', string>>
 
 /**
- * What the form makes (go-live 4.3): a shwarm, with `upstream` when ?builds_on= names an ended shwarm (passed or a dead
- * end) this viewer can see; or a branch under `chain.node`.
+ * What the form makes (go-live 4.3): a shwarm, with `upstream` when ?builds_on= names a shwarm this viewer can see, and
+ * `asOf` its latest pass record, the one the new shwarm builds on (core/nodes.ts records it again as it's made); or a
+ * branch under `chain.node`.
  */
-export type Mode = { kind: 'shwarm'; upstream?: NodeHead | null } | { kind: 'branch'; chain: Chain }
+export type Mode = { kind: 'shwarm'; upstream?: NodeHead | null; asOf?: { id: string; at: string } | null } | { kind: 'branch'; chain: Chain }
 
-const FRESH: CreateForm = { c_author: 'on', runs: String(DEFAULT_RUNS), people: '2', license: LICENSES[0] }
+const FRESH: CreateForm = { license: LICENSES[0] }
 
 const place = () => ({
   title: w.create.placeTitle,
   what: w.create.placeWhat,
   done: w.create.placeDone,
-  command: w.create.placeCommand,
-  look: w.create.placeLook,
 })
 // mockups/new.html's branch placeholders
 const branchPlace = (): ReturnType<typeof place> => ({
   title: w.create.branchPlaceTitle,
   what: w.create.branchPlaceWhat,
   done: w.create.branchPlaceDone,
-  command: w.create.branchPlaceCommand,
-  look: w.create.branchPlaceLook,
 })
 
 /**
@@ -103,9 +98,8 @@ export async function fieldsFromPost(db: D1Database, nodeId: number, id: string 
  */
 const fixedNote = () => w.create.fixedNote
 /**
- * The note under the checks (decided Oct 12, no editing): the done test is fixed once posted. OPEN: the words wait on
- * Myra's yes; they replace "the done test locks once someone else joins or anything is submitted" (shwarm) and "the
- * done test locks once it goes live … not editing this one" (branch).
+ * The note under a shwarm's done test (decided Oct 12, no editing): the done test is fixed once posted, so a different
+ * finish line is a new shwarm. OPEN: the words wait on Myra's yes.
  */
 const lockNote = () => <>{fillx(w.create.lockNote, { newShwarm: <b>{w.create.lockNoteNew}</b> })}</>
 
@@ -119,14 +113,13 @@ function wordsOf(mode: Mode) {
       heading: w.create.branchHeading,
       sub: w.create.branchSub, // OPEN: mockups/new.html's "no lobby:" dropped; waits on Myra's yes
       pitchHint: w.create.branchPitchHint,
-      oneTest: w.create.branchOneTest,
+      doneHint: w.create.branchDoneHint,
       licHint: w.create.branchLicHint,
       // OPEN (#77): the mockup's "goes live right away" predates triage; the check-first sentence is the shwarm form's.
       goNote: fill(w.create.branchGoNote, { title: showHidden(n.title) }),
       go: w.create.branchGo,
       place: branchPlace(),
       root,
-      lockNote: lockNote(),
     }
   }
   // OPEN (decided Oct 9, "No lobby"): the sub line, the license hint's "locks once you post it", the go note's last
@@ -136,7 +129,7 @@ function wordsOf(mode: Mode) {
     heading: w.create.heading,
     sub: w.create.sub,
     pitchHint: w.create.pitchHint,
-    oneTest: w.create.oneTest,
+    doneHint: w.create.doneHint,
     // OPEN (decided Oct 12, once posted it can't be changed): "it can't be changed once you post it" replaces "it locks
     // once someone else joins or anything is submitted"; the words wait on Myra's yes.
     licHint: w.create.licHint,
@@ -144,7 +137,6 @@ function wordsOf(mode: Mode) {
     go: w.create.go,
     place: place(),
     root: null,
-    lockNote: lockNote(),
   }
 }
 
@@ -165,8 +157,8 @@ const Crumbs: FC<{ mode: Mode }> = ({ mode }) => {
 }
 
 /**
- * The form in its mode. `refused`: why this parent takes no branch right now (a closed or dead-end node), or why
- * nothing can be edited (an old edit link), shown in place of the form.
+ * The form in its mode. `refused`: why the form can't be used right now (new nodes are paused), or why nothing can be
+ * edited (an old edit link), shown in place of the form.
  */
 export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refused?: string; verified: boolean; mode?: Mode }> = ({
   token,
@@ -176,10 +168,10 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refus
   verified,
   mode = { kind: 'shwarm' },
 }) => {
-  const on = (k: keyof CreateForm) => v[k] === 'on'
   const t = wordsOf(mode)
   const branch = mode.kind === 'branch' ? mode.chain.node : null
   const upstream = mode.kind !== 'branch' ? mode.upstream : null
+  const asOf = mode.kind !== 'branch' ? mode.asOf : null
   return (
     <Layout title={t.page}>
       <link rel="stylesheet" href="/css/new.css" />
@@ -217,58 +209,10 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refus
                   </div>
                   <div class="f dt">
                     <label for="done">{w.create.doneWhen}</label>
-                    <p class="hint" id="done-hint">{w.create.doneHint}</p>
+                    <p class="hint" id="done-hint">{t.doneHint}</p>
                     <textarea id="done" name="done_when" required maxlength={2000} aria-describedby="done-hint" placeholder={t.place.done}>{v.done_when ?? ''}</textarea>
+                    {!branch && <p class="note" id="lock-note">{lockNote()}</p>}
                   </div>
-                </div>
-              </div>
-              <div class="box">
-                <h2 class="sunny">{w.create.howChecked} <span>{t.oneTest}</span></h2>
-                <div class="f">
-                  {/* OPEN (#92): the mockup's "anyone can reopen a pass with a failing repro." is dropped (decided Oct 9: nothing reopens). */}
-                  <p class="hint">{branch ? w.create.branchChecksHint : w.create.checksHint}</p>
-                  <div class="chk">
-                    <input type="checkbox" id="c-machine" name="c_runs" checked={on('c_runs')} />
-                    <div class="body">
-                      <label for="c-machine"><b>{w.create.runs}</b></label>{' '}
-                      <span class="note">{w.create.runsNote}</span>
-                      <div class="row">
-                        {/* A one-line field drops line breaks, so a command stored with them (agent API) is shown whole. */}
-                        {(v.command ?? '').includes('\n') ? (
-                          <textarea id="cmd" name="command" aria-label={w.create.runCommandLabel} maxlength={2000} style="min-height:52px" placeholder={t.place.command}>{v.command}</textarea>
-                        ) : (
-                          <input type="text" id="cmd" name="command" aria-label={w.create.runCommandLabel} maxlength={2000} placeholder={t.place.command} value={v.command ?? ''} />
-                        )}
-                      </div>
-                      <div class="row">{fillx(w.create.runsCount, { number: <input type="number" id="n-runs" name="runs" min={1} max={50} aria-label={w.create.runsCountLabel} value={v.runs ?? String(DEFAULT_RUNS)} /> })}</div>
-                    </div>
-                  </div>
-                  <div class="chk">
-                    <input type="checkbox" id="c-people" name="c_people" checked={on('c_people')} />
-                    <div class="body">
-                      <label for="c-people"><b>{w.create.people}</b></label>{' '}
-                      <span class="note">{w.create.peopleNote}</span>
-                      <div class="row">
-                        {fillx(w.create.peopleCount, { number: <input type="number" id="n-people" name="people" min={1} max={50} aria-label={w.create.peopleCountLabel} value={v.people ?? '2'} /> })}
-                        <label><input type="checkbox" id="human" name="human" checked={on('human')} />{w.create.atLeastOneHuman}</label>
-                      </div>
-                      <div class="row"><textarea id="look" name="instructions" aria-label={w.create.whatCheckersDo} maxlength={4000} style="min-height:52px" placeholder={t.place.look}>{v.instructions ?? ''}</textarea></div>
-                    </div>
-                  </div>
-                  {/* A branch has no author sign-off (decided Oct 13): its pass is its status vote. */}
-                  {!branch && (
-                    <div class="chk">
-                      <input type="checkbox" id="c-author" name="c_author" checked={on('c_author')} />
-                      <div class="body">
-                        <label for="c-author"><b>{w.create.author}</b></label>{' '}
-                        <span class="note">{w.create.authorNote}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div class="f">
-                  {/* OPEN (#69): variants are dropped, so this no longer says "starting a variant"; the words wait on Myra's yes. */}
-                  <p class="note" style="margin:0">{t.lockNote}</p>
                 </div>
               </div>
               {!branch && (
@@ -287,7 +231,13 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refus
                     <p class="hint" id="up-hint">{w.create.buildsOnHint}</p>
                     <input type="text" id="upstream" name="builds_on" aria-describedby="up-hint" placeholder={w.create.buildsOnPlaceholder} autocomplete="off" value={v.builds_on ?? ''} />
                     {upstream && (
-                      <div class="picked" id="picked"><div><b><Plain text={upstream.title} /></b> <span>{fill(w.create.pickedLine, { path: upstream.path, license: licenseName(upstream.license) })}</span></div></div>
+                      <div class="picked" id="picked">
+                        <div>
+                          <b><Plain text={upstream.title} /></b> <span>{fill(w.create.pickedLine, { path: upstream.path, license: licenseName(upstream.license) })}</span>
+                          {/* the point it builds on: the upstream's latest pass (decided Oct 14), as its page says it */}
+                          {asOf && <span> · {fill(w.create.pickedAsOf, { date: monthDay(asOf.at) })}</span>}
+                        </div>
+                      </div>
                     )}
                     <div class="row two">
                       <input type="text" name="builds_on_name" aria-label={w.create.buildsOnName} placeholder={w.create.buildsOnName} maxlength={200} value={v.builds_on_name ?? ''} />
@@ -349,24 +299,8 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refus
 
 const bad = (m: string) => new ShwarmError('bad_request', m)
 
-/** A whole number from a form field, or the fallback when it's blank. */
-function whole(v: string | undefined, what: string, fallback?: number): number {
-  if ((v === undefined || v.trim() === '') && fallback !== undefined) return fallback
-  const n = Number(v)
-  if (!Number.isInteger(n)) throw bad(fill(w.create.wholeNumber, { field: what }))
-  return n
-}
-
 /** "#weird #games, gzdoom" → ['weird', 'games', 'gzdoom']. createNode checks each one. */
 export const parseTagField = (s: string | undefined) => (s ?? '').split(/[\s,]+/).map(t => t.replace(/^#+/, '')).filter(Boolean)
-
-/** The form's check boxes as a check spec for parseCheckSpec. */
-export function checkFromForm(f: CreateForm): Record<string, unknown> {
-  const check: Record<string, unknown> = { author: f.c_author === 'on' }
-  if (f.c_runs === 'on') check.runs = { command: f.command ?? '', count: whole(f.runs, w.create.runs, DEFAULT_RUNS) }
-  if (f.c_people === 'on') check.people = { count: whole(f.people, w.create.people, 2), human: f.human === 'on', instructions: f.instructions ?? '' }
-  return check
-}
 
 type Fetch = typeof fetch
 
@@ -433,7 +367,7 @@ export const create = new Hono<Env>()
 
 const formFields = (f: Record<string, string>): CreateForm => {
   const keep: CreateForm = {}
-  for (const k of ['title', 'what', 'done_when', 'c_runs', 'command', 'runs', 'c_people', 'people', 'human', 'instructions', 'c_author', 'tags', 'license', 'builds_on', 'builds_on_name', 'builds_on_license', 'parent', 'edit'] as const)
+  for (const k of ['title', 'what', 'done_when', 'tags', 'license', 'builds_on', 'builds_on_name', 'builds_on_license', 'parent', 'edit'] as const)
     if (typeof f[k] === 'string') keep[k] = f[k]
   return keep
 }
@@ -441,56 +375,37 @@ const formFields = (f: Record<string, string>): CreateForm => {
 /** A refusal as the page shows it: core's message as one sentence. */
 const sentence = (e: ShwarmError) => e.message.replace(/\.?$/, '.')
 
-/** Why `check` refuses this node, as the page says it; nothing when it doesn't. */
-function refusal(check: () => void): string | undefined {
-  try {
-    check()
-  } catch (e) {
-    if (e instanceof ShwarmError) return sentence(e)
-    throw e
-  }
-  return undefined
-}
-
 /** The node at a ?parent= path as the node page would show it to this viewer; null when it wouldn't. */
 async function shownNode(db: D1Database, raw: string, viewerId: number): Promise<Chain | null> {
   const p = parseNodePath(raw.trim().replace(/^\/?(w\/)?|\/+$/g, ''))
   return p.kind === 'node' ? readChain(db, p.path, viewerId) : null
 }
 
-/** builds on as typed: the ended shwarm it names, when this viewer can see one. */
+/** builds on as typed: the shwarm it names, when this viewer can see one. */
 async function upstreamOf(db: D1Database, raw: string | undefined, viewerId: number, origin: string): Promise<NodeHead | null> {
   const path = raw ? shwarmPathOf(raw.trim(), origin) : null
   const up = path ? await shownNode(db, path, viewerId) : null
-  return up && ENDED.includes(up.node.state) ? up.node : null
+  return up && up.node.kind !== 'branch' ? up.node : null
 }
 
 /**
- * The form's mode from ?parent= (or the posted parent field), with why it's refused, if it is. Null when the parent
- * isn't there for this viewer: a 404, as on its own page. A ?variant= is ignored: variants are dropped (decided Oct 9).
+ * The form's mode from ?parent= (or the posted parent field). Null when the parent isn't there for this viewer: a 404,
+ * as on its own page. Nothing locks (decided Oct 14), so any node it shows takes a branch. A ?variant= is ignored:
+ * variants are dropped (decided Oct 9).
  */
 async function modeOf(
   db: D1Database,
   q: { parent?: string; builds_on?: string },
   viewerId: number,
   origin: string,
-): Promise<{ mode: Mode; refused?: string } | null> {
+): Promise<{ mode: Mode } | null> {
   if (q.parent) {
     const chain = await shownNode(db, q.parent, viewerId)
-    return (
-      chain && {
-        mode: { kind: 'branch', chain },
-        refused: refusal(() => {
-          needBranchable(chain.node)
-          const by = lockedBy(chain) // a node above it ended: locked with it (core's needLive)
-          if (by) throw lockedError(chain.node, by)
-        }),
-      }
-    )
+    return chain && { mode: { kind: 'branch', chain } }
   }
-  // ?builds_on= names an ended shwarm (the result page's or a dead end's "build on this"): the field shows its path and
-  // the chip its name.
-  return { mode: { kind: 'shwarm', upstream: await upstreamOf(db, q.builds_on, viewerId, origin) } }
+  // ?builds_on= names a shwarm ("build on this"): the field shows its path, the chip its name and the pass it's as of.
+  const upstream = await upstreamOf(db, q.builds_on, viewerId, origin)
+  return { mode: { kind: 'shwarm', upstream, asOf: upstream ? await readLatestPass(db, upstream.id) : null } }
 }
 
 /** Where this form lives: /new, or /new in its branch mode. */
@@ -516,19 +431,16 @@ create.get('/new', async c => {
   const m = await modeOf(c.env.DB, q, w.session.personId, url.origin)
   if (!m) return noNode(c as C)
   // Paused (setting pause_new_nodes, kept on in production until triage runs there): say so before the form is filled.
-  if (!m.refused && (await readSettings(c.env.DB, ['pause_new_nodes'])).pause_new_nodes === true)
+  if ((await readSettings(c.env.DB, ['pause_new_nodes'])).pause_new_nodes === true)
     return page(c, <NewPage refused={paused()} verified={w.session.verified} mode={m.mode} />)
   const token = await formToken(c.env.CSRF_SECRET, w.session.id)
-  // Building on an ended shwarm starts from its done test (decided Oct 9): kept word for word, the new shwarm shows on the
-  // result page as challenging the pass; changed, it's built on it. OPEN (#92): only "done when" is filled, not its checks.
-  const upstream = m.mode.kind === 'shwarm' ? m.mode.upstream : null
   const v: CreateForm =
     m.mode.kind === 'branch'
       ? ((await fieldsFromPost(c.env.DB, m.mode.chain.node.id, c.req.query('from'))) ?? FRESH)
       : q.builds_on
-        ? { ...FRESH, builds_on: q.builds_on.trim().slice(0, 600), ...(upstream ? { done_when: upstream.done_when } : {}) }
+        ? { ...FRESH, builds_on: q.builds_on.trim().slice(0, 600) }
         : FRESH
-  return page(c, <NewPage token={token} v={v} refused={m.refused} verified={w.session.verified} mode={m.mode} />)
+  return page(c, <NewPage token={token} v={v} verified={w.session.verified} mode={m.mode} />)
 })
 
 /** An old edit link or edit form (decided Oct 12): refused, 410, with why. Nothing is changed and nothing is made. */
@@ -544,20 +456,19 @@ create.post('/new', async (c: C) => {
   // A form from an old edit tab (retired Oct 12) changes nothing, and never falls through to making a new shwarm.
   if (f.edit !== undefined) return noEdit(c, session.verified)
   const origin = new URL(c.req.url).origin
-  // builds_on too, so a refused form that builds on an ended shwarm comes back with its chip and the license picker hidden.
+  // builds_on too, so a refused form that builds on a shwarm comes back with its chip and the license picker hidden.
   const m = await modeOf(c.env.DB, { parent: f.parent, builds_on: f.builds_on }, session.personId, origin)
   if (!m) return noNode(c)
   const mode = m.mode
   if (!(await postedTokenOk(c as unknown as AuthContext, w, raw))) return c.redirect(formHref(mode), 303)
   const again = async (error: string, status: 400 | 429) =>
     page(c, <NewPage token={await formToken(c.env.CSRF_SECRET, session.id)} v={f} error={error} verified={session.verified} mode={mode} />, status)
-  // The parent changed since the form was shown (live, now closed): the page says so, without the form.
-  if (m.refused) return page(c, <NewPage refused={m.refused} verified={session.verified} mode={mode} />, 400)
   try {
-    const text = { title: (f.title ?? '').trim(), what: (f.what ?? '').trim(), doneWhen: (f.done_when ?? '').trim(), check: checkFromForm(f) }
+    const text = { title: (f.title ?? '').trim(), what: (f.what ?? '').trim(), doneWhen: (f.done_when ?? '').trim() }
     let input: CreateNodeInput
+    // No node keeps checks (decided Oct 14: the done test is the "done when" sentence), so none are sent.
     if (mode.kind === 'branch') {
-      // A branch takes its parent's license and builds-on, and has no tags: none are sent.
+      // A branch takes its parent's license and builds-on, and has no tags.
       input = { kind: 'branch', parent: mode.chain.node.path, ...text }
     } else {
       const buildsOn = await buildsOnFromForm(f, origin)

@@ -6,13 +6,12 @@ import { ShwarmError } from '@shwarm/protocol'
 export const THREAD_BURST = 5
 export const THREAD_REFILL_S = 300 // one post back every 5 minutes
 export const NEW_NODES_PER_DAY = 3
-export const SUBMISSIONS_PER_DAY = 1
 const DAY_MS = 86_400_000
 
+// The submissions limit (one per person per node per day) went with submissions (decided Oct 14).
 export const RULES = {
   thread_posts: 'burst of 5, then 1 every 5 minutes, per thread, per person',
   new_nodes: '3 new shwarms and branches a day, per person, site-wide',
-  submissions: 'one submission per person per node per day',
 } as const
 
 const iso = (ms: number) => new Date(ms).toISOString()
@@ -98,29 +97,10 @@ export async function peekNewNodes(db: D1Database, personId: number, now: number
   return { left, wait: left > 0 ? 0 : Math.max(1, Math.ceil((Date.parse(results[0].created_at) + DAY_MS - now) / 1000)) }
 }
 
-/** checkSubmissions without refusing: submissions left today on one node, and seconds until the next one when none are. */
-export async function peekSubmissions(db: D1Database, p: { personId: number; nodeId: number }, now: number): Promise<{ left: number; wait: number }> {
-  const { results } = await db
-    .prepare(
-      `SELECT p.created_at FROM submission s JOIN post p ON p.id = s.post_id
-       WHERE s.node_id = ? AND p.person_id = ? AND p.created_at > ? ORDER BY p.created_at LIMIT ?`,
-    )
-    .bind(p.nodeId, p.personId, iso(now - DAY_MS), SUBMISSIONS_PER_DAY)
-    .all<{ created_at: string }>()
-  const left = SUBMISSIONS_PER_DAY - results.length
-  return { left, wait: left > 0 ? 0 : Math.max(1, Math.ceil((Date.parse(results[0].created_at) + DAY_MS - now) / 1000)) }
-}
-
 /** The same count as a condition for an INSERT ... SELECT ... WHERE, evaluated inside the batch. */
 export function newNodeGuard(personId: number, now: number): { sql: string; args: unknown[] } {
   return {
     sql: '(SELECT COUNT(*) FROM node WHERE author_id = ? AND created_at > ? AND seeded = 0) < ?',
     args: [personId, iso(now - DAY_MS), NEW_NODES_PER_DAY],
   }
-}
-
-/** Submissions: 1 per person per node per rolling day, across all their agents. */
-export async function checkSubmissions(db: D1Database, p: { personId: number; handle: string; nodeId: number; path: string }, now: number): Promise<void> {
-  const { left, wait } = await peekSubmissions(db, p, now)
-  if (left <= 0) throw limited('submissions', p.handle, wait * 1000, p.path)
 }

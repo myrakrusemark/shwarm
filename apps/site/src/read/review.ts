@@ -1,8 +1,12 @@
-// A submission's check list as the node page and the agent prompt show it: the standing checks, then a
-// "waiting" row for every slot still open (spec "Kinds of check"; A9 swaps the author check for one more people check).
+// A submission's check list as its page and the agent prompt show it: the standing checks, then a "waiting" row for
+// every slot that was still open (spec "Kinds of check"; A9 swaps the author check for one more people check). Nothing
+// takes submissions or checks since Oct 14 ("One model for every node"): these read the old ones as they stood.
+// And a node's status line from what's recorded.
 import { needs, tally, type CheckSpec, type Need, type Tally } from '../core/checks'
-import { statusLine, type StatusInput } from '../core/stats'
-import { lockedBy, type Chain, type Child, type CheckReport, type NodeHead, type SubmissionRow } from './node'
+import { statusLine } from '../core/stats'
+import type { Status } from '../core/status'
+import type { Child, CheckReport, NodeHead, SubmissionRow } from './node'
+import type { StatusData } from './status'
 
 export type ReviewRow =
   | { verdict: 'pass' | 'fail'; slot: CheckReport['slot']; as: string; check: CheckReport }
@@ -66,28 +70,13 @@ export function waitingDays(at: string | null, now: number): number | null {
   return d >= 1 ? d : null
 }
 
-/** The submission whose status is in_review, if any (it may sit on a dead end, where it collects nothing). */
-export const inReview = (subs: SubmissionRow[]) => subs.find(s => s.status === 'in_review') ?? null
-
 /**
- * The submission collecting checks now: in review on a live node. A dead end keeps its submission's in_review
- * status, but is locked and takes no checks (decided Oct 9), so it has no open review; nor has a branch under an
- * ended shwarm (lockedBy).
+ * The status line from what's recorded (table B #40, without the pinned posts: the page shows them itself): why the
+ * node isn't on track, else its branches by status (core/stats.ts statusLine).
  */
-export const openReview = (c: Pick<Chain, 'node' | 'ancestors'>, subs: SubmissionRow[]) => (lockedBy(c) ? null : inReview(subs))
-
-/** Whether this submission is the one collecting checks (see openReview). */
-export const isOpen = (c: Pick<Chain, 'node' | 'ancestors'>, sub: SubmissionRow) => !lockedBy(c) && sub.status === 'in_review'
-
-/** The status line from recorded state (table B #40, without the pinned posts: the page shows them itself). */
-export function recordedStatus(n: NodeHead, subs: SubmissionRow[], branches: Child[]): string {
-  const s: StatusInput = {
-    kind: n.kind,
-    state: n.state,
-    pins: [],
-    deadEndNote: n.dead_end_note,
-    submissions: subs.map(x => ({ number: x.number, status: x.status })),
-    branches: { live: branches.filter(b => b.state === 'live').length, closed: branches.filter(b => b.state === 'closed').length },
-  }
-  return statusLine(s)
+export function recordedStatus(n: Pick<NodeHead, 'dead_end_note'>, s: Pick<StatusData, 'now' | 'reason'>, branches: Child[]): string {
+  const counts: Partial<Record<Status, number>> = {}
+  for (const b of branches) counts[b.status.current] = (counts[b.status.current] ?? 0) + 1
+  const reason = s.reason?.text ?? (s.now.current === 'dead_end' ? n.dead_end_note : null)
+  return statusLine({ pins: [], status: s.now.current, reason, branches: counts })
 }

@@ -1,13 +1,13 @@
 // The tree engine: runs one shwarm tree's commands one at a time and commits each as one D1 batch.
 // D1 has no interactive transactions, so every command reads, decides, then writes in a single batch;
-// running them one at a time per tree is what keeps the last seat, the final check and racing
-// submissions from producing double results. The ShwarmTree Durable Object wraps one engine per tree.
+// running them one at a time per tree is what keeps racing joins, backs and pass records from producing double
+// results. The ShwarmTree Durable Object wraps one engine per tree.
 import { ShwarmError } from '@shwarm/protocol'
 import type { Actor } from './actor'
-import { check, type CheckInput } from './checking'
 import { ctxAt, rootOf } from './context'
-import { createNode, deadEnd, editNode, join, leave, type CreateNodeInput, type EditNodeInput, type JoinInput } from './nodes'
-import { deletePost, editPost, pinPost, post, submit, upvote, type DeleteInput, type EditInput, type PinInput, type PostInput, type SubmitInput, type UpvoteInput } from './posts'
+import { createNode, editNode, join, leave, type CreateNodeInput, type EditNodeInput, type JoinInput } from './nodes'
+import { back, deletePost, editPost, pinPost, post, upvote, type BackInput, type DeleteInput, type EditInput, type PinInput, type PostInput, type UpvoteInput } from './posts'
+import { markPassed, type MarkInput } from './records'
 import { voteStatus, type StatusInput } from './status'
 
 export type Command =
@@ -19,10 +19,9 @@ export type Command =
   | { type: 'deletePost'; actor: Actor; input: DeleteInput }
   | { type: 'pinPost'; actor: Actor; input: PinInput }
   | { type: 'upvote'; actor: Actor; input: UpvoteInput }
-  | { type: 'submit'; actor: Actor; input: SubmitInput }
-  | { type: 'check'; actor: Actor; input: CheckInput }
-  | { type: 'deadEnd'; actor: Actor; input: { node: string; note: string } }
-  | { type: 'status'; actor: Actor; input: StatusInput } // a branch's status vote, one per person (core/status.ts)
+  | { type: 'back'; actor: Actor; input: BackInput } // back a claim, or take it off (core/posts.ts back)
+  | { type: 'status'; actor: Actor; input: StatusInput } // a person's on-track vote (core/status.ts)
+  | { type: 'markPassed'; actor: Actor; input: MarkInput } // a shwarm's author marks it passed (core/records.ts)
   | { type: 'editNode'; actor: Actor; input: EditNodeInput } // the operator's seed card fixes only (seed/edit.ts); no user edits a shwarm's words (decided Oct 12)
 
 /** New top-level shwarms share one tree name, so their slugs (and the daily limit) are decided one at a time. */
@@ -75,14 +74,12 @@ export class TreeEngine {
         return pinPost(ctx, cmd.actor, cmd.input)
       case 'upvote':
         return upvote(ctx, cmd.actor, cmd.input)
-      case 'submit':
-        return submit(ctx, cmd.actor, cmd.input)
-      case 'check':
-        return check(ctx, cmd.actor, cmd.input)
-      case 'deadEnd':
-        return deadEnd(ctx, cmd.actor, cmd.input)
+      case 'back':
+        return back(ctx, cmd.actor, cmd.input)
       case 'status':
         return voteStatus(ctx, cmd.actor, cmd.input)
+      case 'markPassed':
+        return markPassed(ctx, cmd.actor, cmd.input)
       case 'editNode':
         return editNode(ctx, cmd.actor, cmd.input)
       default:

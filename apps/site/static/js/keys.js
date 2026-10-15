@@ -9,9 +9,10 @@
   const sc = g('scrim')
   if (!sc) return
   const step1 = g('step1'), step2 = g('step2'), opener = g('newkey')
-  const PERMS = ['read', 'post', 'submit', 'check', 'branch', 'join', 'pin', 'new_shwarms']
+  // As auth/keys.ts KEY_PERMS and DEFAULT_PERMS. submit and check retired with submissions and checks (decided Oct 14).
+  const PERMS = ['read', 'post', 'branch', 'join', 'pin', 'new_shwarms']
   const LATER = ['edit', 'delete'] // no calls yet (#30): shown, not settable
-  const DEFAULT = ['read', 'post', 'submit', 'check']
+  const DEFAULT = ['read', 'post']
   // The words, from the word list (w.keys.script). OPEN (#115): the join permission's title is new words, and so is the
   // pin permission's (Oct 13); OPEN (#88): so are the refusals.
   const W = window.W.keys

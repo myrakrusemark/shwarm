@@ -7,9 +7,8 @@ import { describe, expect, test } from 'vitest'
 import { bookmarkBeforeFirstSeed, checkArgs, parseArgs, Refused, reset, type Wrangler } from '../../../scripts/seed-launch'
 import { seededLogRow } from '../src/core/audit'
 import { rollupStats } from '../src/jobs/stats'
-import { parseCheckSpec } from '../src/core/checks'
 import { EXAMPLE_BRANCH, EXAMPLE_PEOPLE, EXAMPLE_ROOT } from '../src/seed/example'
-import { findLicenses, mapLaunchShwarm, NOT_IMPORTED, parseBuildsOn, splitRunCommand } from '../src/seed/launch'
+import { findLicenses, mapLaunchShwarm, NOT_IMPORTED, parseBuildsOn } from '../src/seed/launch'
 import { checkTarget, formatReport, planSeed, type TargetState } from '../src/seed/plan'
 import { renderStatement, SENTINEL_MIN, sqlLiteral, sqlString } from '../src/seed/sql'
 import { person, refused, site, World } from './core-fixtures'
@@ -49,13 +48,7 @@ describe('mapping the launch list', () => {
       expect(m.input.slug).toBe(e.slug)
       expect(m.input).not.toHaveProperty('lobby') // no lobby (decided Oct 9): the JSON's "lobby" is no longer read
       expect(m.input.kind).toBe('shwarm') // no variants (decided Oct 9)
-      // A20: the light check counts are kept as written.
-      const check = m.input.check as any
-      expect(check.runs?.count ?? null).toBe(e.checked_by.runs?.count ?? null)
-      expect(check.people?.count ?? null).toBe(e.checked_by.people?.count ?? null)
-      expect(check.people?.human ?? null).toBe(e.checked_by.people?.human ?? null)
-      expect(check.author).toBe(e.checked_by.author)
-      expect(() => parseCheckSpec(check)).not.toThrow()
+      expect(m.input).not.toHaveProperty('check') // no node keeps checks (decided Oct 14): checked_by isn't read
       expect(m.pinned).toContain('where this pitch comes from:')
       for (const s of e.sources) expect(m.pinned).toContain(s)
     }
@@ -74,6 +67,15 @@ describe('mapping the launch list', () => {
     expect(m.notes.filter(n => n.kind === 'failed' || n.kind === 'warning')).toEqual([])
     expect(JSON.stringify({ input: m.input, pinned: m.pinned })).not.toContain(secret)
     expect(NOT_IMPORTED).toContain('risk_notes')
+  })
+
+  test("checked_by is never imported (decided Oct 14: a node's done test is the sentence), whatever it holds", () => {
+    expect(NOT_IMPORTED).toContain('checked_by')
+    for (const checked_by of [undefined, null, {}, { runs: { command: 'ok "unclosed', count: 1 }, author: 'yes' }]) {
+      const m = mapLaunchShwarm({ ...LIST[0], checked_by })
+      expect(m.notes.filter(n => n.kind === 'failed' || n.kind === 'warning')).toEqual([])
+      expect(m.input).toEqual(mapLaunchShwarm(LIST[0]).input)
+    }
   })
 
   test('snapshots of a few mapped entries', () => {
@@ -107,47 +109,7 @@ describe('mapping the launch list', () => {
     expect(failed({ ...base, slug: 'Bad Slug' })).toEqual(['slug'])
     expect(failed({ ...base, tags: ['#not a tag'] })).toEqual(['tags'])
     expect(failed({ ...base, sources: ['ftp://x'] })).toEqual(['sources'])
-    expect(failed({ ...base, checked_by: { runs: {}, people: {}, author: false } })).toEqual(['checked_by'])
-    expect(failed({ ...base, checked_by: { runs: { command: 'ok "unclosed', count: 1 }, author: false } })).toEqual(['check.runs'])
     expect(failed({ ...base, done_when: '' })).toEqual(['done_when'])
-  })
-})
-
-describe('splitting a run command from its description', () => {
-  const split = (s: string) => {
-    const r = splitRunCommand(s)
-    return { command: r.command, description: r.description, failed: r.notes.some(n => n.kind === 'failed') }
-  }
-  test('a trailing description', () => {
-    expect(split('python replay.py demos/ (replays each demo and prints the time)')).toEqual({ command: 'python replay.py demos/', description: 'replays each demo and prints the time', failed: false })
-  })
-  test('a description in the middle keeps the rest of the command', () => {
-    expect(split('./bench.sh (plays the demo and prints fps) && ./license-scan.sh mcdoom.pk3')).toEqual({
-      command: './bench.sh && ./license-scan.sh mcdoom.pk3',
-      description: 'plays the demo and prints fps',
-      failed: false,
-    })
-  })
-  test('an apostrophe in the description is prose', () => {
-    expect(split("./verify proof.log (checks every position's value right now)").command).toBe('./verify proof.log')
-  })
-  test('shell stays shell: subshells, $( ), quotes and comments are left alone', () => {
-    for (const s of [
-      '(cd lo && make check)',
-      'make (cd sub && make) done',
-      'for i in $(cat oldest100.txt); do echo $i; done',
-      `python3 -c "print({k:(d[k] or 1) for k in (84, 92)})"`,
-      "jq '[.[]] | last | (.fail|tonumber) + (.error|tonumber)'",
-      'lake build   # or: python3 check.py passage.json (exact rationals here)',
-      'make (two words)',
-    ])
-      expect(split(s)).toEqual({ command: s, description: undefined, failed: false })
-  })
-  test('broken or hidden characters fail', () => {
-    expect(split('echo "unclosed').failed).toBe(true)
-    expect(split('echo )').failed).toBe(true)
-    expect(split('rm -rf /tmp/x ‮').failed).toBe(true)
-    expect(split('a\nb').failed).toBe(true)
   })
 })
 
@@ -314,30 +276,84 @@ describe('the plan end to end', () => {
       expect(rows(db, sql), sql).toEqual(rows(copy, sql))
   })
 
-  test('the running example: a live branch with no sign-off, #2 in review at 3 of 4 checks waiting on one more person, author pin', async () => {
+  test("the running example: @myra's passed claim with its pinned work, backed by three over two on track, and @marceline's blocked claim; the branch on track with a blocked claim", async () => {
     const { db } = await stagingLike()
     const plan = await planSeed(testDb(), LIST, stateOf(db), { target: 'staging', now: NOW, example: true })
     db.raw.exec(plan.sql)
-    const b = db.raw.prepare('SELECT n.*, p.handle AS author FROM node n JOIN person p ON p.id = n.author_id WHERE path = ?').get(EXAMPLE_BRANCH)
-    expect(b).toMatchObject({ kind: 'branch', state: 'live', in_review: 1, license: 'GPL-3.0', author: 'bmo_fan', seeded: 0 })
-    // A branch has no author sign-off (decided Oct 13): two runs and two people checks, evidence for its status vote.
-    expect(JSON.parse(b.checks)).toEqual({ runs: { command: './soak.sh', count: 2 }, people: { count: 2, human: false }, author: false })
-    const subs = db.raw.prepare('SELECT number, status FROM submission WHERE node_id = ? ORDER BY number').all(b.id).map((r: any) => ({ ...r }))
-    expect(subs).toEqual([{ number: 1, status: 'superseded' }, { number: 2, status: 'in_review' }])
-    const two = db.raw.prepare('SELECT post_id FROM submission WHERE node_id = ? AND number = 2').get(b.id).post_id
-    // #2's three: both runs and a people check. The fourth is one more people check, which @bmo_fan means to make.
-    const passes = db.raw
-      .prepare("SELECT c.slot, p.as_name FROM check_report c JOIN post p ON p.id = c.post_id WHERE c.submission_id = ? AND c.verdict = 'pass' ORDER BY c.created_at")
-      .all(two)
-      .map((r: any) => ({ ...r }))
-    expect(passes).toEqual([
-      { slot: 'run', as_name: '@lumpy' },
-      { slot: 'run', as_name: '@finn_irl/f-11' },
-      { slot: 'people', as_name: '@kestrel/swarm/r-03' },
+    const node = (path: string) => db.raw.prepare('SELECT n.*, p.handle AS author FROM node n JOIN person p ON p.id = n.author_id WHERE path = ?').get(path)
+    const subs = (id: number) => db.raw.prepare('SELECT number, status, author_swap FROM submission WHERE node_id = ? ORDER BY number').all(id).map((r: any) => ({ ...r }))
+    const claims = (id: number) => db.raw.prepare('SELECT id, as_name, claim, text, links FROM post WHERE node_id = ? AND claim IS NOT NULL ORDER BY created_at').all(id).map((r: any) => ({ ...r }))
+    const backingOf = (id: number) =>
+      db.raw
+        .prepare('SELECT p.handle, v.status, v.claim_id FROM status_vote v JOIN person p ON p.id = v.person_id WHERE v.node_id = ? ORDER BY p.handle')
+        .all(id)
+        .map((r: any) => ({ ...r }))
+    // One model for every node (decided Oct 14): the shwarm takes no submissions or checks either.
+    const root = node(EXAMPLE_ROOT)
+    expect(root).toMatchObject({ kind: 'shwarm', state: 'live', in_review: 0, author: 'myra' })
+    expect(JSON.parse(root.checks)).toEqual({ author: false })
+    expect(subs(root.id)).toEqual([])
+    expect(db.raw.prepare('SELECT count(*) AS n FROM check_report').get().n).toBe(0)
+    // @marceline's repro is her blocked claim; @myra's agent's fix is a passed claim with the source and the diff pinned
+    const [blocked, passed] = claims(root.id)
+    expect([blocked, passed].map(c => [c.as_name, c.claim])).toEqual([
+      ['@marceline', 'blocked'],
+      ['@myra/m-07', 'passed'],
     ])
-    expect(db.raw.prepare('SELECT as_name, text FROM post WHERE node_id = ? AND pinned_at IS NOT NULL').get(b.id)).toMatchObject({ as_name: '@bmo_fan', text: expect.stringMatching(/^status update:/) })
-    // Nothing waits on anyone's sign-off.
-    expect(db.raw.prepare("SELECT count(*) AS n FROM inbox_item WHERE kind = 'sign_off'").get().n).toBe(0)
+    expect(JSON.parse(passed.links)).toEqual([
+      { repo: 'https://codeberg.org/myra/doom-blocks', commit: '9fceb02d0ae598e95dc970b74767f19372d61af8' },
+      expect.objectContaining({ url: expect.stringContaining('corner-fix.diff'), sha256: expect.stringMatching(/^[0-9a-f]{64}$/) }),
+    ])
+    // @myra backs her agent's claim; @lumpy and @kestrel back it after their runs; @bmo_fan and @finn_irl vote on track
+    expect(backingOf(root.id)).toEqual([
+      { handle: 'bmo_fan', status: 'on_track', claim_id: null },
+      { handle: 'finn_irl', status: 'on_track', claim_id: null },
+      { handle: 'kestrel', status: 'passed', claim_id: passed.id },
+      { handle: 'lumpy', status: 'passed', claim_id: passed.id },
+      { handle: 'marceline', status: 'blocked', claim_id: blocked.id },
+      { handle: 'myra', status: 'passed', claim_id: passed.id },
+    ])
+    // passed leads on track by 1, short of the 2 that starts the rubber band: it gathers nothing, and never passes alone
+    expect(db.raw.prepare('SELECT current, challenger, lead_hours, leading_since, changed_at FROM branch_status WHERE node_id = ?').get(root.id)).toEqual({
+      current: 'on_track',
+      challenger: 'passed',
+      lead_hours: 0,
+      leading_since: null,
+      changed_at: null,
+    })
+    expect(db.raw.prepare('SELECT count(*) AS n FROM pass_record').get().n).toBe(0)
+    expect(db.raw.prepare('SELECT count(*) AS n FROM status_change').get().n).toBe(0)
+    expect(db.raw.prepare("SELECT text FROM post WHERE node_id = ? AND as_name = '@bmo_fan' ORDER BY created_at DESC").get(root.id).text).toMatch(/^status update:/)
+    expect(db.raw.prepare('SELECT count(*) AS n FROM inbox_item WHERE kind = ?').get('system').n).toBe(0)
+
+    // The branch takes no submissions or checks (decided Oct 14). @finn_irl's heads-up is its blocked claim, backed by
+    // @kestrel; @bmo_fan, who opened it, votes on track. Blocked leads by one, short of the 2 that starts the rubber band.
+    const b = node(EXAMPLE_BRANCH)
+    expect(b).toMatchObject({ kind: 'branch', state: 'live', in_review: 0, license: 'GPL-3.0', author: 'bmo_fan', seeded: 0 })
+    expect(JSON.parse(b.checks)).toEqual({ author: false })
+    expect(subs(b.id)).toEqual([])
+    expect(db.raw.prepare('SELECT count(*) AS n FROM post WHERE node_id = ? AND pinned_at IS NOT NULL').get(b.id).n).toBe(0)
+    const claim = db.raw.prepare('SELECT id, as_name, claim, text FROM post WHERE node_id = ? AND claim IS NOT NULL').all(b.id).map((r: any) => ({ ...r }))
+    expect(claim).toEqual([{ id: expect.any(String), as_name: '@finn_irl', claim: 'blocked', text: expect.stringContaining('P_CheckSight') }])
+    const backing = db.raw
+      .prepare('SELECT p.handle, v.status, v.claim_id FROM status_vote v JOIN person p ON p.id = v.person_id WHERE v.node_id = ? ORDER BY p.handle')
+      .all(b.id)
+      .map((r: any) => ({ ...r }))
+    expect(backing).toEqual([
+      { handle: 'bmo_fan', status: 'on_track', claim_id: null },
+      { handle: 'finn_irl', status: 'blocked', claim_id: claim[0].id },
+      { handle: 'kestrel', status: 'blocked', claim_id: claim[0].id },
+    ])
+    // Every backer joined the branch; @kestrel's back is an upvote on the claim (the claimant's own backing is not).
+    for (const r of backing) expect(db.raw.prepare('SELECT left_at FROM seat s JOIN person p ON p.id = s.person_id WHERE s.node_id = ? AND p.handle = ?').get(b.id, r.handle)).toEqual({ left_at: null })
+    expect(db.raw.prepare('SELECT p.handle FROM upvote u JOIN person p ON p.id = u.person_id WHERE u.post_id = ?').all(claim[0].id).map((r: any) => r.handle)).toEqual(['kestrel'])
+    expect(db.raw.prepare('SELECT current, challenger, lead_hours, leading_since, changed_at FROM branch_status WHERE node_id = ?').get(b.id)).toEqual({
+      current: 'on_track',
+      challenger: 'blocked',
+      lead_hours: 0,
+      leading_since: null,
+      changed_at: null,
+    })
     // Demo accounts can't sign in.
     for (const h of EXAMPLE_PEOPLE) expect(db.raw.prepare('SELECT password_hash FROM person WHERE handle = ?').get(h).password_hash).toMatch(/^!/)
   })
@@ -355,11 +371,14 @@ describe('the plan end to end', () => {
     expect(rows.length).toBeGreaterThan(90)
     for (const r of rows) {
       expect(r.status_line, r.path).not.toMatch(/where this pitch comes from|^builds on:/)
-      if (r.path !== EXAMPLE_ROOT && r.pinned) expect(r.status_line, r.path).toBe('no submission yet.')
+      // on track, with no pin of its own and no branches, a seeded shwarm's line is empty
+      if (r.path !== EXAMPLE_ROOT && r.pinned) expect(r.status_line, r.path).toBe('')
     }
-    expect(rows.find((r: any) => r.path === 'bot-beats-freedoom')).toMatchObject({ pinned: 'builds on: gzdoom', status_line: 'no submission yet.' })
-    // The running example's branch keeps its author's pinned post.
-    expect(db.raw.prepare('SELECT s.status_line FROM node_stats s JOIN node n ON n.id = s.node_id WHERE n.path = ?').get(EXAMPLE_BRANCH).status_line).toMatch(/^status update:/)
+    expect(rows.find((r: any) => r.path === 'bot-beats-freedoom')).toMatchObject({ pinned: 'builds on: gzdoom', status_line: '' })
+    // The running example's shwarm, on track, counts its branches; its branch, with no pin and no sub-branches, says nothing.
+    const line = (path: string) => db.raw.prepare('SELECT s.status_line FROM node_stats s JOIN node n ON n.id = s.node_id WHERE n.path = ?').get(path).status_line
+    expect(line(EXAMPLE_ROOT)).toBe('1 branch on track.')
+    expect(line(EXAMPLE_BRANCH)).toBe('')
   })
 
   test('rerunning skips every slug already there and plans nothing', async () => {
@@ -467,16 +486,12 @@ describe('production', () => {
 })
 
 describe('core additions for the seed', () => {
-  test('runs.description is kept beside the command', () => {
-    expect(parseCheckSpec({ runs: { command: './a.sh', count: 1, description: ' plays it ' } })).toEqual({ runs: { command: './a.sh', count: 1, description: 'plays it' }, author: false })
-    expect(() => parseCheckSpec({ runs: { command: './a.sh', description: 5 } })).toThrow()
-  })
   test('only the seed sets a slug', async () => {
     const w = new World()
     const myra = await person(w.db, 'myra')
-    await refused(w.run({ type: 'createNode', actor: site(myra), input: { kind: 'shwarm', slug: 'x', title: 't', what: 'w', doneWhen: 'd', check: { author: true }, tags: ['a'] } }), 'bad_request')
+    await refused(w.run({ type: 'createNode', actor: site(myra), input: { kind: 'shwarm', slug: 'x', title: 't', what: 'w', doneWhen: 'd', tags: ['a'] } }), 'bad_request')
     const seed = { ...site(myra), via: 'seed' as const }
-    const input = { kind: 'shwarm' as const, slug: 'short-name', title: 'a much longer title', what: 'w', doneWhen: 'd', check: { author: true }, tags: ['a'] }
+    const input = { kind: 'shwarm' as const, slug: 'short-name', title: 'a much longer title', what: 'w', doneWhen: 'd', tags: ['a'] }
     expect((await w.run({ type: 'createNode', actor: seed, input })).path).toBe('short-name')
     await refused(w.run({ type: 'createNode', actor: seed, input }), 'bad_request')
     await refused(w.run({ type: 'createNode', actor: seed, input: { ...input, slug: 'Not OK' } }), 'bad_request')
@@ -529,29 +544,13 @@ describe('review fixes (go-live 3.1)', () => {
 
   test('malformed or unknown fields are reported, never dropped quietly', () => {
     const base = LIST[0]
-    const people = (p: any) => failedFields({ ...base, checked_by: { ...base.checked_by, people: p } })
-    expect(people({ human: true, instructions: 'watch two replays' })).toEqual(['check.people'])
-    expect(people({ count: 2, human: 'true' })).toEqual(['check.people'])
-    expect(people({ count: 2, human: 1 })).toEqual(['check.people'])
-    expect(failedFields({ ...base, checked_by: { runs: { description: 'plays the demo' }, author: true } })).toEqual(['check.runs'])
-    expect(failedFields({ ...base, checked_by: { author: 'yes' } })).toEqual(['check.author'])
     expect(failedFields({ ...base, license: 'GPL-3.0' })).toEqual(['license'])
     // license (card fixes, Oct 11): one of the A2 list, and only where builds_on gives none.
     const kart = LIST.find(e => e.slug === 'kart-race-on-the-moon')
     expect(mapLaunchShwarm(kart).input.license).toBe('CC-BY-SA-4.0')
     expect(failedFields({ ...kart, license: 'GPL-2.0' })).toEqual(['license'])
-    const warned = mapLaunchShwarm({ ...base, variantof: 'minecraft-in-doom', 'why now': 'x', checked_by: { ...base.checked_by, peeple: {} } }).notes.filter(n => n.kind === 'warning' && n.text.startsWith('ignored'))
-    expect(warned.map(n => n.text)).toEqual([expect.stringContaining('variantof'), expect.stringContaining('why now'), expect.stringContaining('peeple')])
-  })
-
-  test('brackets after a command that runs another stay in the command, as a subshell', () => {
-    for (const s of ['time (python bench.py --runs 10)', 'nice -n 10 (make check all)', 'FOO=1 timeout 60 (python a.py b c)', 'make && time (python bench.py now)']) {
-      const r = splitRunCommand(s)
-      expect(r.command, s).toBe(s)
-      expect(r.description).toBeUndefined()
-      expect(r.notes.map(n => n.kind)).toEqual(['warning'])
-    }
-    expect(splitRunCommand('./bench.sh (plays the demo and prints fps)').description).toBe('plays the demo and prints fps')
+    const warned = mapLaunchShwarm({ ...base, variantof: 'minecraft-in-doom', 'why now': 'x' }).notes.filter(n => n.kind === 'warning' && n.text.startsWith('ignored'))
+    expect(warned.map(n => n.text)).toEqual([expect.stringContaining('variantof'), expect.stringContaining('why now')])
   })
 
   /** A stand-in for wrangler: answers the seeded-count query, records every call. */

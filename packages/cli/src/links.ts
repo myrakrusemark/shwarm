@@ -1,14 +1,19 @@
 // Links, not files (protocol §6): shwarm stores only text, and a post links to work pinned to one exact version.
 //   a file: {url, sha256, label?}, where sha256 is the lowercase hex SHA-256 of the exact bytes at the URL
 //   a repo: {repo, commit, path?, label?}, with the full commit id
-// Link hashing fetches the URL and hashes what came back, as the agent skill says to (never a local copy that might
-// differ). It sends no key, no staging password and no cookies: a link is anyone's URL.
+// A passed claim's links are its pinned work (decided Oct 14), which also takes addresses that carry their own hash:
+//   {ipfs, label?} an ipfs://<cid> address, {magnet, label?} a magnet: link, and a rad:z… repo at a full commit.
+// Every other link is https. Link hashing fetches the URL and hashes what came back, as the agent skill says to (never
+// a local copy that might differ). It sends no key, no staging password and no cookies: a link is anyone's URL. An
+// ipfs:// or magnet: address is never fetched.
 //
 // On the command line:
 //   --link [<label>=]<url>                 fetched and hashed here
 //   --link [<label>=]<url>#sha256=<hex>    the hash given, nothing fetched
-//   --repo [<label>=]<url>@<commit>[:<path>]
-import type { Link } from '@shwarm/protocol'
+//   --link [<label>=]ipfs://<cid>[/path]   pinned work, as it is
+//   --link [<label>=]magnet:?xt=urn:…      pinned work, as it is
+//   --repo [<label>=]<url|rad:z…>@<commit>[:<path>]
+import { isRadRepo, type Link } from '@shwarm/protocol'
 import { UsageError } from './errors'
 
 export type { Link }
@@ -20,7 +25,14 @@ const LABELLED = /^([^=:/]{1,200})=(.+)$/s
 /** A link file is hashed in full; past this it's refused rather than read without end. OPEN (#98). */
 export const MAX_LINK_BYTES = 2 * 1024 ** 3
 
-export type LinkSpec = { url: string; sha256: string | null; label?: string } | { repo: string; commit: string; path?: string; label?: string }
+export type LinkSpec =
+  | { url: string; sha256: string | null; label?: string }
+  | { repo: string; commit: string; path?: string; label?: string }
+  | { ipfs: string; label?: string }
+  | { magnet: string; label?: string }
+
+/** The links only a passed claim takes as pinned work: an ipfs:// address, a magnet: link, a rad: repo (decided Oct 14). */
+export const isPinOnly = (l: LinkSpec | Link) => 'ipfs' in l || 'magnet' in l || ('repo' in l && isRadRepo(l.repo))
 
 function httpsUrl(s: string, what: string): string {
   let u: URL
@@ -39,9 +51,13 @@ function labelOf(spec: string): { label?: string; rest: string } {
   return m && !/^https?$/i.test(m[1]) ? { label: m[1].trim(), rest: m[2] } : { rest: spec }
 }
 
-/** --link: a file link, with its hash when given after #sha256=. */
+/** --link: a file link, with its hash when given after #sha256=; or an ipfs:// address or magnet: link, which carry their own. */
 export function parseFileLink(spec: string): LinkSpec {
   const { label, rest } = labelOf(spec.trim())
+  const labelled = label ? { label } : {}
+  // The server checks the hash in each (apps/site core/text.ts parsePins); never through new URL, which lowercases a CID.
+  if (/^ipfs:\/\//i.test(rest)) return { ipfs: rest, ...labelled }
+  if (/^magnet:\?/i.test(rest)) return { magnet: rest, ...labelled }
   let url = rest
   let sha256: string | null = null
   const at = rest.lastIndexOf('#sha256=')
@@ -50,15 +66,16 @@ export function parseFileLink(spec: string): LinkSpec {
     url = rest.slice(0, at)
     if (!HEX64.test(sha256)) throw new UsageError(`${spec}: sha256 is 64 hex characters`)
   }
-  return { url: httpsUrl(url, spec), sha256, ...(label ? { label } : {}) }
+  return { url: httpsUrl(url, spec), sha256, ...labelled }
 }
 
-/** --repo: <url>@<full commit id>, then :<path> inside the repo if one file is meant. */
+/** --repo: <url>@<full commit id>, then :<path> inside the repo if one file is meant. A rad:z… repo is pinned work only. */
 export function parseRepoLink(spec: string): LinkSpec {
   const { label, rest } = labelOf(spec.trim())
   const m = /^(.+)@([0-9a-fA-F]{40}|[0-9a-fA-F]{64})(?::(.+))?$/s.exec(rest)
   if (!m || !COMMIT.test(m[2])) throw new UsageError(`${spec}: a repo link is <url>@<full commit id>, like https://codeberg.org/ana/doom-blocks@<40 hex>`)
-  return { repo: httpsUrl(m[1], spec), commit: m[2].toLowerCase(), ...(m[3] ? { path: m[3] } : {}), ...(label ? { label } : {}) }
+  const repo = isRadRepo(m[1]) ? m[1] : httpsUrl(m[1], spec)
+  return { repo, commit: m[2].toLowerCase(), ...(m[3] ? { path: m[3] } : {}), ...(label ? { label } : {}) }
 }
 
 /** The lowercase hex SHA-256 of the bytes at `url`, fetched with no credentials; saved to the new file `to` as well, when given. */
@@ -97,7 +114,7 @@ export async function hashUrl(url: string, o: { fetch?: typeof fetch; maxBytes?:
 export async function resolveLinks(specs: LinkSpec[], o: { fetch?: typeof fetch; maxBytes?: number } = {}): Promise<Link[]> {
   const out: Link[] = []
   for (const s of specs) {
-    if ('repo' in s) out.push(s)
+    if (!('url' in s)) out.push(s)
     else out.push({ url: s.url, sha256: s.sha256 ?? (await hashUrl(s.url, o)), ...(s.label ? { label: s.label } : {}) })
   }
   return out

@@ -1,13 +1,13 @@
 import { OPEN_NODE } from './visibility'
 // Reads for the node pages and the agent URLs (go-live 3.3, 3.4, 3.6): one node at /w/<path>, its ancestors,
-// branches, who joined, contributors, submissions with their checks, and its thread. SQL lives here, not in
+// branches, who joined, contributors, the submissions and checks from before Oct 14, and its thread. SQL lives here, not in
 // the JSX. Each read is a fixed handful of indexed queries, run side by side where they don't depend on each
 // other, so a page costs a few round trips whatever the thread's size (Workers Free: 10 ms of CPU).
 import { isId } from '../core/ids'
 import { MAX_PATH } from '../core/context'
 import { effectiveSpec, type CheckSpec } from '../core/checks'
-import { emptyTally, tallyOf, type StatusTally } from '../core/status'
-import type { NodeKind, NodeState } from '../core/context'
+import { BACKERS_SQL, BACKING_SQL, emptyTally, nodeStatus, tallyOf, type Band, type Claim, type NodeStatus, type Status, type StatusTally } from '../core/status'
+import type { NodeKind } from '../core/context'
 import { HAND_MODEL, parseBlockReason } from '../triage/decide'
 import type { Category } from '../triage/rubric'
 import { FORMER, HANDLE_SHOWN, NAME_SHOWN } from './names'
@@ -49,11 +49,11 @@ export function visibility(n: { hidden: number; triage: string; seeded: number; 
 
 const SEGMENT = /^[a-z0-9]+(-[a-z0-9]+)*$/
 /** Segments that name a view of a node, never a node (protocol §3; core/text.ts RESERVED_SLUGS). */
-export const RESERVED_VIEWS = new Set(['branches', 'log', 's', 'join', 'leave'])
+export const RESERVED_VIEWS = new Set(['branches', 'log', 's', 'join', 'leave', 'people'])
 
 export type ParsedPath = { kind: 'node'; path: string } | { kind: 'view'; path: string; view: string } | { kind: 'bad' }
 
-/** Splits what follows /w/ into a node path, or a node path plus a reserved view (branches, log, s/<n>, join, leave). */
+/** Splits what follows /w/ into a node path, or a node path plus a reserved view (branches, log, s/<n>, join, leave, people). */
 export function parseNodePath(rest: string): ParsedPath {
   if (!rest || rest.length > MAX_PATH + 20) return { kind: 'bad' }
   const parts = rest.split('/')
@@ -71,7 +71,12 @@ export const prefixes = (path: string) => path.split('/').map((_, i, a) => a.sli
 
 // ---------- the node and its ancestors ----------
 
-export type BuildsOn = { name: string; url?: string; license: string } | { node: string; title: string | null }
+/**
+ * What a shwarm builds on: an outside project, or a shwarm here, `as_of` its pass record the new shwarm took the work
+ * from ("builds on minecraft in doom, as passed oct 14"; decided Oct 14), null when it had none or for one built on
+ * before then. `title` and `as_of` are null when that shwarm doesn't show to the reader.
+ */
+export type BuildsOn = { name: string; url?: string; license: string } | { node: string; title: string | null; as_of: { id: string; at: string } | null }
 
 export type NodeStatsRow = {
   impact: number
@@ -97,20 +102,20 @@ export type NodeHead = {
   builds_on: BuildsOn | null
   author_id: number
   author: string // bare handle, with @
-  author_status: 'active' | 'suspended' | 'closed' // not active: the author is gone, and the operator signs off (table B)
+  author_status: 'active' | 'suspended' | 'closed'
   posted_by: string
-  state: NodeState
-  in_review: number
   triage: string
   hidden: number
   seeded: number
   paused: number
+  /** The author's dead-end note, on a shwarm marked a dead end before Oct 14 (its pass record says so). */
   dead_end_note: string | null
   /** The thread's pinned posts (not hidden or deleted), the latest pinned first (decided Oct 14: several pins). */
   pins: string[]
   last_event_id: string | null
   created_at: string
   live_at: string | null
+  /** When a shwarm passed or was marked a dead end, before Oct 14 (history: every node is live now). */
   closed_at: string | null
   changed_at: string | null
   tags: string[]
@@ -136,6 +141,7 @@ type HeadRow = Omit<NodeHead, 'spec' | 'builds_on' | 'tags' | 'stats' | 'visibil
   s_status_line: string
   s_updated_at: string | null
   bo_title: string | null
+  bo_as_of_at: string | null
   moderated: string | null
 }
 
@@ -151,7 +157,8 @@ const parseJson = <T>(s: string | null, fallback: T): T => {
 function toHead(r: HeadRow, viewerId: number | null): NodeHead {
   const bo = parseJson<Record<string, unknown> | null>(r.builds_on, null)
   let builds_on: BuildsOn | null = null
-  if (bo && typeof bo.node === 'string') builds_on = { node: bo.node, title: r.bo_title }
+  if (bo && typeof bo.node === 'string')
+    builds_on = { node: bo.node, title: r.bo_title, as_of: typeof bo.as_of === 'string' && r.bo_as_of_at ? { id: bo.as_of, at: r.bo_as_of_at } : null }
   else if (bo && typeof bo.name === 'string') builds_on = { name: bo.name, license: String(bo.license ?? ''), ...(typeof bo.url === 'string' ? { url: bo.url } : {}) }
   return {
     id: r.id,
@@ -168,8 +175,6 @@ function toHead(r: HeadRow, viewerId: number | null): NodeHead {
     author: r.author_status === 'closed' ? FORMER : '@' + r.author_handle, // a closed account's handle is detached (read/names.ts)
     author_status: r.author_status,
     posted_by: r.posted_by,
-    state: r.state,
-    in_review: r.in_review,
     triage: r.triage,
     hidden: r.hidden,
     seeded: r.seeded,
@@ -204,13 +209,6 @@ function toHead(r: HeadRow, viewerId: number | null): NodeHead {
 export type Chain = { node: NodeHead; ancestors: NodeHead[]; moderated: string | null }
 
 /**
- * The ended node that locks this one (core/context.ts needLive): the node itself once it passed or is a dead end, else
- * the topmost node above it that did; null while all are live. OPEN (#92): a branch under an ended shwarm is locked with it.
- */
-export const lockedBy = (c: Pick<Chain, 'node' | 'ancestors'>): NodeHead | null =>
-  c.node.state !== 'live' ? c.node : (c.ancestors.find(a => a.state !== 'live') ?? null)
-
-/**
  * The node at `path` and every node above it, in one query on the path index. Null when any of them is missing
  * or not visible to this viewer: a branch of a hidden or held shwarm is hidden too.
  */
@@ -219,20 +217,21 @@ export async function readChain(db: D1Database, path: string, viewerId: number |
   const { results } = await db
     .prepare(
       `SELECT n.id, n.path, n.kind, n.parent_id, n.title, n.what, n.done_when, n.checks, n.license,
-              n.builds_on, n.author_id, p.handle AS author_handle, p.status AS author_status, ${NAME_SHOWN('n.posted_by')} AS posted_by, n.state, n.in_review, n.triage, n.hidden, n.seeded,
+              n.builds_on, n.author_id, p.handle AS author_handle, p.status AS author_status, ${NAME_SHOWN('n.posted_by')} AS posted_by, n.triage, n.hidden, n.seeded,
               n.paused, n.dead_end_note, n.last_event_id, n.created_at, n.live_at, n.closed_at, n.changed_at,
               (SELECT json_group_array(id) FROM (SELECT pp.id FROM post pp WHERE pp.node_id = n.id AND pp.pinned_at IS NOT NULL
                  AND pp.hidden = 0 AND pp.deleted_at IS NULL ORDER BY pp.pinned_at DESC, pp.id DESC)) AS pins,
               (SELECT group_concat(tag, ' ') FROM (SELECT t.tag FROM node_tag t WHERE t.node_id = n.id ORDER BY t.rowid)) AS tags,
               s.impact AS s_impact, s.posts_per_day AS s_posts_per_day, s.people AS s_people, s.hot AS s_hot, s.upvotes AS s_upvotes,
               s.posts AS s_posts, s.status_line AS s_status_line, s.updated_at AS s_updated_at,
-              bo.title AS bo_title,
+              bo.title AS bo_title, bor.at AS bo_as_of_at,
               (SELECT value FROM setting WHERE key = 'moderated_at') AS moderated,
               CASE WHEN n.triage = 'blocked' THEN (SELECT d.reason FROM triage_decision d WHERE d.node_id = n.id AND d.model = '${HAND_MODEL}' ORDER BY d.id DESC LIMIT 1) END AS block_reason
        FROM node n
        JOIN person p ON p.id = n.author_id
        LEFT JOIN node_stats s ON s.node_id = n.id
        LEFT JOIN node bo ON bo.path = json_extract(n.builds_on, '$.node') AND ${VISIBLE_SQL('bo')}
+       LEFT JOIN pass_record bor ON bor.id = json_extract(n.builds_on, '$.as_of') AND bor.node_id = bo.id
        WHERE n.path IN (SELECT value FROM json_each(?))`,
     )
     .bind(JSON.stringify(want))
@@ -250,8 +249,7 @@ export type Child = {
   path: string
   title: string
   kind: NodeKind
-  state: NodeState
-  in_review: number
+  /** An author's dead-end note from before Oct 14, when one was marked; its status says dead end (migration 0032). */
   dead_end_note: string | null
   done_when: string
   posted_by: string
@@ -267,16 +265,50 @@ export type Child = {
   week_posts: number
   /** No public post here or under here for more than QUIET_HOURS (Myra, Oct 13): measured, never voted. */
   quiet: boolean
-  /** How people see it right now (core/status.ts): one vote per person. */
+  /** Its backing: backers per status, one backing per person (core/status.ts). The same as status.backing. */
   votes: StatusTally
+  /** Its status now (core/status.ts nodeStatus). */
+  status: NodeStatus
+  /**
+   * Why it isn't on track: the most-backed claim of its current status (the newest among equals), its post and its
+   * whole evidence (the list cuts it); null while it's on track or no such claim shows.
+   */
+  reason: { post: string; text: string } | null
   /** Who joined this branch (said they're working on it), first joined first, at most ON_IT_SHOWN; people, not agents. */
   on_it: string[]
+}
+
+/** A branch_status row's columns as readChildren reads them beside each branch (null: no row). */
+type ChildBandCols = {
+  b_current: Band['current'] | null
+  b_challenger: Band['challenger']
+  b_lead_hours: number | null
+  b_leading_since: string | null
+  b_changed_at: string | null
+  b_at: string | null
+}
+
+/** The most-backed claim of each status on each branch of `parentId` (the newest among equals), keyed `<node id>:<status>`. */
+async function readReasons(db: D1Database, parentId: number): Promise<Map<string, { id: string; text: string }>> {
+  const { results } = await db
+    .prepare(
+      `SELECT node_id, claim, id, text FROM (
+         SELECT p.node_id, p.claim, p.id, p.text,
+                ROW_NUMBER() OVER (PARTITION BY p.node_id, p.claim
+                  ORDER BY ${BACKERS_SQL('p')} DESC, p.created_at DESC, p.id DESC) AS rk
+         FROM post p WHERE p.node_id IN (SELECT id FROM node WHERE parent_id = ?) AND p.claim IS NOT NULL AND p.hidden = 0 AND p.deleted_at IS NULL)
+       WHERE rk = 1`,
+    )
+    .bind(parentId)
+    .all<{ node_id: number; claim: Claim; id: string; text: string }>()
+  return new Map(results.map(r => [`${r.node_id}:${r.claim}`, { id: r.id, text: r.text }]))
 }
 
 /** How many of a branch's joined people the briefing names. OPEN: a guess. */
 export const ON_IT_SHOWN = 5
 
-const STATE_RANK: Record<NodeState, number> = { live: 0, closed: 1, dead_end: 2 }
+/** The branch list's first sort: open work first, then the passed, then the dead ends (as live, closed, dead end before). */
+const STATUS_RANK: Record<Status, number> = { on_track: 0, blocked: 0, passed: 1, dead_end: 2 }
 
 /** OPEN (proposed by Myra, Oct 13: "Maybe quiet for more than 48h?"): a branch is quiet after 48 hours with no post. */
 export const QUIET_HOURS = 48
@@ -285,19 +317,22 @@ const WEEK_MS = 7 * 86_400_000
 /**
  * A node's branches (parent_id), as the sidebar lists them. PUBLIC_SQL on the child alone is enough: a branch's
  * ancestors are the chain readChain already checked. (Variants are dropped, decided Oct 9: none are listed.)
- * Each with its activity and its status votes (decided Oct 13, "A branch's status is a live vote; activity sorts").
+ * Each with its activity (decided Oct 13, "activity sorts") and its status (decided Oct 14, core/status.ts) advanced
+ * to now.
  * Activity counts every public post (thread posts, submissions, checks) in the branch and every open branch under it,
  * as the activity strip does (read/activity.ts), so a branch whose work moved down a level doesn't read as quiet.
  */
 export async function readChildren(db: D1Database, nodeId: number, now = Date.now()): Promise<{ branches: Child[] }> {
   // OPEN: no cap on how many branches a sidebar lists is decided; 100.
-  const [rows, active] = await Promise.all([
+  const [rows, active, reasons] = await Promise.all([
     db
       .prepare(
-        `SELECT c.id, c.path, c.title, c.kind, c.state, c.in_review, c.dead_end_note, c.done_when, ${NAME_SHOWN('c.posted_by')} AS posted_by,
+        `SELECT c.id, c.path, c.title, c.kind, c.dead_end_note, c.done_when, ${NAME_SHOWN('c.posted_by')} AS posted_by,
                 c.created_at, ${HANDLE_SHOWN('p')} AS author, s.impact, s.posts_per_day, s.people, s.status_line,
+                b.current AS b_current, b.challenger AS b_challenger, b.lead_hours AS b_lead_hours, b.leading_since AS b_leading_since,
+                b.changed_at AS b_changed_at, b.at AS b_at,
                 (SELECT json_group_array(json_object('status', v.status, 'n', v.n))
-                 FROM (SELECT status, COUNT(*) AS n FROM status_vote WHERE node_id = c.id GROUP BY status) v) AS votes_json,
+                 FROM (SELECT sv.status, COUNT(*) AS n FROM status_vote sv WHERE sv.node_id = c.id AND ${BACKING_SQL('sv')} GROUP BY sv.status) v) AS votes_json,
                 (SELECT json_group_array(h)
                  FROM (SELECT '@' || sp.handle AS h FROM seat ss JOIN person sp ON sp.id = ss.person_id
                        WHERE ss.node_id = c.id AND ss.left_at IS NULL AND sp.status != 'closed'
@@ -305,11 +340,12 @@ export async function readChildren(db: D1Database, nodeId: number, now = Date.no
          FROM node c
          JOIN person p ON p.id = c.author_id
          LEFT JOIN node_stats s ON s.node_id = c.id
+         LEFT JOIN branch_status b ON b.node_id = c.id
          WHERE c.parent_id = ?1 AND ${PUBLIC_SQL('c')}
          LIMIT 200`,
       )
       .bind(nodeId)
-      .all<Omit<Child, 'last_active' | 'week_posts' | 'quiet' | 'votes' | 'on_it'> & { id: number; votes_json: string | null; on_it_json: string | null }>(),
+      .all<Omit<Child, 'last_active' | 'week_posts' | 'quiet' | 'votes' | 'status' | 'reason' | 'on_it'> & ChildBandCols & { id: number; votes_json: string | null; on_it_json: string | null }>(),
     // Each child's subtree, walked down by parent_id with each node kept only if it's open (read/activity.ts). OPEN: read
     // on each view, not rolled up by the stats job; fine at launch's sizes.
     db
@@ -326,20 +362,26 @@ export async function readChildren(db: D1Database, nodeId: number, now = Date.no
       )
       .bind(nodeId, new Date(now - WEEK_MS).toISOString())
       .all<{ id: number; last_at: string | null; week: number }>(),
+    readReasons(db, nodeId),
   ])
   const act = new Map(active.results.map(r => [r.id, r]))
   const quietBefore = new Date(now - QUIET_HOURS * 3_600_000).toISOString()
-  const branches: Child[] = rows.results.map(({ id, votes_json, on_it_json, ...c }) => {
+  const branches: Child[] = rows.results.map(({ id, votes_json, on_it_json, b_current, b_challenger, b_lead_hours, b_leading_since, b_changed_at, b_at, ...c }) => {
     const a = act.get(id)
     const last = a?.last_at && a.last_at > c.created_at ? a.last_at : c.created_at
     const votes = votes_json ? tallyOf(JSON.parse(votes_json) as { status: string; n: number }[]) : emptyTally()
-    return { ...c, last_active: last, week_posts: a?.week ?? 0, quiet: last < quietBefore, votes, on_it: on_it_json ? (JSON.parse(on_it_json) as string[]) : [] }
+    const band: Band | null =
+      b_current === null ? null : { current: b_current, challenger: b_challenger, lead_hours: b_lead_hours ?? 0, leading_since: b_leading_since, changed_at: b_changed_at, at: b_at ?? c.created_at }
+    const status = nodeStatus(band, votes, now)
+    const top = status.current === 'on_track' ? undefined : reasons.get(`${id}:${status.current}`)
+    const reason = top ? { post: top.id, text: top.text } : null
+    return { ...c, last_active: last, week_posts: a?.week ?? 0, quiet: last < quietBefore, votes, status, reason, on_it: on_it_json ? (JSON.parse(on_it_json) as string[]) : [] }
   })
-  // Activity sorts (decided Oct 13; table B #41 kept its state order): live first, then closed, then dead ends. Within
-  // each, the active ones (a post here or under here in the last QUIET_HOURS) come first, busiest in the last 7 days
+  // Activity sorts (decided Oct 13; table B #41 kept its state order, now by status): open work first, then passed, then
+  // dead ends. Within each, the active ones (a post here or under here in the last QUIET_HOURS) come first, busiest in the last 7 days
   // first; then the quiet ones, the most recently active first, so the longest quiet sink to the bottom. Votes sort nothing.
   const order = (a: Child, b: Child) =>
-    STATE_RANK[a.state] - STATE_RANK[b.state] ||
+    STATUS_RANK[a.status.current] - STATUS_RANK[b.status.current] ||
     Number(a.quiet) - Number(b.quiet) ||
     (a.quiet ? 0 : b.week_posts - a.week_posts) ||
     (a.last_active < b.last_active ? 1 : a.last_active > b.last_active ? -1 : 0) ||
@@ -365,7 +407,12 @@ export async function readMySeat(db: D1Database, nodeId: number, personId: numbe
  * that made their join here for them (seat.joined_by, go-live 8.2), shown as a small "joined by @myra/claude" note.
  */
 export type Contributor = { person_id: number; handle: string; posts: number; upvotes: number; dms?: boolean; joined_by?: string }
+/** How many people an agent's briefing names (render/prompt.ts); it links the full list (/people). */
 export const CONTRIBUTORS_SHOWN = 7
+/** How many people the page's card shows (decided Oct 14: "show the top five contributors"); "+ n more" opens the rest. */
+export const PEOPLE_SHOWN = 5
+/** The most the full list (/w/<path>/people) shows. OPEN: a builder's default. */
+export const PEOPLE_MAX = 1000
 
 /**
  * People who posted here (person_node_stats, filled by the stats job; agents rolled up into their human), most
@@ -373,9 +420,11 @@ export const CONTRIBUTORS_SHOWN = 7
  * they're working on it) but haven't posted yet follow, in the order they joined (go-live 4.4; they count among its
  * people, table B #44). People only, once each: a join an agent made for its human is the human's (decided Oct 12,
  * "Agents can join for their person"), with the agent's name as `joined_by`. A closed account's has none, as its names
- * show only as "former member".
+ * show only as "former member". `limit` people in all (CONTRIBUTORS_SHOWN in a briefing, PEOPLE_SHOWN on the page,
+ * PEOPLE_MAX for the full list), the author always among them: an author ranked below takes the last place, so the
+ * card's "top five" stays five. And how many people in all.
  */
-export async function readContributors(db: D1Database, n: NodeHead): Promise<{ rows: Contributor[]; total: number }> {
+export async function readContributors(db: D1Database, n: NodeHead, limit = CONTRIBUTORS_SHOWN): Promise<{ rows: Contributor[]; total: number }> {
   const seats = `UNION ALL SELECT s.person_id, 0, 0, s.joined_at FROM seat s WHERE s.node_id = ?1 AND s.left_at IS NULL
            AND NOT EXISTS (SELECT 1 FROM person_node_stats y WHERE y.node_id = ?1 AND y.person_id = s.person_id AND y.posts > 0)`
   const by = (pid: string, status: string) =>
@@ -391,7 +440,7 @@ export async function readContributors(db: D1Database, n: NodeHead): Promise<{ r
          JOIN person p ON p.id = x.person_id)
        WHERE rk <= ?2 OR person_id = ?3 ORDER BY rk`,
     )
-    .bind(n.id, CONTRIBUTORS_SHOWN, n.author_id)
+    .bind(n.id, limit, n.author_id)
     .all<Omit<Contributor, 'dms' | 'joined_by'> & { dms: number; total: number; joined_by: string | null }>()
   let total = results[0]?.total ?? 0
   const withBy = (r: Contributor, b: string | null | undefined): Contributor => (b ? { ...r, joined_by: b } : r)
@@ -404,6 +453,8 @@ export async function readContributors(db: D1Database, n: NodeHead): Promise<{ r
     rows.push(withBy({ person_id: n.author_id, handle: n.author, posts: 0, upvotes: 0, dms: on?.ok === 1 }, on?.joined_by))
     total++
   }
+  // The author, ranked below the first `limit` or not ranked at all, is last: they take the place of the last one ranked.
+  if (rows.length > limit) rows.splice(limit - 1, rows.length - limit)
   return { rows, total }
 }
 
@@ -578,6 +629,8 @@ export type PostRow = {
   deleted_at: string | null // deleted by its poster: a tombstone, with no text or links left
   ups: number
   is_join?: number // 1: the hello its poster wrote when they joined (core/nodes.ts join), shown as "✿ joined"
+  claim?: Claim | null // a claim: the status it says (core/status.ts); null for any other post
+  backers?: number // a claim's backers, the claimant among them while they back it; 0 for any other post
 }
 
 export type ThreadItem = PostRow & { replies: PostRow[] }
@@ -685,7 +738,8 @@ export async function readPosts(db: D1Database, ids: string[]): Promise<PostRow[
   if (!ids.length) return []
   const { results } = await db
     .prepare(
-      `SELECT p.id, ${NAME_SHOWN('p.as_name')} AS as_name, p.person_id, p.kind, p.text, p.links, p.reply_to, p.created_at, p.edited_at, p.deleted_at, 0 AS ups, p.is_join
+      `SELECT p.id, ${NAME_SHOWN('p.as_name')} AS as_name, p.person_id, p.kind, p.text, p.links, p.reply_to, p.created_at, p.edited_at, p.deleted_at, 0 AS ups, p.is_join,
+              p.claim, ${BACKERS_SQL('p')} AS backers
        FROM post p WHERE p.id IN (SELECT value FROM json_each(?)) AND p.hidden = 0`,
     )
     .bind(JSON.stringify(ids))
@@ -750,10 +804,10 @@ type EditRow = {
   next_tags: string
 }
 
-/** A stored builds_on as an earlier version shows it: a shwarm's path (no title: it may have changed since), or an outside project. */
+/** A stored builds_on as an earlier version shows it: a shwarm's path (no title or pass: they may have changed since), or an outside project. */
 function buildsOnOf(s: string | null): BuildsOn | null {
   const bo = parseJson<Record<string, unknown> | null>(s, null)
-  if (bo && typeof bo.node === 'string') return { node: bo.node, title: null }
+  if (bo && typeof bo.node === 'string') return { node: bo.node, title: null, as_of: null }
   if (bo && typeof bo.name === 'string') return { name: bo.name, license: String(bo.license ?? ''), ...(typeof bo.url === 'string' ? { url: bo.url } : {}) }
   return null
 }
@@ -855,7 +909,7 @@ export type PromptPost = PostRow & {
 }
 
 const PROMPT_POST_SQL = `SELECT p.id, ${NAME_SHOWN('p.as_name')} AS as_name, p.person_id, p.kind, p.text, p.links, p.reply_to, p.created_at, p.edited_at, p.deleted_at, p.is_join,
-    (SELECT COUNT(*) FROM upvote u WHERE u.post_id = p.id AND u.counted = 1) AS ups,
+    (SELECT COUNT(*) FROM upvote u WHERE u.post_id = p.id AND u.counted = 1) AS ups, p.claim, ${BACKERS_SQL('p')} AS backers,
     s.number, s.how_to_check, c.slot AS check_slot, c.verdict AS check_verdict, cs.number AS check_on, c.repro AS check_repro,
     c.exit_code AS check_exit
   FROM post p

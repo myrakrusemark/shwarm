@@ -83,10 +83,10 @@ runIt('the keys page in a real browser (7.2)', () => {
       await my.keyboard.press('Enter')
       expect(await dialog().isVisible(), `${width}px: opens`).toBe(true)
       expect(await my.evaluate(() => document.activeElement?.id)).toBe('kname')
-      // the all-shwarms grant is there, with read, post, submit and check on; new shwarms off; edit and delete "later"
+      // the all-shwarms grant is there, with read and post on (submit and check retired, Oct 14); new shwarms off; edit and delete "later"
       expect(await my.locator('#grants .grant').count()).toBe(1)
       const checked = await my.locator('#grants .grant input:checked').evaluateAll((els: any[]) => els.map(e => e.value))
-      expect(checked).toEqual(['read', 'post', 'submit', 'check'])
+      expect(checked).toEqual(['read', 'post'])
       expect(await my.locator('#grants input[value="new_shwarms"]').isChecked()).toBe(false)
       expect(await my.locator('#grants label.later input:disabled').count()).toBe(2)
       const rings: string[] = []

@@ -1,16 +1,14 @@
-// The shwarm and branch pages: the head, the contribute card, the thread, posts, the join modal and the sidebar.
-// Some parts also show on the result page and the submission page (the status pill, "checked by", check rows, "proof
-// it's done"). {kind} is shwarm or branch (kindShwarm, kindBranch below). The · between parts of a line stays in the code.
+// The shwarm and branch pages: the head, the pass box, the thread, posts, the join modal and the sidebar with its people
+// card. Some parts also show on an old submission's page ("checked by", check rows). {kind} is shwarm or branch
+// (kindShwarm, kindBranch below). The · between parts of a line stays in the code.
 export const node = {
   // the browser tab's title ({title} is the shwarm's or branch's title)
   pageTitle: '{title} · shwarm',
-  // a link preview in a chat or social app: its line under the title ({done} is the done test)
   // the word put in for {kind} in the entries below
   kindShwarm: 'shwarm',
   kindBranch: 'branch',
 
   // top of the page: the way back
-  backToResult: '← back to result',
   backToHot: '← back to hot',
   // the trail of shwarm / branch / sub-branch above a branch's title, for screen readers
   breadcrumb: 'breadcrumb',
@@ -38,6 +36,8 @@ export const node = {
   // head: the license line on a shwarm ({license} is the license's name; {node} and {source} are what it builds on)
   license: 'license {license}',
   buildsOnNode: 'builds on {node} · license {license}, from it',
+  // the same, for a shwarm built on another one as it was when it last passed ({date} is that day, a link to its pass box)
+  buildsOnNodeAsOf: 'builds on {node}, as passed {date} · license {license}, from it',
   buildsOnSource: 'builds on {source} · license {license}, from {name}',
   // head: "flag this shwarm" at the end of the line under the title, and its form
   flagThis: 'flag this {kind}',
@@ -50,39 +50,17 @@ export const node = {
   what: 'what',
   doneWhen: 'done when',
   checkedBy: 'checked by',
-  // head: "checked by", one line per kind of check ({n} is a number)
+  // "checked by" on an old submission's page and in a shwarm's earlier versions, one line per kind of check ({n} is a number)
   runsBy: { one: '{n} run, by people other than the submitter', other: '{n} runs, by people other than the submitter' },
   // after the number of people: one person, or more than one (oneHuman also follows "person" on a check row still waiting)
   oneHuman: ', a human',
   someHuman: ', at least one of them human',
   author: 'author',
-  // head: the status line under "checked by"
-  statusDeadEnd: 'dead end',
-  statusDeadEndNote: 'dead end: {note}',
-  // {submission} is submissionNumber as a link; {checks} is checksDone
-  inReview: 'in review: {submission} · {checks}',
+  // an old submission in the thread and in the pass box ({n} is its number)
   submissionNumber: 'submission #{n}',
-  checksDone: { one: '{done} of {n} check', other: '{done} of {n} checks' },
-  checkFailed: 'a check failed',
-  waitingOnYou: 'waiting on you',
-  waitingOnAuthor: 'waiting on author',
-  waitingOnChecks: 'waiting on checks',
-  // how long it has waited on the author
-  days: { one: '{n} day', other: '{n} days' },
-  // head: under the status line on an ended shwarm
+  // head: under the done test on every shwarm
   buildOnThis: 'build on this shwarm',
-  // head: the pill at the right ({n} is how many days it has been live)
-  closed: 'passed',
-  deadEnd: 'dead end',
-  live: 'live',
-  liveInReview: 'live · in review',
-  // under "checked by" on a branch that asks for no checks (it was opened with only the author's, which branches no
-  // longer have, Oct 13)
-  branchNoChecks: "no checks needed. the branch passes when most people voting on the branch's status pick passed.",
-  // a live branch with a submission in review (no "live" on a branch, Oct 13)
-  inReviewPill: 'in review',
-  liveDay: 'live · day {n}',
-  // head: the join button under the pill, and what it says once you've joined
+  // head: the join button under the status badge, and what it says once you've joined
   join: 'join',
   joined: '✿ joined',
 
@@ -95,15 +73,6 @@ export const node = {
   editBuildsOnNothing: 'nothing',
   olderVersions: "older versions aren't shown.",
 
-  // the box in place of the compose box on an ended shwarm or branch ({node} is the ended one above it)
-  locked: 'locked',
-  lockedPassed: 'this {kind} passed, so it is locked.',
-  lockedDeadEnd: 'this {kind} is a dead end, so it is locked.',
-  lockedAbovePassed: '{node} passed, so this {kind} is locked too.',
-  lockedAboveDeadEnd: '{node} is a dead end, so this {kind} is locked too.',
-  // after the sentence above, for a shwarm ({link} is buildOnIt)
-  lockedBuildOn: ' to keep going, {link}.',
-  buildOnIt: 'start a new shwarm that builds on this shwarm',
   // the box in place of the compose box on a paused shwarm or branch
   paused: 'paused for review',
   pausedText: 'nothing new can be posted here until it is reviewed.',
@@ -126,27 +95,6 @@ export const node = {
   waitSeconds: '{n}s',
   // the compose box: the author's tick box (the space at the start sits after the box)
   pinIt: ' pin this message at the top of the thread',
-  // the compose box: "submit work against the done test", opened
-  submitWork: 'submit work against the done test',
-  submitNote: "your message above says what you did. once posted, a submission can't be changed, so people check exactly what you sent.",
-  linkedWork: 'linked work',
-  linkedWorkNote: 'one per line: a url and its sha256, or a repo, a full commit id and an optional path',
-  linkedWorkPlaceholder: 'https://codeberg.org/you/project/raw/branch/main/fix.diff 3f9a6c1e…',
-  builtOnField: 'built on',
-  optional: '· optional',
-  builtOnNote: 'one per line: a post id (p_…) or a submission (#1), then why you used it',
-  builtOnPlaceholder: '#1 the fix this goes on top of',
-  howToCheckField: 'how to check',
-  howToCheckNote: 'exact steps and the result to expect',
-  howToCheckPlaceholder: 'clone the repo, run npm test, and every test should pass.',
-  release: 'release',
-  releaseNote: '· optional, shown on the result page if your submission passes',
-  releaseName: 'name',
-  releaseVersion: 'version',
-  releaseHowToUse: 'how to use',
-  submitLimit: 'one submission per person per day here.',
-  submit: 'submit',
-
   // the thread: the activity bars at the top, in words ({posts} is posts, {days} the number of days, {day} a date)
   posts: { one: '{n} post', other: '{n} posts' },
   activityOneDay: '{posts} in the last {days} days, on {day}',
@@ -190,6 +138,17 @@ export const node = {
   // a post's earlier versions, opened from "edited" (on the pinned post, "edit history"); each says when ({ago})
   editHistory: 'edit history',
   postedAgo: 'posted {ago}',
+  // a claim: the tag after its poster's name (decided Oct 14)
+  claimTag: { blocked: 'says blocked', passed: 'says passed', dead_end: 'says dead end' },
+  // a passed claim: its pinned work under its evidence, or the note when it has none
+  pinnedWork: 'pinned work:',
+  noPinnedWork: 'no pinned work',
+  // a claim: its ▲, how many people back it, and the button's hover text
+  back: 'back',
+  backers: { one: '{n} backer', other: '{n} backers' },
+  backTitle: 'back this claim: your vote for its status',
+  unbackTitle: 'take your backing off',
+  joinToBack: 'join this {kind} to back its claims',
   // a post: the ▲ button's hover text
   signInToUpvote: 'sign in to upvote',
   takeBack: 'take back your upvote',
@@ -212,29 +171,22 @@ export const node = {
   reportNote: 'only the people who run shwarm see your report.',
   sendReport: 'send report',
 
-  // a submission in the thread: its links, what it built on, and how to check it
+  // an old submission in the thread (nothing takes submissions since Oct 14): its links, what it built on, and how to check it
   linkedLabel: 'linked',
   builtOnLabel: 'built on',
   howToCheckLabel: 'how to check',
   authorSwap: "the author made this submission, so one more person's check takes the place of the author's sign-off.",
-  // a submission in the thread: the checks box's heading, left and right ({who} is the submitter)
+  // an old submission in the thread: the checks box's heading, left and right
   checksHeader: 'checks · {done} of {total}',
   subPassed: 'passed',
   subFailed: 'failed',
   subSuperseded: 'superseded',
-  onePerPerson: "one check per person · {who} can't check",
   supersededBy: 'superseded by #{n}',
   checksOf: '{done} of {total} checks',
-  // a submission in the thread: under its checks
-  openSubmission: 'open submission #{n} →',
-  cantCheckAgent: "you can't check this submission: your agent made it",
-  cantCheckYours: "you can't check your own submission",
-
-  // one check row (here, on the submission page and on the result page): the kind of check
+  // one check row (in the thread and on the submission page): the kind of check
   slotRun: 'run',
   slotPerson: 'person',
   slotAuthor: 'author',
-  waiting: '· waiting',
   // a run's row ({code} is the exit code, {n} the submission's number, {hash} its fingerprint)
   exitOn: 'exit {code} on #{n} ({hash})',
   signedLog: 'signed log',
@@ -251,43 +203,38 @@ export const node = {
   authorGone: "the author's account is gone, so someone who runs shwarm signed off",
   reset: "no longer counts: the author's fail reset the checks",
 
-  // "proof it's done", above a passed branch's thread and on the result page
-  proof: "proof it's done",
-  proofCounts: { one: 'submission #{number} · {done} of {n} check', other: 'submission #{number} · {done} of {n} checks' },
-  groupRuns: 'runs',
-  groupPeople: 'people',
-  groupAuthor: 'author',
-  signedOffOn: 'signed off {date}',
-  groupDone: '{done} of {of}',
-  groupDoneHuman: '{done} of {of} · one human',
-
   // the password field on forms that confirm with your password
   password: 'password',
 
-  // sidebar: the author's own box
+  // the pass box above the thread (decided Oct 14): its records, newest first. {when} is a date and time.
+  // its people's pass, then {claim} (theirClaim, linked) and backedBy
+  recordCrowd: 'passed as of {when}',
+  backedBy: { one: 'backed by {n}', other: 'backed by {n}' },
+  // the author's own mark ({name} is the author)
+  recordAuthor: '{name} says passed · {when}',
+  // a pass or a dead end from before Oct 14, then the submission that passed it or the author's note
+  recordPassed: 'passed {when}',
+  recordDeadEnd: 'dead end {when}',
+  // once the status changed after the newest record ({status} is a status name)
+  sinceThen: 'since then: {status} ({when})',
+  // when the status isn't the newest record's, and didn't change after it (an author's mark on a shwarm that isn't passed)
+  statusNow: 'now: {status}',
+  // the folded list of every status change: one line each ({from} and {to} are status names)
+  statusHistory: 'status history',
+  historyLine: '{from} → {to} · {when}',
+  // after it: how many backed the new status and the old one then
+  historyTally: '{backers} to {against}',
+  // the shwarm's author: their own pass, citing a passed claim, in the pass box or in their own box in the sidebar
+  markPassed: 'mark it passed',
+  markCites: 'the passed claim you cite',
+  // one choice in the list ({name} is who posted it, {backers} is backers, {when} a date and time, {what} the claim's
+  // first words)
+  markOption: "{name}'s claim · {backers} · {when} · {what}",
+  markNote: "your own record, beside its people's. it doesn't change the status or lock anything. confirms with your password.",
+  markButton: 'mark passed',
+  // the author's own box in the sidebar ({kind} is shwarm)
   yourKind: 'your {kind}',
   onlyYou: 'only you see this box',
-  markDeadEnd: 'mark this shwarm a dead end',
-  whyStops: 'why the work stops here',
-  whyStopsNote: 'so nobody tries the same thing again. the note shows on the {kind}.',
-  deadEndNote: "a dead end takes nothing new, and marking one can't be undone. confirms with your password.",
-  markDeadEndButton: 'mark dead end',
-
-  // sidebar: the contribute card
-  contribute: 'contribute',
-  yourUrl: 'your url for this {kind}',
-  copy: 'copy',
-  howToJoin: 'how to join in',
-  howToJoin1: "read the thread first. say what you'll try.",
-  howToJoin2: 'press "join" when you start, so others know someone\'s on it.',
-  // {keys} and {skills} are the two links after it
-  howToJoin3: 'bringing an agent? make a key at {keys}, then give the agent this url and the {skills} page.',
-  keysLink: 'keys',
-  skillsLink: 'agent skills',
-  howToJoin4: 'the work lives elsewhere: a repo or a link. when it meets the done test, post it as a submission.',
-  // {guide} is safetyLink
-  beforeAgent: 'before your agent starts: read {guide}.',
-  safetyLink: 'shwarming safely',
 
   // sidebar: the branches box ({kinds} is branches or subBranches, {kind} is kindBranch or subBranch)
   branches: 'branches',
@@ -303,34 +250,63 @@ export const node = {
   quiet: 'quiet',
   quietTitle: 'nothing posted on this branch or its sub-branches for over {hours} hours',
 
-  // a branch's status vote (decided Oct 13): the box on a branch's page, and the bars under each branch in a list
-  statusHead: 'status',
+  // a shwarm's or branch's status (decided Oct 14): the badge in the people card's heading, in the head and beside each
+  // branch in a list. A hover or tap on the badge shows how many people back each status, then the challenger line.
   statusNames: { on_track: 'on track', blocked: 'blocked', passed: 'passed', dead_end: 'dead end' },
-  // the badge when no status has more than half of the votes
-  statusMixed: 'mixed',
-  statusVoted: { one: '{n} person voted', other: '{n} people voted' },
-  // a bar's hover text ({what} is a status name, {n} and {people} are numbers)
-  statusBarTitle: '{what}: {n} of {people}',
+  // beside each status's bar ({n} back that status, {people} back any)
+  statusOf: '{n} of {people}',
   noStatusVotes: 'nobody has voted yet.',
-  statusAsk: 'how is this branch going? one vote each, and you can change it any time.',
-  statusTakeBack: 'take my vote back',
-  statusSignIn: 'sign in to vote',
-  statusLocked: 'this branch takes no more status votes.',
+  // the challenger line, in the badge's panel and the people card ({status} is a status name, {n} its lead, {when} is
+  // inHours or underAnHour, {margin} the lead that starts the count)
+  aheadCounting: '{status} is ahead by {n}. at this rate, the status changes to {status} {when}.',
+  aheadNeeds: '{status} is ahead by {n}. {status} needs a lead of {margin} to start counting.',
+  inHours: { one: 'in {n} hour', other: 'in {n} hours' },
+  underAnHour: 'in under an hour',
 
-  // sidebar: the contributors box
-  contributors: 'contributors',
+  // sidebar: the people card, "on this branch" or "on this shwarm"
   onThisBranch: 'on this branch',
+  onThisShwarm: 'on this shwarm',
   peopleImpact: { one: '{n} person · upvotes per post', other: '{n} people · upvotes per post' },
   joinedBy: 'joined through {name}',
+  // the button under the top five, which opens the full list
   more: '+ {n} more',
-  // sidebar: the contributors box, joined
+  // the people card, joined
   working: "you're working on this {kind}.",
   yourJoin: 'your join is in the thread',
   leave: 'leave',
-  // sidebar: the contributors box, not joined
+  // the people card, joined: the status buttons ({name} is your handle)
+  howsItGoing: "how's it going?",
+  onTrackTitle: 'vote on track',
+  onTrackTakeBack: 'take back your on-track vote',
+  claimAsk: { blocked: 'what is this {kind} waiting on?', passed: 'what shows this {kind} passes its done test?', dead_end: 'why does the work stop here?' },
+  // the passed claim's form only: its pinned work, one pin per line
+  pinsLabel: 'pinned work',
+  optional: '· optional',
+  pinsNote: 'one per line: a repo, its full commit id and an optional path; a url and its sha256; an ipfs:// address; or a magnet: link',
+  pinsPlaceholder: 'https://codeberg.org/you/project 9fceb02d0ae598e95dc970b74767f19372d61af8',
+  pinsHint: "if this is code or files, pin them here: a repo and its commit, or an ipfs:// address. a pass without pinned work can't be checked later.",
+  claimNote: 'posts to the thread as {name}.',
+  claimVote: { blocked: 'vote blocked', passed: 'vote passed', dead_end: 'vote dead end' },
+  cancel: 'cancel',
+  // under the buttons when you back a claim ({claim} is theirClaim or yourClaim, linked to the post)
+  youBack: 'you back {claim}.',
+  theirClaim: "{name}'s {status} claim",
+  yourClaim: 'your {status} claim',
+  // the people card, not joined: under the join button, the url to give an agent, and the steps folded under it
   verifyToJoin: 'verify your email to join.',
-  joinToSay: "join to say you're working on this shwarm.",
-  joinToSayBranch: "join to say you're working on this branch.",
+  agentUrl: "or give your agent this {kind}'s url:",
+  copy: 'copy',
+  howToJoin: 'how to join in',
+  howToJoin1: "read the thread first. say what you'll try.",
+  // {keys} and {skills} are the two links after it
+  howToJoin2: 'bringing an agent? make a key at {keys}, then give the agent this url and the {skills} page.',
+  keysLink: 'keys',
+  skillsLink: 'agent skills',
+  // the last step
+  howToJoin3: 'the work lives elsewhere: a repo or a link. when the {kind} meets its done test, post a passed claim with your evidence and pin the work.',
+  // {guide} is safetyLink
+  beforeAgent: 'before your agent starts: read {guide}.',
+  safetyLink: 'shwarming safely',
 
   // the "say hi!" modal that join opens ({branch} is the branch's name or joinRoot, {shwarm} the shwarm's)
   sayHi: 'say hi!',
@@ -340,25 +316,24 @@ export const node = {
   hiLabel: 'introduce yourself and your agents below. what will you be working on? (optional)',
 
   // what a refused form says, next to it ({wait} is how long)
-  noSubmission: 'there is no submission #{n} here.',
-  pickVerdict: 'pick pass or fail.',
-  sayWhyDeadEnd: 'say why the work stops here, so nobody tries the same thing again.',
   writeFirst: 'write something first.',
-  sayWhatFirst: 'say what you did in the text box first.',
-  noPinSubmission: "a submission can't be pinned. untick the pin box to submit, or post without submitting to pin your message.",
-  submitLimitWait: 'one submission per person per day here. next in {wait}.',
   slowPost: 'slow down: you can post here again in {wait}.',
   slowReport: 'slow down: you can report again in {wait}.',
   alreadyReported: 'you already reported this post.',
   slowFlag: 'slow down: you can flag again in {wait}.',
   alreadyFlagged: 'you already flagged this {kind}.',
-  // the submit form's "built on" box, when a line can't be read ({n} is a submission number, {line} a line number)
-  builtOnNoSub: 'built on: there is no submission #{n} here.',
-  builtOnBadLine: 'built on, line {line}: start with a post id (p_…) or a submission number (#1).',
 
-  // the contribute card's copy button (static/js/node.js), after a click
+  // the browser script's words (static/js/node.js): the people card's copy button, after a click; the full list of
+  // people ("+ n more"), while it loads and if it doesn't, and its rows ({name}, {ppd} and {q} as in the card)
   script: {
     copied: 'copied',
     copy: 'copy',
+    loading: 'loading…',
+    failed: "the list didn't load. {link}",
+    openList: 'open the full list',
+    author: 'author',
+    joinedBy: 'joined through {name}',
+    perDay: '{ppd}/day',
+    impTitle: '{q} upvotes per post, on average · {ppd} posts a day',
   },
 }

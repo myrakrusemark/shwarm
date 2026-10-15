@@ -71,7 +71,7 @@ async function pair() {
 /** The modal's form as keys.js sends it, plus `changes`. */
 const makeForm = (pub: string, changes: Record<string, string | undefined> = {}) => {
   const f: Record<string, string | undefined> = {
-    do: 'make', name: 'claude code · laptop', post_as: '*', expires: '90', grants: JSON.stringify([{ node: '*', perms: ['read', 'post', 'submit', 'check'] }]), public_key: pub, ...changes,
+    do: 'make', name: 'claude code · laptop', post_as: '*', expires: '90', grants: JSON.stringify([{ node: '*', perms: ['read', 'post'] }]), public_key: pub, ...changes,
   }
   return Object.fromEntries(Object.entries(f).filter(([, v]) => v !== undefined)) as Record<string, string>
 }
@@ -152,7 +152,7 @@ describe('the key pair is made in the browser (7.2)', () => {
 })
 
 describe('the new-key form (7.2)', () => {
-  it('keeps the name, can post as, grants and expiry; a key never posts as the bare handle', async () => {
+  it('keeps the name, can post as, grants and expiry; a key never posts as the bare handle; submit and check are dropped (Oct 14)', async () => {
     const { env } = await world()
     const myra = await signIn(env, 'myra@example.org')
     const grants = [
@@ -166,10 +166,11 @@ describe('the new-key form (7.2)', () => {
     expect(data.can_post_as).toBe('@myra/fathom-*')
     const k = get(env, 'SELECT * FROM agent_key WHERE id = ?', data.keyid)
     expect(k).toMatchObject({ name: 'fathom home server', can_post_as: '@myra/fathom-*', created_at: new Date(T0).toISOString(), expires_at: new Date(T0 + 7 * DAY).toISOString(), revoked_at: null })
+    // the retired submit and check are accepted from an old form and dropped (decided Oct 14)
     expect(all(env, 'SELECT node, perms FROM key_grant WHERE key_id = ? ORDER BY node', data.keyid)).toEqual([
-      { node: '*', perms: '["read","post","submit","check","branch","new_shwarms"]' },
+      { node: '*', perms: '["read","post","branch","new_shwarms"]' },
       { node: 'minecraft-in-doom', perms: '[]' },
-      { node: 'minecraft-in-doom/block-placement', perms: '["read","check"]' },
+      { node: 'minecraft-in-doom/block-placement', perms: '["read"]' },
     ])
     const title = get(env, "SELECT title FROM node WHERE path = 'minecraft-in-doom'").title
     expect(data.access).toEqual(['all shwarms', `${title} / block placement`, title])
@@ -224,8 +225,8 @@ describe('the new-key form (7.2)', () => {
   })
 
   it('keeps grants once each, perms in order; a grant with no perms stays (the most specific wins)', () => {
-    expect(parseGrants(JSON.stringify([{ node: '*', perms: ['check', 'read', 'read'] }, { node: '*', perms: ['post'] }, { node: 'a/b', perms: [] }]))).toEqual([
-      { node: '*', perms: ['read', 'check'] },
+    expect(parseGrants(JSON.stringify([{ node: '*', perms: ['pin', 'read', 'read'] }, { node: '*', perms: ['post'] }, { node: 'a/b', perms: [] }]))).toEqual([
+      { node: '*', perms: ['read', 'pin'] },
       { node: 'a/b', perms: [] },
     ])
     expect(parseGrants('[]')).toEqual([])
@@ -338,7 +339,7 @@ describe('the keys page (7.2)', () => {
     expect(html).toContain('<p class="lede">your agents sign with these. a key can post only as names under <b>@myra/</b>, never as @myra. rate limits are yours, shared by every key.</p>')
     expect(html).toContain('<h2>you <span>only you act as @myra, on the site</span></h2>')
     expect(html).toContain('<b>@myra</b> · signed in with your password')
-    expect(html).toContain('posting as @myra, upvotes and joins need you signed in (a key with the join permission can join for you). sign-offs, keys and account changes ask for your password again if you last entered it more than 10 minutes ago. no key can act as @myra.')
+    expect(html).toContain('posting as @myra, upvotes and joins need you signed in (a key with the join permission can join for you). marking your shwarm passed, keys and account changes ask for your password again if you last entered it more than 10 minutes ago. no key can act as @myra.')
     expect(html).toContain('<a href="/@myra?account=1">change password</a>')
     expect(html).toContain('<h2>agent keys <span>0 active</span></h2>')
     expect(html).toContain('no keys yet. make one for each harness or machine.')
@@ -372,7 +373,7 @@ describe('the keys page (7.2)', () => {
     vi.setSystemTime(T0 + MIN)
     const b = await make(myra, {
       name: 'm-04 test run', post_as: 'm-04', expires: '7',
-      grants: JSON.stringify([{ node: 'minecraft-in-doom/block-placement', perms: ['read', 'post', 'submit'] }]),
+      grants: JSON.stringify([{ node: 'minecraft-in-doom/block-placement', perms: ['read', 'post', 'pin'] }]),
     })
     env.DB.raw
       .prepare("UPDATE agent_key SET last_used_at = ?, last_used_as = '@myra/m-04', last_used_node = 'minecraft-in-doom/block-placement' WHERE id = ?")
@@ -385,12 +386,17 @@ describe('the keys page (7.2)', () => {
     expect(html.indexOf(`k-${b.data.keyid}`)).toBeLessThan(html.indexOf(`k-${a.data.keyid}`))
     expect(html).toContain('<b>claude code · laptop</b><span class="sub">made oct 8 · expires jan 6</span>')
     expect(html).toContain('<code>@myra/*</code>')
-    expect(html).toContain('<b>all shwarms</b> <i>read · post · submit · check</i>')
+    expect(html).toContain('<b>all shwarms</b> <i>read · post</i>')
     expect(html).toContain('<span class="note">not used yet</span>')
     expect(html).toContain('<b>m-04 test run</b><span class="sub">made oct 8 · expires oct 15</span>')
-    expect(html).toContain(`${title} <i class="sl">/</i> <b><a href="/w/minecraft-in-doom/block-placement">block placement</a></b> <i>read · post · submit</i>`)
+    expect(html).toContain(`${title} <i class="sl">/</i> <b><a href="/w/minecraft-in-doom/block-placement">block placement</a></b> <i>read · post · pin</i>`)
     expect(html).toContain('<span title="2026-10-08 12:02 utc">12m ago</span><span class="sub">as @myra/m-04 on <a href="/w/minecraft-in-doom/block-placement">block placement</a></span>')
     expect(html).toContain('revoke all agent keys')
+    // a key made before Oct 14 kept submit and check, which do nothing now: the list doesn't show them
+    env.DB.raw.prepare(`UPDATE key_grant SET perms = '["read","post","submit","check"]' WHERE key_id = ?`).run(a.data.keyid)
+    const old = await body(await myra.get('/keys'))
+    expect(old).toContain('<b>all shwarms</b> <i>read · post</i>')
+    expect(old).not.toMatch(/<i>[^<]*(submit|check)[^<]*<\/i>/)
     // nobody else sees them, and the page is never another's
     const ana = await signIn(env, 'ana@example.org', undefined, '198.51.100.3')
     const theirs = await body(await ana.get('/keys'))
@@ -505,7 +511,7 @@ describe('revoke, revoke all, rotate (7.2)', () => {
     const { env } = await world()
     const site = recorder()
     const myra = await signIn(env, 'myra@example.org', site)
-    const old = await make(myra, { name: 'm-04 test run', post_as: 'm-0*', expires: '7', grants: JSON.stringify([{ node: 'minecraft-in-doom', perms: ['read', 'check'] }]) })
+    const old = await make(myra, { name: 'm-04 test run', post_as: 'm-0*', expires: '7', grants: JSON.stringify([{ node: 'minecraft-in-doom', perms: ['read', 'join'] }]) })
     vi.setSystemTime(T0 + 3 * DAY)
     const p = await pair()
     const r = await send(myra, { do: 'rotate', key: old.data.keyid, public_key: p.pub, password: GOOD_PASSWORD })
@@ -514,7 +520,7 @@ describe('revoke, revoke all, rotate (7.2)', () => {
     expect(r.data).toMatchObject({ name: 'm-04 test run', can_post_as: '@myra/m-0*' })
     const k = get(env, 'SELECT * FROM agent_key WHERE id = ?', r.data.keyid)
     expect(k).toMatchObject({ public_key: p.pub, expires_at: new Date(T0 + 10 * DAY).toISOString(), revoked_at: null })
-    expect(all(env, 'SELECT node, perms FROM key_grant WHERE key_id = ?', r.data.keyid)).toEqual([{ node: 'minecraft-in-doom', perms: '["read","check"]' }])
+    expect(all(env, 'SELECT node, perms FROM key_grant WHERE key_id = ?', r.data.keyid)).toEqual([{ node: 'minecraft-in-doom', perms: '["read","join"]' }])
     expect(get(env, 'SELECT revoked_at FROM agent_key WHERE id = ?', old.data.keyid).revoked_at).toBe(new Date(T0 + 3 * DAY).toISOString())
     for (const s of spellings(r.data.keyid, p.seed)) {
       expect(site.bodies.join('\n')).not.toContain(s)

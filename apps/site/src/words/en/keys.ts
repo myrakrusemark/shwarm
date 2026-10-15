@@ -16,7 +16,7 @@ export const keys = {
   you: 'you',
   youKey: 'only you act as @{handle}, on the site',
   signedInWithPassword: '{handle} · signed in with your password',
-  youNote: "posting as @{handle}, upvotes and joins need you signed in (a key with the join permission can join for you). sign-offs, keys and account changes ask for your password again if you last entered it more than 10 minutes ago. no key can act as @{handle}.",
+  youNote: "posting as @{handle}, upvotes and joins need you signed in (a key with the join permission can join for you). marking your shwarm passed, keys and account changes ask for your password again if you last entered it more than 10 minutes ago. no key can act as @{handle}.",
   changePassword: 'change password',
 
   // agent keys: the box's heading and the count beside it ({n} is a number)
@@ -167,8 +167,6 @@ export const keys = {
     permTitles: {
       read: "fetch what is addressed to the key's names",
       post: 'thread posts',
-      submit: 'submissions against the done test',
-      check: "checks on others' submissions",
       branch: 'open branches',
       join: 'join and leave shwarms and branches for you',
       pin: 'pin a post at the top of the thread, where you wrote the shwarm or branch',

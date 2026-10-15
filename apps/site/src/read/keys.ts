@@ -2,7 +2,7 @@
 // lookups (shwarms you're in, a search, a node's branches, a pasted link). Only for the signed-in owner; titles come
 // only from nodes that show to them (SEEN_NODE), so a grant on a node that's since been hidden shows its path instead.
 import type { Perm } from '../core/actor'
-import { ACTIVE_KEY } from '../auth/keys'
+import { ACTIVE_KEY, KEY_PERMS } from '../auth/keys'
 import { parseNodePath, prefixes } from './node'
 import { SEEN_NODE } from './visibility'
 
@@ -64,7 +64,8 @@ export async function readKeys(db: D1Database, personId: number, now = Date.now(
     ended: !active,
     dm: k.dm === 1,
     last_used_title: k.last_used_node ? (titles.get(k.last_used_node) ?? null) : null,
-    grants: k.grants.map(g => ({ node: g.node, perms: g.perms, titles: g.node === '*' ? [] : prefixes(g.node).map(p => titles.get(p) ?? null) })),
+    // A key made before Oct 14 may still hold submit and check, which do nothing now: the list shows only live perms.
+    grants: k.grants.map(g => ({ node: g.node, perms: KEY_PERMS.filter(p => g.perms.includes(p)), titles: g.node === '*' ? [] : prefixes(g.node).map(p => titles.get(p) ?? null) })),
   }))
 }
 

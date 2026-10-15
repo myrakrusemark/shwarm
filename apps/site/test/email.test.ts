@@ -73,57 +73,27 @@ describe('templates', () => {
   })
 })
 
-describe('sign_off_ready (go-live 5.4)', () => {
-  const notice = { siteUrl: SITE, stream: 'notices' as const, unsubscribe: { url: `${SITE}/unsubscribe?t=x`, label: 'sign off' } }
-  const payload = { notice: 'sign_off', handle: 'myra', number: 2, title: 'minecraft in doom', link: '/w/minecraft-in-doom/s/2' }
+describe('a notice mail (go-live 6.3)', () => {
+  const notice = { siteUrl: SITE, stream: 'notices' as const, unsubscribe: { url: `${SITE}/unsubscribe?t=x`, label: 'mention' } }
+  const payload = { notice: 'mention', handle: 'myra', by: '@ana/m-04', title: 'minecraft in doom', link: '/w/minecraft-in-doom#p_1', text: '@myra corners still fail.', cut: false }
 
-  it('renders the subject, the submission link and the opt-out footer', () => {
-    const m = renderMail('sign_off_ready', payload, notice)
-    expect(m.subject).toBe('submission #2 on minecraft in doom is ready for your sign-off')
-    expect(m.text).toContain('hi @myra,')
-    expect(m.text).toContain('every other check on submission #2 on minecraft in doom has passed. your sign-off is the last one.')
-    expect(m.text).toContain(`${SITE}/w/minecraft-in-doom/s/2`)
-    expect(m.html).toContain(`<a href="${SITE}/w/minecraft-in-doom/s/2">`)
-    expect(m.text).toContain('sign off mails are on')
-    expect(m.text.replace(/https:\S+/g, '')).toBe(m.text.replace(/https:\S+/g, '').toLowerCase())
-    expect(m.text + m.html).not.toMatch(/[—–]/)
-    expect(renderMail('sign_off_ready', { ...payload, only: true }, notice).text).toContain('submission #2 on minecraft in doom is waiting on you. your sign-off is the only check it needs.')
-  })
-
-  it("author gone: tells the admin why it's theirs", () => {
-    const m = renderMail('sign_off_ready', { ...payload, handle: 'ops', author: 'bmo_fan', author_gone: true }, notice)
-    expect(m.subject).toBe('#2 on minecraft in doom is ready for sign-off')
-    expect(m.text).toContain('hi @ops,')
-    expect(m.text).toContain("#2 on minecraft in doom is ready for its author's sign-off, but @bmo_fan's account is suspended or closed. the operator signs off in their place.")
-    expect(m.text).toContain(`${SITE}/w/minecraft-in-doom/s/2`)
-    expect(renderMail('sign_off_ready', { ...payload, author: 'not a handle!', author_gone: true }, notice).text).toContain("but its author's account")
-  })
-
-  it("keeps a node title to one plain line, and refuses a link off the site or a bad number", () => {
-    const m = renderMail('sign_off_ready', { ...payload, title: 'doom\r\nBcc: x@evil.example <img src=x>' }, notice)
-    expect(m.subject).not.toMatch(/[\r\n]/)
-    expect(m.html).not.toContain('<img')
-    expect(() => renderMail('sign_off_ready', { ...payload, link: 'https://evil.example/w/x/s/2' }, notice)).toThrow(MailRenderError)
-    expect(() => renderMail('sign_off_ready', { ...payload, number: '2' }, notice)).toThrow(MailRenderError)
-    expect(() => renderMail('sign_off_ready', { ...payload, title: undefined }, notice)).toThrow(MailRenderError)
-  })
-
-  it('goes only to an active person, and honours their sign_off opt-out when sent', async () => {
+  it('goes only to an active person, and honours their opt-out of that type when sent', async () => {
+    expect(renderMail('mention', payload, notice).subject).toBe('@ana/m-04 mentioned you on minecraft in doom')
     const e = { DB: testDb(), ENV: 'production', SITE_URL: SITE, RESEND_API_KEY: 're_key', MAIL_SECRET: 'mail-secret' } as any
     const me = await addPerson(e.DB, 'myra')
     const gone = await addPerson(e.DB, 'gone_one', { status: 'suspended' })
     const at = new Date(T0).toISOString()
-    const mail = (personId: number) => mailToPersonStatement(e.DB, { template: 'sign_off_ready', stream: 'notices', personId, payload }, at)
+    const mail = (personId: number) => mailToPersonStatement(e.DB, { template: 'mention', stream: 'notices', personId, payload }, at)
     await e.DB.batch([mail(me), mail(gone)])
     expect(e.DB.raw.prepare('SELECT to_email, person_id FROM email_outbox').all().map((r: any) => ({ ...r }))).toEqual([{ to_email: 'myra@example.org', person_id: me }])
     const sent: any[] = []
     const f = (async (_url: string, init: RequestInit) => (sent.push(JSON.parse(String(init.body))), new Response('{"id":"re_1"}', { status: 200 }))) as unknown as typeof fetch
     expect(await sweepOutbox(e, { now: T0, fetch: f })).toMatchObject({ sent: 1 })
-    expect(sent[0].subject).toBe('submission #2 on minecraft in doom is ready for your sign-off')
-    e.DB.raw.prepare(`UPDATE person SET notice_prefs = '{"sign_off":false}' WHERE id = ?`).run(me)
+    expect(sent[0].subject).toBe('@ana/m-04 mentioned you on minecraft in doom')
+    e.DB.raw.prepare(`UPDATE person SET notice_prefs = '{"mention":false}' WHERE id = ?`).run(me)
     await mail(me).run()
     expect(await sweepOutbox(e, { now: T0 + 60_000, fetch: f })).toMatchObject({ sent: 0, skipped: 1 })
-    expect(e.DB.raw.prepare('SELECT last_error FROM email_outbox ORDER BY id DESC').get().last_error).toBe('skipped: turned off sign_off notices')
+    expect(e.DB.raw.prepare('SELECT last_error FROM email_outbox ORDER BY id DESC').get().last_error).toBe('skipped: turned off mention notices')
   })
 })
 

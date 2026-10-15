@@ -14,9 +14,9 @@ import { verifyMail } from '../auth/signup'
 import { newToken } from '../auth/tokens'
 import { emailKeys, emailNorm } from '../email/norm'
 import { mailStatement } from '../email/outbox'
-import { ctxAt, moderatedStatement, operatorSignOffStatements } from './context'
+import { ctxAt, moderatedStatement } from './context'
 import { modLog, type ModAction } from './moderation'
-import { ESTABLISHED_AGE_MS } from './posts'
+import { ESTABLISHED_AGE_MS } from './upvotes'
 
 // ---------- lookup ----------
 
@@ -315,19 +315,7 @@ export async function accountAct(db: D1Database, inp: ActInput): Promise<ActResu
       if (p.id === inp.by) return no("you can't suspend yourself.")
       if (p.status !== 'active') return no(`@${p.handle} is ${p.status} already.`)
       stmts = [
-        // First, so the hand-over below sees them gone (as auth/close.ts does).
         db.prepare("UPDATE person SET status = 'suspended' WHERE id = ? AND status = 'active'").bind(p.id),
-        // The author-gone rule (table B): a sign-off waiting on them goes to the operator, item and mail.
-        ...operatorSignOffStatements(
-          ctx,
-          {
-            sql: `SELECT n.id AS node_id, i.post_id, s.number, n.title, '/w/' || n.path || '/s/' || s.number AS link, ? AS author
-                  FROM inbox_item i JOIN submission s ON s.post_id = i.post_id JOIN node n ON n.id = s.node_id
-                  WHERE i.person_id = ? AND i.kind = 'sign_off' AND i.done_at IS NULL AND n.author_id = ? AND s.status = 'in_review'`,
-            args: [p.handle, p.id, p.id],
-          },
-          false,
-        ),
         db.prepare('DELETE FROM session WHERE person_id = ?').bind(p.id),
         // Emailed links stop working now, and don't come back with an unsuspend.
         db.prepare('UPDATE email_token SET used_at = ? WHERE person_id = ? AND used_at IS NULL').bind(at, p.id),

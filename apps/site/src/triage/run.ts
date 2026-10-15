@@ -88,8 +88,8 @@ type AlertFacts = { why: 'answer' | 'error' | 'off'; verdict?: Verdict; error?: 
 
 async function alertStatements(ctx: Ctx, env: TriageEnv, n: Row, f: AlertFacts, when: string, whenArgs: unknown[]): Promise<D1PreparedStatement[]> {
   const v = f.verdict
-  // Everything the model saw, since the page is a 404 to Myra too: a hold can come from the check command,
-  // the checkers' instructions, the tags or builds-on as much as from the title.
+  // Everything the model saw, since the page is a 404 to Myra too: a hold can come from the tags or builds-on (or, on
+  // a node opened before Oct 14, its check command and checkers' instructions) as much as from the title.
   const state = stateOf(n)
   const payload = {
     path: n.path,
@@ -98,7 +98,7 @@ async function alertStatements(ctx: Ctx, env: TriageEnv, n: Row, f: AlertFacts, 
     what: n.what,
     done_when: n.done_when,
     branch_of: n.parent_title,
-    checked_by: state.checked_by,
+    ...(state.checked_by ? { checked_by: state.checked_by } : {}),
     tags: state.tags,
     builds_on: state.builds_on,
     seeded: n.seeded === 1,

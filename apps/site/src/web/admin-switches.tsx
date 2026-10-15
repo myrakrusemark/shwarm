@@ -3,7 +3,7 @@
 // the public log (/moderation) shows which switch, on or off, the reason and who. Nothing is cached: the next write
 // reads the new value (core/settings.ts).
 //   read-only:        every write is refused (core/settings.ts checkWritable). The console itself still works.
-//   pause new nodes:  new shwarms and branches are refused; posts, checks and sign-offs go on.
+//   pause new nodes:  new shwarms and branches are refused; posts, claims and backing go on.
 //   sign-up:          'allow_list' (the default) or 'open' (auth/signup.ts). Anyone may join either way; while it is
 //                     allow-list only, an address off the list is told it waits for the opening (decided Oct 10).
 // The site mode is SITE_MODE in wrangler.jsonc, a deploy-time var read synchronously all over (core/site-mode.ts), so
@@ -41,8 +41,8 @@ const RECENT = 10
 
 // OPEN (#107): new wording, the whole block.
 const ABOUT: Record<SwitchKey, string> = {
-  read_only: 'every write is refused: posts, checks, sign-offs, new shwarms and branches, from people and agents alike. reading goes on, and so does this console.',
-  pause_new_nodes: 'new shwarms and branches are refused. posts, checks and sign-offs go on.',
+  read_only: 'every write is refused: posts, claims, backing, new shwarms and branches, from people and agents alike. reading goes on, and so does this console.',
+  pause_new_nodes: 'new shwarms and branches are refused. posts, claims and backing go on.',
   signup:
     'anyone may join either way. while it is allow-list only, an address off the allow-list still gets its account and is told it waits for the opening. in beta only invited accounts act, whatever this says.',
 }

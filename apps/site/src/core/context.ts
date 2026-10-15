@@ -1,12 +1,10 @@
 // What every command shares: the clock, loading the actor's person and the node, and the statements
-// most acts add to their batch (mentions, inbox notices, the node's review flag and ETag).
+// most acts add to their batch (mentions, inbox notices, the node's ETag).
 import { ShwarmError } from '@shwarm/protocol'
 import { inboxEverySql, noticeOnSql } from '../email/notices'
-import { mailToAdminsStatement, mailToPeopleStatement, mailToPersonStatement, type MailTemplate } from '../email/outbox'
+import { mailToPersonStatement } from '../email/outbox'
 import type { Actor } from './actor'
-import { nodeHref, submissionHref } from './audit'
-import type { CheckSpec } from './checks'
-import { effectiveSpec } from './checks'
+import { nodeHref } from './audit'
 import { newId } from './ids'
 import { extractMentions } from './text'
 import { SEEN_NODE } from '../read/visibility'
@@ -24,12 +22,17 @@ export type PersonRow = {
   email_verified_at: string | null
   founding: number
   established_at: string | null
-  is_admin: number // the operator (table B "author gone")
+  is_admin: number // the operator
 }
 
 // 'variant': rows made before variants were dropped (decided Oct 9); they read as plain shwarms. No row is a lobby now (0016).
 export type NodeKind = 'shwarm' | 'branch' | 'variant'
-export type NodeState = 'live' | 'closed' | 'dead_end'
+/**
+ * node.state: every node is live (decided Oct 14, "One model for every node": nothing locks; migration 0032 made the
+ * passed and dead-end ones live again, their pass or dead end kept as a record). Whether a node passed is its status
+ * (core/status.ts), never its state.
+ */
+export type NodeState = 'live'
 
 export type NodeRow = {
   id: number
@@ -46,16 +49,12 @@ export type NodeRow = {
   builds_on: string | null
   author_id: number
   author_handle: string
-  author_status: PersonRow['status'] // a suspended or closed author is gone: the operator takes their sign-off (table B)
+  author_status: PersonRow['status']
   posted_by: string
-  state: NodeState
-  in_review: number
   triage: 'pending' | 'held' | 'clear' | 'blocked'
   hidden: number
   paused: number
-  next_submission: number
   live_at: string | null
-  closed_at: string | null
 }
 
 /**
@@ -124,161 +123,16 @@ export async function loadNode(ctx: Ctx, path: unknown, a?: Actor): Promise<Node
   return n
 }
 
-/**
- * An ended node is locked (decided Oct 9, "An ended shwarm is locked"): once it passed or was marked a dead end it takes
- * nothing new, no posts, replies, pins, edits, deletes, joins, submissions, checks or branches, and nothing reopens it
- * (decided Oct 9, "Continuing an ended shwarm is always build on"). People carry on by building on it.
- * OPEN (#92): the branches still live under an ended node are locked with it (the result page's tree stops growing, and
- * no branch passes after its shwarm ended); the refusal names the ended node as `locked_by`. No code names a dead end,
- * so both answer shwarm_closed (409) with the state beside it; upvotes on its posts still count; the words wait on
- * Myra's yes. Every node above `n` is in its tree, so the tree's queue keeps this read current through the act.
- */
-export async function needLive(ctx: Ctx, n: Pick<NodeRow, 'path' | 'state'>): Promise<void> {
-  const above = n.path.split('/').slice(0, -1).map((_, i, a) => a.slice(0, i + 1).join('/'))
-  const ended =
-    n.state !== 'live'
-      ? n
-      : above.length
-        ? await ctx.db
-            .prepare("SELECT path, state FROM node WHERE path IN (SELECT value FROM json_each(?)) AND state <> 'live' ORDER BY length(path) LIMIT 1")
-            .bind(JSON.stringify(above))
-            .first<Pick<NodeRow, 'path' | 'state'>>()
-        : null
-  if (ended) throw lockedError(n, ended)
-}
-
-/** needLive's refusal: `n` is locked because `ended` (itself, or a node above it) passed or is a dead end. */
-export function lockedError(n: Pick<NodeRow, 'path'>, ended: Pick<NodeRow, 'path' | 'state'>): ShwarmError {
-  const was = ended.state === 'closed' ? 'passed' : 'is a dead end'
-  return new ShwarmError('shwarm_closed', `${ended.path} ${was}. it's locked: it takes nothing new`, {
-    node: n.path,
-    state: ended.state,
-    ...(ended.path === n.path ? {} : { locked_by: ended.path }),
-  })
-}
-
-export const specOf = (n: NodeRow) => effectiveSpec(n.kind, JSON.parse(n.checks) as CheckSpec) // a branch has no author check (Oct 13)
-
 export const rootOf = (path: string) => path.split('/')[0]
 
-const WEEK_MS = 7 * 86_400_000
-
-// 'seats' (seat holders only) went with the lobby's kickoff notice (decided Oct 9, "No lobby").
-export type Audience = 'involved'
-
 /**
- * Who hears about a node (table B): 'involved' = everyone who joined (said they're working on it), the author and
- * everyone who posted in the last 7 days (table B #44). A SELECT of person ids as `pid`, with plain placeholders and
- * their binds. A join an agent made for its human (seat.joined_by) is the human's own join, so it counts the same.
+ * One inbox item, written only while the person is active: a suspended or closed account collects nothing. Sign-off
+ * items (kind 'sign_off') are history: nothing asks for a sign-off since Oct 14.
  */
-function audience(ctx: Ctx, nodeId: number, _who: Audience): { sql: string; args: unknown[] } {
-  const seats = 'SELECT person_id AS pid FROM seat WHERE node_id = ? AND left_at IS NULL'
-  return {
-    sql: `${seats} UNION SELECT author_id FROM node WHERE id = ? UNION SELECT person_id FROM post WHERE node_id = ? AND created_at > ?`,
-    args: [nodeId, nodeId, nodeId, new Date(ctx.now - WEEK_MS).toISOString()],
-  }
-}
-
-/**
- * System inbox items (table B): one per person, in one statement evaluated inside the batch, so it sees the
- * seat or post committed just before it.
- */
-export function notifyStatement(ctx: Ctx, nodeId: number, text: string, who: Audience): D1PreparedStatement {
-  const a = audience(ctx, nodeId, who)
-  return ctx.db
-    .prepare(
-      `INSERT INTO inbox_item (person_id, kind, node_id, text, created_at)
-       SELECT x.pid, 'system', ?, ?, ? FROM (${a.sql}) x
-       JOIN person pr ON pr.id = x.pid WHERE pr.status = 'active'`,
-    )
-    .bind(nodeId, text, ctx.at, ...a.args)
-}
-
-/**
- * The mail that goes with a system item (go-live 4.4, 6.3): to the same people, in the same batch, each only while the
- * notice type is on for them (email/notices.ts; the sweep checks again when it sends). payload.notice names the type.
- */
-export function noticeMailStatement(ctx: Ctx, nodeId: number, who: Audience, m: { template: MailTemplate; payload: Record<string, unknown> & { notice: string } }): D1PreparedStatement {
-  const a = audience(ctx, nodeId, who)
-  return mailToPeopleStatement(ctx.db, { template: m.template, stream: 'notices', payload: m.payload }, `SELECT pid FROM (${a.sql})`, a.args, noticeOnSql('person', m.payload.notice), ctx.at)
-}
-
-/** One inbox item, written only while the person is active: a suspended or closed account collects nothing (as notifyStatement). */
-export function inboxStatement(ctx: Ctx, i: { personId: number; kind: 'mention' | 'sign_off' | 'system'; nodeId: number; postId?: string | null; text: string }) {
+export function inboxStatement(ctx: Ctx, i: { personId: number; kind: 'mention' | 'system'; nodeId: number; postId?: string | null; text: string }) {
   return ctx.db
     .prepare("INSERT INTO inbox_item (person_id, kind, node_id, post_id, text, created_at) SELECT id, ?, ?, ?, ?, ? FROM person WHERE id = ? AND status = 'active'")
     .bind(i.kind, i.nodeId, i.postId ?? null, i.text, ctx.at, i.personId)
-}
-
-/**
- * Ready for the author (go-live 5.4): the sign_off inbox item and its mail, both in the act's batch. The mail goes
- * only to an active author (mailToPersonStatement); the notices stream honours their 'sign_off' opt-out when it sends.
- * `only`: the author is the submission's only check, so it is ready at once.
- * Author gone (table B): while the author's account is suspended or closed, the operator signs off in their place, so
- * the item and the mail go to every active admin instead. Which side gets them is read as the batch commits, not from
- * the node the act loaded, so an account closing at the same moment (auth/close.ts) can't leave the sign-off with no one.
- * OPEN (#75): if the author comes back before signing, the item stays with the admins; the author sees "waiting on you"
- * on the page, but nothing new lands in their inbox.
- */
-export function signOffStatements(
-  ctx: Ctx,
-  n: Pick<NodeRow, 'id' | 'path' | 'title' | 'author_id' | 'author_handle'>,
-  s: { postId: string; number: number },
-  only: boolean,
-): D1PreparedStatement[] {
-  const link = submissionHref(n.path, s.number)
-  const payload = { notice: 'sign_off', handle: n.author_handle, number: s.number, title: n.title, link, ...(only ? { only: true } : {}) }
-  return [
-    inboxStatement(ctx, { personId: n.author_id, kind: 'sign_off', nodeId: n.id, postId: s.postId, text: `#${s.number} on ${n.title} is ready for your sign-off.` }),
-    mailToPersonStatement(ctx.db, { template: 'sign_off_ready', stream: 'notices', personId: n.author_id, payload }, ctx.at),
-    ...operatorSignOffStatements(
-      ctx,
-      {
-        // CAST: a bound number may arrive as a real, and the text would read '#1.0'.
-        sql: "SELECT ? AS node_id, ? AS post_id, CAST(? AS INTEGER) AS number, ? AS title, ? AS link, handle AS author FROM person WHERE id = ? AND status <> 'active'",
-        args: [n.id, s.postId, s.number, n.title, link, n.author_id],
-      },
-      only,
-    ),
-  ]
-}
-
-/**
- * The author-gone side of a sign-off (table B): for each row of `subs` (a SELECT with plain placeholders and its own
- * binds, giving node_id, post_id, number, title, link and author, the gone author's handle), an item and a mail to
- * every active admin. No rows, nothing written.
- */
-export function operatorSignOffStatements(ctx: Ctx, subs: { sql: string; args: unknown[] }, only: boolean): D1PreparedStatement[] {
-  return [
-    ctx.db
-      .prepare(
-        `INSERT INTO inbox_item (person_id, kind, node_id, post_id, text, created_at)
-         SELECT a.id, 'sign_off', x.node_id, x.post_id, '#' || x.number || ' on ' || x.title || ' is ready for sign-off. its author is gone, so the operator signs off.', ?
-         FROM (${subs.sql}) x JOIN person a ON a.is_admin = 1 AND a.status = 'active'`,
-      )
-      .bind(ctx.at, ...subs.args),
-    mailToAdminsStatement(ctx.db, { template: 'sign_off_ready', stream: 'notices', payload: { notice: 'sign_off', ...(only ? { only: true } : {}), author_gone: true } }, ctx.at, {
-      rows: subs.sql,
-      args: subs.args,
-      set: "'$.number', x.number, '$.title', x.title, '$.link', x.link, '$.author', x.author",
-    }),
-  ]
-}
-
-/**
- * Sign-off items are done once nothing is left to sign: the submission `on` passed or failed or took a fail, the ones
- * `replacedBy` superseded, or every one on a node that became a dead end (`deadEnd`). Kept in the inbox, read or not;
- * done_at only takes them off "waiting on you".
- */
-export function signOffDoneStatement(ctx: Ctx, nodeId: number, s: { on: string } | { replacedBy: string } | 'deadEnd'): D1PreparedStatement {
-  if (s === 'deadEnd')
-    return ctx.db
-      .prepare(`UPDATE inbox_item SET done_at = ?1 WHERE kind = 'sign_off' AND done_at IS NULL AND post_id IN (SELECT post_id FROM submission WHERE node_id = ?2)`)
-      .bind(ctx.at, nodeId)
-  const subs = 'on' in s ? 'SELECT ?3' : 'SELECT post_id FROM submission WHERE node_id = ?2 AND superseded_by = ?3'
-  return ctx.db
-    .prepare(`UPDATE inbox_item SET done_at = ?1 WHERE kind = 'sign_off' AND done_at IS NULL AND post_id IN (${subs})`)
-    .bind(ctx.at, nodeId, 'on' in s ? s.on : s.replacedBy)
 }
 
 /** How much of a post a mention mail quotes. OPEN (#85): the link has the rest. */
@@ -335,20 +189,15 @@ export async function mentionStatements(
 }
 
 /**
- * Last in every batch that changes what a signed-out view shows: the "in review" flag (a label on live only,
- * so a dead end or a closed node never shows it) and the node's version, its ETag for signed-out views.
+ * Last in every batch that changes what a signed-out view shows: the node's version, its ETag for signed-out views.
  * The version is the act's audit event id, or else its post id, or else a fresh v_ token (seat changes).
- * changed_at tells the stats job (jobs/stats.ts) which nodes to roll up again.
+ * changed_at tells the stats job (jobs/stats.ts) which nodes to roll up again. (node.in_review, the "in review" flag of
+ * a submission being checked, stays 0 since nothing takes submissions: migration 0032.)
  */
 export function touchNode(ctx: Ctx, nodeId: number | { path: string }, version: string | null): D1PreparedStatement {
   const where = typeof nodeId === 'number' ? 'id = ?' : 'path = ?'
   const key = typeof nodeId === 'number' ? nodeId : nodeId.path
-  return ctx.db
-    .prepare(
-      `UPDATE node SET in_review = (state = 'live' AND EXISTS (SELECT 1 FROM submission s WHERE s.node_id = node.id AND s.status = 'in_review')),
-       last_event_id = ?, changed_at = ? WHERE ${where}`,
-    )
-    .bind(version ?? newId('v'), ctx.at, key)
+  return ctx.db.prepare(`UPDATE node SET last_event_id = ?, changed_at = ? WHERE ${where}`).bind(version ?? newId('v'), ctx.at, key)
 }
 
 /**
@@ -367,15 +216,29 @@ export function moderatedStatement(ctx: Ctx): D1PreparedStatement {
     .bind(JSON.stringify(newId('v')), ctx.at)
 }
 
+/**
+ * A thread post. Every post written now is kind 'post': submissions, checks, repros and dead-end notes are history
+ * (decided Oct 14, "One model for every node").
+ */
 export function postStatement(
   ctx: Ctx,
-  p: { id: string; nodeId: number; actor: Actor; kind: 'post' | 'submission' | 'check' | 'repro' | 'dead_end'; text: string; links?: unknown[]; replyTo?: string | null; join?: boolean },
+  p: {
+    id: string
+    nodeId: number
+    actor: Actor
+    text: string
+    links?: unknown[]
+    replyTo?: string | null
+    join?: boolean
+    claim?: 'blocked' | 'passed' | 'dead_end' | null
+  },
 ) {
   // join: the hello a person wrote when they joined (core/nodes.ts join), marked so the thread shows it as their join.
+  // claim: a thread post that says its shwarm or branch is blocked, passed or a dead end (core/status.ts).
   return ctx.db
     .prepare(
-      `INSERT INTO post (id, node_id, person_id, as_name, key_id, kind, text, links, reply_to, created_at, is_join)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO post (id, node_id, person_id, as_name, key_id, kind, text, links, reply_to, created_at, is_join, claim)
+       VALUES (?, ?, ?, ?, ?, 'post', ?, ?, ?, ?, ?, ?)`,
     )
-    .bind(p.id, p.nodeId, p.actor.personId, p.actor.as, p.actor.keyId ?? null, p.kind, p.text, JSON.stringify(p.links ?? []), p.replyTo ?? null, ctx.at, p.join ? 1 : 0)
+    .bind(p.id, p.nodeId, p.actor.personId, p.actor.as, p.actor.keyId ?? null, p.text, JSON.stringify(p.links ?? []), p.replyTo ?? null, ctx.at, p.join ? 1 : 0, p.claim ?? null)
 }

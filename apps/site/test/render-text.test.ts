@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { parseCheckSpec } from '../src/core/checks'
 import { extractMentions } from '../src/core/text'
 import { hasHidden, hiddenIn, hiddenProblem, showHidden } from '../src/render/hidden'
 import { linkParts, nameHref, renderCommand, renderLink, renderLog, renderName, renderNameLink, renderText, Text } from '../src/render/text'
@@ -265,15 +264,5 @@ describe('hidden characters (Trojan Source)', () => {
     expect(hiddenIn('a‮b‮c​')).toEqual(['U+202E right-to-left override', 'U+200B zero width space'])
     expect(hiddenProblem('npm test', 'the run command')).toBeNull()
     expect(hiddenProblem('npm⁦ test', 'the run command')).toContain('U+2066 left-to-right isolate')
-  })
-
-  it('a done-test command with one is refused at write time', () => {
-    expect(() => parseCheckSpec({ runs: { command: TROJAN, count: 2 } })).toThrow(/hidden characters/)
-    expect(() => parseCheckSpec({ runs: { command: '﻿make test', count: 2 } })).toThrow(/U\+FEFF/)
-    expect(() => parseCheckSpec({ runs: { command: 'node -e "const a=1,\u3164=process.env.X;eval(\u3164)"', count: 3 } })).toThrow(/U\+3164 hangul filler/)
-    expect(() => parseCheckSpec({ runs: { command: 'echo ok\u2062', count: 2 } })).toThrow(/U\+2062 invisible times/)
-    expect(() => parseCheckSpec({ runs: { command: 'echo \u{E0068}\u{E0069}', count: 2 } })).toThrow(/U\+E0068 tag character/)
-    expect(() => parseCheckSpec({ runs: { command: 'make\u00ADtest', count: 2 } })).toThrow(/U\+00AD soft hyphen/)
-    expect(parseCheckSpec({ runs: { command: 'make test', count: 2 } }).runs?.command).toBe('make test')
   })
 })

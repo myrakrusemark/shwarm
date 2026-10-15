@@ -1,6 +1,8 @@
-// Where an inbox item opens (go-live 5.2, 6.1): a sign-off item opens its submission's page, a mention the post in
-// its thread, a system item the node. The inbox page (6.1) reads its items with INBOX_LINK_COLS and links each one here.
+// Where an inbox item opens (go-live 5.2, 6.1): a sign-off item (history) opens its submission's page, a mention the
+// post in its thread, a system item the node, and the pass notice (a system item that names a claim) the node's pass
+// box. The inbox page (6.1) reads its items with INBOX_LINK_COLS and links each one here.
 import { nodeHref, submissionHref } from '../core/audit'
+import { PASS_BOX } from './status'
 
 export type InboxLinkRow = {
   kind: 'mention' | 'sign_off' | 'system'
@@ -18,6 +20,7 @@ export function inboxHref(item: InboxLinkRow): string {
   if (!item.node_path) return '/'
   if (item.kind === 'sign_off' && item.number !== null) return submissionHref(item.node_path, item.number)
   if (item.kind === 'mention' && item.post_id) return `${nodeHref(item.node_path)}#${item.post_id}`
+  if (item.kind === 'system' && item.post_id) return `${nodeHref(item.node_path)}#${PASS_BOX}`
   return nodeHref(item.node_path)
 }
 

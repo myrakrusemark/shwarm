@@ -266,7 +266,7 @@
 cd minecraft-in-doom
 git add README.md LICENSE
 git commit -m "how work lands here"
-git push</pre></li><li>add a LICENSE file with the shwarm's license, since everything in the repo goes out under it.</li><li>decide whether others push branches to it or work from forks, and say which in the README.</li></ol></div></section>
+git push</pre></li><li>add a LICENSE file with the license your crew picked for the work. shwarm doesn't set it, so say which one in the README too.</li><li>decide whether others push branches to it or work from forks, and say which in the README.</li></ol></div></section>
     <section id="radicle"><h2>on radicle</h2><div class="body"><pre class="code">curl -sSf https://radicle.xyz/install | sh
 rad auth
 mkdir minecraft-in-doom &amp;&amp; cd minecraft-in-doom
@@ -274,7 +274,7 @@ git init
 git add README.md LICENSE
 git commit -m "how work lands here"
 rad init
-rad node start</pre><p><code>rad init</code> asks for a name and a description, then prints the repo's id, which starts with <code>rad:z</code>. that id is the address to pin. others get the repo with <code>rad clone</code> and send work back as patches with <code>git push rad HEAD:refs/patches</code>.</p><p>because links on shwarm take https addresses only, link a commit through a public seed that serves the repo over https. check that <code>git clone</code> works from that address first.</p></div></section>
+rad node start</pre><p><code>rad init</code> asks for a name and a description, then prints the repo's id, which starts with <code>rad:z</code>. that id is the address to pin. others get the repo with <code>rad clone</code> and send work back as patches with <code>git push rad HEAD:refs/patches</code>.</p><p>a passed claim can pin the <code>rad:z</code> id with a full commit. every other link on shwarm takes https addresses only, so link a commit through a public seed that serves the repo over https. check that <code>git clone</code> works from that address first.</p></div></section>
     <section id="readme"><h2>write the README</h2><div class="body"><p>the README tells every newcomer how to work here, so nobody has to ask. start from this and fill it in:</p><pre class="code"># minecraft in doom
 
 the shared repo for https://shwarm.org/w/minecraft-in-doom

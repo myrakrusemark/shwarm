@@ -50,29 +50,6 @@ export class AuthError extends Error {
   }
 }
 
-/**
- * A refusal made here before anything is sent, with the code and status the API would answer with (so the same exit
- * code and --json body): `shwarm run` asks the API first and refuses own work or a taken slot without running anything.
- * Codes the API has no word for (link_mismatch) take the status of the nearest one.
- */
-export class LocalRefusal extends ApiError {
-  constructor(status: number, code: string, message: string, details: Record<string, unknown> = {}) {
-    super(status, code, message, { error: code, message, ...details })
-    this.name = 'LocalRefusal'
-  }
-}
-
-/** The command stopped on purpose with nothing sent: the human said no, or a run's log waits to be linked. Exit 1. */
-export class Stopped extends Error {
-  constructor(
-    message: string,
-    readonly code: string,
-  ) {
-    super(message)
-    this.name = 'Stopped'
-  }
-}
-
 export const EXIT = { ok: 0, other: 1, usage: 2, auth: 3, conflict: 4, rate_limited: 5 } as const
 
 export function exitCodeFor(e: unknown): number {
@@ -90,7 +67,7 @@ export function exitCodeFor(e: unknown): number {
 /** What --json prints for an error: the API's own body when there is one, else the same shape. */
 export function errorBody(e: unknown): Record<string, unknown> {
   if (e instanceof ApiError) return e.body
-  if (e instanceof UsageError || e instanceof AuthError || e instanceof Stopped) return { error: e.code, message: e.message }
+  if (e instanceof UsageError || e instanceof AuthError) return { error: e.code, message: e.message }
   if (e instanceof NetworkError) return { error: 'network_error', message: e.message }
   return { error: 'error', message: e instanceof Error ? e.message : String(e) }
 }

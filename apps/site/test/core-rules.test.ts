@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { Actor } from '../src/core/actor'
 import { readChain } from '../src/read/node'
+import { readNodeStatus } from '../src/read/status'
 import { agent, DAY, HOUR, MIN, person, refused, site, SHA, stepped, World, WORK, type P } from './core-fixtures'
 
 let w: World
@@ -9,9 +10,9 @@ let myra: P, kestrel: P, lumpy: P, finn: P
 const MID = 'minecraft-in-doom'
 const BP = 'minecraft-in-doom/block-placement'
 
-/** minecraft in doom, live from the start, with @kestrel joined (working on it), with the given checks. */
-async function live(check: unknown = { author: true }) {
-  await w.shwarm(site(myra), { check })
+/** minecraft in doom, live from the start, with @kestrel joined (working on it). */
+async function live() {
+  await w.shwarm(site(myra))
   await w.join(site(kestrel), MID)
   return MID
 }
@@ -57,22 +58,23 @@ describe('actor and permissions', () => {
     await w.branch(site(myra), MID)
     const scoped = agent(kestrel, 'r', ['read', 'post'], MID)
     expect((await w.post(scoped, BP)).node).toBe(BP)
-    await refused(w.run({ type: 'submit', actor: scoped, input: { node: BP, text: 'x', links: WORK, howToCheck: 'y' } }), 'not_permitted', { need: 'submit', node: BP })
+    await refused(w.branch(scoped, BP, { title: 'monster collision' }), 'not_permitted', { need: 'branch', node: BP })
   })
 
-  it('keeps bare-handle acts on the site: sign-off, dead ends; an agent joins for its human only with join', async () => {
+  it("keeps bare-handle acts on the site: backing, the author's mark; an agent joins for its human only with join", async () => {
     await w.shwarm(site(myra))
     await refused(w.join(agent(kestrel), MID), 'not_permitted', { need: 'join', node: MID })
     await refused(w.join({ ...agent(kestrel, 'm-04', ['join']), as: '@kestrel' }, MID), 'bare_handle_needs_human')
     await w.join(site(kestrel), MID)
-    await refused(w.run({ type: 'deadEnd', actor: agent(myra), input: { node: MID, note: 'x' } }), 'bare_handle_needs_human')
-    const s = await w.submit(agent(kestrel), MID)
-    await refused(w.signOff(agent(myra), MID, s.id), 'bare_handle_needs_human') // the author's agent can't sign off
-    await refused(w.pass(agent(lumpy), MID, s.id, { slot: 'author' }), 'bare_handle_needs_human')
-    // and the author's check is never an implicit sign-off, from an agent or the site
-    await refused(w.pass(agent(myra), MID, s.id), 'not_permitted', { reason: 'sign_off', node: MID })
-    const e = await refused(w.pass(stepped(myra), MID, s.id, { text: 'played it' }), 'not_permitted', { reason: 'sign_off' })
-    expect(e.message).toBe('your check here is the sign-off, on the submission page')
+    await w.join(site(lumpy), MID)
+    // an agent claims for its human, but backing someone's claim and the author's mark are the human's own acts
+    const c = await w.post(agent(kestrel), MID, 'all nine maps play through from a pistol start.', { claim: 'passed' })
+    await refused(w.run({ type: 'back', actor: agent(lumpy), input: { node: MID, post: c.id, on: true } }), 'bare_handle_needs_human')
+    await refused(w.run({ type: 'markPassed', actor: agent(myra), input: { node: MID, post: c.id } }), 'bare_handle_needs_human')
+    const e = await refused(w.run({ type: 'markPassed', actor: site(myra), input: { node: MID, post: c.id } }), 'not_permitted', { need: 'step_up' })
+    expect(e.message).toBe('marking your shwarm passed confirms with your password')
+    expect(w.all('SELECT 1 FROM pass_record')).toEqual([])
+    expect((await w.run<any>({ type: 'markPassed', actor: stepped(myra), input: { node: MID, post: c.id } })).changed).toBe(true)
   })
 
   it('refuses unverified and suspended accounts', async () => {
@@ -112,11 +114,17 @@ describe('creating nodes', () => {
     expect(w.node(MID)).toMatchObject({ posted_by: '@myra/scribe', author_id: myra.id })
   })
 
-  it('needs a done test that names at least one check: no_done_test', async () => {
-    await refused(w.run({ type: 'createNode', actor: site(myra), input: { kind: 'shwarm', title: 't', what: 'w', doneWhen: '', check: { author: true }, tags: ['x'] } }), 'no_done_test')
-    await refused(w.shwarm(site(myra), { check: {} }), 'no_done_test')
-    await refused(w.run({ type: 'createNode', actor: site(myra), input: { kind: 'shwarm', title: 't', what: 'w', doneWhen: 'd', check: null, tags: ['x'] } }), 'no_done_test')
-    await refused(w.shwarm(site(myra), { check: { author: false, people: 0 } }), 'no_done_test')
+  it('needs a done test, the sentence: no_done_test; a check sent is ignored (decided Oct 14)', async () => {
+    await refused(w.run({ type: 'createNode', actor: site(myra), input: { kind: 'shwarm', title: 't', what: 'w', doneWhen: '', tags: ['x'] } }), 'no_done_test')
+    await refused(w.run({ type: 'createNode', actor: site(myra), input: { kind: 'shwarm', title: 't', what: 'w', doneWhen: '  ', check: { author: true }, tags: ['x'] } }), 'no_done_test')
+    const checks = [undefined, {}, null, { author: false, people: 0 }, { runs: { command: './soak.sh', count: 2 }, people: 1, author: true }]
+    for (const [i, check] of checks.entries()) {
+      const r = await w.run<any>({ type: 'createNode', actor: seed(myra), input: { kind: 'shwarm', title: `shwarm ${i}`, what: 'w', doneWhen: 'd', tags: ['x'], ...(check === undefined ? {} : { check }) } })
+      expect(w.node(r.path).checks).toBe(JSON.stringify({ author: false }))
+    }
+    w.db.raw.prepare("UPDATE node SET triage = 'clear'").run()
+    await w.branch(site(myra), 'shwarm-0', { check: { runs: { command: './soak.sh', count: 1 }, people: 1, author: true } })
+    expect((await readChain(w.db, 'shwarm-0/block-placement', myra.id))!.node.spec).toEqual({ author: false })
   })
 
   it('takes a license from the short list only: bad_license', async () => {
@@ -133,11 +141,11 @@ describe('creating nodes', () => {
   it('takes no lobby and makes no variants (decided Oct 9)', async () => {
     await live()
     await refused(
-      w.run({ type: 'createNode', actor: site(lumpy), input: { kind: 'variant', variantOf: MID, title: 'v', what: 'w', doneWhen: 'd', check: { author: true }, tags: ['x'] } as any }),
+      w.run({ type: 'createNode', actor: site(lumpy), input: { kind: 'variant', variantOf: MID, title: 'v', what: 'w', doneWhen: 'd', tags: ['x'] } as any }),
       'bad_request',
     )
     // a lobby size sent anyway changes nothing: it's live at once
-    const r = await w.run({ type: 'createNode', actor: site(lumpy), input: { kind: 'shwarm', title: 'quiet', what: 'w', doneWhen: 'd', check: { author: true }, tags: ['x'], lobby: 12 } as any })
+    const r = await w.run({ type: 'createNode', actor: site(lumpy), input: { kind: 'shwarm', title: 'quiet', what: 'w', doneWhen: 'd', tags: ['x'], lobby: 12 } as any })
     expect(r).toMatchObject({ state: 'live' })
     expect(w.all("SELECT 1 FROM node WHERE kind = 'variant' OR state = 'lobby'")).toEqual([])
   })
@@ -162,7 +170,7 @@ describe('creating nodes', () => {
     expect(sub.path).toBe('minecraft-in-doom/block-placement/monster-collision')
     expect(w.node(sub.path).root_id).toBe(w.node(MID).id)
     expect(w.events(BP)).toMatchObject([{ event: 'branch_opened', by_name: '@kestrel/swarm/r-03', milestone: 1 }])
-    await refused(w.run({ type: 'createNode', actor: site(kestrel), input: { kind: 'branch', parent: MID, title: 'x', what: 'w', doneWhen: 'd', check: { author: true }, license: 'MIT' } }), 'bad_license')
+    await refused(w.run({ type: 'createNode', actor: site(kestrel), input: { kind: 'branch', parent: MID, title: 'x', what: 'w', doneWhen: 'd', license: 'MIT' } }), 'bad_license')
   })
 
   it("refuses an agent key every node its human can't see, as not there: parent, builds on (7.4)", async () => {
@@ -227,18 +235,14 @@ describe('join and leave: working on it (decided Oct 9, "No lobby")', () => {
     expect(w.get('SELECT number, left_at FROM seat WHERE person_id = ?', kestrel.id)).toEqual({ number: 2, left_at: null })
   })
 
-  it('takes submissions at once; refuses joins and leaves where they make no sense', async () => {
+  it('joins branches too; an agent joins only with the join permission, as @you/agent', async () => {
     await w.shwarm(site(myra))
-    expect((await w.submit(agent(kestrel), MID)).number).toBe(1)
     await w.branch(site(myra), MID)
     // branches are joined too (decided Oct 12; test/join.test.ts)
     expect(await w.join(site(lumpy), BP)).toMatchObject({ node: BP, joined: true, nodes: [BP, MID] })
     // an agent joins for its human only with the key's join permission, and only as @you/agent (decided Oct 12)
     await refused(w.join(agent(lumpy), MID), 'not_permitted', { need: 'join', node: MID })
     await refused(w.join({ ...agent(lumpy, 'm', ['join']), as: '@lumpy' }, MID), 'bare_handle_needs_human')
-    await w.deadEnd(myra, MID)
-    await refused(w.join(site(lumpy), MID), 'shwarm_closed')
-    await refused(w.run({ type: 'leave', actor: site(kestrel), input: { node: MID } }), 'shwarm_closed')
   })
 })
 
@@ -281,432 +285,76 @@ describe('thread posts', () => {
     expect((await w.post(site(kestrel), MID)).limits.thread_posts.burst_left).toBe(4)
   })
 
-  it("doesn't count checks against the thread limit", async () => {
-    await live({ people: 1, author: true })
-    const s = await w.submit(agent(kestrel), MID)
-    for (let i = 0; i < 5; i++) await w.post(site(lumpy), MID)
-    expect((await w.pass(site(lumpy), MID, s.id)).verdict).toBe('pass')
-  })
 })
 
-describe('submissions', () => {
-  it('numbers submissions, hashes them, and supersedes older ones in review', async () => {
-    await live({ people: 1, author: true })
-    const s1 = await w.submit(agent(kestrel), MID, 'first try')
-    const s2 = await w.submit(agent(lumpy), MID, 'second try', { builtOn: [s1.id, { post: s1.id, note: 'root cause' }] })
-    expect([s1.number, s2.number]).toEqual([1, 2])
-    expect(s1.hash).toMatch(/^[0-9a-f]{64}$/)
-    expect(s1.hash).not.toBe(s2.hash)
-    expect(w.sub(s1.id)).toMatchObject({ status: 'superseded', superseded_by: s2.id })
-    expect(w.sub(s2.id)).toMatchObject({ status: 'in_review', author_swap: 0 })
-    expect(w.all('SELECT post_id FROM built_on')).toEqual([{ post_id: s1.id }])
-    expect(w.node(MID)).toMatchObject({ next_submission: 3, in_review: 1 })
-    expect(s2.checks).toEqual([
-      { id: null, slot: 'people', verdict: 'waiting' },
-      { id: null, slot: 'author', as: '@myra', verdict: 'waiting' },
-    ])
-    expect(w.events(MID, 'submission').map(e => [e.by_name, e.number, e.detail])).toEqual([
-      ['@kestrel/m-04', 1, `#1 (${s1.hash.slice(0, 7)})`],
-      ['@lumpy/m-04', 2, `#2 (${s2.hash.slice(0, 7)})`],
-    ])
-  })
-
-  it('needs linked work and how to check it', async () => {
-    await live()
-    await refused(w.submit(agent(kestrel), MID, 'x', { links: [] }), 'bad_request')
-    await refused(w.submit(agent(kestrel), MID, 'x', { howToCheck: '' }), 'bad_request')
-    await refused(w.submit(agent(kestrel), MID, 'x', { builtOn: ['p_nothere12'] }), 'bad_request')
-  })
-
-  it('allows one submission per person per node per rolling day, across all their agents', async () => {
+describe('no node takes submissions, checks or a dead-end mark (decided Oct 14)', () => {
+  it('has no command for them: core refuses each as unknown and writes nothing', async () => {
     await live()
     await w.branch(site(myra), MID)
-    await w.submit(agent(kestrel, 'a'), MID)
-    w.tick(HOUR)
-    const e = await refused(w.submit(agent(kestrel, 'b'), MID), 'rate_limited', { limit: 'submissions', person: '@kestrel', node: MID })
-    expect(e.details.retry_after).toBe((DAY - HOUR) / 1000)
-    expect((await w.submit(agent(kestrel), BP)).number).toBe(1) // another node
-    w.tick(DAY)
-    expect((await w.submit(agent(kestrel), MID)).number).toBe(2)
-  })
-
-  it('tells the author at once when the author is the only check', async () => {
-    await live({ author: true })
-    const s = await w.submit(agent(kestrel), MID)
-    expect(w.all("SELECT person_id, post_id FROM inbox_item WHERE kind = 'sign_off'")).toEqual([{ person_id: myra.id, post_id: s.id }])
-  })
-
-  it("swaps the author check for one more people check on the author's own work (A9)", async () => {
-    await live({ author: true })
-    const s = await w.submit(agent(myra, 'm-07'), MID)
-    expect(s.authorSwap).toBe(true)
-    expect(s.checks).toEqual([{ id: null, slot: 'people', verdict: 'waiting' }])
-    expect(w.all("SELECT 1 FROM inbox_item WHERE kind = 'sign_off'")).toHaveLength(0)
-    await refused(w.pass(site(myra), MID, s.id, { text: 'checked it' }), 'own_work') // never on their own agents' work
-    const r = await w.pass(site(kestrel), MID, s.id)
-    expect(r).toMatchObject({ slot: 'people', submission_state: 'passed', node_state: 'closed' })
-  })
-})
-
-describe('checks', () => {
-  let s: any
-  beforeEach(async () => {
-    await live({ runs: { command: './soak.sh', count: 1 }, people: 1, author: true })
-    s = await w.submit(agent(kestrel), MID)
-  })
-
-  it('refuses checks on your own work: own_work', async () => {
-    await refused(w.pass(agent(kestrel, 'checker'), MID, s.id), 'own_work')
-    await refused(w.pass(site(kestrel), MID, s.id), 'own_work')
-  })
-
-  it('allows one slot per person per submission, across slots and agents: slot_taken', async () => {
-    await w.runReport(agent(lumpy, 'runner'), MID, s.id, s.hash)
-    await refused(w.pass(agent(lumpy, 'other'), MID, s.id), 'slot_taken')
-    await refused(w.runReport(site(lumpy), MID, s.id, s.hash), 'slot_taken')
-  })
-
-  it('needs an established account for a people check: not_established (founding counts)', async () => {
-    const newbie = await person(w.db, 'newbie', { founding: false })
-    await refused(w.pass(site(newbie), MID, s.id), 'not_established')
-    await refused(w.pass(agent(newbie), MID, s.id), 'not_established')
-    // a run report doesn't need it
-    expect((await w.runReport(agent(newbie), MID, s.id, s.hash)).slot).toBe('run')
-    const later = await person(w.db, 'later', { founding: false, establishedAt: new Date(w.now + DAY).toISOString() })
-    await refused(w.pass(site(later), MID, s.id), 'not_established')
-    w.tick(DAY)
-    expect((await w.pass(site(later), MID, s.id)).slot).toBe('people')
-  })
-
-  it('needs evidence for a pass and a repro for a fail', async () => {
-    await refused(w.pass(site(lumpy), MID, s.id, { evidence: [], text: 'looks good' }), 'missing_evidence')
-    await refused(w.fail(site(lumpy), MID, s.id, { repro: undefined }), 'missing_repro')
-    await refused(w.fail(site(lumpy), MID, s.id, { repro: { steps: ' ' } }), 'missing_repro')
-    expect((await w.pass(site(lumpy), MID, s.id, { evidence: undefined, log: 'corner 0: 0/200 failed' })).verdict).toBe('pass')
-  })
-
-  it('pins run reports to the submission hash: hash_mismatch', async () => {
-    await refused(w.runReport(agent(lumpy), MID, s.id, 'deadbeef'), 'hash_mismatch', { expected: s.hash.slice(0, 7) })
-    await refused(w.runReport(agent(lumpy), MID, s.id, s.hash.slice(0, 6)), 'hash_mismatch') // 7 characters at least
-    const r = await w.runReport(agent(lumpy), MID, s.id, s.hash.toUpperCase())
-    expect(r).toMatchObject({ slot: 'run', verdict: 'pass' })
-    expect(w.get('SELECT exit_code, machine, script_hash FROM check_report WHERE id = ?', r.id)).toEqual({ exit_code: 0, machine: 'linux, rtx 3060', script_hash: '5d02b7e' })
-  })
-
-  it('caps inline logs at 64 KB: log_too_large', async () => {
-    await refused(w.runReport(agent(lumpy), MID, s.id, s.hash, 0, { log: 'x'.repeat(65_537) }), 'log_too_large')
-    await refused(w.pass(site(lumpy), MID, s.id, { log: 'é'.repeat(40_000) }), 'log_too_large') // bytes, not characters
-    const linked = await w.runReport(agent(lumpy), MID, s.id, s.hash, 0, { log: { url: 'https://x.org/log.txt', sha256: SHA('ab') } })
-    expect(linked.verdict).toBe('pass')
-  })
-
-  it('takes an empty log as the full log of a command that printed nothing, but not a missing one', async () => {
-    await refused(w.runReport(agent(lumpy), MID, s.id, s.hash, 0, { log: undefined }), 'bad_request')
-    const r = await w.runReport(agent(lumpy), MID, s.id, s.hash, 0, { log: '' })
-    expect(r.verdict).toBe('pass')
-    expect(w.get('SELECT log_inline FROM check_report WHERE id = ?', r.id)).toEqual({ log_inline: '' })
-  })
-
-  it('counts a nonzero exit as a fail with the log as its repro', async () => {
-    const r = await w.runReport(agent(lumpy), MID, s.id, s.hash, 3)
-    expect(r.verdict).toBe('fail')
-    expect(JSON.parse(w.get('SELECT repro FROM check_report WHERE id = ?', r.id).repro).steps).toMatch(/exit 3/)
-  })
-
-  it('refuses checks on things that are not submissions: not_a_submission', async () => {
-    const p = await w.post(site(lumpy), MID)
-    await refused(w.pass(site(finn), MID, p.id), 'not_a_submission')
-    await refused(w.pass(site(finn), MID, 'p_nothere12'), 'not_a_submission')
-  })
-
-  it('refuses a run report when the done test has no runs', async () => {
-    await w.branch(site(myra), MID, { check: { people: 1 } })
-    const b = await w.submit(agent(kestrel), BP)
-    await refused(w.runReport(agent(lumpy), BP, b.id, b.hash), 'bad_request')
-  })
-
-  it('lets only the author sign off', async () => {
-    await refused(w.pass(site(lumpy), MID, s.id, { slot: 'author', text: 'i checked' }), 'not_permitted', { need: 'author' })
-  })
-})
-
-describe('author sign-off and passing', () => {
-  let s: any
-  beforeEach(async () => {
-    await live({ runs: { command: './soak.sh', count: 2 }, people: { count: 1, human: true }, author: true })
-    s = await w.submit(agent(kestrel), MID)
-  })
-
-  it('makes the author go last, then passes and closes the node in one batch', async () => {
-    await refused(w.signOff(myra, MID, s.id, 'pass', { text: 'played it for 10 minutes' }), 'not_permitted', { need: 'other_checks' })
-    await w.runReport(agent(lumpy, 'runner'), MID, s.id, s.hash)
-    await w.runReport(agent(finn, 'runner'), MID, s.id, s.hash)
-    const tallgrass = await person(w.db, 'tallgrass')
-    // an agent's people check doesn't satisfy "at least one human"
-    await w.pass(agent(tallgrass), MID, s.id)
-    expect(w.all("SELECT 1 FROM inbox_item WHERE kind = 'sign_off'")).toHaveLength(0)
-    await refused(w.signOff(myra, MID, s.id, 'pass', { text: 'ok' }), 'not_permitted')
-    const bmo = await person(w.db, 'bmo_fan')
-    expect((await w.pass(site(bmo), MID, s.id)).submission_state).toBe('in_review')
-    // ready for the author: one inbox item
-    expect(w.all("SELECT person_id, post_id FROM inbox_item WHERE kind = 'sign_off'")).toEqual([{ person_id: myra.id, post_id: s.id }])
-    await refused(w.signOff(myra, MID, s.id, 'pass', { evidence: [], text: '' }), 'missing_evidence') // say what you checked
-    const r = await w.signOff(myra, MID, s.id, 'pass', { evidence: [], text: 'played it for 10 minutes, no stutter' })
-    expect(r).toMatchObject({ slot: 'author', verdict: 'pass', submission_state: 'passed', node_state: 'closed' })
-    expect(w.node(MID)).toMatchObject({ state: 'closed', in_review: 0 })
-    expect(w.node(MID).closed_at).toBeTruthy()
-    expect(w.sub(s.id)).toMatchObject({ status: 'passed', release_title: null })
-    const ev = w.events(MID)
-    expect(ev.slice(-2)).toMatchObject([
-      { event: 'signed_off', by_name: '@myra', number: 1 },
-      { event: 'passed', by_name: null, number: 1, submission_id: s.id, milestone: 1 },
-    ])
-    expect(w.node(MID).last_event_id).toBe(ev.at(-1).id)
-    // everyone involved hears about it
-    expect(w.all("SELECT COUNT(*) AS n FROM inbox_item WHERE kind = 'system' AND text LIKE '%passed%'")[0].n).toBeGreaterThanOrEqual(4)
-    // closed: no new submissions
-    await refused(w.submit(agent(lumpy), MID), 'shwarm_closed')
-  })
-
-  it("resets every check on the done test when the author fails it", async () => {
-    await w.runReport(agent(lumpy), MID, s.id, s.hash)
-    await w.runReport(agent(finn), MID, s.id, s.hash)
-    const bmo = await person(w.db, 'bmo_fan')
-    await w.pass(site(bmo), MID, s.id)
-    const r = await w.signOff(myra, MID, s.id, 'fail')
-    expect(r).toMatchObject({ slot: 'author', verdict: 'fail', submission_state: 'failed', node_state: 'live', node_checks: 'reset' })
-    expect(w.sub(s.id).status).toBe('failed')
-    expect(w.all('SELECT slot FROM check_report WHERE reset_at IS NOT NULL ORDER BY slot').map(c => c.slot)).toEqual(['people', 'run', 'run'])
-    expect(w.all('SELECT slot FROM check_report WHERE reset_at IS NULL').map(c => c.slot)).toEqual(['author'])
-    expect(w.events(MID).slice(-2).map(e => e.event)).toEqual(['signed_off', 'failed'])
-    expect(w.node(MID).in_review).toBe(0)
-    // checks on the failed submission are refused; the next submission starts from zero
-    const tall = await person(w.db, 'tallgrass')
-    await refused(w.pass(site(tall), MID, s.id), 'bad_request')
-    w.tick(DAY)
-    const s2 = await w.submit(agent(kestrel), MID)
-    expect((await w.runReport(agent(lumpy), MID, s2.id, s2.hash)).verdict).toBe('pass') // lumpy's slot is free again
-  })
-
-  it('lets a standing repro block the pass until a new submission answers it', async () => {
-    await w.runReport(agent(lumpy), MID, s.id, s.hash)
-    await w.runReport(agent(finn), MID, s.id, s.hash)
-    const bmo = await person(w.db, 'bmo_fan')
-    const tall = await person(w.db, 'tallgrass')
-    await w.fail(site(tall), MID, s.id)
-    await w.pass(site(bmo), MID, s.id)
-    expect(w.all("SELECT 1 FROM inbox_item WHERE kind = 'sign_off'")).toHaveLength(0)
-    await refused(w.signOff(myra, MID, s.id, 'pass', { text: 'fine by me' }), 'not_permitted', { need: 'other_checks' })
-    expect(w.sub(s.id).status).toBe('in_review')
-  })
-})
-
-// A branch's pass is its status vote (decided Oct 13: "they should keep taking submissions. It's the shwarm itself that
-// gets locked"): its submissions and checks are evidence for the vote. It has no author check, and passing ends nothing.
-describe('a branch has no sign-off, and its checks end nothing (decided Oct 13)', () => {
-  it('asks for no checks when opened with only the author check: no sign-off, no A9 swap', async () => {
-    await live()
-    await w.branch(site(myra), MID) // { author: true }
-    expect((await readChain(w.db, BP, myra.id))!.node.spec).toEqual({ author: false })
-    const s = await w.submit(agent(kestrel), BP)
-    expect(s).toMatchObject({ authorSwap: false, checks: [] })
-    expect(w.all("SELECT 1 FROM inbox_item WHERE kind = 'sign_off'")).toEqual([]) // a shwarm's author would be asked at once
-    // with nothing asked, any first passing check passes it
-    expect(await w.pass(site(lumpy), BP, s.id)).toMatchObject({ slot: 'people', submission_state: 'passed', node_state: 'live' })
-    // the author's own work gets no extra people check in its place
-    expect(await w.submit(agent(myra, 'm-07'), BP)).toMatchObject({ authorSwap: false, checks: [] })
-  })
-
-  it('passes a submission on its checks with no sign-off asked; the branch stays live, tells no one, and takes more', async () => {
-    await live()
-    await w.branch(site(myra), MID, { check: { people: 1, author: true } })
-    w.db.raw.prepare('UPDATE person SET notice_prefs = ? WHERE id = ?').run(JSON.stringify({ pass_fail: true }), kestrel.id) // a shwarm's pass would mail him
-    const s = await w.submit(agent(kestrel), BP)
-    expect(s.checks).toEqual([{ id: null, slot: 'people', verdict: 'waiting' }]) // the author check it was opened with is left out
-    expect(await w.pass(site(lumpy), BP, s.id)).toMatchObject({ slot: 'people', submission_state: 'passed', node_state: 'live' })
-    expect(w.sub(s.id).status).toBe('passed')
-    expect(w.node(BP)).toMatchObject({ state: 'live', closed_at: null, in_review: 0 })
-    expect(w.events(BP, 'passed')).toMatchObject([{ by_name: null, number: 1, submission_id: s.id, detail: `#1 (${s.hash.slice(0, 7)}) passed its checks` }])
-    // nobody was asked to sign off, and no pass notice or mail went out
-    expect(w.all('SELECT kind FROM inbox_item')).toEqual([])
-    expect(w.all('SELECT template FROM email_outbox')).toEqual([])
-    // it takes new posts, submissions and checks
-    expect((await w.post(site(finn), BP, 'does it hold on slabs?')).node).toBe(BP)
-    const s2 = await w.submit(agent(finn), BP, 'slabs too.')
-    expect(w.sub(s.id).status).toBe('passed') // a new submission replaces none that passed
-    expect(w.node(BP).in_review).toBe(1)
-    expect(await w.fail(site(lumpy), BP, s2.id)).toMatchObject({ submission_state: 'in_review', node_state: 'live' })
-  })
-
-  it("refuses the author slot on a branch; its author checks others' work as anyone does: people checks, run reports", async () => {
-    await live()
-    await w.branch(site(myra), MID, { check: { runs: { command: './soak.sh', count: 1 }, people: 1, author: true } })
-    const s = await w.submit(agent(kestrel), BP)
-    const e = await refused(w.signOff(myra, BP, s.id), 'bad_request')
-    expect(e.message).toBe('a branch has no sign-off. its pass is its status vote')
-    await refused(w.signOff(lumpy, BP, s.id), 'bad_request') // whoever asks for it
+    for (const node of [MID, BP])
+      for (const [type, input] of [
+        ['submit', { node, text: 'two-line fix.', links: WORK, howToCheck: 'place 200 times per corner.' }],
+        ['check', { node, on: 'p_aaaaaaaaaa', verdict: 'pass', text: 'played it' }],
+        ['deadEnd', { node, note: 'the engine cannot do it' }],
+      ] as const)
+        await refused(w.run({ type, actor: stepped(myra), input } as any), 'bad_request')
+    expect(w.all('SELECT 1 FROM submission')).toEqual([])
     expect(w.all('SELECT 1 FROM check_report')).toEqual([])
-    // the author's check here is a people check, never a sign-off
-    expect(await w.pass(site(myra), BP, s.id)).toMatchObject({ slot: 'people', verdict: 'pass', submission_state: 'in_review' })
-    expect(await w.runReport(agent(lumpy), BP, s.id, s.hash)).toMatchObject({ slot: 'run', submission_state: 'passed', node_state: 'live' })
-    // and the author's agent runs the next one
-    const s2 = await w.submit(agent(finn), BP)
-    expect(await w.runReport(agent(myra), BP, s2.id, s2.hash)).toMatchObject({ slot: 'run', verdict: 'pass', submission_state: 'in_review' })
-    expect(w.all("SELECT 1 FROM inbox_item WHERE kind = 'sign_off'")).toEqual([])
+    expect(w.all('SELECT kind FROM inbox_item')).toEqual([])
+    expect([w.node(MID), w.node(BP)].map(n => [n.state, n.in_review, n.dead_end_note])).toEqual([['live', 0, null], ['live', 0, null]])
   })
 })
 
-describe('dead ends, and an ended node is locked (decided Oct 9)', () => {
-  /** Every act an ended node refuses, by someone who could do it on a live one; each answers shwarm_closed and writes nothing. */
-  async function expectLocked(path: string, o: { own: string; sub: string; state: 'closed' | 'dead_end' }) {
-    const before = { posts: w.all('SELECT COUNT(*) AS n FROM post')[0].n, checks: w.all('SELECT COUNT(*) AS n FROM check_report')[0].n, events: w.events(path).length }
-    const closed = { node: path, state: o.state }
-    await refused(w.post(site(finn), path, 'is this really done?'), 'shwarm_closed', closed)
-    await refused(w.post(site(finn), path, 'agreed', { replyTo: o.own }), 'shwarm_closed', closed)
-    await refused(w.post(site(myra), path, 'status update: done', { pin: true }), 'shwarm_closed', closed)
-    await refused(w.post(agent(finn), path), 'shwarm_closed', closed)
-    await refused(w.run({ type: 'editPost', actor: site(myra), input: { node: path, post: o.own, text: 'changed my mind' } }), 'shwarm_closed', closed)
-    await refused(w.run({ type: 'deletePost', actor: site(myra), input: { node: path, post: o.own } }), 'shwarm_closed', closed)
-    await refused(w.join(site(finn), path), 'shwarm_closed', closed)
-    await refused(w.run({ type: 'leave', actor: site(lumpy), input: { node: path } }), 'shwarm_closed', closed)
-    await refused(w.submit(agent(finn), path), 'shwarm_closed', closed)
-    await refused(w.pass(site(finn), path, o.sub), 'shwarm_closed', closed)
-    await refused(w.fail(site(finn), path, o.sub), 'shwarm_closed', closed) // no repro reopens it
-    await refused(w.fail(agent(finn), path, o.sub), 'shwarm_closed', closed)
-    expect(w.node(path).state).toBe(o.state)
-    expect({ posts: w.all('SELECT COUNT(*) AS n FROM post')[0].n, checks: w.all('SELECT COUNT(*) AS n FROM check_report')[0].n, events: w.events(path).length }).toEqual(before)
-  }
-
-  it('keeps a passed node passed: it takes nothing new, and no repro reopens it', async () => {
-    await live({ people: 1 })
-    await w.join(site(lumpy), MID)
-    const own = await w.post(site(myra), MID, 'status update: one submission in')
-    const s = await w.submit(agent(kestrel), MID)
-    await w.pass(site(lumpy), MID, s.id)
-    expect(w.node(MID).state).toBe('closed')
-    const e = await refused(w.post(site(finn), MID), 'shwarm_closed')
-    expect(e.message).toBe(`${MID} passed. it's locked: it takes nothing new`)
-    await expectLocked(MID, { own: own.id, sub: s.id, state: 'closed' })
-    expect(w.sub(s.id).status).toBe('passed')
-    expect(w.events(MID, 'reopened')).toEqual([])
-    // OPEN (#92): upvotes on its posts still count
-    expect((await w.run({ type: 'upvote', actor: site(finn), input: { node: MID, post: own.id } })).up).toBe(true)
-  })
-
-  it('lets only the author mark a dead end, with a note; a dead end is locked the same way, for good', async () => {
-    await live({ people: 1 })
-    await w.join(site(lumpy), MID)
-    const own = await w.post(site(myra), MID, 'status update: stuck on geometry')
-    const s = await w.submit(agent(kestrel), MID)
-    await refused(w.run({ type: 'deadEnd', actor: site(kestrel), input: { node: MID, note: 'x' } }), 'not_permitted', { need: 'author' })
-    await refused(w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: MID, note: '  ' } }), 'bad_request')
-    const r = await w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: MID, note: 'gzdoom caps dynamic geometry; 60 fps is out of reach.' } })
-    expect(r.state).toBe('dead_end')
-    expect(w.node(MID)).toMatchObject({ state: 'dead_end', dead_end_note: 'gzdoom caps dynamic geometry; 60 fps is out of reach.' })
-    expect(w.get('SELECT kind, text FROM post WHERE id = ?', r.post)).toMatchObject({ kind: 'dead_end' })
-    const e = await refused(w.submit(agent(kestrel), MID), 'shwarm_closed')
-    expect(e.message).toBe(`${MID} is a dead end. it's locked: it takes nothing new`)
-    await expectLocked(MID, { own: own.id, sub: s.id, state: 'dead_end' })
-    // nothing reopens it: there is no such command, and marking it again is refused
-    await refused(w.run({ type: 'reopen', actor: stepped(myra), input: { node: MID } } as any), 'bad_request')
-    await refused(w.deadEnd(myra, MID), 'shwarm_closed')
-    expect(w.events(MID).map(e => e.event)).toEqual(['submission', 'dead_end'])
-  })
-
-  it('lets a shwarm be a dead end the minute it is posted', async () => {
-    await w.shwarm(site(myra))
-    expect((await w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: MID, note: 'x' } })).state).toBe('dead_end')
-  })
-
-  it("refuses the author's dead end on a branch (decided Oct 13); a shwarm's still ends it and locks its branches", async () => {
+describe("a branch's pass is its own (decided Oct 14)", () => {
+  it('never touches its parent: a branch that passes writes its own records, and its shwarm stays as it was', async () => {
     await live()
     await w.branch(site(myra), MID)
-    const e = await refused(w.deadEnd(myra, BP), 'bad_request')
-    expect(e.message).toBe("a branch doesn't lock. vote dead_end on its status instead")
-    expect(w.node(BP)).toMatchObject({ state: 'live', dead_end_note: null, closed_at: null })
-    expect(w.events(BP, 'dead_end')).toEqual([])
-    // its crew votes dead_end on its status instead, and it stays open
-    await w.run({ type: 'status', actor: site(kestrel), input: { node: BP, status: 'dead_end' } })
-    expect((await w.post(site(kestrel), BP, 'the engine caps it. voted dead end.')).node).toBe(BP)
-    expect(await w.deadEnd(myra, MID)).toMatchObject({ node: MID, state: 'dead_end' })
-    await refused(w.post(site(kestrel), BP), 'shwarm_closed', { node: BP, state: 'dead_end', locked_by: MID })
-    expect(w.node(BP).state).toBe('live')
-  })
-
-  it('never lets a branch passing touch its parent', async () => {
-    await live()
-    await w.branch(site(myra), MID, { check: { people: 1 } })
-    const s = await w.submit(agent(kestrel), BP)
-    // its submission passes its checks and it stays live (decided Oct 13); its pass is its status vote
-    expect(await w.pass(site(lumpy), BP, s.id)).toMatchObject({ submission_state: 'passed', node_state: 'live' })
-    await w.run({ type: 'status', actor: site(lumpy), input: { node: BP, status: 'passed' } })
-    expect(w.node(BP).state).toBe('live')
-    expect(w.node(MID).state).toBe('live')
+    await w.join(site(kestrel), BP)
+    await w.join(site(lumpy), BP)
+    // a passed claim backed by two over nobody on track: the branch's status is passed a day later, and it stays live
+    const c = await w.post(site(kestrel), BP, 'soak.sh: 10000 placements, 0 failures.', { claim: 'passed' })
+    await w.run({ type: 'back', actor: site(lumpy), input: { node: BP, post: c.id, on: true } })
+    w.tick(DAY)
+    expect((await readNodeStatus(w.db, w.node(BP).id, w.now)).current).toBe('passed')
+    // the next change to the branch's backing saves the change, with its record
+    await w.join(site(finn), BP)
+    await w.run({ type: 'status', actor: site(finn), input: { node: BP, status: 'on_track' } })
+    expect(w.all('SELECT kind, status, claim_id FROM pass_record')).toEqual([{ kind: 'crowd', status: 'passed', claim_id: c.id }])
+    expect(w.events(BP).map(e => e.event)).toEqual(['branch_opened', 'passed'])
     expect(w.events(MID).map(e => e.event)).toEqual([])
+    expect((await readNodeStatus(w.db, w.node(MID).id, w.now)).current).toBe('on_track')
+    expect([w.node(BP).state, w.node(MID).state]).toEqual(['live', 'live'])
+    expect(w.all("SELECT kind FROM inbox_item WHERE kind = 'system'")).toEqual([]) // a branch has no author mark
   })
-
-  // OPEN (#92): a branch still live under an ended shwarm is locked with it, so the result page's tree stops growing.
-  for (const end of ['passed', 'dead_end'] as const)
-    it(`locks a live branch with its shwarm once the shwarm ${end === 'passed' ? 'passed' : 'is a dead end'}`, async () => {
-      await live({ people: 1 })
-      await w.branch(site(myra), MID, { check: { people: 1 } })
-      const own = await w.post(site(finn), BP, 'corner case on slabs')
-      const s = await w.submit(agent(kestrel), BP)
-      if (end === 'passed') await w.pass(site(lumpy), MID, (await w.submit(agent(kestrel), MID)).id)
-      else await w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: MID, note: 'out of reach' } })
-      const state = end === 'passed' ? 'closed' : 'dead_end'
-      expect(w.node(MID).state).toBe(state)
-      const before = { posts: w.all('SELECT COUNT(*) AS n FROM post')[0].n, nodes: w.all('SELECT COUNT(*) AS n FROM node')[0].n, events: w.events(BP).length }
-      const locked = { node: BP, state, locked_by: MID }
-      const e = await refused(w.post(site(finn), BP, 'still going?'), 'shwarm_closed', locked)
-      expect(e.message).toBe(`${MID} ${end === 'passed' ? 'passed' : 'is a dead end'}. it's locked: it takes nothing new`)
-      await refused(w.post(agent(finn), BP), 'shwarm_closed', locked)
-      await refused(w.run({ type: 'editPost', actor: site(finn), input: { node: BP, post: own.id, text: 'changed' } }), 'shwarm_closed', locked)
-      await refused(w.run({ type: 'deletePost', actor: site(finn), input: { node: BP, post: own.id } }), 'shwarm_closed', locked)
-      await refused(w.submit(agent(lumpy), BP), 'shwarm_closed', locked)
-      await refused(w.pass(site(lumpy), BP, s.id), 'shwarm_closed', locked)
-      await refused(w.branch(site(kestrel), BP, { title: 'monster collision' }), 'shwarm_closed', locked)
-      await refused(w.join(site(finn), BP), 'shwarm_closed', locked)
-      // nor a vote on its status, its pass (decided Oct 13): no branch passes after its shwarm ended
-      await refused(w.run({ type: 'status', actor: site(finn), input: { node: BP, status: 'passed' } }), 'shwarm_closed', locked)
-      expect(w.all('SELECT 1 FROM status_vote')).toEqual([])
-      expect(w.node(BP).state).toBe('live')
-      expect({ posts: w.all('SELECT COUNT(*) AS n FROM post')[0].n, nodes: w.all('SELECT COUNT(*) AS n FROM node')[0].n, events: w.events(BP).length }).toEqual(before)
-    })
 })
 
 describe('the audit log', () => {
-  it('uses only the nine event types (eight written now), with prefixed random ids', async () => {
-    await live({ people: 1, author: true })
+  it("writes only these event types now: a branch opening, a pass (the crowd's or the author's); with prefixed random ids", async () => {
+    await live()
     await w.branch(site(myra), MID)
-    const s = await w.submit(agent(kestrel), MID)
-    await w.pass(site(lumpy), MID, s.id)
-    await w.signOff(myra, MID, s.id, 'pass', { text: 'checked' })
-    const rows = w.all('SELECT id, event FROM audit_event')
+    await w.join(site(lumpy), MID)
+    const c = await w.post(site(kestrel), MID, 'all nine maps play through.', { claim: 'passed' })
+    await w.run({ type: 'back', actor: site(lumpy), input: { node: MID, post: c.id, on: true } })
+    w.tick(DAY)
+    await w.join(site(finn), MID)
+    await w.run({ type: 'status', actor: site(finn), input: { node: MID, status: 'on_track' } }) // saves the change to passed
+    await w.run({ type: 'markPassed', actor: stepped(myra), input: { node: MID, post: c.id } })
+    const rows = w.all('SELECT id, event, by_name FROM audit_event ORDER BY rowid')
     for (const r of rows) expect(r.id).toMatch(/^e_[a-z0-9]{10}$/)
-    expect(new Set(rows.map(r => r.event))).toEqual(new Set(['branch_opened', 'submission', 'check', 'signed_off', 'passed']))
-    for (const c of w.all('SELECT id FROM check_report')) expect(c.id).toMatch(/^c_[a-z0-9]{10}$/)
+    expect(rows.map(r => [r.event, r.by_name])).toEqual([['branch_opened', '@myra'], ['passed', null], ['passed', '@myra']])
+    for (const r of w.all('SELECT id FROM pass_record')) expect(r.id).toMatch(/^r_[a-z0-9]{10}$/)
+    for (const r of w.all('SELECT id FROM status_change')) expect(r.id).toMatch(/^h_[a-z0-9]{10}$/)
   })
 
   it('commits nothing when a command is refused', async () => {
-    await live({ people: 1 })
+    await live()
     const before = w.all('SELECT COUNT(*) AS n FROM post')[0].n
-    await refused(w.submit(agent(kestrel), MID, 'x', { links: [{ url: 'ftp://x', sha256: SHA('a') }] }), 'bad_request')
+    await refused(w.post(site(kestrel), MID, 'x', { claim: 'passed', links: [{ url: 'ftp://x', sha256: SHA('a') }] }), 'bad_request')
     expect(w.all('SELECT COUNT(*) AS n FROM post')[0].n).toBe(before)
     expect(w.all('SELECT COUNT(*) AS n FROM rate_bucket')[0].n).toBe(0)
+    expect(w.all('SELECT COUNT(*) AS n FROM status_vote')[0].n).toBe(0)
   })
 })
-
-/** Run `fn` just before the next batch commits: another tree's write landing between this command's read and its write. */
-function beforeNextBatch(fn: () => void) {
-  const db = w.db as any
-  const batch = db.batch
-  db.batch = async (stmts: unknown[]) => {
-    db.batch = batch
-    fn()
-    return batch(stmts)
-  }
-}
 
 const seed = (p: P) => ({ ...site(p), via: 'seed' as const })
 
@@ -720,77 +368,19 @@ describe('creating nodes: what other trees and the seed import can change', () =
     expect(w.node(MID).seeded).toBe(0)
   })
 
-  it('builds on a shwarm that passed or is a dead end, never on a live one (decided Oct 9)', async () => {
-    await live({ people: 1 })
-    const clear = () => w.db.raw.prepare("UPDATE node SET triage = 'clear'").run() // others see them
-    clear()
-    const e = await refused(w.shwarm(site(finn), { title: 'speedruns', buildsOn: MID }), 'bad_request')
-    expect(e.message).toBe(`${MID} is still live. a shwarm is built on once it passed or is a dead end`)
-    await w.deadEnd(myra, MID)
-    expect(await w.shwarm(site(finn), { title: 'speedruns', buildsOn: MID })).toMatchObject({ kind: 'shwarm', state: 'live', license: 'MIT+CC-BY-4.0' })
-    expect(w.node('speedruns').builds_on).toBe(JSON.stringify({ node: MID }))
-    // the guard inside the batch takes a dead end too
-    await w.shwarm(site(myra), { title: 'other', check: { people: 1 } })
-    const s = await w.submit(agent(kestrel), 'other')
-    await w.pass(site(lumpy), 'other', s.id)
-    clear()
-    beforeNextBatch(() => w.db.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'x' WHERE path = 'other'").run())
-    expect(await w.shwarm(site(lumpy), { title: 'other 2', buildsOn: 'other' })).toMatchObject({ kind: 'shwarm' })
-  })
-
-  it('refuses builds_on when the upstream goes back to live before the create commits (a reopen before Oct 9)', async () => {
-    await live({ people: 1 })
-    const s = await w.submit(agent(kestrel), MID)
-    await w.pass(site(lumpy), MID, s.id)
-    expect(w.node(MID).state).toBe('closed')
-    beforeNextBatch(() => w.db.raw.prepare("UPDATE node SET state = 'live', closed_at = NULL WHERE path = ?").run(MID))
-    await refused(w.shwarm(site(finn), { title: 'minecraft in doom 2', buildsOn: MID }), 'bad_request')
-    expect(w.node('minecraft-in-doom-2')).toBeUndefined()
-  })
-
   it('refuses a path longer than a node can be loaded by', async () => {
     const long = (c: string) => c.repeat(80)
-    await w.run({ type: 'createNode', actor: seed(myra), input: { kind: 'shwarm', title: long('r'), what: 'w', doneWhen: 'd', check: { author: true }, tags: ['x'] } })
+    await w.run({ type: 'createNode', actor: seed(myra), input: { kind: 'shwarm', title: long('r'), what: 'w', doneWhen: 'd', tags: ['x'] } })
     let path = long('r')
-    for (let i = 0; i < 6; i++) path = (await w.run<any>({ type: 'createNode', actor: seed(myra), input: { kind: 'branch', parent: path, title: long('b'), what: 'w', doneWhen: 'd', check: { author: true } } })).path
+    for (let i = 0; i < 6; i++) path = (await w.run<any>({ type: 'createNode', actor: seed(myra), input: { kind: 'branch', parent: path, title: long('b'), what: 'w', doneWhen: 'd' } })).path
     expect(path.length).toBe(566)
     expect((await w.post(site(kestrel), path)).node).toBe(path) // the deepest node still works
-    await refused(w.run({ type: 'createNode', actor: seed(myra), input: { kind: 'branch', parent: path, title: long('b'), what: 'w', doneWhen: 'd', check: { author: true } } }), 'bad_request')
+    await refused(w.run({ type: 'createNode', actor: seed(myra), input: { kind: 'branch', parent: path, title: long('b'), what: 'w', doneWhen: 'd' } }), 'bad_request')
     expect(w.all('SELECT COUNT(*) AS n FROM node')[0].n).toBe(7)
   })
 })
 
-describe('an author fail on a node reopened before Oct 9', () => {
-  it('resets checks only on submissions that never passed, and leaves the old pass on record', async () => {
-    await live() // author only
-    const s1 = await w.submit(agent(kestrel), MID)
-    await w.signOff(myra, MID, s1.id, 'pass', { text: 'played it, works' })
-    expect(w.node(MID).state).toBe('closed')
-    // A node a repro reopened before nothing reopened (decided Oct 9): live again, its pass on record.
-    w.db.raw.prepare("UPDATE node SET state = 'live', closed_at = NULL WHERE path = ?").run(MID)
-    await refused(w.fail(site(lumpy), MID, s1.id), 'bad_request') // the old pass takes no checks
-    const s2 = await w.submit(agent(finn), MID)
-    expect((await w.signOff(myra, MID, s2.id, 'fail')).node_checks).toBe('reset')
-    // #1's sign-off stands
-    expect(w.all('SELECT reset_at FROM check_report WHERE submission_id = ?', s1.id).map(c => c.reset_at)).toEqual([null])
-    expect(w.sub(s1.id).status).toBe('passed')
-    // and the author can't fail the passed submission now
-    await refused(w.signOff(myra, MID, s1.id, 'fail'), 'bad_request')
-    await refused(w.signOff(myra, MID, s1.id, 'pass', { text: 'again' }), 'bad_request')
-    expect(w.sub(s1.id).status).toBe('passed')
-    expect(w.events(MID, 'failed').map(e => e.number)).toEqual([2])
-  })
-})
-
 describe('the in review flag and the ETag', () => {
-  it('shows in review only on a live node', async () => {
-    await live()
-    await w.submit(agent(kestrel), MID)
-    expect(w.node(MID).in_review).toBe(1)
-    await w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: MID, note: 'the engine cannot do it' } })
-    expect(w.node(MID)).toMatchObject({ state: 'dead_end', in_review: 0 })
-  })
-
   it('changes the version on every write a signed-out view shows: posts, joins, leaves', async () => {
     const seen: string[] = []
     const look = () => {
@@ -814,230 +404,22 @@ describe('the in review flag and the ETag', () => {
   })
 })
 
-describe('release fields and built_on notes (go-live 5.1)', () => {
-  it('stores the optional release fields with the submission, and refuses them over their caps', async () => {
-    await live({ people: 1 })
-    const release = { name: 'minecraft in doom v1.0', version: 'e9b41d0', howToUse: 'gzdoom -iwad freedoom2.wad -file mid-v1.pk3' }
-    for (const [bad, field] of [
-      [{ name: 'x'.repeat(121) }, 'release.name'],
-      [{ version: 'v'.repeat(51) }, 'release.version'],
-      [{ howToUse: 'y'.repeat(2001) }, 'release.how_to_use'],
-      [{ name: 'v1.0\nand more' }, 'release.name'],
-      [{ howToUse: 'gzdoom‮ -file evil.pk3' }, 'release.how_to_use'],
-    ] as const)
-      await refused(w.submit(agent(kestrel), MID, 'x', { release: bad }), 'bad_request', { field })
-    await refused(w.submit(agent(kestrel), MID, 'x', { release: { title: 'v1' } }), 'bad_request')
-    expect(w.all('SELECT 1 FROM submission')).toHaveLength(0)
-    const s = await w.submit(agent(kestrel), MID, 'v1, the whole mod.', { release })
-    expect(w.sub(s.id)).toMatchObject({ release_title: release.name, release_version: release.version, release_how_to_use: release.howToUse, release_summary: null })
-    // all three are optional, and none is part of the submission hash
-    w.tick(DAY)
-    const bare = await w.submit(agent(kestrel), MID, 'v1, the whole mod.')
-    expect(w.sub(bare.id)).toMatchObject({ release_title: null, release_version: null, release_how_to_use: null })
-    expect(bare.hash).toBe(s.hash)
-  })
-
-  it('keeps the note on each built_on post; the first note given wins', async () => {
-    await live({ people: 1 })
-    const finn1 = await w.post(site(finn), MID, 'P_CheckSight treats the voxel faces as 2-sided lines.')
-    const repro = await w.post(site(lumpy), MID, 'repro for the corner case.')
-    await refused(w.submit(agent(kestrel), MID, 'x', { builtOn: [{ post: finn1.id, note: 'n'.repeat(281) }] }), 'bad_request')
-    const s = await w.submit(agent(kestrel), MID, 'two-line fix.', { builtOn: [{ post: finn1.id, note: 'root cause' }, repro.id, { post: finn1.id, note: 'again' }, { post: repro.id, note: 'the repro' }] })
-    expect(w.all('SELECT post_id, note FROM built_on WHERE submission_id = ? ORDER BY note', s.id)).toEqual([
-      { post_id: finn1.id, note: 'root cause' },
-      { post_id: repro.id, note: 'the repro' },
-    ])
-  })
-})
-
-describe('the sign-off is asked for by name, behind the password (A5)', () => {
-  it('refuses an author slot without the step-up, and writes nothing', async () => {
-    await live({ people: 1, author: true })
-    const s = await w.submit(agent(kestrel), MID)
-    await w.pass(site(lumpy), MID, s.id)
-    const e = await refused(w.signOff(site(myra), MID, s.id), 'not_permitted', { need: 'step_up' })
-    expect(e.message).toBe('the author sign-off confirms with your password')
-    expect(w.all("SELECT 1 FROM check_report WHERE slot = 'author'")).toHaveLength(0)
-    expect((await w.signOff(myra, MID, s.id)).submission_state).toBe('passed')
-  })
-
-  it('gates dead ends on the step-up too; the seed import is exempt', async () => {
-    await live()
-    await refused(w.deadEnd(site(myra), MID), 'not_permitted', { need: 'step_up' })
-    await refused(w.deadEnd(site(kestrel), MID), 'not_permitted', { need: 'author' }) // not the author: said first
-    expect((await w.deadEnd(seed(myra), MID)).state).toBe('dead_end')
-  })
-})
-
-describe('author gone: the operator signs off (table B)', () => {
-  let s: any, ops: P
-  beforeEach(async () => {
-    await live({ people: 1, author: true })
-    ops = await person(w.db, 'ops')
-    await w.db.prepare('UPDATE person SET is_admin = 1 WHERE id = ?').bind(ops.id).run()
-    s = await w.submit(agent(kestrel), MID)
-    await w.pass(site(lumpy), MID, s.id)
-  })
-  const gone = (status: 'suspended' | 'closed' | 'active') => w.db.prepare('UPDATE person SET status = ? WHERE id = ?').bind(status, myra.id).run()
-
-  it('lets an admin take the author slot while the author is suspended, behind the password, logged as such', async () => {
-    await refused(w.signOff(ops, MID, s.id), 'not_permitted', { need: 'author' }) // the author is active: not the operator's call
-    await gone('suspended')
-    await refused(w.signOff(site(ops), MID, s.id), 'not_permitted', { need: 'step_up' })
-    const r = await w.signOff(ops, MID, s.id)
-    expect(r).toMatchObject({ slot: 'author', verdict: 'pass', submission_state: 'passed', node_state: 'closed' })
-    expect(w.events(MID, 'signed_off')[0]).toMatchObject({ by_name: '@ops', number: 1, detail: 'pass · author on #1 · author gone, signed off by the operator' })
-  })
-
-  it('covers a closed account too; a non-admin is still refused; the slot goes back when the author is active again', async () => {
-    await gone('closed')
-    await refused(w.signOff(finn, MID, s.id), 'not_permitted', { need: 'author' })
-    await gone('active')
-    await refused(w.signOff(ops, MID, s.id), 'not_permitted', { need: 'author' })
-    expect((await w.signOff(myra, MID, s.id)).submission_state).toBe('passed')
-    expect(w.events(MID, 'signed_off')[0].detail).toBe('pass · author on #1')
-  })
-
-  it('keeps the usual refusals for the operator: one slot per person', async () => {
-    await gone('suspended')
-    await w.pass(site(ops), MID, s.id) // an ordinary people check, one past the count
-    await refused(w.signOff(ops, MID, s.id), 'slot_taken')
-  })
-})
-
-describe('a closed node takes no checks, not even a repro (decided Oct 9)', () => {
-  it('refuses a pass, a fail and a failing run on any submission, with shwarm_closed', async () => {
-    await live({ runs: { command: './soak.sh', count: 1 }, people: 1 })
-    const s1 = await w.submit(agent(kestrel), MID)
-    const s2 = await w.submit(agent(lumpy), MID) // supersedes #1
-    await w.runReport(agent(finn), MID, s2.id, s2.hash)
-    expect((await w.pass(site(myra), MID, s2.id)).node_state).toBe('closed')
-    const tall = await person(w.db, 'tallgrass')
-    const closed = { node: MID, state: 'closed' }
-    await refused(w.pass(site(tall), MID, s2.id), 'shwarm_closed', closed)
-    await refused(w.runReport(agent(tall), MID, s2.id, s2.hash), 'shwarm_closed', closed) // exit 0 is a pass
-    await refused(w.runReport(agent(tall), MID, s2.id, s2.hash, 1), 'shwarm_closed', closed) // a failing run reopens nothing
-    await refused(w.fail(site(tall), MID, s2.id), 'shwarm_closed', closed)
-    await refused(w.fail(site(tall), MID, s1.id), 'shwarm_closed', closed)
-    expect(w.all('SELECT COUNT(*) AS n FROM check_report')[0].n).toBe(2)
-    expect(w.node(MID).state).toBe('closed')
-  })
-})
-
-describe('ready for the author: the inbox item and the mail (go-live 5.4)', () => {
-  const signOffs = () => w.all("SELECT person_id, post_id, done_at FROM inbox_item WHERE kind = 'sign_off' ORDER BY id")
-  const mails = () => w.all("SELECT to_email, person_id, template, stream, payload FROM email_outbox WHERE template = 'sign_off_ready' ORDER BY id")
-
-  it('writes both once, on the final check, to the author', async () => {
-    await live({ people: 2, author: true })
-    const s = await w.submit(agent(kestrel), MID)
-    await w.pass(site(lumpy), MID, s.id)
-    expect(signOffs()).toEqual([])
-    expect(mails()).toEqual([])
-    await w.pass(site(finn), MID, s.id)
-    const tall = await person(w.db, 'tallgrass')
-    await w.pass(site(tall), MID, s.id) // one more than needed: no second notice
-    expect(signOffs()).toEqual([{ person_id: myra.id, post_id: s.id, done_at: null }])
-    const m = mails()
-    expect(m).toHaveLength(1)
-    expect({ ...m[0], payload: JSON.parse(m[0].payload) }).toEqual({
-      to_email: 'myra@example.org',
-      person_id: myra.id,
-      template: 'sign_off_ready',
-      stream: 'notices',
-      payload: { notice: 'sign_off', handle: 'myra', number: 1, title: 'minecraft in doom', link: '/w/minecraft-in-doom/s/1' },
-    })
-  })
-
-  it('writes both at submit when the author is the only check', async () => {
-    await live({ author: true })
-    const s = await w.submit(agent(kestrel), MID)
-    expect(signOffs()).toEqual([{ person_id: myra.id, post_id: s.id, done_at: null }])
-    expect(mails().map(r => JSON.parse(r.payload))).toEqual([{ notice: 'sign_off', handle: 'myra', number: 1, title: 'minecraft in doom', link: '/w/minecraft-in-doom/s/1', only: true }])
-  })
-
-  it('author gone: the item and the mail go to the admins, never to the suspended author', async () => {
-    await live({ author: true })
-    const ops = await person(w.db, 'ops')
-    await w.db.prepare('UPDATE person SET is_admin = 1 WHERE id = ?').bind(ops.id).run()
-    await w.db.prepare("UPDATE person SET status = 'suspended' WHERE id = ?").bind(myra.id).run()
-    const s = await w.submit(agent(kestrel), MID)
-    expect(signOffs()).toEqual([{ person_id: ops.id, post_id: s.id, done_at: null }])
-    expect(w.get("SELECT text FROM inbox_item WHERE kind = 'sign_off'").text).toBe('#1 on minecraft in doom is ready for sign-off. its author is gone, so the operator signs off.')
-    const m = mails()
-    expect(m.map(r => [r.to_email, r.person_id])).toEqual([['ops@example.org', ops.id]])
-    expect(JSON.parse(m[0].payload)).toEqual({ notice: 'sign_off', handle: 'ops', number: 1, title: 'minecraft in doom', link: '/w/minecraft-in-doom/s/1', only: true, author: 'myra', author_gone: true })
-  })
-
-  it('marks the item done when the submission passes, fails or is replaced', async () => {
-    await live({ author: true })
-    const s1 = await w.submit(agent(kestrel), MID)
-    const s2 = await w.submit(agent(lumpy), MID) // replaces #1
-    expect(signOffs().map(i => [i.post_id, i.done_at])).toEqual([[s1.id, w.get('SELECT created_at FROM post WHERE id = ?', s2.id).created_at], [s2.id, null]])
-    w.tick(HOUR)
-    await w.signOff(myra, MID, s2.id, 'fail')
-    expect(signOffs()[1].done_at).toBe(new Date(w.now).toISOString())
-    w.tick(DAY)
-    const s3 = await w.submit(agent(kestrel), MID)
-    await w.signOff(myra, MID, s3.id, 'pass')
-    expect(signOffs().map(i => i.done_at === null)).toEqual([false, false, false])
-  })
-
-  it('marks the item done when a fail lands after the author was asked, since the sign-off is blocked', async () => {
-    await live({ people: 1, author: true })
-    const s = await w.submit(agent(kestrel), MID)
-    await w.pass(site(lumpy), MID, s.id)
-    expect(signOffs()).toEqual([{ person_id: myra.id, post_id: s.id, done_at: null }])
-    w.tick(HOUR)
-    await w.fail(site(finn), MID, s.id) // one past the count, and a fail
-    expect(signOffs()[0].done_at).toBe(new Date(w.now).toISOString())
-    await refused(w.signOff(myra, MID, s.id, 'pass'), 'not_permitted', { need: 'other_checks' })
-    expect(mails()).toHaveLength(1)
-  })
-
-  it('takes the item off for good when the node becomes a dead end, with no second mail', async () => {
-    await live({ people: 1, author: true })
-    const s = await w.submit(agent(kestrel), MID)
-    await w.pass(site(lumpy), MID, s.id)
-    w.tick(HOUR)
-    await w.deadEnd(myra, MID)
-    expect(signOffs()[0].done_at).toBe(new Date(w.now).toISOString())
-    w.tick(DAY)
-    await refused(w.signOff(myra, MID, s.id, 'pass'), 'shwarm_closed', { node: MID, state: 'dead_end' })
-    expect(signOffs()[0].done_at).not.toBeNull()
-    expect(mails()).toHaveLength(1)
-  })
-})
-
 describe('every audit row links its evidence', () => {
-  it('as a site path: the node, the post, the submission or one check on it', async () => {
-    await live({ people: 1, author: true })
-    await w.branch(site(myra), MID, { check: { people: 1 } })
-    const b1 = await w.submit(agent(finn), BP) // before the pass: a branch under a passed shwarm is locked with it
-    await w.pass(site(lumpy), BP, b1.id) // passed its checks; the branch stays live (decided Oct 13)
-    // a dead end is a shwarm's: a branch never ends on its own (decided Oct 13)
-    await w.shwarm(site(kestrel), { title: 'doom speedruns' })
-    const d = await w.deadEnd(kestrel, 'doom-speedruns')
-    const s1 = await w.submit(agent(kestrel), MID)
-    const c1 = await w.pass(site(lumpy), MID, s1.id)
-    const f1 = await w.signOff(myra, MID, s1.id, 'fail')
+  it('as a site path: the node, or the passed claim a pass cites', async () => {
+    await live()
+    await w.branch(site(myra), MID)
+    await w.join(site(lumpy), MID)
+    const c = await w.post(site(kestrel), MID, 'all nine maps play through.', { claim: 'passed' })
+    await w.run({ type: 'back', actor: site(lumpy), input: { node: MID, post: c.id, on: true } })
     w.tick(DAY)
-    const s2 = await w.submit(agent(kestrel), MID)
-    await w.pass(site(lumpy), MID, s2.id)
-    const p2 = await w.signOff(myra, MID, s2.id, 'pass')
-
+    await w.join(site(finn), MID)
+    await w.run({ type: 'status', actor: site(finn), input: { node: MID, status: 'on_track' } }) // saves the change to passed
+    const mark = await w.post(site(lumpy), MID, 'and the mark cites mine.', { claim: 'passed' })
+    await w.run({ type: 'markPassed', actor: stepped(myra), input: { node: MID, post: mark.id } })
     const rows = w.all('SELECT event, evidence FROM audit_event ORDER BY rowid')
-    // every event type written now ('lobby_filled' went with the lobby, 'reopened' when nothing reopened, Oct 9)
-    expect(new Set(rows.map(r => r.event)).size).toBe(7)
-    for (const r of rows) expect(r.evidence, r.event).toMatch(/^\/w\/[a-z0-9/-]+(\/s\/\d+)?(#[cp]_[a-z0-9]{10})?$/)
+    for (const r of rows) expect(r.evidence, r.event).toMatch(/^\/w\/[a-z0-9/-]+(#p_[a-z0-9]{10})?$/)
     const ev = (path: string, event: string) => w.events(path, event).map(e => e.evidence)
     expect(ev(BP, 'branch_opened')).toEqual([`/w/${BP}`])
-    expect(ev(MID, 'submission')).toEqual([`/w/${MID}/s/1`, `/w/${MID}/s/2`])
-    expect(ev(MID, 'check')[0]).toBe(`/w/${MID}/s/1#${c1.id}`)
-    expect(ev(MID, 'signed_off')).toEqual([`/w/${MID}/s/1#${f1.id}`, `/w/${MID}/s/2#${p2.id}`])
-    expect(ev(MID, 'failed')).toEqual([`/w/${MID}/s/1`])
-    expect(ev(MID, 'passed')).toEqual([`/w/${MID}/s/2`])
-    expect(ev(BP, 'passed')).toEqual([`/w/${BP}/s/1`])
-    expect(ev('doom-speedruns', 'dead_end')).toEqual([`/w/doom-speedruns#${d.post}`])
+    expect(ev(MID, 'passed')).toEqual([`/w/${MID}#${c.id}`, `/w/${MID}#${mark.id}`])
   })
 })

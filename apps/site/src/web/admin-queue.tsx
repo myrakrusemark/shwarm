@@ -329,7 +329,7 @@ const NodeFacts: FC<{ n: AdminNode }> = ({ n }) => (
       <dt>path</dt><dd><code>{n.path}</code> · <a href={`/w/${n.path}`}>public page</a></dd>
       <dt>title</dt><dd>{said(n.title)}</dd>
       <dt>author</dt><dd><Who handle={n.author_handle} />{n.author_status !== 'active' && <span class="mk"> {n.author_status}</span>}</dd>
-      <dt>state</dt><dd>{n.state}</dd>
+      <dt>status</dt><dd>{n.status.replace('_', ' ')}</dd>
       <dt>triage</dt><dd>{n.triage}{n.seeded ? ' (launch shwarm)' : ''}</dd>
       <dt>hidden</dt><dd>{n.hidden ? <b>hidden</b> : 'no'}</dd>
       <dt>paused</dt><dd>{n.paused ? <b>paused</b> : 'no'}</dd>
@@ -480,13 +480,17 @@ const POST_DONE: Record<PostAct, string> = {
   remove_link: 'link removed.',
 }
 
-/** A stored link as plain text: never followed from here. */
+/** A stored link as plain text: never followed from here. A pin that carries its own hash (ipfs, magnet) is its address. */
 const linkText = (l: PostLink) =>
   typeof l.url === 'string'
     ? `${l.url}${typeof l.sha256 === 'string' ? ` sha256 ${l.sha256}` : ''}`
     : typeof l.repo === 'string'
       ? `${l.repo} @ ${String(l.commit ?? '')}${typeof l.path === 'string' ? ` ${l.path}` : ''}`
-      : JSON.stringify(l)
+      : typeof l.ipfs === 'string'
+        ? l.ipfs
+        : typeof l.magnet === 'string'
+          ? l.magnet
+          : JSON.stringify(l)
 
 const PostPage: FC<{ v: PostView; token: string; notice?: string; error?: string }> = ({ v, token, notice, error }) => {
   const p = v.post

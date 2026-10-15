@@ -14,7 +14,7 @@ import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
 import { ALL_PERMS, keyFor, send, verifiedPerson } from './agent-client'
 import { fakeFetch, testEnv } from './browser'
 import { hasResponse, responseSchema, schemaErrors } from './contract'
-import { agent, DAY, MIN, person, refused, site, stepped, World, type P } from './core-fixtures'
+import { agent, MIN, person, refused, site, stepped, World, type P } from './core-fixtures'
 import { T0 } from './d1'
 import { stagingWorld } from './node-fixture'
 
@@ -92,17 +92,6 @@ describe('branches can be joined (decided Oct 12)', () => {
     await w.join(site(myra), BP)
     expect((await w.run({ type: 'leave', actor: site(myra), input: { node: BP } })).left).toBe(true)
     await refused(w.run({ type: 'leave', actor: site(myra), input: { node: MID } }), 'bad_request')
-  })
-
-  it('an ended shwarm, or a branch under it, takes no joins or leaves', async () => {
-    await tree()
-    await w.join(site(lumpy), BP)
-    await w.deadEnd(myra, MID) // a branch never ends on its own (decided Oct 13): it's locked with its shwarm
-    await refused(w.join(site(kestrel), MID), 'shwarm_closed', { node: MID, state: 'dead_end' })
-    await refused(w.join(site(kestrel), BP), 'shwarm_closed', { locked_by: MID })
-    await refused(w.join(site(kestrel), DEEP), 'shwarm_closed', { locked_by: MID })
-    await refused(w.run({ type: 'leave', actor: site(lumpy), input: { node: BP } }), 'shwarm_closed', { locked_by: MID })
-    await refused(w.join(joiner(kestrel), DEEP), 'shwarm_closed')
   })
 
   it("a join on a branch locks the shwarm's words, as a join on it does", async () => {
@@ -315,13 +304,12 @@ describe('an agent makes its human\'s one join (decided Oct 12)', () => {
     await refused(edit(), 'bad_request', { reason: 'joined' })
   })
 
-  it("the human an agent joined for gets the node's notices: they're the one seated", async () => {
+  it("the human an agent joined for is the one seated: they vote on its status", async () => {
     await w.shwarm(site(myra))
+    await refused(w.run({ type: 'status', actor: site(lumpy), input: { node: MID, status: 'on_track' } }), 'not_joined')
     await w.join(joiner(lumpy, 'watcher'), MID)
-    const s = await w.submit(agent(kestrel), MID)
-    w.tick(DAY)
-    await w.signOff(myra, MID, s.id)
-    expect(w.all("SELECT person_id FROM inbox_item WHERE kind = 'system' ORDER BY person_id").map(r => r.person_id)).toEqual([myra.id, kestrel.id, lumpy.id].sort((a, b) => a - b))
+    expect(w.all('SELECT person_id FROM seat WHERE node_id = ? ORDER BY number', w.node(MID).id).map(r => r.person_id)).toEqual([myra.id, lumpy.id])
+    expect(await w.run({ type: 'status', actor: site(lumpy), input: { node: MID, status: 'on_track' } })).toMatchObject({ person: '@lumpy', status: 'on_track', changed: true })
   })
 })
 
@@ -345,6 +333,7 @@ describe('the briefing shows joins', () => {
         { name: '@lumpy', joined_by: '@lumpy/claude' },
       ],
       total: 3,
+      url: `https://shwarm.org/w/${MID}/people`,
     })
     expect(json.posts[0]).toMatchObject({ author: '@kestrel', join: true })
     expect(json.take_part).toMatchObject({ join: `https://shwarm.org/w/${MID}/join`, leave: `https://shwarm.org/w/${MID}/leave` })
@@ -433,9 +422,9 @@ describe('POST /w/<path>/join and /leave', () => {
       { path: EXAMPLE_ROOT, here: 1, joined_by: '@ana/claude' },
       { path: EXAMPLE_BRANCH, here: 0, joined_by: '@ana/claude' },
     ])
-    // the node's JSON lists her once, with the agent that joined for her
-    const node = await send(app, a.env, a.withJoin, { path: `/w/${EXAMPLE_ROOT}?format=json` })
-    expect(node.json.contributors.people.filter((p: any) => p.name === '@ana')).toEqual([{ name: '@ana', joined_by: '@ana/claude' }])
+    // the node's people list her once, with the agent that joined for her (the briefing's contributors are only the top 7)
+    const people = await send(app, a.env, a.withJoin, { path: `/w/${EXAMPLE_ROOT}/people?format=json` })
+    expect(people.json.people.filter((p: any) => p.name === '@ana')).toEqual([expect.objectContaining({ name: '@ana', joined_by: '@ana/claude' })])
   })
 
   it('refuses a key without join (403 need join), a bare or missing as (403), extra fields (400), and a node it cannot see (404)', async () => {

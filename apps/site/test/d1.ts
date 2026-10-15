@@ -84,3 +84,14 @@ export async function addPerson(db: D1Database, handle: string, extra: { hash?: 
     .run()
   return r.meta.last_row_id as number
 }
+
+/**
+ * Migration 0032's data steps, run on rows a test wrote as the old model stored them (a node set 'closed' or
+ * 'dead_end', a submission still in review): what a database migrated on Oct 14 holds for them. Its tables are
+ * already there; only the steps from (a) on run again, and they touch nothing that's already migrated.
+ */
+export function migrateOldRows(db: { raw: any }): void {
+  const dir = new URL('../migrations/', import.meta.url)
+  const sql = readFileSync(new URL(readdirSync(dir).find(f => f.startsWith('0032'))!, dir), 'utf8')
+  db.raw.exec(sql.slice(sql.indexOf('-- (a)')))
+}

@@ -1,5 +1,5 @@
 // Node references as people paste them: a path (minecraft-in-doom/block-placement), /w/<path>, or a node URL, each
-// optionally with /s/<n> for a submission and a #post fragment. Paths keep their literal slashes (prd-api LIB-6).
+// optionally with /s/<n> for an earlier submission and a #post fragment. Paths keep their literal slashes (prd-api LIB-6).
 import { parseName } from '@shwarm/protocol'
 import { AuthError, UsageError } from './errors'
 
@@ -14,8 +14,11 @@ export function agentName(as: string): string {
 }
 
 const SEGMENT = /^[a-z0-9]+(-[a-z0-9]+)*$/
-/** Segments that name a view of a node, never a node (protocol §3). `join` and `leave` are the join calls (go-live 8.2). */
-const VIEWS = new Set(['branches', 'log', 's', 'join', 'leave'])
+/**
+ * Segments that name a view of a node, never a node (protocol §3). `join` and `leave` are the join calls (go-live 8.2);
+ * `people` is everyone on the node (decided Oct 14).
+ */
+const VIEWS = new Set(['branches', 'log', 's', 'join', 'leave', 'people'])
 
 export type NodeRef = {
   /** The site the reference named, when it was a URL. */

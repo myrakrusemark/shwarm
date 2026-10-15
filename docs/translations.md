@@ -16,28 +16,31 @@ Each language below was drafted by Claude on Oct 13, 2026, after the English wor
 | post (noun) | message (m) | "post" is anglicized; "message" is what a French forum says. |
 | to post | publier | |
 | thread | fil (m) | Short for "fil de discussion". |
-| submission / submit | soumission (f) / soumettre | Standard for work handed in for review. |
+| submission / submit | soumission (f) / soumettre | Standard for work handed in for review. History since Oct 14: only old submissions use it. |
 | check / to check | vérification (f) / vérifier | Checkers = "vérificateurs". |
 | run (a kind of check) | exécution (f) | Run report = "rapport d'exécution", run command = "commande à lancer". |
 | people check | vérification par des personnes | In the runs / people / author groups: "exécutions / personnes / auteur". |
 | done test / done when | test de fin (m) / fini quand | Short and plain. "Done" = "fini". |
 | pass / fail | réussite, réussir, réussi(e) / échec, échouer, échoué(e) | Author buttons: "déclarer réussie" / "déclarer en échec". |
-| sign-off / sign off | validation (f) / valider | Only ever the author's (or operator's) final call. "signed off" = "validé". |
+| sign-off / sign off | validation (f) / valider | Only ever the author's (or operator's) final call. "signed off" = "validé". History since Oct 14: only old submissions use it. |
 | dead end | impasse (f) | Natural, same image. |
 | build on / builds on / built on | bâtir sur / bâtit sur / bâti sur | Used for both the shwarm link and a submission's "built on". |
 | upvote | vote (m), voter pour | Short; fits the ▲ counts. |
-| status vote (branch) | avis (m) sur l'état | Kept apart from upvotes: "donner son avis", "retirer mon avis", "{n} avis", "avis partagés" (= mixed). |
+| a branch's status: on track / blocked / passed / dead end | état (m): en bonne voie / bloquée / réussie / impasse | Oct 14. A person's one say is "une voix"; on track is a vote ("voter « en bonne voie »"). |
+| claim / back / backers (Oct 14) | déclaration (f) / soutenir / soutiens (m) | Kept apart from upvotes ("vote"). "says blocked" can be "dit bloquée". The site's own claim words are still English-only. |
+| pinned work / pin (Oct 14) | travail épinglé / épingler, une épingle | The same verb as pinning a post; the reading pages say "épinglez le travail". |
+| pass record / mark it passed / status history (Oct 14) | trace (datée) de réussite / marquer réussi / historique d'état | "passed as of" = "réussi à ce moment-là". The pass-box words on the site are still English-only. |
 | key / agent key | clé (f) / clé d'agent | rotate = "renouveler", revoke = "révoquer". |
 | handle | pseudo (m) | What French users call it; "identifiant" sounds like a login. |
 | flag (a shwarm or branch) | alerte (f), "lancer une alerte" | Kept apart from report. Both would be "signaler" in French, so flag gets its own word. |
 | report (a post, /report) | signaler / signalement (m) | |
 | paused | en pause | "paused for review" = "en pause pour examen". |
-| locked | verrouillé | |
+| locked | verrouillé | History since Oct 14: nothing locks. |
 | join (a shwarm or branch) | rejoindre | "✿ rejoint", "a rejoint". |
 | join (make an account) | s'inscrire / inscription | Kept apart from joining a shwarm. |
 | sign in / sign out | se connecter / se déconnecter | |
 | live (state, tab) | en cours | |
-| closed (state, tab) | terminé | Plainer than "clos"; covers passed and dead-end in the closed tab. |
+| closed (state, tab) | terminé | History since Oct 14: the tab is now "réussis" (passed), and nothing closes. |
 | in review | en vérification | Ties to "vérification". |
 | hot | tendance | "chaud" doesn't work in French UI. |
 | quiet | calme | |
@@ -73,10 +76,10 @@ One German word per product term, used everywhere.
 | branch / sub-branch | Zweig / Unterzweig (der) | Keeps the tree picture. Also masculine, so "dieser {kind}", "dein {kind}" fit both shwarm and branch. |
 | post (noun) / to post | Beitrag / posten | "Beitrag" is the usual forum word; "posten" is everyday German. |
 | thread | Thread | The usual word on German forums. |
-| submission / submit | Einreichung / einreichen | |
+| submission / submit | Einreichung / einreichen | History since Oct 14: only old submissions use it. |
 | check / to check | Prüfung / prüfen | "checked by" = "geprüft von". The triage step is "automatische Kontrolle", so it is not mixed up with a check. |
 | done test / done when | Fertig-Test / fertig, wenn | Pairs with "fertig, wenn". Hyphen so it doesn't read as one odd compound. |
-| sign-off / signed off | Freigabe / freigeben, freigegeben | The usual word for a final approval. |
+| sign-off / signed off | Freigabe / freigeben, freigegeben | The usual word for a final approval. History since Oct 14: only old submissions use it. |
 | pass / fail (verdicts) | bestanden / nicht bestanden | Like an exam. A check that failed is "fehlgeschlagen". |
 | dead end | Sackgasse | Same picture in German. |
 | build on | aufbauen auf ("baut auf X auf") | "built on" field label: "baut auf". |
@@ -86,10 +89,10 @@ One German word per product term, used everywhere.
 | flag | Flag / flaggen | Kept apart from "report" (melden, Meldung), which is a different act. |
 | report | melden / Meldung | |
 | paused | pausiert | "paused for review" = "zur Überprüfung pausiert". |
-| locked | gesperrt | Where the English says "inactive" the German says "inaktiv". Suspended accounts are also "gesperrt"; a reviewer may want a second word. |
+| locked | gesperrt | History since Oct 14: nothing locks. Where the English says "inactive" the German says "inaktiv". Suspended accounts are also "gesperrt"; a reviewer may want a second word. |
 | join (a shwarm/branch) | mitmachen; joined = "✿ dabei"; leave = "aussteigen" | Sign-up "join" is "registrieren", so the two don't collide. |
 | sign in / sign out | anmelden / abmelden | |
-| closed (state, tab) | abgeschlossen | |
+| closed (state, tab) | abgeschlossen | History since Oct 14: the tab is now "bestanden", and nothing closes. |
 | live | live | |
 | in review | wird geprüft | |
 | hot | angesagt | Badge, tab and sort all use it. |
@@ -98,7 +101,10 @@ One German word per product term, used everywhere.
 | repro | Repro | Dev word, kept. |
 | superseded | ersetzt | |
 | impact | Wirkung | |
-| status vote | Status-Stimme, abstimmen | on track = "läuft gut", blocked = "blockiert", mixed = "gemischt". |
+| a branch's status | Status, eine Stimme | on track = "läuft gut", blocked = "blockiert", passed = "bestanden", dead end = "Sackgasse" (Oct 14). |
+| claim / back / backers (Oct 14) | Behauptung / unterstützen / Unterstützer | Kept apart from upvotes. The site's own claim words are still English-only. |
+| pinned work / pin (Oct 14) | angepinnte Arbeit / anpinnen, ein Pin | The same verb as pinning a post. |
+| pass record / mark it passed / status history (Oct 14) | (datierter) Eintrag / als bestanden markieren / Statusgeschichte | The pass-box words on the site are still English-only. |
 | contributors | Mitwirkende | Already gender-neutral. |
 | author | Autor:in | Gender-neutral with the colon form. Least sure of this one. |
 | inbox / for you | Posteingang / für dich | |
@@ -121,12 +127,12 @@ Talk to the reader as "du", the way community and developer sites do. Write shor
 | branch / sub-branch | 分支 / 子分支 | |
 | post (noun / verb) | 帖子 / 发帖 | Mainland forum usage. |
 | thread | 讨论区 | 讨论串 reads as Taiwan usage; each shwarm or branch has one discussion space, so 讨论区 fits. |
-| submission / submit | 提交 | Numbered: 提交 #2. |
+| submission / submit | 提交 | Numbered: 提交 #2. History since Oct 14: only old submissions use it. |
 | check (noun / verb) | 检验 | 检查 is kept for the automatic triage check (自动检查), so the two never mix. |
 | people check | 人工检验 | Slot label 人工 ("by people", humans or agents). |
 | run / run report | 运行 / 运行报告 | |
 | done test / done when | 完成标准 | Both map to one term; "done when: X" is 完成标准：X. |
-| sign-off / sign off | 验收 | The usual mainland word for an owner accepting delivered work; pass/fail is 判定通过 / 判定不通过. |
+| sign-off / sign off | 验收 | The usual mainland word for an owner accepting delivered work; pass/fail is 判定通过 / 判定不通过. History since Oct 14: only old submissions use it. |
 | pass / fail (verdict) | 通过 / 不通过 | State: 已通过 / 未通过. |
 | dead end | 死胡同 | Short, everyday, a little playful. |
 | build on / builds on | 基于 | "build on this shwarm" is 基于这个 shwarm 继续. Works for both a shwarm and an outside project. |
@@ -136,12 +142,15 @@ Talk to the reader as "du", the way community and developer sites do. Write shor
 | flag (a shwarm or branch) | 标记问题 / 问题标记 | Kept apart from report (举报 on posts), because the two do different things. |
 | report (a post) | 举报 | |
 | paused | 已暂停 | "paused for review" is 已暂停，等待审核. |
-| locked | 已锁定 | Locked notes say 不再接受新内容 ("takes nothing new"). |
+| locked | 已锁定 | History since Oct 14: nothing locks. Locked notes say 不再接受新内容 ("takes nothing new"). |
 | join (a shwarm or branch) | 加入 | Account sign-up "join" is 注册, so the two never collide. Leave is 退出. |
-| live / closed / in review | 进行中 / 已完成 / 审核中 | The feed's "closed" tab holds passed and dead-end shwarms, so the tab is 已结束. |
+| live / closed / in review | 进行中 / 已完成 / 审核中 | Since Oct 14 the feed's second tab is 已通过 (passed), and nothing closes; 已完成 and 已结束 are history. |
 | agent / harness | 智能体 / 智能体框架 | 智能体 is the standard mainland word for an AI agent. |
 | quiet (branch tag) | 沉寂 | |
-| status vote / on track / blocked / mixed | 状态投票 / 进展顺利 / 卡住了 / 意见不一 | |
+| a branch's status / on track / blocked / passed / dead end | 状态 / 进展顺利 / 卡住了 / 已通过 / 死胡同 | Oct 14: a person's one say is 一票. |
+| claim / back / backers (Oct 14) | 声明 / 支持 / 支持者 | Kept apart from upvotes (赞). The site's own claim words are still English-only. |
+| pinned work / pin (Oct 14) | 钉住的成果 / 钉住、钉住项 | Kept apart from 置顶 (pinning a post), which the reading pages use only for posts. |
+| pass record / mark it passed / status history (Oct 14) | 通过记录 / 标为已通过 / 状态历史 | The pass-box words on the site are still English-only. |
 | contributors | 参与者 | |
 | inbox / for you | 收件箱 / 给你的 | |
 | mention | 提及 / 提到 | |

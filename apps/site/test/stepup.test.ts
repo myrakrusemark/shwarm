@@ -2,14 +2,11 @@ import { Hono } from 'hono'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { hashPassword } from '../src/auth/password'
 import { requireStepUp, requireVerified } from '../src/auth/stepup'
-import { siteActor } from '../src/core/actor'
-import { TreeEngine, type Command } from '../src/core/engine'
 import app from '../src/index'
 import { EXAMPLE_ROOT } from '../src/seed/example'
 import { resetReadLimit } from '../src/web/read-limit'
 import { addPerson, T0 } from './d1'
 import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv } from './browser'
-import { agent, type P } from './core-fixtures'
 import { stagingWorld } from './node-fixture'
 
 const MIN = 60_000
@@ -115,66 +112,60 @@ describe('step-up', () => {
   })
 })
 
-describe('the inline step-up (the sign-off, dead ends, reopening)', () => {
-  const S1 = `/w/${EXAMPLE_ROOT}/s/1`
-  /**
-   * @myra, the example shwarm's author, signed in. Its #1 waits on her sign-off (a branch has none since Oct 13):
-   * @kestrel's agent submitted it, @lumpy posted the run and @marceline the human people check.
-   */
+describe("the inline step-up (the author's mark)", () => {
+  const ROOT = `/w/${EXAMPLE_ROOT}`
+  /** @myra, the example shwarm's author, signed in. Her agent's passed claim is there to cite (seed/example.ts). */
   async function author() {
     const { db } = await stagingWorld()
     const env = testEnv(db)
-    const p = (handle: string) => db.raw.prepare('SELECT id, handle FROM person WHERE handle = ?').get(handle) as P
-    const run = (cmd: Command) => new TreeEngine(db, () => T0).run(cmd) as Promise<any>
-    const node = EXAMPLE_ROOT
-    const mod = { url: 'https://zenodo.org/records/17346201/files/mcdoom-v1.pk3', sha256: '9c'.repeat(32) }
-    const sub = await run({ type: 'submit', actor: agent(p('kestrel'), 'swarm/r-40'), input: { node, text: 'nine maps of blocks.', links: [mod], howToCheck: 'run it, then play e1m1.' } })
-    const log = 'bench.sh: min 61 fps\nexit 0'
-    await run({ type: 'check', actor: siteActor(p('lumpy')), input: { node, on: sub.id, slot: 'run', submissionHash: sub.hash.slice(0, 7), scriptHash: '5d02b7e', exit: 0, log, env: 'linux, gtx 1660' } })
-    const video = { url: 'https://archive.org/download/mcdoom-checks/e1m1.mp4', sha256: '7'.repeat(64) }
-    await run({ type: 'check', actor: siteActor(p('marceline')), input: { node, on: sub.id, verdict: 'pass', text: 'played e1m1 from a pistol start.', evidence: [video] } })
+    const claim = (db.raw.prepare("SELECT p.id FROM post p JOIN node n ON n.id = p.node_id WHERE n.path = ? AND p.claim = 'passed'").get(EXAMPLE_ROOT) as { id: string }).id
     db.raw.prepare("UPDATE person SET password_hash = ?, email = 'myra@example.org', email_norm = 'myra@example.org', email_verified_at = ? WHERE handle = 'myra'")
       .run(await hashPassword(GOOD_PASSWORD, pepper, 1000), new Date(T0).toISOString())
     const b = new Browser(env)
     expect((await b.post('/signin', { email: 'myra@example.org', password: GOOD_PASSWORD })).status).toBe(303)
-    const signOff = async (fields: Record<string, string>) => {
-      const token = formTokenIn(await (await b.req(S1, { headers: { accept: 'text/html' } })).text())
-      return b.req(S1, { form: { form_token: token, do: 'signoff', ...fields } })
+    const mark = async (fields: Record<string, string>) => {
+      const token = formTokenIn(await (await b.req(ROOT, { headers: { accept: 'text/html' } })).text())
+      return b.req(ROOT, { form: { form_token: token, do: 'mark_passed', ...fields } })
     }
     const window = () => (db.raw.prepare('SELECT step_up_until FROM session').get() as { step_up_until: string }).step_up_until
-    return { db, b, signOff, window }
+    const marks = () => (db.raw.prepare("SELECT COUNT(*) AS n FROM pass_record WHERE kind = 'author'").get() as { n: number }).n
+    return { db, b, claim, mark, window, marks }
   }
 
   it('opens the 10-minute window on the session, as /step-up does, even when the act itself is then refused', async () => {
-    const { b, signOff, window } = await author()
+    const { b, claim, mark, window, marks } = await author()
     vi.setSystemTime(T0 + 11 * MIN)
-    expect(await body(await b.req(S1, { headers: { accept: 'text/html' } }))).toContain('type="password"')
-    // the right password, but nothing said about what was checked: core refuses the pass, the window is open anyway
-    const res = await signOff({ verdict: 'pass', text: '', password: GOOD_PASSWORD })
+    expect(await body(await b.req(ROOT, { headers: { accept: 'text/html' } }))).toContain('type="password"')
+    // the right password, but a post that isn't a passed claim: core refuses the mark, the window is open anyway
+    const res = await mark({ post: 'p_notaclaim1', password: GOOD_PASSWORD })
     expect(res.status).toBe(400)
     const html = await body(res)
-    expect(html).toContain('say what you checked.')
+    expect(html).toContain('cite a passed claim on this shwarm.')
     expect(html).not.toContain('type="password"') // the page that comes back doesn't ask again
     expect(window()).toBe(new Date(T0 + 21 * MIN).toISOString())
-    // inside the window the sign-off goes through without the password
+    expect(marks()).toBe(0)
+    // inside the window the mark goes through without the password
     vi.setSystemTime(T0 + 20 * MIN)
-    expect((await signOff({ verdict: 'pass', text: 'played it tonight.' })).status).toBe(303)
+    expect((await mark({ post: claim })).status).toBe(303)
+    expect(marks()).toBe(1)
   })
 
   it('is throttled like sign-in after repeated bad passwords', async () => {
-    const { signOff } = await author()
+    const { claim, mark, marks } = await author()
     vi.setSystemTime(T0 + 11 * MIN)
-    for (let i = 1; i <= 9; i++) expect((await signOff({ verdict: 'pass', text: 'ok', password: `wrong ${i}` })).status).toBe(400)
-    let res = await signOff({ verdict: 'pass', text: 'ok', password: 'wrong 10' })
+    for (let i = 1; i <= 9; i++) expect((await mark({ post: claim, password: `wrong ${i}` })).status).toBe(400)
+    let res = await mark({ post: claim, password: 'wrong 10' })
     expect(res.status).toBe(429)
     expect(res.headers.get('retry-after')).toBeTruthy()
     expect(await body(res)).toContain('too many tries in a short time.')
-    // even the right password waits now, and the draft stays
-    res = await signOff({ verdict: 'pass', text: 'my draft', password: GOOD_PASSWORD })
+    // even the right password waits now, and the claim picked stays picked
+    res = await mark({ post: claim, password: GOOD_PASSWORD })
     expect(res.status).toBe(429)
-    expect(await body(res)).toContain('>my draft</textarea>')
+    expect(await body(res)).toContain(`<option value="${claim}" selected="">`)
+    expect(marks()).toBe(0)
     vi.setSystemTime(T0 + 27 * MIN)
     resetReadLimit()
-    expect((await signOff({ verdict: 'pass', text: 'played it tonight.', password: GOOD_PASSWORD })).status).toBe(303)
+    expect((await mark({ post: claim, password: GOOD_PASSWORD })).status).toBe(303)
+    expect(marks()).toBe(1)
   })
 })

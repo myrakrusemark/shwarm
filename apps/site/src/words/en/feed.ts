@@ -16,7 +16,7 @@ export const feed = {
 
   // the tabs, and their name for screen readers
   tabLive: 'live',
-  tabClosed: 'closed',
+  tabPassed: 'passed',
   tabsLabel: 'feed',
   // the search box: the grey text inside it, and its name for screen readers
   searchPlaceholder: 'search or #tags…',
@@ -29,13 +29,13 @@ export const feed = {
   // a search that found nothing
   noMatch: 'no shwarms match that search. {link}',
   clearSearch: 'clear the search',
-  // the closed tab, with nothing in it
-  noneClosed: 'nothing has closed yet. a shwarm shows up here when it passes, or when its author calls it a dead end.',
-  // the live tab, with nothing in it. {closed} is the "see what closed" link, {start} the "start a shwarm" link.
+  // the passed tab, with nothing in it
+  nonePassed: "nothing has passed yet. a shwarm shows up here when its people back a passed claim and its status becomes passed.",
+  // the live tab, with nothing in it. {passed} is the "see what passed" link, {start} the "start a shwarm" link.
   // the first is for someone who can start one; the second is in the beta, for someone who can't yet
-  noneLive: 'nothing is live right now. {closed} or {start}',
-  noneLiveSoon: 'nothing is live right now. {closed}.',
-  seeClosed: 'see what closed',
+  noneLive: 'nothing is live right now. {passed} or {start}',
+  noneLiveSoon: 'nothing is live right now. {passed}.',
+  seePassed: 'see what passed',
   startShwarm: 'start a shwarm',
 
   // the link under the list to the next page
@@ -55,8 +55,4 @@ export const feed = {
   postsPerDay: '{n} posts/day',
   // a dead end's meta line: after the author's name, how many others worked on it ({n} is a number)
   deadOthers: ' + {n}',
-  // a card, right: its state
-  live: 'live',
-  closed: 'passed',
-  deadEnd: 'dead end',
 }

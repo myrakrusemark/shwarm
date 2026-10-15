@@ -124,39 +124,6 @@ function triageAlert(p: Record<string, unknown>): Draft {
   }
 }
 
-/**
- * A submission is ready for its author's sign-off (go-live 5.4): every other check passed, or the author is the only
- * check. Sent with the sign_off inbox item (core/posts.ts, core/checking.ts). The title is the author's own node's.
- */
-function signOffReady(p: Record<string, unknown>, site: string): Draft {
-  const n = p.number
-  if (!Number.isSafeInteger(n) || (n as number) < 1) throw new MailRenderError('bad number')
-  const title = printable(oneLine(text(p, 'title'), 80))
-  // Author gone (table B): the admins get it, and are told why it's theirs. OPEN (#76): these words wait on Myra's yes.
-  if (p.author_gone === true) {
-    const author = typeof p.author === 'string' && HANDLE.test(p.author) ? `@${p.author}` : 'its author'
-    return {
-      subject: `#${n} on ${title} is ready for sign-off`,
-      blocks: [
-        hi(p),
-        `#${n} on ${title} is ready for its author's sign-off, but ${author}'s account is suspended or closed. the operator signs off in their place.`,
-        'open the submission to pass it with what you checked, or fail it with a repro:',
-        { href: siteLink(site, p.link) },
-      ],
-    }
-  }
-  return {
-    subject: fill(w.email.signOffSubject, { n: n as number, title }),
-    blocks: [
-      hi(p),
-      fill(p.only === true ? w.email.signOffOnly : w.email.signOffLast, { n: n as number, title }),
-      w.email.signOffOpen,
-      { href: siteLink(site, p.link) },
-      w.email.signOffNothingPasses,
-    ],
-  }
-}
-
 /** A name from the payload ('@ana', '@ana/m-04', or "former member" for a closed account's), or 'someone' when it isn't one. */
 const nameOf = (v: unknown) => (typeof v === 'string' && (isValidName(v) || v === FORMER) ? v : 'someone')
 const titleOf = (p: Record<string, unknown>) => printable(oneLine(text(p, 'title'), 80))
@@ -510,7 +477,6 @@ const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string)
     ],
   }),
   triage_alert: p => triageAlert(p),
-  sign_off_ready: (p, site) => signOffReady(p, site),
   mention: (p, site) => mention(p, site),
   digest: (p, site) => digest(p, site),
   node_news: (p, site) => nodeNews(p, site),

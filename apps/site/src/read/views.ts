@@ -1,7 +1,6 @@
-// Everything one node view needs, read in three rounds of side-by-side queries after the chain:
-// the page (go-live 3.3, 3.4), a closed shwarm's result page (5.7) and the agent prompt and JSON (3.6).
+// Everything one node view needs, read in a few rounds of side-by-side queries after the chain: the page (go-live 3.3,
+// 3.4; with its pass box, decided Oct 14) and the agent prompt and JSON (3.6).
 import type { NodePageData, Me } from '../web/node-page'
-import type { ResultPageData } from '../web/result-page'
 import type { AgentView } from '../render/prompt'
 import {
   postsOnPage,
@@ -9,6 +8,7 @@ import {
   readChecks,
   readChildren,
   readContributors,
+  PEOPLE_SHOWN,
   readJoins,
   readMySeat,
   readMyUpvotes,
@@ -22,11 +22,9 @@ import {
   type Sort,
 } from './node'
 import { readActivity } from './activity'
-import { readLog } from './log'
-import { readBuiltOnThis, readCredits, readResult } from './result'
 import { readMyReports } from '../core/reports'
 import { flaggedBy } from '../core/flags'
-import { readMyStatus, readTally } from '../core/status'
+import { loadStatus } from './status'
 
 export async function loadPageData(
   db: D1Database,
@@ -35,10 +33,9 @@ export async function loadPageData(
 ): Promise<NodePageData> {
   const n = chain.node
   const mine = o.me?.personId === n.author_id
-  const isBranch = n.kind === 'branch'
-  const [children, contributors, subs, thread, nodeEdits, activity, joins, votes] = await Promise.all([
+  const [children, contributors, subs, thread, nodeEdits, activity, joins, status] = await Promise.all([
     readChildren(db, n.id, o.now),
-    readContributors(db, n),
+    readContributors(db, n, PEOPLE_SHOWN),
     readSubmissions(db, n.id),
     readThread(db, n, o),
     // Only a shwarm was ever edited: its author's edits until Oct 12, re-pitches before Oct 10. Nobody edits one now
@@ -46,66 +43,56 @@ export async function loadPageData(
     n.kind === 'branch' ? Promise.resolve([]) : readNodeEdits(db, n.id, mine),
     readActivity(db, n.id, o.now),
     readJoins(db, n), // the thread's quiet join lines (go-live 8.2)
-    isBranch ? readTally(db, n.id) : Promise.resolve(null), // a branch's status votes (decided Oct 13)
+    // Its status, claims, pass records and history, and the viewer's own backing (decided Oct 14).
+    loadStatus(db, n, o.me?.personId ?? null, o.now),
   ])
-  // Checks for the submissions on this page of the thread, and for the one in review (the head's status line).
+  // Checks for the old submissions on this page of the thread (history: nothing takes checks since Oct 14).
   const shown = new Set<string>()
   for (const p of postsOnPage(thread)) if (p.kind === 'submission') shown.add(p.id)
-  for (const s of subs) if (s.status === 'in_review') shown.add(s.post_id)
-  // A passed branch's "proof it's done" (web/node-page.tsx Proof): the checks on what passed it.
-  const passed = n.state === 'closed' ? subs.find(s => s.status === 'passed') : undefined
-  if (passed) shown.add(passed.post_id)
   // The viewer's own upvotes on the posts shown, so each ▲ says whether it's theirs.
   const onPage = postsOnPage(thread).map(p => p.id)
   // And whether the viewer joined (said they're working on it): the contributors box lists only the first few.
   // And whether the viewer flagged this node (core/flags.ts), so "flag this shwarm" says so instead.
-  const [checks, myUps, mySeat, myReports, myFlag, myStatus] = await Promise.all([
+  const [checks, myUps, mySeat, myReports, myFlag] = await Promise.all([
     readChecks(db, [...shown]),
     o.me ? readMyUpvotes(db, o.me.personId, onPage) : Promise.resolve(new Map<string, boolean>()),
     o.me ? readMySeat(db, n.id, o.me.personId) : Promise.resolve(null), // branches are joined too (decided Oct 12)
     o.me ? readMyReports(db, o.me.personId, onPage) : Promise.resolve(new Set<string>()),
     o.me && o.me.personId !== n.author_id ? flaggedBy(db, o.me.personId, n.id) : Promise.resolve(false),
-    o.me && isBranch ? readMyStatus(db, n.id, o.me.personId) : Promise.resolve(null),
   ])
-  const status = votes ? { votes, mine: myStatus } : undefined
   return { chain, branches: children.branches, contributors, subs, checks, thread, myUps, mySeat, joins, myReports, myFlag, nodeEdits, activity, status, sort: o.sort, show: o.show, url: o.url, here: o.here, me: o.me, now: o.now }
 }
 
 /** The prompt's and the JSON's data; null when ?before= doesn't name a post in this thread. */
 export async function loadAgentView(db: D1Database, chain: Chain, o: { origin: string; before: string | null; now: number }): Promise<AgentView | null> {
   const n = chain.node
-  const [children, subs, posts, contributors, votes, work] = await Promise.all([
+  const [children, subs, posts, contributors, status, work] = await Promise.all([
     readChildren(db, n.id, o.now),
     readSubmissions(db, n.id),
     readPromptPosts(db, n, o.before),
     readContributors(db, n),
-    n.kind === 'branch' ? readTally(db, n.id) : Promise.resolve(null), // a branch's status votes (decided Oct 13)
+    loadStatus(db, n, null, o.now), // its status (decided Oct 14)
     readWorkRepo(db, chain), // WHERE THE WORK LIVES (#128)
   ])
   if (!posts) return null
-  // Checks on the submission in review (STATUS) and on the failed or superseded ones (DEAD ENDS); what the listed submissions built on.
+  // Checks on the old failed or superseded submissions (DEAD ENDS, history); what the listed submissions built on.
   const subIds = subs.filter(s => s.status !== 'passed').map(s => s.post_id)
   const listedSubs = [...posts.pinned, ...posts.posts].filter(p => p.kind === 'submission').map(p => p.id)
   const [checks, links] = await Promise.all([readChecks(db, subIds), readBuiltOn(db, listedSubs)])
   const dmsOn = contributors.rows.filter(r => r.dms).map(r => r.handle)
-  return { origin: o.origin, chain, branches: children.branches, subs, checks, posts, builtOn: links.builtOn, dmsOn, contributors, ...(votes ? { votes } : {}), work, now: o.now }
-}
-
-/** How many key events the result page's log box lists, newest ones, oldest first. OPEN: not decided; 20. */
-export const RESULT_LOG_ROWS = 20
-
-/**
- * A closed shwarm's result page (go-live 5.7): the pass, who made it, what's built on it, the newest key events. Null
- * when it has no result to show (see readResult), so the page falls back to the live template.
- */
-export async function loadResultData(db: D1Database, chain: Chain, o: { me: Me; now: number }): Promise<ResultPageData | null> {
-  const n = chain.node
-  const [result, builtOnThis, log] = await Promise.all([
-    readResult(db, n),
-    readBuiltOnThis(db, n.path, n.done_when),
-    readLog(db, chain, { filter: 'key', before: null, limit: RESULT_LOG_ROWS }),
-  ])
-  if (!result) return null
-  const credits = await readCredits(db, chain, result)
-  return { chain, result, credits, builtOnThis, log: log ?? { rows: [], total: 0, all: 0, next: null }, me: o.me, now: o.now }
+  const v: AgentView = {
+    origin: o.origin,
+    chain,
+    branches: children.branches,
+    subs,
+    checks,
+    posts,
+    builtOn: links.builtOn,
+    dmsOn,
+    contributors,
+    status,
+    work,
+    now: o.now,
+  }
+  return v
 }

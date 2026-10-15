@@ -1,7 +1,8 @@
 // Go-live 4.9: every product limit, through the site. Thread posts (a burst of 5, then 1 every 5 minutes, per thread,
-// per person), 3 new shwarms and branches a day with the in-batch guard behind the count, one submission
-// per person per node per day, the per-network caps on the account forms, the per-network cap on public reads (and a
-// 304 that reads no D1 while this isolate knows the version, else only the node chain), and the 256 KB cap on request bodies.
+// per person), 3 new shwarms and branches a day with the in-batch guard behind the count, the per-network caps on the
+// account forms, the per-network cap on public reads (and a 304 that reads no D1 while this isolate knows the version,
+// else only the node chain), and the 256 KB cap on request bodies. Nothing takes submissions since Oct 14, so their
+// daily limit went with them.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import app from '../src/index'
 import { hashPassword } from '../src/auth/password'
@@ -36,6 +37,12 @@ const at = (ms: number) => vi.setSystemTime(T0 + ms)
 
 async function world() {
   const w = await stagingWorld()
+  // #1 on the example's shwarm, from before Oct 14 (core takes no submissions now): its page is still read
+  const root = (w.db.raw.prepare('SELECT id FROM node WHERE path = ?').get(EXAMPLE_ROOT) as { id: number }).id
+  w.db.raw
+    .prepare("INSERT INTO post (id, node_id, person_id, as_name, kind, text, links, created_at) VALUES ('p_oldsub0001', ?, ?, '@myra/m-04', 'submission', 'the edge fix.', '[]', ?)")
+    .run(root, w.myraId, new Date(T0 - DAY).toISOString())
+  w.db.raw.prepare("INSERT INTO submission (post_id, node_id, number, hash, how_to_check, author_swap, status) VALUES ('p_oldsub0001', ?, 1, ?, 'run it.', 0, 'superseded')").run(root, 'd'.repeat(64))
   const env = testEnv(w.db)
   const q = (sql: string, ...args: unknown[]) => w.db.raw.prepare(sql).get(...args)
   const count = (sql: string, ...args: unknown[]) => (q(sql, ...args) as { n: number }).n
@@ -59,15 +66,11 @@ async function act(b: Browser, path: string, fields: Record<string, string>) {
 
 const post = (b: Browser, path: string, text: string, extra: Record<string, string> = {}) => act(b, path, { do: 'post', text, ...extra })
 
-const FILE = `https://codeberg.org/ana/doom-blocks/raw/branch/main/corner-fix.diff ${'4e'.repeat(32)}`
-const submit = (b: Browser, path: string, text: string) =>
-  act(b, path, { do: 'submit', text, links: FILE, how_to_check: 'load corner-repro.lmp and place 200 blocks on each corner.' })
-
 /** The create form at `from` (/new, /new?parent=…), sent with every hidden field the page carries. */
 async function create(b: Browser, from: string, fields: Record<string, string>) {
   const page = await (await b.get(from)).text()
   const hidden = Object.fromEntries([...page.matchAll(/<input type="hidden" name="(parent)" value="([^"]+)"/g)].map(m => [m[1], m[2]]))
-  return b.req('/new', { form: { form_token: formTokenIn(page), ...hidden, c_author: 'on', ...fields } })
+  return b.req('/new', { form: { form_token: formTokenIn(page), ...hidden, ...fields } })
 }
 const newShwarm = (b: Browser, title: string) => create(b, '/new', { title, what: 'a test goal.', done_when: 'it is done.', tags: '#test', license: 'MIT' })
 const newBranch = (b: Browser, title: string) => create(b, `/new?parent=${EXAMPLE_ROOT}`, { title, what: 'a part of it.', done_when: 'the part works.' })
@@ -114,24 +117,37 @@ describe('thread posts: a burst of 5, then 1 every 5 minutes, per thread, per pe
     expect((await post(ana, EXAMPLE_ROOT, 'after a day 6')).status).toBe(429)
   })
 
-  it('replies, edits and submissions spend from the same bucket; upvotes and a refused post do not', async () => {
+  it('replies, edits and claims spend from the same bucket; a join, upvotes and a refused post do not', async () => {
     const { env, q } = await world()
     const { b: ana } = await member(env, 'ana')
-    expect((await post(ana, EXAMPLE_BRANCH, 'first')).status).toBe(303) // 4 left
+    expect((await post(ana, EXAMPLE_ROOT, 'first')).status).toBe(303) // 4 left
     const mine = (q("SELECT id FROM post WHERE text = 'first'") as { id: string }).id
-    expect((await post(ana, EXAMPLE_BRANCH, 'a reply', { reply_to: mine })).status).toBe(303) // 3
-    expect((await act(ana, EXAMPLE_BRANCH, { do: 'edit', post: mine, text: 'first, edited' })).status).toBe(303) // 2
-    expect((await submit(ana, EXAMPLE_BRANCH, 'the corner fix')).status).toBe(303) // 1
-    const theirs = (q("SELECT id FROM post WHERE node_id = (SELECT id FROM node WHERE path = ?) AND as_name <> '@ana' AND kind = 'post' LIMIT 1", EXAMPLE_BRANCH) as { id: string }).id
-    expect((await act(ana, EXAMPLE_BRANCH, { do: 'upvote', post: theirs })).status).toBe(303) // free
-    expect((await post(ana, EXAMPLE_BRANCH, '   ')).status).toBe(400) // refused before core: free
-    expect((await post(ana, EXAMPLE_BRANCH, 'the last quick one')).status).toBe(303) // 0
-    const res = await post(ana, EXAMPLE_BRANCH, 'one too many')
+    expect((await post(ana, EXAMPLE_ROOT, 'a reply', { reply_to: mine })).status).toBe(303) // 3
+    expect((await act(ana, EXAMPLE_ROOT, { do: 'edit', post: mine, text: 'first, edited' })).status).toBe(303) // 2
+    expect((await act(ana, EXAMPLE_ROOT, { do: 'join' })).status).toBe(303) // free
+    expect((await act(ana, EXAMPLE_ROOT, { do: 'claim', status: 'blocked', text: 'corners still fail.' })).status).toBe(303) // 1
+    const theirs = (q("SELECT id FROM post WHERE node_id = (SELECT id FROM node WHERE path = ?) AND as_name <> '@ana' AND kind = 'post' LIMIT 1", EXAMPLE_ROOT) as { id: string }).id
+    expect((await act(ana, EXAMPLE_ROOT, { do: 'upvote', post: theirs })).status).toBe(303) // free
+    expect((await post(ana, EXAMPLE_ROOT, '   ')).status).toBe(400) // refused before core: free
+    expect((await post(ana, EXAMPLE_ROOT, 'the last quick one')).status).toBe(303) // 0
+    const res = await post(ana, EXAMPLE_ROOT, 'one too many')
     expect(res.status).toBe(429)
     // a refused post spends nothing either: the wait is still one refill, not two
     expect(res.headers.get('retry-after')).toBe(String(THREAD_REFILL_S))
-    expect((await post(ana, EXAMPLE_BRANCH, 'one too many, again')).headers.get('retry-after')).toBe(String(THREAD_REFILL_S))
+    expect((await post(ana, EXAMPLE_ROOT, 'one too many, again')).headers.get('retry-after')).toBe(String(THREAD_REFILL_S))
   })
+  it('a claim spends from the same bucket as a post', async () => {
+    const { env, count } = await world()
+    const { b: ana } = await member(env, 'ana')
+    expect((await act(ana, EXAMPLE_BRANCH, { do: 'join' })).status).toBe(303) // free
+    for (let i = 1; i < THREAD_BURST; i++) expect((await post(ana, EXAMPLE_BRANCH, `note ${i}`)).status).toBe(303)
+    expect((await act(ana, EXAMPLE_BRANCH, { do: 'claim', status: 'blocked', text: 'the sight check still fails on corners.' })).status).toBe(303) // the last one
+    const res = await act(ana, EXAMPLE_BRANCH, { do: 'claim', status: 'passed', text: 'corners place now.' })
+    expect(res.status).toBe(429)
+    expect(res.headers.get('retry-after')).toBe(String(THREAD_REFILL_S))
+    expect(count("SELECT COUNT(*) AS n FROM post WHERE as_name = '@ana' AND claim IS NOT NULL")).toBe(1)
+  })
+
 })
 
 // ---------- new nodes ----------
@@ -202,38 +218,11 @@ describe('new nodes: 3 a day, shwarms and branches together (no variants since O
     const pages = await Promise.all([0, 1, 2, 3].map(() => ana.get('/new').then(r => r.text())))
     const sent = await Promise.all(
       pages.map((page, i) =>
-        ana.req('/new', { form: { form_token: formTokenIn(page), c_author: 'on', title: `parallel ${i + 3}`, what: 'a test goal.', done_when: 'it is done.', tags: '#test', license: 'MIT' } }),
+        ana.req('/new', { form: { form_token: formTokenIn(page), title: `parallel ${i + 3}`, what: 'a test goal.', done_when: 'it is done.', tags: '#test', license: 'MIT' } }),
       ),
     )
     expect(sent.map(r => r.status).sort()).toEqual([303, 429, 429, 429])
     expect(count('SELECT COUNT(*) AS n FROM node WHERE author_id = ?', pid)).toBe(NEW_NODES_PER_DAY)
-  })
-})
-
-// ---------- submissions ----------
-
-describe('submissions: one per person per node per day', () => {
-  it('a second the same day waits; another node, another person and the next day are fine', async () => {
-    const { env, count } = await world()
-    const { b: ana } = await member(env, 'ana')
-    const subs = (path: string) => count('SELECT COUNT(*) AS n FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ?', path)
-    const before = subs(EXAMPLE_BRANCH)
-    expect((await submit(ana, EXAMPLE_BRANCH, 'the corner fix')).status).toBe(303)
-    at(HOUR)
-    const again = await submit(ana, EXAMPLE_BRANCH, 'a better corner fix')
-    expect(again.status).toBe(429)
-    expect(again.headers.get('retry-after')).toBe(String((DAY - HOUR) / 1000))
-    expect(await body(again)).toContain('one submission per person per day here. next in about 23 hours.')
-    expect(subs(EXAMPLE_BRANCH)).toBe(before + 1)
-    // another node the same day
-    expect((await submit(ana, EXAMPLE_ROOT, 'the whole mod')).status).toBe(303)
-    // another person on the same node the same day
-    const { b: bo } = await member(env, 'bo')
-    expect((await submit(bo, EXAMPLE_BRANCH, "bo's corner fix")).status).toBe(303)
-    // a rolling day after the first
-    at(DAY + 1)
-    expect((await submit(ana, EXAMPLE_BRANCH, 'a better corner fix, a day on')).status).toBe(303)
-    expect(subs(EXAMPLE_BRANCH)).toBe(before + 3)
   })
 })
 
@@ -300,7 +289,7 @@ describe('public reads: one bucket per network', () => {
   it('node pages, the feed and profiles share it; past it, 429 with Retry-After; it refills at 2 a second', async () => {
     const { env } = await world()
     const b = new Browser(env, '203.0.113.9')
-    const paths = [`/w/${EXAMPLE_ROOT}?format=json`, `/w/${EXAMPLE_BRANCH}/s/2?format=json`, '/', '/@myra']
+    const paths = [`/w/${EXAMPLE_ROOT}?format=json`, `/w/${EXAMPLE_ROOT}/s/1?format=json`, '/', '/@myra']
     for (let i = 0; i < READ_BURST; i++) expect((await b.get(paths[i % paths.length])).status, `read ${i + 1}`).toBe(200)
     for (const p of paths) {
       const res = await b.get(p)
@@ -337,7 +326,7 @@ describe('public reads: one bucket per network', () => {
       resetReadLimit()
       for (let i = 0; i < READ_BURST; i++) takeRead(b.ip)
       const seen = watch(env)
-      for (const p of [`/w/${EXAMPLE_ROOT}`, `/w/${EXAMPLE_BRANCH}/s/2`, '/', '/@myra']) {
+      for (const p of [`/w/${EXAMPLE_ROOT}`, `/w/${EXAMPLE_ROOT}/s/1`, '/', '/@myra']) {
         for (const h of [HTML, JSON_, {}]) {
           const res = await b.req(p, { headers: h })
           expect(res.status).toBe(429)
@@ -362,7 +351,7 @@ describe('public reads: one bucket per network', () => {
         db.raw.prepare("INSERT INTO post (id, node_id, person_id, as_name, kind, text, links, created_at) VALUES (?, ?, ?, '@myra', 'post', ?, '[]', ?)")
           .run(newId('p'), nodeId, anyone, `post ${i}`, new Date(T0 - (i + 2) * MIN).toISOString())
       const these: string[] = []
-      for (const p of [`/w/${EXAMPLE_BRANCH}`, `/w/${EXAMPLE_BRANCH}/s/2`]) {
+      for (const p of [`/w/${EXAMPLE_BRANCH}`, `/w/${EXAMPLE_ROOT}/s/1`]) {
         for (const h of [HTML, JSON_, {}]) {
           at((t += VERSION_MEMO_MS))
           const first = await b.req(p, { headers: h })
@@ -391,8 +380,8 @@ describe('public reads: one bucket per network', () => {
           // every table it touches is reached through an index: no table is scanned
           const plan = db.raw.prepare('EXPLAIN QUERY PLAN ' + seen.sql[0]).all(...seen.args[0]).map((r: { detail: string }) => r.detail)
           expect(plan.filter((d: string) => /^SCAN /.test(d) && !/^SCAN (json_each VIRTUAL TABLE|CONSTANT ROW|pre$|\(subquery-\d+\))/.test(d))).toEqual([])
-          // and what it reads back is the chain: the branch and its shwarm
-          expect(db.raw.prepare(seen.sql[0]).all(...seen.args[0])).toHaveLength(2)
+          // and what it reads back is the chain: the branch and its shwarm, or the shwarm alone for its submission's page
+          expect(db.raw.prepare(seen.sql[0]).all(...seen.args[0])).toHaveLength(p.startsWith(`/w/${EXAMPLE_BRANCH}`) ? 2 : 1)
           // and that read is trusted again for the next 15 seconds
           seen.reset()
           expect((await b.req(p, { headers: { ...h, 'if-none-match': etag } })).status).toBe(304)

@@ -9,6 +9,9 @@ const FORGES = new Set(['github.com', 'codeberg.org', 'gitlab.com'])
 /** A Radicle repo id: rad: and a base58 id starting with z. rad://z… is read as the same. */
 const RAD = /\brad:(?:\/\/)?(z[1-9A-HJ-NP-Za-km-z]{20,})/
 
+/** A whole string that is a Radicle repo id (rad:z…, or rad://z…): a repo a pin may name with a full commit. */
+export const isRadRepo = (s: string) => /^rad:(?:\/\/)?z[1-9A-HJ-NP-Za-km-z]{20,}$/.test(s)
+
 /** The repo an https URL names: on a forge, owner/repo (never a page inside it); anywhere else, a URL ending in .git. */
 export function gitRepo(raw: string): string | null {
   let u: URL
@@ -44,7 +47,7 @@ export function repoIn(post: { text?: string | null; links?: readonly Link[] | n
     if (r) return r
   }
   for (const l of post.links ?? []) {
-    const r = 'repo' in l ? found(l.repo, true) : found(l.url)
+    const r = 'repo' in l ? found(l.repo, true) : 'url' in l ? found(l.url) : null // an ipfs or magnet pin names no repo
     if (r) return r
   }
   return null

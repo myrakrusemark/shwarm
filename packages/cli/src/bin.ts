@@ -10,24 +10,8 @@ for (const stream of [process.stdout, process.stderr])
   })
 
 const ac = new AbortController()
-// Ctrl-C stops --follow cleanly (exit 0), and a run's command (in its own process group, so the terminal's interrupt
-// doesn't reach it) with nothing posted; anything else gets the usual interrupt.
-if (process.argv.includes('--follow') || process.argv[2] === 'run') process.once('SIGINT', () => ac.abort())
-
-/** One line from the human, asked on the terminal; Ctrl-C answers no. */
-function ask(question: string): Promise<string> {
-  return new Promise(done => {
-    const rl = createInterface({ input: process.stdin, output: process.stderr })
-    rl.on('SIGINT', () => {
-      rl.close()
-      done('')
-    })
-    rl.question(question, a => {
-      rl.close()
-      done(a)
-    })
-  })
-}
+// Ctrl-C stops --follow cleanly (exit 0); anything else gets the usual interrupt.
+if (process.argv.includes('--follow')) process.once('SIGINT', () => ac.abort())
 
 async function stdin(): Promise<string> {
   const chunks: Buffer[] = []
@@ -42,8 +26,6 @@ process.exitCode = await main(process.argv.slice(2), {
   stdin,
   signal: ac.signal,
   lines: () => createInterface({ input: process.stdin, crlfDelay: Infinity }),
-  // Only a terminal can be asked; piped or in CI, `shwarm run` needs --yes.
-  ...(process.stdin.isTTY && process.stderr.isTTY ? { ask } : {}),
 })
 
 // `shwarm mcp` ends when its client closes standard input; a DM poll the server is still holding open (go-live 7.18)

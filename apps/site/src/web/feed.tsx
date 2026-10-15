@@ -75,7 +75,7 @@ const nodeHref = (path: string) => `/w/${path.split('/').map(encodeURIComponent)
 
 // The sort line's words: the ones the cards already use. "active" is the posts/day number.
 const sortLabel = (): Record<FeedSort, string> => ({ people: w.feed.sortPeople, hot: w.feed.sortHot, new: w.feed.sortNew, upvotes: w.feed.sortUpvotes, active: w.feed.sortActive })
-const tabLabel = (): Record<FeedTab, string> => ({ live: w.feed.tabLive, closed: w.feed.tabClosed })
+const tabLabel = (): Record<FeedTab, string> => ({ live: w.feed.tabLive, passed: w.feed.tabPassed })
 
 export const FeedPage: FC<{ feed: Feed; now: number }> = ({ feed, now }) => {
   const q = queryText(feed.query)
@@ -125,12 +125,12 @@ const Empty: FC<{ feed: Feed; q: string }> = ({ feed, q }) => {
         <p>{fillx(w.feed.endOfList, { link: <a href={feedHref(feed.tab, q, null, feed.sort)}>{w.feed.backToTop}</a> })}</p>
       ) : q ? (
         <p>{fillx(w.feed.noMatch, { link: <a href={feedHref(feed.tab, '', null, feed.sort)}>{w.feed.clearSearch}</a> })}</p>
-      ) : feed.tab === 'closed' ? (
-        <p>{w.feed.noneClosed}</p>
+      ) : feed.tab === 'passed' ? (
+        <p>{w.feed.nonePassed}</p>
       ) : (
         <p>
           {fillx(soon ? w.feed.noneLiveSoon : w.feed.noneLive, {
-            closed: <a href={feedHref('closed')}>{w.feed.seeClosed}</a>,
+            passed: <a href={feedHref('passed')}>{w.feed.seePassed}</a>,
             start: <a href="/new">{w.feed.startShwarm}</a>,
           })}
         </p>
@@ -188,8 +188,12 @@ const Title: FC<{ card: FeedCard }> = ({ card }) => (
   </>
 )
 
+/**
+ * One shwarm. Its status badge on the right (decided Oct 14: every shwarm stays live, and a dead end stays in the live
+ * list with its badge). A dead end's meta line names its author and how many others were on it, with no impact mark.
+ */
 export const Card: FC<{ card: FeedCard; now: number }> = ({ card, now }) => {
-  const dead = card.state === 'dead_end'
+  const dead = card.status === 'dead_end'
   return (
     <li>
       <Heat card={card} mark={!dead} />
@@ -210,7 +214,7 @@ export const Card: FC<{ card: FeedCard; now: number }> = ({ card, now }) => {
         </div>
       </div>
       <div class="right">
-        {card.state === 'live' ? <span class="st live">{w.feed.live}</span> : card.state === 'closed' ? <span class="st done">{w.feed.closed}</span> : <span class="st dead">{w.feed.deadEnd}</span>}
+        <span class={`st vs ${card.status.replace('_', '-')}`}>{w.node.statusNames[card.status]}</span>
       </div>
     </li>
   )

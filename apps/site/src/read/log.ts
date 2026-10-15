@@ -1,8 +1,11 @@
-// A node's audit log (go-live 5.7; spec "The audit log"; protocol §4): GET /w/<path>/log as JSON, and the key events on
-// a closed shwarm's result page. Every row is a recorded act (core/audit.ts), newest first, never generated prose.
+// A node's audit log (go-live 5.7; spec "The audit log"; protocol §4): GET /w/<path>/log as JSON. Every row is a
+// recorded act (core/audit.ts), newest first, never generated prose.
 //   * a shwarm's log covers its branches (by root_id), a branch's covers itself and the branches under it; each row
 //     names its node
 //   * branches the public can't see are left out, and so are rows whose submission, check or post is hidden
+//   * a status change is a row too (decided Oct 14, "One model for every node": every change is a dated line): one to
+//     passed is the audit 'passed' row its record wrote (core/status.ts flipStatements); any other is event 'status',
+//     read from status_change, since audit_event's events are fixed. A key event, as passes and dead ends are.
 //   * ?filter=key (the default) or all; ?before=<event id> pages back from `next`; `total` counts the filter's rows
 //     across every page. ?filter=milestones, the name before Oct 9, still works and answers as key
 //   * a seeded launch shwarm's log starts with "seeded by @myra at launch" (A18), drawn from the node, not stored
@@ -35,14 +38,27 @@ export type LogRow = {
 
 export type LogPage = { rows: LogRow[]; total: number; all: number; next: string | null }
 
-const KEY_SQL = `a.event IN (${KEY_EVENTS.map(e => `'${e}'`).join(', ')})`
+/** A status change that isn't to passed (passed is its audit row), as the log names it. */
+export const STATUS_EVENT = 'status'
+const WORDS = `CASE ? WHEN 'on_track' THEN 'on track' WHEN 'dead_end' THEN 'dead end' ELSE ? END`
+const word = (col: string) => WORDS.split('?').join(col)
 
 /**
- * Rows of `n`'s log: its tree's nodes from `n` down (?1 the tree's root id, ?2 n's path, ?3 n's id), the node itself
- * whatever the viewer may see (readChain already decided), the rest only when public. A row tied to a hidden
- * submission post, or whose evidence names a hidden check or post (`#c_…`, `#p_…`), is left out.
+ * Rows of `n`'s log, audit rows and status changes as one list `a` (src 0 and 1, rid each table's rowid, which orders
+ * rows at the same moment), each read from its tree's rows only: its tree's nodes from `n` down (?1 the tree's root id,
+ * ?2 n's path, ?3 n's id), the node itself whatever the viewer may see (readChain already decided), the rest only when
+ * public. A row tied to a hidden submission post, or whose evidence names a hidden check or post (`#c_…`, `#p_…`), is
+ * left out. A migrated status change (migration 0032) repeats an audit row that's already there, so it isn't listed.
  */
-const LOG_FROM = `audit_event a
+const LOG_FROM = `(SELECT x.id, x.at, x.event, x.node_id, x.by_name, x.submission_id, x.number, x.detail, x.evidence,
+           x.event IN (${KEY_EVENTS.map(e => `'${e}'`).join(', ')}) AS is_key, 0 AS src, x.rowid AS rid FROM audit_event x
+         WHERE x.node_id IN (SELECT id FROM node WHERE id = ?1 OR root_id = ?1)
+         UNION ALL
+         SELECT h.id, h.at, '${STATUS_EVENT}', h.node_id, NULL, NULL, NULL,
+           ${word('h.from_status')} || ' → ' || ${word('h.to_status')} || ' · ' || h.backers || ' to ' || h.against,
+           '/w/' || hn.path || COALESCE('#' || h.claim_id, ''), 1, 1, h.rowid
+         FROM status_change h JOIN node hn ON hn.id = h.node_id
+         WHERE (hn.id = ?1 OR hn.root_id = ?1) AND h.to_status <> 'passed' AND h.written_by <> 'migration') a
   JOIN node t ON t.id = a.node_id
   LEFT JOIN post sp ON sp.id = a.submission_id
   LEFT JOIN check_report c ON c.id = CASE WHEN instr(a.evidence, '#c_') > 0 THEN substr(a.evidence, instr(a.evidence, '#') + 1) END
@@ -52,6 +68,9 @@ const LOG_FROM = `audit_event a
     AND (t.id = ?3 OR ${PUBLIC_NODE('t')})
     AND sp.hidden IS NOT 1 AND cp.hidden IS NOT 1 AND ap.hidden IS NOT 1`
 
+/** A log cursor: an audit event's id or a status change's. */
+export const isLogId = (s: unknown): s is string => isId('e', s) || isId('h', s)
+
 /**
  * One page of the log, newest first: `limit` rows older than `before`, with `next` when older ones remain, `total`
  * for the filter and `all` for every event. Null when `before` isn't an event in this log.
@@ -60,24 +79,24 @@ export async function readLog(db: D1Database, chain: Chain, o: { filter: LogFilt
   const n = chain.node
   const limit = o.limit ?? LOG_PAGE
   const scope = [(chain.ancestors[0] ?? n).id, n.path, n.id] as const
-  let cursor: { at: string; rid: number } | null = null
+  let cursor: { at: string; src: number; rid: number } | null = null
   if (o.before !== null) {
-    if (!isId('e', o.before)) return null
-    cursor = await db.prepare(`SELECT a.at, a.rowid AS rid FROM ${LOG_FROM} AND a.id = ?4`).bind(...scope, o.before).first<{ at: string; rid: number }>()
+    if (!isLogId(o.before)) return null
+    cursor = await db.prepare(`SELECT a.at, a.src, a.rid FROM ${LOG_FROM} AND a.id = ?4`).bind(...scope, o.before).first<{ at: string; src: number; rid: number }>()
     if (!cursor) return null
   }
-  const only = o.filter === 'key' ? `AND ${KEY_SQL}` : ''
-  const older = cursor ? 'AND (a.at < ?4 OR (a.at = ?4 AND a.rowid < ?5))' : ''
+  const only = o.filter === 'key' ? 'AND a.is_key = 1' : ''
+  const older = cursor ? 'AND (a.at < ?4 OR (a.at = ?4 AND (a.src < ?5 OR (a.src = ?5 AND a.rid < ?6))))' : ''
   const [{ results }, counts] = await Promise.all([
     db
       .prepare(
         `SELECT a.id, a.at, a.event, t.path AS node, t.title, ${NAME_SHOWN('a.by_name')} AS by, a.submission_id AS submission, a.number, a.detail, a.evidence,
-                (${KEY_SQL}) AS is_key
-         FROM ${LOG_FROM} ${only} ${older} ORDER BY a.at DESC, a.rowid DESC LIMIT ${limit + 1}`,
+                a.is_key
+         FROM ${LOG_FROM} ${only} ${older} ORDER BY a.at DESC, a.src DESC, a.rid DESC LIMIT ${limit + 1}`,
       )
-      .bind(...scope, ...(cursor ? [cursor.at, cursor.rid] : []))
+      .bind(...scope, ...(cursor ? [cursor.at, cursor.src, cursor.rid] : []))
       .all<Omit<LogRow, 'key' | 'evidence'> & { is_key: number; evidence: string | null }>(),
-    db.prepare(`SELECT COUNT(*) AS all_, COALESCE(SUM(${KEY_SQL}), 0) AS ks FROM ${LOG_FROM}`).bind(...scope).first<{ all_: number; ks: number }>(),
+    db.prepare(`SELECT COUNT(*) AS all_, COALESCE(SUM(a.is_key), 0) AS ks FROM ${LOG_FROM}`).bind(...scope).first<{ all_: number; ks: number }>(),
   ])
   const rows: LogRow[] = results.map(({ is_key, ...r }) => ({ ...r, evidence: r.evidence ?? nodeHref(r.node), key: is_key === 1 }))
   // A18: the seeded node's first row, the oldest of all, so it closes the last page. It counts under both filters.
@@ -117,4 +136,22 @@ export function renderLogJson(path: string, filter: LogFilter, page: LogPage, or
       key: r.key,
     })),
   }
+}
+
+// ---------- the log's version ----------
+
+/** The tree a log reads: the shwarm and its branches (root_id). */
+const TREE = (t: string) => `(${t}.id = ?1 OR ${t}.root_id = ?1)`
+
+/**
+ * What else a log shows, as one version for its signed-out ETag (web/node-routes.ts etagOf): the tree's last write and
+ * size (a branch's event, a new branch). None of these writes to the node itself, so its own version alone would answer
+ * 304 on a stale log.
+ */
+export async function readTreeVersion(db: D1Database, chain: Chain): Promise<string> {
+  const r = await db
+    .prepare(`SELECT MAX(t.changed_at) || '.' || COUNT(*) AS tree FROM node t WHERE ${TREE('t')}`)
+    .bind((chain.ancestors[0] ?? chain.node).id)
+    .first<{ tree: string | null }>()
+  return r?.tree ?? '-'
 }

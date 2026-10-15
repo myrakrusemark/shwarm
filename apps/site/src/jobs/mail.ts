@@ -212,8 +212,8 @@ async function sendOne(env: MailEnv, row: Row, now: number, f: typeof fetch, out
 /**
  * The names in a notice as the pages show them when it goes (read/names.ts): one under a handle whose account closed
  * after the row was written reads "former member". payload.by and the digest's items[].by are stored names ('@ana',
- * '@ana/m-04'); payload.author is the bare handle of an author-gone sign-off, which the template words as "its author"
- * once it isn't a handle. A closing between two attempts changes the body, so Resend refuses the retry and the row fails.
+ * '@ana/m-04'); payload.author is a bare handle a template may name (a sign-off mail before Oct 14 did), worded as "its
+ * author" once it isn't a handle. A closing between two attempts changes the body, so Resend refuses the retry and the row fails.
  */
 async function namesNow(db: D1Database, payload: Record<string, unknown>): Promise<Record<string, unknown>> {
   const handleOf = (name: unknown) => (typeof name === 'string' && name.startsWith('@') ? name.slice(1).split('/')[0] : null)

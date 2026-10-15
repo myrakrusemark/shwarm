@@ -45,7 +45,7 @@ probe.get('/whoami', c => c.json({ keyid: c.get('agent').key.id, handle: c.get('
 
 type Site = { fetch: (req: Request, env?: any, ctx?: any) => Response | Promise<Response> }
 
-async function world(grants: Grant[] = [{ node: '*', perms: ['read', 'post', 'submit', 'check'] }], canPostAs = '@myra/*') {
+async function world(grants: Grant[] = [{ node: '*', perms: ['read', 'post'] }], canPostAs = '@myra/*') {
   const { db, myraId } = await stagingWorld()
   const env = { ...testEnv(db), SITE_URL: SITE }
   const seed = newSeed()

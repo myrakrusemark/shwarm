@@ -3,11 +3,15 @@ import { OPEN_NODE } from './visibility'
 // page.
 //
 // Tabs say which shwarms, sorts say in what order (decided Oct 12, "The feed: two tabs and a sort"; before that the
-// tabs were hot, new and closed, and Oct 9's "No lobby" dropped filling):
-//   live     live shwarms. sorts: people (the default, Myra Oct 13), hot (live score), new, upvotes, active (posts
-//            per day)
-//   closed   passed and dead ends. sorts: new (ended, newest first, the default), upvotes, people
-// The old ?tab=hot, ?tab=new and ?tab=filling still work: they read as live, sorted hot, new and people.
+// tabs were hot, new and closed, and Oct 9's "No lobby" dropped filling). Every shwarm is live (nothing locks), so the
+// tabs go by its status (decided Oct 14, "With nothing locking: … a passed tab"):
+//   live     every shwarm whose status isn't passed, dead ends among them with their badge. sorts: people (the
+//            default, Myra Oct 13), hot (live score), new, upvotes, active (posts per day)
+//   passed   shwarms whose status is passed. sorts: new (passed, newest first, the default), upvotes, people
+// The old ?tab=hot, ?tab=new and ?tab=filling still work: they read as live, sorted hot, new and people; ?tab=closed,
+// the passed tab's name before Oct 14, reads as passed.
+// A shwarm's status here is the one stored with its band (branch_status), which the stats job brings up to date within
+// minutes of a change that comes with time alone (jobs/stats.ts).
 // Search and #tags filter every tab; the sort stays.
 //
 // Each list is ordered by (k1, k2 = created_at, id), all descending, and paged by keyset: the cursor holds the last
@@ -19,23 +23,24 @@ import { OPEN_NODE } from './visibility'
 // fills, so a view never counts a thread's posts or upvotes; nothing here counts agents.
 import { readSettings } from '../core/settings'
 import { WEEK_MS, rankingFrom, type Ranking } from '../core/stats'
+import type { Status } from '../core/status'
 import { NAME_SHOWN } from './names'
 
-export const TABS = ['live', 'closed'] as const
+export const TABS = ['live', 'passed'] as const
 export type FeedTab = (typeof TABS)[number]
 
 // OPEN: whether something like "needs hands" (fewest people first) joins these is undecided (open #39).
 export const SORTS = ['people', 'hot', 'new', 'upvotes', 'active'] as const
 export type FeedSort = (typeof SORTS)[number]
-const CLOSED_SORTS: readonly FeedSort[] = ['new', 'upvotes', 'people']
+const PASSED_SORTS: readonly FeedSort[] = ['new', 'upvotes', 'people']
 
 /** The sorts a tab offers, its default first. */
-export const sortsFor = (tab: FeedTab): readonly FeedSort[] => (tab === 'live' ? SORTS : CLOSED_SORTS)
+export const sortsFor = (tab: FeedTab): readonly FeedSort[] => (tab === 'live' ? SORTS : PASSED_SORTS)
 export const defaultSort = (tab: FeedTab): FeedSort => sortsFor(tab)[0]
 
 /** The tab and sort a request asks for. Anything unknown is the default; the old tabs read as live (see the top). */
 export function feedView(tab: unknown, sort: unknown): { tab: FeedTab; sort: FeedSort } {
-  const t: FeedTab = tab === 'closed' ? 'closed' : 'live'
+  const t: FeedTab = tab === 'passed' || tab === 'closed' ? 'passed' : 'live'
   const asked = typeof sort === 'string' ? sort : tab === 'new' ? 'new' : tab === 'hot' ? 'hot' : undefined
   const s = sortsFor(t).find(x => x === asked) ?? defaultSort(t)
   return { tab: t, sort: s }
@@ -148,6 +153,7 @@ async function list(db: D1Database, spec: ListSpec, filter: { sql: string; args:
   const args: unknown[] = [...(spec.k1Args ?? []), ...(spec.whereArgs ?? []), ...filter.args]
   let sql =
     `SELECT id, k1, k2 FROM (SELECT n.id, ${spec.k1} AS k1, n.created_at AS k2 FROM node n LEFT JOIN node_stats ns ON ns.node_id = n.id ` +
+    'LEFT JOIN branch_status bs ON bs.node_id = n.id ' +
     `WHERE ${TOP} AND ${visibleSql('n')} AND ${spec.where}${filter.sql})`
   if (after) {
     sql += ' WHERE (k1 < ? OR (k1 = ? AND (k2 < ? OR (k2 = ? AND id < ?))))'
@@ -160,14 +166,17 @@ async function list(db: D1Database, spec: ListSpec, filter: { sql: string; args:
 
 const keyOf = (r: Row): Key => [r.k1, r.k2, r.id]
 
-// When a closed or dead-end shwarm ended: closed_at, set by a pass and by a dead end (never changed_at, which every
-// later post moves). created_at only stands in for a row with no closed_at, so the key never moves.
-const ENDED = 'COALESCE(n.closed_at, n.created_at)'
+/** A shwarm's status as stored with its band (`bs`, branch_status): on track when it has none. */
+const STATUS = "COALESCE(bs.current, 'on_track')"
 
-const STATES: Record<FeedTab, string> = { live: "n.state = 'live'", closed: "n.state IN ('closed', 'dead_end')" }
+// When a shwarm passed: when its status became passed (never changed_at, which every later post moves). created_at only
+// stands in for a row with none, so the key never moves while it stays passed.
+const PASSED_AT = 'COALESCE(bs.changed_at, n.created_at)'
+
+const TAB_SQL: Record<FeedTab, string> = { live: `${STATUS} <> 'passed'`, passed: `${STATUS} = 'passed'` }
 
 // The counted sorts read node_stats, as the cards do (a shwarm the stats job hasn't reached yet counts its author as
-// its one person). Most first; ties go newest first. new is created_at on live and ENDED on closed.
+// its one person). Most first; ties go newest first. new is created_at on live and PASSED_AT on passed.
 const SORT_KEY: Partial<Record<FeedSort, string>> = {
   upvotes: 'COALESCE(ns.upvotes, 0)',
   people: 'COALESCE(ns.people, 1)',
@@ -176,10 +185,11 @@ const SORT_KEY: Partial<Record<FeedSort, string>> = {
 
 /**
  * The live score brought to one moment `at` (core/stats.ts scoreNow, in SQL): the job stores each score at its own
- * updated_at, and every part of it halves each half_life_hours, so this orders rows computed at different times.
+ * updated_at, and every part of it halves each half_life_hours, so this orders rows computed at different times. A
+ * dead end has no score (core/stats.ts ranks), so it sorts last.
  */
 const liveSpec = (at: number, r: Ranking): ListSpec => ({
-  where: "n.state = 'live'",
+  where: TAB_SQL.live,
   k1: 'COALESCE(ns.score, 0) * pow(0.5, (julianday(?) - julianday(COALESCE(ns.updated_at, ?))) * 24.0 / ?)',
   k1Args: [new Date(at).toISOString(), new Date(at).toISOString(), r.half_life_hours],
 })
@@ -193,7 +203,8 @@ export type FeedCard = {
   title: string
   what: string
   doneWhen: string
-  state: 'live' | 'closed' | 'dead_end'
+  /** Its status as stored with its band (core/status.ts): the card's badge. */
+  status: Status
   postedBy: string
   tags: string[]
   upvotes: number
@@ -205,7 +216,7 @@ export type FeedCard = {
   surge: number | null // the hot badge's ratio: 24-hour upvotes over the 7-day daily average (as of the stats job)
   statusLine: string
   buildsOn: { name: string; url?: string; path?: string } | null
-  at: string // the card's time: last change (live), ended (closed, dead end)
+  at: string // the card's time: its last change, or when its status became passed or dead end
 }
 
 export type Feed = { tab: FeedTab; sort: FeedSort; query: Query; cards: FeedCard[]; next: string | null; paged: boolean; searchFailed: boolean }
@@ -217,12 +228,12 @@ type DetailRow = {
   title: string
   what: string
   done_when: string
-  state: FeedCard['state']
+  status: Status
   posted_by: string
   builds_on: string | null
   created_at: string
   changed_at: string | null
-  closed_at: string | null
+  status_at: string | null
   upvotes: number
   posts: number
   impact: number
@@ -241,8 +252,8 @@ async function details(db: D1Database, ids: number[]): Promise<Map<number, FeedC
   if (!ids.length) return out
   const { results } = await db
     .prepare(
-      `SELECT n.id, n.path, n.kind, n.title, n.what, n.done_when, n.state, ${NAME_SHOWN('n.posted_by')} AS posted_by, n.builds_on,
-              n.created_at, n.changed_at, n.closed_at,
+      `SELECT n.id, n.path, n.kind, n.title, n.what, n.done_when, ${STATUS} AS status, ${NAME_SHOWN('n.posted_by')} AS posted_by, n.builds_on,
+              n.created_at, n.changed_at, bs.changed_at AS status_at,
               COALESCE(ns.upvotes, 0) AS upvotes, COALESCE(ns.posts, 0) AS posts, COALESCE(ns.impact, 0) AS impact,
               COALESCE(ns.posts_per_day, 0) AS posts_per_day, COALESCE(ns.people, 1) AS people, COALESCE(ns.hot, 0) AS hot,
               ns.surge, COALESCE(ns.status_line, '') AS status_line,
@@ -250,6 +261,7 @@ async function details(db: D1Database, ids: number[]): Promise<Map<number, FeedC
               b.title AS b_title, b.path AS b_path
        FROM node n
        LEFT JOIN node_stats ns ON ns.node_id = n.id
+       LEFT JOIN branch_status bs ON bs.node_id = n.id
        LEFT JOIN node b ON b.path = (CASE WHEN json_valid(n.builds_on) THEN json_extract(n.builds_on, '$.node') END) AND ${visibleSql('b')}
        WHERE n.id IN (SELECT value FROM json_each(?))`,
     )
@@ -270,7 +282,7 @@ async function details(db: D1Database, ids: number[]): Promise<Map<number, FeedC
       title: r.title,
       what: r.what,
       doneWhen: r.done_when,
-      state: r.state,
+      status: r.status,
       postedBy: r.posted_by,
       tags,
       upvotes: r.upvotes,
@@ -278,11 +290,11 @@ async function details(db: D1Database, ids: number[]): Promise<Map<number, FeedC
       impact: r.impact,
       postsPerDay: r.posts_per_day,
       people: r.people,
-      hot: !!r.hot && r.state === 'live',
-      surge: r.hot && r.state === 'live' && r.surge ? r.surge : null,
+      hot: !!r.hot,
+      surge: r.hot && r.surge ? r.surge : null,
       statusLine: r.status_line,
       buildsOn: buildsOn(r),
-      at: r.state === 'live' ? (r.changed_at ?? r.created_at) : (r.closed_at ?? r.created_at),
+      at: r.status === 'passed' || r.status === 'dead_end' ? (r.status_at ?? r.created_at) : (r.changed_at ?? r.created_at),
     })
   }
   return out
@@ -324,7 +336,7 @@ export async function loadFeed(db: D1Database, opts: FeedOptions, now = Date.now
   const base = { tab, sort, query, paged: !!cursor }
   try {
     if (sort === 'hot') return { ...base, ...(await hot(db, filter, cursor, now)), searchFailed: false }
-    const spec: ListSpec = { where: STATES[tab], k1: SORT_KEY[sort] ?? (tab === 'live' ? 'n.created_at' : ENDED) }
+    const spec: ListSpec = { where: TAB_SQL[tab], k1: SORT_KEY[sort] ?? (tab === 'live' ? 'n.created_at' : PASSED_AT) }
     const rows = await list(db, spec, filter, cursor?.k, PAGE_SIZE + 1)
     const page = rows.slice(0, PAGE_SIZE)
     const cards = await details(db, page.map(r => r.id))

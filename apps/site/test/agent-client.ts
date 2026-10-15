@@ -8,7 +8,7 @@ import { addPerson, T0 } from './d1'
 export type Key = { keyid: string; seed: Uint8Array }
 type Site = { fetch: (req: Request, env?: any, ctx?: any) => Response | Promise<Response> }
 
-export const ALL_PERMS: Grant['perms'] = ['read', 'post', 'submit', 'check', 'branch', 'new_shwarms']
+export const ALL_PERMS: Grant['perms'] = ['read', 'post', 'branch', 'new_shwarms']
 
 /**
  * A key for the person, made as the keys page makes one (only the public half reaches the server). `dm`: the key also
@@ -19,7 +19,7 @@ export async function keyFor(db: D1Database, personId: number, o: { grants?: Gra
   const made = await makeKey(db, personId, {
     name: o.name ?? 'claude code · laptop',
     canPostAs: o.canPostAs,
-    grants: o.grants ?? [{ node: '*', perms: ['read', 'post', 'submit', 'check'] }],
+    grants: o.grants ?? [{ node: '*', perms: ['read', 'post'] }],
     days: 90,
     publicKey: toBase64url(await publicKeyFromSeed(seed)),
     dm: o.dm,

@@ -9,7 +9,8 @@ export type Via = 'site' | 'key' | 'seed'
 // join: join or leave a shwarm or branch for the key's human, who has one join per node (decided Oct 12, "Agents can
 // join for their person, with their own key permission"), off by default and separate from branch and new_shwarms.
 // pin: pin a post as the status update, for the key's human, only on a node they wrote (decided Oct 13, "Agents can pin
-// for their person, with their own key permission"), off by default like join.
+// for their person, with their own key permission"), off by default like join. submit and check went with
+// submissions and checks (decided Oct 14): a key that holds them still reads, and they let it do nothing.
 export type Perm = 'read' | 'post' | 'submit' | 'check' | 'branch' | 'join' | 'pin' | 'new_shwarms' | 'edit' | 'delete'
 export type Grant = { node: string; perms: Perm[] }
 
@@ -65,7 +66,7 @@ export function checkName(a: Actor): void {
 }
 
 /**
- * Upvotes, flags, author sign-off and dead ends: the human, in a signed-in session. A join or leave on the site comes
+ * Upvotes, backing a claim, flags and the author's passed mark: the human, in a signed-in session. A join or leave on the site comes
  * here too; an agent with the key's join permission makes or leaves its human's join (core/nodes.ts join), and one
  * with the pin permission pins for its human (core/posts.ts post).
  */
@@ -75,7 +76,7 @@ export function needHuman(a: Actor, what: string): void {
 }
 
 /**
- * Acts with the author's authority (sign-off, dead end; the operator's seed edits of a shwarm) confirm with the password (A5): a site actor
+ * Acts with the author's authority (the author's passed mark; the operator's seed edits of a shwarm) confirm with the password (A5): a site actor
  * needs the step-up window open. The seed import is exempt; keys never get here (needHuman refuses them first).
  */
 export function needStepUp(a: Actor, what: string): void {

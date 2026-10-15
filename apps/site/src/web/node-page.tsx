@@ -1,29 +1,32 @@
-// The shwarm page (the live template) and the branch page, /w/<path> (go-live 3.3, 3.4), ported from
-// mockups/shwarm.html and mockups/branch.html. Every piece of participant text goes through render/text.tsx.
-// A closed shwarm shows its result page instead (web/result-page.tsx, go-live 5.7); this live template is its thread
-// (?thread=1). A passed branch keeps this template, with "proof it's done" above its thread. An ended node (passed or a
-// dead end) is locked (decided Oct 9): no compose box, pin, join, edit or delete, and the author's box is gone; a shwarm
-// offers "build on this" instead.
-// Join (go-live 8.2, decided Oct 12): a live shwarm or branch has a join button on its own post (the head) and one in
-// the contributors box; both open one "say hi!" modal (JoinModal), whose optional words become the joiner's first post,
-// marked "✿ joined". With no words the thread shows a quiet "✿ @you joined" line. With scripts off, either button posts a
-// plain join. The burst (static/js/node.js) plays on the page the join lands on, where the modal was.
-import { useContext, type FC } from 'hono/jsx'
+// The shwarm and branch pages, /w/<path> (go-live 3.3, 3.4), ported from mockups/shwarm.html and mockups/branch.html.
+// Every piece of participant text goes through render/text.tsx.
+// One model for every node (decided Oct 14): a shwarm and a branch each have a status, set by an on-track vote and the
+// claims people back (core/status.ts): its badge in the head, in the people card and in its parent's list; in the people
+// card, joined, the on-track vote and the three claim forms; in the thread, each claim's tag and its "back", and a passed
+// claim's pinned work. Nothing locks: a node that passed keeps its thread, branches and join, with its pass box above the
+// thread (the dated pass records, their pinned work and the status history), where a shwarm's author can mark it passed
+// too. Every shwarm offers "build on this shwarm". Old submissions and their checks still show in the thread, as history.
+// Join (go-live 8.2, decided Oct 12): a shwarm or branch has a join button on its own post (the head) and one in the
+// people card; both open one "say hi!" modal (JoinModal), whose optional words become the joiner's first post, marked
+// "✿ joined". With no words the thread shows a quiet "✿ @you joined" line. With scripts off, either button posts a plain
+// join. The burst (static/js/node.js) plays on the page the join lands on, where the modal was.
+import { useContext, type Child as JsxChild, type FC } from 'hono/jsx'
 import { shortHash } from '@shwarm/protocol'
-import type { Link } from '@shwarm/protocol'
+import { isRadRepo, type Link, type WebLink } from '@shwarm/protocol'
 import { joinHref, signInHref } from '../auth/return-to'
 import type { CheckSpec } from '../core/checks'
 import type { BuiltOnBy, BuiltOnLink, Chain, CheckReport, Child, Contributor, JoinLine, NodeEdit, NodeHead, PostEdit, PostRow, Show, Sort, SubmissionRow, Thread } from '../read/node'
-import { EDITS_SHOWN, lockedBy, postsOnPage, QUIET_HOURS, SHOWS, SORTS } from '../read/node'
-import { passedByVote, statusNow, STATUSES, type Status, type StatusTally } from '../core/status'
+import { EDITS_SHOWN, postsOnPage, QUIET_HOURS, SHOWS, SORTS } from '../read/node'
+import { CLAIMS, hoursUntil, isClaim, MARGIN, STATUSES, type Claim, type NodeStatus, type Status } from '../core/status'
+import { PASS_BOX, type ClaimRow, type PassRecord, type StatusData } from '../read/status'
 import { FORMER } from '../read/names'
+import { postsPerDay } from '../read/people'
 import { ACTIVITY_DAYS, type ActivityDay } from '../read/activity'
-import { groupBySlot, isOpen, openReview, recordedStatus, review, waitingDays, type ReviewRow } from '../read/review'
-import { ago, cut, dayOf, exact, licenseName, monthDay, perDay, q1, shortNum, triageNote } from '../render/format'
+import { recordedStatus, review, type ReviewRow } from '../read/review'
+import { ago, cut, exact, licenseName, monthDay, perDay, q1, shortNum, triageNote } from '../render/format'
 import { showHidden } from '../render/hidden'
-import { MAX_TEXT, MAX_TITLE } from '../core/text'
+import { MAX_TEXT } from '../core/text'
 import { Command, LINK_REL, linkParts, Log, Name, Plain, tagHref, Text } from '../render/text'
-import { RELEASE_CAPS } from '../core/posts'
 import { REASON_LABEL, REASONS, REPORT_TEXT_MAX } from '../core/reports'
 import { FLAG_LABEL, FLAG_REASONS, PAUSE_AT } from '../core/flags'
 import { AgentResources, Layout } from './layout'
@@ -45,20 +48,20 @@ export const TriageNote = (p: { triage: string }) =>
 export type Me = { personId: number; handle: string; verified: boolean } | null
 
 /**
- * A refused form, shown next to it: the compose box, join or leave (`seats`), the author's own box (dead end), or one
- * post's upvote, edit, delete or report (`post` names it). `draft` keeps the text they wrote; a refused submission
- * (`mode: 'submit'`) keeps every field of the submit form in `fields` and opens it again; a refused edit opens its form
- * again, and so does a refused report (`report`, with its reason in `fields`). `flag`: "flag this shwarm" in the head,
- * with its reason in `fields`.
+ * A refused form, shown next to it: the compose box, join or leave (`seats`), the author's "mark it passed" (`owner`,
+ * the claim they picked in `fields.post`), one post's upvote, back, edit, delete or report (`post` names it), or the
+ * people card's on-track vote or claim form (`status`; a claim's status and its pinned work in `fields`, which opens its
+ * form again). `draft` keeps the text they wrote; a refused edit opens its form again, and so does a refused report
+ * (`report`, with its reason in `fields`). `flag`: "flag this shwarm" in the head, with its reason in `fields`.
  */
-export type Flash = { at: 'compose' | 'seats' | 'owner' | 'post' | 'flag' | 'status'; text: string; draft?: string; mode?: 'submit'; fields?: Record<string, string>; post?: string; pin?: boolean; report?: boolean }
+export type Flash = { at: 'compose' | 'seats' | 'owner' | 'post' | 'flag' | 'status'; text: string; draft?: string; fields?: Record<string, string>; post?: string; pin?: boolean; report?: boolean }
 
 export type NodePageData = {
   chain: Chain
   branches: Child[]
   contributors: { rows: Contributor[]; total: number }
-  subs: SubmissionRow[]
-  checks: Map<string, CheckReport[]>
+  subs: SubmissionRow[] // the node's submissions from before Oct 14, shown in the thread as history
+  checks: Map<string, CheckReport[]> // and their checks
   thread: Thread
   myUps?: Map<string, boolean> // the viewer's upvotes on the posts shown: post id → counted (A6)
   myReports?: Set<string> // the posts shown that the viewer reported (core/reports.ts)
@@ -67,10 +70,10 @@ export type NodePageData = {
   joins?: JoinLine[] // the thread's quiet "✿ @you joined" lines: joins made here with no hello, oldest first (read/node.ts readJoins)
   nodeEdits?: NodeEdit[] // the shwarm's earlier versions, newest first (its author's edits until Oct 12; re-pitches before Oct 10)
   activity: ActivityDay[] // public posts per UTC day here and under here, oldest first, today last (read/activity.ts)
-  status?: { votes: StatusTally; mine: Status | null } // a branch's status votes, and the viewer's own (decided Oct 13)
+  status: StatusData // its status, claims, pass records and history, and the viewer's own backing (decided Oct 14)
   sort: Sort
   show: Show
-  url: string // this node's absolute URL, for the contribute card
+  url: string // this node's absolute URL, for the people card
   here: string // this page's path and query, for return-to links
   me: Me
   now: number
@@ -78,12 +81,11 @@ export type NodePageData = {
   limit?: { left: number; wait: number } // thread posts left right now (core/limits.ts peekThreadTokens)
   steppedUp?: boolean // the password was entered in the last 10 minutes (auth/stepup.ts stepUpOpen), so the author's acts don't ask again
   flash?: Flash
-  threadView?: boolean // a closed shwarm's thread, behind its result page (?thread=1): links keep it and go back to the result
 }
 
 export const nodeHref = (path: string) => `/w/${path}`
-export const subHref = (path: string, n: number) => `/w/${path}/s/${n}` // the submission page (go-live 5.2)
-/** An ended shwarm's "build on this": the create form with builds-on filled in (go-live 4.3; decided Oct 9, passed or a dead end). */
+export const subHref = (path: string, n: number) => `/w/${path}/s/${n}` // an old submission's page (go-live 5.2)
+/** A shwarm's "build on this": the create form with builds-on filled in (go-live 4.3; decided Oct 14, any shwarm). */
 export const buildOnHref = (path: string) => `/new?builds_on=${encodeURIComponent(path)}`
 /** A shwarm's or branch's link preview (go-live 11.7, web/layout.tsx `card`): its title, and its pitch as the description. */
 export const previewCard = (n: { title: string; what: string }) => ({ title: showHidden(n.title), description: cut(showHidden(n.what), 200) })
@@ -92,67 +94,40 @@ const Imp: FC<{ q: number; ppd: number }> = ({ q, ppd }) => (
   <span class="imp" style={`--q:${q1(q)}`} title={fill(w.node.impTitle, { q: q1(q), ppd: perDay(ppd) })}>{fill(w.node.impPerDay, { ppd: perDay(ppd) })}</span>
 )
 export const humanOf = (name: string) => name.split('/')[0]
+/** "shwarm" or "branch", for the {kind} in the words. */
+const kindWord = (n: { kind: string }) => (n.kind === 'branch' ? w.node.kindBranch : w.node.kindShwarm)
 /** Whether a post is on this page of the thread (the pinned posts, the posts and their replies). */
 const onPage = (t: Thread, id: string | undefined) => !!id && postsOnPage(t).some(p => p.id === id)
 
 export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
-  const isBranch = n.kind === 'branch'
-  // A passed branch shows what passed it above the thread (no result page of its own: OPEN #81).
-  const passed = isBranch && n.state === 'closed' ? d.subs.find(s => s.status === 'passed') : undefined
   const opensSoon = useContext(PageContext).opensSoon
   return (
-    <Layout title={fill(w.node.pageTitle, { title: showHidden(n.title) })} description={cut(showHidden(n.what), 200)} canonical={d.threadView ? `${nodeHref(n.path)}?thread=1` : nodeHref(n.path)} card={previewCard(n)}>
+    <Layout title={fill(w.node.pageTitle, { title: showHidden(n.title) })} description={cut(showHidden(n.what), 200)} canonical={nodeHref(n.path)} card={previewCard(n)}>
       <link rel="stylesheet" href="/css/node.css" />
-      {passed && <link rel="stylesheet" href="/css/result.css" />}
-      {isBranch ? (
-        <Crumbs chain={d.chain} />
-      ) : d.threadView ? (
-        // OPEN (#81): "back to the result" isn't in a mockup; it waits on Myra's yes.
-        <a class="back" href={nodeHref(n.path)}>{w.node.backToResult}</a>
-      ) : (
-        <a class="back" href="/">{w.node.backToHot}</a>
-      )}
+      {n.kind === 'branch' ? <Crumbs chain={d.chain} /> : <a class="back" href="/">{w.node.backToHot}</a>}
       {n.visibility === 'author' && <TriageNote triage={n.triage} />}
       {n.paused === 1 && <PausedNote kind={n.kind} />}
       <Head d={d} />
       <div class="grid">
         <main id="main" tabindex={-1}>
           {/* a refusal whose form isn't on the page (a forged or stale one) shows at the top */}
-          {((d.flash?.at === 'compose' && !!lockedBy(d.chain)) || (d.flash?.at === 'seats' && (!hasSeatForm(d) || (!!joinFlash(d) && !canJoin(d, opensSoon)))) || (d.flash?.at === 'owner' && !hasOwnerBox(d)) || (d.flash?.at === 'post' && !onPage(d.thread, d.flash.post)) || (d.flash?.at === 'flag' && !hasFlagSpot(d)) || (d.flash?.at === 'status' && !hasStatusForm(d))) && (
+          {((d.flash?.at === 'seats' && !!joinFlash(d) && !canJoin(d, opensSoon)) || (d.flash?.at === 'owner' && !canMark(d)) || (d.flash?.at === 'post' && !onPage(d.thread, d.flash.post)) || (d.flash?.at === 'flag' && !hasFlagSpot(d)) || (d.flash?.at === 'status' && !hasStatusForm(d, opensSoon))) && (
             <p class="err flash" role="alert">{d.flash.text}</p>
           )}
-          {passed && <Proof n={n} sub={passed} checks={d.checks.get(passed.post_id) ?? []} />}
+          <PassBox d={d} />
           <Compose d={d} />
           <ThreadView d={d} />
         </main>
         <aside>
           <Owner d={d} />
-          <div class="box you">
-            <h2 class="sunny">{w.node.contribute}</h2>
-            <div class="in">
-              <span class="note">{fill(w.node.yourUrl, { kind: isBranch ? w.node.kindBranch : w.node.kindShwarm })}</span>
-              <div class="url"><code id="w-url">{d.url}</code><button class="btn" id="w-copy" type="button">{w.node.copy}</button></div>
-              {/* Myra asked for basic steps under the url (Oct 10); the words wait on her yes. */}
-              <details class="how-join">
-                <summary>{w.node.howToJoin}</summary>
-                <ol>
-                  <li>{w.node.howToJoin1}</li>
-                  <li>{w.node.howToJoin2}</li>
-                  <li>{fillx(w.node.howToJoin3, { keys: <a href="/keys">{w.node.keysLink}</a>, skills: <a href="/skills">{w.node.skillsLink}</a> })}</li>
-                  <li>{w.node.howToJoin4}</li>
-                </ol>
-                <p class="note">{fillx(w.node.beforeAgent, { guide: <a href="/guide-safety">{w.node.safetyLink}</a> })}</p>
-              </details>
-            </div>
-          </div>
-          <StatusBox d={d} />
+          <PeopleCard d={d} />
           <Branches d={d} />
-          <Contributors d={d} />
           <AgentResources />
         </aside>
       </div>
       <JoinModal d={d} />
+      <PeopleModal d={d} />
       <script src="/js/node.js" defer></script>
     </Layout>
   )
@@ -171,14 +146,6 @@ const Crumbs: FC<{ chain: Chain }> = ({ chain }) => (
     <Plain text={chain.node.title} />
   </nav>
 )
-
-export const Pill: FC<{ n: { kind: string; state: string; in_review: number; live_at?: string | null }; now: number; short?: boolean }> = ({ n, now, short }) => {
-  if (n.state === 'closed') return <span class="st done">{w.node.closed}</span>
-  if (n.state === 'dead_end') return <span class="st dead">{w.node.deadEnd}</span>
-  if (short) return <span class="st live">{w.node.live}</span>
-  if (n.in_review) return <span class="st live">{w.node.liveInReview}</span>
-  return <span class="st live">{n.kind === 'branch' ? w.node.live : fill(w.node.liveDay, { n: dayOf(n.live_at ?? null, now) })}</span>
-}
 
 const Head: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
@@ -220,24 +187,15 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
           <div class="done">
             <h3>{w.node.doneWhen}</h3>
             <Text text={n.done_when} />
-            <h3>{w.node.checkedBy}</h3>
-            <CheckedBy spec={n.spec} author={n.author} branch={n.kind === 'branch'} />
-            <div class="stat"><StatusLine d={d} /></div>
-            <BuildOnLink d={d} />
+            {hasStatusLine(d) && <div class="stat"><StatusLine d={d} /></div>}
+            {!isBranch && <div class="alt"><a href={buildOnHref(n.path)}>{w.node.buildOnThis}</a></div>}
           </div>
         </div>
       </div>
       <div class="state">
-        {/* A live branch shows its vote badge, or nothing: "live" only says it hasn't ended (Myra, Oct 13: "What is
-            live? If it exists it's live yeah?"). A shwarm keeps its "live · day n". */}
-        {n.kind !== 'branch' || n.state !== 'live' ? (
-          <Pill n={n} now={d.now} />
-        ) : (
-          <>
-            {n.in_review === 1 && <span class="st live">{w.node.inReviewPill}</span>}
-            {d.status && statusNow(d.status.votes) && <VoteBadge votes={d.status.votes} mine={d.status.mine} id="vb-head" />}
-          </>
-        )}
+        {/* The status badge, in place of "live", which only said it hadn't ended (Myra, Oct 13: "What is live? If it
+            exists it's live yeah?"): nothing ends now (decided Oct 14). */}
+        <StatusBadge s={d.status.now} mine={d.status.myBacking?.status} now={d.now} id="vb-head" />
         <HeadJoin d={d} />
       </div>
     </section>
@@ -280,10 +238,15 @@ const EditHistory: FC<{ n: NodeHead; edits: NodeEdit[]; now: number }> = ({ n, e
 const Builds: FC<{ n: NodeHead }> = ({ n }) => {
   const bo = n.builds_on
   if (!bo) return <div class="builds">{fillx(w.node.license, { license: <b>{licenseName(n.license)}</b> })}</div>
+  // A shwarm here, as of the pass it built on, when it had one (decided Oct 14): "builds on minecraft in doom, as passed oct 14".
   if ('node' in bo)
     return (
       <div class="builds">
-        {fillx(w.node.buildsOnNode, { node: <a class="up" href={nodeHref(bo.node)}><b><Plain text={bo.title ?? bo.node} /></b>/w/{bo.node}</a>, license: <b><Plain text={n.license} /></b> })}
+        {fillx(bo.as_of ? w.node.buildsOnNodeAsOf : w.node.buildsOnNode, {
+          node: <a class="up" href={nodeHref(bo.node)}><b><Plain text={bo.title ?? bo.node} /></b>/w/{bo.node}</a>,
+          date: bo.as_of && <a href={`${nodeHref(bo.node)}#${PASS_BOX}`} title={exact(bo.as_of.at)}>{monthDay(bo.as_of.at)}</a>,
+          license: <b><Plain text={n.license} /></b>,
+        })}
       </div>
     )
   const p = bo.url ? linkParts(bo.url) : null
@@ -303,11 +266,9 @@ const Builds: FC<{ n: NodeHead }> = ({ n }) => {
   )
 }
 
-// A branch's checks are evidence for its status vote, which is its pass (decided Oct 13); one opened with only an author
-// check now asks for none.
-export const CheckedBy: FC<{ spec: CheckSpec; author: string; branch?: boolean }> = ({ spec, author, branch }) => (
+/** The checks a shwarm had before Oct 14 (nothing takes checks now): on its old submissions' pages and in its earlier versions. */
+export const CheckedBy: FC<{ spec: CheckSpec; author: string }> = ({ spec, author }) => (
   <ul>
-    {branch && !spec.runs && !spec.people && <li>{w.node.branchNoChecks}</li>}
     {spec.runs && (
       <li>
         <Command cmd={spec.runs.command} /> · {count(w.node.runsBy, spec.runs.count)}
@@ -325,28 +286,10 @@ export const CheckedBy: FC<{ spec: CheckSpec; author: string; branch?: boolean }
   </ul>
 )
 
-const StatusLine: FC<{ d: NodePageData }> = ({ d }) => {
-  const n = d.chain.node
-  if (n.state === 'dead_end') return <>{n.dead_end_note ? fillx(w.node.statusDeadEndNote, { note: <Text inline text={n.dead_end_note} /> }) : w.node.statusDeadEnd}</>
-  const sub = openReview(d.chain, d.subs)
-  if (sub) {
-    const r = review(n.spec, n.author, sub, d.checks.get(sub.post_id) ?? [])
-    // "waiting on you" to the author (SUB-24), and how long it has waited on them (table B #57).
-    const onAuthor = r.waitingOn === 'author' ? (d.me?.personId === n.author_id ? w.node.waitingOnYou : w.node.waitingOnAuthor) : null
-    const days = onAuthor ? waitingDays(sub.ready_at, d.now) : null
-    return (
-      <>
-        {fillx(w.node.inReview, {
-          submission: <a href={subHref(n.path, sub.number)}>{fill(w.node.submissionNumber, { n: sub.number })}</a>,
-          checks: count(w.node.checksDone, r.total, { done: r.done }),
-        })}
-        {r.failed ? ` · ${w.node.checkFailed}` : onAuthor ? ` · ${onAuthor}` : r.waitingOn ? ` · ${w.node.waitingOnChecks}` : ''}
-        {days && ` · ${count(w.node.days, days)}`}
-      </>
-    )
-  }
-  return <>{recordedStatus(n, d.subs, d.branches).replace(/\.$/, '')}</>
-}
+/** The status line under the done test (read/review.ts recordedStatus): why the node isn't on track, else its branches by status. */
+const hasStatusLine = (d: NodePageData) => !!recordedStatus(d.chain.node, d.status, d.branches)
+
+const StatusLine: FC<{ d: NodePageData }> = ({ d }) => <>{recordedStatus(d.chain.node, d.status, d.branches).replace(/\.$/, '')}</>
 
 // ---------- thread ----------
 
@@ -358,8 +301,6 @@ export function limitLine(l: NodePageData['limit']): string {
 }
 
 const Compose: FC<{ d: NodePageData }> = ({ d }) => {
-  const locked = lockedBy(d.chain)
-  if (locked) return <Locked n={d.chain.node} by={locked} />
   // A paused node takes no writes (core/context.ts loadNode) until the operator looks (core/flags.ts).
   if (d.chain.node.paused === 1)
     return (
@@ -387,7 +328,6 @@ const Compose: FC<{ d: NodePageData }> = ({ d }) => {
       </div>
     )
   const flash = d.flash?.at === 'compose' ? d.flash : undefined
-  const inSubmit = flash?.mode === 'submit'
   if (!d.me.verified)
     return (
       <div class="compose">
@@ -403,10 +343,9 @@ const Compose: FC<{ d: NodePageData }> = ({ d }) => {
     <form class="compose" method="post" action={nodeHref(d.chain.node.path)}>
       <input type="hidden" name="form_token" value={d.token} />
       <div class="to">{fillx(w.node.postingAs, { name: <b><Name name={'@' + d.me.handle} link /></b> })}</div>
-      <textarea name="text" required maxlength={MAX_TEXT} aria-label={w.node.yourPost} aria-describedby={flash && !inSubmit ? 'compose-err' : undefined} placeholder={w.node.composePlaceholder}>{flash?.draft ?? ''}</textarea>
-      {flash && !inSubmit && <p class="err" id="compose-err" role="alert">{flash.text}</p>}
-      {d.me.personId === d.chain.node.author_id && <PinMode checked={!inSubmit && flash?.pin} />}
-      <SubmitMode flash={inSubmit ? flash : undefined} />
+      <textarea name="text" required maxlength={MAX_TEXT} aria-label={w.node.yourPost} aria-describedby={flash ? 'compose-err' : undefined} placeholder={w.node.composePlaceholder}>{flash?.draft ?? ''}</textarea>
+      {flash && <p class="err" id="compose-err" role="alert">{flash.text}</p>}
+      {d.me.personId === d.chain.node.author_id && <PinMode checked={flash?.pin} />}
       <div class="row">
         <span class="note">{limitLine(d.limit)}</span>
         <button class="btn plain" type="submit" name="do" value="post">{w.node.post}</button>
@@ -418,12 +357,12 @@ const Compose: FC<{ d: NodePageData }> = ({ d }) => {
 /**
  * The banner on a paused node (go-live 9.3, core/flags.ts), for everyone: three people with established accounts flagged
  * it, so it takes no writes until the operator unpauses it. Nobody is named.
- * Also on a passed shwarm's result page and on submission pages (web/result-page.tsx, web/submission-page.tsx).
+ * Also on old submissions' pages (web/submission-page.tsx).
  * OPEN (#106): new wording. No mockup draws it.
  */
 export const PausedNote: FC<{ kind: string }> = ({ kind }) => (
   <p class="held paused" role="status">
-    {fillx(w.node.pausedNote, { kind: kind === 'branch' ? w.node.kindBranch : w.node.kindShwarm, rules: <a href="/rules">{w.node.rulesLink}</a> })}
+    {fillx(w.node.pausedNote, { kind: kindWord({ kind }), rules: <a href="/rules">{w.node.rulesLink}</a> })}
   </p>
 )
 
@@ -439,7 +378,7 @@ const hasFlagSpot = (d: NodePageData) => !!d.me?.verified && d.me.personId !== d
  */
 const FlagNode: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
-  const word = n.kind === 'branch' ? w.node.kindBranch : w.node.kindShwarm
+  const word = kindWord(n)
   if (!d.me) return <> · <a class="flag-it" href={signInHref(d.here)}>{fill(w.node.flagThis, { kind: word })}</a></>
   if (!hasFlagSpot(d)) return null
   const flash = d.flash?.at === 'flag' ? d.flash : undefined
@@ -471,27 +410,6 @@ const FlagNode: FC<{ d: NodePageData }> = ({ d }) => {
 }
 
 /**
- * In place of the compose box on an ended node (decided Oct 9, "An ended shwarm is locked"): it takes nothing new, and a
- * shwarm is carried on by building on it. `by` is the ended node that locks it (lockedBy): itself, or one above it.
- * OPEN (#92): no mockup draws it; its words, and those for a branch under an ended node, wait on Myra's yes.
- */
-const Locked: FC<{ n: NodeHead; by: NodeHead }> = ({ n, by }) => {
-  const kind = n.kind === 'branch' ? w.node.kindBranch : w.node.kindShwarm
-  const passed = by.state === 'closed'
-  return (
-    <div class="compose locked">
-      <div class="to">{w.node.locked}</div>
-      <p>
-        {by === n
-          ? fill(passed ? w.node.lockedPassed : w.node.lockedDeadEnd, { kind })
-          : fillx(passed ? w.node.lockedAbovePassed : w.node.lockedAboveDeadEnd, { node: <a href={nodeHref(by.path)}><Plain text={by.title} /></a>, kind })}
-        {by.kind !== 'branch' && fillx(w.node.lockedBuildOn, { link: <a href={buildOnHref(by.path)}>{w.node.buildOnIt}</a> })}
-      </p>
-    </div>
-  )
-}
-
-/**
  * The author's pin box (go-live 4.6): a post sent with this box ticked is pinned at the top of the thread, above the
  * posts pinned before it (decided Oct 14, "A thread can pin several posts"), and its first line is the feed card's status
  * line (table B #40) until another is pinned. The author keeps it current with "edit" on the pinned post.
@@ -503,42 +421,6 @@ const PinMode: FC<{ checked?: boolean }> = ({ checked }) => (
   </label>
 )
 
-/**
- * The compose box's submit mode (go-live 5.1), no script needed: the text above says what was done; these fields
- * make it a submission against the done test. The work is linked, never uploaded (shwarm stores only text).
- * OPEN: no mockup draws this; the labels and placeholders wait on Myra's yes.
- */
-const SubmitMode: FC<{ flash?: Flash }> = ({ flash }) => {
-  const f = flash?.fields ?? {}
-  return (
-    <details class="submit" open={flash ? true : undefined}>
-      <summary>{w.node.submitWork}</summary>
-      <p class="note">{w.node.submitNote}</p>
-      <label for="s-links">{w.node.linkedWork}</label>
-      <span class="note" id="s-links-n">{w.node.linkedWorkNote}</span>
-      <textarea id="s-links" aria-describedby="s-links-n" name="links" rows={2} placeholder={w.node.linkedWorkPlaceholder}>{f.links ?? ''}</textarea>
-      <label for="s-built">{w.node.builtOnField} <span class="note" id="s-built-n">{w.node.optional}</span></label>
-      <span class="note">{w.node.builtOnNote}</span>
-      <textarea id="s-built" aria-describedby="s-built-n" name="built_on" rows={2} placeholder={w.node.builtOnPlaceholder}>{f.built_on ?? ''}</textarea>
-      <label for="s-how">{w.node.howToCheckField}</label>
-      <span class="note" id="s-how-n">{w.node.howToCheckNote}</span>
-      <textarea id="s-how" aria-describedby="s-how-n" name="how_to_check" rows={2} maxlength={MAX_TEXT} placeholder={w.node.howToCheckPlaceholder}>{f.how_to_check ?? ''}</textarea>
-      <fieldset>
-        <legend>{w.node.release} <span class="note">{w.node.releaseNote}</span></legend>
-        <label>{w.node.releaseName} <input name="release_name" maxlength={RELEASE_CAPS.name} value={f.release_name ?? ''} /></label>
-        <label>{w.node.releaseVersion} <input name="release_version" maxlength={RELEASE_CAPS.version} value={f.release_version ?? ''} /></label>
-        <label for="s-use">{w.node.releaseHowToUse}</label>
-        <textarea id="s-use" name="release_how_to_use" rows={2} maxlength={RELEASE_CAPS.howToUse}>{f.release_how_to_use ?? ''}</textarea>
-      </fieldset>
-      {flash && <p class="err" role="alert">{flash.text}</p>}
-      <div class="row">
-        <span class="note">{w.node.submitLimit}</span>
-        <button class="btn" type="submit" name="do" value="submit">{w.node.submit}</button>
-      </div>
-    </details>
-  )
-}
-
 const showLabel = (s: Show) => ({ all: w.node.showAll, humans: w.node.showHumans, agents: w.node.showAgents })[s]
 const sortLabel = (s: Sort) => ({ active: w.node.sortActive, new: w.node.sortNew, top: w.node.sortTop })[s]
 
@@ -546,7 +428,6 @@ function query(d: NodePageData, o: { sort?: Sort; show?: Show; page?: number }):
   const sort = o.sort ?? d.sort
   const show = o.show ?? d.show
   const q = new URLSearchParams()
-  if (d.threadView) q.set('thread', '1')
   if (sort !== 'active') q.set('sort', sort)
   if (show !== 'all') q.set('show', show)
   if (o.page && o.page > 1) q.set('page', String(o.page))
@@ -649,8 +530,13 @@ export const parseLinks = (s: string | null): Link[] => {
  * A linked file or repo, as a link with its label, host and fingerprint ("corner-fix.diff ↗ (codeberg.org, sha256 3f9a…)").
  * `compact` (check rows, as branch.html draws them) moves only the fingerprint to the tooltip. The host stays on
  * screen, because the label is free text ("codeberg.org/…" on a link to evil.example) and touch screens show no tooltips.
+ * A pin that carries its own hash (decided Oct 14: an ipfs:// address, a magnet: link, a rad: repo at a commit) shows as
+ * code to copy, never as a link: the site fetches nothing and names no gateway.
  */
 export const LinkChip: FC<{ l: Link; compact?: boolean }> = ({ l, compact }) => {
+  if ('ipfs' in l) return <CodePin label={l.label} text={l.ipfs} />
+  if ('magnet' in l) return <CodePin label={l.label} text={l.magnet} />
+  if ('repo' in l && isRadRepo(l.repo)) return <CodePin label={l.label} text={l.repo} at={<>{fill(w.node.linkCommit, { hash: l.commit.slice(0, 7) })}{l.path && <>, <Plain text={l.path} /></>}</>} />
   const { p, label, host } = linkView(l)
   const print = 'sha256' in l ? fill(w.node.linkSha, { hash: l.sha256.slice(0, 4) }) : fill(w.node.linkCommit, { hash: l.commit.slice(0, 7) })
   if (compact) {
@@ -665,11 +551,20 @@ export const LinkChip: FC<{ l: Link; compact?: boolean }> = ({ l, compact }) => 
   )
 }
 
+/** A pin that carries its own hash, as code to copy: its label, if it has one, then the address, then where in it (`at`). */
+const CodePin: FC<{ label?: string; text: string; at?: JsxChild }> = ({ label, text, at }) => (
+  <>
+    {label && <><Plain text={label} />{' '}</>}
+    <code class="pin"><Plain text={text} /></code>
+    {at && <>{' '}<span class="note">({at})</span></>}
+  </>
+)
+
 /**
- * A link's safe href (null when it isn't http or https), its label (the one given, else the file or repo name) and its
- * host, which always shows beside the label: the label is free text.
+ * A web link's safe href (null when it isn't http or https), its label (the one given, else the file or repo name) and
+ * its host, which always shows beside the label: the label is free text.
  */
-export function linkView(l: Link): { p: { href: string; text: string } | null; label: string; host: string } {
+export function linkView(l: WebLink): { p: { href: string; text: string } | null; label: string; host: string } {
   const url = 'sha256' in l ? l.url : l.repo
   const p = linkParts(url)
   let label = l.label ?? ''
@@ -716,9 +611,9 @@ const PostView: FC<{ p: PostRow; d: NodePageData; sub?: SubmissionRow; reply?: b
         {flash && <p class="err" role="alert">{flash.text}</p>}
       </div>
     )
-  // A plain post of the viewer's own, under the same name (go-live 4.8; table B #30): edit and delete it, while the node
-  // is live (an ended one is locked). Submissions, checks and dead-end notes never change.
-  const own = !lockedBy(d.chain) && !!d.me?.verified && p.person_id === d.me.personId && p.as_name === '@' + d.me.handle && p.kind === 'post'
+  // A plain post of the viewer's own, under the same name (go-live 4.8; table B #30): edit and delete it. Old
+  // submissions, checks and dead-end notes never change, and a claim is only deleted.
+  const own = !!d.me?.verified && p.person_id === d.me.personId && p.as_name === '@' + d.me.handle && p.kind === 'post'
   const editFlash = own && flash?.draft !== undefined ? flash : undefined // a refused edit shows in its form
   const reportFlash = flash?.report ? flash : undefined // so does a refused report
   return (
@@ -726,19 +621,21 @@ const PostView: FC<{ p: PostRow; d: NodePageData; sub?: SubmissionRow; reply?: b
       <div class="who">
         {p.is_join === 1 && <span class="jt">{w.node.joined}</span>}
         <b><Name name={p.as_name} link /></b>
+        {p.claim && <span class={`ct ${p.claim.replace('_', '-')}`}>{claimWords(p.claim).tag}</span>}
         {byAuthor && ` · ${w.node.author}`}
         {isSub && <span class={sub.status === 'in_review' || sub.status === 'passed' ? 'sb' : 'sb x'}>{fill(w.node.submissionNumber, { n: sub.number })}</span>}
         {pinned ? <> · {fillx(w.node.pinnedUpdated, { ago: <Ago at={p.edited_at ?? p.created_at} now={d.now} short /> })}</> : <> · <Ago at={p.created_at} now={d.now} short /></>}
       </div>
       {p.text && <Text text={p.text} addressed />}
+      {p.claim === 'passed' && <PinnedWork pins={links} />}
       {isSub && <SubmissionParts d={d} sub={sub} links={links} builtOn={d.thread.builtOn.get(p.id) ?? []} />}
       <div class="acts">
-        <Upvote p={p} d={d} />
-        {(!isSub || !shownInParts(sub)) && links.length > 0 && <> · {fillx(w.node.linked, { links: <Links links={links} /> })}</>}
+        {p.claim ? <Back p={p} d={d} /> : <Upvote p={p} d={d} />}
+        {(!isSub || !shownInParts(sub)) && p.claim !== 'passed' && links.length > 0 && <> · {fillx(w.node.linked, { links: <Links links={links} /> })}</>}
         {by.length > 0 && <> · <BuiltOnByView by={by} /></>}
-        {/* shwarm.html: "make it a branch" on a post; the create form takes its text (go-live 4.8). Branches open only on a live node. */}
-        {p.kind === 'post' && !lockedBy(d.chain) && <> · <a href={makeBranchHref(n.path, p.id)}>{w.node.makeBranch}</a></>}
-        {own && <> · <EditPost p={p} d={d} flash={editFlash} /></>}
+        {/* shwarm.html: "make it a branch" on a post; the create form takes its text (go-live 4.8). */}
+        {p.kind === 'post' && <> · <a href={makeBranchHref(n.path, p.id)}>{w.node.makeBranch}</a></>}
+        {own && !p.claim && <> · <EditPost p={p} d={d} flash={editFlash} /></>}
         {own && <> · <DeletePost p={p} d={d} /></>}
         {pinnable(d, p, reply) && <> · <PinPost p={p} d={d} pinned={!!pinned} /></>}
         {p.edited_at && <> · <History p={p} edits={d.thread.edits.get(p.id) ?? []} label={pinned ? w.node.editHistory : w.node.edited} now={d.now} /></>}
@@ -748,6 +645,22 @@ const PostView: FC<{ p: PostRow; d: NodePageData; sub?: SubmissionRow; reply?: b
     </div>
   )
 }
+
+/**
+ * A passed claim's pinned work (decided Oct 14), under its evidence: "pinned work:" and its pins, one a line (an ipfs
+ * address or a magnet link is long), or "no pinned work", so a pass whose work can't be checked later says so. Also
+ * under each pass record, and on the claim in its poster's name view (web/profile.tsx). A blocked or dead-end claim's
+ * links show as any post's do.
+ */
+export const PinnedWork: FC<{ pins: Link[] }> = ({ pins }) =>
+  pins.length ? (
+    <div class="how pins">
+      <b>{w.node.pinnedWork}</b>
+      <ul>{pins.map(l => <li><LinkChip l={l} /></li>)}</ul>
+    </div>
+  ) : (
+    <p class="note pins">{w.node.noPinnedWork}</p>
+  )
 
 /** "make it a branch": the create form in branch mode under this node, its title and what filled from the post (web/create.tsx). */
 export const makeBranchHref = (path: string, post: string) => `/new?parent=${path}&from=${post}`
@@ -779,6 +692,34 @@ const Upvote: FC<{ p: PostRow; d: NodePageData }> = ({ p, d }) => {
         ▲ {p.ups}
       </button>
     </form>
+  )
+}
+
+/**
+ * The ▲ on a claim (decided Oct 14): "back", for someone on the node, as their vote for the claim's status with its
+ * evidence. It moves their one backing here, and a second press takes it off. The count is the people who back the
+ * claim, the claimant among them while they do. Backing is a human act on the site. Not joined, or signed out, only the
+ * count shows, with why.
+ */
+const Back: FC<{ p: PostRow; d: NodePageData }> = ({ p, d }) => {
+  const opensSoon = useContext(PageContext).opensSoon
+  const backers = count(w.node.backers, p.backers ?? 0)
+  if (!hasStatusForm(d, opensSoon)) return <span class="up" title={opensSoon ? OPENS_SOON.upvote : fill(w.node.joinToBack, { kind: kindWord(d.chain.node) })}>▲ {backers}</span>
+  const on = d.status?.myBacking?.claim?.post === p.id
+  return (
+    <>
+      <form method="post" action={d.here} class="back-act">
+        <input type="hidden" name="form_token" value={d.token} />
+        <input type="hidden" name="do" value="back" />
+        <input type="hidden" name="post" value={p.id} />
+        <input type="hidden" name="on" value={on ? '0' : '1'} />
+        <button type="submit" class={on ? 'up on' : 'up'} aria-pressed={on ? 'true' : 'false'} title={on ? w.node.unbackTitle : w.node.backTitle}>
+          ▲ {w.node.back}
+        </button>
+      </form>
+      {' · '}
+      {backers}
+    </>
   )
 }
 
@@ -829,12 +770,12 @@ const DeletePost: FC<{ p: PostRow; d: NodePageData }> = ({ p, d }) => (
 
 /**
  * "pin" and "unpin" on a top-level post or submission, anyone's (decided Oct 14, "A thread can pin several posts"): for
- * the node's author signed in as their bare handle, while the node is live. A pinned post leads the thread, the latest
+ * the node's author signed in as their bare handle. A pinned post leads the thread, the latest
  * pinned first; unpinned, it goes back to its place. Not behind the password: pinning is a thread act, as posting is.
  * OPEN: no mockup draws it; its words wait on Myra's yes.
  */
 const pinnable = (d: NodePageData, p: PostRow, reply?: boolean) =>
-  !reply && !p.deleted_at && (p.kind === 'post' || p.kind === 'submission') && !lockedBy(d.chain) && !!d.me?.verified && d.me.personId === d.chain.node.author_id
+  !reply && !p.deleted_at && (p.kind === 'post' || p.kind === 'submission') && !!d.me?.verified && d.me.personId === d.chain.node.author_id
 
 const PinPost: FC<{ p: PostRow; d: NodePageData; pinned: boolean }> = ({ p, d, pinned }) => (
   <form method="post" action={d.here} class="pin-act">
@@ -928,26 +869,19 @@ const BuiltOnByView: FC<{ by: BuiltOnBy[] }> = ({ by }) => (
 )
 
 /**
- * A submission's links and how to check it show above its checks while it's in review or once it passed; a failed
- * or superseded one (branch.html, #1) keeps its links in the actions line and drops how to check.
+ * An old submission's links and how to check it show above its checks once it passed; a failed or superseded one
+ * (branch.html, #1) keeps its links in the actions line and drops how to check. Nothing takes submissions or checks
+ * since Oct 14, so the thread shows them as history: one still in review then was superseded.
  */
 const shownInParts = (sub: SubmissionRow) => sub.status === 'in_review' || sub.status === 'passed'
 
 const SubmissionParts: FC<{ d: NodePageData; sub: SubmissionRow; links: Link[]; builtOn: BuiltOnLink[] }> = ({ d, sub, links, builtOn }) => {
   const n = d.chain.node
-  const checks = d.checks.get(sub.post_id) ?? []
-  const r = review(n.spec, n.author, sub, checks)
-  // On a dead end a submission still in review takes no checks: its standing checks show, but no open slots and no link to check it.
-  const open = isOpen(d.chain, sub)
+  const r = review(n.spec, n.author, sub, d.checks.get(sub.post_id) ?? [])
   const header =
-    sub.status === 'in_review'
-      ? fill(w.node.checksHeader, { done: r.done, total: r.total })
-      : sub.status === 'superseded'
-        ? r.failed ? w.node.subFailed : w.node.subSuperseded
-        : sub.status === 'passed' ? w.node.subPassed : w.node.subFailed
+    sub.status === 'superseded' ? (r.failed ? w.node.subFailed : w.node.subSuperseded) : sub.status === 'passed' ? w.node.subPassed : sub.status === 'failed' ? w.node.subFailed : fill(w.node.checksHeader, { done: r.done, total: r.total })
   const right =
-    open ? fill(w.node.onePerPerson, { who: humanOf(sub.as_name) }) : sub.status === 'in_review' ? '' : sub.status === 'superseded' ? fill(w.node.supersededBy, { n: sub.superseded_number ?? '?' }) : sub.status === 'passed' ? fill(w.node.checksOf, { done: r.done, total: r.total }) : ''
-  const mine = d.me && d.me.personId === sub.person_id
+    sub.status === 'superseded' ? (sub.superseded_number === null ? '' : fill(w.node.supersededBy, { n: sub.superseded_number })) : sub.status === 'passed' ? fill(w.node.checksOf, { done: r.done, total: r.total }) : ''
   return (
     <>
       {(shownInParts(sub) || builtOn.length > 0) && (
@@ -971,17 +905,15 @@ const SubmissionParts: FC<{ d: NodePageData; sub: SubmissionRow; links: Link[]; 
       {sub.author_swap === 1 && <div class="how note">{w.node.authorSwap}</div>}
       <div class="checks">
         <div class="h"><b>{header}</b><span>{right}</span></div>
-        <ul>{r.rows.filter(row => row.verdict !== 'waiting' || open).map(row => <CheckRowView row={row} n={n} sub={sub} />)}</ul>
-        {open && (
-          <div class="go">
-            <a href={subHref(n.path, sub.number)}>{fill(w.node.openSubmission, { n: sub.number })}</a>
-            {mine && <span class="note">{sub.as_name.includes('/') ? w.node.cantCheckAgent : w.node.cantCheckYours}</span>}
-          </div>
-        )}
+        <ul>{r.rows.filter(isDone).map(row => <CheckRowView row={row} n={n} sub={sub} />)}</ul>
       </div>
     </>
   )
 }
+
+/** A check that was made, not a slot still waiting for one. */
+export const isDone = (row: ReviewRow): row is DoneRow => row.verdict !== 'waiting'
+type DoneRow = Extract<ReviewRow, { verdict: 'pass' | 'fail' }>
 
 /** The run command as a check row names it: its first line, cut short (the full command is in "checked by"). */
 const runCmd = (spec: CheckSpec) => (spec.runs ? cut(spec.runs.command.split('\n')[0], 48) : '')
@@ -990,19 +922,8 @@ const runCmd = (spec: CheckSpec) => (spec.runs ? cut(spec.runs.command.split('\n
  * One check row. On the node page a run's signed log is a link to the submission page; there (`page`) it opens in
  * place, and a check an author's fail reset shows struck through.
  */
-export const CheckRowView: FC<{ row: ReviewRow; n: NodeHead; sub: SubmissionRow; page?: boolean }> = ({ row, n, sub, page }) => {
+export const CheckRowView: FC<{ row: DoneRow; n: NodeHead; sub: SubmissionRow; page?: boolean }> = ({ row, n, sub, page }) => {
   const slotWord = { run: w.node.slotRun, people: w.node.slotPerson, author: w.node.slotAuthor }[row.slot]
-  if (row.verdict === 'waiting')
-    return (
-      <li>
-        <span class="ck">○</span>
-        <span>
-          {row.as ? <><Name name={row.as} link /> · </> : null}
-          {slotWord}
-          {row.human && w.node.oneHuman} <span class="note">{w.node.waiting}</span>
-        </span>
-      </li>
-    )
   const c = row.check
   const evidence = parseLinks(c.evidence)
   const logLink = parseLinks(c.log_link ? `[${c.log_link}]` : null)[0] as Link | undefined
@@ -1055,48 +976,6 @@ export const CheckRowView: FC<{ row: ReviewRow; n: NodeHead; sub: SubmissionRow;
 }
 
 /**
- * "proof it's done" (shwarm-closed.html): the passing submission's standing checks, grouped runs / people / author, each
- * with its evidence. On a closed shwarm's result page (web/result-page.tsx), and above a passed branch's thread.
- */
-export const Proof: FC<{ n: NodeHead; sub: SubmissionRow; checks: CheckReport[] }> = ({ n, sub, checks }) => {
-  const r = review(n.spec, n.author, sub, checks)
-  return (
-    <div class="box proof">
-      <h2>{w.node.proof} <span>{count(w.node.proofCounts, r.total, { number: sub.number, done: r.done })}</span></h2>
-      {groupBySlot(r).map(g => {
-        const rows = g.rows.filter(row => row.verdict !== 'waiting')
-        if (!rows.length) return null
-        const signed = rows.find((row): row is Extract<ReviewRow, { verdict: 'pass' | 'fail' }> => row.verdict === 'pass' && row.slot === 'author')
-        const note =
-          g.slot === 'author'
-            ? signed ? fill(w.node.signedOffOn, { date: monthDay(signed.check.created_at) }) : ''
-            : fill(g.slot === 'people' && r.need.human ? w.node.groupDoneHuman : w.node.groupDone, { done: g.done, of: g.of })
-        const label = { runs: w.node.groupRuns, people: w.node.groupPeople, author: w.node.groupAuthor }[g.label]
-        return (
-          <div class="grp">
-            <h4><span>{label}</span><span class="note">{note}</span></h4>
-            <ul>{rows.map(row => <CheckRowView row={row} n={n} sub={sub} />)}</ul>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-/**
- * "build on this" (shwarm-closed.html's "what's next"): how an ended shwarm, passed or a dead end, is carried on (decided
- * Oct 9, "Continuing an ended shwarm is always build on"). On a closed shwarm's thread (behind its result page) and a
- * dead end's page. Nothing reopens, so there is no repro link.
- * OPEN (#92): never on a branch. Building on or challenging an ended branch has no site path (the API's builds_on takes
- * one, and nothing lists it), so the footer pages speak of continuing a shwarm only.
- */
-const BuildOnLink: FC<{ d: NodePageData }> = ({ d }) => {
-  const n = d.chain.node
-  if (n.kind === 'branch' || n.state === 'live') return null
-  return <div class="alt"><a href={buildOnHref(n.path)}>{w.node.buildOnThis}</a></div>
-}
-
-/**
  * The inline step-up (A5): the password field an act with the author's authority carries while the 10-minute window
  * is closed, so the form's draft never leaves for the /step-up page. With the window open it isn't asked again.
  * `form` ties the field to a form it doesn't sit inside (the account modal's save, go-live 6.2). `id` must be unique on
@@ -1109,56 +988,152 @@ export const StepUpField: FC<{ id: string; open?: boolean; form?: string }> = ({
     </label>
   )
 
-// ---------- sidebar ----------
+// ---------- the pass box ----------
 
 /**
- * The author's own box (go-live 5.6): mark a live node a dead end, with a note. It acts with the author's authority, so
- * it confirms with the password. Only on a live node: an ended one is locked, and nothing reopens it (decided Oct 9).
- * Editing a shwarm is the "edit" link on its own words, not this box (decided Oct 10, '"edit" replaces re-pitch').
- * OPEN (#76): no mockup draws this box; its words wait on Myra's yes.
+ * The pass box (decided Oct 14, in place of the result page): above the thread of a node with a pass record, its
+ * records newest first, each with its pinned work; "since then: blocked (oct 20)" once the status moved on after the
+ * newest, or "now: on track" when it's another status that didn't move after it (an author's mark); the dated status history, folded; and, for a shwarm's author with a passed claim to cite, "mark it passed".
+ * Nothing in it locks anything. Its id is PASS_BOX (#passed), where the author's inbox notice links.
+ * OPEN: no mockup draws it; its words are Claude's drafts of the spec's lines (Oct 14).
  */
-const hasOwnerBox = (d: NodePageData) => {
-  const n = d.chain.node
-  // Its one act is "mark it a dead end", and a branch doesn't end (decided Oct 13: "It's the shwarm itself that gets
-  // locked"): its crew votes dead end on its status instead.
-  return !!d.me?.verified && d.me.personId === n.author_id && !lockedBy(d.chain) && n.kind !== 'branch'
-}
-
-const Owner: FC<{ d: NodePageData }> = ({ d }) => {
-  const n = d.chain.node
-  if (!hasOwnerBox(d)) return null
-  const flash = d.flash?.at === 'owner' ? d.flash : undefined
-  const kind = n.kind === 'branch' ? w.node.kindBranch : w.node.kindShwarm
+const PassBox: FC<{ d: NodePageData }> = ({ d }) => {
+  const s = d.status
+  const latest = s.records[0]
+  if (!latest) return null
+  const now = s.now
+  const other = now.current !== latest.status
+  const moved = other && !!now.changed_at && now.changed_at > latest.at
+  const authored = s.records.some(r => r.kind === 'author' && r.status === 'passed')
   return (
-    <div class="box owner" id="owner">
-      <h2 class="sunny">{fill(w.node.yourKind, { kind })} <span>{w.node.onlyYou}</span></h2>
-      <div class="in">
-        <details open={flash ? true : undefined}>
-          <summary>{w.node.markDeadEnd}</summary>
-          <form method="post" action={nodeHref(n.path)} class="owner-act">
-            <input type="hidden" name="form_token" value={d.token} />
-            <input type="hidden" name="do" value="dead_end" />
-            <label for="o-note">{w.node.whyStops}</label>
-            <span class="note" id="o-note-n">{fill(w.node.whyStopsNote, { kind })}</span>
-            <textarea id="o-note" name="note" required maxlength={MAX_TEXT} aria-describedby="o-note-n">{flash?.draft ?? ''}</textarea>
-            <StepUpField id="o-dead-pw" open={d.steppedUp} />
-            {flash && <p class="err" role="alert">{flash.text}</p>}
-            <div class="row">
-              <span class="note">{w.node.deadEndNote}</span>
-              <button class="btn plain" type="submit">{w.node.markDeadEndButton}</button>
-            </div>
-          </form>
-        </details>
-      </div>
+    <div class="box passbox" id={PASS_BOX}>
+      <h2>{statusName(latest.status)}</h2>
+      <ul class="records">
+        {s.records.map(r => <RecordView r={r} d={d} />)}
+      </ul>
+      {(other || s.history.length > 0) && (
+        <div class="in since">
+          {other && (
+            <p>
+              <b>{moved ? fillx(w.node.sinceThen, { status: statusName(now.current), when: <When at={now.changed_at!} /> }) : fill(w.node.statusNow, { status: statusName(now.current) })}</b>
+            </p>
+          )}
+          {s.history.length > 0 && <StatusHistory d={d} />}
+        </div>
+      )}
+      {canMark(d) && <div class="in owner"><MarkPassed d={d} open={!authored} /></div>}
     </div>
   )
 }
 
+/** A record's or a change's moment: "oct 14 18:00", the exact time on hover (utc). */
+const When: FC<{ at: string }> = ({ at }) => <span title={exact(at)}>{monthDay(at, true)}</span>
+
+/** "a · b · c", skipping empty parts. */
+const dotted = (parts: unknown[]) => parts.filter(p => p !== null && p !== undefined && p !== false && p !== '').flatMap((p, i) => (i ? [' · ', p] : [p]))
+
 /**
- * Where "join" sits: a live shwarm's or branch's contributors box and its head (decided Oct 9, "No lobby": join says
- * you're working on it; Oct 12, "Branches can be joined"). Not under an ended node, which is locked.
+ * One pass record (read/status.ts PassRecord):
+ *   * its people's: "passed as of oct 14 18:00 · @ana's passed claim · backed by 6"
+ *   * the author's: "@myra says passed · oct 15 09:12 · @ana's passed claim"
+ *   * from before Oct 14 (migration 0032): "passed oct 9 21:47 · submission #2", or "dead end oct 9 21:47 · <its note>".
+ * Then its pinned work, or "no pinned work"; a dead end has none to show.
  */
-const hasSeatForm = (d: NodePageData) => d.chain.node.state === 'live' && !lockedBy(d.chain)
+const RecordView: FC<{ r: PassRecord; d: NodePageData }> = ({ r, d }) => {
+  const when = <When at={r.at} />
+  const claim = r.claim && <a href={`#${r.claim.post}`}>{fillx(w.node.theirClaim, { name: <Name name={r.claim.by} />, status: statusName('passed') })}</a>
+  const parts =
+    r.status === 'dead_end'
+      ? [fillx(w.node.recordDeadEnd, { when }), r.note && <a href={`#${r.note.post}`}><Text inline text={cut(r.note.text, 200)} /></a>]
+      : r.submission !== null
+        ? [fillx(w.node.recordPassed, { when }), <a href={subHref(d.chain.node.path, r.submission)}>{fill(w.node.submissionNumber, { n: r.submission })}</a>]
+        : r.kind === 'author'
+          ? [fillx(w.node.recordAuthor, { name: <b><Name name={r.by ?? FORMER} link /></b>, when }), claim]
+          : [fillx(w.node.recordCrowd, { when }), claim, count(w.node.backedBy, r.backers)]
+  return (
+    <li class={r.kind}>
+      <div>{dotted(parts)}</div>
+      {r.status === 'passed' && <PinnedWork pins={r.pins} />}
+    </li>
+  )
+}
+
+/** The node's dated status changes, newest first (read/status.ts StatusChange): "on track → blocked · oct 12 09:00 · 3 to 1". */
+const StatusHistory: FC<{ d: NodePageData }> = ({ d }) => (
+  <details class="hist">
+    <summary>{w.node.statusHistory}</summary>
+    <ol>
+      {d.status.history.map(h => (
+        <li>
+          {fillx(w.node.historyLine, {
+            from: statusName(h.from),
+            to: h.claim ? <a href={`#${h.claim}`}>{statusName(h.to)}</a> : statusName(h.to),
+            when: <When at={h.at} />,
+          })}
+          {/* the changes migration 0032 recorded from before Oct 14 have no tally */}
+          {h.backers + h.against > 0 && <> · {fill(w.node.historyTally, { backers: h.backers, against: h.against })}</>}
+        </li>
+      ))}
+    </ol>
+  </details>
+)
+
+/**
+ * "mark it passed" (decided Oct 14): a shwarm's author's own record, citing one of its passed claims, the most-backed
+ * first. It acts with the author's authority, so it confirms with the password (asked inline while the 10-minute
+ * window is closed). It changes no status and locks nothing; marking again citing another claim adds a record.
+ * Open while the author has no record of their own yet.
+ */
+const canMark = (d: NodePageData) => !!d.me?.verified && d.me.personId === d.chain.node.author_id && d.chain.node.kind !== 'branch' && d.status.passedClaims.length > 0
+
+const MarkPassed: FC<{ d: NodePageData; open: boolean }> = ({ d, open }) => {
+  const flash = d.flash?.at === 'owner' ? d.flash : undefined
+  const picked = flash?.fields?.post
+  const pick = (c: ClaimRow, i: number) => (picked ? picked === c.post : i === 0)
+  return (
+    <details class="passmark" open={open || flash ? true : undefined}>
+      <summary>{w.node.markPassed}</summary>
+      <form method="post" action={nodeHref(d.chain.node.path)} class="owner-act">
+        <input type="hidden" name="form_token" value={d.token} />
+        <input type="hidden" name="do" value="mark_passed" />
+        <label for="m-claim">{w.node.markCites}</label>
+        <select id="m-claim" name="post" required>
+          {d.status.passedClaims.map((c, i) => (
+            <option value={c.post} selected={pick(c, i) || undefined}>
+              {fill(w.node.markOption, { name: c.by, backers: count(w.node.backers, c.backers), when: monthDay(c.at, true), what: cut(c.text, 60) })}
+            </option>
+          ))}
+        </select>
+        <StepUpField id="m-pw" open={d.steppedUp} />
+        {flash && <p class="err" role="alert">{flash.text}</p>}
+        <div class="row">
+          <span class="note">{w.node.markNote}</span>
+          <button class="btn plain" type="submit">{w.node.markButton}</button>
+        </div>
+      </form>
+    </details>
+  )
+}
+
+// ---------- sidebar ----------
+
+/**
+ * The author's own box (go-live 5.6): "mark it passed", on a shwarm with no pass record yet, once someone posted a
+ * passed claim to cite. Once there is a record, the mark sits in the pass box with it. Editing a shwarm is retired
+ * (decided Oct 12), and so is the author's dead end (decided Oct 14: dead end comes from claims).
+ * OPEN (#76): no mockup draws this box; its words wait on Myra's yes.
+ */
+const Owner: FC<{ d: NodePageData }> = ({ d }) => {
+  if (!canMark(d) || d.status.records.length) return null
+  return (
+    <div class="box owner" id="owner">
+      <h2 class="sunny">{fill(w.node.yourKind, { kind: w.node.kindShwarm })} <span>{w.node.onlyYou}</span></h2>
+      <div class="in">
+        <MarkPassed d={d} open />
+      </div>
+    </div>
+  )
+}
 
 /** Join or leave as one button. A join button carries `jn-open`: with scripts on it opens the say-hi modal instead of posting. */
 const seatForm = (d: NodePageData, act: 'join' | 'leave', label: string, cls: string) => (
@@ -1170,7 +1145,7 @@ const seatForm = (d: NodePageData, act: 'join' | 'leave', label: string, cls: st
 )
 
 /** The viewer may join here now: verified, not joined yet, and not held back by the beta. */
-const canJoin = (d: NodePageData, opensSoon: boolean | undefined) => hasSeatForm(d) && !!d.me?.verified && !d.mySeat && !opensSoon
+const canJoin = (d: NodePageData, opensSoon: boolean | undefined) => !!d.me?.verified && !d.mySeat && !opensSoon
 
 /** A refused join whose hello is kept: it shows in the modal, opened again with the words as typed. */
 const joinFlash = (d: NodePageData) => (d.flash?.at === 'seats' && d.flash.draft?.trim() ? d.flash : undefined)
@@ -1194,13 +1169,12 @@ function myJoinPost(d: NodePageData): string | undefined {
 const myJoinHref = (d: NodePageData) => (myQuietLine(d) ? '#jn-row' : (id => (id ? `#${id}` : null))(myJoinPost(d)))
 
 /**
- * The join button on the node's own post, under its status (shwarm.html, branch.html: `.head .state`). Signed out it goes
- * to sign-in and back; joined, it says "✿ joined". Not shown where the contributors box only has a note (the beta,
+ * The join button on the node's own post, under its status badge (shwarm.html, branch.html: `.head .state`). Signed out it goes
+ * to sign-in and back; joined, it says "✿ joined". Not shown where the people card only has a note (the beta,
  * an unverified email).
  */
 const HeadJoin: FC<{ d: NodePageData }> = ({ d }) => {
   const opensSoon = useContext(PageContext).opensSoon
-  if (!hasSeatForm(d)) return null
   if (d.mySeat) return <span id="jn-state"><span class="joined" tabindex={-1}>{w.node.joined}</span></span>
   if (opensSoon) return null
   if (!d.me) return <span id="jn-state"><a class="btn" href={signInHref(d.here)}>{w.node.join}</a></span>
@@ -1277,9 +1251,13 @@ const JoinLines: FC<{ d: NodePageData }> = ({ d }) => {
   )
 }
 
+/**
+ * A branch's line under its name in a list: while its status isn't on track, the evidence of the claim behind it (or,
+ * a dead end from before Oct 14, its author's note); else its status line.
+ */
 const ChildSub: FC<{ c: Child }> = ({ c }) => {
   const imp = c.posts_per_day && c.posts_per_day > 0 ? <Imp q={c.impact ?? 0} ppd={c.posts_per_day} /> : null
-  const say = c.state === 'dead_end' ? c.dead_end_note ?? '' : c.status_line ?? ''
+  const say = c.reason ? c.reason.text : c.status.current === 'dead_end' && c.dead_end_note ? c.dead_end_note : c.status_line ?? ''
   return (
     <div class="sub">
       {imp}
@@ -1289,139 +1267,92 @@ const ChildSub: FC<{ c: Child }> = ({ c }) => {
   )
 }
 
-/** Each status's name in the word list, by its API name; mixed is the badge's when no status has more than half. */
-export const statusName = (s: Status | 'mixed'): string =>
+/** Each status's name in the word list, by its API name. */
+const statusName = (s: Status): string =>
+  ({ on_track: w.node.statusNames.on_track, blocked: w.node.statusNames.blocked, passed: w.node.statusNames.passed, dead_end: w.node.statusNames.dead_end })[s]
+
+/** A claim's words by its status: its tag in the thread, its form's question and its form's button. */
+const claimWords = (c: Claim) =>
   ({
-    on_track: w.node.statusNames.on_track,
-    blocked: w.node.statusNames.blocked,
-    passed: w.node.statusNames.passed,
-    dead_end: w.node.statusNames.dead_end,
-    mixed: w.node.statusMixed,
-  })[s]
+    blocked: { tag: w.node.claimTag.blocked, ask: w.node.claimAsk.blocked, vote: w.node.claimVote.blocked },
+    passed: { tag: w.node.claimTag.passed, ask: w.node.claimAsk.passed, vote: w.node.claimVote.passed },
+    dead_end: { tag: w.node.claimTag.dead_end, ask: w.node.claimAsk.dead_end, vote: w.node.claimVote.dead_end },
+  })[c]
 
 /**
- * A branch's status votes as small bars (decided Oct 13, "A branch's status is a live vote"; Myra: "little progress
- * bars"): one per status, filled by its share of the people who voted, then how many voted. Only inside the badge's
- * panel (VoteBadge). They sort nothing: activity orders the list (read/node.ts readChildren). OPEN (#127): the words.
+ * The challenger line (decided Oct 14, the rubber band): the status that leads the current one, by how many, and when it
+ * takes over at this rate, or the lead it still needs to start counting. Nothing while no other status leads. The time is in whole hours, rounded down as the briefing's (core/status.ts hoursUntil), so a
+ * signed-out page cached within the hour (its ETag carries the hour) stays true. OPEN: new words, Claude's drafts of Myra's lines (Oct 14).
  */
-const StatusBars: FC<{ votes: StatusTally; mine?: Status | null }> = ({ votes, mine }) => {
-  if (!votes.people) return null
+export function challengerLine(s: NodeStatus, now: number): string | null {
+  const c = s.challenger
+  if (!c || c.lead < 1) return null
+  const status = statusName(c.status)
+  if (!c.changes_at) return fill(w.node.aheadNeeds, { status, n: c.lead, margin: MARGIN })
+  const h = hoursUntil(c.changes_at, now)
+  const when = h < 1 ? w.node.underAnHour : count(w.node.inHours, h)
+  return fill(w.node.aheadCounting, { status, n: c.lead, when })
+}
+
+/**
+ * A node's backing as small bars (Myra, Oct 13: "little progress bars"): one per status, filled by its share of the
+ * people who back anything, with "{n} of {people}", the current status in bold and the viewer's own in yellow; then the
+ * challenger line. Only inside the badge's panel (StatusBadge). They sort nothing: activity orders the list.
+ */
+const BackingBars: FC<{ s: NodeStatus; mine?: Status | null; now: number }> = ({ s, mine, now }) => {
+  const t = s.backing
+  const line = challengerLine(s, now)
   return (
     <div class="votes">
-      <ul>
-        {STATUSES.map(s => {
-          const what = statusName(s)
-          const pct = Math.round((votes[s] / votes.people) * 100)
-          return (
-            <li class={votes[s] ? (mine === s ? 'mine' : undefined) : 'none'} title={fill(w.node.statusBarTitle, { what, n: votes[s], people: votes.people })}>
-              <span class="vl">{what}</span>
-              <span class="vb"><i style={`width:${pct}%`}></i></span>
-              <span class="vn">{pct}%</span>
+      {t.people ? (
+        <ul>
+          {STATUSES.map(st => (
+            <li class={[st === s.current && 'cur', !t[st] ? 'none' : mine === st && 'mine'].filter(Boolean).join(' ') || undefined}>
+              <span class="vl">{statusName(st)}</span>
+              <span class="vb"><i style={`width:${Math.round((t[st] / t.people) * 100)}%`}></i></span>
+              <span class="vn">{fill(w.node.statusOf, { n: t[st], people: t.people })}</span>
             </li>
-          )
-        })}
-      </ul>
-      <div class="vp">{count(w.node.statusVoted, votes.people)}</div>
+          ))}
+        </ul>
+      ) : (
+        <p class="vp">{w.node.noStatusVotes}</p>
+      )}
+      {line && <p class="vp">{line}</p>}
     </div>
   )
 }
 
 /**
- * A branch's status badge (Myra, Oct 13: "We don't need to show all the bars right away. Just show a badge for the branch
- * and a hover/tap shows the values"): the status more than half of the voters chose, or mixed (core/status.ts
- * statusNow), in place of "live" on the branch's page and in its parent's list. Hover or keyboard focus shows the bars;
- * with scripts on, a tap or click opens and closes them (static/js/node.js). Screen readers get the bars as the badge's
- * description. Nothing when nobody has voted. "passed" is the branch's pass, and it can change (decided Oct 13).
+ * A node's status badge (Myra, Oct 13: "Just show a badge for the branch and a hover/tap shows the values"; decided
+ * Oct 14, every node): its current status (on track until a challenger takes over, core/status.ts), in place of "live"
+ * in the head, at the right of the people card's heading and beside a branch in its parent's list. Hover or keyboard focus
+ * shows the bars; with scripts on, a tap or click opens and closes them (static/js/node.js). Screen readers get the bars
+ * as the badge's description.
  */
-const VoteBadge: FC<{ votes: StatusTally; mine?: Status | null; id: string }> = ({ votes, mine, id }) => {
-  const now = statusNow(votes)
-  if (!now) return null
-  return (
-    <div class="vote-badge">
-      <button type="button" class={`st vs ${now.replace('_', '-')}`} aria-expanded="false" aria-controls={id} aria-describedby={id}>
-        {statusName(now)}
-      </button>
-      <div class="vb-panel" id={id}>
-        <StatusBars votes={votes} mine={mine} />
-      </div>
+const StatusBadge: FC<{ s: NodeStatus; mine?: Status | null; now: number; id: string }> = ({ s, mine, now, id }) => (
+  <div class="vote-badge">
+    <button type="button" class={`st vs ${s.current.replace('_', '-')}`} aria-expanded="false" aria-controls={id} aria-describedby={id}>
+      {statusName(s.current)}
+    </button>
+    <div class="vb-panel" id={id}>
+      <BackingBars s={s} mine={mine} now={now} />
     </div>
-  )
-}
+  </div>
+)
 
 /** A badge's id in a list of branches: from the branch's path, which is unique. */
 const badgeId = (path: string) => `vb-${path.replace(/[^a-z0-9]+/g, '-')}`
 
 /**
- * What sits beside a branch in a list: "quiet" after QUIET_HOURS with no post (measured, unless its vote says passed),
- * then its vote badge. No "live" pill (Myra, Oct 13: "What is live? If it exists it's live yeah?"): an ended branch
- * keeps its closed or dead-end pill, and a live one with no votes shows nothing there.
+ * What sits beside a branch in a list: "quiet" after QUIET_HOURS with no post (unless it passed), then its status badge.
+ * No "live" pill (Myra, Oct 13: "What is live? If it exists it's live yeah?").
  */
-const BranchPills: FC<{ b: Child; now: number }> = ({ b, now }) => {
-  const live = b.state === 'live'
-  const quiet = live && b.quiet && !passedByVote(b.votes)
-  const badge = live && !!statusNow(b.votes)
-  if (live && !quiet && !badge) return null
-  return (
-    <div class="pills">
-      {quiet && <span class="st quiet" title={fill(w.node.quietTitle, { hours: QUIET_HOURS })}>{w.node.quiet}</span>}
-      {badge ? <VoteBadge votes={b.votes} id={badgeId(b.path)} /> : !live && <Pill n={b} now={now} short />}
-    </div>
-  )
-}
-
-/** The viewer may vote on this branch's status here: a live branch, not under an ended node. */
-const hasStatusForm = (d: NodePageData) => d.chain.node.kind === 'branch' && d.chain.node.state === 'live' && !lockedBy(d.chain)
-
-/**
- * The status box on a branch's page (decided Oct 13): the badge (its bars on hover or tap) and how many voted, and a
- * button per status for the viewer's one vote, which they change any time or take back. Signed out it says how to vote;
- * in the beta and for an unverified email, as join does, it shows only the badge. A locked branch keeps its votes and
- * takes no more.
- */
-const StatusBox: FC<{ d: NodePageData }> = ({ d }) => {
-  const opensSoon = useContext(PageContext).opensSoon
-  if (d.chain.node.kind !== 'branch' || !d.status) return null
-  const { votes, mine } = d.status
-  const flash = d.flash?.at === 'status' ? d.flash : undefined
-  const form = hasStatusForm(d)
-  return (
-    <div class="box status-vote">
-      <h2>{w.node.statusHead}</h2>
-      <div class="in">
-        {votes.people ? (
-          <div class="vote-line">
-            <VoteBadge votes={votes} mine={mine} id="vb-box" />
-            <span class="note">{count(w.node.statusVoted, votes.people)}</span>
-          </div>
-        ) : (
-          <p class="note">{w.node.noStatusVotes}</p>
-        )}
-        {!form ? (
-          <p class="note">{w.node.statusLocked}</p>
-        ) : !d.me ? (
-          <a class="btn plain" href={signInHref(d.here)}>{w.node.statusSignIn}</a>
-        ) : opensSoon || !d.me.verified ? null : (
-          <form method="post" action={nodeHref(d.chain.node.path)} class="vote">
-            <input type="hidden" name="form_token" value={d.token} />
-            <input type="hidden" name="do" value="status" />
-            <p class="note">{w.node.statusAsk}</p>
-            <div class="vote-btns">
-              {STATUSES.map(s => (
-                <button class={mine === s ? 'btn on' : 'btn plain'} type="submit" name="status" value={s} aria-pressed={mine === s ? 'true' : 'false'}>
-                  {statusName(s)}
-                </button>
-              ))}
-            </div>
-            {mine && (
-              <button class="linkish" type="submit" name="status" value="">{w.node.statusTakeBack}</button>
-            )}
-          </form>
-        )}
-        {flash && <p class="err" role="alert">{flash.text}</p>}
-      </div>
-    </div>
-  )
-}
+const BranchPills: FC<{ b: Child; now: number }> = ({ b, now }) => (
+  <div class="pills">
+    {b.quiet && b.status.current !== 'passed' && <span class="st quiet" title={fill(w.node.quietTitle, { hours: QUIET_HOURS })}>{w.node.quiet}</span>}
+    <StatusBadge s={b.status} now={now} id={badgeId(b.path)} />
+  </div>
+)
 
 const Branches: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
@@ -1445,94 +1376,240 @@ const Branches: FC<{ d: NodePageData }> = ({ d }) => {
       ) : (
         <div class="in note">{fill(w.node.noBranches, { kinds })}</div>
       )}
-      {!lockedBy(d.chain) && (
-        <div class="in" style="border-top:1px solid var(--ink)">
-          {useContext(PageContext).opensSoon ? (
-            <p class="note" style="margin:0;text-align:center">{OPENS_SOON.branch}</p>
-          ) : (
-            <a class="btn plain" href={`/new?parent=${n.path}`} style="display:block;text-align:center">{fill(w.node.startBranch, { kind: isBranch ? w.node.subBranch : w.node.kindBranch })}</a>
-          )}
-        </div>
-      )}
+      <div class="in" style="border-top:1px solid var(--ink)">
+        {useContext(PageContext).opensSoon ? (
+          <p class="note" style="margin:0;text-align:center">{OPENS_SOON.branch}</p>
+        ) : (
+          <a class="btn plain" href={`/new?parent=${n.path}`} style="display:block;text-align:center">{fill(w.node.startBranch, { kind: isBranch ? w.node.subBranch : w.node.kindBranch })}</a>
+        )}
+      </div>
     </div>
   )
 }
 
-const Contributors: FC<{ d: NodePageData }> = ({ d }) => {
+/** Everyone on a node, as a page and as JSON (read/people.ts): where "+ n more" goes. */
+export const peopleHref = (path: string) => `/w/${path}/people`
+
+/** One person in the people card (and on the /people page): their name, the agent that joined for them, and what they did here. */
+export const PersonRow: FC<{ r: Contributor; n: NodeHead; now: number }> = ({ r, n, now }) => {
+  const ppd = postsPerDay(r, n.created_at, now)
+  return (
+    <li>
+      {/* people only, once each; a join an agent made for them says so (decided Oct 12). OPEN (#115): new words. */}
+      {r.joined_by ? (
+        <span class="who-by">
+          <Name name={r.handle} link />
+          <span class="jb">{fillx(w.node.joinedBy, { name: <Name name={r.joined_by} /> })}</span>
+        </span>
+      ) : (
+        <Name name={r.handle} link />
+      )}
+      <small>
+        {r.person_id === n.author_id && (r.posts > 0 ? `${w.node.author} · ` : w.node.author)}
+        {r.posts > 0 && <Imp q={r.upvotes / r.posts} ppd={ppd} />}
+      </small>
+    </li>
+  )
+}
+
+/**
+ * The people card (decided Oct 14, "One card for a node's people, status and joining"): "on this branch" or "on this
+ * shwarm", a branch's status badge at the heading's right (its backing on hover or tap) and its challenger line; the
+ * first PEOPLE_SHOWN people, and "+ n more", which opens everyone in a modal (PeopleModal), or without scripts the
+ * /people page; then join with the url for an agent, or the joined block (CardJoin).
+ */
+const PeopleCard: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
   const { rows, total } = d.contributors
   const people = Math.max(n.stats?.people ?? 0, total)
-  // OPEN: person_node_stats keeps all-time totals, so a person's posts a day here is their posts on this node
-  // over its age in days (at least one), not the node's 7-day window.
-  const days = Math.max(1, (d.now - Date.parse(n.created_at)) / 86_400_000)
+  const line = challengerLine(d.status.now, d.now)
   return (
-    <div class="box">
-      <h2>{n.kind === 'branch' ? w.node.onThisBranch : w.node.contributors} <span>{count(w.node.peopleImpact, people)}</span></h2>
+    <div class="box people" id="people">
+      <div class="ph">
+        <h2 class="sunny">{n.kind === 'branch' ? w.node.onThisBranch : w.node.onThisShwarm}</h2>
+        <StatusBadge s={d.status.now} mine={d.status.myBacking?.status} now={d.now} id="vb-card" />
+      </div>
       <div class="in">
+        {line && <p class="chal">{line}</p>}
+        <p class="note">{count(w.node.peopleImpact, people)}</p>
         <ul class="crew">
-          {rows.map(r => (
-            <li>
-              {/* people only, once each; a join an agent made for them says so (decided Oct 12). OPEN (#115): new words. */}
-              {r.joined_by ? (
-                <span class="who-by">
-                  <Name name={r.handle} link />
-                  <span class="jb">{fillx(w.node.joinedBy, { name: <Name name={r.joined_by} /> })}</span>
-                </span>
-              ) : (
-                <Name name={r.handle} link />
-              )}
-              <small>
-                {r.person_id === n.author_id && (r.posts > 0 ? `${w.node.author} · ` : w.node.author)}
-                {r.posts > 0 && <Imp q={r.upvotes / r.posts} ppd={r.posts / days} />}
-              </small>
-            </li>
-          ))}
-          {total > rows.length && <li><span>{fill(w.node.more, { n: total - rows.length })}</span><small></small></li>}
+          {rows.map(r => <PersonRow r={r} n={n} now={d.now} />)}
         </ul>
-        <Join d={d} />
+        {total > rows.length && <a class="more-people" id="pp-open" href={peopleHref(n.path)}>{fill(w.node.more, { n: total - rows.length })}</a>}
+        <CardJoin d={d} />
       </div>
     </div>
   )
 }
 
 /**
- * "join" in the contributors box (decided Oct 9, "No lobby"; Oct 12, the say-hi design): a live shwarm or branch takes
- * anyone verified who says they're working on it, with no gate and no size. It changes nothing but this: they show among
- * its contributors and on their profile as working on it, and get its notices; joining a branch counts them in the nodes
- * above it too. Anyone but a shwarm's author can leave again. Joined: "you're working on this.", a link to their join in
- * the thread, and leave.
+ * Everyone on the node, opened by "+ n more" (static/js/node.js), which loads the list from /w/<path>/people as JSON
+ * when it opens. Closed by ×, Esc or the scrim. Without scripts "+ n more" is a link to the list's page.
+ */
+const PeopleModal: FC<{ d: NodePageData }> = ({ d }) => {
+  const n = d.chain.node
+  if (d.contributors.total <= d.contributors.rows.length) return null
+  return (
+    <div class="dn-scrim" id="pp-scrim" hidden>
+      <div class="dn pp" role="dialog" aria-modal="true" aria-labelledby="pp-title" data-src={`${peopleHref(n.path)}?format=json`}>
+        <h2 id="pp-title">
+          <span>{n.kind === 'branch' ? w.node.onThisBranch : w.node.onThisShwarm}</span>
+          <button type="button" id="pp-close" aria-label={w.node.close}>×</button>
+        </h2>
+        <div class="sec">
+          <ul class="crew" id="pp-list"></ul>
+          <p class="note" id="pp-note" role="status"></p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * The people card's lower part (decided Oct 14): join (signed out, it goes to sign-in and back), then "or give your
+ * agent this branch's url" with the url and "how to join in" folded under it. Joined: "you're working on this branch.",
+ * a link to their join in the thread and leave (anyone but a shwarm's author can leave), then the status buttons
+ * (StatusPart). Joining changes nothing but this: the joiner shows here and on their profile, gets its notices, and votes
+ * on its status; joining a branch counts them in the nodes above it too.
  * OPEN (#115): someone counted here only through a branch they joined shows as joined, with leave and no link.
  */
-const Join: FC<{ d: NodePageData }> = ({ d }) => {
+const CardJoin: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
-  if (!hasSeatForm(d)) return null
+  const opensSoon = useContext(PageContext).opensSoon
   const flash = d.flash?.at === 'seats' && !joinFlash(d) ? d.flash : undefined
-  const href = myJoinHref(d)
-  const canLeave = !(n.kind !== 'branch' && d.me?.personId === n.author_id)
-  return (
-    <div class="late">
-      {useContext(PageContext).opensSoon && !d.mySeat ? (
-        <p class="note">{OPENS_SOON.join}</p>
-      ) : !d.me ? (
-        <p class="join"><a class="btn plain" href={signInHref(d.here)}>{w.node.join}</a></p>
-      ) : d.mySeat ? (
+  const err = flash && <p class="err" role="alert">{flash.text}</p>
+  if (d.mySeat) {
+    const href = myJoinHref(d)
+    const canLeave = !(n.kind !== 'branch' && d.me?.personId === n.author_id)
+    return (
+      <div class="late">
         <div class="note">
-          <b>{fill(w.node.working, { kind: n.kind === 'branch' ? w.node.kindBranch : w.node.kindShwarm })}</b>
+          <b>{fill(w.node.working, { kind: kindWord(n) })}</b>
           {href && <> <a href={href}>{w.node.yourJoin}</a></>}
           {canLeave && <>{href ? ' · ' : ' '}{seatForm(d, 'leave', w.node.leave, 'linkish')}</>}
         </div>
+        {err}
+        <StatusPart d={d} />
+      </div>
+    )
+  }
+  return (
+    <div class="late">
+      {opensSoon ? (
+        <p class="note">{OPENS_SOON.join}</p>
+      ) : !d.me ? (
+        <p class="join"><a class="btn plain" href={signInHref(d.here)}>{w.node.join}</a></p>
       ) : !d.me.verified ? (
         <>
           <p class="join"><button class="btn plain" type="button" disabled>{w.node.join}</button></p>
           <p class="note">{w.node.verifyToJoin}</p>
         </>
       ) : (
+        <div class="join">{seatForm(d, 'join', w.node.join, 'btn plain')}</div>
+      )}
+      {err}
+      <AgentUrl d={d} />
+    </div>
+  )
+}
+
+/** "or give your agent this branch's url:", the url with copy (static/js/node.js), and "how to join in" folded under it. */
+const AgentUrl: FC<{ d: NodePageData }> = ({ d }) => {
+  const kind = kindWord(d.chain.node)
+  return (
+    <div class="agent-url">
+      <p class="note">{fill(w.node.agentUrl, { kind })}</p>
+      <div class="url"><code id="w-url">{d.url}</code><button class="btn" id="w-copy" type="button">{w.node.copy}</button></div>
+      {/* Myra asked for basic steps under the url (Oct 10); the words wait on her yes. */}
+      <details class="how-join">
+        <summary>{w.node.howToJoin}</summary>
+        <ol>
+          <li>{w.node.howToJoin1}</li>
+          <li>{fillx(w.node.howToJoin2, { keys: <a href="/keys">{w.node.keysLink}</a>, skills: <a href="/skills">{w.node.skillsLink}</a> })}</li>
+          <li>{fill(w.node.howToJoin3, { kind })}</li>
+        </ol>
+        <p class="note">{fillx(w.node.beforeAgent, { guide: <a href="/guide-safety">{w.node.safetyLink}</a> })}</p>
+      </details>
+    </div>
+  )
+}
+
+/** The viewer votes on this node's status here: they joined it, signed in and verified, not held back by the beta. */
+const hasStatusForm = (d: NodePageData, opensSoon: boolean | undefined) => !!d.mySeat && !!d.me?.verified && !opensSoon
+
+/**
+ * "how's it going?" in the people card, on a shwarm or branch the viewer joined (decided Oct 14): on track is a toggle, their
+ * plain vote, cast or taken back in one click; blocked, passed and dead end each open a claim form (ClaimForm) under
+ * the buttons, with no script needed (the form is the link's target; static/js/node.js opens it in place). Their
+ * current backing is the yellow button, and a claim they back is named under them.
+ */
+const StatusPart: FC<{ d: NodePageData }> = ({ d }) => {
+  const opensSoon = useContext(PageContext).opensSoon
+  if (!hasStatusForm(d, opensSoon)) return null
+  const n = d.chain.node
+  const mine = d.status.myBacking
+  const flash = d.flash?.at === 'status' ? d.flash : undefined
+  const open = flash && isClaim(flash.fields?.status) ? (flash.fields!.status as Claim) : null
+  const onTrack = mine?.status === 'on_track'
+  const claim = mine?.claim
+  const own = claim && humanOf(claim.by) === '@' + d.me!.handle
+  return (
+    <div class="hows" id="status">
+      <p class="note"><b>{w.node.howsItGoing}</b></p>
+      <div class="vote-btns">
+        <form method="post" action={nodeHref(n.path)} class="status-act">
+          <input type="hidden" name="form_token" value={d.token} />
+          <input type="hidden" name="do" value="status" />
+          <button class={onTrack ? 'btn on' : 'btn plain'} type="submit" name="status" value={onTrack ? '' : 'on_track'} aria-pressed={onTrack ? 'true' : 'false'} title={onTrack ? w.node.onTrackTakeBack : w.node.onTrackTitle}>
+            {statusName('on_track')}
+          </button>
+        </form>
+        {CLAIMS.map(c => (
+          <a class={mine?.status === c ? 'btn on' : 'btn plain'} href={`#claim-${c}`} aria-controls={`claim-${c}`}>{statusName(c)}</a>
+        ))}
+      </div>
+      {CLAIMS.map(c => <ClaimForm d={d} claim={c} flash={open === c ? flash : undefined} />)}
+      {claim && (
+        <p class="note">
+          {fillx(w.node.youBack, {
+            claim: <a href={`#${claim.post}`}>{own ? fill(w.node.yourClaim, { status: statusName(mine!.status) }) : fillx(w.node.theirClaim, { name: <Name name={claim.by} />, status: statusName(mine!.status) })}</a>,
+          })}
+        </p>
+      )}
+      {flash && !open && <p class="err" role="alert">{flash.text}</p>}
+    </div>
+  )
+}
+
+/**
+ * One claim's form (decided Oct 14): its question, the evidence, and "vote blocked" (or passed, dead end). It posts to
+ * the thread as the viewer, a claim that their backing moves to. A passed claim also takes its pinned work, one pin per
+ * line, with why to pin it. Hidden until its button opens it: the link's target without scripts, a toggle with them. A
+ * refused claim opens it again with the words and the pins kept.
+ */
+const ClaimForm: FC<{ d: NodePageData; claim: Claim; flash?: Flash }> = ({ d, claim, flash }) => {
+  const id = `cl-${claim}`
+  return (
+    <form id={`claim-${claim}`} class={flash ? 'claim-act open' : 'claim-act'} method="post" action={nodeHref(d.chain.node.path)}>
+      <input type="hidden" name="form_token" value={d.token} />
+      <input type="hidden" name="do" value="claim" />
+      <input type="hidden" name="status" value={claim} />
+      <label for={id}>{fill(claimWords(claim).ask, { kind: kindWord(d.chain.node) })}</label>
+      <textarea id={id} name="text" required maxlength={MAX_TEXT} aria-describedby={`${id}-n`} autofocus={flash ? true : undefined}>{flash?.draft ?? ''}</textarea>
+      {claim === 'passed' && (
         <>
-          <div class="join">{seatForm(d, 'join', w.node.join, 'btn plain')}</div>
-          <p class="note">{n.kind === 'branch' ? w.node.joinToSayBranch : w.node.joinToSay}</p>
+          <label for={`${id}-pins`}>{w.node.pinsLabel} <span class="note">{w.node.optional}</span></label>
+          <span class="note" id={`${id}-pins-n`}>{w.node.pinsNote}</span>
+          <textarea id={`${id}-pins`} class="pins" name="links" rows={2} aria-describedby={`${id}-pins-n ${id}-pins-h`} placeholder={w.node.pinsPlaceholder}>{flash?.fields?.links ?? ''}</textarea>
+          <p class="note hint" id={`${id}-pins-h`}>{w.node.pinsHint}</p>
         </>
       )}
       {flash && <p class="err" role="alert">{flash.text}</p>}
-    </div>
+      <p class="note" id={`${id}-n`}>{fillx(w.node.claimNote, { name: <Name name={'@' + d.me!.handle} /> })}</p>
+      <div class="row">
+        <a href="#status" class="cancel">{w.node.cancel}</a>
+        <button class="btn" type="submit">{claimWords(claim).vote}</button>
+      </div>
+    </form>
   )
 }

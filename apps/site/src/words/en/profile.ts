@@ -23,11 +23,6 @@ export const profile = {
   kindBranch: 'branch',
   // in created only. {name} is the shwarm it branches from
   branchOf: 'branch of {name}',
-  // the small line in working on, and the badge on the right in created: where it stands
-  passed: 'passed',
-  deadEnd: 'dead end',
-  waitingOnYou: 'waiting on you',
-  inReview: 'submission in review',
   // {when} is how long ago
   lastPost: 'last post {when}',
   // an empty list: working on, created and the inbox
@@ -38,10 +33,9 @@ export const profile = {
   // created: the box's heading and the key beside it
   created: 'created',
   createdKey: 'shwarms and branches',
-  // created: the badge on the right, for the owner's own that aren't public yet, and for a live one
+  // created: the badge on the right, for the owner's own that aren't public yet (a public one shows its status)
   blocked: 'not allowed',
   beingChecked: 'not public yet',
-  live: 'live',
   // created: the small line under each. {text} is its done test
   doneWhen: 'done when {text}',
 
@@ -84,20 +78,16 @@ export const profile = {
   newBadge: 'new',
   markRead: 'mark read',
   markUnread: 'mark unread',
-  // a sign-off item: its link ({title} is the shwarm's title, or aShwarm; {n} the submission's number)
+  // an old sign-off item (nothing is signed off since Oct 14): its link ({title} is the shwarm's title, or aShwarm; {n}
+  // the submission's number)
   signOffTitle: '{title} · submission #{n}',
   aShwarm: 'a shwarm',
-  // after the link: who submitted it. A fragment: the sentence below follows it
+  // after the link: who submitted it
   signOffBy: ' by {name}',
-  // the sentence after it: the operator signs off, when the author's account is gone
-  signOffOperator: "needs a sign-off. its author's account is gone, so you sign off as the operator.",
-  signOffOperatorChecked: "passed its other checks. its author's account is gone, so you sign off as the operator.",
-  // ...someone else's shwarm
-  signOffTheirs: "needs its author's sign-off.",
-  signOffTheirsChecked: "passed its other checks and needs its author's sign-off.",
-  // ...your own shwarm
-  signOffYours: 'needs your sign-off.',
-  signOffYoursChecked: 'passed its other checks and needs your sign-off.',
+  // the notice a shwarm's author gets when its people make it passed ({title} is the shwarm, {name} who posted the
+  // claim they back); once the author marked it passed themselves, without the question
+  passNotice: "{title} passed: its people back {name}'s passed claim. mark it passed too?",
+  passNoticeDone: "{title} passed: its people back {name}'s passed claim.",
   // the links under an item
   open: 'open',
   seeThread: 'see thread',
@@ -172,7 +162,7 @@ export const profile = {
   downloadNote: 'everything we hold about you, as a json file. confirms with your password.',
   download: 'download your data',
   closeAccount: 'close your account',
-  closeNote: "we delete your email address, password, inbox, sign-ins and keys, and sign you out. your shwarms and posts stay up under their license, shown as by a former member. any sign-off you still owe goes to the people who run shwarm. this can't be undone.",
+  closeNote: "we delete your email address, password, inbox, sign-ins and keys, and sign you out. your shwarms and posts stay up under their license, shown as by a former member. this can't be undone.",
   // the field's label. {handle} is their handle, without the @
   typeToConfirm: 'type {handle} to confirm',
   confirmsWithPassword: 'confirms with your password.',

@@ -1,15 +1,15 @@
 // Go-live 6.3 (and the 4.4 kickoff mail): notice emails through the outbox. A mention of the bare handle is mailed at
-// once to people who asked for inbox mail right away, and goes in the daily digest for everyone else; a lobby filling
-// mails everyone seated; a node you're in passing or failing the author check is mailed to those who turned
-// that on. Every mail is written in the act's batch, honours the notice settings and the one-click unsubscribe, and
-// goes only while what it's about still shows to its reader.
+// once to people who asked for inbox mail right away, and goes in the daily digest for everyone else. No lobby fills
+// (Oct 9), and no change of status is mailed (Oct 14: the author's notice of a pass is an inbox item only). Every mail
+// is written in the act's batch, honours the notice settings and the one-click unsubscribe, and goes only while what
+// it's about still shows to its reader.
 import { describe, expect, it } from 'vitest'
 import { digestDue, DIGEST_HOUR_UTC, sweepDigests } from '../src/jobs/digest'
 import { closeAccount } from '../src/auth/close'
 import { sweepOutbox, TRIAGE_RECHECK_MS, TRIAGE_WAIT_MS } from '../src/jobs/mail'
 import { DIGEST_ITEMS, MailRenderError, renderMail } from '../src/email/templates'
 import { readUnsubToken } from '../src/email/unsubscribe'
-import { agent, DAY, HOUR, MIN, person, refused, site, stepped, World, type P } from './core-fixtures'
+import { agent, DAY, HOUR, MIN, person, site, World, type P } from './core-fixtures'
 import { T0 } from './d1'
 
 const SITE = 'https://shwarm.org'
@@ -127,17 +127,17 @@ describe('mentions (6.3)', () => {
     void myra
   })
 
-  it('a long post is quoted up to 1000 characters; checks and submissions mail mentions too', async () => {
-    const { w, ana, bob, myra, path } = await live()
+  it('a long post is quoted up to 1000 characters; a claim mails its mentions too', async () => {
+    const { w, ana, bob, path } = await live()
     prefs(w, bob, { inbox_every: 'now' })
     await w.post(agent(ana), path, '@bob ' + 'é'.repeat(1200))
     const [m] = outbox(w, 'mention')
     expect(m.payload.by).toBe('@ana/m-04')
     expect([...m.payload.text]).toHaveLength(1000)
     expect(m.payload.cut).toBe(true)
-    const sub = await w.submit(site(ana), path, 'for @bob to see')
-    await w.signOff(myra, path, sub.id, 'fail', { text: '@bob, this fails on corner 3' })
-    expect(outbox(w, 'mention').map(r => r.payload.text)).toEqual(['@bob ' + 'é'.repeat(995), 'for @bob to see', '@bob, this fails on corner 3'])
+    await w.join(site(ana), path)
+    await w.post(site(ana), path, '@bob, this fails on corner 3', { claim: 'blocked' })
+    expect(outbox(w, 'mention').map(r => r.payload.text)).toEqual(['@bob ' + 'é'.repeat(995), '@bob, this fails on corner 3'])
   })
 
   it('the sweep sends it, and skips it once the post is deleted or the node no longer shows to them', async () => {
@@ -163,24 +163,15 @@ describe('mentions (6.3)', () => {
   })
 
   it('names a mentioner whose account closed before it went as a former member', async () => {
-    const { w, ana, bob, myra, path } = await live()
+    const { w, ana, bob, path } = await live()
     prefs(w, bob, { inbox_every: 'now' })
     await w.post(agent(ana), path, '@bob from the agent')
     await w.post(site(ana), path, '@bob from ana')
     await closeAccount(w.db, ana.id, w.now)
-    // and an author-gone sign-off mail, written while the author was only suspended, goes out after they closed
-    const ops = await person(w.db, 'ops')
-    w.db.raw.prepare('UPDATE person SET is_admin = 1 WHERE id = ?').run(ops.id)
-    w.db.raw.prepare("UPDATE person SET status = 'suspended' WHERE id = ?").run(myra.id)
-    await w.submit(site(bob), path)
-    w.db.raw.prepare("UPDATE person SET status = 'active' WHERE id = ?").run(myra.id)
-    await closeAccount(w.db, myra.id, w.now)
     w.tick(MIN)
     const notices = (await sweep(w)).mails.filter(m => m.subject !== 'your shwarm account is closed')
-    expect(notices.map(m => m.subject)).toEqual(['former member mentioned you on minecraft in doom', 'former member mentioned you on minecraft in doom', '#1 on minecraft in doom is ready for sign-off'])
-    const text = notices.map(m => m.text).join('\n')
-    expect(text).toContain("but its author's account is suspended or closed.")
-    expect(text).not.toMatch(/@ana|@myra/)
+    expect(notices.map(m => m.subject)).toEqual(['former member mentioned you on minecraft in doom', 'former member mentioned you on minecraft in doom'])
+    expect(notices.map(m => m.text).join('\n')).not.toMatch(/@ana/)
   })
 
   it('waits while its node is still being checked, and goes once triage clears it', async () => {
@@ -275,7 +266,7 @@ describe('the daily digest (6.3)', () => {
   })
 })
 
-describe('no kickoff (decided Oct 9), and passes and fails (6.3)', () => {
+describe('no kickoff (decided Oct 9), and no mail on a change of status (Oct 14)', () => {
   it('starting and joining a shwarm mail no one', async () => {
     const w = new World()
     const myra = await person(w.db, 'myra')
@@ -287,42 +278,17 @@ describe('no kickoff (decided Oct 9), and passes and fails (6.3)', () => {
     expect(w.all('SELECT 1 FROM inbox_item')).toEqual([])
   })
 
-  it('off by default; on, the people in the node hear of a fail and a pass, and of nothing after it', async () => {
+  it('a change of status mails no one, pass and fail mails on or not; the author gets an inbox notice of a pass (decided Oct 14)', async () => {
     const { w, myra, ana, bob, path } = await live()
-    await w.post(site(bob), path, 'working on it') // bob is in it: he posted this week
-    expect(outbox(w, 'node_news')).toEqual([])
-    const s1 = await w.submit(site(ana), path)
-    await w.signOff(myra, path, s1.id, 'fail')
-    expect(outbox(w, 'node_news')).toEqual([]) // pass_fail is off by default
-    prefs(w, bob, { pass_fail: true })
-    prefs(w, ana, { pass_fail: true })
+    for (const p of [myra, ana, bob]) prefs(w, p, { pass_fail: true, inbox_every: 'now' })
+    await w.join(site(ana), path)
+    await w.join(site(bob), path)
+    const c = await w.post(site(ana), path, 'all nine maps play through from a pistol start.', { claim: 'passed' })
+    await w.run({ type: 'back', actor: site(bob), input: { node: path, post: c.id, on: true } })
     w.tick(DAY)
-    const s2 = await w.submit(site(ana), path, 'second try')
-    await w.signOff(myra, path, s2.id, 'fail')
-    w.tick(DAY)
-    const s3 = await w.submit(site(ana), path, 'third try')
-    await w.signOff(myra, path, s3.id, 'pass')
-    await refused(w.fail(site(bob), path, s3.id), 'shwarm_closed') // no repro reopens it (decided Oct 9)
-    const news = outbox(w, 'node_news')
-    expect(news.map(r => [r.person_id === bob.id ? 'bob' : 'ana', r.payload.event, r.payload.number])).toEqual([
-      ['ana', 'failed', 2], ['bob', 'failed', 2],
-      ['ana', 'passed', 3], ['bob', 'passed', 3],
-    ])
-    expect(news[2].payload).toMatchObject({ notice: 'pass_fail', title: 'minecraft in doom', path, link: `/w/${path}/s/3` })
-    const r = await sweep(w)
-    expect(r.mails.filter(m => m.to[0] === 'bob@example.org').map(m => m.subject)).toEqual([
-      'the author failed submission #2 on minecraft in doom', 'minecraft in doom passed',
-    ])
-  })
-
-  it("a suspended or closed person, or someone who left, isn't mailed", async () => {
-    const { w, myra, ana, bob, path } = await live()
-    prefs(w, ana, { pass_fail: true })
-    prefs(w, bob, { pass_fail: true })
-    await w.post(site(bob), path, 'here')
-    w.db.raw.prepare("UPDATE person SET status = 'suspended' WHERE id = ?").run(bob.id)
-    const s = await w.submit(site(ana), path)
-    await w.signOff(stepped(myra), path, s.id, 'pass')
-    expect(outbox(w, 'node_news').map(r => r.person_id)).toEqual([ana.id])
+    await w.run({ type: 'status', actor: site(myra), input: { node: path, status: 'on_track' } }) // saves the change to passed
+    expect(w.all('SELECT to_status FROM status_change')).toEqual([{ to_status: 'passed' }])
+    expect(w.all("SELECT person_id FROM inbox_item WHERE kind = 'system'")).toEqual([{ person_id: myra.id }])
+    expect(outbox(w)).toEqual([])
   })
 })

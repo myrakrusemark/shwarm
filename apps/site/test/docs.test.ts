@@ -7,13 +7,15 @@
 import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { parse } from 'yaml'
-import { ERRORS, shortHash, submissionHash } from '@shwarm/protocol'
+import { ERRORS } from '@shwarm/protocol'
 import app from '../src/index'
 import docs from '../src/content/api-docs.json'
 import { api } from '../src/api'
+import { siteActor } from '../src/core/actor'
+import { TreeEngine } from '../src/core/engine'
 import { PAGES } from '../src/web/doc'
 import { inline, markdown, slugOf } from '../src/render/markdown'
-import { EXAMPLE_BRANCH } from '../src/seed/example'
+import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
 import { ALL_PERMS, keyFor, send, verifiedPerson } from './agent-client'
 import { fakeFetch, testEnv } from './browser'
 import { hasResponse, schemaErrors, spec as contractSpec } from './contract'
@@ -101,7 +103,7 @@ describe('the served docs are the docs', () => {
     const heads = PROTOCOL.split('\n').flatMap((l, i) => (/^#{2,3} /.test(l) && !inCode(i) ? [l.replace(/^#+ /, '')] : []))
     expect(heads.length).toBeGreaterThan(15)
     for (const h of heads) expect(html, h).toContain(`id="${slugOf(h)}"`)
-    for (const a of ['10-keys-and-signing', 'links-not-files', '14-errors', 'the-audit-log', 'build-on-a-closed-shwarm']) expect(html, a).toContain(`id="${a}"`)
+    for (const a of ['10-keys-and-signing', 'links-not-files', 'pinned-work', 'a-nodes-status', 'pass-records', '14-errors', 'the-audit-log', 'build-on-a-shwarm', 'build-on-a-closed-shwarm']) expect(html, a).toContain(`id="${a}"`)
     expect(strayAnchors(html)).toEqual([])
     expect(foreignScripts(html)).toEqual([])
     expect(html).toContain('href="/openapi.yaml"')
@@ -145,7 +147,14 @@ describe('openapi.yaml matches the code', () => {
 
   it('has a route for every documented call: each answers with a status the spec lists, never "no such call"', async () => {
     const w = await world()
-    const fill = (path: string) => path.replace('{nodePath}', EXAMPLE_BRANCH).replace('{number}', '2')
+    // a submission from before Oct 14 reads as history (nothing takes them now), so one is written raw on the shwarm;
+    // everything else is read on the branch
+    const root = w.raw.prepare('SELECT id FROM node WHERE path = ?').get(EXAMPLE_ROOT).id
+    if (!w.raw.prepare('SELECT 1 FROM submission WHERE node_id = ? AND number = 2').get(root)) {
+      w.raw.prepare("INSERT INTO post (id, node_id, person_id, as_name, kind, text, created_at) VALUES ('p_oldsub0002', ?, ?, '@myra/m-07', 'submission', 'two-line fix on top of #1.', ?)").run(root, w.myraId, new Date(T0 - 3_600_000).toISOString())
+      w.raw.prepare("INSERT INTO submission (post_id, node_id, number, hash, how_to_check, status) VALUES ('p_oldsub0002', ?, 2, ?, 'place 200 times per corner.', 'superseded')").run(root, 'b'.repeat(64))
+    }
+    const fill = (path: string) => path.replace('{nodePath}', path.includes('{number}') ? EXAMPLE_ROOT : EXAMPLE_BRANCH).replace('{number}', '2')
     let checked = 0
     for (const [path, item] of Object.entries(spec.paths))
       for (const m of METHODS) {
@@ -168,7 +177,7 @@ describe('openapi.yaml matches the code', () => {
         }
         checked++
       }
-    expect(checked).toBe(18)
+    expect(checked).toBe(19)
   })
 
   it('lists every call the agent API serves', () => {
@@ -221,7 +230,7 @@ describe('openapi.yaml matches the code', () => {
     for (const [where, name, v] of cases) expect(schemaErrors(name, v), `${where} as ${name}`).toEqual([])
   })
 
-  it('takes its own request examples: a thread post, a submission, a branch and a shwarm made from them', async () => {
+  it('takes its own request examples: a thread post, a claim, a passed claim with pins, the vote, a branch and a shwarm made from them', async () => {
     const w = await world()
     const posts = w.raw.prepare("SELECT p.id FROM post p JOIN node n ON n.id = p.node_id WHERE n.path = ? AND p.kind = 'post' ORDER BY p.created_at").all(EXAMPLE_BRANCH)
     const ex = (path: string, method: string, name?: string) => {
@@ -230,16 +239,18 @@ describe('openapi.yaml matches the code', () => {
     }
     const thread = { ...ex('/w/{nodePath}', 'post', 'threadPost'), as: '@ana/m-04', reply_to: posts[0].id }
     expect((await send(app, w.env, w.key, { path: `/w/${EXAMPLE_BRANCH}`, body: thread })).status).toBe(201)
-    const sub = ex('/w/{nodePath}', 'post', 'submission')
-    sub.as = '@ana/m-07'
-    sub.built_on = [{ ...sub.built_on[0], post: posts[0].id }, { post: posts[1].id }]
-    const made = await send(app, w.env, w.key, { path: `/w/${EXAMPLE_BRANCH}`, body: sub })
-    expect(made.status).toBe(201)
-    // the A10 hash the docs work through is the hash the code makes, for the example's text and links
-    const documented = ex('/w/{nodePath}', 'post', 'submission')
-    const full = await submissionHash({ text: documented.text, links: documented.links })
-    expect(full).toBe(spec.paths['/w/{nodePath}/s/{number}'].get.responses['200'].content['application/json'].example.hash)
-    expect(made.json.hash).toBe(shortHash(full))
+    // a claim needs the human on the branch: ana joins it on the site
+    const ana = w.raw.prepare("SELECT id FROM person WHERE handle = 'ana'").get().id
+    await new TreeEngine(w.db, () => T0).run({ type: 'join', actor: siteActor({ id: ana, handle: 'ana' }), input: { node: EXAMPLE_BRANCH } })
+    const claim = await send(app, w.env, w.key, { path: `/w/${EXAMPLE_BRANCH}`, body: { ...ex('/w/{nodePath}', 'post', 'claim'), as: '@ana/f-11' } })
+    expect(claim.status).toBe(201)
+    expect(claim.json.claim).toBe('blocked')
+    expect((await send(app, w.env, w.key, { path: `/w/${EXAMPLE_BRANCH}`, body: { ...ex('/w/{nodePath}', 'post', 'statusVote'), as: '@ana/m-04' } })).json).toMatchObject({ status: 'on_track', changed: true })
+    // a passed claim on the shwarm, its work pinned (decided Oct 14): ana is on it through the branch
+    const passed = await send(app, w.env, w.key, { path: `/w/${EXAMPLE_ROOT}`, body: { ...ex('/w/{nodePath}', 'post', 'passedClaim'), as: '@ana/m-07' } })
+    expect(passed.status).toBe(201)
+    expect(passed.json.claim).toBe('passed')
+    expect(JSON.parse(w.raw.prepare('SELECT links FROM post WHERE id = ?').get(passed.json.id).links)).toEqual(ex('/w/{nodePath}', 'post', 'passedClaim').links)
     const branch = { ...ex('/w/{nodePath}/branches', 'post'), as: '@ana/r-03' }
     expect((await send(app, w.env, w.key, { path: `/w/${EXAMPLE_BRANCH}/branches`, body: branch })).status).toBe(202)
     const shwarm = { ...ex('/shwarms', 'post', 'shwarm'), as: '@ana/scribe', title: 'minecraft in doom, again' }

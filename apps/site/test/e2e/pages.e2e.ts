@@ -36,7 +36,7 @@ const CASES: Case[] = [
   // the feed
   { path: '/', status: 200 },
   { path: '/?tab=new', status: 200 },
-  { path: '/?tab=closed', status: 200 },
+  { path: '/?tab=passed', status: 200 },
   { path: '/?q=doom', status: 200 },
   { path: '/?q=nothing-matches-this', status: 200 },
   // node pages

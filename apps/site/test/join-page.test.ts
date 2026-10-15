@@ -57,17 +57,17 @@ const modal = (html: string) => part(html, '<div class="dn-scrim" id="jn-scrim"'
 const late = (html: string) => part(html, '<div class="late">', '<div class="box agent-res">')
 
 describe('the join buttons and the say-hi modal (8.2)', () => {
-  it("a shwarm: join under the live badge and in contributors, both open one modal with Myra's words", async () => {
+  it("a shwarm: join under its status badge and in the people card, both open one modal with Myra's words", async () => {
     const { env } = await world()
     const { b } = await member(env, 'ana')
     const html = await page(b, EXAMPLE_ROOT)
     expect(repeatedIds(html)).toEqual([])
-    // the head: the status, then join (a form that posts a plain join with scripts off)
+    // the head: the status badge, then join (a form that posts a plain join with scripts off)
     const h = head(html)
-    expect(h).toMatch(/^<div class="state"><span class="st live">[^<]*<\/span><span id="jn-state"><form method="post" action="\/w\/minecraft-in-doom" class="seat-act">/)
+    expect(h).toMatch(/^<div class="state"><div class="vote-badge">[\s\S]*?<\/div><\/div><\/div><span id="jn-state"><form method="post" action="\/w\/minecraft-in-doom" class="seat-act">/)
     expect(h).toContain('<input type="hidden" name="do" value="join"/><button class="btn jn-open" type="submit">join</button>')
     expect(late(html)).toContain('<button class="btn plain jn-open" type="submit">join</button>')
-    expect(late(html)).toContain("join to say you're working on this shwarm.")
+    expect(late(html)).toContain("<p class=\"note\">or give your agent this shwarm's url:</p>")
     // the modal: hidden until a button opens it, a dialog with a name, the words exactly as approved
     const m = modal(html)
     expect(m).toMatch(/^<div class="dn-scrim" id="jn-scrim" hidden="">/)
@@ -86,8 +86,10 @@ describe('the join buttons and the say-hi modal (8.2)', () => {
     const html = await page(b, EXAMPLE_BRANCH)
     expect(head(html)).toContain('<button class="btn jn-open" type="submit">join</button>')
     expect(modal(html)).toContain('<p>you are joining the <b>block placement</b> branch of <b>minecraft in doom</b>. you can leave at any time.</p>')
-    expect(late(html)).toContain("join to say you're working on this branch.")
-    expect(html).toContain('<li>press "join" when you start, so others know someone\'s on it.</li>')
+    expect(late(html)).toContain("<p class=\"note\">or give your agent this branch's url:</p>")
+    // the people card's join button is right there, so the steps don't ask for it; a branch's last step is a claim
+    expect(late(html)).not.toContain('press "join"')
+    expect(late(html)).toContain('<li>the work lives elsewhere: a repo or a link. when the branch meets its done test, post a passed claim with your evidence and pin the work.</li>')
   })
 
   it('signed out: both joins go to sign-in and back; no modal', async () => {
@@ -98,13 +100,15 @@ describe('the join buttons and the say-hi modal (8.2)', () => {
     expect(html).not.toContain('id="jn-scrim"')
   })
 
-  it('an ended node offers no join anywhere', async () => {
+  it('nothing locks: a dead end, or a shwarm that passed, still offers join (decided Oct 14)', async () => {
     const { env, db } = await world()
-    db.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'x' WHERE path = ?").run(PLAIN)
+    const id = (db.raw.prepare('SELECT id FROM node WHERE path = ?').get(PLAIN) as { id: number }).id
+    db.raw.prepare("INSERT INTO branch_status (node_id, current, changed_at, at) VALUES (?, 'dead_end', ?, ?)").run(id, new Date(T0).toISOString(), new Date(T0).toISOString())
     const { b } = await member(env, 'ana')
     const html = await page(b, PLAIN)
-    expect(head(html)).not.toContain('join')
-    expect(html).not.toContain('id="jn-scrim"')
+    expect(head(html)).toContain('class="st vs dead-end"')
+    expect(head(html)).toContain('<button class="btn jn-open" type="submit">join</button>')
+    expect(html).toContain('id="jn-scrim"')
   })
 })
 
@@ -189,7 +193,7 @@ describe('joining from the modal (8.2)', () => {
 })
 
 describe('a join an agent made for its human (8.2, decided Oct 12)', () => {
-  it('shows the person once in contributors, "joined by @ana/claude", and as a quiet line; the page knows she joined', async () => {
+  it('shows the person once among its people, "joined by @ana/claude", and as a quiet line; the page knows she joined', async () => {
     const { env, db } = await world()
     const { b, pid } = await member(env, 'ana')
     const node = db.raw.prepare('SELECT id FROM node WHERE path = ?').get(EXAMPLE_ROOT) as { id: number }
@@ -199,8 +203,10 @@ describe('a join an agent made for its human (8.2, decided Oct 12)', () => {
       .run(node.id, pid, node.id, at, '@ana/claude')
     db.raw.prepare('UPDATE node SET last_event_id = NULL, changed_at = ? WHERE id = ?').run(new Date(T0).toISOString(), node.id)
     const html = await page(new Browser(env), EXAMPLE_ROOT)
-    expect(html).toContain('<span class="who-by"><a href="/@ana">@ana</a><span class="jb">joined through @ana/claude</span></span>')
-    expect(html).not.toContain('<a href="/@ana?as=%40ana/claude">')
+    // the card shows the top five, where a new joiner isn't; the full list (behind "+ n more") has her once
+    const people = await page(new Browser(env), `${EXAMPLE_ROOT}/people`)
+    expect(people.match(/<span class="who-by"><a href="\/@ana">@ana<\/a><span class="jb">joined through @ana\/claude<\/span><\/span>/g)).toHaveLength(1)
+    for (const h of [html, people]) expect(h).not.toContain('<a href="/@ana?as=%40ana/claude">')
     expect(html).toMatch(/<div class="c ev">✿ @ana\/claude joined for <b><a href="\/@ana">@ana<\/a><\/b> · /)
     // it's her join: filtered to agents, the line is gone
     expect(await body(await new Browser(env).req(`/w/${EXAMPLE_ROOT}?show=agents`, { headers: HTML }))).not.toContain('joined for <b><a href="/@ana">@ana</a></b>')

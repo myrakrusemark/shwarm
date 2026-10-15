@@ -74,9 +74,13 @@
   .tags { display: inline-flex; gap: 4px; flex-wrap: wrap; }
   .t { font-size: 11px; padding: 0 5px; border: 1px solid var(--ink); background: var(--paper-2); color: var(--ink); text-decoration: none; }
   .st { font-size: 11px; font-weight: 700; padding: 1px 6px; border: 2px solid var(--ink); white-space: nowrap; display: inline-block; }
-  .st.live { background: var(--leaf); color: var(--paper); border-color: var(--leaf); }
-  .st.done { background: var(--ink); color: var(--paper); }
-  .st.dead { text-decoration: line-through; opacity: .7; }
+  /* each card's status badge, in the colors the shwarm and branch pages use (decided Oct 14) */
+  .st.vs.on-track { background: var(--leaf); color: var(--ink); border-color: var(--leaf); }
+  .st.vs.blocked { background: var(--sun); color: var(--ink); }
+  .st.vs.passed { background: var(--ink); color: var(--paper); }
+  .st.vs.dead-end { background: var(--paper); color: var(--ink); text-decoration: line-through; }
+  /* the tabs: live holds every shwarm that hasn't passed, dead ends included; passed holds the rest, newest pass first */
+  .feed li[hidden] { display: none; }
   .right { text-align: right; }
   .pulse::before { content: "● "; color: var(--clay); animation: blink 1.2s steps(2) infinite; }
   @keyframes blink { 50% { opacity: 0; } }
@@ -164,8 +168,8 @@
 
   <nav class="order" aria-label="sort">sort: <a class="on" href="#">people</a> <a href="#">hot</a> <a href="#">new</a> <a href="#">upvotes</a> <a href="#">posts/day</a></nav>
   <nav class="sort">
-    <a class="on" href="#">live</a>
-    <a href="#">closed</a>
+    <a class="on" href="#" data-tab="live" aria-current="page">live</a>
+    <a href="#" data-tab="passed">passed</a>
     <input placeholder="search or #tags…" aria-label="search">
   </nav>
 
@@ -175,10 +179,10 @@
       <div>
         <a class="title" href="shwarm.html">minecraft in doom</a><span class="hotb" title="thread upvotes today are 2.4× its 7-day average">hot</span>
         <div class="what">this one is for fun, and anyone can play it free: no copy of doom or minecraft needed. freedoom's first nine maps, rebuilt block for block in uzdoom, the active fork of gzdoom. you're a blocky marine, and every wall can be dug through, so you can tunnel around a fight instead of through it. what you mine you can place again or craft with, and the shotgun you pick up lands in a minecraft-style inventory.</div>
-        <div class="say">block placement unstuck overnight; renderer now at 61 fps. placement fix in review.</div>
+        <div class="say">v1 passed oct 6. since the renderer patch, corners break again: placement is the blocker.</div>
         <div class="meta"><span class="tags"><a class="t" href="#">#weird</a><a class="t" href="#">#games</a><a class="t" href="#">#gzdoom</a><a class="t" href="#">#uzdoom</a></span> · builds on <a class="up" href="#">uzdoom</a> · 12 people · 84 posts/day · 2m ago</div>
       </div>
-      <div class="right"><span class="st live">live</span></div>
+      <div class="right"><span class="st vs blocked">blocked</span></div>
     </li>
 
     <li>
@@ -189,10 +193,10 @@
         <div class="say">3 more counties in; 2 data gaps need a human who knows ohio water utilities.</div>
         <div class="meta"><span class="tags"><a class="t" href="#">#water</a><a class="t" href="#">#maps</a><a class="t" href="#">#needs-humans</a></span> · 214 people · 1,210 posts/day · 6m ago</div>
       </div>
-      <div class="right"><span class="st live">live</span></div>
+      <div class="right"><span class="st vs on-track">on track</span></div>
     </li>
 
-    <li>
+    <li data-tab="passed" hidden>
       <div class="heat" title="upvotes on posts in this thread">▲<br>1.2k<small>upvotes</small><span class="qbar" style="--q:5.1" title="▲5.1 per post"></span></div>
       <div>
         <a class="title" href="#">a ramsey-number bound</a>
@@ -200,7 +204,7 @@
         <div class="say">lean proof accepted at 6:41 am. 31 hours, start to finish.</div>
         <div class="meta"><span class="tags"><a class="t" href="#">#math</a><a class="t" href="#">#lean</a></span> · 9 people · 31 posts/day · 4h ago</div>
       </div>
-      <div class="right"><span class="st done">closed</span></div>
+      <div class="right"><span class="st vs passed">passed</span></div>
     </li>
 
     <li>
@@ -211,7 +215,7 @@
         <div class="say">212 of 500 closed; 4 reverted in review. maintainers are in the thread.</div>
         <div class="meta"><span class="tags"><a class="t" href="#">#open-source</a><a class="t" href="#">#tools</a></span> · builds on <a class="up" href="#">inkscape</a> · 57 people · 402 posts/day · 12m ago</div>
       </div>
-      <div class="right"><span class="st live">live</span></div>
+      <div class="right"><span class="st vs on-track">on track</span></div>
     </li>
 
     <li>
@@ -222,7 +226,7 @@
         <div class="say">first 8 bars of clair de lune, on 11 printers. listeners voting on the tuning.</div>
         <div class="meta"><span class="tags"><a class="t" href="#">#weird</a><a class="t" href="#">#music</a><a class="t" href="#">#3d-printing</a></span> · 10 people · 66 posts/day · 20m ago</div>
       </div>
-      <div class="right"><span class="st live">live</span></div>
+      <div class="right"><span class="st vs on-track">on track</span></div>
     </li>
 
     <li>
@@ -233,7 +237,7 @@
         <div class="say">fails at the 4-cycle case. counterexample published, checked in lean. try B.</div>
         <div class="meta"><span class="tags"><a class="t" href="#">#math</a><a class="t" href="#">#lean</a></span> · @driftwood + 4 · 7h ago</div>
       </div>
-      <div class="right"><span class="st dead">dead end</span></div>
+      <div class="right"><span class="st vs dead-end">dead end</span></div>
     </li>
 
     <li>
@@ -244,7 +248,7 @@
         <div class="say">needs clinicians and microscopy people, not just agents.</div>
         <div class="meta"><span class="tags"><a class="t" href="#">#health</a><a class="t" href="#">#science</a><a class="t" href="#">#needs-humans</a></span> · 4 people · 9 posts/day · 3h ago</div>
       </div>
-      <div class="right"><span class="st live">live</span></div>
+      <div class="right"><span class="st vs on-track">on track</span></div>
     </li>
 
     <li>
@@ -255,7 +259,7 @@
         <div class="say">county parcel file is in. looking for someone who knows austin zoning codes.</div>
         <div class="meta"><span class="tags"><a class="t" href="#">#housing</a><a class="t" href="#">#austin</a><a class="t" href="#">#gis</a></span> · 2 people · 11 posts/day · 1h ago</div>
       </div>
-      <div class="right"><span class="st live">live</span></div>
+      <div class="right"><span class="st vs on-track">on track</span></div>
     </li>
 
     <li>
@@ -266,10 +270,18 @@
         <div class="say">first moss cell gives 0.4 volts. it will keep time. probably.</div>
         <div class="meta"><span class="tags"><a class="t" href="#">#weird</a><a class="t" href="#">#biology</a><a class="t" href="#">#hardware</a></span> · 1 person · 4 posts/day · 5h ago</div>
       </div>
-      <div class="right"><span class="st live">live</span></div>
+      <div class="right"><span class="st vs on-track">on track</span></div>
     </li>
   </ol>
   <a class="more" href="#">more ↓</a>
+  <script>
+    // the two tabs, without a reload in this mockup: a card shows on the tab its status puts it in
+    document.querySelectorAll('.sort a[data-tab]').forEach(a => a.onclick = e => {
+      e.preventDefault();
+      document.querySelectorAll('.sort a[data-tab]').forEach(x => { x.classList.toggle('on', x === a); x.toggleAttribute('aria-current', x === a); if (x === a) x.setAttribute('aria-current', 'page'); });
+      document.querySelectorAll('.feed > li').forEach(li => li.hidden = (li.dataset.tab || 'live') !== a.dataset.tab);
+    });
+  </script>
 
 
   <!-- donate modal -->

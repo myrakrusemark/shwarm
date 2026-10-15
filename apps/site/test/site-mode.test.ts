@@ -1,9 +1,8 @@
 // Go-live 3.10: site_mode beta. Reading pages public on production, noindex on every response, sign-up open to anyone
-// with an address off the allow-list waiting (decided Oct 10), "opens soon" where join, post, check and "start a shwarm" would be for anyone who isn't
+// with an address off the allow-list waiting (decided Oct 10), "opens soon" where join, post, back and "start a shwarm" would be for anyone who isn't
 // invited, core refusing their acts, and creation paused while pause_new_nodes is on.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ShwarmError } from '@shwarm/protocol'
-import app from '../src/index'
 import { hashPassword } from '../src/auth/password'
 import { keyActor, siteActor } from '../src/core/actor'
 import { TreeEngine } from '../src/core/engine'
@@ -34,16 +33,14 @@ afterEach(() => {
 })
 
 const HTML = { accept: 'text/html' }
-const SUB = `/w/${PLAIN}/s/1` // a submission that takes checks, made in prod() below
+const SUB = `/w/${PLAIN}/s/1` // an old submission's page (history since Oct 14), written in prod() below
 
 /** Production in `mode`, its trees in the same mode, on a staging-like database (the running example seeded). */
 async function prod(mode: 'holding' | 'beta' | 'open' = 'beta') {
   const w = await stagingWorld()
-  await new TreeEngine(w.db, () => T0).run({
-    type: 'submit',
-    actor: siteActor({ id: w.myraId, handle: 'myra' }),
-    input: { node: PLAIN, text: 'eight demos.', links: [{ url: 'https://codeberg.org/myra/bot/demos.zip', sha256: 'a'.repeat(64) }], howToCheck: 'replay them.' },
-  })
+  const plain = (w.db.raw.prepare('SELECT id FROM node WHERE path = ?').get(PLAIN) as { id: number }).id
+  w.db.raw.prepare("INSERT INTO post (id, node_id, person_id, as_name, kind, text, links, created_at) VALUES ('p_oldsitemd1', ?, ?, '@myra', 'submission', 'eight demos.', ?, ?)").run(plain, w.myraId, JSON.stringify([{ url: 'https://codeberg.org/myra/bot/demos.zip', sha256: 'a'.repeat(64) }]), new Date(T0).toISOString())
+  w.db.raw.prepare("INSERT INTO submission (post_id, node_id, number, hash, how_to_check, status) VALUES ('p_oldsitemd1', ?, 1, ?, 'replay them.', 'superseded')").run(plain, 'b'.repeat(64))
   const env = { ...testEnv(w.db), ENV: 'production', SITE_MODE: mode, TREE: treeNamespace(w.db, { ENV: 'production', SITE_MODE: mode }).ns }
   const count = (sql: string, ...args: unknown[]) => (w.db.raw.prepare(sql).get(...args) as { n: number }).n
   /** A verified account signed in on its own browser; `founding` makes it invited, `admin` the operator. */
@@ -146,9 +143,10 @@ describe('"opens soon" for anyone who isn\'t invited', () => {
     expect(root).not.toContain('class="up-act"')
     expect(root).not.toContain('+ start a branch')
     expect(root.includes('invited? <a href="/signin')).toBe(signedOut)
+    // an old submission's page reads, with nothing to act on (decided Oct 14)
     const sub = await body(await b.req(SUB, { headers: HTML }))
-    expect(sub).toContain(OPENS_SOON.check)
-    expect(sub).not.toContain('name="do" value="check"')
+    expect(sub).toContain('eight demos.')
+    expect(sub).not.toContain('name="do"')
     for (const p of ['/new', `/new?parent=${EXAMPLE_ROOT}`, `/new?builds_on=${EXAMPLE_ROOT}`]) {
       const res = await b.get(p)
       expect(res.status).toBe(200)
@@ -180,7 +178,7 @@ describe('"opens soon" for anyone who isn\'t invited', () => {
     expect(await body(joined)).toContain(BETA_REFUSAL)
     expect(count('SELECT count(*) AS n FROM post')).toBe(posts)
     expect(count('SELECT count(*) AS n FROM seat WHERE person_id = ?', pid)).toBe(0)
-    const made = await b.req('/new', { form: { form_token: token, title: 'outside', what: 'a test goal.', done_when: 'it is done.', c_author: 'on', tags: '#test', license: 'MIT' } })
+    const made = await b.req('/new', { form: { form_token: token, title: 'outside', what: 'a test goal.', done_when: 'it is done.', tags: '#test', license: 'MIT' } })
     expect(made.status).toBe(403)
     expect(await body(made)).toContain(OPENS_SOON.newText)
     expect(count("SELECT count(*) AS n FROM node WHERE title = 'outside'")).toBe(0)

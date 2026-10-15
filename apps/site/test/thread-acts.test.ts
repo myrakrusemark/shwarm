@@ -194,7 +194,7 @@ describe('the pinned post and edits (4.6): the rules', () => {
     expect(await pin(site(myra), theirs.id)).toMatchObject({ pinned: true, changed: true })
     expect(await pin(site(myra), theirs.id)).toMatchObject({ pinned: true, changed: false }) // a double click
     w.tick(1000)
-    const sub = await w.submit(site(kestrel), MID)
+    const sub = w.oldSubmission(kestrel, MID) // from before Oct 14, when a shwarm took submissions
     await pin(site(myra), sub.id)
     expect(w.pins(MID)).toEqual([sub.id, theirs.id])
     // unpinned, a post goes back to its place; the other pins stay
@@ -229,7 +229,7 @@ describe('the pinned post and edits (4.6): the rules', () => {
     const byAgent = await w.post(agent(myra), MID, 'from m-04')
     await refused(edit(site(myra), byAgent.id, 'the human rewrites it'), 'not_permitted', { need: 'poster' })
     await refused(edit(agent(myra), byAgent.id, 'no edit grant'), 'not_permitted', { need: 'edit' })
-    const sub = await w.submit(site(kestrel), MID)
+    const sub = w.oldSubmission(kestrel, MID) // from before Oct 14, when a shwarm took submissions
     await refused(edit(site(kestrel), sub.id, 'changed my mind'), 'not_permitted', { kind: 'submission' })
     await refused(edit(site(myra), 'p_doesnotexist1', 'x'), 'bad_request')
   })
@@ -238,7 +238,7 @@ describe('the pinned post and edits (4.6): the rules', () => {
     const id = w.node(MID).id
     const line = () => w.get<{ status_line: string }>('SELECT status_line FROM node_stats WHERE node_id = ?', id).status_line
     await rollupStats(w.db, w.now)
-    expect(line()).toBe('no submission yet.')
+    expect(line()).toBe('') // on track, with no branches to count
     const p = await w.post(site(myra), MID, 'status update: just started.\n\nmore detail below the first line.', { pin: true })
     w.tick(10 * 60_000)
     await rollupStats(w.db, w.now)
@@ -440,27 +440,6 @@ describe('on the page', () => {
       expect(res.headers.get('location')).toBe(`/w/${EXAMPLE_ROOT}#${pinned}`)
       expect((await act(b, { do: 'post', text, pin: '1' })).headers.get('location')).toBe(`/w/${EXAMPLE_ROOT}#${pinned}`)
       expect(q<{ n: number }>('SELECT COUNT(*) AS n FROM post WHERE text = ?', text).n).toBe(2)
-    })
-
-    it('a submission with the pin ticked is refused in the submit form, every field kept and the pin cleared', async () => {
-      const { env, q, pins } = await world()
-      const b = await signIn(env, 'myra', { make: false })
-      const before = pins()
-      const res = await act(b, {
-        do: 'submit',
-        pin: '1',
-        text: 'status update: renderer done.',
-        links: `https://codeberg.org/myra/doom-blocks/archive/v0.2.zip ${'5c'.repeat(32)}`,
-        how_to_check: 'play it for 10 minutes.',
-      })
-      expect(res.status).toBe(400)
-      const html = await body(res)
-      expect(html).toMatch(/<details class="submit" open="">[\s\S]*a submission can't be pinned\. untick the pin box to submit, or post without submitting to pin your message\./)
-      expect(html).toContain('>status update: renderer done.</textarea>')
-      expect(html).toContain('play it for 10 minutes.')
-      expect(html).toContain('<input type="checkbox" name="pin" value="1"/> pin this message')
-      expect(q<{ n: number }>("SELECT COUNT(*) AS n FROM post WHERE text = 'status update: renderer done.'").n).toBe(0)
-      expect(pins()).toEqual(before)
     })
 
     it("nobody else gets the pin box or the edit form; a forged edit is refused", async () => {

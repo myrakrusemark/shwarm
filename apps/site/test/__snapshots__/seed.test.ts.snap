@@ -8,19 +8,6 @@ exports[`mapping the launch list > snapshots of a few mapped entries > bot-beats
       "name": "ViZDoom",
       "url": "https://github.com/Farama-Foundation/ViZDoom",
     },
-    "check": {
-      "author": false,
-      "people": {
-        "count": 1,
-        "human": true,
-        "instructions": "watch at least two replays at full speed. note any wall clipping, god mode or other cheat, and confirm the bot used no map data beyond the allowed buffers by reading its input code.",
-      },
-      "runs": {
-        "command": "python replay.py demos/",
-        "count": 1,
-        "description": "replays each MAP01-MAP08 demo in vizdoom 1.3 and prints whether the exit was reached and the time, and exits 0 only when all eight demos reach the exit",
-      },
-    },
     "doneWhen": "an open bot finishes freedoom phase 2 maps 1 to 8 from a pistol start on skill 3, using only vizdoom's screen, depth, label and automap buffers, with eight recorded demos that replay to the exit on other people's machines.",
     "kind": "shwarm",
     "slug": "bot-beats-freedoom",
@@ -40,11 +27,6 @@ why now: vizdoom 1.3.1 shipped in september 2026, and full single-player doom le
       "field": "what",
       "kind": "changed",
       "text": "why_now appended as a last paragraph, "why now: vizdoom 1.3.1 shipped in september 2026…"",
-    },
-    {
-      "field": "check.runs",
-      "kind": "changed",
-      "text": "command split: "python replay.py demos/", and the words in brackets went to runs.description: "replays each MAP01-MAP08 demo in vizdoom 1.3 and prints whether the exit was reached and the time, and exits 0 only when all eight demos reach the exit"",
     },
     {
       "field": "builds_on",
@@ -79,14 +61,6 @@ builds on: ViZDoom (mit) https://github.com/Farama-Foundation/ViZDoom, which bun
 exports[`mapping the launch list > snapshots of a few mapped entries > map-sherlock-holmes 1`] = `
 {
   "input": {
-    "check": {
-      "author": false,
-      "people": {
-        "count": 1,
-        "human": false,
-        "instructions": "check 100 random rows against the story text and a map. then read 2 random stories and list any real place the file missed. pass at 97 of 100 correct and no more than 2 misses.",
-      },
-    },
     "doneWhen": "an open geojson file lists every named real-world place in all 60 stories with coordinates and the quote that names it, and 2 checkers find at least 97 of 100 random rows correct.",
     "kind": "shwarm",
     "slug": "map-sherlock-holmes",
@@ -134,19 +108,6 @@ exports[`mapping the launch list > snapshots of a few mapped entries > minecraft
       "name": "uzdoom",
       "url": "https://github.com/UZDoom/UZDoom",
     },
-    "check": {
-      "author": true,
-      "people": {
-        "count": 1,
-        "human": true,
-        "instructions": "download the mod from its public link and play e1m1 and one later map from a pistol start for 15 minutes each: dig through a wall, mine blocks, place one again and craft at least one thing from them, pick up a gun and check it sits in the inventory, and blow up every kind of monster you meet, including the exploding imp-like one; check it has its own name in the game (not imp, serpentipede or creeper) and that it blows holes in block walls. post your fps, any block you could walk through or that broke or placed wrong, and any texture, sound or monster that looks taken from doom or minecraft rather than drawn fresh. at least one tester must be human.",
-      },
-      "runs": {
-        "command": "./bench.sh && ./demos.sh && ./audit.sh mcdoom.pk3 && ./license-scan.sh mcdoom.pk3",
-        "count": 1,
-        "description": "on the reference rig, plays the bundled benchmark demo through e1m1 to e1m9 in uzdoom with freedoom1.wad and prints min and average fps, and exits non-zero if the minimum is under 60; plays one pistol-start demo per map on skill 3 and prints whether each reached the exit, and exits non-zero if any map's demo doesn't; counts the crafting recipes and the new monster classes, and lists, per map, any wall that isn't built from blocks or can't be dug out, and exits non-zero with fewer than 10 recipes, fewer than 4 new monster classes, or any wall listed; exits non-zero if any file in the mod isn't from freedoom or under an open license",
-      },
-    },
     "doneWhen": "a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp-like one with its own name that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets.",
     "kind": "shwarm",
     "slug": "minecraft-in-doom",
@@ -166,11 +127,6 @@ why now: uzdoom 5.0.3 shipped in september 2026 while gzdoom itself has had no r
       "field": "what",
       "kind": "changed",
       "text": "why_now appended as a last paragraph, "why now: uzdoom 5.0.3 shipped in september 2026 …"",
-    },
-    {
-      "field": "check.runs",
-      "kind": "changed",
-      "text": "command split: "./bench.sh && ./demos.sh && ./audit.sh mcdoom.pk3 && ./license-scan.sh mcdoom.pk3", and the words in brackets went to runs.description: "on the reference rig, plays the bundled benchmark demo through e1m1 to e1m9 in uzdoom with freedoom1.wad and prints min and average fps, and exits non-zero if the minimum is under 60; plays one pistol-start demo per map on skill 3 and prints whether each reached the exit, and exits non-zero if any map's demo doesn't; counts the crafting recipes and the new monster classes, and lists, per map, any wall that isn't built from blocks or can't be dug out, and exits non-zero with fewer than 10 recipes, fewer than 4 new monster classes, or any wall listed; exits non-zero if any file in the mod isn't from freedoom or under an open license"",
     },
     {
       "field": "builds_on",
@@ -218,19 +174,6 @@ exports[`mapping the launch list > snapshots of a few mapped entries > minecraft
       "name": "uzdoom",
       "url": "https://github.com/UZDoom/UZDoom",
     },
-    "check": {
-      "author": false,
-      "people": {
-        "count": 1,
-        "human": true,
-        "instructions": "survive three in-game nights from a fresh world. confirm no monster spawns on a lit block, that going without food hurts you, and post your lowest fps. at least one tester must be human.",
-      },
-      "runs": {
-        "command": "./bench.sh --night && ./license-scan.sh mcdoom-survival.pk3",
-        "count": 1,
-        "description": "the base benchmark demo replayed at night with spawning on",
-      },
-    },
     "doneWhen": "the minecraft in doom mod plus a hunger meter and a 20-minute day and night cycle, where monsters spawn only on dark blocks, still at 60 fps on the reference rig.",
     "kind": "shwarm",
     "slug": "minecraft-in-doom-survival",
@@ -249,11 +192,6 @@ why now: it can start as soon as the block engine in minecraft in doom holds up;
       "field": "what",
       "kind": "changed",
       "text": "why_now appended as a last paragraph, "why now: it can start as soon as the block engin…"",
-    },
-    {
-      "field": "check.runs",
-      "kind": "changed",
-      "text": "command split: "./bench.sh --night && ./license-scan.sh mcdoom-survival.pk3", and the words in brackets went to runs.description: "the base benchmark demo replayed at night with spawning on"",
     },
     {
       "field": "builds_on",
@@ -293,19 +231,6 @@ builds on: uzdoom (gpl, active gzdoom fork) https://github.com/UZDoom/UZDoom + f
 exports[`mapping the launch list > snapshots of a few mapped entries > where-am-i-ask-the-birds 1`] = `
 {
   "input": {
-    "check": {
-      "author": false,
-      "people": {
-        "count": 1,
-        "human": true,
-        "instructions": "read the three live-test posts. confirm they come from 3 different continents, that each person recorded a fresh minute outdoors where they stood and ran the model on it, and that each guess landed within 500 km of where they were. confirm the hidden set was held by a scorer outside the model's builders and that the model scored is the one whose hash was posted first. then record your own minute outside and post how far off the model was.",
-      },
-      "runs": {
-        "command": "python score.py model/ hidden-set/",
-        "count": 1,
-        "description": "runs the model on every hidden recording and prints the median distance error, counts the recordings, recorders and countries, checks that each recording was made after the shwarm opened, and checks that the model's sha256 was posted before the hidden set was released to the scorer run; it exits 0 only when the median error is under 500 km over at least 200 recordings by at least 50 people in at least 20 countries",
-      },
-    },
     "doneWhen": "a model anyone can download and run hears one minute of outdoor sound and guesses where on earth it was recorded; on at least 200 new one-minute recordings, made after the shwarm opens by at least 50 people in at least 20 countries and hidden from the model until scoring by a scorer who builds no model here, named in the thread before recording starts, who posts the set's sha256 when collecting closes, its median error is under 500 km, and 3 people on 3 different continents each record a fresh minute where they stand and the model places each one within 500 km.",
     "kind": "shwarm",
     "slug": "where-am-i-ask-the-birds",

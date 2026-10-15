@@ -15,6 +15,7 @@ export const ERRORS = {
   dms_off: 403,
   not_established: 403,
   own_work: 403,
+  not_joined: 403, // a branch's status: only people who joined it vote, claim or back (decided Oct 14)
   no_such_node: 404,
   slot_taken: 409,
   not_a_submission: 409,

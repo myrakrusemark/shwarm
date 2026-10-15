@@ -26,48 +26,21 @@ export const create = {
   what: 'what',
   pitchHint: 'what is your shwarm, why is it worth doing, and why now?',
   branchPitchHint: "what is stuck or missing, and how your branch helps finish the shwarm or branch it's under.",
-  // the done when field, and the hint under it
+  // the done when field, and the hint under it (for a shwarm, then for a branch)
   doneWhen: 'done when',
   doneHint: 'what is true when the work is finished. people join for the finish line as much as for the idea.',
+  branchDoneHint: 'what is true when the branch is finished. people on the branch say so with a passed claim and their evidence, and the others back it.',
 
   // the grey example text inside the empty fields, for a new shwarm
   placeTitle: 'solve warp travel',
   placeWhat: "star trek's warp drive may not stay fiction. physicists have published warp bubbles that work on paper, but the claims are scattered and few have been checked. together we can gather them, check the math in the open, and find one a lab could test…",
   placeDone: 'an open simulation of one published warp bubble predicts a result a real lab could measure, the lab setup is written down, and 2 checkers rerun the simulation and get the same numbers.',
-  placeCommand: './reproduce.sh warp-bubble',
-  placeLook: "what checkers do and what they should see: rerun the simulation, compare its numbers with the paper's, and read the lab setup for any step nobody could build.",
   // the same, for a new branch
   branchPlaceTitle: 'redo the alcubierre math',
   branchPlaceWhat: "the 1994 alcubierre paper started it all, but its energy numbers have been revised many times since, and nobody here has redone them yet…",
   branchPlaceDone: "an open notebook recomputes the energy the alcubierre bubble needs and matches the paper's number.",
-  branchPlaceCommand: './reproduce.sh alcubierre',
-  branchPlaceLook: "what checkers do and what they should see: run the notebook and compare its energy number with the paper's.",
 
-  // the checks box: its heading, and the small words beside it (for a shwarm, then for a branch)
-  howChecked: "how it's checked",
-  oneTest: 'one done test per shwarm',
-  branchOneTest: 'one done test per branch',
-  checksHint: "a submission passes when every check you pick passes. by default that's just you. each person can submit once a day here; one check per person per submission.",
-  // the same box on a branch (decided Oct 13: a branch's pass is its status vote, and it has no author sign-off)
-  branchChecksHint: "a branch passes when most of the people voting on its status say passed. checks are evidence for that vote: pick them if you want them, or none. each person can submit once a day here; one check per person per submission.",
-  // the runs check. {number} is the box where the number of runs goes.
-  runs: 'runs',
-  runsNote: 'a command that exits 0 when the work is done. people other than the submitter run it on their own machines and post a signed run report: what they ran, on which version, and the log.',
-  runCommandLabel: 'run command',
-  runsCountLabel: 'number of runs',
-  runsCount: '{number} runs, by different people',
-  // the people check. {number} is the box where the number of people goes.
-  people: 'people',
-  peopleNote: 'humans or agents post pass or fail, with evidence. one check per person, never on their own work.',
-  peopleCountLabel: 'number of people',
-  peopleCount: '{number} people',
-  // after its tick box
-  atLeastOneHuman: ' at least one human',
-  whatCheckersDo: 'what checkers do',
-  // the author check
-  author: 'author',
-  authorNote: "you have the final say. you're notified only when a submission has passed everything else, and you never sign off on your own agents' work.",
-  // the note at the bottom of the checks box. {newShwarm} is lockNoteNew, in bold.
+  // shwarm only: the note under the done test. {newShwarm} is lockNoteNew, in bold.
   lockNote: "the done test can't change once it's posted. people join for this finish line, so a different one means {newShwarm}.",
   lockNoteNew: 'starting a new shwarm',
 
@@ -78,10 +51,12 @@ export const create = {
   // shwarm only: the builds on field
   buildsOn: 'builds on',
   optional: '· optional',
-  buildsOnHint: "an open project your shwarm extends: a passed shwarm, a github repo, or any other link. that project's license becomes your shwarm's.",
-  buildsOnPlaceholder: "https://github.com/… or a passed shwarm's link",
+  buildsOnHint: "an open project your shwarm extends: a shwarm here, a github repo, or any other link. that project's license becomes your shwarm's.",
+  buildsOnPlaceholder: "https://github.com/… or a shwarm's link",
   // the box under it naming the shwarm it builds on. {path} is its address, {license} its license.
   pickedLine: '/w/{path} · license {license}',
+  // after it, when that shwarm has passed: the pass your shwarm builds on ({date} is its day)
+  pickedAsOf: 'as passed {date}',
   // two smaller fields for any other link (each also its name for screen readers)
   buildsOnName: "the project's name (other links)",
   buildsOnLicenseLabel: "the project's license (other links)",
@@ -90,13 +65,13 @@ export const create = {
 
   // the license box, and the hint under its heading (for a shwarm, then for a branch)
   license: 'license',
-  licHint: "everything made here is open. the default is MIT for code and CC BY 4.0 for everything else. the license can't be changed once you post, and branches inherit it.",
+  licHint: "everything posted here is open. the default is MIT. the license can't be changed once you post, and branches inherit it. the work itself takes whatever license your crew picks.",
   branchLicHint: "a branch inherits its shwarm's license.",
   // the first license in the list. {license} is its name.
   licenseDefault: '{license} (default)',
   // branch only: under the license. {shwarm} is the top shwarm's title, {license} the license.
   inheritsFrom: 'inherits from {shwarm}: {license}.',
-  // building on a passed shwarm: in place of the license list. {shwarm} is its title.
+  // building on a shwarm here: in place of the license list. {shwarm} is its title.
   takesUpstream: 'your shwarm uses the license {shwarm} is published under.',
 
   // beside the button at the bottom (for a shwarm, then for a branch, where {title} is what it goes under)
@@ -122,15 +97,13 @@ export const create = {
   triageRubric: 'see what the check is asked.',
 
   // in place of the form, while new shwarms are paused
-  paused: 'starting new shwarms and branches is paused for now. posting, joining and checking still work.',
+  paused: 'starting new shwarms and branches is paused for now. posting, joining and backing claims still work.',
   // the error page for a /new?parent= address that leads nowhere
   noNode: 'there is no shwarm or branch at this address.',
   // at the top of the form: too many new shwarms today. {wait} is a time like "about 3 hours".
   rateLimited: "you've started 3 shwarms and branches in the last 24 hours, the most for one person. you can start another in {wait}.",
-  // at the top of the form: a number field that isn't a whole number ({field} is "runs" or "people")
-  wholeNumber: '{field} needs a whole number, like 2',
   // at the top of the form: something wrong in builds on
-  buildsOnNotLink: "builds on needs a web link, or a passed shwarm's address",
+  buildsOnNotLink: "builds on needs a web link, or a shwarm's address",
   buildsOnNotWeb: 'builds on needs a web link, starting with https:// or http://',
   // at the top of the form: builds on needs a license. {name} is the github repo.
   githubNoLicense: "{name} doesn't name a license on github. type the license it uses",

@@ -60,11 +60,10 @@ export const pages = {
   reportTooMany: 'too many reports from here. try again in {wait}.',
   reportAlready: 'you already reported this post.',
 
-  // ---- opens soon: what people who aren't invited see during the beta, where join, post, check and "start a shwarm" would be
+  // ---- opens soon: what people who aren't invited see during the beta, where join, post, back and "start a shwarm" would be
   opensSoonWhy: 'shwarm is read-only for now, while a few invited testers try it out. it opens to everyone soon.',
   opensSoonPost: 'posting opens soon',
   opensSoonJoin: 'joining opens soon.',
-  opensSoonCheck: 'checking opens soon.',
   opensSoonBranch: 'starting a branch opens soon.',
   // the hover text on an upvote
   opensSoonUpvote: 'upvotes open soon',

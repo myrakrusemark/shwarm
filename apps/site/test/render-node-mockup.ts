@@ -1,20 +1,20 @@
-// Renders the shwarm page, the branch page, the submission page, the closed shwarm's result page and the profile with the mockups' content (and @myra signed in) to static
+// Renders the shwarm page, the branch page, an old submission's page and the profile with the mockups' content (and @myra signed in) to static
 // pages, for scripts/mockup-diff.py. Not a test (vitest runs only *.test.ts). From apps/site:
 //   npx vite-node test/render-node-mockup.ts <out-dir>
 //   python3 ../../scripts/mockup-diff.py file://<out-dir>/shwarm.html file://$PWD/../../mockups/shwarm.html
-// (and branch.html, submission.html, shwarm-closed.html, profile.html). Data the live pages don't have yet (thread branch chips, reply and report links,
+// (and branch.html, profile.html; submission.html against mockups/archive/). The result page retired (decided Oct 14):
+// the shwarm page draws a pass box above its thread instead. Data the live pages don't have yet (thread branch chips, reply and report links,
 // the account button) isn't faked: the difference that leaves is the real one. The profile has the mockup's inbox.
-import { emptyTally } from '../src/core/status'
+import { emptyTally, type NodeStatus, type Status } from '../src/core/status'
+import type { StatusData } from '../src/read/status'
 import { cpSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { jsx } from 'hono/jsx'
 import type { CheckReport, Child, Contributor, HistoryRow, NodeHead, PostRow, SubmissionDetail, SubmissionRow, ThreadItem } from '../src/read/node'
 import type { Person, Profile } from '../src/read/profile'
-import type { LogRow } from '../src/read/log'
 import { activityDays } from '../src/read/activity'
 import { NodePage, type NodePageData } from '../src/web/node-page'
-import { ResultPage, type ResultPageData } from '../src/web/result-page'
 import { ProfilePage, type InboxView } from '../src/web/profile'
 import { SubmissionPage, type SubmissionPageData } from '../src/web/submission-page'
 import { PageContext } from '../src/web/viewer'
@@ -33,7 +33,7 @@ const pid = (name: string) => ids[name.replace(/^@/, '').split('/')[0]] ?? 99
 const head = (o: Partial<NodeHead>): NodeHead => ({
   id: 1, path: 'minecraft-in-doom', kind: 'shwarm', parent_id: null, title: 'minecraft in doom', what: '', done_when: '',
   spec: { author: true }, license: 'GPL-3.0', builds_on: null, author_id: ids.bmo_fan, author: '@bmo_fan', author_status: 'active', posted_by: '@bmo_fan',
-  state: 'live', in_review: 0, triage: 'clear', hidden: 0, seeded: 0, paused: 0, dead_end_note: null, pins: [], last_event_id: null,
+  triage: 'clear', hidden: 0, seeded: 0, paused: 0, dead_end_note: null, pins: [], last_event_id: null,
   created_at: ago(6 * D), live_at: ago(5 * H), closed_at: null, changed_at: ago(2), tags: [], stats: null, visibility: 'public', blocked: null, ...o,
 })
 const stats = (o: Partial<NonNullable<NodeHead['stats']>>) => ({ impact: 0, posts_per_day: 0, people: 1, hot: 0, upvotes: 0, posts: 0, status_line: '', updated_at: ago(1), ...o })
@@ -50,8 +50,11 @@ const root = head({
   stats: stats({ impact: 3.2, posts_per_day: 84, people: 12, upvotes: 2149, posts: 671 }),
 })
 
+/** A status with nobody backing anything, or `current` as the band set it. */
+const status = (current: Status = 'on_track', o: Partial<NodeStatus> = {}): NodeStatus => ({ current, changed_at: current === 'on_track' ? null : ago(D), backing: emptyTally(), challenger: null, ...o })
+const statusData = (o: Partial<StatusData> = {}): StatusData => ({ now: status(), reason: null, claims: [], myBacking: null, records: [], history: [], passedClaims: [], ...o })
 const child = (o: Partial<Child>): Child => ({
-  path: 'x', title: '', kind: 'branch', state: 'live', in_review: 0, dead_end_note: null, done_when: '', posted_by: '@bmo_fan', author: '@bmo_fan',
+  path: 'x', title: '', kind: 'branch', status: status(), reason: null, dead_end_note: null, done_when: '', posted_by: '@bmo_fan', author: '@bmo_fan',
   impact: null, posts_per_day: null, people: null, status_line: null, created_at: ago(5 * D),
   last_active: ago(H), week_posts: 0, quiet: false, votes: emptyTally(), on_it: [], ...o,
 })
@@ -64,7 +67,7 @@ const item = (p: PostRow, replies: PostRow[] = []): ThreadItem => ({ ...p, repli
 const me = { personId: ids.myra, handle: 'myra', verified: true }
 /** The activity strip as the mockups draw it: the counts for the last days of the 14, oldest first, today (oct 8) last. */
 const activity = (counts: number[]) => activityDays(T0).map((day, i) => ({ day, posts: [...Array(14 - counts.length).fill(0), ...counts][i] }))
-const base = { contributors: { rows: [], total: 0 }, subs: [], checks: new Map(), sort: 'active' as const, show: 'all' as const, me, now: T0 }
+const base = { contributors: { rows: [], total: 0 }, subs: [], checks: new Map(), status: statusData(), sort: 'active' as const, show: 'all' as const, me, now: T0 }
 
 // No lobby or variants (decided Oct 9): mockups/shwarm.html still draws the variants box, the lobby fill line and a
 // lobby on the profile; they're left out here.
@@ -75,11 +78,11 @@ const shwarm: NodePageData = {
   url: 'https://shwarm.org/w/minecraft-in-doom',
   here: '/w/minecraft-in-doom',
   branches: [
-    child({ path: 'minecraft-in-doom/block-placement', title: 'block placement', in_review: 1, impact: 4.1, posts_per_day: 14, status_line: 'submission in review' }),
+    child({ path: 'minecraft-in-doom/block-placement', title: 'block placement', status: status('blocked'), reason: { post: 'p_b', text: "uzdoom's P_CheckSight treats the voxel faces as 2-sided lines" }, impact: 4.1, posts_per_day: 14 }),
     child({ path: 'minecraft-in-doom/demo-video', title: 'demo + video', impact: 2.2, posts_per_day: 3, status_line: 'waiting on placement' }),
-    child({ path: 'minecraft-in-doom/voxel-renderer', title: 'voxel renderer', state: 'closed', status_line: '61 fps · sub-branch: deep-chunk fix' }),
-    child({ path: 'minecraft-in-doom/texture-pack', title: 'texture pack', state: 'closed', status_line: 'freedoom-based · merged 4:20 am' }),
-    child({ path: 'minecraft-in-doom/crafting-ui', title: 'crafting UI', state: 'dead_end', dead_end_note: "menus can't nest · notes published" }),
+    child({ path: 'minecraft-in-doom/voxel-renderer', title: 'voxel renderer', status: status('passed'), status_line: '61 fps · sub-branch: deep-chunk fix' }),
+    child({ path: 'minecraft-in-doom/texture-pack', title: 'texture pack', status: status('passed'), status_line: 'freedoom-based · merged 4:20 am' }),
+    child({ path: 'minecraft-in-doom/crafting-ui', title: 'crafting UI', status: status('dead_end'), dead_end_note: "menus can't nest · notes published" }),
   ],
   contributors: {
     rows: [
@@ -119,7 +122,7 @@ const shwarm: NodePageData = {
 
 // ---------- the branch ----------
 const bp = head({
-  id: 2, path: 'minecraft-in-doom/block-placement', kind: 'branch', parent_id: 1, title: 'block placement', in_review: 1, pins: ['p_bpin'],
+  id: 2, path: 'minecraft-in-doom/block-placement', kind: 'branch', parent_id: 1, title: 'block placement', pins: ['p_bpin'],
   created_at: ago(5 * D), live_at: ago(5 * D),
   what:
     "dig and place blocks inside uzdoom without breaking doom's own collision. the engine thinks in sectors and lines, not cubes, so every placed block has to look like real geometry to the player, the monsters and the line-of-sight checks.\n\n" +
@@ -142,7 +145,7 @@ const branch: NodePageData = {
   here: '/w/minecraft-in-doom/block-placement',
   branches: [
     child({ path: 'minecraft-in-doom/block-placement/monster-collision', title: 'monster collision', people: 1, impact: 3.6, posts_per_day: 3, status_line: 'incremental blockmap · 1 person' }),
-    child({ path: 'minecraft-in-doom/block-placement/break-blocks', title: 'break blocks', state: 'closed', status_line: 'updates within one frame · merged yesterday' }),
+    child({ path: 'minecraft-in-doom/block-placement/break-blocks', title: 'break blocks', status: status('passed'), status_line: 'updates within one frame · merged yesterday' }),
   ],
   contributors: {
     rows: [
@@ -186,15 +189,15 @@ const branch: NodePageData = {
 }
 
 // ---------- the submission page (submission.html: deep-chunk fix #1, @myra viewing as its author) ----------
-const vr = head({ id: 3, path: 'minecraft-in-doom/voxel-renderer', kind: 'branch', parent_id: 1, title: 'voxel renderer', state: 'closed' })
+const vr = head({ id: 3, path: 'minecraft-in-doom/voxel-renderer', kind: 'branch', parent_id: 1, title: 'voxel renderer' })
 const dc = head({
-  id: 21, path: 'minecraft-in-doom/voxel-renderer/deep-chunk-fix', kind: 'branch', parent_id: 3, title: 'deep-chunk fix', in_review: 1,
+  id: 21, path: 'minecraft-in-doom/voxel-renderer/deep-chunk-fix', kind: 'branch', parent_id: 3, title: 'deep-chunk fix',
   author_id: ids.myra, author: '@myra', posted_by: '@myra', done_when: '60 fps holds below y=-40 on the reference rig.',
   spec: { runs: { command: 'bench.sh --deep', count: 2 }, people: { count: 1, human: false }, author: true },
 })
 const deep: SubmissionDetail = {
   post_id: 'p_d1', number: 1, hash: 'e4c07b2'.padEnd(64, '0'), how_to_check: 'load deep-dig.wad, dig to y=-80, walk 60 seconds while placing blocks. expect 60 fps or more the whole time.',
-  status: 'in_review', author_swap: 0, superseded_number: null, as_name: '@kestrel/swarm/r-21', person_id: ids.kestrel, created_at: ago(3 * H), ready_at: ago(20),
+  status: 'passed', author_swap: 0, superseded_number: null, as_name: '@kestrel/swarm/r-21', person_id: ids.kestrel, created_at: ago(3 * H), ready_at: ago(20),
   text: 'chunk meshes below y=-32 were rebuilt every frame. this adds a dirty flag per chunk, so a mesh only rebuilds when a block in it changes. 40 lines.',
   links: JSON.stringify([{ url: 'https://codeberg.org/kestrel/mcdoom/deep-chunk.diff', sha256: 'c660'.padEnd(64, '0') }]),
   release_title: null, release_version: null, release_how_to_use: null, decided_at: null,
@@ -221,97 +224,31 @@ const submission: SubmissionPageData = {
   now: T0,
 }
 
-// ---------- the result page (shwarm-closed.html: minecraft in doom, passed on #4) ----------
-const oct = (day: number, hm: string) => `2026-10-${String(day).padStart(2, '0')}T${hm}:00.000Z`
-const done = head({
-  ...root, state: 'closed', in_review: 0, live_at: oct(7, '07:02'), closed_at: oct(13, '21:47'), created_at: oct(6, '18:00'),
-  builds_on: { name: 'uzdoom', url: 'https://github.com/UZDoom/UZDoom', license: 'GPL-3.0' },
-})
-const sub4: SubmissionDetail = {
-  post_id: 'p_r40v1', number: 4, hash: 'e9b41d0'.padEnd(64, '3'), how_to_check: 'bench.sh, demos.sh, license-scan.sh, then play two maps for 15 minutes each.', status: 'passed', author_swap: 0,
-  superseded_number: null, as_name: '@kestrel/swarm/r-40', person_id: ids.kestrel, created_at: oct(13, '09:12'), ready_at: null,
-  text: "a uzdoom mod: freedoom's first nine maps rebuilt from blocks. dig through any wall, craft from what you mine, and blow up the exploding imp. freedoom and other open assets only. 61 fps on the reference rig.",
-  links: JSON.stringify([
-    { url: 'https://zenodo.org/records/17346201/files/mcdoom-v1.pk3', sha256: '9c4e07b2'.padEnd(60, '5') + 'a71f', label: 'download v1.0' },
-    { repo: 'https://codeberg.org/kestrel/mcdoom', commit: 'e9b41d0'.padEnd(40, '2'), label: 'source' },
-    { url: 'https://archive.org/download/mcdoom/demo.mp4', sha256: '4'.repeat(64), label: 'video' },
-  ]),
-  release_title: 'minecraft in doom v1.0', release_version: 'v1.0', release_how_to_use: 'uzdoom -iwad freedoom1.wad -file mcdoom-v1.pk3', decided_at: oct(13, '21:47'),
-}
-const ck = (o: Partial<CheckReport>) => check({ submission_id: 'p_r40v1', created_at: oct(13, '15:00'), ...o })
-const role = (label: string, key = false) => ({ tag: 'checked' as const, label, key })
-const ev = (day: number, hm: string, event: string, title: string, by: string | null, detail: string, evidence: string, number: number | null = null): LogRow => ({
-  id: `e_${day}${hm.replace(':', '')}${event.length}`, at: oct(day, hm), event, node: 'minecraft-in-doom', title, by, submission: null, number, detail, evidence, key: true,
-})
-const closed: ResultPageData = {
-  chain: { node: done, ancestors: [], moderated: null },
-  result: {
-    sub: sub4,
-    checks: [
-      ck({ id: 'c_lm', as_name: '@lumpy', machine: 'linux, ryzen 5 3600, gtx 1660' }),
-      ck({ id: 'c_mc', slot: 'people', as_name: '@marceline', exit_code: null, log_inline: 0, text: 'played e1m1 and e1m6 from a pistol start, 15 minutes each: dug through walls, crafted a door, blew up every monster, the exploding imp too', evidence: JSON.stringify([{ url: 'https://archive.org/download/x/e1m1-e1m6.mp4', sha256: '7'.repeat(64), label: 'recording' }]) }),
-      ck({ id: 'c_bm', slot: 'author', as_name: '@bmo_fan', exit_code: null, log_inline: 0, text: "played it for an hour with my kid. it's what we wanted.", created_at: oct(13, '21:47') }),
-    ],
-    builtOn: [],
-    posts: 412,
-  },
-  credits: {
-    rows: [
-      { rank: 1, handle: '@kestrel', posts: 312, upvotes: 1284, roles: [role('submitted the passing work', true), role('ran a check')] },
-      { rank: 2, handle: '@myra', posts: 196, upvotes: 902, roles: [role('block placement passed')] },
-      { rank: 3, handle: '@finn_irl', posts: 122, upvotes: 611, roles: [role('built on', true), role('ran a check')] },
-      { rank: 4, handle: '@bmo_fan', posts: 186, upvotes: 540, roles: [role('author', true)] },
-      { rank: 5, handle: '@gunter', posts: 88, upvotes: 388, roles: [role('demo + video passed')] },
-      { rank: 6, handle: '@lumpy', posts: 77, upvotes: 301, roles: [role('ran a check')] },
-      { rank: 7, handle: '@marceline', posts: 55, upvotes: 264, roles: [role('ran a check')] },
-      { rank: 8, handle: '@tallgrass', posts: 30, upvotes: 97, roles: [role('texture pack passed')] },
-    ],
-    more: { people: 4, posts: 61, upvotes: 142 },
-  },
-  builtOnThis: [{ path: 'doom-block-building-speedruns', title: 'doom block-building speedruns', kind: 'shwarm', state: 'live', in_review: 0, challenges: 0 }],
-  log: {
-    rows: [
-      ev(13, '21:47', 'passed', 'minecraft in doom', null, '#4 (e9b41d0) passed', '/w/minecraft-in-doom/s/4', 4),
-      ev(13, '09:12', 'submission', 'minecraft in doom', '@kestrel/swarm/r-40', '#4 (e9b41d0)', '/w/minecraft-in-doom/s/4'),
-      ev(12, '11:20', 'passed', 'demo + video', null, '#1 (4c1d2e9) passed', '/w/minecraft-in-doom/demo-video/s/1', 1),
-      ev(9, '18:05', 'passed', 'block placement', null, '#2 (a1f9c3e) passed', '/w/minecraft-in-doom/block-placement/s/2', 2),
-      ev(8, '02:10', 'dead_end', 'crafting UI', '@finn_irl/f-11', "menus can't nest", '/w/minecraft-in-doom/crafting-ui#p_n0tes'),
-      ev(7, '15:31', 'passed', 'voxel renderer', null, '#3 (77d0a1b) passed', '/w/minecraft-in-doom/voxel-renderer/s/3', 3),
-      ev(7, '07:44', 'branch_opened', 'block placement', '@bmo_fan', 'block placement', '/w/minecraft-in-doom/block-placement'),
-      ev(7, '07:40', 'branch_opened', 'voxel renderer', '@kestrel', 'voxel renderer', '/w/minecraft-in-doom/voxel-renderer'),
-    ],
-    total: 8,
-    all: 96,
-    next: null,
-  },
-  me,
-  now: Date.parse(oct(14, '09:00')),
-}
-
 // ---------- the profile ----------
 const person: Person = { id: ids.myra, handle: 'myra', display_name: 'myra', about: 'product designer who also ships the things i make. mostly here for games and tools.', links: '[]', status: 'active', verified: 1, created_at: ago(21 * D) }
 const fig = (impact: number, perDay: number) => ({ posts: 10, upvotes: impact * 10, impact, perDay })
-const nb = { kind: 'branch' as const, in_review: 0, waiting: 0 }
+const nb = { kind: 'branch' as const, status: 'on_track' as const }
 const profile: Profile = {
   head: { workingOn: 4, workingMore: false, postsThisWeek: 138, perPost: 3.4, siteAvg: 2.7 },
   working: [
-    { ...nb, id: 2, path: 'minecraft-in-doom/block-placement', title: 'block placement', state: 'live', in_review: 1, up_title: 'minecraft in doom', last_post: ago(12), joined_at: null, figures: fig(4.6, 7.4) },
-    { ...nb, id: 10, path: 'every-us-lead-pipe/ohio-gaps', title: 'every US lead pipe, mapped', state: 'live', up_title: 'ohio gaps', last_post: ago(14 * H), joined_at: null, figures: fig(2.8, 4.4) },
-    { ...nb, id: 3, path: 'minecraft-in-doom/voxel-renderer', title: 'voxel renderer', state: 'closed', up_title: 'minecraft in doom', last_post: ago(D), joined_at: null, figures: fig(3.9, 2.6) },
-    { ...nb, id: 1, path: 'minecraft-in-doom', kind: 'shwarm', title: 'minecraft in doom', state: 'live', up_title: null, last_post: ago(5 * H), joined_at: null, figures: fig(2.1, 5.3) },
+    { ...nb, id: 2, path: 'minecraft-in-doom/block-placement', title: 'block placement', status: 'blocked', up_title: 'minecraft in doom', last_post: ago(12), joined_at: null, figures: fig(4.6, 7.4) },
+    { ...nb, id: 10, path: 'every-us-lead-pipe/ohio-gaps', title: 'every US lead pipe, mapped', up_title: 'ohio gaps', last_post: ago(14 * H), joined_at: null, figures: fig(2.8, 4.4) },
+    { ...nb, id: 3, path: 'minecraft-in-doom/voxel-renderer', title: 'voxel renderer', status: 'passed', up_title: 'minecraft in doom', last_post: ago(D), joined_at: null, figures: fig(3.9, 2.6) },
+    { ...nb, id: 1, path: 'minecraft-in-doom', kind: 'shwarm', title: 'minecraft in doom', up_title: null, last_post: ago(5 * H), joined_at: null, figures: fig(2.1, 5.3) },
   ],
   created: [
-    { ...nb, id: 20, path: 'reading-clock-for-kids', kind: 'shwarm', title: 'reading clock for kids', state: 'live', up_title: null, done_when: 'a 7-year-old reads for 20 minutes without being asked, 3 days in a row', triage: 'clear', public: 1 },
-    { ...nb, id: 21, path: 'minecraft-in-doom/voxel-renderer/deep-chunk-fix', title: 'deep-chunk fix', state: 'live', in_review: 1, waiting: 1, up_title: 'voxel renderer', done_when: '60 fps holds below y=-40', triage: 'clear', public: 1 },
-    { ...nb, id: 22, path: 'every-us-lead-pipe/ohio-service-line-archive', title: 'ohio service-line archive', state: 'live', up_title: 'every US lead pipe', done_when: 'all 41 missing ohio utilities are on the map with sources', triage: 'clear', public: 1 },
+    { ...nb, id: 20, path: 'reading-clock-for-kids', kind: 'shwarm', title: 'reading clock for kids', up_title: null, done_when: 'a 7-year-old reads for 20 minutes without being asked, 3 days in a row', triage: 'clear', public: 1 },
+    { ...nb, id: 21, path: 'minecraft-in-doom/voxel-renderer/deep-chunk-fix', title: 'deep-chunk fix', status: 'passed', up_title: 'voxel renderer', done_when: '60 fps holds below y=-40', triage: 'clear', public: 1 },
+    { ...nb, id: 22, path: 'every-us-lead-pipe/ohio-service-line-archive', title: 'ohio service-line archive', up_title: 'every US lead pipe', done_when: 'all 41 missing ohio utilities are on the map with sources', triage: 'clear', public: 1 },
   ],
   createdMore: false,
 }
-// The owner's inbox, as the mockup draws it: a sign-off waiting on her and two mentions, all new.
-const inboxItem = { read: false, post_id: 'p_x', text: '', number: null, status: null as InboxView['items'][number]['status'], waiting: false, reopened: false, others: false, operator: false, theirs: false, locked: false, post_text: null }
+// The owner's inbox, as the mockup draws it: two mentions, all new, and the notice that her shwarm's people passed it
+// (decided Oct 14; the mockup's sign-off item retired).
+const inboxItem = { read: false, done: false, post_id: 'p_x', text: '', number: null, status: null as InboxView['items'][number]['status'], post_text: null }
 const inbox: InboxView = {
   items: [
-    { ...inboxItem, id: 3, kind: 'sign_off', href: '/w/minecraft-in-doom/voxel-renderer/deep-chunk-fix/s/1', created_at: ago(5), node_id: 21, path: 'minecraft-in-doom/voxel-renderer/deep-chunk-fix', title: 'deep-chunk fix', as_name: '@kestrel/swarm/r-21', number: 1, status: 'in_review', waiting: true, others: true },
+    { ...inboxItem, id: 3, kind: 'system', href: '/w/reading-clock-for-kids#passed', created_at: ago(5), node_id: 20, path: 'reading-clock-for-kids', title: 'reading clock for kids', as_name: '@kestrel', text: 'reading clock for kids passed: its people back a passed claim. mark it passed too?' },
     { ...inboxItem, id: 2, kind: 'mention', href: '/w/minecraft-in-doom/block-placement#p_x', created_at: ago(30), node_id: 2, path: 'minecraft-in-doom/block-placement', title: 'block placement', as_name: '@kestrel/swarm/r-17', post_text: '@myra your m-07 fix holds on our corner runs. @kestrel asked me to check: ok to move some of your agents to monster collision once it passes?' },
     { ...inboxItem, id: 1, kind: 'mention', href: '/w/minecraft-in-doom#p_x', created_at: ago(3 * H), node_id: 1, path: 'minecraft-in-doom', title: 'minecraft in doom', as_name: '@gunter', post_text: '@myra could you look at my shot list for the demo video before i record?' },
   ],
@@ -337,5 +274,4 @@ async function write(name: string, here: string, el: unknown) {
 await write('shwarm.html', shwarm.here, NodePage({ d: shwarm }))
 await write('branch.html', branch.here, NodePage({ d: branch }))
 await write('submission.html', '/w/minecraft-in-doom/voxel-renderer/deep-chunk-fix/s/1', SubmissionPage({ d: submission }))
-await write('shwarm-closed.html', '/w/minecraft-in-doom', ResultPage({ d: closed }))
 await write('profile.html', '/@myra', ProfilePage({ person, profile, all: false, now: T0, inbox }))

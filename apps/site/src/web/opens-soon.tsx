@@ -1,5 +1,5 @@
 // "opens soon" (go-live 3.10): what the beta shows anyone who isn't invited (signed out, or not a founding account or
-// the operator) where join, post, check and "start a shwarm" would be. Core refuses their acts as well
+// the operator) where join, post, back and "start a shwarm" would be. Core refuses their acts as well
 // (core/context.ts loadPerson), so this is the words, not the lock.
 // OPEN: every line here waits on Myra's yes.
 import { useContext, type FC } from 'hono/jsx'
@@ -13,7 +13,6 @@ export const OPENS_SOON = {
   get why() { return w.pages.opensSoonWhy },
   get post() { return w.pages.opensSoonPost },
   get join() { return w.pages.opensSoonJoin },
-  get check() { return w.pages.opensSoonCheck },
   get branch() { return w.pages.opensSoonBranch },
   get upvote() { return w.pages.opensSoonUpvote },
   get newTitle() { return w.pages.opensSoonTitle },

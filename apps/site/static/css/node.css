@@ -69,23 +69,11 @@
 .compose .btn[aria-busy="true"] { opacity: .55; cursor: progress; }
 main > .err.flash { margin: 0 0 10px; }
 
-/* not in the mockup: the compose box's submit mode (go-live 5.1) */
-.compose details.submit { margin-top: 8px; border-top: 1px dashed rgba(19,38,27,.45); padding-top: 6px; font-size: 13px; }
-.compose details.submit summary { cursor: pointer; font-weight: 700; }
-.compose details.submit > p { margin: 4px 0 6px; }
-.compose details.submit label { display: block; margin-top: 8px; font-weight: 700; font-size: 12.5px; }
-.compose details.submit label + .note { display: block; }
-.compose details.submit textarea { min-height: 44px; margin-top: 4px; }
-.compose details.submit fieldset { margin: 10px 0 0; padding: 4px 10px 8px; border: 1.5px solid var(--ink); background: rgba(255,255,255,.25); }
-.compose details.submit legend { font-weight: 700; font-size: 12.5px; padding: 0 4px; }
-.compose details.submit input { display: block; width: 100%; font: inherit; border: 1.5px solid var(--ink); background: var(--paper); padding: 4px 8px; margin-top: 4px; font-weight: 400; }
-.compose details.submit .err { margin-top: 8px; }
-
-/* not in the mockup: the author's own box, re-pitch and dead end behind the password (go-live 5.6) */
+/* not in the mockup: the author's own box, "mark it passed" behind the password (go-live 5.6; decided Oct 14) */
 .owner details summary { cursor: pointer; font-weight: 700; font-size: 13px; }
 .owner form > label { display: block; margin-top: 8px; font-weight: 700; font-size: 12.5px; }
 .owner form > label + .note { display: block; }
-.owner textarea { width: 100%; min-height: 56px; margin-top: 4px; font: inherit; font-size: 13px; border: 1.5px solid var(--ink); background: var(--paper); padding: 6px 8px; resize: vertical; }
+.owner select { display: block; width: 100%; margin-top: 4px; font: inherit; font-size: 13px; border: 1.5px solid var(--ink); background: var(--paper); padding: 4px 6px; color: var(--ink); }
 .owner form > .note { margin: 0; }
 .owner .row { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 8px; }
 .owner label.pw { display: block; margin-top: 8px; font-weight: 700; font-size: 12.5px; }
@@ -118,11 +106,10 @@ main > .err.flash { margin: 0 0 10px; }
 .c > .err { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 6px 0 0; }
 .acts .edit .err { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 6px 0 0; }
 
-/* not in the mockup: delete and the tombstone, re-pitch and its history, join on a live shwarm (go-live 4.4, 4.8) */
+/* not in the mockup: delete and the tombstone, an edited shwarm's history, join (go-live 4.4, 4.8) */
 .acts .del .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .acts .del-act .btn[aria-busy="true"], .acts .edit-act .btn[aria-busy="true"] { opacity: .55; cursor: progress; }
 .c.gone > .note { margin: 4px 0 0; font-style: italic; }
-.owner form > input { display: block; width: 100%; font: inherit; font-size: 13px; border: 1.5px solid var(--ink); background: var(--paper); padding: 4px 8px; margin-top: 4px; }
 .pitch .hist { margin-top: 6px; font-size: 13px; }
 .pitch .hist summary { cursor: pointer; text-decoration: underline; }
 .pitch .hist ol { list-style: none; padding: 0; margin: 6px 0 0; }
@@ -135,7 +122,7 @@ main > .err.flash { margin: 0 0 10px; }
 .late div.note .seat-act { display: inline; }
 .late .err { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 6px 0 0; }
 
-/* not in the mockup: "how to join in" under the contribute url (Oct 10) */
+/* not in the mockup: "how to join in" under the url for an agent, in the people card (Oct 10) */
 .how-join { margin-top: 10px; font-size: 13px; }
 .how-join summary { cursor: pointer; font-weight: 700; }
 .how-join ol { margin: 6px 0 4px; padding-left: 20px; }
@@ -165,7 +152,7 @@ main > .err.flash { margin: 0 0 10px; }
 .held.paused { font-weight: 700; }
 
 /* from shwarm.html and branch.html: join and the say-hi modal (go-live 8.2, decided Oct 12). a join button on the node's
-   own post and one in the contributors box, both open the modal; join posts, quiet join lines, the burst */
+   own post and one in the people card, both open the modal; join posts, quiet join lines, the burst */
 .head .state { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
 .head .state .seat-act { margin: 0; }
 .head .state .btn { font-size: 13px; padding: 4px 14px; box-shadow: 3px 3px 0 var(--ink); }
@@ -193,32 +180,92 @@ main > .err.flash { margin: 0 0 10px; }
 .c.ev.more-joins summary { cursor: pointer; }
 .c.ev.more-joins > .c.ev { padding: 4px 0 0; background: none; border: 0; }
 
-/* A branch's status vote (decided Oct 13): a badge in place of "live", its bars in a panel on hover, keyboard focus, or a
-   tap (static/js/node.js). The quiet tag sits beside a live branch's badge or pill when nothing was posted for a while. */
+/* A shwarm's or branch's status (decided Oct 13, Oct 14): a badge in place of "live" (its colors are in common.css), its
+   backing in a panel on hover, keyboard focus, or a tap (static/js/node.js). The quiet tag sits beside a branch's badge
+   when nothing was posted for a while. */
 .branches .pills { display: inline-flex; gap: 4px; align-items: flex-start; }
 .st.quiet { background: none; color: var(--ink); border-color: transparent; } /* no border (Myra, Oct 13); transparent keeps it lined up with the badges */
 .vote-badge { position: relative; display: inline-block; }
 .vote-badge > button.st { font-family: inherit; font-size: 11px; font-weight: 700; line-height: inherit; cursor: pointer; }
-.st.vs.on-track { background: var(--leaf); color: var(--paper); border-color: var(--leaf); }
-.st.vs.blocked { background: var(--sun); color: var(--ink); }
-.st.vs.passed { background: var(--ink); color: var(--paper); }
-.st.vs.dead-end { background: var(--paper); color: var(--ink); text-decoration: line-through; }
-.st.vs.mixed { background: var(--paper); color: var(--ink); border-style: dashed; }
-.vb-panel { display: none; position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; width: 250px; background: var(--paper); border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); padding: 8px 10px; text-align: left; font-weight: 400; }
+.vb-panel { display: none; position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; width: 250px; max-width: calc(100vw - 16px); background: var(--paper); border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); padding: 8px 10px; text-align: left; font-weight: 400; }
 .vote-badge:hover .vb-panel, .vote-badge.open .vb-panel, .vote-badge button:focus-visible + .vb-panel { display: block; }
 .votes { font-size: 11px; }
 .votes ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: max-content 1fr max-content; gap: 2px 6px; align-items: center; }
 .votes li { display: contents; }
 .votes .vb { height: 8px; border: 1px solid var(--ink); background: var(--paper); display: block; }
 .votes .vb i { display: block; height: 100%; background: var(--moss); }
-.votes li.mine .vl { font-weight: 700; }
+.votes li.cur .vl { font-weight: 700; }
 .votes li.mine .vb i { background: var(--sun); }
-.votes .vn { text-align: right; font-variant-numeric: tabular-nums; }
-.votes .vp { margin-top: 4px; }
-.status-vote .vote-line { display: flex; gap: 8px; align-items: center; margin: 0 0 8px; }
-.status-vote .vote-btns { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
-.status-vote .vote-btns .btn { font-size: 12px; padding: 3px 8px; }
-.status-vote .vote-btns .btn.on { background: var(--sun); color: var(--ink); }
-.status-vote .linkish { font: inherit; font-size: 12px; background: none; border: 0; padding: 0; color: var(--sky); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
-.status-vote .linkish:hover { background: var(--sun); color: var(--ink); }
-.status-vote .linkish:focus-visible { outline: 3px solid var(--ink); }
+.votes li.none .vl, .votes li.none .vn { opacity: .6; }
+.votes .vn { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.votes .vp { margin: 6px 0 0; }
+.votes .vp:first-child { margin-top: 0; }
+
+/* The people card (decided Oct 14): "on this branch" with the status badge at its right, the challenger line, the top
+   five and "+ n more", then join and the url for an agent, or, joined, "how's it going?" with the status buttons and
+   the claim forms. A claim form is hidden until its button opens it: the link's target without scripts, .open with them. */
+.people .ph { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--sun); border-bottom: var(--rule); padding-right: 8px; }
+.people .ph h2 { border-bottom: 0; flex: 1; }
+.people .chal { font-size: 12px; font-weight: 700; }
+.people .crew + .more-people { display: inline-block; margin-top: 4px; font-size: 12px; }
+.agent-url { margin-top: 10px; }
+.agent-url > .note { margin: 0 0 4px; }
+.hows { margin-top: 10px; }
+.hows > .note { margin: 0 0 6px; }
+.hows .vote-btns { display: flex; flex-wrap: wrap; gap: 5px; margin: 0 0 6px; }
+.hows .vote-btns form { margin: 0; }
+.hows .vote-btns .btn { font-size: 11.5px; padding: 3px 6px; box-shadow: 2px 2px 0 var(--ink); }
+.hows .vote-btns .btn.on { background: var(--sun); color: var(--ink); }
+.hows .vote-btns a.btn[aria-expanded="true"] { outline: 2px solid var(--ink); outline-offset: 1px; }
+.hows .vote-btns .btn[aria-busy="true"] { opacity: .55; cursor: progress; }
+.claim-act { display: none; margin: 4px 0 8px; padding: 8px; border: 1.5px solid var(--ink); background: rgba(244,197,49,.16); font-size: 13px; }
+.claim-act:target, .claim-act.open { display: block; }
+.claim-act label { display: block; font-weight: 700; font-size: 12.5px; }
+.claim-act textarea { width: 100%; min-height: 64px; margin-top: 4px; font: inherit; border: 1.5px solid var(--ink); background: var(--paper); padding: 6px 8px; resize: vertical; }
+.claim-act .note { margin: 4px 0 0; }
+.claim-act .row { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 6px; }
+.claim-act .btn { font-size: 12px; padding: 3px 10px; box-shadow: 2px 2px 0 var(--ink); }
+.claim-act .btn[aria-busy="true"] { opacity: .55; cursor: progress; }
+.claim-act .cancel { font-size: 12px; }
+.claim-act .err, .hows .err { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); font-weight: 700; font-size: 12.5px; margin: 6px 0 0; }
+.dn.pp .crew li { padding: 3px 0; }
+.dn.pp .sec > .note:empty { display: none; }
+
+/* a claim in the thread: its tag after the name, in the badges' colors, and "back" as its ▲ */
+.ct { font-size: 10.5px; font-weight: 700; padding: 0 5px; margin-left: 4px; border: 1px solid var(--ink); }
+.ct.blocked { background: var(--sun); color: var(--ink); }
+.ct.passed { background: var(--ink); color: var(--paper); }
+.ct.dead-end { background: var(--paper); color: var(--ink); }
+.acts .back-act { display: inline; margin: 0; }
+.acts .back-act button.up[aria-busy="true"] { opacity: .55; cursor: progress; }
+
+/* A passed claim's pinned work (decided Oct 14): under its evidence, or "no pinned work". A pin that carries its own hash
+   (ipfs, magnet, a rad repo) is code to copy, broken anywhere so a long magnet link can't widen the page. The passed
+   claim's form takes them one per line. */
+.how.pins { margin-top: 4px; }
+.how.pins ul { list-style: none; margin: 2px 0 0; padding: 0 0 0 12px; }
+.how.pins li { padding: 1px 0; }
+.how.pins li::before { content: "· "; margin-left: -12px; }
+.c > .note.pins { margin: 4px 0 0; font-size: 12px; }
+code.pin { font-size: 11.5px; overflow-wrap: anywhere; word-break: break-all; user-select: all; }
+.claim-act label + .note, .claim-act textarea.pins + .note { display: block; }
+.claim-act label:not(:first-of-type) { margin-top: 8px; }
+.claim-act label .note { font-weight: 400; }
+.claim-act textarea.pins { min-height: 44px; }
+
+/* The pass box above the thread (decided Oct 14, in place of the result page): its records newest first, each with its
+   pinned work, then "since then", the folded status history, and the author's "mark it passed". */
+.passbox { margin-bottom: 18px; }
+.passbox h2 { background: var(--ink); color: var(--paper); }
+.passbox .records { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+.passbox .records > li { padding: 8px 12px; border-bottom: 1px dashed rgba(19,38,27,.3); overflow-wrap: anywhere; }
+.passbox .records > li:last-child { border-bottom: 0; }
+.passbox .records > li.crowd { background: linear-gradient(90deg, rgba(92,154,62,.16), transparent 75%); }
+.passbox .records .txt { display: inline; }
+.passbox .records .how, .passbox .records .note.pins { margin: 3px 0 0; font-size: 12px; }
+.passbox .since { border-top: var(--rule); font-size: 13px; }
+.passbox .hist summary { cursor: pointer; text-decoration: underline; font-size: 12.5px; }
+.passbox .hist ol { list-style: none; margin: 6px 0 0; padding: 0; font-size: 12.5px; }
+.passbox .hist li { padding: 3px 0; border-top: 1px dashed rgba(19,38,27,.3); }
+.passbox .owner { border-top: var(--rule); background: rgba(244,197,49,.16); }
+.owner details.passmark > summary { cursor: pointer; font-weight: 700; font-size: 13px; }

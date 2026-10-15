@@ -1,6 +1,7 @@
 // Pure formulas for stats and ranking (spec "Impact", "Hot", "Feed ranking"; go-live table B #9, #10, #24, #40, #44).
 // No database here: jobs/stats.ts gathers the rows and stores what these return. Nothing here counts agents:
 // every number is about people, posts and counted (A6) human upvotes.
+import { STATUSES, type Status } from './status'
 
 export const HOUR_MS = 3_600_000
 export const DAY_MS = 86_400_000
@@ -11,8 +12,7 @@ export type Ranking = {
   hot_ratio: number // 24h upvotes at least this many times the 7-day daily average (spec "Hot")
   half_life_hours: number // live score decay (table B #24)
   window_hours: number // live score looks back this far (table B #24)
-  submission: number // live score bump per submission (table B #24)
-  pass: number // live score bump per pass (table B #24)
+  pass: number // live score bump per pass (table B #24): an audit 'passed' row, the crowd's or the author's
   bumps_from_branches: boolean
 }
 
@@ -21,10 +21,9 @@ export const RANKING: Ranking = {
   hot_ratio: 2,
   half_life_hours: 12,
   window_hours: 24,
-  submission: 5,
   pass: 20,
-  // OPEN: table B says "+5 per submission, +20 per pass" without saying whose. A shwarm only stays on hot while
-  // it's live, and its own pass closes it, so the bumps count submissions and passes on its branches too.
+  // OPEN: table B says "+20 per pass" without saying whose. A shwarm whose own status is passed doesn't rank, so the
+  // bumps count passes on its branches too. (Its "+5 per submission" went with submissions, decided Oct 14.)
   bumps_from_branches: true,
 }
 
@@ -35,7 +34,7 @@ export function rankingFrom(rows: Record<string, unknown>): Ranking {
     if (typeof v === 'number' && Number.isFinite(v) && v >= 0) (out as Record<string, unknown>)[k] = v
   }
   const r = rows.ranking && typeof rows.ranking === 'object' ? (rows.ranking as Record<string, unknown>) : {}
-  for (const k of ['hot_ratio', 'half_life_hours', 'window_hours', 'submission', 'pass', 'hot_floor'] as const) num(k, r[k])
+  for (const k of ['hot_ratio', 'half_life_hours', 'window_hours', 'pass', 'hot_floor'] as const) num(k, r[k])
   if (typeof r.bumps_from_branches === 'boolean') out.bumps_from_branches = r.bumps_from_branches
   num('hot_floor', rows.hot_floor)
   if (out.half_life_hours <= 0) out.half_life_hours = RANKING.half_life_hours
@@ -45,33 +44,37 @@ export function rankingFrom(rows: Record<string, unknown>): Ranking {
 const decay = (ageMs: number, r: Ranking) => Math.pow(0.5, ageMs / (r.half_life_hours * HOUR_MS))
 
 /**
- * Live score (table B #24): counted upvotes in the window with a half-life, plus bumps for submissions and passes.
+ * Live score (table B #24): counted upvotes in the window with a half-life, plus bumps for passes.
  * OPEN: table B gives the window and half-life for upvotes; the bumps use the same window and decay here, so an old
  * pass doesn't pin a shwarm to the top forever.
  */
-export function liveScore(ev: { upvotes: number[]; submissions: number[]; passes: number[] }, now: number, r: Ranking = RANKING): number {
+export function liveScore(ev: { upvotes: number[]; passes: number[] }, now: number, r: Ranking = RANKING): number {
   const from = now - r.window_hours * HOUR_MS
   const sum = (times: number[], w: number) => times.reduce((s, t) => (t > from && t <= now ? s + w * decay(now - t, r) : s), 0)
-  return sum(ev.upvotes, 1) + sum(ev.submissions, r.submission) + sum(ev.passes, r.pass)
+  return sum(ev.upvotes, 1) + sum(ev.passes, r.pass)
 }
 
 /** The same live score from sums already decayed to `now` (the stats job adds them up in SQL). */
-export function liveScoreFrom(decayed: { upvotes: number; submissions: number; passes: number }, r: Ranking = RANKING): number {
-  return decayed.upvotes + r.submission * decayed.submissions + r.pass * decayed.passes
+export function liveScoreFrom(decayed: { upvotes: number; passes: number }, r: Ranking = RANKING): number {
+  return decayed.upvotes + r.pass * decayed.passes
 }
 
 /**
- * A stored score brought to `now`, for ranking rows the job computed at different times. Between its updated_at and
- * its stale_at nothing leaves a live node's window, so its score only decays, every part at the same rate: this is
- * exact. Only a live node has a score; the lobby score went with the lobby (decided Oct 9).
+ * Whether a node with this status ranks (a score, the hot flag): not once its status is passed or a dead end (decided
+ * Oct 14, "One model for every node": its work stopped being the open kind). It ranks again once the status moves on.
  */
-export function scoreNow(s: { state: string; score: number; updated_at: string }, now: number, r: Ranking = RANKING): number {
-  if (s.state !== 'live') return s.score
+export const ranks = (status: Status) => status !== 'passed' && status !== 'dead_end'
+
+/**
+ * A stored score brought to `now`, for ranking rows the job computed at different times. Between its updated_at and
+ * its stale_at nothing leaves a node's window, so its score only decays, every part at the same rate: this is exact.
+ */
+export function scoreNow(s: { score: number; updated_at: string }, now: number, r: Ranking = RANKING): number {
   return s.score * decay(Math.max(0, now - Date.parse(s.updated_at)), r)
 }
 
 /**
- * Hot (spec "Hot", table B #10): a live thread whose counted upvotes in the last 24 hours reach the floor and are
+ * Hot (spec "Hot", table B #10): a thread that ranks whose counted upvotes in the last 24 hours reach the floor and are
  * at least hot_ratio × its own 7-day daily average.
  * OPEN: the 7-day average here includes the last 24 hours (upvotes in 7 days ÷ 7), so a thread that breaks through
  * on its first day can be hot that day.
@@ -129,47 +132,36 @@ export function isSeedSourcesPost(text: string | null | undefined, bySeed = fals
 }
 
 export type StatusInput = {
-  kind?: string // 'branch' or a shwarm's; a branch whose submission passed its checks stays live (decided Oct 13)
-  state: 'live' | 'closed' | 'dead_end'
   pins: { text: string; bySeed?: boolean }[] // the thread's pinned posts (not hidden), the latest pinned first; bySeed: the
   // launch seed pinned it (see isSeedSourcesPost)
-  deadEndNote: string | null
-  submissions: { number: number; status: 'in_review' | 'passed' | 'failed' | 'superseded' }[]
-  branches: { live: number; closed: number }
+  /** The node's status now (core/status.ts). */
+  status: Status
+  /**
+   * Why it isn't on track: the evidence of the most-backed claim of its status, or for a shwarm marked a dead end before
+   * Oct 14, its dead-end note; null when it's on track or nothing says why.
+   */
+  reason: string | null
+  /** Its branches by their status now. */
+  branches: Partial<Record<Status, number>>
 }
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+/** How the line names a status. */
+const STATUS_WORDS: Record<Status, string> = { on_track: 'on track', blocked: 'blocked', passed: 'passed', dead_end: 'dead end' }
 
 /**
- * The status line (table B #40): the first line of the post the author pinned last, else a line from recorded state.
- * Never the latest post. Recorded-state lines follow the mockups ("submission in review",
- * "no submission yet · 2 branches closed, 2 live").
- * The launch seed's pinned sources post (A18) never counts as the author's pinned post here: a seeded shwarm says
- * "no submission yet." until its author pins a post of their own.
+ * The status line (table B #40): the first line of the post the author pinned last; else, while the node isn't on
+ * track, the first line of why (the most-backed claim of its status); else its branches by status ("2 branches on
+ * track, 1 passed."), or nothing. Never the latest post. The page and the feed show the status itself beside it.
+ * The launch seed's pinned sources post (A18) never counts as the author's pinned post here.
  * Builder's default (OPEN, Oct 14): with several pins, the one pinned last speaks for the thread.
  */
 export function statusLine(s: StatusInput): string {
   const pin = s.pins.find(p => !isSeedSourcesPost(p.text, p.bySeed) && firstLine(p.text))
   if (pin) return firstLine(pin.text)
-  if (s.state === 'dead_end') return firstLine(s.deadEndNote) || 'dead end.'
-  const subs = [...s.submissions].sort((a, b) => b.number - a.number)
-  if (s.state === 'closed') {
-    const p = subs.find(x => x.status === 'passed')
-    return p ? `passed on submission #${p.number}.` : 'passed.'
-  }
-  const review = subs.find(x => x.status === 'in_review')
-  const latest = subs.find(x => x.status !== 'superseded')
-  let head: string
-  if (review) head = `submission #${review.number} in review`
-  else if (latest?.status === 'failed') head = `submission #${latest.number} failed`
-  // A branch's submission passes its checks and the branch stays live (decided Oct 13). Otherwise only a node reopened
-  // before Oct 9 is live with a passed submission: nothing reopens now. OPEN (#127): new words.
-  else if (latest?.status === 'passed') head = s.kind === 'branch' ? `submission #${latest.number} passed its checks` : `reopened after a repro on submission #${latest.number}`
-  else head = 'no submission yet'
-  const parts: string[] = []
-  if (s.branches.closed) parts.push(`${plural(s.branches.closed, 'branch', 'branches')} closed`)
-  if (s.branches.live) parts.push(parts.length ? `${s.branches.live} live` : `${plural(s.branches.live, 'branch', 'branches')} live`)
-  return parts.length ? `${head} · ${parts.join(', ')}.` : `${head}.`
+  if (s.status !== 'on_track') return firstLine(s.reason) || `${STATUS_WORDS[s.status]}.`
+  const parts = STATUSES.filter(x => s.branches[x]).map((x, i) => (i === 0 ? `${plural(s.branches[x]!, 'branch', 'branches')} ${STATUS_WORDS[x]}` : `${s.branches[x]} ${STATUS_WORDS[x]}`))
+  return parts.length ? `${parts.join(', ')}.` : ''
 }
 
 export type Ranked = { id: number; score: number; created_at: string }

@@ -5,11 +5,11 @@
 // name view's posts. Each is indexed by person: post_person, seat_person, node_author_created and the
 // person_node_stats key. The site average sums node_stats over open nodes (one row per node).
 import { WEEK_MS, impact } from '../core/stats'
+import type { Claim, Status } from '../core/status'
 import { figuresOf, type Figures } from './figures'
 import { PUBLIC_NODE } from './visibility'
 
 export type NodeKind = 'shwarm' | 'branch' | 'variant'
-export type NodeState = 'live' | 'closed' | 'dead_end'
 
 /** The public face of an account. */
 export type Person = {
@@ -46,11 +46,11 @@ export function linksOf(json: string): { label: string; url: string }[] {
     .slice(0, 5) // OPEN: the account modal has two (website, code); no cap is decided
 }
 
-type NodeBits = { id: number; path: string; kind: NodeKind; title: string; state: NodeState; in_review: number; up_title: string | null }
+/** `status`: its status as stored with its band (core/status.ts), the row's badge. */
+type NodeBits = { id: number; path: string; kind: NodeKind; title: string; status: Status; up_title: string | null }
 
-// `waiting`: a submission there waits on the owner's sign-off (PRD PROF-9); always 0 when someone else is looking.
-export type WorkingRow = NodeBits & { last_post: string | null; joined_at: string | null; figures: Figures | null; waiting: number }
-export type CreatedRow = NodeBits & { done_when: string; triage: string; public: number; waiting: number }
+export type WorkingRow = NodeBits & { last_post: string | null; joined_at: string | null; figures: Figures | null }
+export type CreatedRow = NodeBits & { done_when: string; triage: string; public: number }
 export type Head = { workingOn: number; workingMore: boolean; postsThisWeek: number; perPost: number | null; siteAvg: number | null }
 
 export type Profile = { working: WorkingRow[]; created: CreatedRow[]; createdMore: boolean; head: Head }
@@ -62,14 +62,8 @@ export const LIST_MAX = 500
 // "branch". (Variants are dropped, decided Oct 9: one made before reads as a shwarm, with no original.)
 const UP = 'LEFT JOIN node up ON up.id = n.parent_id'
 const UP_TITLE = `CASE WHEN ${PUBLIC_NODE('up')} THEN up.title END AS up_title`
-/**
- * "Waiting on you" (PROF-9, SUB-24): the owner (?1) has a sign-off item there not yet done, and can make it now: it's
- * their node, or its author is gone and they are an admin (the operator, table B; as read/inbox.ts readInbox decides).
- * `owner` is the bind saying it's them.
- */
-const WAITING = (owner: string) =>
-  `(${owner} AND EXISTS (SELECT 1 FROM inbox_item i WHERE i.person_id = ?1 AND i.kind = 'sign_off' AND i.done_at IS NULL AND i.node_id = n.id)
-    AND (n.author_id = ?1 OR ((SELECT status FROM person WHERE id = n.author_id) != 'active' AND (SELECT is_admin FROM person WHERE id = ?1) = 1))) AS waiting`
+/** A node's status as stored with its band: on track when it has none. */
+const STATUS = "COALESCE((SELECT b.current FROM branch_status b WHERE b.node_id = n.id), 'on_track') AS status"
 
 /**
  * Working on, created and the head figures.
@@ -77,7 +71,6 @@ const WAITING = (owner: string) =>
  * joined it (said they're working on it), posted there (themselves or by agent) in the last 7 days, or authored it.
  * A node drops off a week after their last post unless they joined it or wrote it. The row still shows their last post, however old.
  * Created: nodes they authored; the owner also sees their own nodes that are still being checked, held or blocked.
- * The owner's rows also say where a submission waits on their sign-off.
  */
 export async function readProfile(db: D1Database, personId: number, o: { owner: boolean; now: number }): Promise<Profile> {
   const weekAgo = new Date(o.now - WEEK_MS).toISOString()
@@ -87,7 +80,7 @@ export async function readProfile(db: D1Database, personId: number, o: { owner: 
         `WITH mine AS (SELECT node_id, MAX(created_at) AS last_post, SUM(created_at > ?2) AS n7 FROM post WHERE person_id = ?1 AND hidden = 0 GROUP BY node_id),
               seats AS (SELECT node_id, joined_at FROM seat WHERE person_id = ?1 AND left_at IS NULL),
               ids AS (SELECT node_id FROM mine WHERE n7 > 0 UNION SELECT node_id FROM seats UNION SELECT id FROM node WHERE author_id = ?1)
-         SELECT n.id, n.path, n.kind, n.title, n.state, n.in_review, n.created_at, ${UP_TITLE}, ${WAITING('?4')},
+         SELECT n.id, n.path, n.kind, n.title, ${STATUS}, n.created_at, ${UP_TITLE},
                 m.last_post, COALESCE(m.n7, 0) AS n7, s.joined_at, st.posts, st.upvotes
          FROM ids JOIN node n ON n.id = ids.node_id ${UP}
          LEFT JOIN mine m ON m.node_id = n.id
@@ -96,12 +89,12 @@ export async function readProfile(db: D1Database, personId: number, o: { owner: 
          WHERE ${PUBLIC_NODE('n')}
          ORDER BY COALESCE(m.last_post, s.joined_at, n.created_at) DESC, n.id DESC LIMIT ?3`,
       )
-      .bind(personId, weekAgo, LIST_MAX + 1, o.owner ? 1 : 0)
-      .all<NodeBits & { waiting: number; created_at: string; last_post: string | null; n7: number; joined_at: string | null; posts: number | null; upvotes: number | null }>(),
+      .bind(personId, weekAgo, LIST_MAX + 1)
+      .all<NodeBits & { created_at: string; last_post: string | null; n7: number; joined_at: string | null; posts: number | null; upvotes: number | null }>(),
     db
       .prepare(
-        `SELECT n.id, n.path, n.kind, n.title, n.done_when, n.state, n.in_review, n.triage, ${UP_TITLE},
-                ${PUBLIC_NODE('n')} AS public, ${WAITING('?2')}
+        `SELECT n.id, n.path, n.kind, n.title, n.done_when, ${STATUS}, n.triage, ${UP_TITLE},
+                ${PUBLIC_NODE('n')} AS public
          FROM node n ${UP}
          WHERE n.author_id = ?1 AND n.hidden = 0 AND (?2 OR ${PUBLIC_NODE('n')})
          ORDER BY n.created_at DESC, n.id DESC LIMIT ?3`,
@@ -154,6 +147,8 @@ export type NamePost = {
   number: number | null // a submission's number
   verdict: 'pass' | 'fail' | null // a check's verdict
   on_number: number | null // the submission a check is on
+  claim: Claim | null // a claim's status (decided Oct 14)
+  links: string // JSON: on a passed claim, its pinned work
 }
 
 export const NAME_PAGE = 25
@@ -175,7 +170,7 @@ export async function readNamePosts(db: D1Database, personId: number, name: stri
   const c = parseCursor(before)
   const { results } = await db
     .prepare(
-      `SELECT p.id, p.kind, p.text, p.created_at, p.reply_to, n.path, n.title, s.number, cr.verdict, os.number AS on_number
+      `SELECT p.id, p.kind, p.text, p.created_at, p.reply_to, n.path, n.title, s.number, cr.verdict, os.number AS on_number, p.claim, p.links
        FROM post p JOIN node n ON n.id = p.node_id
        LEFT JOIN submission s ON s.post_id = p.id
        LEFT JOIN check_report cr ON cr.post_id = p.id

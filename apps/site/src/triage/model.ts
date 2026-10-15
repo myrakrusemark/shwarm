@@ -70,12 +70,17 @@ export function stateOf(n: NodeForTriage): Record<string, unknown> {
     title: n.title,
     what: n.what,
     done_when: n.done_when,
-    // A summary of how it's checked: the run command and the checkers' instructions are text people wrote too.
-    checked_by: {
-      runs: spec.runs ? { command: spec.runs.command, count: spec.runs.count, ...(spec.runs.description ? { description: spec.runs.description } : {}) } : null,
-      people: spec.people ? { count: spec.people.count, human: spec.people.human, instructions: spec.people.instructions ?? '' } : null,
-      author: spec.author === true,
-    },
+    // How a node opened before Oct 14 was checked: the run command and the checkers' instructions are text people
+    // wrote too. A node opened since keeps no checks (its done test is the sentence), so it has none to show.
+    ...(spec.runs || spec.people || spec.author
+      ? {
+          checked_by: {
+            runs: spec.runs ? { command: spec.runs.command, count: spec.runs.count, ...(spec.runs.description ? { description: spec.runs.description } : {}) } : null,
+            people: spec.people ? { count: spec.people.count, human: spec.people.human, instructions: spec.people.instructions ?? '' } : null,
+            author: spec.author === true,
+          },
+        }
+      : {}),
     tags: n.tags ? n.tags.split(' ').filter(Boolean) : [],
     builds_on: buildsOn,
   }

@@ -6,7 +6,6 @@ import { feed } from './feed'
 import { node } from './node'
 import { create } from './create'
 import { submission } from './submission'
-import { result } from './result'
 import { auth } from './auth'
 import { profile } from './profile'
 import { keys } from './keys'
@@ -14,4 +13,4 @@ import { dms } from './dms'
 import { email } from './email'
 import { pages } from './pages'
 
-export const en = { chrome, feed, node, create, submission, result, auth, profile, keys, dms, email, pages }
+export const en = { chrome, feed, node, create, submission, auth, profile, keys, dms, email, pages }

@@ -234,8 +234,8 @@ export async function setPassword(db: D1Database, pepper: string, personId: numb
 export type InlineStepUp = { ok: true } | { refuse: string; status: 400 | 429; wait?: number }
 
 /**
- * The inline step-up (A5) for a form that acts with the person's authority: the sign-off, the author's own box, saving
- * the account. With the 10-minute window open nothing is asked; otherwise the form carries the password, checked and
+ * The inline step-up (A5) for a form that acts with the person's authority: the author's passed mark, saving the
+ * account. With the 10-minute window open nothing is asked; otherwise the form carries the password, checked and
  * throttled as /step-up does (stepUp, which opens the window on success), so the draft never leaves for the /step-up
  * page. On success the session object's window is moved too, so a page re-rendered after a later refusal doesn't ask again.
  */

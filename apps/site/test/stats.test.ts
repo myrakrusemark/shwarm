@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   RANKING,
   byScore,
+  ranks,
   firstLine,
   impact,
   impactBar,
@@ -21,18 +22,23 @@ import {
 import { MAIL_CRON, scheduled, stats as runStats } from '../src/jobs'
 import { CHUNK, MAX_NODES, refreshAfter, rollupSite, rollupStats } from '../src/jobs/stats'
 import { getHeaderStats, stripStats } from '../src/web/header-stats'
-import { agent, DAY, HOUR, MIN, person, site, stepped, T0, World, type P } from './core-fixtures'
+import { agent, DAY, HOUR, MIN, person, site, T0, World, type P } from './core-fixtures'
 import { testDb } from './d1'
 
 const iso = (ms: number) => new Date(ms).toISOString()
 const half = (h: number) => Math.pow(0.5, h / 12)
 
 describe('formulas', () => {
-  it('live score: counted upvotes in 24h with a 12h half-life, +5 a submission, +20 a pass', () => {
-    expect(liveScore({ upvotes: [T0], submissions: [], passes: [] }, T0)).toBe(1)
-    expect(liveScore({ upvotes: [T0 - 12 * HOUR], submissions: [], passes: [] }, T0)).toBeCloseTo(0.5, 10)
-    expect(liveScore({ upvotes: [T0 - 25 * HOUR, T0 + MIN], submissions: [], passes: [] }, T0)).toBe(0) // outside the window, or not yet
-    expect(liveScore({ upvotes: [], submissions: [T0], passes: [T0 - 12 * HOUR] }, T0)).toBeCloseTo(5 + 10, 10)
+  it('live score: counted upvotes in 24h with a 12h half-life, +20 a pass (the +5 a submission went with them, Oct 14)', () => {
+    expect(liveScore({ upvotes: [T0], passes: [] }, T0)).toBe(1)
+    expect(liveScore({ upvotes: [T0 - 12 * HOUR], passes: [] }, T0)).toBeCloseTo(0.5, 10)
+    expect(liveScore({ upvotes: [T0 - 25 * HOUR, T0 + MIN], passes: [] }, T0)).toBe(0) // outside the window, or not yet
+    expect(liveScore({ upvotes: [], passes: [T0, T0 - 12 * HOUR] }, T0)).toBeCloseTo(20 + 10, 10)
+    expect(RANKING).not.toHaveProperty('submission')
+  })
+
+  it('a node ranks while its status is on track or blocked, not once it passed or is a dead end', () => {
+    expect((['on_track', 'blocked', 'passed', 'dead_end'] as const).map(ranks)).toEqual([true, true, false, false])
   })
 
   it('hot: at the floor and twice the 7-day daily average', () => {
@@ -68,30 +74,32 @@ describe('formulas', () => {
     expect(RANKING).not.toHaveProperty('hot_mix')
   })
 
-  const st = (o: Partial<StatusInput>): string =>
-    statusLine({ state: 'live', pins: [], deadEndNote: null, submissions: [], branches: { live: 0, closed: 0 }, ...o })
+  const st = (o: Partial<StatusInput>): string => statusLine({ pins: [], status: 'on_track', reason: null, branches: {}, ...o })
 
-  it('status line: the pinned post first, else recorded state, never the latest post', () => {
+  it('status line: the pinned post first, else why it is not on track, else its branches, never the latest post', () => {
     expect(st({ pins: [{ text: '\n  status update: renderer at 61 fps.  \nmore below' }] })).toBe('status update: renderer at 61 fps.')
-    expect(st({})).toBe('no submission yet.')
-    expect(st({ branches: { live: 2, closed: 2 } })).toBe('no submission yet · 2 branches closed, 2 live.')
-    expect(st({ branches: { live: 1, closed: 0 } })).toBe('no submission yet · 1 branch live.')
-    expect(st({ submissions: [{ number: 1, status: 'superseded' }, { number: 2, status: 'in_review' }] })).toBe('submission #2 in review.')
-    expect(st({ submissions: [{ number: 1, status: 'failed' }] })).toBe('submission #1 failed.')
-    expect(st({ submissions: [{ number: 3, status: 'passed' }] })).toBe('reopened after a repro on submission #3.')
-    // a branch's submission passes its checks and the branch stays live (decided Oct 13): not a reopen
-    expect(st({ kind: 'branch', submissions: [{ number: 3, status: 'passed' }] })).toBe('submission #3 passed its checks.')
-    expect(st({ state: 'closed', submissions: [{ number: 2, status: 'failed' }, { number: 3, status: 'passed' }] })).toBe('passed on submission #3.')
-    expect(st({ state: 'dead_end', deadEndNote: "menus can't nest.\nnotes published" })).toBe("menus can't nest.")
+    expect(st({})).toBe('') // on track with nothing to say: the page and the card show the status beside it
+    expect(st({ branches: { on_track: 2, passed: 1, dead_end: 1 } })).toBe('2 branches on track, 1 passed, 1 dead end.')
+    expect(st({ branches: { blocked: 1 } })).toBe('1 branch blocked.')
+    // why: the most-backed claim of its status, first line
+    expect(st({ status: 'blocked', reason: 'waiting on the engine: P_CheckSight caches the old block.\nmore', branches: { on_track: 2 } })).toBe(
+      'waiting on the engine: P_CheckSight caches the old block.',
+    )
+    expect(st({ status: 'passed', reason: 'all nine maps from a pistol start.' })).toBe('all nine maps from a pistol start.')
+    expect(st({ status: 'dead_end', reason: "menus can't nest.\nnotes published" })).toBe("menus can't nest.")
+    // a status nothing says why for (a record from before Oct 14 with no claim): the status alone
+    expect(st({ status: 'passed', reason: null })).toBe('passed.')
+    expect(st({ status: 'dead_end', reason: '  ' })).toBe('dead end.')
+    expect(st({ status: 'blocked', reason: 'x', pins: [{ text: 'demo friday.' }] })).toBe('demo friday.')
     expect(firstLine('x'.repeat(200))).toHaveLength(140)
   })
 
   it("status line: the launch seed's pinned sources post never counts (table B #40, A18)", () => {
     const sources = 'where this pitch comes from:\nhttps://example.org/a\n\nbuilds on: gzdoom'
-    expect(st({ pins: [{ text: sources }] })).toBe('no submission yet.')
-    expect(st({ pins: [{ text: '  Where this pitch comes from:  \nx' }] })).toBe('no submission yet.')
+    expect(st({ pins: [{ text: sources }] })).toBe('')
+    expect(st({ pins: [{ text: '  Where this pitch comes from:  \nx' }], branches: { on_track: 1 } })).toBe('1 branch on track.')
     // posted by the seed, whatever its first line (a builds-on line only)
-    expect(st({ pins: [{ text: 'builds on: gzdoom', bySeed: true }] })).toBe('no submission yet.')
+    expect(st({ pins: [{ text: 'builds on: gzdoom', bySeed: true }] })).toBe('')
     // with several pins, the one pinned last speaks, skipping the seed's (decided Oct 14)
     expect(st({ pins: [{ text: 'demo friday.' }, { text: 'renderer closed.' }] })).toBe('demo friday.')
     expect(st({ pins: [{ text: sources, bySeed: true }, { text: 'renderer closed.' }] })).toBe('renderer closed.')
@@ -127,14 +135,14 @@ async function posts(w: World, by: Parameters<World['post']>[0], node: string, n
 }
 
 /**
- * Six shwarms and two lobbies, all started 8 days before T0 by @myra through the seed:
- *   alpha    live; 6 posts in the last 3h (one by carol's agent); 33 counted upvotes an hour ago   → hot
- *   beta     live; 10 posts 6 days ago; 140 upvotes 2–6 days ago and 25 half an hour ago           → not hot (surge too small)
- *   gamma    live; 3 posts, one pinned; 10 counted upvotes an hour ago                              → under the floor
- *   delta    live; 5 posts; 25 upvotes from accounts that aren't established                       → nothing counts
- *   epsilon  live; its branch (one people check) got submission #1 an hour ago                      → +5 bump on both
- *   zeta     dead end
- *   lobby-a  5 seats, 2 joins 2h ago; lobby-b 10 seats, 1 join 2h ago
+ * Eight shwarms, all started 8 days before T0 by @myra through the seed:
+ *   alpha    6 posts in the last 3h (one by carol's agent); 33 counted upvotes an hour ago              → hot
+ *   beta     10 posts 6 days ago; 140 upvotes 2–6 days ago and 25 half an hour ago                    → not hot (surge too small)
+ *   gamma    3 posts, one pinned; 10 counted upvotes an hour ago                                       → under the floor
+ *   delta    5 posts; 25 upvotes from accounts that aren't established                                → nothing counts
+ *   epsilon  with a branch whose people made it passed an hour ago (carol's claim, dave's back)        → +20 bump
+ *   zeta     a dead end since 2 days ago, by bob's claim with dave's back                              → doesn't rank
+ *   quiet-a  2 joins 2h ago; quiet-b 1 join 2h ago
  */
 async function fixture() {
   const w = new World()
@@ -155,7 +163,7 @@ async function fixture() {
   }
   await w.shwarm(seed(myra), { title: 'quiet a' })
   await w.shwarm(seed(myra), { title: 'quiet b' })
-  await w.branch(seed(myra), 'epsilon', { check: { people: { count: 1 } } })
+  await w.branch(seed(myra), 'epsilon')
 
   w.now = T0 - 6 * DAY
   const betaPosts = await posts(w, site(bob), 'beta', 10)
@@ -172,10 +180,23 @@ async function fixture() {
   await w.join(site(dave), 'quiet-a')
   await w.join(site(erin), 'quiet-a')
   await w.join(site(dave), 'quiet-b')
-  await w.run({ type: 'deadEnd', actor: stepped(myra), input: { node: 'zeta', note: "menus can't nest.\nnotes published." } })
 
-  w.now = T0 - HOUR
-  const sub = await w.submit(site(bob), 'epsilon/block-placement')
+  // zeta: bob's dead-end claim with dave's back, 3 days ago, so its status is dead end from 2 days ago on (an act on it
+  // since wrote the change); epsilon's branch: carol's passed claim with dave's back, passed an hour ago
+  w.now = T0 - 3 * DAY
+  await w.join(site(dave), 'zeta')
+  const dead = await w.run({ type: 'post', actor: site(bob), input: { node: 'zeta', text: "menus can't nest.\nnotes published.", claim: 'dead_end' } })
+  await w.run({ type: 'back', actor: site(dave), input: { node: 'zeta', post: dead.id, on: true } })
+  w.now = T0 - 25 * HOUR
+  await w.join(site(carol), 'epsilon/block-placement')
+  await w.join(site(dave), 'epsilon/block-placement')
+  const pass = await w.run({ type: 'post', actor: site(carol), input: { node: 'epsilon/block-placement', text: 'blocks place on every face.', claim: 'passed' } })
+  await w.run({ type: 'back', actor: site(dave), input: { node: 'epsilon/block-placement', post: pass.id, on: true } })
+  w.now = T0 - 30 * MIN
+  await w.join(site(erin), 'zeta')
+  await w.run({ type: 'status', actor: site(erin), input: { node: 'zeta', status: 'on_track' } })
+  await w.join(site(erin), 'epsilon/block-placement')
+  await w.run({ type: 'status', actor: site(erin), input: { node: 'epsilon/block-placement', status: 'on_track' } })
 
   // upvotes, at fixed times
   for (let i = 0; i < 30; i++) upvote(w, alphaPosts[i % 5], voters[i], T0 - HOUR)
@@ -187,17 +208,18 @@ async function fixture() {
   for (let k = 0; k < 25; k++) upvote(w, deltaPosts[k % 5], newbies[Math.floor(k / 5)], T0 - HOUR, 0)
 
   w.now = T0
-  return { w, myra, bob, carol, dave, voters, newbies, sub, alphaPosts }
+  return { w, myra, bob, carol, dave, voters, newbies, alphaPosts }
 }
 
 const stats = (w: World) => {
   const rows = w.all('SELECT n.path, s.* FROM node_stats s JOIN node n ON n.id = s.node_id ORDER BY n.path')
   return Object.fromEntries(rows.map(r => [r.path, r]))
 }
+/** The live tab's shwarms (read/feed.ts): every one whose status isn't passed, by score. */
 const hotTab = (w: World) => {
   const rows = w.all(
-    `SELECT n.id, n.path, n.state, n.created_at, s.score FROM node n JOIN node_stats s ON s.node_id = n.id
-     WHERE n.kind IN ('shwarm', 'variant') AND n.state = 'live'`,
+    `SELECT n.id, n.path, n.created_at, s.score FROM node n JOIN node_stats s ON s.node_id = n.id LEFT JOIN branch_status b ON b.node_id = n.id
+     WHERE n.kind IN ('shwarm', 'variant') AND COALESCE(b.current, 'on_track') <> 'passed'`,
   )
   return rows.sort(byScore).map(r => r.path)
 }
@@ -209,7 +231,7 @@ describe('stats rollup', () => {
     expect(r.nodes).toBe(9)
     const s = stats(w)
 
-    expect(s.alpha).toMatchObject({ hot: 1, upvotes: 33, posts: 6, impact: 5.5, people: 3, status_line: 'no submission yet.' })
+    expect(s.alpha).toMatchObject({ hot: 1, upvotes: 33, posts: 6, impact: 5.5, people: 3, status_line: '' })
     expect(s.alpha.posts_per_day).toBeCloseTo(6 / 7, 2) // 6 posts this week
     expect(s.alpha.score).toBeCloseTo(33 * half(1), 3)
 
@@ -224,22 +246,25 @@ describe('stats rollup', () => {
     // 25 upvotes from accounts that aren't established: no impact, no score, not hot
     expect(s.delta).toMatchObject({ hot: 0, upvotes: 0, posts: 5, impact: 0, score: 0 })
 
-    // the branch's submission bumps the branch and its shwarm
-    expect(s.epsilon.score).toBeCloseTo(5 * half(1), 3)
-    expect(s['epsilon/block-placement'].score).toBeCloseTo(5 * half(1), 3)
-    expect(s.epsilon.status_line).toBe('no submission yet · 1 branch live.')
-    expect(s['epsilon/block-placement'].status_line).toBe('submission #1 in review.')
+    // the branch's pass bumps its shwarm; the passed branch itself doesn't rank, and says why it passed
+    expect(w.events('epsilon/block-placement', 'passed').map(e => e.at)).toEqual([iso(T0 - HOUR)])
+    expect(s.epsilon.score).toBeCloseTo(20 * half(1), 3)
+    expect(s['epsilon/block-placement']).toMatchObject({ score: 0, hot: 0, status_line: 'blocks place on every face.' })
+    expect(s.epsilon.status_line).toBe('1 branch passed.')
 
     expect(s.zeta).toMatchObject({ score: 0, hot: 0, status_line: "menus can't nest." })
     // live from the start, with no lobby score: joins count only as people (decided Oct 9)
-    expect(s['quiet-a']).toMatchObject({ score: 0, people: 3, status_line: 'no submission yet.' })
-    expect(s['quiet-b']).toMatchObject({ score: 0, people: 2, status_line: 'no submission yet.' })
+    expect(s['quiet-a']).toMatchObject({ score: 0, people: 3, status_line: '' })
+    expect(s['quiet-b']).toMatchObject({ score: 0, people: 2, status_line: '' })
   })
 
-  it('ranks the hot tab: live by score, no dead ends', async () => {
+  it('ranks the hot tab: by score, a dead end with none', async () => {
     const { w } = await fixture()
     await rollupStats(w.db, T0)
-    expect(hotTab(w)).toEqual(['alpha', 'beta', 'gamma', 'epsilon', 'quiet-b', 'quiet-a', 'delta'])
+    const tab = hotTab(w)
+    expect(tab.slice(0, 4)).toEqual(['alpha', 'beta', 'epsilon', 'gamma'])
+    expect(tab.slice(4).sort()).toEqual(['delta', 'quiet-a', 'quiet-b', 'zeta'])
+    expect(stats(w).zeta.score).toBe(0)
   })
 
   it('rolls agents up to their human and counts only established upvotes per person', async () => {
@@ -281,25 +306,25 @@ describe('stats rollup', () => {
   })
 
   it('rolls up only changed nodes and their ancestors', async () => {
-    const { w, bob, myra, sub } = await fixture()
+    const { w, bob } = await fixture()
     await rollupStats(w.db, T0)
     w.now = T0 + MIN
     await w.post(site(bob), 'gamma', 'one more.')
     expect(await rollupStats(w.db, T0 + 5 * MIN)).toMatchObject({ nodes: 1, changed: 1, warm: 0 })
     expect(stats(w).gamma.posts).toBe(4)
 
-    // the branch's submission passes its checks: the branch and its shwarm are rolled up, and the shwarm gets the +20 bump.
-    // A branch has no sign-off (decided Oct 13): its author's check is the one people check it asks for. It stays live, so
-    // it keeps a score, with the same bump
+    // a post on the branch rolls up the branch and its shwarm
     w.now = T0 + 6 * MIN
-    await w.pass(site(myra), 'epsilon/block-placement', sub.id)
-    expect(w.sub(sub.id).status).toBe('passed')
+    await w.post(site(bob), 'epsilon/block-placement', 'corner case on slabs.')
     expect(await rollupStats(w.db, T0 + 10 * MIN)).toMatchObject({ nodes: 2, changed: 2 })
-    const s = stats(w)
-    expect(s.epsilon.status_line).toBe('no submission yet · 1 branch live.')
-    expect(s.epsilon.score).toBeCloseTo(5 * half(70 / 60) + 20 * half(4 / 60), 3)
-    expect(w.node('epsilon/block-placement').state).toBe('live')
-    expect(s['epsilon/block-placement'].score).toBeCloseTo(5 * half(70 / 60) + 20 * half(4 / 60), 3)
+    expect(stats(w)['epsilon/block-placement'].posts).toBe(2) // carol's passed claim, and this one
+
+    // a shwarm whose status became passed keeps no score
+    expect(stats(w).epsilon.score).toBeGreaterThan(0)
+    w.db.raw.prepare("INSERT INTO branch_status (node_id, current, lead_hours, changed_at, at) SELECT id, 'passed', 0, ?1, ?1 FROM node WHERE path = 'epsilon'").run(iso(T0 + 11 * MIN))
+    w.db.raw.prepare("UPDATE node SET changed_at = ? WHERE path = 'epsilon'").run(iso(T0 + 11 * MIN))
+    expect(await rollupStats(w.db, T0 + 15 * MIN)).toMatchObject({ changed: 1 })
+    expect(stats(w).epsilon).toMatchObject({ score: 0, hot: 0, status_line: 'passed.' })
   })
 
   it('lets warm nodes decay hourly, then cool off and cost nothing', async () => {
@@ -331,7 +356,7 @@ describe('stats rollup', () => {
     expect(await rollupStats(w.db, T0 + 8 * DAY + 5 * MIN)).toMatchObject({ nodes: 0 })
     w.db.raw.exec(readFileSync(new URL('../migrations/0016_no_lobby.sql', import.meta.url), 'utf8'))
     expect(await rollupStats(w.db, T0 + 8 * DAY + 10 * MIN)).toMatchObject({ nodes: 1, warm: 1 })
-    expect(stats(w).quiet).toMatchObject({ score: 0, status_line: 'no submission yet.', stale_at: null })
+    expect(stats(w).quiet).toMatchObject({ score: 0, status_line: '', stale_at: null })
     expect(w.node('quiet').state).toBe('live')
   })
 
@@ -531,7 +556,7 @@ describe('stats rollup cost and freshness', () => {
     expect(seen.rows).toBeLessThan(25) // was one row per upvote: over 400
     const s = stats(w).busy
     expect(s.upvotes).toBe(400)
-    expect(s.score).toBeCloseTo(liveScore({ upvotes: times, submissions: [], passes: [] }, T0), 3)
+    expect(s.score).toBeCloseTo(liveScore({ upvotes: times, passes: [] }, T0), 3)
     const up24 = times.filter(t => t > T0 - DAY).length
     expect(s.hot).toBe(isHot(up24, 400) ? 1 : 0)
   })
@@ -595,12 +620,11 @@ describe('stats rollup cost and freshness', () => {
 
   it('ranks scores computed at different times as of now', async () => {
     const at = (h: number) => iso(T0 + h * HOUR)
-    expect(scoreNow({ state: 'live', score: 10, updated_at: at(0) }, T0 + 12 * HOUR)).toBeCloseTo(5, 10)
-    expect(scoreNow({ state: 'closed', score: 0.5, updated_at: at(0) }, T0 + 12 * HOUR)).toBe(0.5) // only a live score decays
+    expect(scoreNow({ score: 10, updated_at: at(0) }, T0 + 12 * HOUR)).toBeCloseTo(5, 10)
     // x was rolled up an hour before y: stored 10 beats 9.6, but as of now x is 9.44
     const rows = [
-      { id: 1, score: 10, updated_at: at(0), state: 'live', created_at: at(-48) },
-      { id: 2, score: 9.6, updated_at: at(1), state: 'live', created_at: at(-48) },
+      { id: 1, score: 10, updated_at: at(0), created_at: at(-48) },
+      { id: 2, score: 9.6, updated_at: at(1), created_at: at(-48) },
     ]
     const now = T0 + HOUR
     expect(rows.map(r => ({ ...r, score: scoreNow(r, now) })).sort(byScore).map(r => r.id)).toEqual([2, 1])

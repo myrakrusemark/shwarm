@@ -1,5 +1,5 @@
-// The password step-up (A5). Sign-off, keys, saving the account, email or password change, export and admin
-// acts need the password entered within the last 10 minutes. Entering it at sign-in or on /step-up opens
+// The password step-up (A5). The author's passed mark, keys, saving the account, email or password change, export and
+// admin acts need the password entered within the last 10 minutes. Entering it at sign-in or on /step-up opens
 // the window on that session.
 import type { Context } from 'hono'
 import { getCookie } from 'hono/cookie'

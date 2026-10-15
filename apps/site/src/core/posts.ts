@@ -1,34 +1,43 @@
-// Thread posts and submissions (spec "Submitting", protocol §6–7). A submission is a thread post marked
-// against the done test: numbered within its node, frozen by its hash, and it replaces older ones in review.
-// An ended node is locked (decided Oct 9): no posts, replies, pins, edits, deletes or submissions (context.ts needLive).
-// OPEN (#92): upvotes on its posts still count, since the decision doesn't name them.
-import { shortHash, ShwarmError, submissionHash } from '@shwarm/protocol'
-import { hiddenProblem } from '../render/hidden'
+// Thread posts (spec "The thread", protocol §6). A claim (decided Oct 14, core/status.ts) is a thread post on a shwarm or
+// a branch that says it's blocked, passed or a dead end, with the evidence as its text: it backs its poster's status,
+// never changes, and takes "back" in place of an upvote. A passed claim's links are its pinned work, which may also be
+// an ipfs:// address, a magnet link or a rad: repo at a commit (core/text.ts parsePins).
+// Nothing takes submissions any more (decided Oct 14, "One model for every node"): the site and the API refuse them in
+// core/status.ts's words, and the old ones stay readable. Nothing locks: a node that passed takes posts as before.
+import { ShwarmError } from '@shwarm/protocol'
 import { authorize, isBare, needHuman, type Actor } from './actor'
-import { auditStatement, submissionHref } from './audit'
-import { needs } from './checks'
-import { isEstablished, loadNode, loadPerson, mentionStatements, needLive, postStatement, signOffDoneStatement, signOffStatements, specOf, touchNode, type Ctx } from './context'
+import { isEstablished, loadNode, loadPerson, mentionStatements, postStatement, touchNode, type Ctx } from './context'
 import { isId, newId } from './ids'
-import { checkSubmissions, takeThreadToken } from './limits'
+import { takeThreadToken } from './limits'
 import { checkWritable, readSettings } from './settings'
-import { MAX_LINKS, needText, optText, parseLinks } from './text'
+import { needText, parseLinks, parsePins } from './text'
+import { backingStatements, BACKING_SQL, bandStatements, BACK_A_CLAIM, CLAIM_FIXED, needJoined, NOT_A_CLAIM, parseClaim, readBacking, type Claim } from './status'
+import { upvoteStatements } from './upvotes'
 
 const bad = (m: string, d: Record<string, unknown> = {}) => new ShwarmError('bad_request', m, d)
 
 export type Limits = { thread_posts: { burst_left: number; then: string } }
 const limits = (left: number): Limits => ({ thread_posts: { burst_left: left, then: '1 per 5 min' } })
 
-export type PostInput = { node: string; text: string; links?: unknown; replyTo?: string | null; pin?: boolean }
-export type PostResult = { id: string; node: string; as: string; at: string; mentions: string[]; limits: Limits }
+/** `claim`: blocked, passed or dead_end makes the post a claim (decided Oct 14); null or missing, a plain post. */
+export type PostInput = { node: string; text: string; links?: unknown; replyTo?: string | null; pin?: boolean; claim?: unknown }
+export type PostResult = { id: string; node: string; as: string; at: string; mentions: string[]; limits: Limits; claim: Claim | null }
 
+/**
+ * A thread post or a reply. With `claim` it's a claim (decided Oct 14): only someone who joined the shwarm or branch
+ * makes one, on the site or through an agent of theirs (the key's `post` permission), with their evidence as the text.
+ * It moves the claimant's backing to it. A claim is a post like any other: it spends a thread post and can be pinned.
+ * A passed claim's links are its pinned work (parsePins); any other post's are https links (parseLinks).
+ */
 export async function post(ctx: Ctx, a: Actor, inp: PostInput): Promise<PostResult> {
   authorize(a, 'post', String(inp?.node))
+  const claim = parseClaim(inp.claim)
   const person = await loadPerson(ctx, a)
   checkWritable(await readSettings(ctx.db, ['read_only']))
   const n = await loadNode(ctx, inp.node)
-  await needLive(ctx, n)
+  if (claim) await needJoined(ctx, n, person)
   const text = needText(inp.text, 'text')
-  const links = parseLinks(inp.links)
+  const links = claim === 'passed' ? parsePins(inp.links) : parseLinks(inp.links)
   let replyTo: string | null = null
   if (inp.replyTo !== undefined && inp.replyTo !== null) {
     if (!isId('p', inp.replyTo) || !(await ctx.db.prepare('SELECT 1 FROM post WHERE id = ? AND node_id = ? AND deleted_at IS NULL').bind(inp.replyTo, n.id).first()))
@@ -47,14 +56,18 @@ export async function post(ctx: Ctx, a: Actor, inp: PostInput): Promise<PostResu
   const bucket = await takeThreadToken(ctx.db, { personId: person.id, handle: person.handle, nodeId: n.id, path: n.path }, ctx.now)
   const id = newId('p')
   const m = await mentionStatements(ctx, { postId: id, text, node: n, actor: a })
+  // A claim backs its claimant's status from the moment it's posted (no upvote: it's their own post).
+  const backing = claim
+    ? await backingStatements(ctx, n, person, a.as, await readBacking(ctx.db, n.id, person.id), { status: claim, claim: { id, person_id: person.id, person_founding: person.founding, person_created_at: '' } }, { version: id })
+    : [touchNode(ctx, n.id, id)] // a new post changes the signed-out page, so it changes the ETag
   await ctx.db.batch([
-    postStatement(ctx, { id, nodeId: n.id, actor: a, kind: 'post', text, links, replyTo }),
+    postStatement(ctx, { id, nodeId: n.id, actor: a, text, links, replyTo, claim }),
     ...m.stmts,
     bucket.stmt,
     ...(pin ? [ctx.db.prepare('UPDATE post SET pinned_at = ? WHERE id = ?').bind(ctx.at, id)] : []),
-    touchNode(ctx, n.id, id), // a new post changes the signed-out page, so it changes the ETag
+    ...backing,
   ])
-  return { id, node: n.path, as: a.as, at: ctx.at, mentions: m.names, limits: limits(bucket.left) }
+  return { id, node: n.path, as: a.as, at: ctx.at, mentions: m.names, limits: limits(bucket.left), claim }
 }
 
 /** Only the node's author pins: on the site as their bare handle, or an agent of theirs whose key has `pin`. */
@@ -80,7 +93,6 @@ export async function pinPost(ctx: Ctx, a: Actor, inp: PinInput): Promise<PinRes
   const person = await loadPerson(ctx, a)
   checkWritable(await readSettings(ctx.db, ['read_only']))
   const n = await loadNode(ctx, inp.node)
-  await needLive(ctx, n)
   needPinner(a, person, n)
   const p = await threadPost(ctx, n.id, inp.post)
   const pin = inp.pin === true
@@ -102,7 +114,7 @@ async function threadPost(ctx: Ctx, nodeId: number, id: unknown, o: { deleted?: 
   const p = isId('p', id)
     ? await ctx.db
         .prepare(
-          `SELECT p.id, p.person_id, p.as_name, p.kind, p.text, p.links, p.reply_to, p.deleted_at, p.pinned_at,
+          `SELECT p.id, p.person_id, p.as_name, p.kind, p.text, p.links, p.reply_to, p.deleted_at, p.pinned_at, p.claim,
                   pr.created_at AS person_created_at, pr.founding AS person_founding
            FROM post p JOIN person pr ON pr.id = p.person_id WHERE p.id = ? AND p.node_id = ? AND p.hidden = 0`,
         )
@@ -117,6 +129,7 @@ async function threadPost(ctx: Ctx, nodeId: number, id: unknown, o: { deleted?: 
           reply_to: string | null
           deleted_at: string | null
           pinned_at: string | null
+          claim: Claim | null
           person_created_at: string
           person_founding: number
         }>()
@@ -126,22 +139,17 @@ async function threadPost(ctx: Ctx, nodeId: number, id: unknown, o: { deleted?: 
   return p
 }
 
-/** Week-old accounts with an upvoted post are established (A6, spec "Identity and trust"). OPEN (#78): the week is proposed. */
-export const ESTABLISHED_AGE_MS = 7 * 86_400_000
-
 export type UpvoteInput = { node: string; post: string; up?: boolean }
 export type UpvoteResult = { post: string; up: boolean; counted: boolean; upvotes: number }
 
 /**
  * Upvote a thread post, or take the upvote back (`up: false`). Humans only, as the bare handle on the site, and never
  * on a post under your own name, yours or your agents' (table B #32, open #32). Saying the same thing twice changes
- * nothing, so a double click is harmless.
- * A6: every verified account's upvote is kept, but it counts toward tallies, impact and ranking (`counted`) only when the
- * voter is established at the time. Any upvote, counted or not, gives the poster "an upvoted post": once their account
- * is a week old they are established. established_at holds that moment, so isEstablished reads it with no job.
+ * nothing, so a double click is harmless. A claim takes "back" instead (decided Oct 14): its upvotes are its backing.
+ * A6 (core/upvotes.ts): every verified account's upvote is kept, but it counts toward tallies, impact and ranking
+ * (`counted`) only when the voter is established at the time, and any upvote gives the poster "an upvoted post".
  * OPEN (#78): an upvote keeps the counted flag it got when it was given; a voter who becomes established later counts from
- * their next upvote on. Taking the only upvote back before the poster's week is up takes the date away again; once it
- * has passed, it stays.
+ * their next upvote on.
  * OPEN (#78): no pace limit on upvotes is decided; each one is a single small batch.
  */
 export async function upvote(ctx: Ctx, a: Actor, inp: UpvoteInput): Promise<UpvoteResult> {
@@ -152,6 +160,7 @@ export async function upvote(ctx: Ctx, a: Actor, inp: UpvoteInput): Promise<Upvo
   if (inp.up !== undefined && typeof inp.up !== 'boolean') throw bad('up is true or false')
   const up = inp.up !== false
   const p = await threadPost(ctx, n.id, inp.post)
+  if (p.claim) throw bad(BACK_A_CLAIM, { claim: p.claim })
   if (p.person_id === person.id) throw new ShwarmError('own_work', `that post is under @${person.handle}. you can't upvote your own posts or your agents'`)
   const had = await ctx.db.prepare('SELECT counted FROM upvote WHERE post_id = ? AND person_id = ?').bind(p.id, person.id).first<{ counted: number }>()
   const tally = async () =>
@@ -159,30 +168,38 @@ export async function upvote(ctx: Ctx, a: Actor, inp: UpvoteInput): Promise<Upvo
   if (up === !!had) return { post: p.id, up, counted: had?.counted === 1, upvotes: await tally() }
 
   const counted = up && isEstablished(person, ctx.now)
-  const stmts: D1PreparedStatement[] = []
-  if (up) {
-    stmts.push(ctx.db.prepare('INSERT INTO upvote (post_id, person_id, counted, created_at) VALUES (?, ?, ?, ?)').bind(p.id, person.id, counted ? 1 : 0, ctx.at))
-    // Always sent, never skipped on the date read above: a take-back in another tree's queue may clear it before this
-    // batch runs. The guard in the SQL makes setting it atomic with the insert; created_at never changes.
-    if (p.person_founding !== 1) {
-      const at = new Date(Math.max(Date.parse(p.person_created_at) + ESTABLISHED_AGE_MS, ctx.now)).toISOString()
-      stmts.push(ctx.db.prepare('UPDATE person SET established_at = ? WHERE id = ? AND founding = 0 AND established_at IS NULL').bind(at, p.person_id))
-    }
-  } else {
-    stmts.push(
-      ctx.db.prepare('DELETE FROM upvote WHERE post_id = ? AND person_id = ?').bind(p.id, person.id),
-      // After the delete, in the same batch: no upvoted post left and the week not yet up, so not established after all.
-      ctx.db
-        .prepare(
-          `UPDATE person SET established_at = NULL WHERE id = ?1 AND founding = 0 AND established_at > ?2
-           AND NOT EXISTS (SELECT 1 FROM post x JOIN upvote u ON u.post_id = x.id WHERE x.person_id = ?1)`,
-        )
-        .bind(p.person_id, ctx.at),
-    )
-  }
-  stmts.push(touchNode(ctx, n.id, null)) // the tally shows on the signed-out page, and the stats job rolls up the node's numbers
-  await ctx.db.batch(stmts)
+  await ctx.db.batch([
+    ...upvoteStatements(ctx, person, p, up),
+    touchNode(ctx, n.id, null), // the tally shows on the signed-out page, and the stats job rolls up the node's numbers
+  ])
   return { post: p.id, up, counted, upvotes: await tally() }
+}
+
+export type BackInput = { node: string; post: string; on?: boolean }
+export type BackResult = { post: string; on: boolean; changed: boolean; backers: number }
+
+/**
+ * "back" on a claim (decided Oct 14): the person's one backing on the node moves to this claim (`on`), or comes off it
+ * (`on: false`). Only someone who joined the shwarm or branch, on the site as the bare handle: it's an upvote, so it stays a human
+ * act (an agent votes on track or makes a claim for its human, core/status.ts). Backing someone else's claim upvotes it,
+ * and taking it off, or moving it to another claim, takes that upvote back; a claimant who moved away backs their own
+ * claim again with no upvote. The same thing twice changes nothing.
+ */
+export async function back(ctx: Ctx, a: Actor, inp: BackInput): Promise<BackResult> {
+  needHuman(a, 'backing a claim')
+  const person = await loadPerson(ctx, a)
+  checkWritable(await readSettings(ctx.db, ['read_only']))
+  const n = await loadNode(ctx, inp?.node)
+  if (inp.on !== undefined && typeof inp.on !== 'boolean') throw bad('on is true or false')
+  const on = inp.on !== false
+  const p = await threadPost(ctx, n.id, inp.post)
+  if (!p.claim) throw bad(NOT_A_CLAIM)
+  await needJoined(ctx, n, person)
+  const had = await readBacking(ctx.db, n.id, person.id)
+  const backers = async () => (await ctx.db.prepare(`SELECT COUNT(*) AS n FROM status_vote v WHERE v.claim_id = ? AND ${BACKING_SQL('v')}`).bind(p.id).first<{ n: number }>())?.n ?? 0
+  if ((had?.claim?.id === p.id) === on) return { post: p.id, on, changed: false, backers: await backers() }
+  await ctx.db.batch(await backingStatements(ctx, n, person, a.as, had, on ? { status: p.claim, claim: p } : null))
+  return { post: p.id, on, changed: true, backers: await backers() }
 }
 
 export type EditInput = { node: string; post: string; text: string }
@@ -202,9 +219,9 @@ export async function editPost(ctx: Ctx, a: Actor, inp: EditInput): Promise<Edit
   const person = await loadPerson(ctx, a)
   checkWritable(await readSettings(ctx.db, ['read_only']))
   const n = await loadNode(ctx, inp.node)
-  await needLive(ctx, n)
   const p = await threadPost(ctx, n.id, inp.post)
   if (p.kind !== 'post') throw new ShwarmError('not_permitted', `a ${p.kind === 'dead_end' ? 'dead-end note' : p.kind} can't be edited`, { kind: p.kind })
+  if (p.claim) throw new ShwarmError('not_permitted', CLAIM_FIXED, { claim: p.claim }) // its backers backed these words
   if (p.person_id !== person.id || p.as_name !== a.as) throw new ShwarmError('not_permitted', `only ${p.as_name} edits this post`, { need: 'poster' })
   const text = needText(inp.text, 'text')
   if (text === p.text) return { id: p.id, node: n.path, edited: false, at: ctx.at }
@@ -226,6 +243,7 @@ export type DeleteResult = { id: string; node: string; deleted: boolean; at: str
  * edits. The row stays as a tombstone ("this post was deleted."), so its replies keep their place and links to it still
  * land; its text, links and earlier versions are cleared, and so are its mentions. A deleted pinned post is unpinned,
  * and the status line moves to the next pin, else recorded state. Deleting it again changes nothing (a double click).
+ * A deleted claim backs nothing any more: every backing of it comes off (decided Oct 14).
  * OPEN (#79): a deleted post still counts toward the thread's posts, its upvotes stay with the poster, and nothing of its
  * text is kept, not even for the operator. Deleting costs no thread post token.
  */
@@ -234,12 +252,17 @@ export async function deletePost(ctx: Ctx, a: Actor, inp: DeleteInput): Promise<
   const person = await loadPerson(ctx, a)
   checkWritable(await readSettings(ctx.db, ['read_only']))
   const n = await loadNode(ctx, inp.node)
-  await needLive(ctx, n)
   const p = await threadPost(ctx, n.id, inp.post, { deleted: true })
   if (p.kind !== 'post') throw new ShwarmError('not_permitted', `a ${p.kind === 'dead_end' ? 'dead-end note' : p.kind} can't be deleted`, { kind: p.kind })
   if (p.person_id !== person.id || p.as_name !== a.as) throw new ShwarmError('not_permitted', `only ${p.as_name} deletes this post`, { need: 'poster' })
   if (p.deleted_at) return { id: p.id, node: n.path, deleted: false, at: p.deleted_at }
+  // Its backing goes, after the band is saved with it; the parent's branch list shows the status too. A pass record
+  // that cites it keeps its copy of the pins (core/records.ts).
+  const unback = p.claim
+    ? [...(await bandStatements(ctx, n.id)), ctx.db.prepare('DELETE FROM status_vote WHERE claim_id = ?').bind(p.id), ...(n.parent_id !== null ? [touchNode(ctx, n.parent_id, null)] : [])]
+    : []
   await ctx.db.batch([
+    ...unback,
     ctx.db.prepare('DELETE FROM post_edit WHERE post_id = ?').bind(p.id),
     ctx.db.prepare('DELETE FROM mention WHERE post_id = ?').bind(p.id),
     // The feed's status line may be a copy of this pinned post's first line (jobs/stats.ts): blank it now, so the deleted
@@ -249,107 +272,4 @@ export async function deletePost(ctx: Ctx, a: Actor, inp: DeleteInput): Promise<
     touchNode(ctx, n.id, null), // the tombstone shows signed out, and a pinned one moves the status line
   ])
   return { id: p.id, node: n.path, deleted: true, at: ctx.at }
-}
-
-export type SubmitInput = {
-  node: string
-  text: string
-  links: unknown
-  howToCheck: string
-  builtOn?: (string | { post: string; note?: string })[]
-  release?: { name?: string; version?: string; howToUse?: string } | null // optional (table B #64)
-}
-
-// OPEN: the caps are proposed (decisions, Oct 9). Name and version are one line; how to use is often a command to copy.
-export const RELEASE_CAPS = { name: 120, version: 50, howToUse: 2000 } as const
-export const MAX_BUILT_ON_NOTE = 280 // OPEN: proposed (decisions, Oct 9)
-
-export type Release = { name: string | null; version: string | null; howToUse: string | null }
-
-/** The optional release fields a submitter fills: what the result page shows if this submission passes. */
-export function parseRelease(v: unknown): Release {
-  if (v === undefined || v === null) return { name: null, version: null, howToUse: null }
-  if (typeof v !== 'object' || Array.isArray(v)) throw bad('release is {name, version, how_to_use}')
-  const o = v as Record<string, unknown>
-  const unknown = Object.keys(o).filter(k => k !== 'name' && k !== 'version' && k !== 'howToUse')
-  if (unknown.length) throw bad(`release has unknown fields: ${unknown.join(', ')}`)
-  const name = optText(o.name, 'release.name', RELEASE_CAPS.name)
-  const version = optText(o.version, 'release.version', RELEASE_CAPS.version)
-  for (const [k, x] of [['name', name], ['version', version]] as const) if (x && /[\r\n]/.test(x)) throw bad(`release.${k} is one line`, { field: `release.${k}` })
-  const howToUse = optText(o.howToUse, 'release.how_to_use', RELEASE_CAPS.howToUse)
-  const hidden = howToUse ? hiddenProblem(howToUse, 'how to use') : null // Trojan Source, as for run commands
-  if (hidden) throw bad(hidden, { field: 'release.how_to_use' })
-  return { name, version, howToUse }
-}
-
-export type CheckRowOut = { id: null; slot: 'run' | 'people' | 'author'; as?: string; verdict: 'waiting' }
-
-export type SubmitResult = PostResult & { number: number; hash: string; authorSwap: boolean; checks: CheckRowOut[] }
-
-export async function submit(ctx: Ctx, a: Actor, inp: SubmitInput): Promise<SubmitResult> {
-  authorize(a, 'submit', String(inp?.node))
-  const person = await loadPerson(ctx, a)
-  checkWritable(await readSettings(ctx.db, ['read_only']))
-  const n = await loadNode(ctx, inp.node)
-  await needLive(ctx, n)
-  const text = needText(inp.text, 'text')
-  const links = parseLinks(inp.links)
-  if (!links.length) throw bad('a submission links the work: {url, sha256} or {repo, commit}')
-  const howToCheck = needText(inp.howToCheck, 'how_to_check')
-  const release = parseRelease(inp.release)
-  const builtOn = new Map<string, string | null>() // post id → why it was used
-  if (inp.builtOn !== undefined && inp.builtOn !== null) {
-    if (!Array.isArray(inp.builtOn) || inp.builtOn.length > MAX_LINKS) throw bad(`built_on is a list of at most ${MAX_LINKS} posts`)
-    for (const b of inp.builtOn) {
-      const id = typeof b === 'string' ? b : b?.post
-      const note = typeof b === 'string' || !b ? null : optText(b.note, 'built_on.note', MAX_BUILT_ON_NOTE)
-      if (!isId('p', id) || !(await ctx.db.prepare('SELECT 1 FROM post WHERE id = ? AND deleted_at IS NULL').bind(id).first())) throw bad(`built_on: ${String(id)} is not a post`)
-      if (!builtOn.get(id)) builtOn.set(id, note) // named twice: the first note given wins
-    }
-  }
-
-  await checkSubmissions(ctx.db, { personId: person.id, handle: person.handle, nodeId: n.id, path: n.path }, ctx.now)
-  const bucket = await takeThreadToken(ctx.db, { personId: person.id, handle: person.handle, nodeId: n.id, path: n.path }, ctx.now) // submissions count as thread posts
-  const spec = specOf(n)
-  const authorSwap = spec.author && person.id === n.author_id // A9: the author's own work gets one more people check instead
-  const need = needs(spec, authorSwap)
-  const number = n.next_submission
-  const hash = await submissionHash({ text, links })
-  const id = newId('p')
-  const m = await mentionStatements(ctx, { postId: id, text, node: n, actor: a })
-  const e = auditStatement(
-    ctx.db,
-    { event: 'submission', node: n.id, by: a.as, submissionId: id, number, detail: `#${number} (${shortHash(hash)})`, evidence: submissionHref(n.path, number) },
-    ctx.at,
-  )
-  const stmts: D1PreparedStatement[] = [
-    postStatement(ctx, { id, nodeId: n.id, actor: a, kind: 'submission', text, links }),
-    ctx.db
-      .prepare(
-        `INSERT INTO submission (post_id, node_id, number, hash, how_to_check, author_swap, release_title, release_version, release_how_to_use)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .bind(id, n.id, number, hash, howToCheck, authorSwap ? 1 : 0, release.name, release.version, release.howToUse),
-    // A newer submission replaces the ones still in review; their checks and repros stay visible, their sign-off items are done.
-    ctx.db
-      .prepare("UPDATE submission SET status = 'superseded', superseded_by = ? WHERE node_id = ? AND status = 'in_review' AND post_id <> ?")
-      .bind(id, n.id, id),
-    signOffDoneStatement(ctx, n.id, { replacedBy: id }),
-    ...[...builtOn].map(([p, note]) => ctx.db.prepare('INSERT INTO built_on (submission_id, post_id, note) VALUES (?, ?, ?)').bind(id, p, note)),
-    ctx.db.prepare('UPDATE node SET next_submission = ? WHERE id = ?').bind(number + 1, n.id),
-    e.stmt,
-    ...m.stmts,
-    bucket.stmt,
-  ]
-  // Author only: the author is notified at once, in the inbox and by mail (spec "The author goes last").
-  if (need.author && need.runs === 0 && need.people === 0) stmts.push(...signOffStatements(ctx, n, { postId: id, number }, true))
-  stmts.push(touchNode(ctx, n.id, e.id))
-  await ctx.db.batch(stmts)
-
-  const checks: CheckRowOut[] = [
-    ...Array.from({ length: need.runs }, (): CheckRowOut => ({ id: null, slot: 'run', verdict: 'waiting' })),
-    ...Array.from({ length: need.people }, (): CheckRowOut => ({ id: null, slot: 'people', verdict: 'waiting' })),
-    ...(need.author ? [{ id: null, slot: 'author', as: '@' + n.author_handle, verdict: 'waiting' } as CheckRowOut] : []),
-  ]
-  return { id, node: n.path, as: a.as, at: ctx.at, mentions: m.names, limits: limits(bucket.left), number, hash, authorSwap, checks }
 }

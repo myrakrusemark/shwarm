@@ -1,26 +1,25 @@
-// Go-live 5.7: GET /w/<path>/log, the audit log as JSON. A full core run (the example's branch and checks, its #2 passing
-// its checks while the branch stays live; a sub-branch's failed people check and another's dead-end vote; the shwarm's
-// first submission failed by its author, then its pass with the author's sign-off; a dead end, on the other launch
-// shwarm, since only a shwarm ends, decided Oct 13) and every event of it in the logs, newest first, each linked to
-// evidence that's really there. Key events, paging with ?before, hidden branches and submissions left out, and the seeded
-// row first on a seeded shwarm.
+// Go-live 5.7: GET /w/<path>/log, the audit log as JSON. A full run, as the one model has it (decided Oct 14): the
+// shwarm's submission from before Oct 14 with its run and people check, and block placement's that passed its checks,
+// both as history; the shwarm passed by its people, then by its author's mark; sub-branches with claims, which are no
+// events, one of which becomes a dead end by its people's backing; and the other launch shwarm a dead end the same way.
+// Every event of it in the logs, newest first, each linked to evidence that's really there. Key events, paging with
+// ?before, hidden branches and submissions left out, and the seeded row first on a seeded shwarm.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AUDIT_EVENTS, KEY_EVENTS } from '../src/core/audit'
 import { readChain } from '../src/read/node'
-import { readLog, type LogPage, type LogRow } from '../src/read/log'
+import { readLog, STATUS_EVENT, type LogPage, type LogRow } from '../src/read/log'
 import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
 import { resetReadLimit } from '../src/web/read-limit'
 import { forgetVersions } from '../src/web/version-memo'
-import { agent, SHA, site, stepped } from './core-fixtures'
-import { T0 } from './d1'
+import { agent, HOUR, site } from './core-fixtures'
 import { body, Browser, fakeFetch, ORIGIN, testEnv } from './browser'
 import { PLAIN } from './node-fixture'
-import { branchPassesItsChecks, closedWorld, RECORDING } from './result-fixture'
+import { oldBranchPass, passedWorld, READ_AT } from './pass-fixture'
 
 beforeEach(() => {
   vi.stubGlobal('fetch', fakeFetch())
   vi.useFakeTimers({ toFake: ['Date'] })
-  vi.setSystemTime(T0 + 3_600_000)
+  vi.setSystemTime(READ_AT)
   resetReadLimit()
   forgetVersions()
 })
@@ -39,58 +38,42 @@ type Ev = { id: string | null; at: string; event: string; node: string; by: stri
 type NodeLog = { node: string; filter: string; total: number; next: string | null; events: Ev[] }
 
 /**
- * The closed world, plus the rest of a run. Before the shwarm passes, which locks its branches with it (OPEN #92): its
- * author fails its first submission; three sub-branches open under block placement (one fails a people check, its crew
- * votes another a dead end, the third is still being checked); and block placement's #2 passes its checks and stays live
- * (decided Oct 13). After: the other launch shwarm becomes a dead end. Only a shwarm ends now, and this one passed.
+ * The passed world, plus the rest of a run: three sub-branches open under block placement (one gets a blocked claim;
+ * another a dead-end claim its people back, so 25 hours on it is a dead end; the third is still being checked), block
+ * placement keeps the submission it passed before Oct 14 (history), and the other launch shwarm becomes a dead end by
+ * its people's backing too.
  */
 async function fullRun() {
-  const w = await closedWorld({
-    before: async acts => {
-      const { run, p, db } = acts
-      // the shwarm's first try: its run and its human check pass, then its author fails it, and every check starts over
-      const first = await run<{ id: string; hash: string }>({
-        type: 'submit',
-        actor: agent(p('finn_irl'), 'f-11'),
-        input: {
-          node: EXAMPLE_ROOT,
-          text: 'v0.9: the nine maps rebuilt from blocks, 12 recipes, 4 new monsters.',
-          links: [{ url: 'https://zenodo.org/records/17346200/files/mcdoom-v0.9.pk3', sha256: SHA('9e') }],
-          howToCheck: 'run ./bench.sh, then play e1m1 and e1m3 from a pistol start.',
-        },
-      })
-      await run({
-        type: 'check',
-        actor: site(p('lumpy')),
-        input: { node: EXAMPLE_ROOT, on: first.id, slot: 'run', submissionHash: first.hash.slice(0, 7), scriptHash: '5d02b7e', exit: 0, log: 'bench.sh: min 60 fps\nexit 0', env: 'linux, ryzen 5 3600, gtx 1660' },
-      })
-      await run({ type: 'check', actor: site(p('marceline')), input: { node: EXAMPLE_ROOT, on: first.id, verdict: 'pass', evidence: [RECORDING] } })
-      await run({ type: 'check', actor: stepped(p('myra')), input: { node: EXAMPLE_ROOT, on: first.id, slot: 'author', verdict: 'fail', repro: "e1m3: the exploding imp is doom's imp, recolored, not drawn fresh." } })
-      // three sub-branches, with people checks: a branch has no author check (decided Oct 13). Two are cleared; texture
-      // pack is still being checked
-      const branch = (who: string, title: string, check: unknown) =>
-        run({ type: 'createNode', actor: site(p(who)), input: { kind: 'branch', parent: EXAMPLE_BRANCH, title, what: `${title}.`, doneWhen: `${title} works.`, check } })
-      await branch('bmo_fan', 'break blocks', { people: { count: 1 } })
-      await branch('finn_irl', 'monster collision', { people: { count: 1 } })
-      await branch('lumpy', 'texture pack', { people: { count: 1 } })
-      db.raw.prepare('UPDATE node SET triage = ? WHERE path IN (?, ?)').run('clear', BREAK, MONSTERS)
-      // break blocks: its author's people check fails the submission with a repro, and it stays in review
-      const brk = await run<{ id: string }>({
-        type: 'submit',
-        actor: agent(p('kestrel'), 'swarm/r-11'),
-        input: { node: BREAK, text: 'breaking updates within one frame.', links: [{ url: 'https://codeberg.org/kestrel/mcdoom/break.diff', sha256: SHA('b1') }], howToCheck: 'break 100 blocks.' },
-      })
-      await run({ type: 'check', actor: site(p('bmo_fan')), input: { node: BREAK, on: brk.id, verdict: 'fail', repro: 'broken blocks leave a ghost collision box.' } })
-      // monster collision: a branch doesn't end, so nobody marks it a dead end; its crew votes dead_end on its status,
-      // which is no event, and it stays open (decided Oct 13)
-      await run({ type: 'post', actor: site(p('finn_irl')), input: { node: MONSTERS, text: 'the blockmap is built once per level; an incremental update needs engine changes.' } })
-      await run({ type: 'status', actor: site(p('finn_irl')), input: { node: MONSTERS, status: 'dead_end' } })
-      // then block placement's #2 passes its checks, and the branch stays live
-      await branchPassesItsChecks(acts)
-    },
-  })
-  // the other launch shwarm: its author marks it a dead end
-  await w.run({ type: 'deadEnd', actor: stepped(w.p('myra')), input: { node: PLAIN, note: 'no bot got past map 3 on the allowed buffers alone. what we tried is in the thread.' } })
+  const w = await passedWorld()
+  const { run, p, db } = w
+  // three sub-branches, with no checks (decided Oct 14). Two are cleared; texture pack is still being checked
+  const branch = (who: string, title: string) =>
+    run({ type: 'createNode', actor: site(p(who)), input: { kind: 'branch', parent: EXAMPLE_BRANCH, title, what: `${title}.`, doneWhen: `${title} works.` } })
+  await branch('bmo_fan', 'break blocks')
+  await branch('finn_irl', 'monster collision')
+  await branch('lumpy', 'texture pack')
+  db.raw.prepare('UPDATE node SET triage = ? WHERE path IN (?, ?)').run('clear', BREAK, MONSTERS)
+  // break blocks: an agent's post, and its author's blocked claim
+  await run({ type: 'post', actor: agent(p('kestrel'), 'swarm/r-11'), input: { node: BREAK, text: 'breaking updates within one frame.' } })
+  await run({ type: 'join', actor: site(p('bmo_fan')), input: { node: BREAK } })
+  await run({ type: 'post', actor: site(p('bmo_fan')), input: { node: BREAK, text: 'broken blocks leave a ghost collision box.', claim: 'blocked' } })
+  // monster collision: its crew's dead-end claim, backed by two more over nobody on track
+  const deadEnd = async (node: string, by: string, text: string, backers: string[]) => {
+    for (const who of [by, ...backers]) await run({ type: 'join', actor: site(p(who)), input: { node } })
+    const c = await run<{ id: string }>({ type: 'post', actor: site(p(by)), input: { node, text, claim: 'dead_end' } })
+    for (const who of backers) await run({ type: 'back', actor: site(p(who)), input: { node, post: c.id, on: true } })
+  }
+  await deadEnd(MONSTERS, 'finn_irl', 'the blockmap is built once per level; an incremental update needs engine changes.', ['lumpy', 'gunter'])
+  // and block placement's submission that passed its checks before Oct 14
+  oldBranchPass(w.acts)
+  // the other launch shwarm: its people claim a dead end and back it
+  await deadEnd(PLAIN, 'lumpy', 'no bot got past map 3 on the allowed buffers alone. what we tried is in the thread.', ['marceline', 'gunter'])
+  // 25 hours on, an on-track vote on each saves its change to dead end
+  w.clock.now += 25 * HOUR
+  for (const node of [MONSTERS, PLAIN]) {
+    await run({ type: 'join', actor: site(p('kestrel')), input: { node } })
+    await run({ type: 'status', actor: site(p('kestrel')), input: { node, status: 'on_track' } })
+  }
   const get = (sql: string, ...args: unknown[]) => w.db.raw.prepare(sql).get(...args) as any
   const env = testEnv(w.db)
   const b = new Browser(env)
@@ -109,11 +92,19 @@ async function fullRun() {
     }
     return { events, totals }
   }
-  /** The stored events of these nodes, newest first, as the log orders them. */
-  const stored = (paths: string[]) =>
-    w.db.raw
-      .prepare(`SELECT a.id, a.event FROM audit_event a JOIN node n ON n.id = a.node_id WHERE n.path IN (${paths.map(() => '?').join(', ')}) ORDER BY a.at DESC, a.rowid DESC`)
-      .all(...paths) as { id: string; event: string }[]
+  /** The stored events of these nodes, newest first, as the log orders them: audit rows, and status changes not to passed. */
+  const stored = (paths: string[]) => {
+    const ins = paths.map(() => '?').join(', ')
+    return w.db.raw
+      .prepare(
+        `SELECT id, event FROM (
+           SELECT a.id, a.event, a.at, 0 AS src, a.rowid AS rid FROM audit_event a JOIN node n ON n.id = a.node_id WHERE n.path IN (${ins})
+           UNION ALL
+           SELECT h.id, 'status', h.at, 1, h.rowid FROM status_change h JOIN node n ON n.id = h.node_id WHERE n.path IN (${ins}) AND h.to_status <> 'passed')
+         ORDER BY at DESC, src DESC, rid DESC`,
+      )
+      .all(...paths, ...paths) as { id: string; event: string }[]
+  }
   return { ...w, b, get, json, all, stored }
 }
 
@@ -126,30 +117,40 @@ describe('GET /w/<path>/log (5.7)', () => {
     const want = w.stored(TREE)
     expect(events.slice(0, -1).map(e => e.id)).toEqual(want.map(e => e.id))
     expect(totals.every(t => t === want.length + 1)).toBe(true)
-    // every event type still written happened ('lobby_filled' went with the lobby, Oct 9; nothing reopens), and the seeded
-    // row (A18) closes the log. All but the dead end: only a shwarm ends (decided Oct 13) and this one passed, so the dead
-    // end is the other launch shwarm's, in its own log, before its seeded row
-    expect(new Set(events.map(e => e.event))).toEqual(new Set([...AUDIT_EVENTS.filter(e => e !== 'lobby_filled' && e !== 'reopened' && e !== 'dead_end'), 'seeded']))
+    // the events of a run since Oct 14, and the history from before: no lobby (Oct 9), no fails, sign-offs or reopens
+    // (Oct 14). The seeded row (A18) closes the log. The other launch shwarm's dead end is in its own log
+    expect(new Set(events.map(e => e.event))).toEqual(new Set(['branch_opened', 'submission', 'check', 'passed', STATUS_EVENT, 'seeded']))
+    expect(AUDIT_EVENTS).toEqual(expect.arrayContaining(['branch_opened', 'submission', 'check', 'passed']))
     const ended = (await w.all(`${PLAIN_LOG}?filter=all`)).events
     expect(ended.map(e => [e.id, e.event])).toEqual([...w.stored([PLAIN]).map(e => [e.id, e.event]), [null, 'seeded']])
-    expect(ended[0]).toMatchObject({ node: PLAIN, event: 'dead_end', by: '@myra', key: true })
+    expect(ended[0]).toMatchObject({ node: PLAIN, event: STATUS_EVENT, by: null, detail: 'on track → dead end · 3 to 0', key: true })
     expect(events.at(-1)).toEqual({ id: null, at: expect.any(String), event: 'seeded', node: EXAMPLE_ROOT, by: '@myra', detail: 'seeded by @myra at launch', evidence: `${ORIGIN}/w/${EXAMPLE_ROOT}`, key: true })
-    // the shape: each row names its node; the submission and its number when there is one. The shwarm passed on #2
-    const passed = events.find(e => e.event === 'passed' && e.node === EXAMPLE_ROOT)!
+    // the shwarm passed twice over: its people's pass, citing the claim, naming no one; then its author's mark
+    const passes = events.filter(e => e.event === 'passed' && e.node === EXAMPLE_ROOT)
+    expect(passes).toEqual([
+      expect.objectContaining({ by: '@myra', detail: 'the author marks it passed', evidence: `${ORIGIN}/w/${EXAMPLE_ROOT}#${w.claim}`, key: true }),
+      expect.objectContaining({ by: null, detail: 'backed by 5 to 1', evidence: `${ORIGIN}/w/${EXAMPLE_ROOT}#${w.claim}`, key: true }),
+    ])
+    expect(passes.some(e => 'submission' in e)).toBe(false)
+    // monster collision became a dead end by its people's backing: a status row, citing their claim
+    const claim = w.get("SELECT p.id FROM post p JOIN node n ON n.id = p.node_id WHERE n.path = ? AND p.claim = 'dead_end'", MONSTERS).id
+    expect(events.filter(e => e.event === STATUS_EVENT)).toEqual([
+      expect.objectContaining({ node: MONSTERS, by: null, detail: 'on track → dead end · 3 to 0', evidence: `${ORIGIN}/w/${MONSTERS}#${claim}`, key: true }),
+    ])
+    // the shwarm's submission from before Oct 14, with its run and people check, and block placement's old pass in its own words
     const at = (s: { number: number; hash: string }) => `#${s.number} (${s.hash.slice(0, 7)})`
-    expect(passed).toMatchObject({ by: null, number: 2, submission: w.sub.id, detail: `${at(w.sub)} passed`, evidence: `${ORIGIN}/w/${EXAMPLE_ROOT}/s/2`, key: true })
-    // the author's fail was the shwarm's, on its first submission
-    expect(events.find(e => e.event === 'failed')).toMatchObject({ node: EXAMPLE_ROOT, by: null, number: 1, detail: 'the author failed submission #1. every check on the done test starts over', key: false })
-    // a branch's submission that passes its checks is a pass in its own words, and the branch stays live (decided Oct 13)
-    const two = w.get("SELECT s.post_id, s.number, s.hash FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ? AND s.status = 'passed'", EXAMPLE_BRANCH)
+    expect(events.filter(e => e.submission === w.old.id).map(e => e.event)).toEqual(['check', 'check', 'submission'])
+    const old = w.get("SELECT s.post_id, s.number, s.hash FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ? AND s.status = 'passed'", EXAMPLE_BRANCH)
     expect(events.find(e => e.event === 'passed' && e.node === EXAMPLE_BRANCH)).toMatchObject({
       by: null,
-      number: 2,
-      submission: two.post_id,
-      detail: `${at(two)} passed its checks`,
-      evidence: `${ORIGIN}/w/${EXAMPLE_BRANCH}/s/2`,
+      number: 1,
+      submission: old.post_id,
+      detail: `${at(old)} passed its checks`,
+      evidence: `${ORIGIN}/w/${EXAMPLE_BRANCH}/s/1`,
       key: true,
     })
+    // claims are no events; only a change of status is
+    expect(events.filter(e => e.node === BREAK || e.node === MONSTERS).map(e => e.event)).toEqual([STATUS_EVENT, 'branch_opened', 'branch_opened'])
     expect(w.get('SELECT state FROM node WHERE path = ?', EXAMPLE_BRANCH).state).toBe('live')
     expect(events.find(e => e.event === 'branch_opened')).not.toHaveProperty('submission')
     // every row links to its evidence, and the page it links to has the anchor
@@ -162,26 +163,26 @@ describe('GET /w/<path>/log (5.7)', () => {
     }
   })
 
-  it('shows the key events by default: branch openings, submissions, passes, dead ends (decided Oct 9)', async () => {
+  it('shows the key events by default: branch openings, submissions, passes, dead ends and every change of status (decided Oct 9, Oct 14)', async () => {
     const w = await fullRun()
     const page = await w.json(LOG)
     expect(page.filter).toBe('key')
     expect(KEY_EVENTS).toEqual(['branch_opened', 'submission', 'passed', 'dead_end'])
-    const want = w.stored(TREE).filter(e => (KEY_EVENTS as readonly string[]).includes(e.event))
+    const want = w.stored(TREE).filter(e => (KEY_EVENTS as readonly string[]).includes(e.event) || e.event === STATUS_EVENT)
     expect(page.events.map(e => e.id)).toEqual([...want.map(e => e.id), null])
     expect(page.total).toBe(want.length + 1)
     expect(page.events.every(e => e.key)).toBe(true)
-    // each of the four happened, and the seeded row (A18) still closes each log (OPEN #66). The shwarm's pass and the
-    // branch's, by its checks, are both key; a dead end ends only a shwarm (decided Oct 13), so it's the other launch shwarm's
-    expect(new Set(page.events.map(e => e.event))).toEqual(new Set(['branch_opened', 'submission', 'passed', 'seeded']))
-    expect(page.events.filter(e => e.event === 'passed').map(e => e.node)).toEqual([EXAMPLE_ROOT, EXAMPLE_BRANCH])
+    // the seeded row (A18) still closes each log (OPEN #66). The shwarm's two passes and the branch's old one, by its
+    // checks, are all key; so is each change of status, here a dead end by backing (no author marks a dead end since Oct 14)
+    expect(new Set(page.events.map(e => e.event))).toEqual(new Set(['branch_opened', 'submission', 'passed', STATUS_EVENT, 'seeded']))
+    expect(page.events.filter(e => e.event === 'passed').map(e => e.node)).toEqual([EXAMPLE_ROOT, EXAMPLE_ROOT, EXAMPLE_BRANCH])
     expect((await w.json(PLAIN_LOG)).events.map(e => [e.event, e.key])).toEqual([
-      ['dead_end', true],
+      [STATUS_EVENT, true],
       ['seeded', true],
     ])
-    // checks, sign-offs and fails are in the full log only, marked as not key
+    // the old checks are in the full log only, marked as not key
     const full = (await w.all(`${LOG}?filter=all`)).events
-    for (const ev of ['check', 'signed_off', 'failed']) expect(full.filter(e => e.event === ev).map(e => e.key), ev).toContain(false)
+    expect(full.filter(e => e.event === 'check').map(e => e.key)).toEqual([false, false])
     expect(full.filter(e => !e.key).every(e => !(KEY_EVENTS as readonly string[]).includes(e.event))).toBe(true)
     // ?filter=key says so; ?filter=milestones, its name before Oct 9, still answers, as key
     expect(await w.json(`${LOG}?filter=key`)).toEqual(page)
@@ -225,20 +226,20 @@ describe('GET /w/<path>/log (5.7)', () => {
     let events = (await w.all(`${LOG}?filter=all`)).events
     // texture pack is still being checked: its opening isn't in the log
     expect(events.some(e => e.node === TEXTURES)).toBe(false)
-    // monster collision shows its opening, and only that: its crew's dead-end vote is no event (decided Oct 13)
-    expect(events.filter(e => e.node === MONSTERS).map(e => e.event)).toEqual(['branch_opened'])
+    // monster collision shows its opening and its change to dead end; its crew's claim is no event of its own
+    expect(events.filter(e => e.node === MONSTERS).map(e => e.event)).toEqual([STATUS_EVENT, 'branch_opened'])
     w.db.raw.prepare('UPDATE node SET hidden = 1 WHERE path = ?').run(MONSTERS)
     forgetVersions()
     events = (await w.all(`${LOG}?filter=all`)).events
     expect(events.some(e => e.node === MONSTERS)).toBe(false)
     expect(events.at(-1)!.event).toBe('seeded')
-    // a hidden submission takes its rows with it: submitted, and its failing check
-    const brk = w.get("SELECT s.post_id FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ?", BREAK).post_id
-    expect(events.filter(e => e.submission === brk).map(e => e.event).sort()).toEqual(['check', 'submission'])
-    w.db.raw.prepare('UPDATE post SET hidden = 1 WHERE id = ?').run(brk)
+    // a hidden submission takes its rows with it: the shwarm's #1 from before Oct 14, with its run and its people check
+    const one = w.old.id
+    expect(events.filter(e => e.submission === one).map(e => e.event).sort()).toEqual(['check', 'check', 'submission'])
+    w.db.raw.prepare('UPDATE post SET hidden = 1 WHERE id = ?').run(one)
     forgetVersions()
     const after = await w.all(`${LOG}?filter=all`)
-    expect(after.events.some(e => e.submission === brk)).toBe(false)
+    expect(after.events.some(e => e.submission === one)).toBe(false)
     expect(after.totals[0]).toBe(after.events.length)
     // a branch hidden as a whole is a tombstone, as its page is
     expect((await w.b.req(`/w/${MONSTERS}/log`)).status).toBe(410)
@@ -261,9 +262,9 @@ describe('GET /w/<path>/log (5.7)', () => {
     expect((await w.b.req(LOG, { headers: { 'if-none-match': etag } })).status).toBe(304)
     // a different filter is a different response
     expect((await w.b.req(`${LOG}?filter=all`)).headers.get('etag')).not.toBe(etag)
-    // the tree is locked once the shwarm passed (OPEN #92), but an upvote on a branch's post still counts
-    const brk = w.get('SELECT s.post_id FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ?', BREAK).post_id
-    await w.run({ type: 'upvote', actor: site(w.p('lumpy')), input: { node: BREAK, post: brk } })
+    // nothing locks after a pass (decided Oct 14): an upvote on a branch's post counts, and moves it
+    const post = w.get("SELECT p.id FROM post p JOIN node n ON n.id = p.node_id WHERE n.path = ? AND p.claim IS NULL AND p.kind = 'post'", BREAK).id
+    await w.run({ type: 'upvote', actor: site(w.p('lumpy')), input: { node: BREAK, post } })
     forgetVersions()
     expect((await w.b.req(LOG, { headers: { 'if-none-match': etag } })).status).toBe(200)
   })

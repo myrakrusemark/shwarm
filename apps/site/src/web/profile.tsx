@@ -25,6 +25,7 @@ import { stepUpOpen } from '../auth/stepup'
 import { readAccount } from '../read/account'
 import { readExport } from '../read/export'
 import { siteActor } from '../core/actor'
+import type { Status } from '../core/status'
 import { peekThreadTokensMany } from '../core/limits'
 import { MAX_TEXT } from '../core/text'
 import { runInTree } from '../do/shwarm-tree'
@@ -34,6 +35,7 @@ import { exactTime } from '../render/numbers'
 import { Name, Plain, Text } from '../render/text'
 import { impactMark, oneDecimal } from '../read/figures'
 import { markAllRead, markRead, readInbox, readReplyTarget, UNREAD_CAP, type InboxItem } from '../read/inbox'
+import { FORMER } from '../read/names'
 import {
   findPerson,
   linksOf,
@@ -51,8 +53,8 @@ import { fill, fillx, w } from '../words'
 import { accountStatus, AccountModal, type AccountFlash, type AccountView } from './account'
 import { formatFor, sendError, waitText, type ErrorStatus } from './errors'
 import { Layout } from './layout'
-import { limitLine } from './node-page'
-import { justPosted, threadHref } from './node-routes'
+import { limitLine, parseLinks, PinnedWork } from './node-page'
+import { justPosted } from './node-routes'
 import { overReadCap } from './read-limit'
 import { pillOf, PillView } from './submission-page'
 import { page, PageContext } from './viewer'
@@ -79,24 +81,16 @@ const kindLabel = (r: { kind: string; up_title: string | null }, branchOf = fals
     </>
   )
 
-/**
- * The node's state as the profile says it. OPEN (#18): a passed node says "passed" here, "closed" in the feed.
- * To the owner, a node whose submission waits on their sign-off says "waiting on you" (PROF-9, as the mockup).
- */
-function stateLabel(r: { state: string; in_review: number; waiting?: number }): string {
-  if (r.state === 'closed') return w.profile.passed
-  if (r.state === 'dead_end') return w.profile.deadEnd
-  if (r.waiting) return w.profile.waitingOnYou
-  return r.in_review ? w.profile.inReview : ''
-}
+/** A status's name, as the node pages say it (decided Oct 14: every node has one). */
+const statusName = (s: Status) => w.node.statusNames[s]
 
+/** Where a node stands, in working on's small line: its status, unless it's on track. */
+const statusLabel = (r: { status: Status }) => (r.status === 'on_track' ? '' : statusName(r.status))
+
+/** Created's badge: its status, in the node pages' colors (common.css), or, to the owner, that it isn't public yet (A8). */
 function badge(r: CreatedRow): { cls: string; text: string } {
-  // Only the owner sees nodes that aren't public yet (A8).
   if (!r.public) return r.triage === 'blocked' ? { cls: 'st dead', text: w.profile.blocked } : { cls: 'st wait', text: w.profile.beingChecked }
-  if (r.state === 'closed') return { cls: 'st done', text: w.profile.passed }
-  if (r.state === 'dead_end') return { cls: 'st dead', text: w.profile.deadEnd }
-  if (r.waiting) return { cls: 'st live', text: w.profile.waitingOnYou }
-  return { cls: 'st live', text: w.profile.live }
+  return { cls: `st vs ${r.status.replace('_', '-')}`, text: statusName(r.status) }
 }
 
 const Imp: FC<{ figures: WorkingRow['figures'] }> = ({ figures }) => {
@@ -150,7 +144,7 @@ const WorkingOn: FC<{ rows: WorkingRow[]; all: boolean; handle: string; now: num
             <tr>
               <td>
                 <a href={nodeHref(r.path)}><Name name={r.title} /></a>
-                <span class="sub">{dotted([kindLabel(r), stateLabel(r), r.last_post && <>{fillx(w.profile.lastPost, { when: <Ago at={r.last_post} now={now} /> })}</>])}</span>
+                <span class="sub">{dotted([kindLabel(r), statusLabel(r), r.last_post && <>{fillx(w.profile.lastPost, { when: <Ago at={r.last_post} now={now} /> })}</>])}</span>
               </td>
               <td class="n"><Imp figures={r.figures} /></td>
             </tr>
@@ -196,7 +190,8 @@ function postLabel(p: NamePost): string {
     return p.on_number ? fill(w.profile.postCheckOn, { what, n: p.on_number }) : what
   }
   if (p.kind === 'repro') return w.profile.postRepro
-  if (p.kind === 'dead_end') return w.profile.deadEnd
+  if (p.kind === 'dead_end') return statusName('dead_end') // an author's dead-end note, from before Oct 14
+  if (p.claim) return w.node.claimTag[p.claim] // "says passed", as the thread tags it
   return p.reply_to ? w.profile.postReply : ''
 }
 
@@ -217,6 +212,7 @@ const NamePosts: FC<{ handle: string; name: string; posts: NamePost[]; next: str
                 {' · '}<a href={`${nodeHref(p.path)}#${p.id}`}><Name name={p.title} /></a>{' · '}<Ago at={p.created_at} now={now} />
               </div>
               <Text text={p.text} />
+              {p.claim === 'passed' && <PinnedWork pins={parseLinks(p.links)} />}
             </div>
           )
         })
@@ -249,14 +245,6 @@ export type ReplyFlash = { item: number; text: string; draft: string }
 
 /** The owner's inbox: the items, whether there are more, the newest id ("mark all read" stops there), each thread's reply pace. */
 export type InboxView = { items: InboxItem[]; more: boolean; upto: number; limits: Map<number, { left: number; wait: number }>; flash?: ReplyFlash }
-
-/** A sign-off item's words, after its link and who submitted. As the mockup while there were checks before the author's. */
-function signOffWords(i: InboxItem): string {
-  // OPEN (#83): no mockup draws an author-only item, the operator's, or the operator's once the author is back (#75); their words wait on Myra's yes.
-  if (i.operator) return i.others ? w.profile.signOffOperatorChecked : w.profile.signOffOperator
-  if (i.theirs) return i.others ? w.profile.signOffTheirsChecked : w.profile.signOffTheirs
-  return i.others ? w.profile.signOffYoursChecked : w.profile.signOffYours
-}
 
 /** A small form in an item's action line: mark it read or unread, or mark all read. One submit per click (static/js/node.js). */
 const InboxAct: FC<{ action: string; token: string; act: string; fields?: Record<string, string | number>; label: string }> = ({ action, token, act, fields, label }) => (
@@ -294,13 +282,13 @@ const InboxEntry: FC<{ i: InboxItem; inbox: InboxView; handle: string; action: s
   const toggle = <InboxAct action={action} token={token} act={i.read ? 'unread' : 'read'} fields={{ item: i.id }} label={i.read ? w.profile.markUnread : w.profile.markRead} />
   const cls = ['c', !i.read && 'new', i.kind === 'sign_off' && 'signoff'].filter(Boolean).join(' ')
   if (i.kind === 'sign_off') {
-    // The pill is the submission's state now; the item itself has no pass or fail (the author decides on the submission page).
-    const pill = pillOf(i.status ?? 'in_review', i.waiting, !i.theirs, i.reopened)
+    // An old sign-off (nothing is signed off since Oct 14; migration 0032 closed the open ones): the submission, and
+    // its pill as it ended.
     return (
       <div class={cls} id={`i${i.id}`}>
-        <div class="who"><PillView p={pill} />{isNew} · <Ago at={i.created_at} now={now} /></div>
+        <div class="who"><PillView p={pillOf(i.status ?? 'in_review')} />{isNew} · <Ago at={i.created_at} now={now} /></div>
         <a href={i.href}><b>{fillx(w.profile.signOffTitle, { title: i.title ? <Name name={i.title} /> : w.profile.aShwarm, n: i.number ?? '?' })}</b></a>
-        {i.as_name && <>{fillx(w.profile.signOffBy, { name: <Name name={i.as_name} /> })}</>} {signOffWords(i)}
+        {i.as_name && <>{fillx(w.profile.signOffBy, { name: <Name name={i.as_name} /> })}</>}
         <div class="acts"><a href={i.href}>{w.profile.open}</a> · {toggle}</div>
       </div>
     )
@@ -315,19 +303,20 @@ const InboxEntry: FC<{ i: InboxItem; inbox: InboxView; handle: string; action: s
         {/* OPEN (#83): a long post shows its first 400 characters here, on one line; "see thread" has the rest. */}
         <Text text={cut(i.post_text ?? '', 400)} addressed />
         <div class="acts">
-          {/* An ended thread is locked (decided Oct 9): no reply box on it, as on its page. */}
-          <a href={i.href}>{w.profile.seeThread}</a>
-          {!i.locked && <> · <Reply i={i} handle={handle} action={action} token={token} limit={i.node_id === null ? undefined : inbox.limits.get(i.node_id)} flash={inbox.flash?.item === i.id ? inbox.flash : undefined} /></>} · {toggle}
+          <a href={i.href}>{w.profile.seeThread}</a> · <Reply i={i} handle={handle} action={action} token={token} limit={i.node_id === null ? undefined : inbox.limits.get(i.node_id)} flash={inbox.flash?.item === i.id ? inbox.flash : undefined} /> · {toggle}
         </div>
-        {/* a reply sent from a page drawn before it ended: the refusal shows under the item */}
-        {i.locked && inbox.flash?.item === i.id && <p class="err" role="alert">{inbox.flash.text}</p>}
       </div>
     )
-  // A system item (table B): core's words about a node they're in. No reply.
+  // A system item (table B): core's words about a node they're in. One that names a post is the pass notice, written
+  // here with the claimant's name as it reads now (a closed account's reads "former member"), and without its question
+  // once the author marked it passed. No reply.
+  const text = i.post_id
+    ? fill(i.done ? w.profile.passNoticeDone : w.profile.passNotice, { title: i.title ?? w.profile.aShwarm, name: i.as_name ?? FORMER })
+    : i.text
   return (
     <div class={cls} id={`i${i.id}`}>
       <div class="who"><Ago at={i.created_at} now={now} />{isNew}</div>
-      <div class="txt"><Plain text={i.text} /></div>
+      <div class="txt"><Plain text={text} /></div>
       <div class="acts"><a href={i.href}>{w.profile.open}</a> · {toggle}</div>
     </div>
   )
@@ -683,7 +672,7 @@ async function reply(c: Context<{ Bindings: Env }>, s: Session, url: URL, f: Rec
   if (!text) return refuse(w.profile.writeFirst)
   const actor = siteActor({ id: s.personId, handle: s.handle })
   const now = Date.now()
-  const to = threadHref(target.path, target)
+  const to = `/w/${target.path}`
   const dup = await justPosted(db, { nodeId: target.node_id, personId: s.personId, as: actor.as, text, now, replyTo: target.post_id })
   // OPEN (#83): replying reads the item, as "mark read" would.
   if (dup) {

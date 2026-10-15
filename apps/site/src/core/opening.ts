@@ -11,7 +11,7 @@
 import type { SiteMode } from './site-mode'
 import { NOTICE_PER_DAY } from './terms'
 
-/** Opening mails a day: the terms notice's share of Resend's 100 a day, so verify, reset and sign-off mail still go. */
+/** Opening mails a day: the terms notice's share of Resend's 100 a day, so verify, reset and mention mail still go. */
 export const OPENING_PER_DAY = NOTICE_PER_DAY
 
 /** The mail's payload: where to sign in and the feed. Paths; the sender adds SITE_URL. */

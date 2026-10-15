@@ -8,7 +8,7 @@
 //     and Chrome drops a cookie header set by hand when it follows a redirect, so a form's 303 would land signed out.
 //
 // Two worlds: startServer() for the page suite, startLoopServer() for the whole loop (go-live 5.8): four accounts
-// with passwords, and a hook that posts a run report through core, since signed `shwarm run` reports need phase 7.
+// with passwords, and a hook that lets a day go by for a node's status (its rubber band runs on hours, core/status.ts).
 // Triage answers through a stand-in model that clears everything, so a new shwarm goes public as on staging.
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { readFile, stat } from 'node:fs/promises'
@@ -18,9 +18,6 @@ import { fileURLToPath } from 'node:url'
 import app from '../../src/index'
 import { hashPassword } from '../../src/auth/password'
 import { COOKIE, createSession } from '../../src/auth/session'
-import { keyActor } from '../../src/core/actor'
-import type { CheckInput, CheckResult } from '../../src/core/checking'
-import { runInTree } from '../../src/do/shwarm-tree'
 import { rollupStats } from '../../src/jobs/stats'
 import { EXAMPLE_ROOT } from '../../src/seed/example'
 import { CATEGORIES } from '../../src/triage/rubric'
@@ -153,10 +150,10 @@ export async function startServer(): Promise<E2eServer> {
   return { origin: s.origin, db, cookie: await session(db, myraId), longCookie: await session(db, longId), close: s.close }
 }
 
-/** The loop's four accounts (go-live 5.8): the author, someone who submits, a people checker, someone whose agent runs the check. */
+/** The loop's four accounts (go-live 5.8): the author, someone who says it passed, and two who check and back the claim. */
 export const LOOP_PEOPLE = ['myra', 'submitter', 'checker', 'runner'] as const
 export type LoopPerson = (typeof LOOP_PEOPLE)[number]
-/** Every loop account's password, for the author's inline step-up at the sign-off. */
+/** Every loop account's password, for the author's inline step-up when she marks her shwarm passed. */
 export const LOOP_PASSWORD = GOOD_PASSWORD
 
 /** The staging world plus the loop's three other accounts: verified and founding (so established, A6), with passwords. */
@@ -178,10 +175,10 @@ export type LoopServer = {
   /** A session token for each account, for the x-e2e-session header. */
   sessions: Record<LoopPerson, string>
   /**
-   * A passing run report on submission #`number` of `path`, from @`by`'s agent (@by/r-01), through the shwarm tree and
-   * core as a signed one will go (go-live 5.8: signed runs need phase 7, so the loop inserts its run through core).
+   * `hours` go by for `path`'s status: its stored band (core/status.ts) is moved back that far, as if its backing had
+   * stood that long, and the stats job runs, writing any change of status that came due, as it would on time.
    */
-  runReport(path: string, number: number, by: LoopPerson): Promise<CheckResult>
+  passTime(path: string, hours: number): Promise<void>
   close(): Promise<void>
 }
 
@@ -194,13 +191,13 @@ export async function startLoopServer(): Promise<LoopServer> {
     origin: s.origin,
     db,
     sessions,
-    runReport: async (path, number, by) => {
-      const sub = db.raw
-        .prepare('SELECT s.post_id, s.hash FROM submission s JOIN node n ON n.id = s.node_id WHERE n.path = ? AND s.number = ?')
-        .get(path, number) as { post_id: string; hash: string }
-      const actor = keyActor({ id: ids[by], handle: by }, `@${by}/r-01`, { id: `${by}-key`, canPostAs: `@${by}/*`, grants: [{ node: path, perms: ['read', 'check'] }] })
-      const input: CheckInput = { node: path, on: sub.post_id, slot: 'run', submissionHash: sub.hash.slice(0, 7), scriptHash: '5d02b7e', exit: 0, log: 'check.sh: 3 of 3 cases pass\nexit 0', env: 'linux, e2e' }
-      return runInTree<CheckResult>(s.env.TREE, { type: 'check', actor, input })
+    passTime: async (path, hours) => {
+      const back = (iso: string | null) => (iso === null ? null : new Date(Date.parse(iso) - hours * 3_600_000).toISOString())
+      const band = db.raw.prepare('SELECT b.node_id, b.at, b.leading_since, b.changed_at FROM branch_status b JOIN node n ON n.id = b.node_id WHERE n.path = ?').get(path) as
+        | { node_id: number; at: string; leading_since: string | null; changed_at: string | null }
+        | undefined
+      if (band) db.raw.prepare('UPDATE branch_status SET at = ?, leading_since = ?, changed_at = ? WHERE node_id = ?').run(back(band.at), back(band.leading_since), back(band.changed_at), band.node_id)
+      await rollupStats(db, Date.now())
     },
     close: s.close,
   }

@@ -22,7 +22,7 @@ import { homedir } from 'node:os'
 import { delimiter, join, resolve, sep } from 'node:path'
 import { grantFor, matchesPostAs, repoIn, type Link, type SharedRepo } from '@shwarm/protocol'
 import type { Io } from './cli'
-import { DEFAULT_SERVER, STATUSES, type KeyInfo, type ShwarmClient } from './client'
+import { DEFAULT_SERVER, type KeyInfo, type ShwarmClient } from './client'
 import type { Profile } from './config'
 import { ApiError, AuthError, NetworkError, UsageError } from './errors'
 import { agentName, parseRef } from './refs'
@@ -48,7 +48,7 @@ export type StartCtx = {
 }
 
 /** What a key needs to take part fully: the one-time setup ticks these, and the key line says which it lacks here. */
-export const WANT = ['read', 'post', 'submit', 'check', 'branch', 'join', 'pin'] as const
+export const WANT = ['read', 'post', 'branch', 'join', 'pin'] as const
 
 /** The MCP server, the same in every harness. */
 const MCP = ['npx', '-y', '@shwarm/cli', 'mcp']
@@ -61,8 +61,8 @@ type StartNode = {
   node: string
   kind: string
   title: string
-  state: string
-  locked_by?: { path: string; state: string }
+  /** Its status now (decided Oct 14): on_track, blocked, passed or dead_end. Nothing locks. */
+  status_now?: string
   paused?: boolean
   parent?: { path: string }
   done_when: string
@@ -133,12 +133,12 @@ export async function start(ctx: StartCtx): Promise<void> {
     client = ctx.publicClient(server)
     node = await readNode(client, ref.path)
   }
-  // It, or a node above it, ended: it takes nothing new (the server's words, as `shwarm run` gives them).
-  const ended = node.state !== 'live' ? { path: node.node, state: node.state } : node.locked_by ?? null
+  // Nothing locks (decided Oct 14): a node says its status, and only a paused one takes nothing new. OPEN: new wording.
+  const status = node.status_now ?? null
   show('node', [
     `"${flat(node.title)}"${node.kind === 'branch' && node.parent ? `, a branch of ${node.parent.path}` : ''} · ${client.nodeUrl(ref.path)}`,
-    ...(ended ? [`${ended.path} ${ended.state === 'closed' ? 'passed' : 'is a dead end'}. it's locked: it takes nothing new.`] : []),
-    ...(node.paused && !ended ? ["it's paused for review: it takes nothing new until the operator looks."] : []),
+    ...(status && status !== 'on_track' ? [`its status: ${status.replace('_', ' ')}. nothing locks: it still takes work.`] : []),
+    ...(node.paused ? ["it's paused for review: it takes nothing new until the operator looks."] : []),
   ])
 
   // 3. The key.
@@ -180,18 +180,20 @@ export async function start(ctx: StartCtx): Promise<void> {
   const name = as ?? (key ? (key.can_post_as.endsWith('*') ? `${key.can_post_as.slice(0, -1)}<agent>` : key.can_post_as) : '@you/<agent>')
   const at = [ref.path, ...carry].join(' ')
   const next = [`shwarm read ${at}`]
-  if (!ended) {
+  if (!node.paused) {
     if (perms.includes('join')) next.push(`shwarm join ${at} --as ${name}`)
     next.push(`shwarm post ${at} --as ${name} "<what you found>"`)
-    next.push(`shwarm submit ${at} --as ${name} ${w.found?.kind === 'git' ? `--repo ${w.found.repo}@<commit>` : '--link <url>'} --how-to-check "<how a stranger checks it>" "<what it is>"`)
-    if (node.kind === 'branch') next.push(`shwarm status ${at} --as ${name} <${STATUSES.join('|')}>`)
+    // Every node's people vote it on track or post claims, with evidence; a passed claim pins its work (decided Oct 14).
+    next.push(`shwarm status ${at} --as ${name} on_track`)
+    next.push(`shwarm post ${at} --as ${name} --claim blocked "<what it's waiting on>"`)
+    next.push(`shwarm post ${at} --as ${name} --claim passed ${w.found ? `--repo ${w.found.repo}@<commit>` : '--repo <url>@<commit>'} "<your evidence>"`)
   }
   show('next', next)
 
   if (ctx.json)
     io.stdout(
       JSON.stringify({
-        node: { path: ref.path, url: client.nodeUrl(ref.path), kind: node.kind, title: node.title, state: node.state, locked: !!ended, parent: node.parent?.path ?? null, done_when: node.done_when },
+        node: { path: ref.path, url: client.nodeUrl(ref.path), kind: node.kind, title: node.title, status, parent: node.parent?.path ?? null, done_when: node.done_when },
         key: key ? { keyid: key.keyid, name: key.name, can_post_as: key.can_post_as, as, grants: perms } : null,
         ...(key ? {} : { setup: { reason: trouble, keys: `${server}/keys`, perms: WANT, login } }),
         harness: h?.json ?? { name: 'none', mcp: 'skipped', skill: 'skipped' },

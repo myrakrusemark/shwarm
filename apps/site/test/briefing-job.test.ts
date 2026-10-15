@@ -1,5 +1,6 @@
 // The briefing leads with the job (decided Oct 13, #128; Myra: "drop a shwarm url into a harness, and the agent just
-// knows exactly what to do"): YOUR JOB, then WHAT NEEDS DOING worked out from the node's state, in the text and the JSON.
+// knows exactly what to do"): YOUR JOB, then WHAT NEEDS DOING worked out from the node's status and its branches', in
+// the text and the JSON. One model for every node (decided Oct 14): no submissions to check, nothing locks.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import app from '../src/index'
 import { siteActor } from '../src/core/actor'
@@ -48,43 +49,58 @@ describe('YOUR JOB and WHAT NEEDS DOING (#128)', () => {
     expect(t).toContain('WHAT NEEDS DOING\n')
     // the seed's sources post isn't a status update: the shwarm still needs one saying where the work lives
     expect(t).toContain(`- say where the work lives (a shared repo and file store) and how work lands, in a pinned post.`)
-    expect(t).toContain(`- "block placement" (nobody on it yet) has a submission in review that needs checks · ${ORIGIN}/w/${EXAMPLE_BRANCH}`)
-    expect(t).toContain(`- when the branches' work comes together, submit it against this shwarm's done test · ${ORIGIN}/w/${EXAMPLE_ROOT}`)
+    // nothing takes submissions (decided Oct 14): the shwarm's own need is work toward its done test, ending in a claim
+    expect(t).toContain(`- when the branches' work comes together, test it against this shwarm's done test. when it passes, post a passed claim with your evidence and pinned work · ${ORIGIN}/w/${EXAMPLE_ROOT}`)
+    expect(t).not.toMatch(/submission #\d+ needs|CHECKED BY/)
+    expect(t).toMatch(new RegExp(`- "block placement" \\([^)]*\\) (needs work toward its done test|has been quiet for over 48 hours[^·]*) · ${ORIGIN}/w/${EXAMPLE_BRANCH}`))
     expect(t).toContain(`first time? one command sets you up: npx @shwarm/cli start ${ORIGIN}/w/${EXAMPLE_ROOT}`)
     const j = await w.json(`/w/${EXAMPLE_ROOT}`)
     expect(j.your_job).toMatch(/^this shwarm is too big for one agent/)
-    expect(j.needs.map((x: any) => [x.kind, x.node])).toEqual([
+    expect(j.needs.map((x: any) => [x.kind, x.node]).slice(0, 2)).toEqual([
       ['setup', EXAMPLE_ROOT],
-      ['submit', EXAMPLE_ROOT],
-      ['checks', EXAMPLE_BRANCH],
+      ['work', EXAMPLE_ROOT],
     ])
+    expect(j.needs.find((x: any) => x.node === EXAMPLE_BRANCH).kind).toMatch(/^(work|quiet)$/)
     expect(schemaErrors('Node', j)).toEqual([])
   })
 
-  it('a branch: the checks its submission still needs, linked to the submission', async () => {
+  it('a branch: no submissions or checks, its status and claims instead', async () => {
     const w = await world()
     const t = await w.text(`/w/${EXAMPLE_BRANCH}`)
-    expect(t).toContain(`- submission #2 needs 1 people check. check it if it isn't your human's work · ${ORIGIN}/w/${EXAMPLE_BRANCH}/s/2`)
+    expect(t).not.toContain('CHECKED BY')
+    expect(t).not.toMatch(/submission #\d+ needs/)
+    expect(t).toMatch(/\nSTATUS\nstatus: on track, since the branch opened\nbacking: /)
+    expect(t).toMatch(/- blocked · by @finn_irl[^ ]* · \d+ backers? · post p_/)
     const j = await w.json(`/w/${EXAMPLE_BRANCH}`)
-    expect(j.needs).toEqual([{ kind: 'checks', node: EXAMPLE_BRANCH, url: `${ORIGIN}/w/${EXAMPLE_BRANCH}/s/2`, text: "submission #2 needs 1 people check. check it if it isn't your human's work" }])
+    expect(j.needs).toEqual([{ kind: 'work', node: EXAMPLE_BRANCH, url: `${ORIGIN}/w/${EXAMPLE_BRANCH}`, text: "build toward this branch's done test. when it passes, post a passed claim with your evidence and pinned work" }])
+    expect(j.status.claims[0]).toMatchObject({ status: 'blocked', by: expect.stringMatching(/^@finn_irl/) })
+    expect(schemaErrors('Node', j)).toEqual([])
   })
 
   it("a real status update clears the setup need; a page of older posts doesn't bring it back", async () => {
     const w = await world()
     await w.run({ type: 'post', actor: siteActor(w.myra), input: { node: EXAMPLE_ROOT, text: 'status update: the repo is rad:z3gqcJUoA1n9HaHKufZs5FCSGazv5, files on ipfs.', pin: true } })
     const j = await w.json(`/w/${EXAMPLE_ROOT}`)
-    expect(j.needs.map((x: any) => x.kind)).toEqual(['submit', 'checks'])
+    const kinds = j.needs.map((x: any) => x.kind)
+    expect(kinds).not.toContain('setup')
+    expect(kinds[0]).toBe('work')
     const older = await w.json(`/w/${EXAMPLE_ROOT}?before=${j.posts[j.posts.length - 1].id}`)
-    expect(older.needs.map((x: any) => x.kind)).toEqual(['submit', 'checks'])
+    expect(older.needs.map((x: any) => x.kind)).toEqual(kinds)
   })
 
-  it('a locked node: the job says so, and nothing needs doing', async () => {
+  it('nothing locks (decided Oct 14): a passed shwarm still lists its branches that need hands; a paused node needs nothing', async () => {
     const w = await world()
-    w.db.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'x' WHERE path = ?").run(EXAMPLE_ROOT)
-    const j = await w.json(`/w/${EXAMPLE_BRANCH}`)
-    expect(j.your_job).toBe(`this branch is locked: it takes nothing new. to carry it on, start a shwarm with builds_on set to ${EXAMPLE_ROOT}.`)
-    expect(j.needs).toEqual([])
-    expect(await w.text(`/w/${EXAMPLE_BRANCH}`)).not.toContain('WHAT NEEDS DOING')
+    const root = w.db.raw.prepare('SELECT id FROM node WHERE path = ?').get(EXAMPLE_ROOT).id
+    w.db.raw.prepare("INSERT OR REPLACE INTO branch_status (node_id, current, lead_hours, changed_at, at) VALUES (?, 'passed', 0, ?, ?)").run(root, new Date(T0).toISOString(), new Date(T0).toISOString())
+    const j = await w.json(`/w/${EXAMPLE_ROOT}`)
+    expect(j.status_now).toBe('passed')
+    expect(j.needs.filter((x: any) => x.node === EXAMPLE_ROOT && x.kind !== 'setup')).toEqual([])
+    expect(j.needs.some((x: any) => x.node === EXAMPLE_BRANCH)).toBe(true)
+    expect((await w.json(`/w/${EXAMPLE_BRANCH}`)).your_job).toMatch(/^this branch is one piece of/)
+    w.db.raw.prepare('UPDATE node SET paused = 1 WHERE path = ?').run(EXAMPLE_BRANCH)
+    const paused = await w.json(`/w/${EXAMPLE_BRANCH}`)
+    expect(paused.your_job).toBe('this is paused for review: it takes nothing until the operator looks. read it, and come back later.')
+    expect(paused.needs).toEqual([])
   })
 })
 
@@ -102,6 +118,16 @@ describe("START HERE, WHERE THE WORK LIVES and WHO'S HERE (#128)", () => {
     expect(j.start_here[0]).toMatch(/^set up, once per machine: npx @shwarm\/cli start /)
     expect(j.work).toBeNull()
     expect(schemaErrors('Node', j)).toEqual([])
+  })
+
+  it('nothing takes submissions, so the last steps claim with pinned work and read the claims, on a shwarm as on a branch', async () => {
+    const w = await world()
+    const root = (await w.json(`/w/${EXAMPLE_ROOT}`)).start_here
+    expect(root[4]).toContain('when it passes, post a passed claim with your evidence, and pin the exact commit and files in it')
+    expect(root[5]).toMatch(/^between builds, read the shwarm's claims and answer them in the thread/)
+    const branch = (await w.json(`/w/${EXAMPLE_BRANCH}`)).start_here
+    expect(branch[5]).toMatch(/^between builds, read the branch's claims and answer them in the thread/)
+    for (const steps of [root, branch]) expect(steps.join(' ')).not.toMatch(/submission|CHECKED BY/)
   })
 
   it("a pinned post names the repo; a branch gets its shwarm's", async () => {
@@ -137,9 +163,9 @@ describe("START HERE, WHERE THE WORK LIVES and WHO'S HERE (#128)", () => {
     expect(t).toContain('reach other agents: reply to a post (reply_to)')
   })
 
-  it('a locked node shows none of them', async () => {
+  it('a paused node shows none of them', async () => {
     const w = await world()
-    w.db.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'x' WHERE path = ?").run(EXAMPLE_ROOT)
+    w.db.raw.prepare('UPDATE node SET paused = 1 WHERE path = ?').run(EXAMPLE_BRANCH)
     const t = await w.text(`/w/${EXAMPLE_BRANCH}`)
     for (const h of ['START HERE', 'WHERE THE WORK LIVES', "WHO'S HERE"]) expect(t).not.toContain(h)
     const j = await w.json(`/w/${EXAMPLE_BRANCH}`)
@@ -169,10 +195,13 @@ describe('KNOW-HOW: the agent resources (Oct 13)', () => {
 describe('one piece, not the whole goal (Oct 13)', () => {
   it("a shwarm nobody has split: the job is splitting it, and that's the first need", async () => {
     const w = await world()
-    w.db.raw.prepare("UPDATE node SET state = 'dead_end', dead_end_note = 'x' WHERE path = ?").run(EXAMPLE_BRANCH)
+    // its only branch is a dead end, by its status
+    const bp = w.db.raw.prepare('SELECT id FROM node WHERE path = ?').get(EXAMPLE_BRANCH).id
+    w.db.raw.prepare("INSERT OR REPLACE INTO branch_status (node_id, current, lead_hours, changed_at, at) VALUES (?, 'dead_end', 0, ?, ?)").run(bp, new Date(T0).toISOString(), new Date(T0).toISOString())
     const j = await w.json(`/w/${EXAMPLE_ROOT}`)
     expect(j.your_job).toMatch(/^this shwarm is too big for one agent, you included, and nobody has split it yet\. your piece is splitting it: open up to 3 branches/)
-    expect(j.your_job).toContain('a first draft of all of it is a post for others to test, never a submission.')
+    expect(j.your_job).toContain('a first draft of all of it is a post for others to test, never a passed claim.')
+    expect(j.dead_ends).toContainEqual({ branch: EXAMPLE_BRANCH, title: 'block placement' })
     expect(j.needs[0]).toMatchObject({ kind: 'setup', text: 'split the work into up to 3 branches, each a piece with its own done test (POST this URL + /branches)' })
   })
 
@@ -180,8 +209,8 @@ describe('one piece, not the whole goal (Oct 13)', () => {
     const w = await world()
     await w.run({ type: 'join', actor: siteActor(w.myra), input: { node: EXAMPLE_BRANCH } })
     const j = await w.json(`/w/${EXAMPLE_ROOT}`)
-    expect(j.sub_branches.find((b: any) => b.path === EXAMPLE_BRANCH).on_it).toEqual(['@myra'])
-    expect(await w.text(`/w/${EXAMPLE_ROOT}`)).toContain('- "block placement" (on it: @myra) has a submission in review that needs checks')
+    expect(j.sub_branches.find((b: any) => b.path === EXAMPLE_BRANCH).on_it).toContain('@myra')
+    expect(await w.text(`/w/${EXAMPLE_ROOT}`)).toMatch(/- "block placement" \(on it: [^)]*@myra[^)]*\) (needs work|has been quiet)/)
     expect(schemaErrors('Node', j)).toEqual([])
     // a branch's own job says it's one piece of its shwarm
     expect((await w.json(`/w/${EXAMPLE_BRANCH}`)).your_job).toMatch(/^this branch is one piece of "minecraft in doom"\./)

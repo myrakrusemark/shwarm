@@ -44,7 +44,7 @@ function mcp(o: { key?: string | null; as?: string | null; answers?: (Response |
   return { ...s, server, rpc, call }
 }
 
-const TOOL_NAMES = ['find_shwarms', 'read_node', 'read_log', 'mentions', 'whoami', 'limits', 'post', 'submit', 'check_run', 'check_people', 'open_branch', 'start_shwarm', 'join', 'leave', 'status', 'dm_send', 'dm_read', 'dm_who', 'dm_block', 'dm_unblock', 'dm_report']
+const TOOL_NAMES = ['find_shwarms', 'read_node', 'read_log', 'mentions', 'whoami', 'limits', 'post', 'open_branch', 'start_shwarm', 'join', 'leave', 'status', 'dm_send', 'dm_read', 'dm_who', 'dm_block', 'dm_unblock', 'dm_report']
 
 describe('the handshake and the tool list', () => {
   it('answers initialize with the version asked for (or the newest), its tools, resources and prompts', async () => {
@@ -57,7 +57,7 @@ describe('the handshake and the tool list', () => {
     expect(m.calls).toHaveLength(0)
   })
 
-  it('lists the tools of prd-api §4, limits, join and leave, and none for the sign-off, upvotes, flags, pins, keys or variants (MCP-2)', async () => {
+  it('lists the tools of prd-api §4, limits, join and leave, and none for submissions, checks, the author\'s mark, upvotes, flags, pins, keys or variants (MCP-2)', async () => {
     const { tools } = (await mcp().rpc('tools/list')).result
     expect(tools.map((t: { name: string }) => t.name)).toEqual(TOOL_NAMES)
     for (const t of tools) {
@@ -68,7 +68,7 @@ describe('the handshake and the tool list', () => {
       expect(Object.keys(t.inputSchema.properties), t.name).not.toContain('kind')
       expect(Object.keys(t.inputSchema.properties), t.name).not.toContain('slot')
     }
-    expect(tools.map((t: { name: string }) => t.name).join(' ')).not.toMatch(/sign|upvote|flag|pin|key|account|donat|variant/)
+    expect(tools.map((t: { name: string }) => t.name).join(' ')).not.toMatch(/sign|submit|check|run|mark|back|upvote|flag|pin|key|account|donat|variant/)
     // join takes a node, a name and an optional hello (decided Oct 12); leave a node and a name, nothing else
     for (const n of ['join', 'leave']) {
       const t = tools.find((x: { name: string }) => x.name === n)
@@ -76,22 +76,31 @@ describe('the handshake and the tool list', () => {
       expect(t.inputSchema.required, n).toEqual(['node'])
       expect(t.description, n).toContain('join permission')
     }
-    const submit = tools.find((t: { name: string }) => t.name === 'submit')
-    expect(submit.inputSchema.required).toEqual(['node', 'text', 'links', 'how_to_check'])
-    // pin on a post and a branch's status vote (decided Oct 13)
+    // pin on a post (decided Oct 13); a claim on a post and the on-track vote (decided Oct 14)
     const post = tools.find((t: { name: string }) => t.name === 'post')
-    expect(Object.keys(post.inputSchema.properties)).toEqual(['node', 'as', 'text', 'links', 'reply_to', 'pin'])
+    expect(Object.keys(post.inputSchema.properties)).toEqual(['node', 'as', 'text', 'links', 'reply_to', 'pin', 'claim'])
     expect(post.description).toContain('pin permission')
+    expect(post.description).toContain("a passed claim's links are its pinned work: always pin the code and files")
+    // a passed claim's pins: the self-hashing shapes are in the link schema the tool takes
+    expect(JSON.stringify(post.inputSchema.properties.links)).toMatch(/"ipfs".*"magnet"/s)
+    expect(post.inputSchema.properties.claim.oneOf.map((s: { type?: string; enum?: string[] }) => s.enum ?? s.type)).toEqual([['blocked', 'passed', 'dead_end'], 'null'])
     const status = tools.find((t: { name: string }) => t.name === 'status')
     expect(Object.keys(status.inputSchema.properties)).toEqual(['node', 'as', 'status'])
     expect(status.inputSchema.required).toEqual(['node', 'status'])
-    expect(status.inputSchema.properties.status.oneOf.map((s: { type?: string; enum?: string[] }) => s.enum ?? s.type)).toEqual([['on_track', 'blocked', 'passed', 'dead_end'], 'null'])
+    expect(status.inputSchema.properties.status.oneOf.map((s: { type?: string; const?: string }) => s.const ?? s.type)).toEqual(['on_track', 'null'])
+    expect(status.description).toContain('blocked, passed and dead end are claims')
+    // a node keeps no checks (decided Oct 14), so open_branch and start_shwarm take none
+    const branch = tools.find((t: { name: string }) => t.name === 'open_branch')
+    expect(Object.keys(branch.inputSchema.properties)).toEqual(['node', 'as', 'title', 'what', 'done_when'])
+    const shwarm = tools.find((t: { name: string }) => t.name === 'start_shwarm')
+    expect(Object.keys(shwarm.inputSchema.properties)).not.toContain('check')
+    expect(shwarm.inputSchema.required).toEqual(['title', 'what', 'done_when', 'tags'])
   })
 
   it('is generated from docs/openapi.yaml, and the build fails when they drift apart (MCP-1)', () => {
     const script = new URL('../scripts/mcp-tools.mjs', import.meta.url).pathname
     expect(() => execFileSync(process.execPath, [script, '--check'], { stdio: 'pipe' })).not.toThrow()
-    expect(MCP_TOOLS.map(t => t.operation)).toEqual(['listShwarms', 'getNode', 'getNodeLog', 'getMentions', 'getKey', 'getLimits', 'postToNode', 'postToNode', 'postToNode', 'postToNode', 'createBranch', 'createShwarm', 'joinNode', 'leaveNode', 'postToNode', 'sendDm', 'readDms', 'dmWho', 'blockDm', 'unblockDm', 'reportDm'])
+    expect(MCP_TOOLS.map(t => t.operation)).toEqual(['listShwarms', 'getNode', 'getNodeLog', 'getMentions', 'getKey', 'getLimits', 'postToNode', 'createBranch', 'createShwarm', 'joinNode', 'leaveNode', 'postToNode', 'sendDm', 'readDms', 'dmWho', 'blockDm', 'unblockDm', 'reportDm'])
   })
 
   it('answers JSON-RPC mistakes as JSON-RPC errors', async () => {
@@ -139,10 +148,9 @@ describe('tools', () => {
   it('refuses a bare `as` and a bare `to` before anything is sent (MCP-3)', async () => {
     const m = mcp({ as: '@myra/m-04' })
     for (const [name, args] of [
-      ['post', { node: 'minecraft-in-doom', as: '@myra', text: 'hi' }],
-      ['submit', { node: 'minecraft-in-doom', as: '@myra', text: 'done', links: [{ url: FILE_URL }], how_to_check: 'run it' }],
-      ['check_people', { node: 'minecraft-in-doom', as: '@myra', on: 'p_7c2q1xk9am', verdict: 'pass', log: 'ok' }],
-      ['start_shwarm', { as: '@myra', title: 't', what: 'w', done_when: 'd', check: { author: true }, tags: ['games'] }],
+      ['post', { node: 'minecraft-in-doom', as: '@myra', text: 'hi', links: [{ url: FILE_URL }] }],
+      ['status', { node: 'minecraft-in-doom', as: '@myra', status: 'on_track' }],
+      ['start_shwarm', { as: '@myra', title: 't', what: 'w', done_when: 'd', tags: ['games'] }],
       ['mentions', { to: '@myra' }],
       ['join', { node: 'minecraft-in-doom', as: '@myra' }],
       ['leave', { node: 'minecraft-in-doom', as: '@myra' }],
@@ -158,10 +166,10 @@ describe('tools', () => {
   })
 
   it("returns the API's Error body as a tool error, need and retry_after included (MCP-4)", async () => {
-    const e = { error: 'not_permitted', message: "this key can't check here", need: 'check', node: 'minecraft-in-doom' }
+    const e = { error: 'not_permitted', message: "this key can't branch here", need: 'branch', node: 'minecraft-in-doom' }
     const limited = { error: 'rate_limited', message: 'slow down', limit: 'thread_posts', retry_after: 212 }
     const m = mcp({ as: '@myra/m-04', answers: [Response.json(e, { status: 403 }), Response.json(limited, { status: 429, headers: { 'retry-after': '212' } })] })
-    const r = await m.call('check_people', { node: 'minecraft-in-doom', on: 'p_7c2q1xk9am', verdict: 'pass', log: 'ok' })
+    const r = await m.call('open_branch', { node: 'minecraft-in-doom', title: 't', what: 'w', done_when: 'd' })
     expect(r).toEqual({ content: [{ type: 'text', text: JSON.stringify(e) }], isError: true })
     expect(JSON.parse((await m.call('post', { node: 'minecraft-in-doom', text: 'hi' })).content[0].text)).toEqual(limited)
     // a write with no key is refused here
@@ -169,21 +177,23 @@ describe('tools', () => {
     expect(JSON.parse(nokey.content[0].text).error).toBe('no_key')
   })
 
-  it("hashes a file link given without its sha256, as --link does; a given one isn't fetched", async () => {
-    const m = mcp({ as: '@myra/m-04', answers: [Response.json({ number: 1 }, { status: 201 })] })
+  it("hashes a file link given without its sha256, as --link does; a given one, an ipfs:// or a magnet: link isn't fetched", async () => {
+    const m = mcp({ as: '@myra/m-04', answers: [Response.json({ id: 'p_1' }, { status: 201 })] })
     const sha = createHash('sha256').update(FILE).digest('hex')
-    await m.call('submit', {
+    const cid = 'ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi'
+    const magnet = 'magnet:?xt=urn:btih:c9e15763f722f23e98a29decdfae341b98d53056'
+    await m.call('post', {
       node: 'minecraft-in-doom',
-      text: 'done',
-      links: [{ url: FILE_URL, label: 'fix' }, { repo: 'https://codeberg.org/ana/doom-blocks', commit: 'a'.repeat(40) }],
-      how_to_check: 'run it',
+      text: 'all nine maps.',
+      claim: 'passed',
+      links: [{ url: FILE_URL, label: 'fix' }, { repo: 'https://codeberg.org/ana/doom-blocks', commit: 'a'.repeat(40) }, { ipfs: cid }, { url: magnet }],
     })
     expect(m.fetched).toEqual([FILE_URL])
-    expect((await m.calls[0].json()).links).toEqual([{ url: FILE_URL, label: 'fix', sha256: sha }, { repo: 'https://codeberg.org/ana/doom-blocks', commit: 'a'.repeat(40) }])
+    expect((await m.calls[0].json()).links).toEqual([{ url: FILE_URL, label: 'fix', sha256: sha }, { repo: 'https://codeberg.org/ana/doom-blocks', commit: 'a'.repeat(40) }, { ipfs: cid }, { url: magnet }])
     const given = mcp({ as: '@myra/m-04', answers: [Response.json({}, { status: 201 })] })
-    await given.call('check_run', { node: 'minecraft-in-doom', on: 'p_7c2q1xk9am', submission_hash: '2b50879', script_hash: '5d02b7e', exit: 0, log: { url: FILE_URL, sha256: sha }, env: 'linux' })
+    await given.call('post', { node: 'minecraft-in-doom', text: 'log', links: [{ url: FILE_URL, sha256: sha }] })
     expect(given.fetched).toEqual([])
-    expect(await given.calls[0].json()).toMatchObject({ kind: 'check', slot: 'run', log: { url: FILE_URL, sha256: sha } })
+    expect(await given.calls[0].json()).toMatchObject({ kind: 'post', links: [{ url: FILE_URL, sha256: sha }] })
   })
 
   it('mentions and read_log mark participant text; limits and the creates send what they should', async () => {
@@ -197,7 +207,7 @@ describe('tools', () => {
     expect(m.calls[1].url).toBe(`${SERVER}/w/minecraft-in-doom/log?filter=all`)
     await m.call('limits', { node: 'minecraft-in-doom' })
     expect(m.calls[2].url).toBe(`${SERVER}/limits?node=minecraft-in-doom`)
-    const spec = { title: 't', what: 'w', done_when: 'd', check: { author: true } }
+    const spec = { title: 't', what: 'w', done_when: 'd' }
     await m.call('open_branch', { node: 'minecraft-in-doom', ...spec })
     expect([m.calls[3].method, new URL(m.calls[3].url).pathname, await m.calls[3].json()]).toEqual(['POST', '/w/minecraft-in-doom/branches', { ...spec, as: '@myra/m-04' }])
     await m.call('start_shwarm', { ...spec, tags: ['games'] })

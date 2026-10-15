@@ -1,25 +1,24 @@
 // Go-live 6.4: download your data, and closing an account, from the account modal. Both confirm with the password; closing
 // also asks for the handle typed out. A closed account's private details, sessions, inbox and links go and its keys are
-// revoked; its work stays, every name under its handle shown as "former member"; a sign-off waiting on it as an author
-// goes to the operator (the author-gone rule).
+// revoked; its work stays, every name under its handle shown as "former member". Nobody stands in for an author who's
+// gone (decided Oct 14): the crowd's pass is enough.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { closeAccount } from '../src/auth/close'
-import { ctxAt, findNode, signOffStatements } from '../src/core/context'
 import { hashPassword } from '../src/auth/password'
 import { sweepOutbox } from '../src/jobs/mail'
 import { EXPORT_FORMAT } from '../src/read/export'
 import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
 import { resetReadLimit } from '../src/web/read-limit'
 import { forgetVersions } from '../src/web/version-memo'
-import { agent, MIN, person, refused, site, stepped, World } from './core-fixtures'
+import { agent, MIN, person, refused, site, World } from './core-fixtures'
 import { T0 } from './d1'
 import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv, type TestEnv } from './browser'
-import { closedWorld } from './result-fixture'
+import { passedWorld, READ_AT } from './pass-fixture'
 
 beforeEach(() => {
   vi.stubGlobal('fetch', fakeFetch())
   vi.useFakeTimers({ toFake: ['Date'] })
-  vi.setSystemTime(T0 + 3_600_000)
+  vi.setSystemTime(READ_AT)
   resetReadLimit()
   forgetVersions()
 })
@@ -59,19 +58,20 @@ function addKey(env: TestEnv, handle: string) {
 
 describe('closing an account (6.4)', () => {
   it("a closed test account's posts show as a former member everywhere, and its keys fail", async () => {
-    const w = await closedWorld()
+    const w = await passedWorld()
     const env = testEnv(w.db)
     const get = (sql: string, ...args: unknown[]): any => w.db.raw.prepare(sql).get(...args)
-    // @kestrel: the passing submission (by an agent), branch work; @finn_irl: built on, an agent's run report on the branch
+    // @kestrel: the old submission #1 (by an agent), an agent's rerun and branch work, and backs on both; @finn_irl: the
+    // heads-up, an agent's old people check, the branch's blocked claim and a back on the shwarm's passed claim
     const kestrel = await signIn(env, 'kestrel')
     addKey(env, 'kestrel')
     const kid = get("SELECT id FROM person WHERE handle = 'kestrel'").id
     // a shwarm of kestrel's own, for its page's "started by"
-    const own = await w.run<{ path: string }>({ type: 'createNode', actor: site(w.p('kestrel')), input: { kind: 'shwarm', title: 'doom speedruns', what: 'a speedrun category for the mod.', doneWhen: 'a leaderboard with ten verified runs.', check: { author: true }, tags: ['games'] } })
+    const own = await w.run<{ path: string }>({ type: 'createNode', actor: site(w.p('kestrel')), input: { kind: 'shwarm', title: 'doom speedruns', what: 'a speedrun category for the mod.', doneWhen: 'a leaderboard with ten verified runs.', tags: ['games'] } })
     w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = ?").run(own.path)
     await w.run({ type: 'post', actor: agent(w.p('kestrel'), 'bot'), input: { node: own.path, text: 'agent here' } })
 
-    const pages = ['/w/minecraft-in-doom', '/w/minecraft-in-doom?thread=1', '/w/minecraft-in-doom/s/1', `/w/${EXAMPLE_BRANCH}`, `/w/${EXAMPLE_BRANCH}/s/1`, `/w/${EXAMPLE_BRANCH}/s/2`, '/?tab=new', `/w/${own.path}`]
+    const pages = ['/w/minecraft-in-doom', '/w/minecraft-in-doom/s/1', `/w/${EXAMPLE_ROOT}/people`, `/w/${EXAMPLE_BRANCH}`, `/w/${EXAMPLE_BRANCH}/people`, '/?tab=new', `/w/${own.path}`]
     const machine = [`/w/${EXAMPLE_ROOT}?format=text`, `/w/${EXAMPLE_ROOT}?format=json`, `/w/${EXAMPLE_ROOT}/log?filter=all`, `/w/${EXAMPLE_BRANCH}?format=text`, `/w/${EXAMPLE_BRANCH}?format=json`, `/w/${EXAMPLE_BRANCH}/log?filter=all`]
     const reader = new Browser(env, '198.51.100.7')
     const read = async (path: string) => body(await reader.req(path, path.includes('format=') || path.includes('/log') ? {} : { headers: HTML }))
@@ -109,17 +109,23 @@ describe('closing an account (6.4)', () => {
       expect(text, path).not.toMatch(/@kestrel|@finn_irl/)
     }
     const result = await read('/w/minecraft-in-doom')
-    expect(result).toContain('<div class="src">from <a href="/w/minecraft-in-doom/s/1">submission #1</a>, by former member</div>')
+    // the old submission in the thread, and the agent's people check on it
+    expect(result).toContain('<div class="c subm" id="p_oldmidsub1"><div class="who"><b>former member</b><span class="sb x">submission #1</span>')
+    expect(result).toContain('<li id="c_oldmidchk1"><span class="ck y">✓</span><span>former member · person · played e1m1')
     expect(await read(`/w/${own.path}`)).toContain('started by former member') // the feed's live card names no one
     // the author's tag stays off their agent's posts: "former member" no longer tells the two apart
-    const ownPage = await read(`/w/${own.path}?thread=1`)
+    const ownPage = await read(`/w/${own.path}`)
     expect(ownPage).toContain('agent here')
     expect(ownPage).toContain('<b>former member</b> · <span')
     expect(ownPage).not.toContain('<b>former member</b> · author')
     expect(await read(`/w/${EXAMPLE_ROOT}?format=text`)).toContain('author="former member" kind=submission')
     expect(await read(`/w/${EXAMPLE_ROOT}/log?filter=all`)).toContain('"by":"former member"')
     // the work itself stays: the submission, its hash and links, the thread posts
-    expect(await read('/w/minecraft-in-doom/s/1')).toContain('mcdoom-v1.pk3')
+    expect(await read('/w/minecraft-in-doom/s/1')).toContain('mcdoom-v0.9.pk3')
+    // and so does the claim, its backing gone with the account (status-vote.test.ts has the band)
+    const branch = await read(`/w/${EXAMPLE_BRANCH}`)
+    expect(branch).toContain('<b>former member</b><span class="ct blocked">says blocked</span>')
+    expect(branch).toContain('▲ 0 backers')
 
     // the data: private details gone, sessions and inbox gone, keys revoked, the closing mail to the old address
     const p = get('SELECT * FROM person WHERE id = ?', kid)
@@ -149,16 +155,16 @@ describe('closing an account (6.4)', () => {
   })
 
   it("asks for the password when the window has closed; stops working on others' shwarms (decided Oct 9: no lobby)", async () => {
-    const w = await closedWorld()
+    const w = await passedWorld()
     const env = testEnv(w.db)
     const get = (sql: string, ...args: unknown[]): any => w.db.raw.prepare(sql).get(...args)
     const b = await signIn(env, 'gunter')
     const gid = get("SELECT id FROM person WHERE handle = 'gunter'").id
     // gunter joined someone else's shwarm, and started one of their own
-    const lobby = await w.run<{ path: string }>({ type: 'createNode', actor: site(w.p('lumpy')), input: { kind: 'shwarm', title: 'doom co-op', what: 'two players dig together.', doneWhen: 'two players build one bunker over the network.', check: { author: true }, tags: ['games'] } })
+    const lobby = await w.run<{ path: string }>({ type: 'createNode', actor: site(w.p('lumpy')), input: { kind: 'shwarm', title: 'doom co-op', what: 'two players dig together.', doneWhen: 'two players build one bunker over the network.', tags: ['games'] } })
     await w.run({ type: 'join', actor: site(w.p('gunter')), input: { node: lobby.path } })
-    const mine = await w.run<{ path: string }>({ type: 'createNode', actor: site(w.p('gunter')), input: { kind: 'shwarm', title: 'doom music', what: 'a soundtrack.', doneWhen: 'ten tracks under an open license.', check: { author: true }, tags: ['music'] } })
-    vi.setSystemTime(T0 + 3_600_000 + 11 * MIN)
+    const mine = await w.run<{ path: string }>({ type: 'createNode', actor: site(w.p('gunter')), input: { kind: 'shwarm', title: 'doom music', what: 'a soundtrack.', doneWhen: 'ten tracks under an open license.', tags: ['music'] } })
+    vi.setSystemTime(READ_AT + 11 * MIN)
     let res = await acct(b, 'gunter', { do: 'close', confirm: 'gunter' })
     expect(res.status).toBe(400)
     expect(await body(res)).toContain('enter your password to confirm.')
@@ -174,94 +180,50 @@ describe('closing an account (6.4)', () => {
     expect(seat(mine.path).left_at).toBeNull() // their own shwarm keeps its author's join
   })
 
-  it("an author's waiting sign-off goes to the operator, who can sign it off", async () => {
+  it("an admin closing their own account loses the admin flag; their shwarm stays, and its people still pass it", async () => {
     const w = new World()
     const myra = await person(w.db, 'myra')
-    const ops = await person(w.db, 'ops')
-    const ana = await person(w.db, 'ana')
-    w.db.raw.prepare('UPDATE person SET is_admin = 1 WHERE id = ?').run(ops.id)
-    const { path } = await w.shwarm(site(myra))
-    const sub = await w.submit(site(ana), path)
-    expect(w.all("SELECT person_id FROM inbox_item WHERE kind = 'sign_off'").map(r => r.person_id)).toEqual([myra.id])
-    await closeAccount(w.db, myra.id, w.now)
-    const items = w.all("SELECT person_id, post_id, text FROM inbox_item WHERE kind = 'sign_off'")
-    expect(items).toEqual([{ person_id: ops.id, post_id: sub.id, text: '#1 on minecraft in doom is ready for sign-off. its author is gone, so the operator signs off.' }])
-    const mail = w.all("SELECT person_id, payload FROM email_outbox WHERE template = 'sign_off_ready'").map(r => ({ ...r, payload: JSON.parse(r.payload) }))
-    expect(mail.at(-1)).toMatchObject({ person_id: ops.id, payload: { author_gone: true, author: 'myra', handle: 'ops', number: 1 } })
-    const r = await w.signOff(stepped(ops), path, sub.id, 'pass')
-    expect(r).toMatchObject({ submission_state: 'passed', node_state: 'closed' })
-    expect(w.events(path, 'signed_off')[0].detail).toContain('author gone, signed off by the operator')
-  })
-
-  it('a sign-off that turns ready as the author closes reaches the operator, whichever batch lands first', async () => {
-    const w = new World()
-    const myra = await person(w.db, 'myra')
-    const ops = await person(w.db, 'ops')
-    const ana = await person(w.db, 'ana')
-    w.db.raw.prepare('UPDATE person SET is_admin = 1 WHERE id = ?').run(ops.id)
-    const { path } = await w.shwarm(site(myra))
-    const sub = await w.submit(site(ana), path)
-    const signOffs = () => w.all("SELECT person_id, post_id FROM inbox_item WHERE kind = 'sign_off'")
-    const mailed = () => w.all("SELECT person_id, payload FROM email_outbox WHERE template = 'sign_off_ready'").map(r => ({ person_id: r.person_id, ...JSON.parse(r.payload) }))
-    const item = w.get("SELECT * FROM inbox_item WHERE kind = 'sign_off'")
-    const notYet = () => w.db.raw.exec("DELETE FROM inbox_item WHERE kind = 'sign_off'; DELETE FROM email_outbox WHERE template = 'sign_off_ready'")
-
-    // The check's batch first: it commits the author's item after closeAccount has looked, before its batch runs.
-    notYet()
-    const batch = w.db.batch.bind(w.db)
-    const spy = vi.spyOn(w.db, 'batch').mockImplementationOnce(async stmts => {
-      w.db.raw.prepare('INSERT INTO inbox_item (person_id, kind, node_id, post_id, text, created_at) VALUES (?, ?, ?, ?, ?, ?)').run(item.person_id, item.kind, item.node_id, item.post_id, item.text, item.created_at)
-      return batch(stmts)
-    })
-    await closeAccount(w.db, myra.id, w.now)
-    spy.mockRestore()
-    expect(signOffs()).toEqual([{ person_id: ops.id, post_id: sub.id }])
-    expect(mailed()).toEqual([expect.objectContaining({ person_id: ops.id, author: 'myra', author_gone: true, number: 1, link: `/w/${path}/s/1` })])
-
-    // The close first: the check loaded the node while the author was active, and its batch lands after.
-    notYet()
-    w.db.raw.prepare("UPDATE person SET status = 'active' WHERE id = ?").run(myra.id)
-    const stale = await findNode(ctxAt(w.db, w.now), path)
-    w.db.raw.prepare("UPDATE person SET status = 'closed' WHERE id = ?").run(myra.id)
-    expect(stale?.author_status).toBe('active')
-    await w.db.batch(signOffStatements(ctxAt(w.db, w.now), stale!, { postId: sub.id, number: 1 }, true))
-    expect(signOffs()).toEqual([{ person_id: ops.id, post_id: sub.id }])
-    expect(mailed()).toEqual([expect.objectContaining({ person_id: ops.id, author: 'myra', author_gone: true, only: true, title: 'minecraft in doom' })])
-  })
-
-  it('an admin closing their own account hands nothing to themselves', async () => {
-    const w = new World()
-    const myra = await person(w.db, 'myra')
-    const ana = await person(w.db, 'ana')
+    const [ana, kes, lumpy] = [await person(w.db, 'ana'), await person(w.db, 'kes'), await person(w.db, 'lumpy')]
     w.db.raw.prepare('UPDATE person SET is_admin = 1 WHERE id = ?').run(myra.id)
     const { path } = await w.shwarm(site(myra))
-    await w.submit(site(ana), path)
+    for (const p of [ana, kes, lumpy]) await w.join(site(p), path)
+    const c = await w.post(site(ana), path, 'all nine maps play through.', { claim: 'passed' })
+    await w.run({ type: 'back', actor: site(kes), input: { node: path, post: c.id, on: true } })
     await closeAccount(w.db, myra.id, w.now)
-    expect(w.all("SELECT person_id FROM inbox_item WHERE kind = 'sign_off'")).toEqual([])
     expect(w.get('SELECT is_admin FROM person WHERE id = ?', myra.id).is_admin).toBe(0)
+    // nobody stands in for an author who's gone (decided Oct 14): the crowd's pass is enough, and no notice goes to anyone
+    w.tick(2 * 24 * 3_600_000)
+    await w.run({ type: 'status', actor: site(lumpy), input: { node: path, status: 'on_track' } })
+    expect(w.all('SELECT kind, claim_id FROM pass_record')).toEqual([{ kind: 'crowd', claim_id: c.id }])
+    expect(w.all("SELECT person_id FROM inbox_item WHERE kind = 'system'")).toEqual([])
   })
 })
 
 describe('download your data (6.4)', () => {
   it("everything held about you as one JSON file, behind the password, never another's and never a secret", async () => {
-    const w = await closedWorld()
+    const w = await passedWorld()
     const env = testEnv(w.db)
-    const b = await signIn(env, 'marceline')
-    addKey(env, 'marceline')
-    const res = await acct(b, 'marceline', { do: 'export' })
+    const b = await signIn(env, 'finn_irl')
+    addKey(env, 'finn_irl')
+    const res = await acct(b, 'finn_irl', { do: 'export' })
     expect(res.status).toBe(200)
     expect(res.headers.get('content-type')).toBe('application/json; charset=utf-8')
-    expect(res.headers.get('content-disposition')).toMatch(/^attachment; filename="shwarm-marceline-\d{4}-\d{2}-\d{2}\.json"$/)
+    expect(res.headers.get('content-disposition')).toMatch(/^attachment; filename="shwarm-finn_irl-\d{4}-\d{2}-\d{2}\.json"$/)
     expect(res.headers.get('cache-control')).toBe('no-store')
     const raw = await res.text()
     const data = JSON.parse(raw)
     expect(data.format).toBe(EXPORT_FORMAT)
-    expect(data.account).toMatchObject({ handle: 'marceline', email: 'marceline@example.org', notice_prefs: {} })
+    expect(data.account).toMatchObject({ handle: 'finn_irl', email: 'finn_irl@example.org', notice_prefs: {} })
     expect(data.sessions.length).toBe(1)
-    expect(data.keys).toEqual([expect.objectContaining({ id: 'marceline-key', grants: [{ node: '*', perms: ['post'] }], networks: [expect.objectContaining({ ip_prefix: '203.0.113.0/24' })] })])
+    expect(data.keys).toEqual([expect.objectContaining({ id: 'finn_irl-key', grants: [{ node: '*', perms: ['post'] }], networks: [expect.objectContaining({ ip_prefix: '203.0.113.0/24' })] })])
     expect(data.posts.length).toBeGreaterThan(0)
-    expect(data.posts.every((p: any) => p.as_name.startsWith('@marceline'))).toBe(true)
-    expect(data.checks.some((c: any) => c.verdict === 'pass' && Array.isArray(c.evidence))).toBe(true)
+    expect(data.posts.every((p: any) => p.as_name.startsWith('@finn_irl'))).toBe(true)
+    expect(data.checks.some((c: any) => c.verdict === 'pass' && Array.isArray(c.evidence))).toBe(true) // the people check from before Oct 14
+    expect(data.status_votes).toEqual([
+      expect.objectContaining({ path: EXAMPLE_BRANCH, status: 'blocked', as_name: '@finn_irl' }),
+      expect.objectContaining({ path: EXAMPLE_ROOT, status: 'passed', claim: w.claim, as_name: '@finn_irl' }),
+    ])
+    expect(data.pass_marks).toEqual([])
     for (const k of ['nodes', 'pitch_edits', 'seats', 'post_edits', 'submissions', 'upvotes', 'inbox', 'mail', 'flags', 'reports']) expect(Array.isArray(data[k]), k).toBe(true)
     // no password hash, session id, token, or mail body
     expect(raw).not.toMatch(/pbkdf2|password_hash|"payload"|"id": "[0-9a-f]{64}"/)
@@ -269,16 +231,19 @@ describe('download your data (6.4)', () => {
     for (const k of ['terms_acceptances', 'dms', 'dm_names', 'dm_blocks', 'donations']) expect(data[k], k).toEqual([])
     expect(data.invite).toBeNull()
     expect(data.pending_email_change).toBeNull()
+    // the author's own mark is hers to download, with a copy of the claim's pinned work
+    const mine = JSON.parse(await (await acct(await signIn(env, 'myra', '198.51.100.20'), 'myra', { do: 'export' })).text())
+    expect(mine.pass_marks).toEqual([{ id: w.mark, path: EXAMPLE_ROOT, status: 'passed', at: expect.any(String), claim: w.claim, submission: null, backers: 6, pins: expect.arrayContaining([expect.objectContaining({ commit: '9fceb02d0ae598e95dc970b74767f19372d61af8' })]) }])
   })
 
   it('also holds the terms versions accepted, agent DMs both ways, DM switches and blocks, donations, the invite and a pending email change', async () => {
-    const w = await closedWorld()
+    const w = await passedWorld()
     const env = testEnv(w.db)
     const b = await signIn(env, 'marceline')
     const run = (sql: string, ...a: unknown[]) => env.DB.raw.prepare(sql).run(...a)
     const id = (h: string) => env.DB.raw.prepare('SELECT id FROM person WHERE handle = ?').get(h).id
     const [me, lumpy] = [id('marceline'), id('lumpy')]
-    const at = (m: number) => new Date(T0 + m * MIN).toISOString()
+    const at = (m: number) => new Date(READ_AT + m * MIN).toISOString()
     run("INSERT INTO terms_acceptance (person_id, version, accepted_at, how) VALUES (?, '0.1', ?, 'signup')", me, at(0))
     run("INSERT INTO terms_acceptance (person_id, version, accepted_at, how) VALUES (?, '0.1', ?, 'signup')", lumpy, at(0))
     const dm = (dmId: string, from: number, fromName: string, to: number, toName: string, text: string, reported: string | null) =>
@@ -318,13 +283,13 @@ describe('download your data (6.4)', () => {
   })
 
   it('past the window it asks for the password; five an hour; nobody else', async () => {
-    const w = await closedWorld()
+    const w = await passedWorld()
     const env = testEnv(w.db)
     const b = await signIn(env, 'marceline')
     expect((await acct(b, 'marceline', { do: 'export' })).status).toBe(200)
 
     // past the window it asks for the password, in the modal
-    vi.setSystemTime(T0 + 3_600_000 + 11 * MIN)
+    vi.setSystemTime(READ_AT + 11 * MIN)
     const asked = await acct(b, 'marceline', { do: 'export' })
     expect(asked.status).toBe(400)
     expect(await body(asked)).toContain('enter your password to confirm.')
@@ -341,7 +306,7 @@ describe('download your data (6.4)', () => {
   })
 
   it('the modal shows the section to its owner', async () => {
-    const w = await closedWorld()
+    const w = await passedWorld()
     const env = testEnv(w.db)
     const b = await signIn(env, 'marceline')
     const html = await body(await b.get('/@marceline?account=1'))

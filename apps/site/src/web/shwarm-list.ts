@@ -1,4 +1,4 @@
-// GET /shwarms (go-live 7.15): the feed for agents, so an agent can find a shwarm to work on. Live or closed (?tab=),
+// GET /shwarms (go-live 7.15): the feed for agents, so an agent can find a shwarm to work on. Live or passed (?tab=; closed, its old name, reads as passed),
 // in an order (?sort=hot, new, upvotes, people or active; read/feed.ts), searched with ?q= (words and #tags) or ?tag=, paged with ?after=; text by default, JSON when asked. A
 // public read like a node's: no key, the same read limit. Signed, the agent API answers it the same way.
 import type { Context } from 'hono'

@@ -12,7 +12,7 @@ import app from '../src/index'
 import skill from '../src/content/skill.json'
 import { PAGES } from '../src/web/doc'
 import { EXAMPLE_BRANCH } from '../src/seed/example'
-import { THREAD_BURST, THREAD_REFILL_S, NEW_NODES_PER_DAY, SUBMISSIONS_PER_DAY } from '../src/core/limits'
+import { THREAD_BURST, THREAD_REFILL_S, NEW_NODES_PER_DAY } from '../src/core/limits'
 import { KEY_REQUESTS } from '../src/api/limits'
 import { READ_BURST, READ_REFILL_PER_S } from '../src/web/read-limit'
 import { MAX_TEXT } from '../src/core/text'
@@ -192,22 +192,24 @@ describe('the skill says what the code does', () => {
 
   it("gives core's limits, caps and name pattern", () => {
     const row = (what: string) => SKILL.split('\n').find(l => l.startsWith(`| ${what} |`))
-    expect(row('thread posts, submissions included')).toContain(`a burst of ${THREAD_BURST}, then 1 every ${THREAD_REFILL_S / 60} minutes, per thread`)
+    expect(row('thread posts, claims included')).toContain(`a burst of ${THREAD_BURST}, then 1 every ${THREAD_REFILL_S / 60} minutes, per thread`)
     expect(row('new shwarms and branches')).toContain(`${NEW_NODES_PER_DAY} a day`)
-    expect(row('submissions')).toContain(`${SUBMISSIONS_PER_DAY} a day per node`)
+    expect(row('submissions')).toBeUndefined() // nothing takes submissions (decided Oct 14)
     expect(row('signed requests')).toContain(`${KEY_REQUESTS} a minute per key`)
     expect(row('unsigned reads')).toContain(`a burst of ${READ_BURST}, then ${READ_REFILL_PER_S} a second`)
     expect(SKILL).toContain(`up to ${MAX_TEXT.toLocaleString('en-US')} characters`)
     expect(SKILL).toContain('`' + NAME_RE.source.replaceAll('\\/', '/') + '`')
   })
 
-  it("names every reason core refuses a check with not_permitted, and says what the author's agents may do", () => {
-    const reasons = [...file('apps/site/src/core/checking.ts').matchAll(/ShwarmError\('not_permitted',[^\n]*\{ reason: '([a-z_]+)'/g)].map(m => m[1])
-    expect(reasons).toContain('sign_off')
-    const row = SKILL.split('\n').find(l => l.startsWith('| `not_permitted` |'))!
-    for (const r of reasons) expect(row, r).toContain(`\`reason: "${r}"\``)
+  it('says one model for every node: claims and pinned work, pass records, nothing locks, no submissions or checks (decided Oct 14)', () => {
     const section = (h: string) => SKILL.split(`\n## ${h}\n`)[1].split('\n## ')[0]
-    for (const h of ['checking', 'run reports']) expect(section(h), h).toMatch(/the node's author[^.]*sign-off/)
+    expect(h2s(SKILL)).toEqual(expect.arrayContaining(["a node's status", 'when it passes']))
+    expect(h2s(SKILL)).not.toEqual(expect.arrayContaining(['submitting', 'checking', 'run reports', "a branch's status"]))
+    expect(section('links, not files')).toContain('**Always pin code and files in a passed claim**')
+    for (const shape of ['"ipfs": "ipfs://', '"magnet": "magnet:?xt=urn:btih:', '"repo": "rad:z…"']) expect(section('links, not files'), shape).toContain(shape)
+    expect(section('when it passes')).toContain('**Nothing locks.**')
+    expect(section('when it passes')).toContain('`403 bare_handle_needs_human`')
+    expect(SKILL).not.toMatch(/sign-off|sign_off|shwarm_closed|slot_taken|own_work|\?tab=closed/)
   })
 
   it('puts no participant text through a shell: links and the command come out of the JSON with jq (sandbox.md)', () => {
@@ -218,16 +220,17 @@ describe('the skill says what the code does', () => {
     for (const l of lines) expect(l, l).not.toContain('<<')
     // fetches take their address from a quoted variable, never from text pasted into the line
     const fetches = lines.filter(l => /\b(curl|git (-c \S+ )*clone)\b/.test(l))
-    expect(fetches.length).toBeGreaterThan(3)
+    expect(fetches.length).toBeGreaterThanOrEqual(3) // the node, a file pin, a repo pin
     for (const l of fetches) {
       expect(l, l).not.toContain('://')
       expect(l, l).toMatch(/"\$(url|repo|node)[^"]*"/)
     }
     // downloads are named by index, never by label
-    for (const [, out] of lines.join('\n').matchAll(/ -o (\S+)/g)) expect(['node.json', 'sub.json', '"work/link-$i"']).toContain(out)
-    expect(SANDBOX).toContain("jq -er '.check.runs.command' node.json > work/.shwarm-run.sh")
-    expect(SANDBOX).toContain('url=$(jq -r ".links[$i].url" sub.json)')
-    expect(SANDBOX).toContain('repo=$(jq -r ".links[$i].repo" sub.json)')
+    for (const [, out] of lines.join('\n').matchAll(/ -o (\S+)/g)) expect(['node.json', '"work/link-$i"']).toContain(out)
+    // the pins come out of the node's JSON, the claim named by its post id in a quoted variable
+    expect(SANDBOX).toContain(`jq --arg p "$post" '.status.claims[] | select(.post == $p) | {links: .pins}' node.json > pins.json`)
+    expect(SANDBOX).toContain('url=$(jq -r ".links[$i].url" pins.json)')
+    expect(SANDBOX).toContain('repo=$(jq -r ".links[$i].repo" pins.json)')
   })
 
   it("carries the repo's gitleaks rule, and nothing in it looks like a real secret", () => {

@@ -322,16 +322,19 @@ describe('the pause', () => {
 })
 
 describe('a paused shwarm that passed', () => {
-  it('its result page and its submission pages say "paused for review" too, not only the thread behind them', async () => {
-    const { closedWorld } = await import('./result-fixture')
-    const w = await closedWorld()
-    const env = testEnv(w.db)
-    // flagged from the thread (?thread=1), where the control is
-    for (const h of ['est_one', 'est_two', 'est_three']) expect((await flag(await signIn(env, h), 'weapons', `${ROOT}?thread=1`)).status).toBe(303)
-    expect(w.db.raw.prepare('SELECT paused FROM node WHERE path = ?').get(EXAMPLE_ROOT).paused).toBe(1)
-    const result = await page(new Browser(env))
-    expect(result).toContain('class="done-head"') // the result page, not the thread
-    expect(result).toContain('<p class="held paused" role="status">paused for review.')
+  it('its page, with the pass box, and an old submission\'s page say "paused for review" too', async () => {
+    const { env, q, nodeId, myraId } = await world()
+    const at = iso(T0 - 3_600_000)
+    env.DB.raw
+      .prepare("INSERT INTO pass_record (id, node_id, kind, status, at, backers, pins, by_name, person_id) VALUES ('r_flags0001', ?, 'author', 'passed', ?, 0, '[]', '@myra', ?)")
+      .run(nodeId, at, myraId)
+    env.DB.raw.prepare("INSERT INTO post (id, node_id, person_id, as_name, kind, text, links, created_at) VALUES ('p_flagsub001', ?, ?, '@myra', 'submission', 'the old passing work.', '[]', ?)").run(nodeId, myraId, at)
+    env.DB.raw.prepare("INSERT INTO submission (post_id, node_id, number, hash, how_to_check, status) VALUES ('p_flagsub001', ?, 1, ?, 'run it.', 'passed')").run(nodeId, 'c4'.repeat(32))
+    for (const h of ['est_one', 'est_two', 'est_three']) expect((await flag(await signIn(env, h), 'weapons', ROOT)).status).toBe(303)
+    expect(q('SELECT paused FROM node WHERE path = ?', EXAMPLE_ROOT).paused).toBe(1)
+    const passed = await page(new Browser(env))
+    expect(passed).toContain('<div class="box passbox" id="passed">')
+    expect(passed).toContain('<p class="held paused" role="status">paused for review.')
     expect(await page(new Browser(env), `${ROOT}/s/1`)).toContain('<p class="held paused" role="status">paused for review.')
   })
 })

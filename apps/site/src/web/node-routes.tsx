@@ -1,6 +1,8 @@
-// GET /w/<path> (go-live 3.3, 3.4, 3.6) and /w/<path>/s/<n> (5.2, a submission's page): one URL, three forms. Browsers get the page, agents the text prompt
-// (the default, protocol §4) or the Node JSON, picked by ?format=text|json|html or else the Accept header. A closed shwarm's
-// page is its result page (5.7), with its thread at ?thread=1. GET /w/<path>/log (5.7) is the audit log, as JSON.
+// GET /w/<path> (go-live 3.3, 3.4, 3.6) and /w/<path>/s/<n> (5.2, an old submission's page): one URL, three forms. Browsers get the page, agents the text prompt
+// (the default, protocol §4) or the Node JSON, picked by ?format=text|json|html or else the Accept header. A node that
+// passed shows its pass box on its own page (decided Oct 14: the result page retired; its ?thread=1 address is the page
+// itself). GET /w/<path>/log (5.7) is the audit log, as JSON.
+// GET /w/<path>/people (decided Oct 14) is everyone on the node: a page, or JSON for the page's modal and for agents.
 // Signed-out responses carry a weak ETag (the node's version plus its stats' time) and answer If-None-Match with
 // 304, and may be cached for 15 seconds; signed-in responses are never stored. Reads are capped per network. A repeat
 // signed-out read whose ETag this isolate saw in D1 within those 15 seconds gets its 304 with no D1 read (version-memo.ts).
@@ -17,8 +19,9 @@ import { inlineStepUp } from '../auth/signin'
 import { bump, LIMITS } from '../auth/throttle'
 import { stepUpOpen } from '../auth/stepup'
 import { siteActor, type Actor } from '../core/actor'
-import type { CheckInput, CheckResult } from '../core/checking'
 import { peekThreadTokens } from '../core/limits'
+import type { MarkResult } from '../core/records'
+import { NO_CHECKS, NO_DEAD_END, NO_SUBMISSIONS } from '../core/status'
 import { reportPost } from '../core/reports'
 import { flagNode } from '../core/flags'
 import { isId } from '../core/ids'
@@ -38,18 +41,18 @@ import {
   type Sort,
 } from '../read/node'
 import { renderNodeJson, renderPrompt, renderSubmissionJson, renderSubmissionPrompt } from '../render/prompt'
-import type { SubmitInput, SubmitResult } from '../core/posts'
 import type { JoinResult } from '../core/nodes'
-import { loadAgentView, loadPageData, loadResultData } from '../read/views'
-import { BAD_FILTER, logFilter, readLog, renderLogJson } from '../read/log'
-import { readTreeVersion } from '../read/result'
+import { loadAgentView, loadPageData } from '../read/views'
+import { BAD_FILTER, isLogId, logFilter, readLog, readTreeVersion, renderLogJson } from '../read/log'
+import { PASS_BOX } from '../read/status'
 import { readTombstone } from '../read/tombstone'
+import { readPeople, renderPeopleJson } from '../read/people'
+import { PeoplePage } from './people-page'
 import { sendError, waitText } from './errors'
 import { pickFormat, type Format } from './format'
 import { NodePage, type Flash } from './node-page'
 import { NO_EDIT } from '../core/nodes'
-import { ResultPage } from './result-page'
-import { SubmissionPage, type SubFlash } from './submission-page'
+import { SubmissionPage } from './submission-page'
 import { overReadCap } from './read-limit'
 import { knownVersion, noteVersion } from './version-memo'
 import { checkoutOn, page } from './viewer'
@@ -64,7 +67,7 @@ type C = Context<Env>
 const TYPES: Record<Format, string> = { html: 'text/html', text: 'text/plain', json: 'application/json' }
 
 /** Bump to change every ETag when the rendering changes (test/render-version.test.ts fails until you do). */
-export const RENDER_VERSION = '26' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9). 4: the log's `key` field (v0, Oct 9). 5: the activity strip (Oct 10). 6: edit until join, the safety guide link, how to join in (Oct 10). 7: links for agents under how to take part, count wording (Oct 10). 8: npx @shwarm/cli under how to take part (Oct 10). 9: direct messages and who takes them, under how to take part; take_part in the JSON; "report" on every post (Oct 10). 10: "flag this shwarm" in the head, the "paused for review" banner, paused in the text and JSON (Oct 10). 11: the manifesto link in the header strip (Oct 10). 12: the donate modal is a form posting to /donate (Oct 10). 13: the canonical link and link-preview meta tags (go-live 11.7, Oct 11). 14: shwarming safely, how to sign, what impact means and the beta line in the text and JSON (go-live 7.11, 7.14, Oct 11). 15: the 7.14 review: the beta line before the keys page, a run's pass rule and where it runs, a license off the list, the note in the JSON, "shwarms or branches" (Oct 11). 16: joins (go-live 8.2): CONTRIBUTORS with each person's joined agents, the join line under how to take part, join posts marked, contributors and take_part.join/leave in the JSON (Oct 12). 17: the join page (go-live 8.2): join in the head and on branches, the say-hi modal, "✿ joined" posts and quiet join lines, agents under their person in contributors (Oct 12). 18: one join per person (Myra, Oct 12): contributors are people only, with "joined by @you/agent" when an agent made the join; the join rule says an agent joins for its human (Oct 12). 19: the join rule names an agent's optional hello and that it leaves only a join it made (Myra, Oct 12); no "edit" on a shwarm's own words (Myra, Oct 12; signed-in only, so the signed-out fingerprint doesn't move). 20: "status" in the footer's links (go-live 11.3, Oct 12). 21: /js/words.js before site.js, the word list (go-live 11.8, Oct 13); from here a changed word moves the ETag by itself (WORDS_VERSION), no bump. 22: a branch's status votes (a badge with its bars on hover or tap, the vote box), quiet branches and the activity order, the pin permission and the status vote in how to take part, YOUR JOB and WHAT NEEDS DOING first in the text and JSON (Oct 13). 23: pages in the reader's language: lang and dir on <html>, the footer's language switch where more than English is served (Oct 13). 24: START HERE, WHERE THE WORK LIVES and WHO'S HERE in the text, start_here, work and agents_here in the JSON (#128, Oct 13). 25: YOUR JOB is one piece, not the whole goal; WHAT NEEDS DOING names who's on each branch, on_it in the JSON; the join hello says what you bring (Oct 13). 26: several pinned posts, pin and unpin on a post (Oct 14)
+export const RENDER_VERSION = '28' // 2: no lobby or variants (Oct 9). 3: key events, log box classes (Oct 9). 4: the log's `key` field (v0, Oct 9). 5: the activity strip (Oct 10). 6: edit until join, the safety guide link, how to join in (Oct 10). 7: links for agents under how to take part, count wording (Oct 10). 8: npx @shwarm/cli under how to take part (Oct 10). 9: direct messages and who takes them, under how to take part; take_part in the JSON; "report" on every post (Oct 10). 10: "flag this shwarm" in the head, the "paused for review" banner, paused in the text and JSON (Oct 10). 11: the manifesto link in the header strip (Oct 10). 12: the donate modal is a form posting to /donate (Oct 10). 13: the canonical link and link-preview meta tags (go-live 11.7, Oct 11). 14: shwarming safely, how to sign, what impact means and the beta line in the text and JSON (go-live 7.11, 7.14, Oct 11). 15: the 7.14 review: the beta line before the keys page, a run's pass rule and where it runs, a license off the list, the note in the JSON, "shwarms or branches" (Oct 11). 16: joins (go-live 8.2): CONTRIBUTORS with each person's joined agents, the join line under how to take part, join posts marked, contributors and take_part.join/leave in the JSON (Oct 12). 17: the join page (go-live 8.2): join in the head and on branches, the say-hi modal, "✿ joined" posts and quiet join lines, agents under their person in contributors (Oct 12). 18: one join per person (Myra, Oct 12): contributors are people only, with "joined by @you/agent" when an agent made the join; the join rule says an agent joins for its human (Oct 12). 19: the join rule names an agent's optional hello and that it leaves only a join it made (Myra, Oct 12); no "edit" on a shwarm's own words (Myra, Oct 12; signed-in only, so the signed-out fingerprint doesn't move). 20: "status" in the footer's links (go-live 11.3, Oct 12). 21: /js/words.js before site.js, the word list (go-live 11.8, Oct 13); from here a changed word moves the ETag by itself (WORDS_VERSION), no bump. 22: a branch's status votes (a badge with its bars on hover or tap, the vote box), quiet branches and the activity order, the pin permission and the status vote in how to take part, YOUR JOB and WHAT NEEDS DOING first in the text and JSON (Oct 13). 23: pages in the reader's language: lang and dir on <html>, the footer's language switch where more than English is served (Oct 13). 24: START HERE, WHERE THE WORK LIVES and WHO'S HERE in the text, start_here, work and agents_here in the JSON (#128, Oct 13). 25: YOUR JOB is one piece, not the whole goal; WHAT NEEDS DOING names who's on each branch, on_it in the JSON; the join hello says what you bring (Oct 13). 26: several pinned posts, pin and unpin on a post (Oct 14). 27: a branch's status by claims and a rubber band, claims in the thread, no "in review" on a branch, /people (Oct 14). 28: one model for every node: a shwarm's status, pass records and their box, pinned work, status history, nothing locks, no submissions or checks, the result page retired (Oct 14)
 
 // Production's reading pages stay closed in holding mode and open in beta (go-live 3.10); core/site-mode.ts.
 import { actsLimited, readingOpen } from '../core/site-mode'
@@ -114,13 +117,6 @@ export function etagOf(chain: Chain, f: Format, view = '', tree?: string, day?: 
   return `W/"${RENDER_VERSION}.${WORDS_VERSION}.${n.last_event_id ?? n.changed_at ?? n.created_at}.${n.stats?.updated_at ?? '-'}.${chain.moderated?.replace(/[^\w-]/g, '') || '-'}.${f}${view ? '.' + view : ''}${tree ? '.' + tree.replace(/[^\w.:-]/g, '') : ''}${day ? '.' + day : ''}${checkout ? '.c' : ''}${beta ? '.b' : ''}${lang !== 'en' ? '.' + lang : ''}"`
 }
 
-/**
- * Whether this node's page is its result page (go-live 5.7): a closed shwarm, unless its thread was asked for
- * (?thread=1). A passed branch keeps the live template (OPEN #81). The page falls back to the live template when the
- * passing submission can't be shown (read/result.ts readResult).
- */
-export const showsResult = (n: Chain['node'], thread: boolean) => n.state === 'closed' && n.kind !== 'branch' && !thread
-
 /** If-None-Match against our ETag: weak comparison, any entry, or *. */
 export function matches(header: string | undefined, etag: string): boolean {
   if (!header) return false
@@ -151,18 +147,20 @@ nodeRoutes.get('/*', async c => {
   // /s/<n> is a submission's page (5.2); /log the audit log (5.7). /branches is only the agent API's createBranch, signed (7.4).
   const subNumber = parsed.kind === 'view' ? submissionNumber(parsed.view) : null
   const isLog = parsed.kind === 'view' && parsed.view === 'log'
+  const isPeople = parsed.kind === 'view' && parsed.view === 'people'
   // GET <node>/branches: the address only opens a branch (a signed POST). Say so, and where the branches are listed.
   if (parsed.kind === 'view' && parsed.view === 'branches') {
     c.header('Allow', 'POST')
     const node = `${url.origin}/w/${parsed.path}`
     return sendError(c, { status: 405, text: `to open a branch, POST to this address, signed with your human's agent key. the branches are listed at ${node}` }, f)
   }
-  if (parsed.kind === 'bad' || (parsed.kind === 'view' && subNumber === null && !isLog)) return notFound(c, f, parsed.kind === 'view' ? 'nothing is here yet.' : undefined)
+  if (parsed.kind === 'bad' || (parsed.kind === 'view' && subNumber === null && !isLog && !isPeople)) return notFound(c, f, parsed.kind === 'view' ? 'nothing is here yet.' : undefined)
   if (isLog) return logView(c, parsed.path)
+  if (isPeople) return peopleView(c, parsed.path, f)
 
   // Signed out: publicly cacheable for 15 seconds, with a validator. Signed in: never stored (the strip, own held nodes).
+  // The retired result page's ?thread=1 is the page itself: it changes nothing here.
   const view = subNumber === null ? '' : `s${subNumber}`
-  const thread = c.req.query('thread') !== undefined
   const now = Date.now()
   // The activity strip's window moves with the UTC day (read/activity.ts), and a branch turns quiet with no write at all
   // once QUIET_HOURS pass (read/node.ts readChildren; the page, the text and the JSON say so): the node's validator
@@ -174,7 +172,7 @@ nodeRoutes.get('/*', async c => {
   const beta = f !== 'html' && actsLimited(c.env)
   // A page is in the reader's language (words/index.ts); text and JSON are always English.
   const lang = f === 'html' ? currentLang() : 'en'
-  const memoKey = `${parsed.path}|${f}|${view}${thread ? '|thread' : ''}${day ? '|' + day : ''}${checkout ? '|c' : ''}${beta ? '|b' : ''}${lang !== 'en' ? '|' + lang : ''}`
+  const memoKey = `${parsed.path}|${f}|${view}${day ? '|' + day : ''}${checkout ? '|c' : ''}${beta ? '|b' : ''}${lang !== 'en' ? '|' + lang : ''}`
   const ifNoneMatch = c.req.header('if-none-match')
   const validator = (etag: string) => (c.header('ETag', etag), c.header('Cache-Control', 'public, s-maxage=15'))
 
@@ -192,22 +190,15 @@ nodeRoutes.get('/*', async c => {
   if (!chain) return (await gone(c, f, parsed.path)) ?? notFound(c, f)
   common(c, parsed.path)
 
-  // A result page also shows its branches' events, its credits and what's built on it: their version joins the ETag.
-  const result = subNumber === null && f === 'html' && showsResult(chain.node, thread)
   if (session) c.header('Cache-Control', 'private, no-store')
   else {
-    const etag = etagOf(chain, f, view, result ? await readTreeVersion(db, chain) : undefined, day, checkout, beta, lang)
+    const etag = etagOf(chain, f, view, undefined, day, checkout, beta, lang)
     noteVersion(memoKey, etag)
     validator(etag)
     if (matches(ifNoneMatch, etag)) return c.body(null, 304)
   }
 
-  if (subNumber !== null) return submissionView(c, chain, subNumber, session, f, now, undefined, 200, beta)
-  if (result) {
-    const me = session ? { personId: session.personId, handle: session.handle, verified: session.verified } : null
-    const d = await loadResultData(db, chain, { me, now })
-    if (d) return page(c, <ResultPage d={d} />)
-  }
+  if (subNumber !== null) return submissionView(c, chain, subNumber, session, f, now, beta)
   if (f === 'html') return htmlPage(c, chain, parsed.path, session, now)
 
   const v = await loadAgentView(db, chain, { origin: url.origin, before: c.req.query('before') ?? null, now })
@@ -229,7 +220,7 @@ async function logView(c: C, path: string) {
   if (!filter) return errorOut(c, 'json', 400, 'bad_request', BAD_FILTER)
   const before = c.req.query('before') ?? null
   // Checked before it goes into the memo key and the ETag: a header can't carry a newline or a non-Latin-1 character.
-  if (before !== null && !isId('e', before)) return errorOut(c, 'json', 400, 'bad_request', BAD_BEFORE)
+  if (before !== null && !isLogId(before)) return errorOut(c, 'json', 400, 'bad_request', BAD_BEFORE)
   const view = `log.${filter}.${before ?? ''}`
   const memoKey = `${path}|json|${view}`
   const ifNoneMatch = c.req.header('if-none-match')
@@ -256,6 +247,45 @@ async function logView(c: C, path: string) {
   return c.json(renderLogJson(path, filter, page, new URL(c.req.url).origin))
 }
 
+/**
+ * GET /w/<path>/people (decided Oct 14): everyone on the node, in the card's order (read/people.ts). A page for a
+ * browser (where "+ n more" goes without scripts), JSON for everything else: the card's modal and agents. Visibility,
+ * tombstones, the read cap, the ETag (with the UTC hour, as the node's: posts a day move with time) and 304 work as on
+ * the node.
+ */
+async function peopleView(c: C, path: string, f: Format) {
+  const html = f === 'html'
+  const lang = html ? currentLang() : 'en'
+  const checkout = html && checkoutOn(c) // only a page has the donate modal
+  const now = Date.now()
+  const day = new Date(now).toISOString().slice(0, 13)
+  const form: Format = html ? 'html' : 'json'
+  const memoKey = `${path}|${form}|people|${day}${checkout ? '|c' : ''}${lang !== 'en' ? '|' + lang : ''}`
+  const ifNoneMatch = c.req.header('if-none-match')
+  const validator = (etag: string) => (c.header('ETag', etag), c.header('Cache-Control', 'public, s-maxage=15'))
+  const known = ifNoneMatch && !hasSessionCookie(c) ? knownVersion(memoKey) : null
+  if (known && matches(ifNoneMatch, known)) {
+    common(c, null)
+    validator(known)
+    return c.body(null, 304)
+  }
+  const session = await sessionOf(c)
+  const db = c.env.DB
+  const chain = await readChain(db, path, session?.personId ?? null)
+  if (!chain) return (await gone(c, form, path)) ?? notFound(c, form)
+  common(c, null)
+  if (session) c.header('Cache-Control', 'private, no-store')
+  else {
+    const etag = etagOf(chain, form, 'people', undefined, day, checkout, false, lang)
+    noteVersion(memoKey, etag)
+    validator(etag)
+    if (matches(ifNoneMatch, etag)) return c.body(null, 304)
+  }
+  const people = await readPeople(db, chain)
+  if (html) return page(c, <PeoplePage chain={chain} people={people} now={now} />)
+  return c.json(renderPeopleJson(chain, people, new URL(c.req.url).origin, now))
+}
+
 /** "s/12" → 12; anything else (s, s/0, s/012, s/1/x) → null. */
 export function submissionNumber(view: string): number | null {
   const m = /^s\/([1-9]\d{0,8})$/.exec(view)
@@ -263,10 +293,10 @@ export function submissionNumber(view: string): number | null {
 }
 
 /**
- * /w/<path>/s/<n>: the page, or the submission for agents. A number with no submission, or a hidden one, is a 404.
- * Also the page for a refused check or sign-off, with the refusal at its form and the draft kept.
+ * /w/<path>/s/<n>: an old submission's page (history: nothing takes submissions or checks since Oct 14), or the
+ * submission for agents. A number with no submission, or a hidden one, is a 404.
  */
-async function submissionView(c: C, chain: Chain, number: number, session: Session | null, f: Format, now: number, flash?: SubFlash, status: 200 | 400 | 429 = 200, beta = false) {
+async function submissionView(c: C, chain: Chain, number: number, session: Session | null, f: Format, now: number, beta = false) {
   const db = c.env.DB
   const n = chain.node
   const sub = await readSubmission(db, n.id, number)
@@ -281,20 +311,10 @@ async function submissionView(c: C, chain: Chain, number: number, session: Sessi
   if (f === 'json') return c.json(renderSubmissionJson({ ...v, origin: new URL(c.req.url).origin }))
   if (f === 'text') return c.body(renderSubmissionPrompt({ ...v, origin: new URL(c.req.url).origin }), 200, { 'Content-Type': 'text/plain; charset=utf-8' })
   const me = session ? { personId: session.personId, handle: session.handle, verified: session.verified } : null
-  const forms = session
-    ? { token: await formToken(c.env.CSRF_SECRET, session.id), steppedUp: stepUpOpen(session, now), operator: await isOperatorFor(db, n, session.personId) }
-    : {}
-  return page(c, <SubmissionPage d={{ ...v, subs, history, me, ...forms, flash }} />, status)
+  return page(c, <SubmissionPage d={{ ...v, subs, history, me }} />)
 }
 
-/** Author gone (table B): the viewer signs off in the author's place when the author isn't active and the viewer is an admin. */
-async function isOperatorFor(db: D1Database, n: Chain['node'], personId: number): Promise<boolean> {
-  if (n.author_status === 'active' || personId === n.author_id) return false
-  const p = await db.prepare('SELECT is_admin FROM person WHERE id = ?').bind(personId).first<{ is_admin: number }>()
-  return p?.is_admin === 1
-}
-
-/** The inline step-up (A5, auth/signin.ts inlineStepUp) for acts with the author's authority: the sign-off, a dead end (an edit asks on /new, web/create.tsx). */
+/** The inline step-up (A5, auth/signin.ts inlineStepUp) for acts with the author's authority: marking a shwarm passed (an edit asks on /new, web/create.tsx). */
 async function steppedUp(c: C, session: Session, password: string | undefined, now: number): Promise<{ actor: Actor } | { refuse: string; status: 400 | 429; wait?: number }> {
   const s = await inlineStepUp(c.env.DB, c.env.PASSWORD_PEPPER, session, password, clientIp(c), now)
   if ('refuse' in s) return s
@@ -322,83 +342,25 @@ async function htmlPage(c: C, chain: Chain, path: string, session: Session | nul
   }
   d.flash = flash
   d.steppedUp = stepUpOpen(session, now)
-  // A closed shwarm's thread sits behind its result page (5.7); a refused form there comes back here, on the thread.
-  d.threadView = chain.node.state === 'closed' && chain.node.kind !== 'branch' && (flash !== undefined || c.req.query('thread') !== undefined)
   return page(c, <NodePage d={d} />, status)
 }
 
-/**
- * POST /w/<path>/s/<n>: a people check and the author's sign-off, each run in the
- * tree as one check command. The sign-off asks for the password inline when the step-up window is closed. A refusal
- * re-renders the submission page with the reason at the form and the draft kept; a double click goes to the first.
- */
-async function submissionPost(c: C, path: string, number: number, session: Session, f: Record<string, string>) {
-  const db = c.env.DB
-  const chain = await readChain(db, path, session.personId)
-  if (!chain) return (await gone(c, 'html', path)) ?? notFound(c, 'html')
-  const n = chain.node
-  const sub = await readSubmission(db, n.id, number)
-  if (!sub) return notFound(c, 'html', fill(w.node.noSubmission, { n: number }))
-  const act = f.do === 'check' || f.do === 'signoff' ? f.do : null
-  if (!act) return errorOut(c, 'html', 400, 'bad_request', w.auth.unknownForm)
-  const back = `/w/${path}/s/${number}`
-  const now = Date.now()
-  const flash = (text: string): SubFlash => ({ at: act, text, fields: { verdict: f.verdict ?? '', text: f.text ?? '', links: f.links ?? '' } })
-  const refuse = (text: string, status: 400 | 429 = 400) => submissionView(c, chain, number, session, 'html', now, flash(text), status)
-  const verdict = f.verdict === 'pass' || f.verdict === 'fail' ? (f.verdict as 'pass' | 'fail') : null
-  if (!verdict) return refuse(w.node.pickVerdict)
-  // A double click repeats the same act: a sign-off matches only a sign-off, a check only a check, so a sign-off sent
-  // right after the person's own people check reaches core and is refused there (slot_taken), not taken for a repeat.
-  const dup = await db
-    .prepare(
-      `SELECT id FROM check_report WHERE submission_id = ? AND person_id = ? AND reset_at IS NULL AND created_at > ?
-       AND (slot = 'author') = ? ORDER BY created_at DESC LIMIT 1`,
-    )
-    .bind(sub.post_id, session.personId, new Date(now - DOUBLE_POST_MS).toISOString(), act === 'signoff' ? 1 : 0)
-    .first<{ id: string }>()
-  if (dup) return c.redirect(`${back}#${dup.id}`, 303)
-  const text = (f.text ?? '').trim()
-  const base = { node: path, on: sub.post_id, verdict }
-  let actor: Actor = siteActor({ id: session.personId, handle: session.handle })
-  let input: CheckInput
-  if (act === 'signoff') {
-    // Only someone who may sign off is asked for the password; anyone else is refused by core (only the author signs off).
-    // A branch has no sign-off (decided Oct 13), so nobody there is asked for one: core refuses it as it is.
-    if (n.kind !== 'branch' && (session.personId === n.author_id || (await isOperatorFor(db, n, session.personId)))) {
-      const s = await steppedUp(c, session, f.password, now)
-      if ('refuse' in s) {
-        if (s.wait) c.header('Retry-After', String(s.wait))
-        return refuse(s.refuse, s.status)
-      }
-      actor = s.actor
-    }
-    // A pass says what was checked; a fail is a repro, and resets every check (core/checking.ts).
-    input = { ...base, slot: 'author', ...(verdict === 'pass' ? { text } : { repro: text }) }
-  } else {
-    // A people check: a pass backed by links, or a fail whose text is its repro, with any links beside it.
-    const links = linksFromForm(f.links ?? '')
-    input = verdict === 'pass' ? { ...base, text, evidence: links } : { ...base, text, repro: { steps: text, links } }
-  }
-  try {
-    const r = await runInTree<CheckResult>(c.env.TREE, { type: 'check', actor, input })
-    return c.redirect(act === 'signoff' ? `${back}#checks` : `${back}#${r.id}`, 303)
-  } catch (e) {
-    if (!(e instanceof ShwarmError)) throw e
-    return refuse(e.message.replace(/\.?$/, '.'))
-  }
-}
-
-// POST /w/<path> (go-live 4.4–4.8, 5.1, 5.6): the page's forms, picked by the `do` field. post: a thread post or reply
-// as the bare handle, pinned when the author ticks it. edit, delete: one of your own plain posts. pin (pin=0 unpins):
-// the author's, on any top-level post or submission (decided Oct 14, "A thread can pin several posts").
-// upvote: the ▲ on a post, either way. submit: the compose box's submit mode, which lands on the new submission's page.
-// join (with the say-hi modal's optional hello), leave: say you're working on a live shwarm or branch, or stop. dead_end (with a note): the author's own box, behind the
-// password. status: the viewer's one vote on a branch's status, changed or taken back (decided Oct 13). Nobody edits a shwarm's or a branch's own words (decided Oct 12; it superseded "edit replaces re-pitch" of
-// Oct 10): once posted, they're fixed. Thread posts keep edit and delete.
-// Nothing reopens (decided Oct 9). Each runs in the shwarm's tree (do/shwarm-tree.ts), then goes back to the page (303). A refusal re-renders the page with the reason next to the form and the draft kept.
-// Signed out, it goes to sign-in and back.
-// POST /w/<path>/s/<n> (5.3, 5.5): check (a people check) and signoff (the author's, behind the password).
-const ACTS = ['post', 'edit', 'delete', 'pin', 'upvote', 'submit', 'join', 'leave', 'dead_end', 'status'] as const
+// POST /w/<path> (go-live 4.4–4.8): the page's forms, picked by the `do` field. post: a thread post or reply as the bare
+// handle, pinned when the author ticks it. edit, delete: one of your own plain posts. pin (pin=0 unpins): the author's,
+// on any top-level post or old submission (decided Oct 14, "A thread can pin several posts"). upvote: the ▲ on a post,
+// either way. join (with the say-hi modal's optional hello), leave: say you're working on a shwarm or branch, or stop.
+// On a node they joined (decided Oct 14, core/status.ts): status, the viewer's on-track vote (status=on_track, or empty
+// to take it back); claim, a thread post that says the node is blocked, passed or a dead end (status) with its evidence
+// (text) and, on a passed claim, its pinned work (links, one per line); back, the "back" on a claim (post, on=1|0).
+// mark_passed: the shwarm's author marks it passed, citing a passed claim (post), behind the password (core/records.ts).
+// Nobody edits a shwarm's or a branch's own words (decided Oct 12): once posted, they're fixed. Thread posts keep edit
+// and delete. Nothing locks (decided Oct 14), and nothing takes submissions, checks or a dead end: an old form for one
+// is refused with why. Each runs in the shwarm's tree (do/shwarm-tree.ts), then goes back to the page (303). A refusal
+// re-renders the page with the reason next to the form and the draft kept. Signed out, it goes to sign-in and back.
+// POST /w/<path>/s/<n>: an old submission page's check or sign-off form, refused with why.
+const ACTS = ['post', 'edit', 'delete', 'pin', 'upvote', 'back', 'join', 'leave', 'status', 'claim', 'mark_passed'] as const
+/** Old forms for what retired (decided Oct 14), each refused with why. */
+const RETIRED: Record<string, string> = { submit: NO_SUBMISSIONS, dead_end: NO_DEAD_END }
 type Act = (typeof ACTS)[number]
 
 /** Same person, same thread, same text within this long: a double click, so the first post stands. */
@@ -407,22 +369,22 @@ const DOUBLE_POST_MS = 30_000
 /**
  * The id of the same post, by the same person as the same name in the same thread, answering the same post (or none),
  * sent within DOUBLE_POST_MS: a double click, so the first post stands (the compose box here, the inbox's inline reply in
- * web/profile.tsx). The same words to a different post are a new reply. With `pin` ticked, only the pinned post itself
+ * web/profile.tsx, a claim's form). The same words to a different post are a new reply, and as a claim a new claim. With `pin` ticked, only the pinned post itself
  * counts as the first click; an earlier unpinned copy is posted again, pinned, so the pin is never dropped.
  */
-export async function justPosted(db: D1Database, o: { nodeId: number; personId: number; as: string; text: string; now: number; replyTo: string | null; pin?: boolean }): Promise<string | null> {
+export async function justPosted(
+  db: D1Database,
+  o: { nodeId: number; personId: number; as: string; text: string; now: number; replyTo: string | null; pin?: boolean; claim?: string | null },
+): Promise<string | null> {
   const dup = await db
     .prepare(
       `SELECT p.id FROM post p WHERE p.node_id = ?1 AND p.person_id = ?2 AND p.as_name = ?3 AND p.text = ?4 AND p.created_at > ?5 AND p.reply_to IS ?7
-       AND (?6 = 0 OR p.pinned_at IS NOT NULL) ORDER BY p.created_at DESC LIMIT 1`,
+       AND (?6 = 0 OR p.pinned_at IS NOT NULL) AND p.claim IS ?8 ORDER BY p.created_at DESC LIMIT 1`,
     )
-    .bind(o.nodeId, o.personId, o.as, o.text, new Date(o.now - DOUBLE_POST_MS).toISOString(), o.pin ? 1 : 0, o.replyTo)
+    .bind(o.nodeId, o.personId, o.as, o.text, new Date(o.now - DOUBLE_POST_MS).toISOString(), o.pin ? 1 : 0, o.replyTo, o.claim ?? null)
     .first<{ id: string }>()
   return dup?.id ?? null
 }
-
-/** Where a node's thread is: on a closed shwarm it's behind the result page (5.7), so a new post lands there. */
-export const threadHref = (path: string, n: { state: string; kind: string }) => (n.state === 'closed' && n.kind !== 'branch' ? `/w/${path}?thread=1` : `/w/${path}`)
 
 nodeRoutes.post('/*', async c => {
   const url = new URL(c.req.url)
@@ -434,10 +396,11 @@ nodeRoutes.post('/*', async c => {
   if (!signedIn.session) return c.redirect(signInHref(back), 303)
   const f = await formOf(c)
   if (!(await postedTokenOk(c as unknown as AuthContext, signedIn, f))) return sendError(c, { status: 403, heading: w.auth.formExpired, text: w.auth.formExpiredRetry }, 'html')
-  if (subNumber !== null) return submissionPost(c, parsed.path, subNumber, signedIn.session, f)
+  if (subNumber !== null) return errorOut(c, 'html', 400, 'bad_request', `${NO_CHECKS}.`)
   // Re-pitch is retired (decided Oct 10), and so is editing a shwarm (decided Oct 12: once posted, a shwarm's or a
   // branch's words are fixed): a re-pitch form from an old tab is refused with why. OPEN: the words wait on Myra's yes.
   if (f.do === 'repitch') return errorOut(c, 'html', 400, 'bad_request', NO_EDIT)
+  if (Object.hasOwn(RETIRED, f.do ?? '')) return errorOut(c, 'html', 400, 'bad_request', `${RETIRED[f.do]}.`)
   if (f.do === 'report') return reportAct(c, parsed.path, signedIn.session, f, url)
   if (f.do === 'flag') return flagAct(c, parsed.path, signedIn.session, f, url)
   const act = (ACTS as readonly string[]).includes(f.do) ? (f.do as Act) : null
@@ -450,25 +413,21 @@ nodeRoutes.post('/*', async c => {
   const n = chain.node
   const actor = siteActor({ id: session.personId, handle: session.handle })
   const now = Date.now()
-  // A refused submission reopens the submit form with every field as typed.
-  const kept: Partial<Flash> = act === 'submit' ? { mode: 'submit' as const, fields: Object.fromEntries(SUBMIT_FIELDS.map(k => [k, f[k] ?? ''])) } : {}
+  // A refused claim reopens its form with its status and its pinned work as typed; a refused mark, its pick.
+  const kept: Partial<Flash> =
+    act === 'claim' ? { fields: { status: f.status ?? '', links: f.links ?? '' } } : act === 'mark_passed' ? { fields: { post: f.post ?? '' } } : {}
   try {
-    if (act === 'dead_end') {
-      const refuse = (text: string, status: 400 | 429 = 400) => htmlPage(c, chain, parsed.path, session, now, { at: 'owner', text, draft: f.note }, status)
-      // A second click lands after the first did it: back to the page, as the first click went.
-      if (n.state === 'dead_end') return c.redirect(back, 303)
-      const note = (f.note ?? '').trim()
-      // OPEN (#76): the words for a missing note wait on Myra's yes. Said before the password is checked, so it isn't spent.
-      if (!note) return refuse(w.node.sayWhyDeadEnd)
-      // Only the author is asked for the password; anyone else is refused by core (only the author marks a dead end), and
-      // so is a dead end on a branch (decided Oct 13: a branch doesn't lock), without asking for one.
+    if (act === 'mark_passed') {
+      const refuse = (text: string, status: 400 | 429 = 400) => htmlPage(c, chain, parsed.path, session, now, { at: 'owner', text, ...kept }, status)
+      // Only the author is asked for the password; anyone else, and a branch, is refused by core without asking for one.
       const s = n.author_id === session.personId && n.kind !== 'branch' ? await steppedUp(c, session, f.password, now) : { actor }
       if ('refuse' in s) {
         if (s.wait) c.header('Retry-After', String(s.wait))
         return refuse(s.refuse, s.status)
       }
-      await runInTree(c.env.TREE, { type: 'deadEnd', actor: s.actor, input: { node: parsed.path, note } })
-      return c.redirect(back, 303)
+      // The same claim twice (a double click) changes nothing in core.
+      await runInTree<MarkResult>(c.env.TREE, { type: 'markPassed', actor: s.actor, input: { node: parsed.path, post: f.post ?? '' } })
+      return c.redirect(`${back}#${PASS_BOX}`, 303)
     }
     if (act === 'post') {
       const text = (f.text ?? '').trim()
@@ -476,15 +435,19 @@ nodeRoutes.post('/*', async c => {
       if (!text) return htmlPage(c, chain, parsed.path, session, now, { at: 'compose', text: w.node.writeFirst, pin }, 400)
       const replyTo = f.reply_to || null
       const dup = await justPosted(db, { nodeId: n.id, personId: session.personId, as: actor.as, text, now, replyTo, pin })
-      const to = threadHref(parsed.path, n)
-      if (dup) return c.redirect(`${to}#${dup}`, 303)
+      if (dup) return c.redirect(`${back}#${dup}`, 303)
       const r = await runInTree<{ id: string }>(c.env.TREE, { type: 'post', actor, input: { node: parsed.path, text, replyTo, ...(pin ? { pin } : {}) } })
-      return c.redirect(`${to}#${r.id}`, 303)
+      return c.redirect(`${back}#${r.id}`, 303)
     }
-    // Upvotes, edits, deletes and pins go back to the post, on the page (sort, filter, page) the form was on.
+    // Upvotes, backs, edits, deletes and pins go back to the post, on the page (sort, filter, page) the form was on.
     const at = `${back}${url.search}${isId('p', f.post) ? `#${f.post}` : ''}`
     if (act === 'upvote') {
       await runInTree(c.env.TREE, { type: 'upvote', actor, input: { node: parsed.path, post: f.post ?? '', up: f.up !== '0' } })
+      return c.redirect(at, 303)
+    }
+    if (act === 'back') {
+      // Backing a claim it already backs (a double click) changes nothing in core. on=0 takes the backing off.
+      await runInTree(c.env.TREE, { type: 'back', actor, input: { node: parsed.path, post: f.post ?? '', on: f.on !== '0' } })
       return c.redirect(at, 303)
     }
     if (act === 'edit') {
@@ -504,40 +467,24 @@ nodeRoutes.post('/*', async c => {
       await runInTree(c.env.TREE, { type: 'pinPost', actor, input: { node: parsed.path, post: f.post ?? '', pin: f.pin !== '0' } })
       return c.redirect(at, 303)
     }
-    if (act === 'submit') {
-      const refuse = (text: string) => htmlPage(c, chain, parsed.path, session, now, { at: 'compose', text, draft: f.text, ...kept }, 400)
-      const text = (f.text ?? '').trim()
-      if (!text) return refuse(w.node.sayWhatFirst)
-      // Only a post is pinned (core post), so a ticked pin box isn't dropped quietly.
-      // OPEN (#78): the words wait on Myra's yes.
-      if (f.pin === '1') return refuse(w.node.noPinSubmission)
-      const builtOn = await builtOnFromForm(db, n.id, f.built_on ?? '')
-      if (typeof builtOn === 'string') return refuse(builtOn)
-      const dup = await db
-        .prepare(
-          `SELECT s.number FROM submission s JOIN post p ON p.id = s.post_id
-           WHERE s.node_id = ? AND p.person_id = ? AND p.as_name = ? AND p.text = ? AND p.created_at > ? ORDER BY p.created_at DESC LIMIT 1`,
-        )
-        .bind(n.id, session.personId, actor.as, text, new Date(now - DOUBLE_POST_MS).toISOString())
-        .first<{ number: number }>()
-      if (dup) return c.redirect(`${back}/s/${dup.number}`, 303)
-      const release = { name: f.release_name ?? '', version: f.release_version ?? '', howToUse: f.release_how_to_use ?? '' }
-      const input: SubmitInput = {
-        node: parsed.path,
-        text,
-        links: linksFromForm(f.links ?? ''),
-        howToCheck: f.how_to_check ?? '',
-        builtOn,
-        ...(release.name.trim() || release.version.trim() || release.howToUse.trim() ? { release } : {}),
-      }
-      const r = await runInTree<SubmitResult>(c.env.TREE, { type: 'submit', actor, input })
-      return c.redirect(`${back}/s/${r.number}`, 303)
-    }
     if (act === 'status') {
-      // One button per status; "take my vote back" sends an empty one (core/status.ts). The same vote twice changes nothing.
+      // The on-track toggle sends on_track, or an empty status to take the vote back (core/status.ts). The same twice
+      // changes nothing.
       const status = f.status ? f.status : null
       await runInTree(c.env.TREE, { type: 'status', actor, input: { node: parsed.path, status } })
       return c.redirect(back, 303)
+    }
+    if (act === 'claim') {
+      // Blocked, passed or dead end, with the evidence (core/posts.ts post): a thread post that backs its claimant's
+      // status. A passed claim's pinned work comes one per line (pinsFromForm); core refuses anything unpinned.
+      const text = (f.text ?? '').trim()
+      if (!text) return htmlPage(c, chain, parsed.path, session, now, { at: 'status', text: w.node.writeFirst, ...kept }, 400)
+      const claim = f.status ?? ''
+      const dup = await justPosted(db, { nodeId: n.id, personId: session.personId, as: actor.as, text, now, replyTo: null, claim })
+      if (dup) return c.redirect(`${back}#${dup}`, 303)
+      const links = claim === 'passed' ? pinsFromForm(f.links ?? '') : []
+      const r = await runInTree<{ id: string }>(c.env.TREE, { type: 'post', actor, input: { node: parsed.path, text, claim, ...(links.length ? { links } : {}) } })
+      return c.redirect(`${back}#${r.id}`, 303)
     }
     if (act === 'join') {
       // The say-hi modal's words (go-live 8.2): core posts them as a join post; empty, the thread shows a quiet line.
@@ -550,21 +497,24 @@ nodeRoutes.post('/*', async c => {
   } catch (e) {
     if (!(e instanceof ShwarmError)) throw e
     const at =
-      act === 'post' || act === 'submit' ? 'compose' : act === 'dead_end' ? 'owner' : act === 'edit' || act === 'delete' || act === 'pin' || act === 'upvote' ? 'post' : act === 'status' ? 'status' : 'seats'
+      act === 'post'
+        ? 'compose'
+        : act === 'mark_passed'
+          ? 'owner'
+          : act === 'edit' || act === 'delete' || act === 'pin' || act === 'upvote' || act === 'back'
+            ? 'post'
+            : act === 'status' || act === 'claim'
+              ? 'status'
+              : 'seats'
     // A refused join keeps the say-hi words, and the page opens the modal again with them.
-    const draft = act === 'post' || act === 'submit' || act === 'edit' ? f.text ?? '' : act === 'dead_end' ? f.note : act === 'join' && (f.hello ?? '').trim() ? f.hello : undefined
-    // A refused upvote, edit, delete or pin shows under its post; a refused pinned post keeps its box ticked.
-    if (act === 'edit' || act === 'delete' || act === 'pin' || act === 'upvote') Object.assign(kept, { post: f.post })
+    const draft = act === 'post' || act === 'edit' || act === 'claim' ? f.text ?? '' : act === 'join' && (f.hello ?? '').trim() ? f.hello : undefined
+    // A refused upvote, back, edit, delete or pin shows under its post; a refused pinned post keeps its box ticked.
+    if (act === 'edit' || act === 'delete' || act === 'pin' || act === 'upvote' || act === 'back') Object.assign(kept, { post: f.post })
     if (act === 'post' && f.pin === '1') Object.assign(kept, { pin: true })
     if (e.code === 'rate_limited') {
       const wait = Number(e.details.retry_after) || 60
       c.header('Retry-After', String(wait))
-      // OPEN: the submissions wording isn't in a mockup; it waits on Myra's yes.
-      const text =
-        e.details.limit === 'submissions'
-          ? fill(w.node.submitLimitWait, { wait: waitText(wait) })
-          : fill(w.node.slowPost, { wait: waitText(wait) })
-      return htmlPage(c, chain, parsed.path, session, now, { at, text, draft, ...kept }, 429)
+      return htmlPage(c, chain, parsed.path, session, now, { at, text: fill(w.node.slowPost, { wait: waitText(wait) }), draft, ...kept }, 429)
     }
     return htmlPage(c, chain, parsed.path, session, now, { at, text: e.message.replace(/\.?$/, '.'), draft, ...kept }, 400)
   }
@@ -634,46 +584,20 @@ async function flagAct(c: C, path: string, session: Session, f: Record<string, s
   }
 }
 
-/** The submit form's fields besides the text, kept as typed when a submission is refused. */
-const SUBMIT_FIELDS = ['links', 'built_on', 'how_to_check', 'release_name', 'release_version', 'release_how_to_use'] as const
-
 const formLines = (s: string) => s.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
 
 /**
- * Linked work as typed in the submit form, one per line: "url sha256" for a file, "repo commit [path]" for a repo at a
- * commit (a 40-character commit id, or any line with a path after it). Shapes only: core checks every link, so an
- * unpinned or badly pinned one is refused there with its reason.
+ * A passed claim's pinned work as typed in its form, one per line: "url sha256" for a file, "repo commit [path]" for a
+ * repo at a commit (a 40-character commit id, or any line with a path after it; the repo may be a rad: id), an
+ * ipfs:// address or a magnet: link on its own. Shapes only: core checks every pin (core/text.ts parsePins), so an
+ * unpinned or badly pinned one is refused there with its reason, in the words the submission form used.
  */
-export function linksFromForm(s: string): Record<string, string>[] {
+export function pinsFromForm(s: string): Record<string, string>[] {
   return formLines(s).map((line): Record<string, string> => {
     const [first, second, ...rest] = line.split(/\s+/)
-    if (second === undefined) return { url: first } // no fingerprint: core refuses it
+    if (second === undefined) return /^ipfs:\/\//i.test(first) ? { ipfs: first } : /^magnet:/i.test(first) ? { magnet: first } : { url: first } // no fingerprint: core refuses it
     const pin = /^[0-9a-f]+$/i.test(second) ? second.toLowerCase() : second
-    if (rest.length || /^[0-9a-f]{40}$/.test(pin)) return { repo: first, commit: pin, ...(rest.length ? { path: rest.join(' ') } : {}) }
+    if (rest.length || /^[0-9a-f]{40}$/.test(pin) || /^rad:/.test(first)) return { repo: first, commit: pin, ...(rest.length ? { path: rest.join(' ') } : {}) }
     return { url: first, sha256: pin }
   })
-}
-
-/**
- * "Built on" as typed, one per line: a post id (p_…, or a link that ends in one) or a submission on this node (#2),
- * then why it was used. Returns the list for core, or the refusal to show.
- */
-export async function builtOnFromForm(db: D1Database, nodeId: number, s: string): Promise<{ post: string; note?: string }[] | string> {
-  const out: { post: string; note?: string }[] = []
-  const lines = formLines(s)
-  for (let i = 0; i < lines.length; i++) {
-    const [ref, ...why] = lines[i].split(/\s+/)
-    const note = why.join(' ').replace(/^[-–—:·]\s*/, '') || undefined
-    const num = /^#(\d{1,9})$/.exec(ref)
-    if (num) {
-      const row = await db.prepare('SELECT post_id FROM submission WHERE node_id = ? AND number = ?').bind(nodeId, Number(num[1])).first<{ post_id: string }>()
-      if (!row) return fill(w.node.builtOnNoSub, { n: num[1] })
-      out.push({ post: row.post_id, ...(note ? { note } : {}) })
-      continue
-    }
-    const id = /(?:^|[^a-z0-9_])(p_[a-z0-9]{8,32})$/.exec(ref)?.[1]
-    if (!id) return fill(w.node.builtOnBadLine, { line: i + 1 })
-    out.push({ post: id, ...(note ? { note } : {}) })
-  }
-  return out
 }

@@ -3,10 +3,16 @@
 //
 // Which nodes it rolls up, so a quiet site costs almost nothing:
 //   changed  nodes whose changed_at (set by every write through touchNode) is newer than the last run, plus their
-//            ancestors, since a branch's submission or pass moves its parent's status line and score
+//            ancestors, since a branch's status or pass moves its parent's status line and score
 //   stale    nodes whose numbers move with time alone, once their stale_at comes: an upvote, bump or join leaving
-//            its window, the hot flag able to flip, or the hourly refresh of a decaying score and posts per day
-//            (spread over a half hour by node id, so nodes rolled up together don't go stale together)
+//            its window, the hot flag able to flip, the moment its status changes by the rubber band, or the hourly
+//            refresh of a decaying score and posts per day (spread over a half hour by node id, so nodes rolled up
+//            together don't go stale together)
+// A status that changes with time alone (core/status.ts advance) is written here when its moment comes, so its line in
+// the history, its pass record and its author's notice don't wait for the next act on the node: the band is saved
+// only if it's still the one read (compare-and-set on its `at`, since this runs outside the node's tree), and the
+// change is written as an act would write it, keyed on its moment, so whichever of the two comes first writes it once
+// (core/status.ts flipStatements).
 // Each node is rolled up whole from its own rows, so reruns give the same answer. The reads are a fixed handful of
 // set-based queries per chunk, aggregated in SQL so each node returns a few rows whatever its upvote count (D1 caps
 // queries per invocation, and the free plan's CPU limit is small). Each chunk's writes are one batch, with the
@@ -16,20 +22,8 @@
 // Upvotes count only when counted = 1 (A6, established accounts). Agents are never counted: posts and upvotes
 // roll up to the human under the name, and "people" is people.
 import { readSettings } from '../core/settings'
-import {
-  DAY_MS,
-  HOUR_MS,
-  WEEK_MS,
-  impact,
-  isHot,
-  liveScoreFrom,
-  postsPerDay,
-  rankingFrom,
-  statusLine,
-  surge,
-  type Ranking,
-  type StatusInput,
-} from '../core/stats'
+import { DAY_MS, HOUR_MS, WEEK_MS, impact, isHot, liveScoreFrom, postsPerDay, rankingFrom, ranks, statusLine, surge, type Ranking } from '../core/stats'
+import { advance, BACKERS_SQL, BACKING_SQL, emptyTally, flipStatements, startBand, tallyOf, type Band, type Status, type StatusTally } from '../core/status'
 
 // Per run; more waits for the next run (changed first, then the stalest). The JS per node is small now that SQL
 // does the counting; measure CPU per run on staging before raising it.
@@ -61,7 +55,6 @@ type NodeRow = {
   id: number
   path: string
   kind: string
-  state: StatusInput['state']
   author_id: number
   dead_end_note: string | null
   created_at: string
@@ -157,7 +150,7 @@ export async function rollupStats(db: D1Database, now = Date.now()): Promise<Sta
     const last = i + CHUNK >= items.length
     const k = last ? next : chunk.reduce<Cursor | undefined>((m, x) => x.cursor ?? m, undefined)
     const out = await computeNodes(db, chunk.map(x => x.id), now, r)
-    const writes = [...nodeStatsWrites(db, out.nodes, now), ...out.personWrites]
+    const writes = [...out.bandWrites, ...nodeStatsWrites(db, out.nodes, now), ...out.personWrites]
     if (k) writes.push(saveCursor(k))
     await db.batch(writes)
     personRows += out.personWrites.length
@@ -165,8 +158,16 @@ export async function rollupStats(db: D1Database, now = Date.now()): Promise<Sta
   return { nodes: items.length, changed, warm, person_rows: personRows }
 }
 
-/** Every number for these nodes, from their rows; and the person_node_stats statements that bring those rows up to date. */
-export async function computeNodes(db: D1Database, ids: number[], now: number, r: Ranking): Promise<{ nodes: NodeStats[]; personWrites: D1PreparedStatement[] }> {
+/**
+ * Every number for these nodes, from their rows; the person_node_stats statements that bring those rows up to date; and
+ * for a node whose status changed with time alone since its band was saved, the band and the change (`bandWrites`).
+ */
+export async function computeNodes(
+  db: D1Database,
+  ids: number[],
+  now: number,
+  r: Ranking,
+): Promise<{ nodes: NodeStats[]; personWrites: D1PreparedStatement[]; bandWrites: D1PreparedStatement[] }> {
   const J = JSON.stringify(ids)
   const IN = 'IN (SELECT value FROM json_each(?1))'
   const at = iso(now)
@@ -179,7 +180,7 @@ export async function computeNodes(db: D1Database, ids: number[], now: number, r
   const decayed = (col: string, half: string) => `pow(0.5, (julianday(?2) - julianday(${col})) * 24.0 / ${half})`
 
   const nodes = await all<NodeRow>(
-    `SELECT n.id, n.path, n.kind, n.state, n.author_id, n.dead_end_note, n.created_at FROM node n WHERE n.id ${IN}`,
+    `SELECT n.id, n.path, n.kind, n.author_id, n.dead_end_note, n.created_at FROM node n WHERE n.id ${IN}`,
   )
   // The pinned posts, the latest pinned first (decided Oct 14, "A thread can pin several posts"). The seed (A18) creates
   // a node and pins its sources post in one go at the same clock time, as the author with no key; that post never sets
@@ -228,30 +229,42 @@ export async function computeNodes(db: D1Database, ids: number[], now: number, r
     r.half_life_hours,
     since,
   )
-  // Submissions and passes in the window for the live score, on each node (and its branches, when bumps come from branches).
-  const bumps = await all<{ node_id: number; subs: number; passes: number; oldest: string | null }>(
+  // Passes in the window for the live score, on each node (and its branches, when bumps come from branches): the audit
+  // 'passed' rows a crowd's pass writes, and before Oct 14 a submission's, both with no name. An author's mark (named)
+  // doesn't bump it: the author alone makes it, as often as they cite a new claim (core/records.ts).
+  const bumps = await all<{ node_id: number; passes: number; oldest: string | null }>(
     `WITH t AS (SELECT id, path, COALESCE(root_id, id) AS root FROM node WHERE id ${IN}),
           src AS (SELECT id AS node_id, id AS from_id FROM t
                   UNION ALL SELECT t.id, d.id FROM t JOIN node d ON d.root_id = t.root
                   WHERE ?5 AND substr(d.path, 1, length(t.path) + 1) = t.path || '/')
-     SELECT src.node_id,
-            SUM(CASE WHEN a.event = 'submission' THEN ${decayed('a.at', '?4')} ELSE 0 END) AS subs,
-            SUM(CASE WHEN a.event = 'passed' THEN ${decayed('a.at', '?4')} ELSE 0 END) AS passes,
-            MIN(a.at) AS oldest
+     SELECT src.node_id, SUM(${decayed('a.at', '?4')}) AS passes, MIN(a.at) AS oldest
      FROM src JOIN audit_event a ON a.node_id = src.from_id AND a.at > ?3 AND a.at <= ?2
-     WHERE a.event IN ('submission', 'passed')
+     WHERE a.event = 'passed' AND a.by_name IS NULL
      GROUP BY src.node_id`,
     at,
     windowFrom,
     r.half_life_hours,
     r.bumps_from_branches ? 1 : 0,
   )
-  const subs = await all<{ node_id: number; number: number; status: StatusInput['submissions'][number]['status'] }>(
-    // A hidden (moderated) submission doesn't drive the status line, as on the node page (read/node.ts readSubmissions).
-    `SELECT s.node_id, s.number, s.status FROM submission s JOIN post p ON p.id = s.post_id WHERE p.hidden = 0 AND s.node_id ${IN}`,
+  // The status (core/status.ts): each node's stored band and its backing now, which held since the band was saved.
+  const bands = await all<Band & { node_id: number }>(
+    `SELECT node_id, current, challenger, lead_hours, leading_since, changed_at, at FROM branch_status WHERE node_id ${IN}`,
   )
-  const branches = await all<{ parent_id: number; live: number; closed: number }>(
-    `SELECT parent_id, SUM(state = 'live') AS live, SUM(state = 'closed') AS closed FROM node WHERE parent_id ${IN} AND hidden = 0 GROUP BY parent_id`,
+  const backing = await all<{ node_id: number; status: string; n: number }>(
+    `SELECT v.node_id, v.status, COUNT(*) AS n FROM status_vote v WHERE v.node_id ${IN} AND ${BACKING_SQL('v')} GROUP BY v.node_id, v.status`,
+  )
+  // Why each isn't on track: the most-backed claim of each status (the newest among equals), as read/node.ts readReasons.
+  const reasons = await all<{ node_id: number; claim: Status; text: string }>(
+    `SELECT node_id, claim, text FROM (
+       SELECT p.node_id, p.claim, p.text,
+              ROW_NUMBER() OVER (PARTITION BY p.node_id, p.claim ORDER BY ${BACKERS_SQL('p')} DESC, p.created_at DESC, p.id DESC) AS rk
+       FROM post p WHERE p.node_id ${IN} AND p.claim IS NOT NULL AND p.hidden = 0 AND p.deleted_at IS NULL)
+     WHERE rk = 1`,
+  )
+  // Its branches by their stored status, for the status line.
+  const branches = await all<{ parent_id: number; status: Status; n: number }>(
+    `SELECT c.parent_id, COALESCE(b.current, 'on_track') AS status, COUNT(*) AS n FROM node c LEFT JOIN branch_status b ON b.node_id = c.id
+     WHERE c.parent_id ${IN} AND c.hidden = 0 GROUP BY c.parent_id, status`,
   )
   const before = await all<{ node_id: number; person_id: number; posts: number; upvotes: number }>(
     `SELECT node_id, person_id, posts, upvotes FROM person_node_stats WHERE node_id ${IN}`,
@@ -267,11 +280,16 @@ export async function computeNodes(db: D1Database, ids: number[], now: number, r
   const postsBy = group(posts)
   const upsBy = byNode(ups)
   const bumpsBy = byNode(bumps)
-  const subsBy = group(subs)
-  const branchBy = new Map(branches.map(b => [b.parent_id, b]))
+  const bandBy = byNode(bands)
+  const backingBy = new Map<number, StatusTally>()
+  for (const [id, rows] of group(backing)) backingBy.set(id, tallyOf(rows))
+  const reasonBy = new Map(reasons.map(x => [`${x.node_id}:${x.claim}`, x.text]))
+  const branchBy = new Map<number, Partial<Record<Status, number>>>()
+  for (const b of branches) (branchBy.get(b.parent_id) ?? branchBy.set(b.parent_id, {}).get(b.parent_id)!)[b.status] = b.n
 
   const out: NodeStats[] = []
   const personWrites: D1PreparedStatement[] = []
+  const bandWrites: D1PreparedStatement[] = []
   const fresh = new Map<string, { node_id: number; person_id: number; posts: number; upvotes: number }>()
   for (const n of nodes) {
     const nodePosts = postsBy.get(n.id) ?? []
@@ -285,23 +303,40 @@ export async function computeNodes(db: D1Database, ids: number[], now: number, r
     const up24 = u?.up24 ?? 0
     const up7 = u?.up7 ?? 0
 
+    // The status now. A change that came with time alone since the band was saved is written here, the band with it,
+    // only while the band is still the one read (a newer one from the tree already wrote its own changes).
+    const { node_id: _, ...stored } = bandBy.get(n.id) ?? { node_id: n.id, ...startBand(at) }
+    const band = advance(stored, backingBy.get(n.id) ?? emptyTally(), now)
+    if (bandBy.has(n.id) && band.flips.length)
+      bandWrites.push(
+        db
+          .prepare(
+            `UPDATE branch_status SET current = ?1, challenger = ?2, lead_hours = ?3, leading_since = ?4, changed_at = ?5, at = ?6
+             WHERE node_id = ?7 AND at = ?8`,
+          )
+          .bind(band.current, band.challenger, band.lead_hours, band.leading_since, band.changed_at, band.at, n.id, stored.at),
+        ...band.flips.flatMap(f => flipStatements(db, n.id, f, { by: 'job', at, bandAt: band.at, touch: true })),
+      )
+    const status = band.current
+    const ranked = ranks(status)
+
     let score = 0
-    if (n.state === 'live') score = liveScoreFrom({ upvotes: u?.decayed ?? 0, submissions: b?.subs ?? 0, passes: b?.passes ?? 0 }, r)
-    const hot = n.state === 'live' && isHot(up24, up7, r) ? 1 : 0
+    if (ranked) score = liveScoreFrom({ upvotes: u?.decayed ?? 0, passes: b?.passes ?? 0 }, r)
+    const hot = ranked && isHot(up24, up7, r) ? 1 : 0
     const perDay = round(postsPerDay(posts7, Date.parse(n.created_at), now), 2)
 
     // When these numbers next move with no new write; the earliest of these, or never.
     const when: number[] = []
     const plus = (t: string | null | undefined, ms: number) => t && when.push(Date.parse(t) + ms)
     if (score > 0 || perDay > 0) when.push(now + refreshAfter(n.id)) // decay, the 7-day posts window, the node's age
-    if (n.state === 'live' && score > 0) {
+    if (band.changes_at) when.push(Date.parse(band.changes_at)) // the status changes then if its backing holds
+    if (ranked && score > 0) {
       plus(u?.oldest_window, r.window_hours * HOUR_MS) // the oldest upvote or bump leaves the score's window
       plus(b?.oldest, r.window_hours * HOUR_MS)
     }
     if (hot) plus(u?.oldest24, DAY_MS) // the 24-hour count drops: hot may go off
-    else if (n.state === 'live' && up24 >= r.hot_floor) plus(u?.oldest7, WEEK_MS) // the 7-day average drops: hot may come on
+    else if (ranked && up24 >= r.hot_floor) plus(u?.oldest7, WEEK_MS) // the 7-day average drops: hot may come on
 
-    const br = branchBy.get(n.id)
     out.push({
       id: n.id,
       impact: round(impact(totalUps, totalPosts), 3),
@@ -311,12 +346,10 @@ export async function computeNodes(db: D1Database, ids: number[], now: number, r
       surge: hot ? round(surge(up24, up7), 2) : null,
       score: round(score, 4),
       status_line: statusLine({
-        kind: n.kind,
-        state: n.state,
         pins: pinsBy.get(n.id) ?? [],
-        deadEndNote: n.dead_end_note,
-        submissions: subsBy.get(n.id) ?? [],
-        branches: { live: br?.live ?? 0, closed: br?.closed ?? 0 },
+        status,
+        reason: reasonBy.get(`${n.id}:${status}`) ?? (status === 'dead_end' ? n.dead_end_note : null),
+        branches: branchBy.get(n.id) ?? {},
       }),
       upvotes: totalUps,
       posts: totalPosts,
@@ -354,7 +387,7 @@ export async function computeNodes(db: D1Database, ids: number[], now: number, r
         .bind(JSON.stringify(gone.slice(i, i + 500))),
     )
   }
-  return { nodes: out, personWrites }
+  return { nodes: out, personWrites, bandWrites }
 }
 
 function nodeStatsWrites(db: D1Database, rows: NodeStats[], now: number): D1PreparedStatement[] {

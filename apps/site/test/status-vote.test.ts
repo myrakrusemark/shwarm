@@ -1,182 +1,360 @@
-// Oct 13: a branch's status is a live vote, activity sorts the branch list, and agents can pin for their person
-// (decided Oct 13: "One vote per person on each branch ... Status is fluid. Always changing. Any agent can drop in and
-// vote on the status"; "I think activity should determine sorting"; "Maybe quiet for more than 48h?"; "Sure we can give
-// pin permission to agents as an option"). Core, the read side, the API, the briefing and the page.
+// A shwarm's or a branch's status (decided Oct 14, "A branch's status: on track by vote, the rest by claims people back,
+// with a rubber band", "Only people on a branch vote on its status" and "One model for every node"; Myra: "on track is
+// individual votes / blocked requires evidence and shows in the thread / upvotes on that post count as a blocked vote
+// with the same evidence", "only joined people should be able to vote", "Yes, one model"): the on-track vote, claims,
+// backing, the join gate, what takes backing away, no node taking submissions, checks or a dead end, the reads the page
+// and the briefing build on, the API and the site's forms. The band itself is test/status-band.test.ts; pass records
+// and the history are test/records.test.ts.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import app from '../src/index'
 import { closeAccount } from '../src/auth/close'
 import { hashPassword } from '../src/auth/password'
-import { readChildren } from '../src/read/node'
-import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../src/seed/example'
+import { actOnPost } from '../src/core/admin-content'
+import { BACK_A_CLAIM, CLAIM_FIXED, CLAIMS_ARE_POSTS, NO_CHECKS, NO_DEAD_END, NO_SUBMISSIONS, NOT_A_CLAIM, NOT_JOINED } from '../src/core/status'
+import { readChain, readChildren, readPosts } from '../src/read/node'
+import { loadStatus, readNodeStatus } from '../src/read/status'
+import { loadAgentView, loadPageData } from '../src/read/views'
 import { resetReadLimit } from '../src/web/read-limit'
 import { forgetVersions } from '../src/web/version-memo'
-import { ALL_PERMS, keyFor, send, verifiedPerson } from './agent-client'
+import { ALL_PERMS, keyFor, send } from './agent-client'
 import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv } from './browser'
-import { hasResponse, responseSchema, schemaErrors } from './contract'
 import { agent, DAY, HOUR, person, refused, site, World, type P } from './core-fixtures'
 import { addPerson, T0 } from './d1'
-import { stagingWorld } from './node-fixture'
 
 const MID = 'minecraft-in-doom'
 const BP = 'minecraft-in-doom/block-placement'
-const CORNERS = 'minecraft-in-doom/corners'
-const DEEP = 'minecraft-in-doom/block-placement/edges'
+const DEEP = 'minecraft-in-doom/block-placement/corners'
 
 let w: World
-let myra: P, kestrel: P, lumpy: P
+let myra: P, kestrel: P, lumpy: P, ana: P
 
 const vote = (by: Parameters<World['post']>[0], node: string, status: unknown) => w.run({ type: 'status', actor: by, input: { node, status } })
-const rows = (path: string) =>
-  w.all('SELECT p.handle, v.status, v.as_name FROM status_vote v JOIN person p ON p.id = v.person_id JOIN node n ON n.id = v.node_id WHERE n.path = ? ORDER BY p.handle', path)
+const claim = (by: Parameters<World['post']>[0], node: string, status: string, text = 'P_CheckSight still answers for the old block after a break.') =>
+  w.run({ type: 'post', actor: by, input: { node, text, claim: status } })
+const back = (by: Parameters<World['post']>[0], node: string, post: string, on = true) => w.run({ type: 'back', actor: by, input: { node, post, on } })
+/** Who backs what on a node: handle, status and the claim backed. */
+const backing = (path: string) =>
+  w.all(
+    'SELECT p.handle, v.status, v.claim_id AS claim, v.as_name FROM status_vote v JOIN person p ON p.id = v.person_id JOIN node n ON n.id = v.node_id WHERE n.path = ? ORDER BY p.handle',
+    path,
+  )
+const ups = (post: string) => w.all('SELECT p.handle FROM upvote u JOIN person p ON p.id = u.person_id WHERE u.post_id = ? ORDER BY p.handle', post).map(r => r.handle)
+const band = (path: string) => w.get('SELECT b.* FROM branch_status b JOIN node n ON n.id = b.node_id WHERE n.path = ?', path)
 const tally = (o: Partial<Record<'on_track' | 'blocked' | 'passed' | 'dead_end', number>>) => {
   const t = { on_track: 0, blocked: 0, passed: 0, dead_end: 0, ...o }
   return { ...t, people: t.on_track + t.blocked + t.passed + t.dead_end }
 }
+const at = (h: number) => new Date(T0 + h * HOUR).toISOString()
 
 beforeEach(async () => {
   w = new World()
   myra = await person(w.db, 'myra')
   kestrel = await person(w.db, 'kestrel')
   lumpy = await person(w.db, 'lumpy')
+  ana = await person(w.db, 'ana')
   await w.shwarm(site(myra))
   await w.branch(site(myra), MID)
+  await w.join(site(kestrel), BP)
+  await w.join(site(lumpy), BP)
+  w.db.raw.prepare("UPDATE node SET triage = 'clear'").run() // triage cleared them, so everyone reads them
 })
 
-describe("a branch's status vote (decided Oct 13)", () => {
-  it('one vote per person: cast, changed any time, taken back; the same vote again changes nothing', async () => {
-    expect(await vote(site(kestrel), BP, 'on_track')).toEqual({ node: BP, as: '@kestrel', person: '@kestrel', status: 'on_track', changed: true, votes: tally({ on_track: 1 }) })
-    await vote(site(lumpy), BP, 'on_track')
-    w.tick(HOUR)
-    expect(await vote(site(kestrel), BP, 'blocked')).toMatchObject({ status: 'blocked', changed: true, votes: tally({ on_track: 1, blocked: 1 }) })
-    expect(rows(BP)).toEqual([
-      { handle: 'kestrel', status: 'blocked', as_name: '@kestrel' },
-      { handle: 'lumpy', status: 'on_track', as_name: '@lumpy' },
+describe('only people on a node vote on its status (decided Oct 14)', () => {
+  it('the on-track vote, a claim and a back each need a join on the branch, made there or through a sub-branch', async () => {
+    const e = await refused(vote(site(ana), BP, 'on_track'), 'not_joined', { node: BP })
+    expect(e.message).toBe(NOT_JOINED)
+    expect(e.status).toBe(403)
+    await refused(claim(site(ana), BP, 'blocked'), 'not_joined')
+    const c = await claim(site(kestrel), BP, 'blocked')
+    await refused(back(site(ana), BP, c.id), 'not_joined')
+    expect(w.get('SELECT COUNT(*) AS n FROM post WHERE person_id = ?', ana.id).n).toBe(0) // the refused claim posted nothing
+    // joined through a sub-branch: counted on the branch above, so it counts here
+    await w.branch(site(kestrel), BP, { title: 'corners' })
+    await w.join(site(ana), DEEP)
+    expect(await vote(site(ana), BP, 'on_track')).toMatchObject({ status: 'on_track', changed: true })
+    // and an agent only for a human who joined
+    await refused(vote(agent(myra, 'claude', ['read', 'post']), BP, 'on_track'), 'not_joined')
+  })
+
+  it("on a shwarm: its author, who's down as working on it, and anyone on one of its branches", async () => {
+    // myra started the shwarm (her seat came with it); kestrel and lumpy joined its branch, which counts them here too
+    expect(await vote(site(myra), MID, 'on_track')).toMatchObject({ node: MID, status: 'on_track', changed: true })
+    expect(await vote(site(kestrel), MID, 'on_track')).toMatchObject({ votes: tally({ on_track: 2 }) })
+    const c = await claim(site(lumpy), MID, 'blocked', 'nothing builds on gzdoom 4.11 yet.')
+    expect(backing(MID)).toEqual([
+      { handle: 'kestrel', status: 'on_track', claim: null, as_name: '@kestrel' },
+      { handle: 'lumpy', status: 'blocked', claim: c.id, as_name: '@lumpy' },
+      { handle: 'myra', status: 'on_track', claim: null, as_name: '@myra' },
     ])
-    const at = w.get('SELECT at FROM status_vote WHERE person_id = ?', kestrel.id).at
+    // ana is on neither
+    expect((await refused(vote(site(ana), MID, 'on_track'), 'not_joined', { node: MID })).message).toBe(NOT_JOINED)
+    // leaving the branch leaves only the branch: the seat above stays, and so does the backing on the shwarm
+    await w.run({ type: 'leave', actor: site(lumpy), input: { node: BP } })
+    expect(backing(MID).map(r => r.handle)).toEqual(['kestrel', 'lumpy', 'myra'])
+  })
+
+  it('leaving takes the backing back, its upvote with it, and moves the parent', async () => {
+    const c = await claim(site(kestrel), BP, 'passed')
+    await back(site(lumpy), BP, c.id)
+    expect(ups(c.id)).toEqual(['lumpy'])
+    const parent = w.node(MID).last_event_id
     w.tick(HOUR)
-    expect(await vote(site(kestrel), BP, 'blocked')).toMatchObject({ status: 'blocked', changed: false })
-    expect(w.get('SELECT at FROM status_vote WHERE person_id = ?', kestrel.id).at).toBe(at)
-    expect(await vote(site(kestrel), BP, null)).toMatchObject({ status: null, changed: true, votes: tally({ on_track: 1 }) })
+    expect(await w.run({ type: 'leave', actor: site(lumpy), input: { node: BP } })).toMatchObject({ left: true })
+    expect(backing(BP).map(r => r.handle)).toEqual(['kestrel'])
+    expect(ups(c.id)).toEqual([])
+    expect(w.node(MID).last_event_id).not.toBe(parent)
+    expect(band(BP)).toMatchObject({ at: at(1) }) // saved as it stood when lumpy left
+    // leaving or joining with nothing backed moves the parent too: its list names who's on each branch
+    await w.join(site(ana), BP)
+    const joined = w.node(MID).last_event_id
+    await w.run({ type: 'leave', actor: site(ana), input: { node: BP } })
+    expect(w.node(MID).last_event_id).not.toBe(joined)
+    const left = w.node(MID).last_event_id
+    await w.join(site(ana), BP)
+    expect(w.node(MID).last_event_id).not.toBe(left)
+  })
+})
+
+describe('the on-track vote', () => {
+  it('cast, taken back, the same twice changes nothing; plain and anonymous, with no post', async () => {
+    expect(await vote(site(kestrel), BP, 'on_track')).toEqual({ node: BP, as: '@kestrel', person: '@kestrel', status: 'on_track', claim: null, changed: true, votes: tally({ on_track: 1 }) })
+    expect(await vote(site(kestrel), BP, 'on_track')).toMatchObject({ changed: false })
+    expect(await vote(site(kestrel), BP, null)).toMatchObject({ status: null, changed: true, votes: tally({}) })
     expect(await vote(site(kestrel), BP, null)).toMatchObject({ status: null, changed: false })
-    expect(rows(BP)).toEqual([{ handle: 'lumpy', status: 'on_track', as_name: '@lumpy' }])
+    expect(w.get("SELECT COUNT(*) AS n FROM post WHERE node_id = ? AND is_join = 0", w.node(BP).id).n).toBe(0)
   })
 
-  it("an agent casts or changes its human's one vote with post on the branch; never the bare handle", async () => {
+  it('blocked, passed and dead end are claims; anything else is refused', async () => {
+    for (const s of ['blocked', 'passed', 'dead_end']) expect((await refused(vote(site(kestrel), BP, s), 'bad_request', { field: 'status' })).message).toBe(CLAIMS_ARE_POSTS)
+    for (const s of ['stale', 'On_Track', '', 3, undefined]) await refused(vote(site(kestrel), BP, s), 'bad_request', { field: 'status' })
+    for (const s of ['blocked', 'stale']) await refused(vote(site(myra), MID, s), 'bad_request', { field: 'status' })
+  })
+
+  it("an agent casts or takes back its human's vote with post on the branch; never the bare handle", async () => {
     const claude = agent(kestrel, 'claude', ['read', 'post'])
-    const codex = agent(kestrel, 'codex', ['read', 'post'])
-    expect(await vote(claude, BP, 'passed')).toMatchObject({ as: '@kestrel/claude', person: '@kestrel', status: 'passed', votes: tally({ passed: 1 }) })
-    expect(await vote(codex, BP, 'blocked')).toMatchObject({ as: '@kestrel/codex', person: '@kestrel', status: 'blocked', votes: tally({ blocked: 1 }) })
-    expect(rows(BP)).toEqual([{ handle: 'kestrel', status: 'blocked', as_name: '@kestrel/codex' }])
-    await vote(site(kestrel), BP, 'on_track') // the person, on the site: still the same one vote
-    expect(rows(BP)).toEqual([{ handle: 'kestrel', status: 'on_track', as_name: '@kestrel' }])
-    await refused(vote(agent(kestrel, 'reader', ['read']), BP, 'passed'), 'not_permitted', { need: 'post' })
-    await refused(vote({ ...claude, as: '@kestrel' }, BP, 'passed'), 'bare_handle_needs_human')
+    expect(await vote(claude, BP, 'on_track')).toMatchObject({ as: '@kestrel/claude', person: '@kestrel', status: 'on_track' })
+    expect(backing(BP)).toEqual([{ handle: 'kestrel', status: 'on_track', claim: null, as_name: '@kestrel/claude' }])
+    await refused(vote(agent(kestrel, 'reader', ['read']), BP, 'on_track'), 'not_permitted', { need: 'post' })
+    await refused(vote({ ...claude, as: '@kestrel' }, BP, 'on_track'), 'bare_handle_needs_human')
+    expect(await vote(agent(kestrel, 'codex', ['read', 'post']), BP, null)).toMatchObject({ status: null, changed: true })
   })
 
-  it('only a branch has one; the four statuses or null; a locked branch takes none', async () => {
-    await refused(vote(site(kestrel), MID, 'on_track'), 'bad_request', { field: 'node' })
-    for (const s of ['stale', 'working', 'done', 'On_Track', '', 3, undefined]) await refused(vote(site(kestrel), BP, s), 'bad_request', { field: 'status' })
-    await vote(site(kestrel), BP, 'dead_end')
-    // a branch never ends on its own (decided Oct 13): it's locked once its shwarm ends
-    await w.deadEnd(myra, MID)
-    await refused(vote(site(kestrel), BP, 'passed'), 'shwarm_closed', { node: BP, state: 'dead_end', locked_by: MID })
-    expect(rows(BP)).toEqual([{ handle: 'kestrel', status: 'dead_end', as_name: '@kestrel' }]) // kept, as the votes stood
+  it('casting it moves the backing off a claim; taking it back leaves a claim as it is', async () => {
+    const c = await claim(site(kestrel), BP, 'blocked')
+    await back(site(lumpy), BP, c.id)
+    expect(await vote(site(lumpy), BP, null)).toMatchObject({ status: 'blocked', claim: c.id, changed: false })
+    expect(await vote(site(lumpy), BP, 'on_track')).toMatchObject({ status: 'on_track', claim: null, changed: true, votes: tally({ on_track: 1, blocked: 1 }) })
+    expect(ups(c.id)).toEqual([]) // the upvote that went with backing it went too
   })
 
-  it("the badge: the status more than half chose, else mixed; none with no votes (Oct 13)", async () => {
-    const { statusNow } = await import('../src/core/status')
-    expect(statusNow(tally({}))).toBeNull()
-    expect(statusNow(tally({ on_track: 3, blocked: 1, passed: 1 }))).toBe('on_track')
-    expect(statusNow(tally({ on_track: 1, passed: 1 }))).toBe('mixed')
-    expect(statusNow(tally({ on_track: 2, blocked: 1, passed: 1, dead_end: 1 }))).toBe('mixed')
-    expect(statusNow(tally({ dead_end: 2, on_track: 1 }))).toBe('dead_end')
+})
+
+describe('claims (decided Oct 14)', () => {
+  it('a thread post with the evidence, named as its poster; it moves the claimant\'s backing to it', async () => {
+    await vote(site(kestrel), BP, 'on_track')
+    const c = await claim(site(kestrel), BP, 'blocked')
+    expect(c).toMatchObject({ node: BP, as: '@kestrel', claim: 'blocked' })
+    expect(w.get('SELECT kind, claim, text FROM post WHERE id = ?', c.id)).toEqual({ kind: 'post', claim: 'blocked', text: 'P_CheckSight still answers for the old block after a break.' })
+    expect(backing(BP)).toEqual([{ handle: 'kestrel', status: 'blocked', claim: c.id, as_name: '@kestrel' }])
+    expect(ups(c.id)).toEqual([]) // their own post: no upvote
+    // a second claim moves it again
+    const d = await claim(site(kestrel), BP, 'passed', 'soak.sh: 10000 placements, 0 failures. log: https://example.org/soak.log')
+    expect(backing(BP)).toEqual([{ handle: 'kestrel', status: 'passed', claim: d.id, as_name: '@kestrel' }])
+    // a plain post is no claim
+    expect((await w.post(site(kestrel), BP, 'just a note')).claim).toBeNull()
   })
 
-  it("is the branch's pass: passed while more than half of the voters say so, and that changes (decided Oct 13)", async () => {
-    const { passedByVote } = await import('../src/core/status')
-    const t = async () => (await vote(site(myra), BP, null), (await vote(site(myra), BP, 'on_track')).votes)
-    expect(passedByVote((await vote(site(kestrel), BP, 'passed')).votes)).toBe(true) // 1 of 1
-    expect(passedByVote(await t())).toBe(false) // 1 of 2: not more than half
-    expect(passedByVote((await vote(site(lumpy), BP, 'passed')).votes)).toBe(true) // 2 of 3
-    expect(passedByVote((await vote(site(lumpy), BP, 'blocked')).votes)).toBe(false) // changed back: 1 of 3
-    expect(w.node(BP).state).toBe('live') // it locks nothing
+  it('an agent makes one for its human, on a shwarm as on a branch; refused with an unknown claim, or with no evidence', async () => {
+    const c = await claim(agent(kestrel, 'claude', ['read', 'post']), BP, 'dead_end', 'the engine has no per-face hook.')
+    expect(backing(BP)).toEqual([{ handle: 'kestrel', status: 'dead_end', claim: c.id, as_name: '@kestrel/claude' }])
+    const d = await claim(agent(kestrel, 'claude', ['read', 'post']), MID, 'passed', 'all nine maps from a pistol start.')
+    expect(backing(MID)).toEqual([{ handle: 'kestrel', status: 'passed', claim: d.id, as_name: '@kestrel/claude' }])
+    for (const s of ['on_track', 'done', 3]) await refused(claim(site(kestrel), BP, s as string), 'bad_request', { field: 'claim' })
+    await refused(claim(site(kestrel), BP, 'passed', '  '), 'bad_request')
   })
 
-  it('moves the branch and its parent, so both signed-out pages change', async () => {
+  it("can't be edited, isn't upvoted, can be pinned; deleting it takes every backing of it off", async () => {
+    const c = await claim(site(kestrel), BP, 'passed')
+    expect((await refused(w.run({ type: 'editPost', actor: site(kestrel), input: { node: BP, post: c.id, text: 'changed my mind' } }), 'not_permitted')).message).toBe(CLAIM_FIXED)
+    expect((await refused(w.run({ type: 'upvote', actor: site(lumpy), input: { node: BP, post: c.id } }), 'bad_request')).message).toBe(BACK_A_CLAIM)
+    expect(await w.run({ type: 'pinPost', actor: site(myra), input: { node: BP, post: c.id, pin: true } })).toMatchObject({ pinned: true })
+    await back(site(lumpy), BP, c.id)
+    const parent = w.node(MID).last_event_id
+    await w.run({ type: 'deletePost', actor: site(kestrel), input: { node: BP, post: c.id } })
+    expect(backing(BP)).toEqual([])
+    expect(w.node(MID).last_event_id).not.toBe(parent)
+  })
+
+  it('hiding one takes every backing of it off', async () => {
+    const c = await claim(site(kestrel), BP, 'blocked')
+    await back(site(lumpy), BP, c.id)
+    await actOnPost(w.db, { personId: myra.id, handle: 'myra' }, c.id, 'hide', { reason: 'spam' }, w.now)
+    expect(backing(BP)).toEqual([])
+    expect(band(BP)).toMatchObject({ challenger: 'blocked', at: at(0) })
+  })
+})
+
+describe('back (decided Oct 14)', () => {
+  it("backs someone else's claim with an upvote; off takes both; a second claim moves it; twice changes nothing", async () => {
+    const c = await claim(site(kestrel), BP, 'blocked')
+    expect(await back(site(lumpy), BP, c.id)).toEqual({ post: c.id, on: true, changed: true, backers: 2 })
+    expect(await back(site(lumpy), BP, c.id)).toMatchObject({ changed: false, backers: 2 })
+    expect(backing(BP)).toEqual([
+      { handle: 'kestrel', status: 'blocked', claim: c.id, as_name: '@kestrel' },
+      { handle: 'lumpy', status: 'blocked', claim: c.id, as_name: '@lumpy' },
+    ])
+    expect(ups(c.id)).toEqual(['lumpy'])
+    const d = await claim(site(kestrel), BP, 'passed')
+    await back(site(lumpy), BP, d.id)
+    expect(ups(c.id)).toEqual([])
+    expect(ups(d.id)).toEqual(['lumpy'])
+    expect(await back(site(lumpy), BP, d.id, false)).toEqual({ post: d.id, on: false, changed: true, backers: 1 })
+    expect(ups(d.id)).toEqual([])
+    expect(await back(site(lumpy), BP, d.id, false)).toMatchObject({ changed: false })
+  })
+
+  it('a claimant who moved away backs their own claim again, with no upvote', async () => {
+    const c = await claim(site(kestrel), BP, 'blocked')
+    await vote(site(kestrel), BP, 'on_track')
+    expect(await back(site(kestrel), BP, c.id)).toMatchObject({ changed: true, backers: 1 })
+    expect(ups(c.id)).toEqual([])
+  })
+
+  it('only a claim, only a human on the site', async () => {
+    const plain = await w.post(site(kestrel), BP, 'a plain post')
+    expect((await refused(back(site(lumpy), BP, plain.id), 'bad_request')).message).toBe(NOT_A_CLAIM)
+    const c = await claim(site(kestrel), BP, 'blocked')
+    await refused(back(agent(lumpy, 'claude', ['read', 'post']), BP, c.id), 'bare_handle_needs_human')
+    expect(await back(site(lumpy), BP, c.id)).toMatchObject({ changed: true, backers: 2 })
+  })
+
+  it('every change saves the band first and moves the branch and its parent', async () => {
     const before = [w.node(BP).last_event_id, w.node(MID).last_event_id]
-    await vote(site(kestrel), BP, 'on_track')
-    expect(w.node(BP).last_event_id).not.toBe(before[0])
+    const c = await claim(site(kestrel), BP, 'passed')
+    expect(w.node(BP).last_event_id).toBe(c.id)
     expect(w.node(MID).last_event_id).not.toBe(before[1])
-  })
-
-  it('closing an account takes its votes away', async () => {
-    await vote(site(kestrel), BP, 'on_track')
-    await vote(site(lumpy), BP, 'blocked')
-    expect(await closeAccount(w.db, kestrel.id, w.now)).toMatchObject({ handle: 'kestrel' })
-    expect(rows(BP)).toEqual([{ handle: 'lumpy', status: 'blocked', as_name: '@lumpy' }])
-  })
-})
-
-describe('agents can pin for their person (decided Oct 13)', () => {
-  it('with the pin permission, only on a node their human wrote, only a post of its own', async () => {
-    const pinner = agent(myra, 'claude', ['read', 'post', 'pin'])
-    const p = await w.post(pinner, MID, 'status update: three branches open.', { pin: true })
-    expect(w.pins(MID)).toEqual([p.id])
-    expect(w.get('SELECT as_name FROM post WHERE id = ?', p.id).as_name).toBe('@myra/claude')
-    await refused(w.post(pinner, MID, 'a pinned reply?', { pin: true, replyTo: p.id }), 'bad_request')
-    await refused(w.post(agent(myra, 'codex', ['read', 'post']), MID, 'no pin here', { pin: true }), 'not_permitted', { need: 'pin' })
-    await w.join(site(kestrel), MID)
-    await refused(w.post(agent(kestrel, 'claude', ['read', 'post', 'pin']), MID, 'mine now', { pin: true }), 'not_permitted', { need: 'author' })
-    expect(w.pins(MID)).toEqual([p.id])
-  })
-})
-
-describe('the branch list: activity sorts, quiet is measured, votes are shown (decided Oct 13)', () => {
-  const clear = () => w.db.raw.prepare("UPDATE node SET triage = 'clear'").run()
-  const list = async () => (await readChildren(w.db, w.node(MID).id, w.now)).branches.map(b => ({ path: b.path, quiet: b.quiet, week: b.week_posts, votes: b.votes.people }))
-
-  it('active branches first, busiest over 7 days first; quiet after 48 hours, longest quiet last; a sub-branch counts for its branch', async () => {
-    // three new nodes a day per person: corners and textures come from others
-    await w.branch(site(kestrel), MID, { title: 'corners' })
-    await w.branch(site(lumpy), MID, { title: 'textures' })
-    await w.branch(site(myra), BP, { title: 'edges' })
-    clear()
-    w.tick(60_000)
-    await w.post(site(kestrel), CORNERS, 'one')
-    await w.post(site(kestrel), CORNERS, 'two')
+    expect(band(BP)).toMatchObject({ current: 'on_track', challenger: null, lead_hours: 0, at: at(0) })
     w.tick(HOUR)
-    await w.post(site(kestrel), BP, 'one')
-    // all three active: corners is busiest
-    expect((await list()).map(b => b.path)).toEqual([CORNERS, BP, 'minecraft-in-doom/textures'])
-    // three days on, all quiet: most recently active first (block placement, then corners, then textures by its creation)
-    w.tick(3 * DAY)
-    expect(await list()).toEqual([
-      { path: BP, quiet: true, week: 1, votes: 0 },
-      { path: CORNERS, quiet: true, week: 2, votes: 0 },
-      { path: 'minecraft-in-doom/textures', quiet: true, week: 0, votes: 0 },
-    ])
-    // a post in block placement's sub-branch wakes block placement; a vote doesn't
-    await w.post(site(lumpy), DEEP, 'edges look fine')
-    await vote(site(lumpy), CORNERS, 'blocked')
-    const now = await list()
-    expect(now[0]).toEqual({ path: BP, quiet: false, week: 2, votes: 0 })
-    expect(now.slice(1).map(b => [b.path, b.quiet, b.votes])).toEqual([
-      [CORNERS, true, 1],
-      ['minecraft-in-doom/textures', true, 0],
-    ])
-  })
-
-  it("a hidden post doesn't count as activity", async () => {
-    clear()
-    w.tick(3 * DAY)
-    const p = await w.post(site(kestrel), BP, 'spam')
-    expect((await list())[0].quiet).toBe(false)
-    w.db.raw.prepare('UPDATE post SET hidden = 1 WHERE id = ?').run(p.id)
-    expect((await list())[0].quiet).toBe(true)
+    await back(site(lumpy), BP, c.id)
+    // saved with the backing it had until then: passed led by 1, which gathers nothing
+    expect(band(BP)).toMatchObject({ current: 'on_track', challenger: 'passed', lead_hours: 0, leading_since: null, at: at(1) })
   })
 })
 
-describe('the API, the briefing and the JSON', () => {
+describe('the rubber band through the acts', () => {
+  it('two backers of passed over nobody on track: passed after 24 hours, and on track pushes back', async () => {
+    const c = await claim(site(kestrel), BP, 'passed')
+    await back(site(lumpy), BP, c.id)
+    const status = async () => readNodeStatus(w.db, w.node(BP).id, w.now)
+    expect(await status()).toMatchObject({ current: 'on_track', backing: tally({ passed: 2 }), challenger: { status: 'passed', lead: 2, changes_at: at(24) } })
+    w.tick(23 * HOUR)
+    expect((await status()).current).toBe('on_track')
+    w.tick(HOUR)
+    expect(await status()).toMatchObject({ current: 'passed', changed_at: at(24), challenger: null })
+    // on-track votes push back: a challenger leading by 2 starts gathering again
+    await w.join(site(ana), BP)
+    await w.join(site(myra), BP)
+    await vote(site(ana), BP, 'on_track')
+    await vote(site(myra), BP, 'on_track')
+    await vote(site(lumpy), BP, 'on_track') // lumpy moves: on track 3, passed 1
+    expect(await status()).toMatchObject({ current: 'passed', challenger: { status: 'on_track', lead: 2, changes_at: at(48) } })
+    w.tick(30 * HOUR)
+    expect(await status()).toMatchObject({ current: 'on_track', changed_at: at(48), challenger: { status: 'passed', lead: -2 } })
+  })
+})
+
+describe('no node takes checks (decided Oct 14: the done test is the sentence alone)', () => {
+  it('a new shwarm or branch keeps none: what it is sent is ignored', async () => {
+    await w.branch(site(kestrel), MID, { title: 'textures', check: { runs: { command: './soak.sh', count: 2 }, people: 2, author: true } })
+    expect(w.node('minecraft-in-doom/textures').checks).toBe('{"author":false}')
+    await w.branch(site(lumpy), MID, { title: 'sounds', check: undefined })
+    expect(w.node('minecraft-in-doom/sounds').checks).toBe('{"author":false}')
+    await w.run({ type: 'createNode', actor: site(kestrel), input: { kind: 'shwarm', title: 'warp travel', what: 'w', doneWhen: 'd', tags: ['x'], check: { people: { count: 2, human: true }, author: true } } })
+    expect(w.node('warp-travel').checks).toBe('{"author":false}')
+  })
+})
+
+describe('the reads the page and the briefing build on', () => {
+  it("the parent's list: each branch's status now and the evidence behind it", async () => {
+    const c = await claim(site(kestrel), BP, 'blocked', 'waiting on the engine: P_CheckSight caches the old block.')
+    const weaker = await claim(site(lumpy), BP, 'blocked', 'stuck too')
+    await back(site(lumpy), BP, c.id) // lumpy moves to kestrel's: 2 for it, 0 for lumpy's own
+    const list = async () => (await readChildren(w.db, w.node(MID).id, w.now)).branches[0]
+    expect(await list()).toMatchObject({ path: BP, votes: tally({ blocked: 2 }), status: { current: 'on_track', challenger: { status: 'blocked', lead: 2 } }, reason: null })
+    w.tick(DAY)
+    expect(await list()).toMatchObject({ status: { current: 'blocked', changed_at: at(24) }, reason: { post: c.id, text: 'waiting on the engine: P_CheckSight caches the old block.' } })
+    expect(weaker.id).not.toBe(c.id)
+  })
+
+  it("the branch's claims newest first with their backers, the viewer's own backing, and the posts' claim and backers", async () => {
+    const c = await claim(site(kestrel), BP, 'blocked')
+    w.tick(60_000)
+    const d = await claim(site(lumpy), BP, 'passed', 'all four corners hold.')
+    await w.join(site(ana), BP)
+    await back(site(ana), BP, d.id)
+    const chain = (await readChain(w.db, BP, ana.id))!
+    const s = await loadStatus(w.db, chain.node, ana.id, w.now)
+    expect(s.claims.map(x => [x.post, x.status, x.by, x.backers, x.pins])).toEqual([
+      [d.id, 'passed', '@lumpy', 2, []],
+      [c.id, 'blocked', '@kestrel', 1, []],
+    ])
+    expect(s.myBacking).toEqual({ status: 'passed', claim: { post: d.id, by: '@lumpy' } })
+    expect(s.now.backing).toEqual(tally({ blocked: 1, passed: 2 }))
+    expect(s.reason).toBeNull() // on track: nothing to say why
+    expect(s.passedClaims).toEqual([]) // ana isn't its author, and a branch has no author's mark
+    expect((await loadStatus(w.db, chain.node, null, w.now)).myBacking).toBeNull()
+    const plain = await w.post(site(kestrel), BP, 'a note')
+    const rows = await readPosts(w.db, [c.id, d.id, plain.id])
+    expect(Object.fromEntries(rows.map(r => [r.id, [r.claim, r.backers]]))).toEqual({ [c.id]: ['blocked', 1], [d.id]: ['passed', 2], [plain.id]: [null, 0] })
+    // the page and the agent view carry it, on the shwarm as on the branch
+    const page = await loadPageData(w.db, chain, { sort: 'active', show: 'all', page: 1, url: '', here: '', me: { personId: ana.id, handle: 'ana', verified: true }, now: w.now })
+    expect(page.status).toMatchObject({ myBacking: { status: 'passed' }, now: { current: 'on_track' } })
+    const view = (await loadAgentView(w.db, chain, { origin: 'https://shwarm.org', before: null, now: w.now })) as any
+    expect(view.status.claims).toHaveLength(2)
+    expect(view.status.now.backing).toEqual(tally({ blocked: 1, passed: 2 }))
+    const shwarm = (await loadAgentView(w.db, (await readChain(w.db, MID, null))!, { origin: '', before: null, now: w.now }))!
+    expect(shwarm.status).toMatchObject({ now: { current: 'on_track', backing: tally({}) }, claims: [], records: [], history: [] })
+  })
+
+  it('counts no vote a worker from before 0031 writes: one with no claim behind it, or from someone not on the branch', async () => {
+    const c = await claim(site(kestrel), BP, 'passed', 'all four corners hold.')
+    await back(site(lumpy), BP, c.id)
+    // as the Oct 13 code wrote them, between 0031's migrate and its deploy: a blocked vote with no claim, an on-track
+    // vote from someone who never joined, and an on-track vote laid over a backing, which kept its claim_id
+    const old = w.db.raw.prepare(
+      `INSERT INTO status_vote (node_id, person_id, status, as_name, at) VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT (node_id, person_id) DO UPDATE SET status = excluded.status, as_name = excluded.as_name, at = excluded.at`,
+    )
+    await w.join(site(ana), BP)
+    old.run(w.node(BP).id, ana.id, 'blocked', '@ana', at(0))
+    old.run(w.node(BP).id, myra.id, 'on_track', '@myra', at(0))
+    old.run(w.node(BP).id, lumpy.id, 'on_track', '@lumpy', at(0))
+    const chain = (await readChain(w.db, BP, ana.id))!
+    const s = await loadStatus(w.db, chain.node, ana.id, w.now)
+    expect(s.now.backing).toEqual(tally({ passed: 1 }))
+    expect(s.claims.map(x => [x.post, x.backers])).toEqual([[c.id, 1]])
+    expect(s.myBacking).toBeNull()
+    expect((await loadStatus(w.db, chain.node, lumpy.id, w.now)).myBacking).toBeNull()
+    expect((await readPosts(w.db, [c.id]))[0].backers).toBe(1)
+    const list = (await readChildren(w.db, w.node(MID).id, w.now)).branches[0]
+    expect(list.votes).toEqual(tally({ passed: 1 }))
+    // casting a vote of the new kind writes over the stray row, and then it counts
+    await vote(site(ana), BP, 'on_track')
+    expect((await loadStatus(w.db, chain.node, ana.id, w.now)).now.backing).toEqual(tally({ on_track: 1, passed: 1 }))
+  })
+
+  it('closing an account takes its backing away, after saving the band', async () => {
+    const c = await claim(site(kestrel), BP, 'blocked')
+    await back(site(lumpy), BP, c.id)
+    w.tick(5 * HOUR)
+    expect(await closeAccount(w.db, lumpy.id, w.now)).toMatchObject({ handle: 'lumpy' })
+    expect(backing(BP).map(r => r.handle)).toEqual(['kestrel'])
+    expect(band(BP)).toMatchObject({ challenger: 'blocked', lead_hours: 10, at: at(5) })
+    expect(ups(c.id)).toEqual(['lumpy']) // the work stays: upvotes are kept (auth/close.ts)
+  })
+})
+
+describe('the API and the site', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', fakeFetch())
     vi.useFakeTimers({ toFake: ['Date'] })
@@ -191,165 +369,114 @@ describe('the API, the briefing and the JSON', () => {
     vi.restoreAllMocks()
   })
 
-  async function api() {
-    const { db, myraId } = await stagingWorld()
-    const env = testEnv(db)
-    const ana = await verifiedPerson(db, 'ana')
-    const key = await keyFor(db, ana.id, { canPostAs: '@ana/*', grants: [{ node: '*', perms: ALL_PERMS }] })
-    const reader = await keyFor(db, ana.id, { canPostAs: '@ana/*', grants: [{ node: '*', perms: ['read'] }], name: 'reader' })
-    const myraPin = await keyFor(db, myraId, { canPostAs: '@myra/*', grants: [{ node: '*', perms: [...ALL_PERMS, 'pin'] }], name: 'pin' })
-    const call = (k: typeof key, path: string, b: unknown) => send(app, env, k, { path, body: b })
-    return { db, env, key, reader, myraPin, call }
-  }
-  const conforms = (op: string, r: { status: number; json: any; text: string }) => {
-    expect(hasResponse(op, r.status), `${op} ${r.status}`).toBe(true)
-    const name = r.status >= 400 ? 'Error' : responseSchema(op, r.status)
-    expect(schemaErrors(name, r.json), r.text.slice(0, 300)).toEqual([])
-  }
-
-  it('kind "status" votes for the human (200), changes, takes back; refuses a shwarm, a stray field and a key without post', async () => {
-    const a = await api()
-    const r = await a.call(a.key, `/w/${EXAMPLE_BRANCH}`, { as: '@ana/claude', kind: 'status', status: 'on_track' })
+  it('kind "status" is the on-track vote; a post with claim is a claim; both for a human who joined', async () => {
+    const env = testEnv(w.db)
+    const key = await keyFor(w.db, kestrel.id, { canPostAs: '@kestrel/*', grants: [{ node: '*', perms: ALL_PERMS }] })
+    const anaKey = await keyFor(w.db, ana.id, { canPostAs: '@ana/*', grants: [{ node: '*', perms: ALL_PERMS }] })
+    const call = (k: typeof key, b: unknown, path = BP) => send(app, env, k, { path: `/w/${path}`, body: b })
+    const r = await call(key, { as: '@kestrel/claude', kind: 'status', status: 'on_track' })
     expect(r.status).toBe(200)
-    expect(r.json).toEqual({
-      node: EXAMPLE_BRANCH,
-      url: `https://shwarm.org/w/${EXAMPLE_BRANCH}`,
-      as: '@ana/claude',
-      person: '@ana',
-      status: 'on_track',
-      changed: true,
-      votes: tally({ on_track: 1 }),
-    })
-    conforms('postToNode', r)
-    const changed = await a.call(a.key, `/w/${EXAMPLE_BRANCH}`, { as: '@ana/codex', kind: 'status', status: 'blocked' })
-    expect(changed.json).toMatchObject({ as: '@ana/codex', status: 'blocked', changed: true, votes: tally({ blocked: 1 }) })
-    const back = await a.call(a.key, `/w/${EXAMPLE_BRANCH}`, { as: '@ana/codex', kind: 'status', status: null })
-    expect(back.json).toMatchObject({ status: null, changed: true, votes: tally({}) })
-    conforms('postToNode', back)
-    const shwarm = await a.call(a.key, `/w/${EXAMPLE_ROOT}`, { as: '@ana/claude', kind: 'status', status: 'passed' })
-    expect(shwarm.status).toBe(400)
-    conforms('postToNode', shwarm)
-    const stray = await a.call(a.key, `/w/${EXAMPLE_BRANCH}`, { as: '@ana/claude', kind: 'status', status: 'passed', text: 'why' })
-    expect(stray.json).toMatchObject({ error: 'bad_request', fields: ['text'] })
-    const missing = await a.call(a.key, `/w/${EXAMPLE_BRANCH}`, { as: '@ana/claude', kind: 'status' })
-    expect(missing.json).toMatchObject({ error: 'bad_request', field: 'status' })
-    const no = await a.call(a.reader, `/w/${EXAMPLE_BRANCH}`, { as: '@ana/claude', kind: 'status', status: 'passed' })
-    expect(no.status).toBe(403)
-    expect(no.json).toMatchObject({ error: 'not_permitted', need: 'post' })
-    conforms('postToNode', no)
+    expect(r.json).toEqual({ node: BP, url: `https://shwarm.org/w/${BP}`, as: '@kestrel/claude', person: '@kestrel', status: 'on_track', claim: null, changed: true, votes: tally({ on_track: 1 }) })
+    const blocked = await call(key, { as: '@kestrel/claude', kind: 'status', status: 'blocked' })
+    expect(blocked.status).toBe(400)
+    expect(blocked.json).toMatchObject({ error: 'bad_request', message: CLAIMS_ARE_POSTS, field: 'status' })
+    const c = await call(key, { as: '@kestrel/claude', kind: 'post', text: 'soak.sh: 0 failures in 10000.', claim: 'passed' })
+    expect(c.status).toBe(201)
+    expect(c.json).toMatchObject({ node: BP, as: '@kestrel/claude', claim: 'passed' })
+    expect((await call(key, { as: '@kestrel/claude', kind: 'post', text: 'a note' })).json.claim).toBeUndefined()
+    const out = await call(anaKey, { as: '@ana/claude', kind: 'status', status: 'on_track' })
+    expect(out.status).toBe(403)
+    expect(out.json).toMatchObject({ error: 'not_joined', message: NOT_JOINED, node: BP })
+    // backing is the human's, on the site
+    const up = await call(key, { as: '@kestrel/claude', kind: 'upvote', post: c.json.id })
+    expect(up.status).toBe(403)
+    expect(up.json.error).toBe('bare_handle_needs_human')
+    const back = await call(key, { as: '@kestrel/claude', kind: 'back', post: c.json.id })
+    expect(back.status).toBe(403)
+    expect(back.json).toMatchObject({ error: 'bare_handle_needs_human', message: 'backing a claim happens only on the site, as @kestrel' })
+    // a claim on the shwarm, for a human on one of its branches
+    const sc = await call(key, { as: '@kestrel/claude', kind: 'post', text: 'all nine maps from a pistol start.', claim: 'passed' }, MID)
+    expect(sc.status).toBe(201)
+    expect(sc.json).toMatchObject({ node: MID, claim: 'passed' })
+    // no submissions or checks anywhere, in core's words; the stray `check` on a new branch is taken and ignored
+    for (const path of [MID, BP]) {
+      const sub = await call(key, { as: '@kestrel/claude', kind: 'submission', text: 'x', links: [{ repo: 'https://codeberg.org/k/x', commit: 'a'.repeat(40) }], how_to_check: 'run it' }, path)
+      expect(sub.status).toBe(400)
+      expect(sub.json).toMatchObject({ error: 'bad_request', message: NO_SUBMISSIONS, node: path })
+      const chk = await call(key, { as: '@kestrel/claude', kind: 'check', on: 'p_aaaaaaaaaa', verdict: 'pass', evidence: [] }, path)
+      expect(chk.status).toBe(400)
+      expect(chk.json).toMatchObject({ error: 'bad_request', message: NO_CHECKS, node: path })
+    }
+    // the author's passed mark and a dead end are the site's: refused for a key as every bare-handle act is
+    const mark = await call(key, { as: '@kestrel/claude', kind: 'mark_passed', post: sc.json.id }, MID)
+    expect(mark.status).toBe(403)
+    expect(mark.json).toMatchObject({ error: 'bare_handle_needs_human', message: 'marking your shwarm passed happens only on the site, as @kestrel' })
+    expect((await call(key, { as: '@kestrel/claude', kind: 'dead_end', note: 'x' }, MID)).status).toBe(400)
+    const made = await send(app, env, key, { path: `/w/${MID}/branches`, body: { as: '@kestrel/claude', title: 'textures', what: 'w', done_when: 'd', check: { people: 2 } } })
+    expect(made.status).toBe(202)
+    expect(w.node('minecraft-in-doom/textures').checks).toBe('{"author":false}')
   })
 
-  it('pin: true pins with the pin permission on a node the human wrote; kind "pin" points there', async () => {
-    const a = await api()
-    const r = await a.call(a.myraPin, `/w/${EXAMPLE_ROOT}`, { as: '@myra/claude', kind: 'post', text: 'status update: three branches open.', pin: true })
-    expect(r.status).toBe(201)
-    conforms('postToNode', r)
-    expect(a.db.raw.prepare('SELECT pinned_at FROM post WHERE id = ?').get(r.json.id).pinned_at).not.toBeNull()
-    const notHers = await a.call(a.key, `/w/${EXAMPLE_ROOT}`, { as: '@ana/claude', kind: 'post', text: 'mine now', pin: true })
-    expect(notHers.status).toBe(403)
-    expect(notHers.json).toMatchObject({ error: 'not_permitted', need: 'pin' })
-    conforms('postToNode', notHers)
-    const kind = await a.call(a.myraPin, `/w/${EXAMPLE_ROOT}`, { as: '@myra/claude', kind: 'pin', post: r.json.id })
-    expect(kind.status).toBe(400)
-    expect(kind.json).toMatchObject({ error: 'bad_request', message: 'to pin, send a post with pin: true', field: 'kind' })
-    conforms('postToNode', kind)
-  })
-
-  it('the briefing and the JSON show votes, quiet and how to vote and pin', async () => {
-    const a = await api()
-    await a.call(a.key, `/w/${EXAMPLE_BRANCH}`, { as: '@ana/claude', kind: 'status', status: 'blocked' })
-    const text = (await send(app, a.env, a.key, { path: `/w/${EXAMPLE_ROOT}` })).text
-    expect(text).toMatch(new RegExp(`- block placement · live( · in review)?( · quiet)? · status: blocked \\(1 blocked; 1 person\\) · https://shwarm.org/w/${EXAMPLE_BRANCH}`))
-    expect(text).toContain('pin: add pin: true to a post, if your key has the pin permission and your human wrote this node.')
-    expect(text).not.toContain('status vote: POST') // a shwarm has no status vote
-    const branch = (await send(app, a.env, a.key, { path: `/w/${EXAMPLE_BRANCH}` })).text
-    expect(branch).toContain('STATUS VOTES (how people see this branch now; one vote each)\nblocked (1 blocked; 1 person)')
-    expect(branch).toContain('status vote: POST to this URL with {as, kind: "status", status: on_track | blocked | passed | dead_end}, or status: null to take it back.')
-    const json = (await send(app, a.env, a.key, { path: `/w/${EXAMPLE_ROOT}?format=json` })).json
-    expect(json.sub_branches[0]).toMatchObject({ path: EXAMPLE_BRANCH, quiet: expect.any(Boolean), last_active: expect.any(String), status: tally({ blocked: 1 }), status_now: 'blocked' })
-    expect(json.status_votes).toBeUndefined()
-    const bj = (await send(app, a.env, a.key, { path: `/w/${EXAMPLE_BRANCH}?format=json` })).json
-    expect(bj.status_votes).toEqual(tally({ blocked: 1 }))
-    expect(bj.passed_by_vote).toBe(false)
-    expect(json.sub_branches[0].passed_by_vote).toBe(false)
-    // voted passed: the branch shows as passed, and the briefing says so; it's still live
-    await a.call(a.key, `/w/${EXAMPLE_BRANCH}`, { as: '@ana/claude', kind: 'status', status: 'passed' })
-    const passed = (await send(app, a.env, a.key, { path: `/w/${EXAMPLE_BRANCH}?format=json` })).json
-    expect(passed).toMatchObject({ state: 'live', passed_by_vote: true, status_now: 'passed', status_votes: tally({ passed: 1 }) })
-    expect((await send(app, a.env, a.key, { path: `/w/${EXAMPLE_BRANCH}` })).text).toContain('state:  live · passed by vote (1 of 1 person)')
-    expect((await send(app, a.env, a.key, { path: `/w/${EXAMPLE_ROOT}` })).text).toMatch(/- block placement · live( · in review)? · status: passed \(1 passed; 1 person\)/)
-    expect(bj.take_part.rules.some((r: string) => r.startsWith('status vote: POST to take_part.post'))).toBe(true)
-    expect(schemaErrors('Node', bj)).toEqual([])
-    expect(schemaErrors('Node', json)).toEqual([])
-  })
-})
-
-describe('the page', () => {
-  beforeEach(() => {
-    vi.stubGlobal('fetch', fakeFetch())
-    vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(T0)
-    resetReadLimit()
-    forgetVersions()
-  })
-  afterEach(() => {
-    vi.unstubAllGlobals()
-    vi.useRealTimers()
-  })
-
-  async function member(env: ReturnType<typeof testEnv>, handle: string) {
-    const pid = await addPerson(env.DB, handle, { hash: await hashPassword(GOOD_PASSWORD, pepper, 1000) })
-    env.DB.raw.prepare('UPDATE person SET email_verified_at = ?, founding = 1 WHERE id = ?').run(new Date(T0).toISOString(), pid)
+  async function member(handle: string) {
+    const env = testEnv(w.db)
+    const id = w.get('SELECT id FROM person WHERE handle = ?', handle)?.id ?? (await addPerson(w.db, handle))
+    w.db.raw.prepare('UPDATE person SET password_hash = ?, email_verified_at = ?, founding = 1 WHERE id = ?').run(await hashPassword(GOOD_PASSWORD, pepper, 1000), new Date(T0).toISOString(), id)
     const b = new Browser(env)
     expect((await b.post('/signin', { email: `${handle}@example.org`, password: GOOD_PASSWORD })).status).toBe(303)
     return b
   }
   const page = async (b: Browser, path: string) => body(await b.req(`/w/${path}`, { headers: { accept: 'text/html' } }))
-  const box = (html: string) => html.slice(html.indexOf('<div class="box status-vote">'), html.indexOf('<div class="box">', html.indexOf('<div class="box status-vote">')))
 
-  it("a branch's status box: a button per status, the viewer's vote marked, take it back; bars in the parent's list", async () => {
-    const { db } = await stagingWorld()
-    const env = testEnv(db)
-    const b = await member(env, 'ana')
-    const html = await page(b, EXAMPLE_BRANCH)
-    expect(box(html)).toContain('<h2>status</h2>')
-    expect(box(html)).toContain('nobody has voted yet.')
-    expect(box(html)).toContain('<button class="btn plain" type="submit" name="status" value="blocked" aria-pressed="false">blocked</button>')
-    const r = await b.req(`/w/${EXAMPLE_BRANCH}`, { form: { form_token: formTokenIn(html), do: 'status', status: 'blocked' } })
+  it('do=status toggles the on-track vote, do=claim posts a claim, do=back backs one; refusals say why', async () => {
+    const k = await member('kestrel')
+    const l = await member('lumpy')
+    const a = await member('ana')
+    const form = async (b: Browser, f: Record<string, string>) => b.req(`/w/${BP}`, { form: { form_token: formTokenIn(await page(b, BP)), ...f } })
+    expect((await form(k, { do: 'status', status: 'on_track' })).status).toBe(303)
+    expect(backing(BP)).toMatchObject([{ handle: 'kestrel', status: 'on_track' }])
+    await form(k, { do: 'status', status: '' })
+    expect(backing(BP)).toEqual([])
+    const r = await form(k, { do: 'claim', status: 'blocked', text: 'P_CheckSight caches the old block.' })
     expect(r.status).toBe(303)
-    const after = box(await page(b, EXAMPLE_BRANCH))
-    expect(after).toContain('<button class="btn on" type="submit" name="status" value="blocked" aria-pressed="true">blocked</button>')
-    // one badge, the bars behind it in a panel that hover or a tap opens (Myra, Oct 13)
-    expect(after).toContain('<div class="vote-badge"><button type="button" class="st vs blocked" aria-expanded="false" aria-controls="vb-box" aria-describedby="vb-box">blocked</button><div class="vb-panel" id="vb-box"><div class="votes">')
-    expect(after).toContain('<li class="mine" title="blocked: 1 of 1"><span class="vl">blocked</span><span class="vb"><i style="width:100%"></i></span><span class="vn">100%</span></li>')
-    expect(after).toContain('1 person voted')
-    expect(after).toContain('take my vote back')
-    const parent = await page(b, EXAMPLE_ROOT)
-    expect(parent).toContain('<div class="pills"><div class="vote-badge"><button type="button" class="st vs blocked" aria-expanded="false" aria-controls="vb-minecraft-in-doom-block-placement" aria-describedby="vb-minecraft-in-doom-block-placement">blocked</button>')
-    expect(parent).toContain('<li title="blocked: 1 of 1"><span class="vl">blocked</span>')
-    // voted passed: the pill says passed, here and in the parent's list
-    const before = await page(b, EXAMPLE_BRANCH)
-    await b.req(`/w/${EXAMPLE_BRANCH}`, { form: { form_token: formTokenIn(before), do: 'status', status: 'passed' } })
-    // the running example's branch has a submission in review: "in review", then the badge; no "live"
-    expect(await page(b, EXAMPLE_BRANCH)).toContain('<div class="state"><span class="st live">in review</span><div class="vote-badge"><button type="button" class="st vs passed" aria-expanded="false" aria-controls="vb-head" aria-describedby="vb-head">passed</button>')
-    expect(await page(b, EXAMPLE_ROOT)).toContain('<div class="pills"><div class="vote-badge"><button type="button" class="st vs passed"')
-    // taking it back
-    const again = await page(b, EXAMPLE_BRANCH)
-    await b.req(`/w/${EXAMPLE_BRANCH}`, { form: { form_token: formTokenIn(again), do: 'status', status: '' } })
-    expect(box(await page(b, EXAMPLE_BRANCH))).toContain('nobody has voted yet.')
-    // a shwarm has no status box; signed out, the box says how to vote
-    expect(parent).not.toContain('status-vote')
-    const out = await body(await new Browser(env).req(`/w/${EXAMPLE_BRANCH}`, { headers: { accept: 'text/html' } }))
-    expect(box(out)).toContain('sign in to vote')
+    const id = w.get("SELECT id FROM post WHERE claim = 'blocked'").id
+    expect(r.headers.get('location')).toBe(`/w/${BP}#${id}`)
+    // a double click lands on the first
+    expect((await form(k, { do: 'claim', status: 'blocked', text: 'P_CheckSight caches the old block.' })).headers.get('location')).toBe(`/w/${BP}#${id}`)
+    expect(w.get("SELECT COUNT(*) AS n FROM post WHERE claim = 'blocked'").n).toBe(1)
+    expect((await form(l, { do: 'back', post: id, on: '1' })).headers.get('location')).toBe(`/w/${BP}#${id}`)
+    expect(backing(BP).map(x => [x.handle, x.claim])).toEqual([['kestrel', id], ['lumpy', id]])
+    await form(l, { do: 'back', post: id, on: '0' })
+    expect(backing(BP).map(x => x.handle)).toEqual(['kestrel'])
+    // not joined: the words; an empty claim keeps its form
+    const refusedPage = await form(a, { do: 'back', post: id, on: '1' })
+    expect(refusedPage.status).toBe(400)
+    expect(await body(refusedPage)).toContain(`${NOT_JOINED}.`)
+    const empty = await form(k, { do: 'claim', status: 'passed', text: '  ' })
+    expect(empty.status).toBe(400)
+    // an upvote on a claim points at back
+    expect(await body(await form(l, { do: 'upvote', post: id, up: '1' }))).toContain(`${BACK_A_CLAIM}.`)
   })
 
-  it('a live branch quiet for over 48 hours says so in the parent\'s list', async () => {
-    const { db } = await stagingWorld()
-    const env = testEnv(db)
-    vi.setSystemTime(T0 + 30 * DAY)
-    const html = await body(await new Browser(env).req(`/w/${EXAMPLE_ROOT}`, { headers: { accept: 'text/html' } }))
-    expect(html).toContain('<span class="st quiet" title="nothing posted on this branch or its sub-branches for over 48 hours">quiet</span>')
-    const list = html.slice(html.indexOf('<ul class="branches">'), html.indexOf('</ul>', html.indexOf('<ul class="branches">')))
-    expect(list).not.toContain('class="st live"') // no "live" pill on a branch (Myra, Oct 13)
+  it('old forms for a submission, a check, a sign-off or a dead end are refused with why', async () => {
+    const m = await member('myra')
+    const token = formTokenIn(await page(m, MID))
+    const old = async (path: string, f: Record<string, string>) => m.req(`/w/${path}`, { form: { form_token: token, ...f } })
+    const sub = await old(MID, { do: 'submit', text: 'my fix', links: 'https://codeberg.org/m/x ' + 'a'.repeat(40), how_to_check: 'run it' })
+    expect(sub.status).toBe(400)
+    expect(await body(sub)).toContain(`${NO_SUBMISSIONS}.`)
+    const dead = await old(MID, { do: 'dead_end', note: 'the engine cannot do it', password: GOOD_PASSWORD })
+    expect(dead.status).toBe(400)
+    expect(await body(dead)).toContain(`${NO_DEAD_END}.`)
+    // an old submission page's check or sign-off
+    const n = w.node(MID)
+    w.db.raw.prepare("INSERT INTO post (id, node_id, person_id, as_name, kind, text, created_at) VALUES ('p_oldsub0001', ?, ?, '@kestrel', 'submission', 'old work', ?)").run(n.id, kestrel.id, at(0))
+    w.db.raw.prepare("INSERT INTO submission (post_id, node_id, number, hash, how_to_check, status) VALUES ('p_oldsub0001', ?, 1, ?, 'run it', 'superseded')").run(n.id, 'a'.repeat(64))
+    for (const act of ['check', 'signoff']) {
+      const r = await old(`${MID}/s/1`, { do: act, verdict: 'pass', text: 'played it', password: GOOD_PASSWORD })
+      expect(r.status).toBe(400)
+      expect(await body(r)).toContain(`${NO_CHECKS}.`)
+    }
+    expect(w.get('SELECT COUNT(*) AS n FROM check_report').n).toBe(0)
+    expect(w.node(MID)).toMatchObject({ state: 'live', in_review: 0 })
   })
 })

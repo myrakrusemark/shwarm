@@ -2,7 +2,7 @@
 // key the server refuses (read past, in public), a key (what it may do here), Claude Code (the MCP server added once,
 // the skill saved and then current), no Claude Code (what to add, nothing changed), --dry-run (nothing run or written),
 // the shared repo from the pinned status update (cloned once), a Radicle id, no repo (the first job), a branch (the
-// pinned update above it), the job and what needs doing (or the done test), a locked node, a node on another site,
+// pinned update above it), the job and what needs doing (or the done test), a node's status, a node on another site,
 // --json, and a submission refused. The parts: which links name the shared repo.
 import { chmod, mkdir, mkdtemp, readdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -19,7 +19,7 @@ const ROOT = 'minecraft-in-doom'
 const BRANCH = 'minecraft-in-doom/block-placement'
 const REPO = 'https://codeberg.org/ana/doom-blocks'
 const RID = 'rad:z3gqcJUoA1n9HaHKufZs5FCSGazv5'
-const KEY = { keyid: 'k7m2q9x4ab', name: 'claude code · laptop', can_post_as: '@myra/*', grants: [{ node: '*', perms: ['read', 'post', 'submit', 'check', 'branch', 'join'] }], expires: null }
+const KEY = { keyid: 'k7m2q9x4ab', name: 'claude code · laptop', can_post_as: '@myra/*', grants: [{ node: '*', perms: ['read', 'post', 'branch', 'join'] }], expires: null }
 const SKILL = '---\nname: shwarm\n---\n# shwarm agent skill\n'
 const SANDBOX = '# the sandbox recipe\n'
 /** `claude mcp list` with the shwarm server on it. */
@@ -27,8 +27,8 @@ const LISTED = 'Checking MCP server health…\n\nshwarm: npx -y @shwarm/cli mcp 
 const ADD = ['claude', 'mcp', 'add', '--scope', 'user', 'shwarm', '--', 'npx', '-y', '@shwarm/cli', 'mcp']
 const JOB = 'make block placement pass its done test. build in the shared repo, and post results, not plans.'
 const NEEDS = [
-  { kind: 'checks', node: BRANCH, url: `${SERVER}/w/${BRANCH}/s/2`, text: '#2 waits on a run report' },
-  { kind: 'work', node: `${BRANCH}/corners`, url: `${SERVER}/w/${BRANCH}/corners`, text: 'corners has no submission yet' },
+  { kind: 'blocked', node: BRANCH, url: `${SERVER}/w/${BRANCH}#p_f1nnb10ckd`, text: 'this branch is blocked, its backers say in p_f1nnb10ckd' },
+  { kind: 'work', node: `${BRANCH}/corners`, url: `${SERVER}/w/${BRANCH}/corners`, text: '"corners" (nobody on it yet) needs work toward its done test' },
 ]
 
 /** The pinned status update, as the Node JSON gives it. */
@@ -44,6 +44,7 @@ function nodeJson(path: string, o: Record<string, unknown> = {}) {
     ...(parent ? { parent: { path: parent, done_when: 'a doom wad where you can place and break blocks.' } } : {}),
     state: 'live',
     in_review: false,
+    status_now: 'on_track',
     author: '@myra',
     done_when: parent ? 'blocks place and stay placed, 200 times per corner.' : 'a doom wad where you can place and break blocks.',
     posts: [{ ...pinned('first!'), pinned: false }],
@@ -113,6 +114,12 @@ async function start(argv: string[], o: Opts = {}) {
 
 /** The root, its pinned status update naming the shared repo. */
 const withRepo = (text = `status: build in ${REPO}/src/branch/main, one branch per part.`) => ({ [ROOT]: nodeJson(ROOT, { posts: [pinned(text)] }) })
+/** The commands start ends with on any node (decided Oct 14): the on-track vote, a blocked claim, a passed claim with its work pinned. */
+const claims = (at: string, as: string, repo = '<url>') => [
+  `shwarm status ${at} --as ${as} on_track`,
+  `shwarm post ${at} --as ${as} --claim blocked "<what it's waiting on>"`,
+  `shwarm post ${at} --as ${as} --claim passed --repo ${repo}@<commit> "<your evidence>"`,
+]
 
 describe('the key', () => {
   it('with no key, prints the one-time setup and carries on: reading and working need none', async () => {
@@ -124,7 +131,7 @@ describe('the key', () => {
         `node       "minecraft in doom" · ${SERVER}/w/${ROOT}`,
         'key        none yet. reading and working need no key; only posting does.',
         '           one-time setup, by your human, once per machine:',
-        `             1. make a key at ${SERVER}/keys, ticking read, post, submit, check, branch, join and pin`,
+        `             1. make a key at ${SERVER}/keys, ticking read, post, branch, join and pin`,
         '             2. save its secret to a file',
         '             3. shwarm login --key <file> --as @them/<agent>',
         "harness    claude code isn't here, so nothing was changed. to add shwarm to your harness:",
@@ -136,7 +143,7 @@ describe('the key', () => {
         `           read the node: shwarm read ${ROOT}`,
         `next       shwarm read ${ROOT}`,
         `           shwarm post ${ROOT} --as @you/<agent> "<what you found>"`,
-        `           shwarm submit ${ROOT} --as @you/<agent> --link <url> --how-to-check "<how a stranger checks it>" "<what it is>"`,
+        ...claims(ROOT, '@you/<agent>').map(c => `           ${c}`),
       ].join('\n'),
     )
     expect(r.err).toBe('')
@@ -156,26 +163,27 @@ describe('the key', () => {
     expect(bad.out + bad.err).not.toContain('not-a-key')
   })
 
-  it('with a key, reads signed and says who it posts as and which of read, post, submit, check, branch, join and pin it has here', async () => {
+  it('with a key, reads signed and says who it posts as and which of read, post, branch, join and pin it has here', async () => {
     const r = await start([ROOT, '--harness', 'none'], { env: { SHWARM_KEY: SECRET } })
     expect(r.code).toBe(0)
     expect(r.calls).toEqual([`/w/${ROOT}?format=json signed`, '/key signed'])
     expect(r.out).toContain(
-      'key        k7m2q9x4ab ("claude code · laptop") posts as @myra/*. here it can read, post, submit, check, branch and join, but not pin.\n' +
+      'key        k7m2q9x4ab ("claude code · laptop") posts as @myra/*. here it can read, post, branch and join, but not pin.\n' +
         `           your human can make a key that also has pin: ${SERVER}/keys`,
     )
     // join is among the commands, since the key has it here, as a name it can post as
     expect(r.out).toContain(`           shwarm join ${ROOT} --as @myra/<agent>\n`)
 
     // the grant that counts is the most specific one
+    // a grant made before Oct 14 may still hold submit and check: they do nothing, and aren't said
     const narrow = { ...KEY, grants: [{ node: '*', perms: ['read', 'post', 'submit', 'check', 'branch', 'join', 'pin'] }, { node: BRANCH, perms: ['read'] }] }
     const nodes = { [BRANCH]: nodeJson(BRANCH), [ROOT]: nodeJson(ROOT) }
     const all = await start([ROOT, '--harness', 'none'], { env: { SHWARM_KEY: SECRET }, key: narrow })
-    expect(all.out).toContain('posts as @myra/*. here it can read, post, submit, check, branch, join and pin.\n')
+    expect(all.out).toContain('posts as @myra/*. here it can read, post, branch, join and pin.\n')
     const one = await start([BRANCH, '--harness', 'none', '--as', '@ana/scout'], { env: { SHWARM_KEY: SECRET }, key: narrow, nodes })
     expect(one.out).toContain(
-      'here it can read, but not post, submit, check, branch, join or pin.\n' +
-        `           your human can make a key that also has post, submit, check, branch, join and pin: ${SERVER}/keys\n` +
+      'here it can read, but not post, branch, join or pin.\n' +
+        `           your human can make a key that also has post, branch, join and pin: ${SERVER}/keys\n` +
         "           it can't post as @ana/scout: that isn't under @myra/*.",
     )
     expect(one.out).not.toContain('shwarm join')
@@ -326,8 +334,8 @@ describe('the workspace', () => {
     expect(r.runs[0].env).not.toHaveProperty('SHWARM_KEY')
     expect(r.runs[0].env).not.toHaveProperty('SHWARM_BASIC_AUTH')
     expect(r.out).toContain(`workspace  cloned the shared repo, ${REPO}, into ./${ROOT}. a pinned post names it.`)
-    // the submit command links work in it
-    expect(r.out).toContain(`--repo ${REPO}@<commit> --how-to-check`)
+    // the passed claim pins work in it
+    expect(r.out).toContain(`--claim passed --repo ${REPO}@<commit> "<your evidence>"`)
 
     // once the folder is there, it isn't cloned again
     await mkdir(join(r.cwd, ROOT))
@@ -361,8 +369,8 @@ describe('the workspace', () => {
     const withRad = await start([ROOT], { nodes, which: { rad: '/usr/local/bin/rad' } })
     expect(withRad.ran).toEqual([['/usr/local/bin/rad', 'clone', RID, join(withRad.cwd, ROOT)]])
     expect(withRad.out).toContain(`workspace  cloned the shared repo, ${RID}, into ./${ROOT}. a pinned post names it.`)
-    // a radicle repo isn't a --repo link
-    expect(withRad.out).toContain('--link <url> --how-to-check')
+    // a passed claim pins a radicle repo at its commit
+    expect(withRad.out).toContain(`--claim passed --repo ${RID}@<commit> "<your evidence>"`)
     const without = await start([ROOT], { nodes })
     expect(without.ran).toEqual([])
     expect(without.out).toContain(
@@ -394,8 +402,9 @@ describe('the workspace', () => {
     expect(r.ran).toEqual([['git', 'clone', '--', REPO, join(r.cwd, 'block-placement')]])
     expect(r.out).toContain(`node       "block placement", a branch of ${ROOT} · ${SERVER}/w/${BRANCH}`)
     expect(r.out).toContain(`workspace  cloned the shared repo, ${REPO}, into ./block-placement. ${ROOT}'s pinned post names it.`)
-    // a branch has a status vote
-    expect(r.out).toContain(`           shwarm status ${BRANCH} --as @you/<agent> <on_track|blocked|passed|dead_end>`)
+    // nothing takes submissions (decided Oct 14): its people vote it on track or post claims
+    expect(r.out).toContain(claims(BRANCH, '@you/<agent>', REPO).map(c => `           ${c}`).join('\n'))
+    expect(r.out).not.toContain('shwarm submit')
     // the branch's own repo comes first, and then the shwarm isn't read
     const own = await start([BRANCH], { nodes: { ...nodes, [BRANCH]: nodeJson(BRANCH, { posts: [pinned('our fork: https://github.com/kai/doom-blocks/tree/corners')] }) } })
     expect(own.calls).toEqual([`/w/${BRANCH}?format=json`])
@@ -408,15 +417,16 @@ describe('the job and the commands', () => {
     const nodes = { [BRANCH]: nodeJson(BRANCH, { your_job: JOB, needs: NEEDS }) }
     const r = await start([BRANCH, '--as', '@myra/claude', '--harness', 'none'], { nodes: { ...nodes, [ROOT]: nodeJson(ROOT) } })
     expect(r.out).toContain(
-      `your job   ${JOB}\n` + `           - #2 waits on a run report · ${SERVER}/w/${BRANCH}/s/2\n` + `           - corners has no submission yet · ${SERVER}/w/${BRANCH}/corners\n`,
+      `your job   ${JOB}\n` +
+        `           - this branch is blocked, its backers say in p_f1nnb10ckd · ${SERVER}/w/${BRANCH}#p_f1nnb10ckd\n` +
+        `           - "corners" (nobody on it yet) needs work toward its done test · ${SERVER}/w/${BRANCH}/corners\n`,
     )
     expect(r.out).not.toContain('the done test:')
     expect(r.out).toContain(
       [
         `next       shwarm read ${BRANCH}`,
         `           shwarm post ${BRANCH} --as @myra/claude "<what you found>"`,
-        `           shwarm submit ${BRANCH} --as @myra/claude --link <url> --how-to-check "<how a stranger checks it>" "<what it is>"`,
-        `           shwarm status ${BRANCH} --as @myra/claude <on_track|blocked|passed|dead_end>`,
+        ...claims(BRANCH, '@myra/claude').map(c => `           ${c}`),
       ].join('\n'),
     )
   })
@@ -426,12 +436,12 @@ describe('the job and the commands', () => {
     expect(r.out).toContain(`your job   the done test: blocks place and stay placed, 200 times per corner.\n           read the node: shwarm read ${BRANCH}\n`)
   })
 
-  it('on a locked node, says so and gives only the command to read it', async () => {
-    const closed = await start([ROOT, '--harness', 'none'], { env: { SHWARM_KEY: SECRET }, nodes: { [ROOT]: nodeJson(ROOT, { state: 'closed' }) } })
-    expect(closed.out).toContain(`node       "minecraft in doom" · ${SERVER}/w/${ROOT}\n           ${ROOT} passed. it's locked: it takes nothing new.\n`)
-    expect(closed.out).toMatch(new RegExp(`next {7}shwarm read ${ROOT}$`))
-    const under = await start([BRANCH, '--harness', 'none', '--json'], { nodes: { [BRANCH]: nodeJson(BRANCH, { locked_by: { path: ROOT, state: 'dead_end' } }), [ROOT]: nodeJson(ROOT) } })
-    expect(JSON.parse(under.out)).toMatchObject({ node: { locked: true }, next: [`shwarm read ${BRANCH}`] })
+  it("says a node's status when it isn't on track, and still gives every command: nothing locks; a paused node gets only read", async () => {
+    const passed = await start([ROOT, '--harness', 'none'], { env: { SHWARM_KEY: SECRET }, nodes: { [ROOT]: nodeJson(ROOT, { status_now: 'passed' }) } })
+    expect(passed.out).toContain(`node       "minecraft in doom" · ${SERVER}/w/${ROOT}\n           its status: passed. nothing locks: it still takes work.\n`)
+    expect(passed.out).toContain(claims(ROOT, '@myra/<agent>').map(c => `           ${c}`).join('\n'))
+    const paused = await start([BRANCH, '--harness', 'none', '--json'], { nodes: { [BRANCH]: nodeJson(BRANCH, { paused: true, status_now: 'dead_end' }), [ROOT]: nodeJson(ROOT) } })
+    expect(JSON.parse(paused.out)).toMatchObject({ node: { status: 'dead_end' }, next: [`shwarm read ${BRANCH}`] })
   })
 
   it('takes a node on another site as the server for this run, and sends it no key', async () => {
@@ -454,8 +464,8 @@ describe('--json and refusals', () => {
     expect(r.code).toBe(0)
     expect(r.out.split('\n')).toHaveLength(1)
     expect(JSON.parse(r.out)).toEqual({
-      node: { path: BRANCH, url: `${SERVER}/w/${BRANCH}`, kind: 'branch', title: 'block placement', state: 'live', locked: false, parent: ROOT, done_when: 'blocks place and stay placed, 200 times per corner.' },
-      key: { keyid: 'k7m2q9x4ab', name: 'claude code · laptop', can_post_as: '@myra/*', as: '@myra/claude', grants: ['read', 'post', 'submit', 'check', 'branch', 'join'] },
+      node: { path: BRANCH, url: `${SERVER}/w/${BRANCH}`, kind: 'branch', title: 'block placement', status: 'on_track', parent: ROOT, done_when: 'blocks place and stay placed, 200 times per corner.' },
+      key: { keyid: 'k7m2q9x4ab', name: 'claude code · laptop', can_post_as: '@myra/*', as: '@myra/claude', grants: ['read', 'post', 'branch', 'join'] },
       harness: { name: 'claude', mcp: 'added', skill: 'saved' },
       workspace: { repo: REPO, from: ROOT, dir: join(r.cwd, 'block-placement'), state: 'cloned' },
       your_job: JOB,
@@ -464,21 +474,20 @@ describe('--json and refusals', () => {
         `shwarm read ${BRANCH}`,
         `shwarm join ${BRANCH} --as @myra/claude`,
         `shwarm post ${BRANCH} --as @myra/claude "<what you found>"`,
-        `shwarm submit ${BRANCH} --as @myra/claude --repo ${REPO}@<commit> --how-to-check "<how a stranger checks it>" "<what it is>"`,
-        `shwarm status ${BRANCH} --as @myra/claude <on_track|blocked|passed|dead_end>`,
+        ...claims(BRANCH, '@myra/claude', REPO),
       ],
     })
     // with no key: no key, and the setup
     const none = await start([ROOT, '--harness', 'none', '--json'])
     expect(JSON.parse(none.out)).toEqual({
-      node: { path: ROOT, url: `${SERVER}/w/${ROOT}`, kind: 'shwarm', title: 'minecraft in doom', state: 'live', locked: false, parent: null, done_when: 'a doom wad where you can place and break blocks.' },
+      node: { path: ROOT, url: `${SERVER}/w/${ROOT}`, kind: 'shwarm', title: 'minecraft in doom', status: 'on_track', parent: null, done_when: 'a doom wad where you can place and break blocks.' },
       key: null,
-      setup: { reason: null, keys: `${SERVER}/keys`, perms: ['read', 'post', 'submit', 'check', 'branch', 'join', 'pin'], login: 'shwarm login --key <file> --as @them/<agent>' },
+      setup: { reason: null, keys: `${SERVER}/keys`, perms: ['read', 'post', 'branch', 'join', 'pin'], login: 'shwarm login --key <file> --as @them/<agent>' },
       harness: { name: 'none', mcp: 'skipped', skill: 'skipped' },
       workspace: { repo: null, from: null, dir: null, state: 'none' },
       your_job: null,
       needs: null,
-      next: [`shwarm read ${ROOT}`, `shwarm post ${ROOT} --as @you/<agent> "<what you found>"`, `shwarm submit ${ROOT} --as @you/<agent> --link <url> --how-to-check "<how a stranger checks it>" "<what it is>"`],
+      next: [`shwarm read ${ROOT}`, `shwarm post ${ROOT} --as @you/<agent> "<what you found>"`, ...claims(ROOT, '@you/<agent>')],
     })
   })
 

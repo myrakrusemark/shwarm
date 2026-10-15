@@ -271,21 +271,16 @@ describe('/admin/people: the acts', () => {
 })
 
 describe('/admin/people: suspend', () => {
-  it('ends sessions, revokes keys, queues the mail with the reason, hands waiting sign-offs to the operator; they can no longer sign in or act', async () => {
+  it('ends sessions, revokes keys, queues the mail with the reason, hands nothing to the operator; they can no longer sign in or act', async () => {
     const w = await world()
     const r = (sql: string, ...a: unknown[]) => w.raw.prepare(sql).run(...a)
     const ana = w.ids.ana
-    // ana authors a shwarm whose submission #1 waits on her sign-off.
-    const node = Number(
-      r(
-        `INSERT INTO node (path, slug, kind, title, what, done_when, checks, lobby_size, license, author_id, posted_by, state, triage, created_at)
-         VALUES ('minecraft-in-doom', 'minecraft-in-doom', 'shwarm', 'minecraft in doom', 'w', 'd', '{"author":true}', 1, 'MIT', ?, '@ana', 'live', 'clear', ?)`,
-        ana, iso(T0),
-      ).lastInsertRowid,
+    // ana authors a shwarm.
+    r(
+      `INSERT INTO node (path, slug, kind, title, what, done_when, checks, lobby_size, license, author_id, posted_by, state, triage, created_at)
+       VALUES ('minecraft-in-doom', 'minecraft-in-doom', 'shwarm', 'minecraft in doom', 'w', 'd', '{"author":false}', 1, 'MIT', ?, '@ana', 'live', 'clear', ?)`,
+      ana, iso(T0),
     )
-    r("INSERT INTO post (id, node_id, person_id, as_name, kind, text, created_at) VALUES ('p_sub', ?, ?, '@ana/m-01', 'submission', 'done', ?)", node, ana, iso(T0))
-    r("INSERT INTO submission (post_id, node_id, number, hash, how_to_check) VALUES ('p_sub', ?, 1, ?, 'run it')", node, 'a'.repeat(64))
-    r("INSERT INTO inbox_item (person_id, kind, node_id, post_id, text, created_at) VALUES (?, 'sign_off', ?, 'p_sub', '#1 is ready', ?)", ana, node, iso(T0))
     r("INSERT INTO agent_key (id, person_id, name, public_key, can_post_as, created_at) VALUES ('ana-1', ?, 'one', 'pk', '@ana/m-01', ?)", ana, iso(T0))
     r("INSERT INTO agent_key (id, person_id, name, public_key, can_post_as, created_at, revoked_at) VALUES ('ana-2', ?, 'two', 'pk', '@ana/m-02', ?, ?)", ana, iso(T0), iso(T0 - MIN))
     r("INSERT INTO email_token (id, person_id, purpose, created_at, expires_at) VALUES ('reset-tok', ?, 'reset', ?, ?)", ana, iso(T0), iso(T0 + MIN * 60))
@@ -313,11 +308,9 @@ describe('/admin/people: suspend', () => {
     expect(shown.subject).toBe('your shwarm account is suspended')
     expect(shown.text).toContain("the reason: posted a stranger's home address")
     expect(shown.text).toContain('hi @ana,')
-    // The author-gone rule: each active admin gets the sign-off, item and mail.
-    expect(w.all("SELECT person_id FROM inbox_item WHERE kind = 'sign_off' AND post_id = 'p_sub' ORDER BY person_id").map(x => x.person_id)).toEqual([ana, w.ids.myra, w.ids.op].sort((a, b) => a - b))
-    const handed = sent.filter(m => m.template === 'sign_off_ready')
-    expect(handed.map(m => m.to_email).sort()).toEqual(['myra@example.org', 'op@example.org'])
-    expect(JSON.parse(handed[0].payload)).toMatchObject({ author_gone: true, author: 'ana', number: 1, link: '/w/minecraft-in-doom/s/1' })
+    // Nobody stands in for an author who's gone (decided Oct 14: the crowd's pass is enough): no item or mail for the admins.
+    expect(w.all('SELECT person_id FROM inbox_item')).toEqual([])
+    expect(sent.map(m => m.template)).toEqual(['account_suspended'])
     // Public row.
     expect(w.modRows()).toEqual([{ by_person: w.ids.myra, action: 'suspend', node_id: null, post_id: null, person_id: ana, reason: "posted a stranger's home address", public: 1 }])
 

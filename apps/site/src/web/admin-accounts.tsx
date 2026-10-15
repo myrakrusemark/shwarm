@@ -57,7 +57,7 @@ const ACTS: Record<AccountAct, { title: string; what: string; button: string; wa
   unfounding: { title: 'remove founding', what: "they're established again only with an upvoted post and a week since joining.", button: 'remove founding' },
   suspend: {
     title: 'suspend',
-    what: 'ends their sessions, revokes their keys and mails them the reason. sign-offs waiting on them go to the operator.',
+    what: 'ends their sessions, revokes their keys and mails them the reason.',
     button: 'suspend',
     warn: true,
   },

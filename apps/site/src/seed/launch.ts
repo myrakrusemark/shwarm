@@ -13,11 +13,7 @@ export type LaunchShwarm = {
   tags: string[]
   what: string
   done_when: string
-  checked_by: {
-    runs?: { command?: string; count?: number; description?: string } | null
-    people?: { count?: number; human?: boolean; instructions?: string } | null
-    author?: boolean
-  }
+  checked_by?: unknown // no longer read: no node keeps checks, its done test is the sentence (decided Oct 14)
   lobby?: number // no longer read: every shwarm is live once it's posted (decided Oct 9, "No lobby")
   builds_on?: string | { name: string; url?: string; license: string } | null
   license?: string // one of the A2 list, for a shwarm with no builds_on (card fixes, Oct 11: kart race on the moon, latexml)
@@ -42,109 +38,20 @@ export type MappedShwarm = {
 
 // Every field launch-shwarms.json may hold (table B). Anything else is reported, never dropped quietly.
 const KNOWN_FIELDS = new Set(['slug', 'wave', 'title', 'category', 'tags', 'what', 'done_when', 'checked_by', 'lobby', 'builds_on', 'license', 'sources', 'why_now', 'size', 'needs_humans', 'risk_notes', 'variant_of'])
-const KNOWN_CHECK = new Set(['runs', 'people', 'author'])
-const KNOWN_RUNS = new Set(['command', 'count', 'description'])
-const KNOWN_PEOPLE = new Set(['count', 'human', 'instructions'])
 
 /**
  * Fields the import never copies: risk notes stay private (table B; they now live outside the list, in the git-ignored
- * docs/launch-risk-notes.json, which nothing here reads); the rest has no place on a node yet.
+ * docs/launch-risk-notes.json, which nothing here reads); checked_by has had no place on a node since Oct 14; the rest
+ * has no place on a node yet.
  */
-export const NOT_IMPORTED = ['wave', 'category', 'size', 'needs_humans', 'risk_notes', 'lobby', 'variant_of'] as const
+export const NOT_IMPORTED = ['wave', 'category', 'size', 'needs_humans', 'risk_notes', 'lobby', 'variant_of', 'checked_by'] as const
 
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/
 const TAG_RE = /^[a-z0-9][a-z0-9-]{0,31}$/
-// Bidi controls and zero-width characters: refused in done-test commands (go-live 3.3, Trojan Source).
-const HIDDEN = /[‪-‮⁦-⁩​-‏⁠﻿]/
 const URL_RE = /https?:\/\/\S+/g
 
 const short = (s: string, n = 70) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
 const q = (s: string) => `"${short(s)}"`
-
-// ---------- run commands ----------
-
-/**
- * "python replay.py demos/ (replays each demo and prints ...)" → command "python replay.py demos/" and the words as a
- * description. A group counts as words, not shell, when it sits outside quotes and comments, follows a space, ends
- * the command or is followed by a space, has at least three words, and holds no shell operator (&& || ; | ` $().
- * Shell comments (# ...) stay in the command: they're valid shell.
- */
-export function splitRunCommand(raw: string): { command: string; description?: string; notes: Note[] } {
-  const notes: Note[] = []
-  const fail = (text: string) => ({ command: raw, notes: [{ field: 'check.runs', kind: 'failed' as const, text }] })
-  if (HIDDEN.test(raw)) return fail('the command holds a bidi control or zero-width character')
-  if (/[\r\n]/.test(raw)) return fail('the command is more than one line')
-  const groups: { start: number; end: number }[] = []
-  let quote: string | null = null
-  let depth = 0
-  let open = -1
-  for (let i = 0; i < raw.length; i++) {
-    const c = raw[i]
-    if (quote) {
-      if (c === '\\' && quote === '"') i++
-      else if (c === quote) quote = null
-      continue
-    }
-    // An apostrophe inside a word ("position's") is prose, not a quote; no launch command quotes that way.
-    if (c === "'" && /\p{L}/u.test(raw[i - 1] ?? '') && /\p{L}/u.test(raw[i + 1] ?? '')) continue
-    if (c === "'" || c === '"') quote = c
-    else if (c === '\\') i++
-    else if (c === '#' && depth === 0 && (i === 0 || /\s/.test(raw[i - 1]))) break // a comment: the rest is left alone
-    else if (c === '(') {
-      if (depth === 0) open = i
-      depth++
-    } else if (c === ')') {
-      if (depth === 0) return fail('the command has a ")" with no "("')
-      depth--
-      if (depth === 0) groups.push({ start: open, end: i })
-    }
-  }
-  if (quote) return fail('the command has an unclosed quote')
-  if (depth) return fail('the command has a "(" with no ")"')
-
-  const prose = groups.filter(({ start, end }) => {
-    const inner = raw.slice(start + 1, end)
-    const before = raw[start - 1]
-    const after = raw[end + 1]
-    const ok =
-      start > 0 &&
-      /\s/.test(before) &&
-      (after === undefined || /\s/.test(after)) &&
-      inner.trim().split(/\s+/).length >= 3 &&
-      !/&&|\|\||;|\||`|\$\(/.test(inner)
-    if (!ok) return false
-    // "time (python bench.py)": a command that runs the next one makes the brackets a subshell, so they stay.
-    const lead = startsSubshell(raw.slice(0, start))
-    if (lead) notes.push({ field: 'check.runs', kind: 'warning', text: `the words in brackets after "${lead}" stay in the command, as a subshell. if they describe it, put them in runs.description` })
-    return !lead
-  })
-  if (!prose.length) return { command: raw.trim(), notes }
-  let command = raw
-  for (const g of [...prose].reverse()) {
-    const left = command.slice(0, g.start).trimEnd()
-    const right = command.slice(g.end + 1).trimStart()
-    command = right ? `${left} ${right}` : left
-  }
-  command = command.trim()
-  const description = prose.map(g => raw.slice(g.start + 1, g.end).trim()).join('; ')
-  // In full: the command locks with the done test, so the proofread needs every character.
-  notes.push({ field: 'check.runs', kind: 'changed', text: `command split: "${command}", and the words in brackets went to runs.description: "${description}"` })
-  return { command, description, notes }
-}
-
-// Commands that run the command after them. Their options and numbers come between ("nice -n 10", "timeout 60").
-const PREFIX_COMMANDS = new Set(['time', 'nice', 'env', 'sudo', 'doas', 'xargs', 'nohup', 'timeout', 'exec', 'command', 'builtin', 'stdbuf', 'ionice', 'chrt', 'taskset', 'strace', 'ltrace', 'watch', 'eval', 'unbuffer', 'setsid', 'caffeinate', 'hyperfine', 'perf'])
-
-/** The prefix command when the text before a bracket group is only one (plus its options), else null. */
-function startsSubshell(before: string): string | null {
-  const segment = before.split(/&&|\|\||;|\|/).pop()!.trim()
-  const words = segment.split(/\s+/).filter(Boolean)
-  const head = words.findIndex(w => !/^[A-Za-z_][A-Za-z0-9_]*=/.test(w)) // skip FOO=bar assignments
-  if (head < 0) return null
-  const cmd = words[head].split('/').pop()!
-  if (!PREFIX_COMMANDS.has(cmd)) return null
-  return words.slice(head + 1).every(w => /^-|^\d+(\.\d+)?[smhd]?$|^[A-Za-z_][A-Za-z0-9_]*=/.test(w)) ? cmd : null
-}
 
 // ---------- licenses ----------
 
@@ -440,47 +347,6 @@ export function mapLaunchShwarm(raw: unknown): MappedShwarm {
     else license = e.license
   }
 
-  const cb = e.checked_by
-  const check: { runs?: { command: string; count: number; description?: string }; people?: { count: number; human: boolean; instructions?: string }; author: boolean } = { author: false }
-  // An empty object, or null, means no such check. Anything else has to be whole: check specs lock on import.
-  const given = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 'object' && Object.keys(x).length > 0
-  if (!cb || typeof cb !== 'object') fail('checked_by', 'checked_by is missing')
-  else {
-    extra(cb, KNOWN_CHECK, 'checked_by')
-    const r = cb.runs
-    if (r !== undefined && r !== null && (typeof r !== 'object' || Array.isArray(r))) fail('check.runs', 'runs is an object: {command, count}')
-    else if (given(r)) {
-      extra(r, KNOWN_RUNS, 'check.runs')
-      if (typeof r.command !== 'string' || !r.command.trim()) fail('check.runs', 'runs need a command')
-      else if (!Number.isInteger(r.count) || (r.count as number) < 1) fail('check.runs', 'runs.count must be a whole number from 1')
-      else if (r.description !== undefined && typeof r.description !== 'string') fail('check.runs', 'runs.description is text')
-      else if (typeof r.description === 'string' && r.description.trim()) {
-        // Already split in the JSON: keep both as written.
-        if (HIDDEN.test(r.command)) fail('check.runs', 'the command holds a bidi control or zero-width character')
-        check.runs = { command: r.command.trim(), count: r.count as number, description: r.description.trim() }
-      } else {
-        const s = splitRunCommand(r.command)
-        notes.push(...s.notes)
-        check.runs = { command: s.command, count: r.count as number, ...(s.description ? { description: s.description } : {}) }
-      }
-    }
-    const p = cb.people
-    if (p !== undefined && p !== null && (typeof p !== 'object' || Array.isArray(p))) fail('check.people', 'people is an object: {count, human, instructions}')
-    else if (given(p)) {
-      extra(p, KNOWN_PEOPLE, 'check.people')
-      if (!Number.isInteger(p.count) || (p.count as number) < 1) fail('check.people', 'people.count must be a whole number from 1')
-      else if (p.human !== undefined && typeof p.human !== 'boolean') fail('check.people', 'people.human must be true or false')
-      else if (p.instructions !== undefined && p.instructions !== null && typeof p.instructions !== 'string') fail('check.people', 'people.instructions is text')
-      else {
-        const instructions = str(p.instructions).trim()
-        check.people = { count: p.count as number, human: p.human === true, ...(instructions ? { instructions } : {}) }
-      }
-    }
-    if (cb.author !== undefined && typeof cb.author !== 'boolean') fail('check.author', 'author must be true or false')
-    check.author = cb.author === true
-    if (!check.runs && !check.people && !check.author && !notes.some(n => n.kind === 'failed' && n.field.startsWith('check.'))) fail('checked_by', 'the done test names no check')
-  }
-
   const tags: string[] = []
   if (!Array.isArray(e.tags) || !e.tags.length) fail('tags', 'a shwarm needs at least one tag')
   else {
@@ -517,7 +383,6 @@ export function mapLaunchShwarm(raw: unknown): MappedShwarm {
     title,
     what,
     doneWhen,
-    check,
     tags,
     ...(b.buildsOn ? { buildsOn: b.buildsOn } : {}),
     ...(license ? { license } : {}),
