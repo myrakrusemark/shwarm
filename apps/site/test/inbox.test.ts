@@ -331,14 +331,14 @@ describe('the pass notice and old sign-off items (6.1; decided Oct 14)', () => {
     const n = get('SELECT id FROM node WHERE path = ?', EXAMPLE_ROOT)
     const claim = get("SELECT id, as_name FROM post WHERE node_id = ? AND kind = 'post' ORDER BY created_at LIMIT 1", n.id)
     // stored without a name (core/status.ts); the inbox names the claimant as their name reads now
-    const text = 'minecraft in doom passed: its people back a passed claim. mark it passed too?'
+    const text = 'minecraft in doom passed: its people back a passed claim. approve it too?'
     const id = Number(env.DB.raw.prepare("INSERT INTO inbox_item (person_id, kind, node_id, post_id, text, created_at) VALUES (?, 'system', ?, ?, ?, ?)").run(myraId, n.id, claim.id, text, new Date(T0).toISOString()).lastInsertRowid)
     const myra = await signIn(env, 'myra', true)
     const entry = itemOf(await body(await myra.get('/@myra')), id)!
-    expect(entry).toContain(`<div class="txt">minecraft in doom passed: its people back ${claim.as_name}'s passed claim. mark it passed too?</div>`)
+    expect(entry).toContain(`<div class="txt">minecraft in doom passed: its people back ${claim.as_name}'s passed claim. approve it too?</div>`)
     expect(entry).toContain(`<a href="/w/${EXAMPLE_ROOT}#passed">open</a>`)
     expect(entry).not.toContain('value="reply"')
-    // once the author marked it passed, the question goes
+    // once the author approved it, the question goes
     env.DB.raw.prepare('UPDATE inbox_item SET read_at = ?, done_at = ? WHERE id = ?').run(new Date(T0).toISOString(), new Date(T0).toISOString(), id)
     const done = itemOf(await body(await myra.get('/@myra')), id)!
     expect(done).toContain(`<div class="txt">minecraft in doom passed: its people back ${claim.as_name}'s passed claim.</div>`)

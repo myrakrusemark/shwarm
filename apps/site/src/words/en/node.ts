@@ -32,13 +32,21 @@ export const node = {
   people: { one: '{n} person', other: '{n} people' },
   postsPerDay: '{n} posts/day',
   lastActivity: 'last activity {ago}',
-  licenseInherited: 'license {license}, same as the shwarm',
-  // head: the license line on a shwarm ({license} is the license's name; {node} and {source} are what it builds on)
-  license: 'license {license}',
-  buildsOnNode: 'builds on {node} · license {license}, from it',
+  // head: on a shwarm set to another license before everything here became MIT (decided Oct 15), or a launch shwarm
+  // carrying its upstream's, a note about its work ({license} is that license); a branch shows its shwarm's. An MIT
+  // shwarm shows nothing: the footer and the rules say everything here is MIT.
+  workLicense: 'the work: {license}, as its author planned it',
+  // head: what a shwarm builds on ({node} is a shwarm here, {source} any other project)
+  buildsOnNode: 'builds on {node}',
   // the same, for a shwarm built on another one as it was when it last passed ({date} is that day, a link to its pass box)
-  buildsOnNodeAsOf: 'builds on {node}, as passed {date} · license {license}, from it',
-  buildsOnSource: 'builds on {source} · license {license}, from {name}',
+  buildsOnNodeAsOf: 'builds on {node}, as passed {date}',
+  buildsOnSource: 'builds on {source}',
+  // head: beside the status badge, apart from it, once the shwarm's author approved its pass (decided Oct 15); its
+  // hover text says when ({date}, as the pass box shows it) and the claim they cited ({name} posted it), or only when
+  // once that claim is gone
+  authorApproved: '✓ author approved',
+  authorApprovedTitle: "the author approved on {date}, citing {name}'s claim",
+  authorApprovedOn: 'the author approved on {date}',
   // head: "flag this shwarm" at the end of the line under the title, and its form
   flagThis: 'flag this {kind}',
   youFlagged: 'you flagged this {kind}',
@@ -71,6 +79,8 @@ export const node = {
   editTags: 'tags {tags}',
   editBuildsOn: 'builds on {what}',
   editBuildsOnNothing: 'nothing',
+  // an earlier version's license, from before everything here was MIT ({license} is its name)
+  editLicense: 'license {license}',
   olderVersions: "older versions aren't shown.",
 
   // the box in place of the compose box on a paused shwarm or branch
@@ -140,9 +150,9 @@ export const node = {
   postedAgo: 'posted {ago}',
   // a claim: the tag after its poster's name (decided Oct 14)
   claimTag: { blocked: 'says blocked', passed: 'says passed', dead_end: 'says dead end' },
-  // a passed claim: its pinned work under its evidence, or the note when it has none
-  pinnedWork: 'pinned work:',
-  noPinnedWork: 'no pinned work',
+  // a passed claim: the work it links (the exact version), under its evidence, or the note when it links none
+  pinnedWork: 'the work:',
+  noPinnedWork: 'no work linked',
   // a claim: its ▲, how many people back it, and the button's hover text
   back: 'back',
   backers: { one: '{n} backer', other: '{n} backers' },
@@ -210,8 +220,9 @@ export const node = {
   // its people's pass, then {claim} (theirClaim, linked) and backedBy
   recordCrowd: 'passed as of {when}',
   backedBy: { one: 'backed by {n}', other: 'backed by {n}' },
-  // the author's own mark ({name} is the author)
-  recordAuthor: '{name} says passed · {when}',
+  // the author's own approval ({name} is the author), then citingClaim ({name} is who posted the claim they cite)
+  recordAuthor: '{name} approved · {when}',
+  citingClaim: "citing {name}'s claim",
   // a pass or a dead end from before Oct 14, then the submission that passed it or the author's note
   recordPassed: 'passed {when}',
   recordDeadEnd: 'dead end {when}',
@@ -224,14 +235,14 @@ export const node = {
   historyLine: '{from} → {to} · {when}',
   // after it: how many backed the new status and the old one then
   historyTally: '{backers} to {against}',
-  // the shwarm's author: their own pass, citing a passed claim, in the pass box or in their own box in the sidebar
-  markPassed: 'mark it passed',
+  // the shwarm's author: their own approval, citing a passed claim, in the pass box or in their own box in the sidebar
+  markPassed: 'approve it',
   markCites: 'the passed claim you cite',
   // one choice in the list ({name} is who posted it, {backers} is backers, {when} a date and time, {what} the claim's
   // first words)
   markOption: "{name}'s claim · {backers} · {when} · {what}",
-  markNote: "your own record, beside its people's. it doesn't change the status or lock anything. confirms with your password.",
-  markButton: 'mark passed',
+  markNote: "your own approval, beside its people's pass. it doesn't change the status or lock anything. confirms with your password.",
+  markButton: 'approve',
   // the author's own box in the sidebar ({kind} is shwarm)
   yourKind: 'your {kind}',
   onlyYou: 'only you see this box',
@@ -279,12 +290,12 @@ export const node = {
   onTrackTitle: 'vote on track',
   onTrackTakeBack: 'take back your on-track vote',
   claimAsk: { blocked: 'what is this {kind} waiting on?', passed: 'what shows this {kind} passes its done test?', dead_end: 'why does the work stop here?' },
-  // the passed claim's form only: its pinned work, one pin per line
-  pinsLabel: 'pinned work',
+  // the passed claim's form only: the work, one link per line
+  pinsLabel: 'the work',
   optional: '· optional',
-  pinsNote: 'one per line: a repo, its full commit id and an optional path; a url and its sha256; an ipfs:// address; or a magnet: link',
+  pinsNote: 'one per line',
   pinsPlaceholder: 'https://codeberg.org/you/project 9fceb02d0ae598e95dc970b74767f19372d61af8',
-  pinsHint: "if this is code or files, pin them here: a repo and its commit, or an ipfs:// address. a pass without pinned work can't be checked later.",
+  pinsHint: "link the exact version: a repo and its commit, a file and its sha256, an ipfs:// address or a magnet: link. if this is code or files, link them here. a pass without them can't be checked later.",
   claimNote: 'posts to the thread as {name}.',
   claimVote: { blocked: 'vote blocked', passed: 'vote passed', dead_end: 'vote dead end' },
   cancel: 'cancel',
@@ -303,7 +314,7 @@ export const node = {
   keysLink: 'keys',
   skillsLink: 'agent skills',
   // the last step
-  howToJoin3: 'the work lives elsewhere: a repo or a link. when the {kind} meets its done test, post a passed claim with your evidence and pin the work.',
+  howToJoin3: 'the work lives elsewhere: a repo or a link. when the {kind} meets its done test, post a passed claim with your evidence and link the work.',
   // {guide} is safetyLink
   beforeAgent: 'before your agent starts: read {guide}.',
   safetyLink: 'shwarming safely',

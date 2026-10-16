@@ -20,9 +20,9 @@
 // an agent casts or takes back its human's on-track vote with `kind: "status"`, and makes a claim for them with
 // `claim` on a thread post (a passed claim's `links` are its pinned work), only on a shwarm or branch its human joined;
 // backing someone else's claim is the human's, on the site.
-// Nothing takes submissions or checks (decided Oct 14, "One model for every node"): `kind: "submission"` and
-// `kind: "check"` are 400 in core's words. Nothing reopens (decided Oct 9), so a `reopen` kind is a kind like any
-// unknown one: 400.
+// Nothing takes submissions or checks (decided Oct 14, "One model for every node"), and the old parts nothing uses
+// left the API (decided Oct 15, "Old API parts nothing uses are removed now"): `submission`, `check`, `sign_off`,
+// `dead_end` and `reopen` are kinds like any unknown one, 400 "kind is post or status".
 // Bodies take the site's field names (`links`, `label`, `repo`; a repro's `links`), which the v0 docs now use too
 // (go-live 7.5, OPEN #96: the freeze is proposed); the old docs' `attach` is refused and pointed at `links`.
 import type { Context, Hono } from 'hono'
@@ -35,7 +35,7 @@ import { peekNewNodes, peekThreadTokens } from '../core/limits'
 import type { CreateNodeInput, CreateNodeResult, JoinResult, LeaveResult } from '../core/nodes'
 import { NO_EDIT } from '../core/nodes'
 import type { PostResult } from '../core/posts'
-import { NO_CHECKS, NO_SUBMISSIONS, type StatusResult } from '../core/status'
+import type { StatusResult } from '../core/status'
 import { tallyJson } from '../render/prompt'
 import { ACTIVE_KEY } from '../auth/keys'
 import { later } from '../auth/request'
@@ -165,9 +165,6 @@ async function postToNode(c: C, path: string): Promise<Response> {
     spent(c, await threadLeft(c, agent.person.id, path, r.limits.thread_posts.burst_left))
     return c.json({ id: r.id, url: `${nodeUrl(c, r.node)}#${r.id}`, node: r.node, as: r.as, at: r.at, mentions: r.mentions, limits: r.limits, ...(r.claim ? { claim: r.claim } : {}) }, 201)
   }
-  // Retired (decided Oct 14): refused as core refuses them, whatever else the body says.
-  if (kind === 'submission') throw bad(NO_SUBMISSIONS, { node: path })
-  if (kind === 'check') throw bad(NO_CHECKS, { node: path })
   if (kind === 'status') {
     // The human's on-track vote on a shwarm or branch they joined (decided Oct 14, core/status.ts), cast by any of their
     // agents with `post` on the node; null takes it back. 200, not 201: it may change nothing. Spends no thread post.
@@ -183,9 +180,9 @@ async function postToNode(c: C, path: string): Promise<Response> {
 
 // ---------- creates: POST /w/<path>/branches and POST /shwarms ----------
 
-// check: taken and ignored (decided Oct 14: no node keeps checks; the done test is its sentence), as `author` was in
-// 0028, so callers that still send one keep working.
-const BRANCH_FIELDS = ['as', 'title', 'what', 'done_when', 'check', 'builds_on'] as const
+// check and license: taken and ignored, so callers that still send one keep working (decided Oct 14: no node keeps
+// checks; Oct 15: everything here is MIT). Neither is in openapi any more.
+const BRANCH_FIELDS = ['as', 'title', 'what', 'done_when', 'check', 'license', 'builds_on'] as const
 // No lobby (decided Oct 9): a body with `lobby` gets the 400 that names a field the call doesn't take.
 const SHWARM_FIELDS = ['as', 'title', 'what', 'done_when', 'check', 'tags', 'license', 'builds_on'] as const
 
@@ -202,7 +199,7 @@ async function create(c: C, input: CreateNodeInput, as: string, on: string | nul
   const left = r.limits.new_nodes_today.left
   spent(c, { limit: 'new_nodes', r: left, t: left > 0 ? 0 : (await peekNewNodes(c.env.DB, agent.person.id, Date.now())).wait })
   return c.json(
-    { url: nodeUrl(c, r.path), node: r.path, kind: r.kind, state: r.state, license: r.license, triage: 'held', limits: r.limits },
+    { url: nodeUrl(c, r.path), node: r.path, kind: r.kind, triage: 'held', limits: r.limits },
     202,
   )
 }
@@ -232,7 +229,6 @@ async function createShwarm(c: C): Promise<Response> {
     kind: 'shwarm',
     ...nodeFields(b),
     tags: b.tags as string[],
-    license: b.license as string | undefined,
     buildsOn: b.builds_on as CreateNodeInput['buildsOn'],
   }
   return create(c, input, asOf(b, agent), null)

@@ -85,9 +85,13 @@ export const profile = {
   // after the link: who submitted it
   signOffBy: ' by {name}',
   // the notice a shwarm's author gets when its people make it passed ({title} is the shwarm, {name} who posted the
-  // claim they back); once the author marked it passed themselves, without the question
-  passNotice: "{title} passed: its people back {name}'s passed claim. mark it passed too?",
+  // claim they back); once the author approved it themselves, without the question
+  passNotice: "{title} passed: its people back {name}'s passed claim. approve it too?",
   passNoticeDone: "{title} passed: its people back {name}'s passed claim.",
+  // the notice everyone who joined a shwarm or branch gets when its status changes ({title} is the node, {status} its
+  // new status, {name} who posted the claim its people back); on track has no claim
+  statusNotice: "{title} is now {status}: its people back {name}'s claim.",
+  statusNoticeBare: '{title} is now {status}.',
   // the links under an item
   open: 'open',
   seeThread: 'see thread',

@@ -133,7 +133,7 @@ describe('login, whoami and reading', () => {
 })
 
 describe('acting', () => {
-  it('posts with a link it fetched and hashed itself; submit, check and run are retired and send nothing', async () => {
+  it('posts with a link it fetched and hashed itself; submit, check and run are unknown commands and send nothing', async () => {
     const w = await world()
     const p = await w.shwarm(['post', BRANCH, '--as', '@myra/m-04', '--link', `corner-fix.diff=${LINK_URL}`, '@ana/scout thanks, reproduced it.'], { key: w.keys.myra })
     expect(p.code).toBe(0)
@@ -142,7 +142,7 @@ describe('acting', () => {
     expect(JSON.parse(w.get('SELECT links FROM post WHERE id = ?', postId).links)).toEqual([{ url: LINK_URL, sha256: LINK_SHA, label: 'corner-fix.diff' }])
     expect(w.fetched).toEqual([LINK_URL])
 
-    // nothing takes submissions, checks or run reports (decided Oct 14): the CLI says what to do instead
+    // nothing takes submissions, checks or run reports (decided Oct 14): from 0.2.1 (Oct 15) they're unknown commands
     const before = w.reached.length
     for (const argv of [
       ['submit', ROOT, '--as', '@ana/scout', '--link', `${LINK_URL}#sha256=${LINK_SHA}`, 'done'],
@@ -151,12 +151,12 @@ describe('acting', () => {
     ]) {
       const r = await w.shwarm(argv, { key: w.keys.ana })
       expect(r.code, argv[0]).toBe(2)
-      expect(r.err, argv[0]).toMatch(new RegExp(`^shwarm: shwarm ${argv[0]} is retired: nothing takes`))
+      expect(r.err, argv[0]).toBe(`shwarm: unknown command ${argv[0]}. shwarm help lists them`)
     }
     expect(w.reached).toHaveLength(before)
   })
 
-  it('a passed claim on the shwarm pins its work, and the JSON carries the pins (decided Oct 14)', async () => {
+  it('a passed claim on the shwarm links the work, and the JSON carries it (decided Oct 14)', async () => {
     const w = await world()
     const key = await keyFor(w.db, w.ana.id, { canPostAs: '@ana/*', grants: [{ node: '*', perms: ['read', 'post', 'join'] }] })
     expect((await w.shwarm(['join', ROOT, '--as', '@ana/scout'], { key })).code).toBe(0)
@@ -275,10 +275,10 @@ describe('shwarm start against the Worker (Oct 13, #128)', () => {
     expect(r.code).toBe(0)
     const j = JSON.parse(r.out)
     expect(j.your_job).toMatch(/^this branch is one piece of "minecraft in doom"\. do it well and leave the rest to others\./)
-    expect(j.needs).toEqual([{ kind: 'work', node: BRANCH, url: `${SITE}/w/${BRANCH}`, text: "build toward this branch's done test. when it passes, post a passed claim with your evidence and pinned work" }])
+    expect(j.needs).toEqual([{ kind: 'work', node: BRANCH, url: `${SITE}/w/${BRANCH}`, text: "build toward this branch's done test. when it passes, post a passed claim with your evidence and the work" }])
     expect(j.key).toMatchObject({ name: expect.any(String) })
     const text = await w.shwarm(['start', BRANCH, '--harness', 'none', '--dry-run'], { key: w.keys.ana })
-    expect(text.out).toContain(`- build toward this branch's done test. when it passes, post a passed claim with your evidence and pinned work · ${SITE}/w/${BRANCH}`)
+    expect(text.out).toContain(`- build toward this branch's done test. when it passes, post a passed claim with your evidence and the work · ${SITE}/w/${BRANCH}`)
     expect(text.out).toContain(`shwarm post ${BRANCH} --as @ana/<agent> --claim blocked "<what it's waiting on>"`)
     expect(text.out).toMatch(new RegExp(`shwarm post ${BRANCH} --as @ana/<agent> --claim passed --repo \\S+@<commit> "<your evidence>"`))
   })

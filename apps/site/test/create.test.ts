@@ -57,7 +57,11 @@ describe('create form (4.2)', () => {
     expect(page).toContain('>start shwarm</button>')
     expect(page).toContain('a goal worth a crowd. your shwarm goes live after a quick safety check.')
     // fixed once posted (decided Oct 12: no editing a shwarm's words), and the form says so by its button
-    expect(page).toContain("the license can't be changed once you post, and branches inherit it.")
+    // no license picker (decided Oct 15): everything posted here is MIT, and the rules say so
+    expect(page).not.toContain('id="license"')
+    expect(page).not.toContain('id="f-license"')
+    expect(page).not.toContain('builds_on_license')
+    expect(page).toContain("<b>open.</b> everything posted here is MIT. if your work has its own license, say so in your shwarm's words or its repo's license file.")
     expect(page).toContain(`after that it's live, and anyone can work on it. <b id="fixed-note">once posted, nothing on this form can be changed.</b>`)
     expect(page).toContain("the done test can't change once it's posted. people join for this finish line, so a different one means <b>starting a new shwarm</b>.")
     expect(page).not.toMatch(/lobby|seat|variant/)
@@ -69,7 +73,7 @@ describe('create form (4.2)', () => {
     expect(res.status).toBe(303)
     expect(res.headers.get('location')).toBe('/w/hello-world')
     const n = q("SELECT id, state, live_at, license, checks, triage FROM node WHERE path = 'hello-world'") as any
-    expect(n).toMatchObject({ state: 'live', live_at: new Date(T0).toISOString(), license: 'MIT+CC-BY-4.0' })
+    expect(n).toMatchObject({ state: 'live', live_at: new Date(T0).toISOString(), license: 'MIT' }) // everything here is MIT (Oct 15)
     expect(JSON.parse(n.checks)).toEqual({ author: false })
     expect(q('SELECT number FROM seat WHERE node_id = ? AND person_id = ?', n.id, pid)).toEqual({ number: 1 })
     expect(await body(await b.req('/w/hello-world', { headers: { accept: 'text/html' } }))).toContain('hello world')
@@ -107,12 +111,12 @@ describe('create form (4.2)', () => {
     expect(html).not.toContain('name="title"')
   })
 
-  it('builds on a github repo: its name and license come from the api', async () => {
+  it("builds on a github repo: its name and license come from the api, and the license stays the repo's (Oct 15: the shwarm is MIT)", async () => {
     const { env, q } = await world()
     const { b } = await member(env, 'ana')
     expect((await create(b, { ...HELLO, builds_on: 'https://github.com/ZDoom/gzdoom', license: 'MIT' })).status).toBe(303)
     const n = q("SELECT license, builds_on FROM node WHERE path = 'hello-world'") as any
-    expect(n.license).toBe('GPL-3.0')
+    expect(n.license).toBe('MIT')
     expect(JSON.parse(n.builds_on)).toEqual({ name: 'ZDoom/gzdoom', url: 'https://github.com/ZDoom/gzdoom', license: 'GPL-3.0' })
   })
 })
@@ -148,9 +152,9 @@ describe('branch mode (4.3); no variants (decided Oct 9)', () => {
     expect(page).not.toContain('name="tags"')
     expect(page).not.toMatch(/lobby/)
     expect(page).not.toContain('name="builds_on"')
-    expect(page).not.toContain('name="license"')
-    expect(page).toContain("a branch inherits its shwarm's license.")
-    expect(page).toContain('inherits from minecraft in doom: GPL-3.0.')
+    expect(page).not.toContain('id="license"')
+    expect(page).not.toContain('inherits')
+    expect(page).toContain('everything posted here is MIT.')
     expect(page).toContain('>start branch</button>')
   })
 
@@ -240,7 +244,7 @@ describe('branch mode (4.3); no variants (decided Oct 9)', () => {
     expect(await body(await html(b, '/w/minecraft-in-doom'))).not.toMatch(/variant/)
   })
 
-  it('?builds_on= fills the builds-on field and names any shwarm, as of its latest pass, whose license the new one takes', async () => {
+  it('?builds_on= fills the builds-on field and names any shwarm, as of its latest pass', async () => {
     const { env, q, db } = await world()
     const { b } = await member(env, 'ana')
     // every shwarm offers it (decided Oct 14: build on any shwarm, at any time)
@@ -248,7 +252,7 @@ describe('branch mode (4.3); no variants (decided Oct 9)', () => {
     // no pass yet: the chip names it, with nothing to be "as of"
     const open = await body(await b.get('/new?builds_on=minecraft-in-doom'))
     expect(open).toContain('name="builds_on" aria-describedby="up-hint" placeholder="https://github.com/… or a shwarm\'s link" autocomplete="off" value="minecraft-in-doom"')
-    expect(open).toContain('<div class="picked" id="picked"><div><b>minecraft in doom</b> <span>/w/minecraft-in-doom · license GPL-3.0</span></div></div>')
+    expect(open).toContain('<div class="picked" id="picked"><div><b>minecraft in doom</b> <span>/w/minecraft-in-doom</span></div></div>')
     // Unknown: as typed (core refuses it on send); nothing about it is looked up or shown (5.7).
     const unknown = await b.get('/new?builds_on=no-such-shwarm')
     expect(unknown.status).toBe(200)
@@ -262,24 +266,24 @@ describe('branch mode (4.3); no variants (decided Oct 9)', () => {
       .run(up.id, new Date(T0 - 86_400_000).toISOString())
     const page = await body(await b.get('/new?builds_on=minecraft-in-doom'))
     expect(page).toContain('value="minecraft-in-doom"')
-    expect(page).toContain('<div class="picked" id="picked"><div><b>minecraft in doom</b> <span>/w/minecraft-in-doom · license GPL-3.0</span><span> · as passed oct 7</span></div></div>')
-    expect(page).toContain('your shwarm uses the license minecraft in doom is published under.')
-    expect(page).toMatch(/<select id="license" name="license"[^>]* hidden/)
+    expect(page).toContain('<div class="picked" id="picked"><div><b>minecraft in doom</b> <span>/w/minecraft-in-doom</span><span> · as passed oct 7</span></div></div>')
+    // no license carries over, so the form says nothing of the upstream's (Oct 15)
+    expect(page).not.toContain('GPL-3.0')
+    expect(page).not.toContain('published under')
     // a different finish line: the done test starts empty, never the upstream's
     expect(/<textarea id="done" name="done_when"[^>]*>([^<]*)<\/textarea>/.exec(page)?.[1]).toBe('')
     // A full link works the same.
     expect(await body(await b.get(`/new?builds_on=${encodeURIComponent('https://shwarm.org/w/minecraft-in-doom')}`))).toContain('id="picked"')
-    // A refused send comes back the same way: the chip shown, the picker hidden.
+    // A refused send comes back the same way: the chip shown.
     const refused = await create(b, { ...HELLO, title: 'minecraft in doom 2', tags: '', builds_on: 'minecraft-in-doom', license: 'MIT' })
     expect(refused.status).toBe(400)
     const again = await body(refused)
     expect(again).toContain('id="picked"')
-    expect(again).toContain('your shwarm uses the license minecraft in doom is published under.')
-    expect(again).toMatch(/<select id="license" name="license"[^>]* hidden/)
+    expect(again).not.toContain('id="license"')
     const res = await create(b, { ...HELLO, title: 'minecraft in doom 2', builds_on: 'minecraft-in-doom', license: 'MIT' })
     expect(res.status).toBe(303)
     const n = q("SELECT license, builds_on FROM node WHERE path = 'minecraft-in-doom-2'") as any
-    expect(n).toEqual({ license: 'GPL-3.0', builds_on: JSON.stringify({ node: 'minecraft-in-doom', as_of: 'r_test0001' }) })
+    expect(n).toEqual({ license: 'MIT', builds_on: JSON.stringify({ node: 'minecraft-in-doom', as_of: 'r_test0001' }) }) // no license carries over (Oct 15)
   })
 
   it("refuses to build on a shwarm the viewer can't see, as for one that isn't there (7.4 review)", async () => {
@@ -290,7 +294,7 @@ describe('branch mode (4.3); no variants (decided Oct 9)', () => {
     const res = await create(b, { ...HELLO, builds_on: 'minecraft-in-doom' })
     expect(res.status).toBe(400)
     const page = await body(res)
-    expect(page).toContain('builds_on names a shwarm on shwarm, or an outside project as {name, url, license}.')
+    expect(page).toContain('builds_on names a shwarm on shwarm, or an outside project as {name, url}.')
     expect(page).not.toContain('id="picked"')
     expect(page.replace(/minecraft-in-doom|no-such-shwarm|name="token" value="[^"]*"/g, '')).toBe(unknown.replace(/minecraft-in-doom|no-such-shwarm|name="token" value="[^"]*"/g, ''))
     expect(q("SELECT COUNT(*) AS n FROM node WHERE path = 'hello-world'")).toEqual({ n: 0 })
@@ -315,9 +319,11 @@ describe('form parsing', () => {
     expect(await buildsOnFromForm({}, o)).toBeNull()
     expect(await buildsOnFromForm({ builds_on: 'https://shwarm.org/w/minecraft-in-doom/' }, o)).toBe('minecraft-in-doom')
     expect(await buildsOnFromForm({ builds_on: 'minecraft-in-doom' }, o)).toBe('minecraft-in-doom')
-    expect(await buildsOnFromForm({ builds_on: 'https://codeberg.org/x/y', builds_on_name: 'y', builds_on_license: 'MPL-2.0' }, o)).toEqual({ name: 'y', url: 'https://codeberg.org/x/y', license: 'MPL-2.0' })
-    await expect(buildsOnFromForm({ builds_on: 'https://codeberg.org/x/y' }, o)).rejects.toThrow('type the license')
-    await expect(buildsOnFromForm({ builds_on: 'https://github.com/someone/no-license' }, o)).rejects.toThrow("doesn't name a license")
+    // no license asked for (decided Oct 15: building on something no longer copies its license)
+    expect(await buildsOnFromForm({ builds_on: 'https://codeberg.org/x/y', builds_on_name: 'y' }, o)).toEqual({ name: 'y', url: 'https://codeberg.org/x/y' })
+    expect(await buildsOnFromForm({ builds_on: 'https://codeberg.org/x/y' }, o)).toEqual({ name: 'codeberg.org/x/y', url: 'https://codeberg.org/x/y' })
+    const noLicense = (async () => new Response(JSON.stringify({ full_name: 'someone/no-license', html_url: 'https://github.com/someone/no-license', license: null }))) as unknown as typeof fetch
+    expect(await buildsOnFromForm({ builds_on: 'https://github.com/someone/no-license' }, o, noLicense)).toEqual({ name: 'someone/no-license', url: 'https://github.com/someone/no-license' })
     await expect(buildsOnFromForm({ builds_on: 'javascript:alert(1)' }, o)).rejects.toThrow('web link')
   })
 })

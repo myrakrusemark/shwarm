@@ -6,14 +6,18 @@
 //   * the verdict is the latest message on the card that isn't Claude's (as tracker/proof.html reads it);
 //   * "approve" is ready; "change", "question" or no verdict yet is not ready; "no", or a slug listed in
 //     docs/launch-drops.md, is dropped and never goes;
-//   * an approval counts for the words Myra saw. If the done test (done when, and builds on, which sets the license)
-//     changed after she approved, or the slug wasn't in the list yet, it isn't ready until she approves again. checked_by
-//     no longer counts: no node keeps checks since Oct 14, so the import doesn't read it.
+//   * an approval counts for the words Myra saw. If the done test (done when, and builds on) or checked_by changed after
+//     she approved, or the slug wasn't in the list yet, it isn't ready until she approves again. checked_by counts
+//     again since Oct 15 (#140): no node keeps checks, but its text goes in the pinned sources post as "how to check a
+//     passed claim", public text Myra approves.
 //     Pitch changes after the approval (title, what, tags, sources, why now) can still be re-pitched on the site, so
 //     they don't block; the report names them.
 
-/** What locks once posted: the done test and what it builds on (its license comes from that). */
-export const LOCKED_FIELDS = ['slug', 'done_when', 'builds_on'] as const
+/**
+ * What a change to undoes an approval: what locks once posted (the done test and what it builds on), and checked_by,
+ * whose text goes in the pinned sources post (decided Oct 15, #140).
+ */
+export const LOCKED_FIELDS = ['slug', 'done_when', 'builds_on', 'checked_by'] as const
 /** What the import reads that the author can still change on the site (re-pitch, tags, the pinned post). */
 export const PITCH_FIELDS = ['title', 'what', 'tags', 'sources', 'why_now'] as const
 

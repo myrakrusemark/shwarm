@@ -9,7 +9,7 @@ import { bodyLimit } from 'hono/body-limit'
 import { DocPage, findPage, pageShown } from './web/doc'
 import { docText } from './web/doc-text'
 import { pickFormat } from './web/format'
-import { home } from './web/feed'
+import { guide, home } from './web/feed'
 import { originGuard } from './auth/csrf'
 import { mailRoutes } from './email/routes'
 import { wordsScript } from './words/script'
@@ -36,12 +36,12 @@ import { admin } from './web/admin'
 import { report } from './web/report'
 import { donate } from './web/donate'
 import { termsAccept } from './web/terms-accept'
-import { robots, sitemap } from './web/crawl'
-import { readingOpen, siteModeOf } from './core/site-mode'
+import { robots, sitemap, stagingOpenPath } from './web/crawl'
+import { readingOpen, siteModeOf, stagingOpenReads } from './core/site-mode'
 import { attention, healthExtras } from './jobs/watch'
 export { ShwarmTree } from './do/shwarm-tree'
 
-type Env = { DB: D1Database; TREE: DurableObjectNamespace; AI: Ai; TRIAGE_MODEL?: string; ENV: string; SITE_MODE: string; LANGUAGES?: string; SITE_URL?: string; STAGING_PASSWORD?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string; STRIPE_SECRET_KEY?: string; STRIPE_WEBHOOK_SECRET?: string; BACKUPS?: R2Bucket }
+type Env = { DB: D1Database; TREE: DurableObjectNamespace; AI: Ai; TRIAGE_MODEL?: string; ENV: string; SITE_MODE: string; LANGUAGES?: string; SITE_URL?: string; STAGING_PASSWORD?: string; STAGING_OPEN_READS?: string; PASSWORD_PEPPER: string; CSRF_SECRET: string; STRIPE_SECRET_KEY?: string; STRIPE_WEBHOOK_SECRET?: string; BACKUPS?: R2Bucket }
 
 const app = new Hono<{ Bindings: Env }>()
 
@@ -142,10 +142,14 @@ app.get('/robots.txt', robots)
 app.get('/js/words.js', wordsScript)
 
 // Staging is private: a shared password (wrangler secret STAGING_PASSWORD). Health stays open for uptime checks,
-// and /hooks/* stay open because they check their own secret.
+// and /hooks/* stay open because they check their own secret. With STAGING_OPEN_READS (the agent guide's trial,
+// Oct 15), unsigned GET and HEAD of the public reading paths (web/crawl.ts stagingOpenPath) are open too, so a chat
+// assistant can read the front door, the guide and the search; every write, form and account page stays locked.
 app.use('*', async (c, next) => {
   const path = new URL(c.req.url).pathname
   if (c.env.ENV !== 'staging' || path === '/healthz' || path.startsWith('/hooks/')) return next()
+  const m = c.req.method
+  if (stagingOpenReads(c.env) && (m === 'GET' || m === 'HEAD') && !isSigned(c.req.raw) && stagingOpenPath(path)) return next()
   if (!c.env.STAGING_PASSWORD) return c.text('staging is locked', 503)
   return basicAuth({ username: 'shwarm', password: c.env.STAGING_PASSWORD })(c, next)
 })
@@ -201,6 +205,10 @@ app.get('/docs', c => c.redirect('/api', 302))
 
 // The shwarm list for agents (go-live 7.15), before the footer pages' /:slug catches it.
 app.get('/shwarms', c => listShwarms(c, { capped: true }))
+
+// The agent guide (staging trial, Oct 15, web/feed.tsx): a tour an assistant may offer the person who sent it here.
+// Before the footer pages' /:slug catches it.
+app.get('/guide', guide)
 
 // How to report a security problem (RFC 9116). Expires is required; renew it yearly.
 app.get('/.well-known/security.txt', c =>

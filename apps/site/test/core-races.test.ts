@@ -80,7 +80,8 @@ async function backRace(mode: Mode): Promise<string[]> {
 
 /**
  * The moment a pass comes due, 5 people vote on track at once: every one of their batches advances the band past the
- * same change to passed. Exactly one dated line, one crowd pass record, one 'passed' row and one author notice.
+ * same change to passed. Exactly one dated line, one crowd pass record, one 'passed' row, one author notice, one
+ * status-change notice for each person who joined, and one pin.
  */
 async function passRace(mode: Mode): Promise<string[]> {
   const w = new World()
@@ -98,8 +99,14 @@ async function passRace(mode: Mode): Promise<string[]> {
   const lines = count("SELECT COUNT(*) AS n FROM status_change WHERE to_status = 'passed'")
   const records = count("SELECT COUNT(*) AS n FROM pass_record WHERE kind = 'crowd'")
   const passed = w.events(MID, 'passed').length
-  const notices = count("SELECT COUNT(*) AS n FROM inbox_item WHERE kind = 'system' AND post_id IS NOT NULL")
+  const notices = count("SELECT COUNT(*) AS n FROM inbox_item WHERE kind = 'system' AND post_id IS NOT NULL AND status_to IS NULL")
   if ([lines, records, passed, notices].join() !== '1,1,1,1') problems.push(`${lines} lines, ${records} records, ${passed} passed events, ${notices} notices`)
+  // #138 (Oct 15): one status-change notice for each of the 8 people who joined (the author has the one above), and the
+  // claim pinned once, as the site's pin
+  const told = w.all("SELECT person_id, COUNT(*) AS n FROM inbox_item WHERE kind = 'system' AND status_to = 'passed' GROUP BY person_id")
+  if (told.length !== 3 + RACERS || told.some(t => t.n !== 1)) problems.push(`status notices: ${JSON.stringify(told)}`)
+  const pin = w.all('SELECT pinned_by FROM post WHERE pinned_at IS NOT NULL')
+  if (JSON.stringify(pin) !== '[{"pinned_by":"site"}]') problems.push(`pins: ${JSON.stringify(pin)}`)
   return problems
 }
 

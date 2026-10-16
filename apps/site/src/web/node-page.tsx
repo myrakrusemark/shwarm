@@ -3,8 +3,8 @@
 // One model for every node (decided Oct 14): a shwarm and a branch each have a status, set by an on-track vote and the
 // claims people back (core/status.ts): its badge in the head, in the people card and in its parent's list; in the people
 // card, joined, the on-track vote and the three claim forms; in the thread, each claim's tag and its "back", and a passed
-// claim's pinned work. Nothing locks: a node that passed keeps its thread, branches and join, with its pass box above the
-// thread (the dated pass records, their pinned work and the status history), where a shwarm's author can mark it passed
+// claim's work (its links). Nothing locks: a node that passed keeps its thread, branches and join, with its pass box above the
+// thread (the dated pass records, their work and the status history), where a shwarm's author can approve it
 // too. Every shwarm offers "build on this shwarm". Old submissions and their checks still show in the thread, as history.
 // Join (go-live 8.2, decided Oct 12): a shwarm or branch has a join button on its own post (the head) and one in the
 // people card; both open one "say hi!" modal (JoinModal), whose optional words become the joiner's first post, marked
@@ -26,9 +26,12 @@ import { recordedStatus, review, type ReviewRow } from '../read/review'
 import { ago, cut, exact, licenseName, monthDay, perDay, q1, shortNum, triageNote } from '../render/format'
 import { showHidden } from '../render/hidden'
 import { MAX_TEXT } from '../core/text'
-import { Command, LINK_REL, linkParts, Log, Name, Plain, tagHref, Text } from '../render/text'
+import { Command, LINK_REL, linkParts, Log, Name, Plain, Text } from '../render/text'
 import { REASON_LABEL, REASONS, REPORT_TEXT_MAX } from '../core/reports'
 import { FLAG_LABEL, FLAG_REASONS, PAUSE_AT } from '../core/flags'
+import { workLicense } from '../core/nodes'
+import { TagLink } from './tags'
+import { ApprovedMark } from './approved'
 import { AgentResources, Layout } from './layout'
 import { InvitedSignIn, OPENS_SOON } from './opens-soon'
 import { PageContext } from './viewer'
@@ -48,9 +51,9 @@ export const TriageNote = (p: { triage: string }) =>
 export type Me = { personId: number; handle: string; verified: boolean } | null
 
 /**
- * A refused form, shown next to it: the compose box, join or leave (`seats`), the author's "mark it passed" (`owner`,
+ * A refused form, shown next to it: the compose box, join or leave (`seats`), the author's "approve it" (`owner`,
  * the claim they picked in `fields.post`), one post's upvote, back, edit, delete or report (`post` names it), or the
- * people card's on-track vote or claim form (`status`; a claim's status and its pinned work in `fields`, which opens its
+ * people card's on-track vote or claim form (`status`; a claim's status and the work it links in `fields`, which opens its
  * form again). `draft` keeps the text they wrote; a refused edit opens its form again, and so does a refused report
  * (`report`, with its reason in `fields`). `flag`: "flag this shwarm" in the head, with its reason in `fields`.
  */
@@ -167,15 +170,15 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
           {s?.hot === 1 && <span class="hotb">{w.node.hot}</span>}
         </h1>
         {!isBranch && n.tags.length > 0 && (
-          <div class="tags">{n.tags.map(t => <a class="t" href={tagHref(t)}>#{t}</a>)}</div>
+          <div class="tags">{n.tags.map(t => <TagLink tag={t} />)}</div>
         )}
         {!isBranch && <Builds n={n} />}
+        <WorkLicense d={d} />
         <div class="meta">
           {fillx(isBranch ? w.node.openedBy : w.node.startedBy, { name: <Name name={n.posted_by} link />, ago: <Ago at={n.created_at} now={d.now} /> })}
           {isBranch && s && <> · {count(w.node.people, s.people)}</>}
           {s && s.posts_per_day > 0 && <> · {fill(w.node.postsPerDay, { n: perDay(s.posts_per_day) })}</>}
           {n.changed_at && <> · {fillx(w.node.lastActivity, { ago: <Ago at={n.changed_at} now={d.now} /> })}</>}
-          {isBranch && <> · {fill(w.node.licenseInherited, { license: licenseName(n.license) })}</>}
           <FlagNode d={d} />
         </div>
         <div class="pitch">
@@ -195,7 +198,10 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
       <div class="state">
         {/* The status badge, in place of "live", which only said it hadn't ended (Myra, Oct 13: "What is live? If it
             exists it's live yeah?"): nothing ends now (decided Oct 14). */}
-        <StatusBadge s={d.status.now} mine={d.status.myBacking?.status} now={d.now} id="vb-head" />
+        <div class="badges">
+          <StatusBadge s={d.status.now} mine={d.status.myBacking?.status} now={d.now} id="vb-head" />
+          {d.status.authorApproved && <ApprovedMark a={d.status.authorApproved} href="" />}
+        </div>
         <HeadJoin d={d} />
       </div>
     </section>
@@ -225,7 +231,7 @@ const EditHistory: FC<{ n: NodeHead; edits: NodeEdit[]; now: number }> = ({ n, e
             {e.done_when !== undefined && <><h3>{w.node.doneWhen}</h3><Text text={e.done_when} /></>}
             {e.spec && <><h3>{w.node.checkedBy}</h3><CheckedBy spec={e.spec} author={n.author} /></>}
             {e.builds_on !== undefined && <div class="note">{fillx(w.node.editBuildsOn, { what: e.builds_on ? ('node' in e.builds_on ? `/w/${e.builds_on.node}` : <Plain text={e.builds_on.name} />) : w.node.editBuildsOnNothing })}</div>}
-            {e.license !== undefined && <div class="note">{fill(w.node.license, { license: licenseName(e.license) })}</div>}
+            {e.license !== undefined && <div class="note">{fill(w.node.editLicense, { license: licenseName(e.license) })}</div>}
           </li>
         ))}
         {edits.length > EDITS_SHOWN && <li><span class="note">{w.node.olderVersions}</span></li>}
@@ -234,10 +240,20 @@ const EditHistory: FC<{ n: NodeHead; edits: NodeEdit[]; now: number }> = ({ n, e
   )
 }
 
-/** builds on, with the license it brings; or just the license (A2: a license line on the shwarm page). */
+/**
+ * The note about the work's license (decided Oct 15, "Everything here is MIT"): only on a node set to another license
+ * before then, or a launch shwarm carrying its upstream's, "the work: GPL-3.0, as its author planned it". A branch
+ * shows its shwarm's. An MIT node shows nothing, since the footer and the rules say everything here is MIT.
+ */
+const WorkLicense: FC<{ d: NodePageData }> = ({ d }) => {
+  const l = workLicense((d.chain.ancestors[0] ?? d.chain.node).license)
+  return l ? <div class="builds worklic">{fillx(w.node.workLicense, { license: <b>{licenseName(l)}</b> })}</div> : null
+}
+
+/** What a shwarm builds on, when it builds on anything: a shwarm here (as of its latest pass) or an outside project. */
 const Builds: FC<{ n: NodeHead }> = ({ n }) => {
   const bo = n.builds_on
-  if (!bo) return <div class="builds">{fillx(w.node.license, { license: <b>{licenseName(n.license)}</b> })}</div>
+  if (!bo) return null
   // A shwarm here, as of the pass it built on, when it had one (decided Oct 14): "builds on minecraft in doom, as passed oct 14".
   if ('node' in bo)
     return (
@@ -245,7 +261,6 @@ const Builds: FC<{ n: NodeHead }> = ({ n }) => {
         {fillx(bo.as_of ? w.node.buildsOnNodeAsOf : w.node.buildsOnNode, {
           node: <a class="up" href={nodeHref(bo.node)}><b><Plain text={bo.title ?? bo.node} /></b>/w/{bo.node}</a>,
           date: bo.as_of && <a href={`${nodeHref(bo.node)}#${PASS_BOX}`} title={exact(bo.as_of.at)}>{monthDay(bo.as_of.at)}</a>,
-          license: <b><Plain text={n.license} /></b>,
         })}
       </div>
     )
@@ -259,8 +274,6 @@ const Builds: FC<{ n: NodeHead }> = ({ n }) => {
         ) : (
           <span class="up"><b><Plain text={bo.name} /></b></span>
         ),
-        license: <b><Plain text={bo.license} /></b>,
-        name: <Plain text={bo.name} />,
       })}
     </div>
   )
@@ -647,8 +660,9 @@ const PostView: FC<{ p: PostRow; d: NodePageData; sub?: SubmissionRow; reply?: b
 }
 
 /**
- * A passed claim's pinned work (decided Oct 14), under its evidence: "pinned work:" and its pins, one a line (an ipfs
- * address or a magnet link is long), or "no pinned work", so a pass whose work can't be checked later says so. Also
+ * A passed claim's work (decided Oct 14; called "the work", not "pinned work", since Oct 15, when "pin" came to mean
+ * only pinning a post), under its evidence: "the work:" and its links, one a line (an ipfs address or a magnet link is
+ * long), or "no work linked", so a pass whose work can't be checked later says so. Also
  * under each pass record, and on the claim in its poster's name view (web/profile.tsx). A blocked or dead-end claim's
  * links show as any post's do.
  */
@@ -992,8 +1006,8 @@ export const StepUpField: FC<{ id: string; open?: boolean; form?: string }> = ({
 
 /**
  * The pass box (decided Oct 14, in place of the result page): above the thread of a node with a pass record, its
- * records newest first, each with its pinned work; "since then: blocked (oct 20)" once the status moved on after the
- * newest, or "now: on track" when it's another status that didn't move after it (an author's mark); the dated status history, folded; and, for a shwarm's author with a passed claim to cite, "mark it passed".
+ * records newest first, each with its work; "since then: blocked (oct 20)" once the status moved on after the
+ * newest, or "now: on track" when it's another status that didn't move after it (an author's mark); the dated status history, folded; and, for a shwarm's author with a passed claim to cite, "approve it".
  * Nothing in it locks anything. Its id is PASS_BOX (#passed), where the author's inbox notice links.
  * OPEN: no mockup draws it; its words are Claude's drafts of the spec's lines (Oct 14).
  */
@@ -1004,7 +1018,7 @@ const PassBox: FC<{ d: NodePageData }> = ({ d }) => {
   const now = s.now
   const other = now.current !== latest.status
   const moved = other && !!now.changed_at && now.changed_at > latest.at
-  const authored = s.records.some(r => r.kind === 'author' && r.status === 'passed')
+  const authored = s.authorApproved !== null // a pass from before Oct 14 isn't their approval unless they checked it (read/status.ts)
   return (
     <div class="box passbox" id={PASS_BOX}>
       <h2>{statusName(latest.status)}</h2>
@@ -1035,9 +1049,9 @@ const dotted = (parts: unknown[]) => parts.filter(p => p !== null && p !== undef
 /**
  * One pass record (read/status.ts PassRecord):
  *   * its people's: "passed as of oct 14 18:00 · @ana's passed claim · backed by 6"
- *   * the author's: "@myra says passed · oct 15 09:12 · @ana's passed claim"
+ *   * the author's approval (decided Oct 15): "@myra approved · oct 15 09:12 · citing @ana's claim"
  *   * from before Oct 14 (migration 0032): "passed oct 9 21:47 · submission #2", or "dead end oct 9 21:47 · <its note>".
- * Then its pinned work, or "no pinned work"; a dead end has none to show.
+ * Then the work it links, or "no work linked"; a dead end has none to show.
  */
 const RecordView: FC<{ r: PassRecord; d: NodePageData }> = ({ r, d }) => {
   const when = <When at={r.at} />
@@ -1048,7 +1062,7 @@ const RecordView: FC<{ r: PassRecord; d: NodePageData }> = ({ r, d }) => {
       : r.submission !== null
         ? [fillx(w.node.recordPassed, { when }), <a href={subHref(d.chain.node.path, r.submission)}>{fill(w.node.submissionNumber, { n: r.submission })}</a>]
         : r.kind === 'author'
-          ? [fillx(w.node.recordAuthor, { name: <b><Name name={r.by ?? FORMER} link /></b>, when }), claim]
+          ? [fillx(w.node.recordAuthor, { name: <b><Name name={r.by ?? FORMER} link /></b>, when }), r.claim && <a href={`#${r.claim.post}`}>{fillx(w.node.citingClaim, { name: <Name name={r.claim.by} /> })}</a>]
           : [fillx(w.node.recordCrowd, { when }), claim, count(w.node.backedBy, r.backers)]
   return (
     <li class={r.kind}>
@@ -1079,7 +1093,7 @@ const StatusHistory: FC<{ d: NodePageData }> = ({ d }) => (
 )
 
 /**
- * "mark it passed" (decided Oct 14): a shwarm's author's own record, citing one of its passed claims, the most-backed
+ * "approve it" (decided Oct 14 as "mark it passed"; worded as approving Oct 15): a shwarm's author's own record, citing one of its passed claims, the most-backed
  * first. It acts with the author's authority, so it confirms with the password (asked inline while the 10-minute
  * window is closed). It changes no status and locks nothing; marking again citing another claim adds a record.
  * Open while the author has no record of their own yet.
@@ -1118,7 +1132,7 @@ const MarkPassed: FC<{ d: NodePageData; open: boolean }> = ({ d, open }) => {
 // ---------- sidebar ----------
 
 /**
- * The author's own box (go-live 5.6): "mark it passed", on a shwarm with no pass record yet, once someone posted a
+ * The author's own box (go-live 5.6): "approve it", on a shwarm with no pass record yet, once someone posted a
  * passed claim to cite. Once there is a record, the mark sits in the pass box with it. Editing a shwarm is retired
  * (decided Oct 12), and so is the author's dead end (decided Oct 14: dead end comes from claims).
  * OPEN (#76): no mockup draws this box; its words wait on Myra's yes.
@@ -1583,8 +1597,8 @@ const StatusPart: FC<{ d: NodePageData }> = ({ d }) => {
 
 /**
  * One claim's form (decided Oct 14): its question, the evidence, and "vote blocked" (or passed, dead end). It posts to
- * the thread as the viewer, a claim that their backing moves to. A passed claim also takes its pinned work, one pin per
- * line, with why to pin it. Hidden until its button opens it: the link's target without scripts, a toggle with them. A
+ * the thread as the viewer, a claim that their backing moves to. A passed claim also takes the work it links, one link per
+ * line, with why to link it. Hidden until its button opens it: the link's target without scripts, a toggle with them. A
  * refused claim opens it again with the words and the pins kept.
  */
 const ClaimForm: FC<{ d: NodePageData; claim: Claim; flash?: Flash }> = ({ d, claim, flash }) => {

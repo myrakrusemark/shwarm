@@ -106,7 +106,7 @@ export async function runExample(run: RunAt, p: { myra: P } & Record<ExampleHand
     input: {
       node: root,
       claim: 'passed',
-      text: 'found it. the neighbor lookup rounds toward zero, so negative coordinates land one chunk off. a two-line fix on top of the edge fix: the source and the diff are pinned below. load corner-repro.lmp and place 200 times on each corner of each chunk: expect 0 failures.',
+      text: 'found it. the neighbor lookup rounds toward zero, so negative coordinates land one chunk off. a two-line fix on top of the edge fix: the source and the diff are linked below. load corner-repro.lmp and place 200 times on each corner of each chunk: expect 0 failures.',
       links: [SOURCE, CORNER_FIX],
     },
   })

@@ -39,7 +39,8 @@ const lines = (path: string) =>
   w.all('SELECT h.at, h.from_status, h.to_status, h.claim_id, h.backers, h.against, h.written_by FROM status_change h JOIN node n ON n.id = h.node_id WHERE n.path = ? ORDER BY h.at', path)
 const records = (path: string) =>
   w.all('SELECT r.kind, r.status, r.at, r.claim_id, r.backers, r.pins, r.by_name, r.change_id IS NOT NULL AS crowd FROM pass_record r JOIN node n ON n.id = r.node_id WHERE n.path = ? ORDER BY r.at, r.rowid', path)
-const notices = () => w.all("SELECT person_id, kind, node_id, post_id, text FROM inbox_item WHERE kind = 'system' ORDER BY id")
+// The author's approve notices; the status-change notices to the people who joined (#138, Oct 15) are test/oct15.test.ts's.
+const notices = () => w.all("SELECT person_id, kind, node_id, post_id, text FROM inbox_item WHERE kind = 'system' AND status_to IS NULL ORDER BY id")
 
 beforeEach(async () => {
   w = new World()
@@ -73,10 +74,10 @@ describe('a change of status is written by whoever first advances past it (decid
     const passed = w.events(MID, 'passed')
     expect(passed).toHaveLength(1)
     expect(passed[0]).toMatchObject({ at: at(24), by_name: null, submission_id: null, detail: 'backed by 2 to 0', evidence: `/w/${MID}#${c}`, milestone: 1 })
-    // the shwarm's author is asked for their own mark; no mail goes with it
+    // the shwarm's author is asked for their own approval; no mail goes with it
     expect(notices()).toEqual([
       // the stored words name no one: the inbox names the claimant as their name reads when it shows (web/profile.tsx)
-      { person_id: myra.id, kind: 'system', node_id: w.node(MID).id, post_id: c, text: 'minecraft in doom passed: its people back a passed claim. mark it passed too?' },
+      { person_id: myra.id, kind: 'system', node_id: w.node(MID).id, post_id: c, text: 'minecraft in doom passed: its people back a passed claim. approve it too?' },
     ])
     expect(w.all('SELECT template FROM email_outbox')).toEqual([])
     const inbox = async () => (await readInbox(w.db, myra.id, { all: false, max: 100 })).items[0]

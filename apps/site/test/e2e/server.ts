@@ -197,6 +197,14 @@ export async function startLoopServer(): Promise<LoopServer> {
         | { node_id: number; at: string; leading_since: string | null; changed_at: string | null }
         | undefined
       if (band) db.raw.prepare('UPDATE branch_status SET at = ?, leading_since = ?, changed_at = ? WHERE node_id = ?').run(back(band.at), back(band.leading_since), back(band.changed_at), band.node_id)
+      // the people on it joined that long ago too: a change's notice goes to those on the node at its moment (#138)
+      const seats = db.raw.prepare('SELECT s.node_id, s.person_id, s.joined_at, s.left_at FROM seat s JOIN node n ON n.id = s.node_id WHERE n.path = ?1 OR n.path LIKE ?1 || \'/%\'').all(path) as {
+        node_id: number
+        person_id: number
+        joined_at: string
+        left_at: string | null
+      }[]
+      for (const x of seats) db.raw.prepare('UPDATE seat SET joined_at = ?, left_at = ? WHERE node_id = ? AND person_id = ?').run(back(x.joined_at), back(x.left_at), x.node_id, x.person_id)
       await rollupStats(db, Date.now())
     },
     close: s.close,

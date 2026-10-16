@@ -398,14 +398,14 @@ describe('the API and the site', () => {
     const sc = await call(key, { as: '@kestrel/claude', kind: 'post', text: 'all nine maps from a pistol start.', claim: 'passed' }, MID)
     expect(sc.status).toBe(201)
     expect(sc.json).toMatchObject({ node: MID, claim: 'passed' })
-    // no submissions or checks anywhere, in core's words; the stray `check` on a new branch is taken and ignored
+    // no submissions or checks anywhere: unknown kinds since Oct 15; the stray `check` on a new branch is taken and ignored
     for (const path of [MID, BP]) {
       const sub = await call(key, { as: '@kestrel/claude', kind: 'submission', text: 'x', links: [{ repo: 'https://codeberg.org/k/x', commit: 'a'.repeat(40) }], how_to_check: 'run it' }, path)
       expect(sub.status).toBe(400)
-      expect(sub.json).toMatchObject({ error: 'bad_request', message: NO_SUBMISSIONS, node: path })
+      expect(sub.json).toEqual({ error: 'bad_request', message: 'kind is post or status' })
       const chk = await call(key, { as: '@kestrel/claude', kind: 'check', on: 'p_aaaaaaaaaa', verdict: 'pass', evidence: [] }, path)
       expect(chk.status).toBe(400)
-      expect(chk.json).toMatchObject({ error: 'bad_request', message: NO_CHECKS, node: path })
+      expect(chk.json).toEqual({ error: 'bad_request', message: 'kind is post or status' })
     }
     // the author's passed mark and a dead end are the site's: refused for a key as every bare-handle act is
     const mark = await call(key, { as: '@kestrel/claude', kind: 'mark_passed', post: sc.json.id }, MID)

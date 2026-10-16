@@ -44,7 +44,7 @@ function nodeJson(path: string, o: Record<string, unknown> = {}) {
     ...(parent ? { parent: { path: parent, done_when: 'a doom wad where you can place and break blocks.' } } : {}),
     state: 'live',
     in_review: false,
-    status_now: 'on_track',
+    status: { current: 'on_track' },
     author: '@myra',
     done_when: parent ? 'blocks place and stay placed, 200 times per corner.' : 'a doom wad where you can place and break blocks.',
     posts: [{ ...pinned('first!'), pinned: false }],
@@ -138,7 +138,7 @@ describe('the key', () => {
         '             the mcp server (stdio): npx -y @shwarm/cli mcp',
         `             the agent skill: ${SERVER}/skills/shwarm/SKILL.md, with sandbox.md beside it`,
         '           the shwarm cli works now, without either.',
-        `workspace  no pinned post names a shared repo yet; setting one up and pinning it is the first job (the steps: ${SERVER}/guide-shared-repo).`,
+        `workspace  no pinned post names a shared repo yet; setting one up and pinning it is the first job. make it on radicle, which needs no account, unless the done test names another host (the steps: ${SERVER}/guide-shared-repo).`,
         'your job   the done test: a doom wad where you can place and break blocks.',
         `           read the node: shwarm read ${ROOT}`,
         `next       shwarm read ${ROOT}`,
@@ -391,8 +391,18 @@ describe('the workspace', () => {
     expect(r.ran).toEqual([])
     const text = await start([ROOT], { nodes })
     expect(text.out).toContain(
-      `workspace  no pinned post names a shared repo yet; setting one up and pinning it is the first job (the steps: ${SERVER}/guide-shared-repo).`,
+      `workspace  no pinned post names a shared repo yet; setting one up and pinning it is the first job. make it on radicle, which needs no account, unless the done test names another host (the steps: ${SERVER}/guide-shared-repo).`,
     )
+  })
+
+  it("a pinned claim never names the shared repo: its links are the claimant's work (decided Oct 15)", async () => {
+    // the site pins the claim a pass cites; a server too old to send `work` is read post by post
+    const claim = { ...pinned('all nine maps from a pistol start.', [{ repo: 'https://github.com/kestrel/my-fork', commit: 'a'.repeat(40) }]), id: 'p_k3str3lc1m', claim: 'passed' }
+    const nodes = { [ROOT]: nodeJson(ROOT, { posts: [claim, pinned(`the shared repo: ${REPO}`)] }) }
+    const r = await start([ROOT], { nodes })
+    expect(r.ran).toEqual([['git', 'clone', '--', REPO, join(r.cwd, ROOT)]])
+    const only = await start([ROOT, '--json'], { nodes: { [ROOT]: nodeJson(ROOT, { posts: [claim] }) } })
+    expect(JSON.parse(only.out).workspace).toEqual({ repo: null, from: null, dir: null, state: 'none' })
   })
 
   it("on a branch, reads the pinned status update above it when the branch's names none", async () => {
@@ -437,10 +447,10 @@ describe('the job and the commands', () => {
   })
 
   it("says a node's status when it isn't on track, and still gives every command: nothing locks; a paused node gets only read", async () => {
-    const passed = await start([ROOT, '--harness', 'none'], { env: { SHWARM_KEY: SECRET }, nodes: { [ROOT]: nodeJson(ROOT, { status_now: 'passed' }) } })
+    const passed = await start([ROOT, '--harness', 'none'], { env: { SHWARM_KEY: SECRET }, nodes: { [ROOT]: nodeJson(ROOT, { status: { current: 'passed' } }) } })
     expect(passed.out).toContain(`node       "minecraft in doom" · ${SERVER}/w/${ROOT}\n           its status: passed. nothing locks: it still takes work.\n`)
     expect(passed.out).toContain(claims(ROOT, '@myra/<agent>').map(c => `           ${c}`).join('\n'))
-    const paused = await start([BRANCH, '--harness', 'none', '--json'], { nodes: { [BRANCH]: nodeJson(BRANCH, { paused: true, status_now: 'dead_end' }), [ROOT]: nodeJson(ROOT) } })
+    const paused = await start([BRANCH, '--harness', 'none', '--json'], { nodes: { [BRANCH]: nodeJson(BRANCH, { paused: true, status: { current: 'dead_end' } }), [ROOT]: nodeJson(ROOT) } })
     expect(JSON.parse(paused.out)).toMatchObject({ node: { status: 'dead_end' }, next: [`shwarm read ${BRANCH}`] })
   })
 

@@ -256,7 +256,10 @@ describe('openapi.yaml matches the code', () => {
     const shwarm = { ...ex('/shwarms', 'post', 'shwarm'), as: '@ana/scribe', title: 'minecraft in doom, again' }
     const r = await send(app, w.env, w.key, { path: '/shwarms', body: shwarm })
     expect(r.status).toBe(202)
-    expect(r.json.license).toBe('GPL-3.0') // the upstream's
+    // the upstream's license stays the upstream's; the shwarm is MIT (decided Oct 15)
+    const made = w.raw.prepare('SELECT license, builds_on FROM node WHERE path = ?').get(r.json.node) as { license: string; builds_on: string }
+    expect(made.license).toBe('MIT')
+    expect(JSON.parse(made.builds_on).license).toBe('GPL-3.0')
   })
 })
 

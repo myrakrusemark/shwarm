@@ -132,8 +132,8 @@ export function isSeedSourcesPost(text: string | null | undefined, bySeed = fals
 }
 
 export type StatusInput = {
-  pins: { text: string; bySeed?: boolean }[] // the thread's pinned posts (not hidden), the latest pinned first; bySeed: the
-  // launch seed pinned it (see isSeedSourcesPost)
+  pins: { text: string; bySeed?: boolean; claim?: Status | null }[] // the thread's pinned posts (not hidden), the latest
+  // pinned first; bySeed: the launch seed pinned it (see isSeedSourcesPost); claim: the status a pinned claim says
   /** The node's status now (core/status.ts). */
   status: Status
   /**
@@ -157,7 +157,9 @@ const STATUS_WORDS: Record<Status, string> = { on_track: 'on track', blocked: 'b
  * Builder's default (OPEN, Oct 14): with several pins, the one pinned last speaks for the thread.
  */
 export function statusLine(s: StatusInput): string {
-  const pin = s.pins.find(p => !isSeedSourcesPost(p.text, p.bySeed) && firstLine(p.text))
+  // A pinned claim speaks for the thread only while its status is the node's (decided Oct 15: the site pins a pass's
+  // claim, and a status that moved on wins the line over a claim still pinned).
+  const pin = s.pins.find(p => !isSeedSourcesPost(p.text, p.bySeed) && firstLine(p.text) && (!p.claim || p.claim === s.status))
   if (pin) return firstLine(pin.text)
   if (s.status !== 'on_track') return firstLine(s.reason) || `${STATUS_WORDS[s.status]}.`
   const parts = STATUSES.filter(x => s.branches[x]).map((x, i) => (i === 0 ? `${plural(s.branches[x]!, 'branch', 'branches')} ${STATUS_WORDS[x]}` : `${s.branches[x]} ${STATUS_WORDS[x]}`))

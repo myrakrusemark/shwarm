@@ -1,14 +1,17 @@
 // The page side of one model for every node (decided Oct 14, "One model for every node" and "With nothing locking: build
 // on any shwarm, a pass box in place of the result page, a passed tab"): a shwarm's people card and its claim forms, a
-// passed claim's pinned work in its form and in the thread, the pass box with its records, history and "since then",
-// the author's "mark it passed" (in the pass box, or before any record in their own box), and "builds on …, as passed".
+// passed claim's work in its form and in the thread ("the work", not "pinned work", since Oct 15), the pass box with its
+// records, history and "since then", the author's "approve it" (in the pass box, or before any record in their own box;
+// "mark it passed" until Oct 15), "✓ author approved" on the page head and the feed card, and "builds on …, as passed".
 // The acts and records behind them are test/records.test.ts and test/pins.test.ts.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { hashPassword } from '../src/auth/password'
 import { NOT_A_PASSED_CLAIM } from '../src/core/records'
 import { resetReadLimit } from '../src/web/read-limit'
 import { forgetVersions } from '../src/web/version-memo'
+import { rollupStats } from '../src/jobs/stats'
 import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv } from './browser'
+import { schemaErrors } from './contract'
 import { HOUR, person, site, stepped, World, type P } from './core-fixtures'
 import { T0 } from './d1'
 
@@ -102,18 +105,22 @@ describe("a shwarm's status, as a branch's (decided Oct 14)", () => {
   })
 })
 
-describe('pinned work on a passed claim (decided Oct 14)', () => {
+describe('the work on a passed claim (decided Oct 14; "the work" since Oct 15)', () => {
   it('only the passed claim form takes pins, one per line, with the hint', async () => {
     const html = await page(await member(kestrel))
     const f = part(html, '<form id="claim-passed"', '</form>')
-    expect(f).toContain('<label for="cl-passed-pins">pinned work <span class="note">· optional</span></label>')
+    expect(f).toContain('<label for="cl-passed-pins">the work <span class="note">· optional</span></label>')
+    expect(f).toContain('<span class="note" id="cl-passed-pins-n">one per line</span>')
+    // no format fine print in the form (decided Oct 15): no path steps, no magnet keys
+    expect(f).not.toMatch(/\.\.|btih|xt=|optional path/)
     expect(f).toContain('<textarea id="cl-passed-pins" class="pins" name="links" rows="2" aria-describedby="cl-passed-pins-n cl-passed-pins-h"')
-    expect(f).toContain("if this is code or files, pin them here: a repo and its commit, or an ipfs:// address. a pass without pinned work can't be checked later.")
+    expect(f).toContain("link the exact version: a repo and its commit, a file and its sha256, an ipfs:// address or a magnet: link. if this is code or files, link them here. a pass without them can't be checked later.")
+    expect(f).not.toContain('pinned work')
     expect(part(html, '<form id="claim-blocked"', '</form>')).not.toContain('name="links"')
     expect(part(html, '<form id="claim-dead_end"', '</form>')).not.toContain('name="links"')
   })
 
-  it('posted from the form: "pinned work:" in the thread, the self-hashing ones as code to copy', async () => {
+  it('posted from the form: "the work:" in the thread, the self-hashing ones as code to copy', async () => {
     const b = await member(kestrel)
     const links = `https://codeberg.org/myra/doom-blocks ${COMMIT}\n${IPFS}\n\n${MAGNET}\n`
     const r = await b.req(`/w/${MID}`, { form: { form_token: formTokenIn(await page(b)), do: 'claim', status: 'passed', text: EVIDENCE, links } })
@@ -121,7 +128,7 @@ describe('pinned work on a passed claim (decided Oct 14)', () => {
     const id = r.headers.get('location')!.split('#')[1]
     expect(JSON.parse(w.get('SELECT links FROM post WHERE id = ?', id).links)).toEqual(PINS)
     const post = part(await page(new Browser(testEnv(w.db))), `<div class="c" id="${id}">`, '<div class="acts">')
-    expect(post).toContain('<div class="how pins"><b>pinned work:</b><ul><li><a href="https://codeberg.org/myra/doom-blocks" rel="nofollow ugc noopener noreferrer">myra/doom-blocks ↗</a> <span class="note">(codeberg.org, commit 9fceb02)</span></li>')
+    expect(post).toContain('<div class="how pins"><b>the work:</b><ul><li><a href="https://codeberg.org/myra/doom-blocks" rel="nofollow ugc noopener noreferrer">myra/doom-blocks ↗</a> <span class="note">(codeberg.org, commit 9fceb02)</span></li>')
     expect(post).toContain(`<li><code class="pin">${IPFS}</code></li>`)
     expect(post).toContain(`<li><code class="pin">${MAGNET}</code></li>`)
     expect(post).not.toContain('<a href="ipfs:') // nothing is fetched, no gateway
@@ -131,9 +138,10 @@ describe('pinned work on a passed claim (decided Oct 14)', () => {
     const none = await w.post(site(kestrel), MID, EVIDENCE, { claim: 'passed' })
     const blocked = await w.post(site(lumpy), MID, 'corners fail again.', { claim: 'blocked', links: [{ url: 'https://archive.org/download/x/repro.lmp', sha256: '3b'.repeat(32) }] })
     const html = await page(new Browser(testEnv(w.db)))
-    expect(part(html, `<div class="c" id="${none.id}">`, '<div class="acts">')).toContain('<p class="note pins">no pinned work</p>')
+    expect(part(html, `<div class="c" id="${none.id}">`, '<div class="acts">')).toContain('<p class="note pins">no work linked</p>')
     const b = part(html, `<div class="c" id="${blocked.id}">`, '</div></div>')
-    expect(b).not.toContain('pinned work')
+    expect(b).not.toContain('no work linked')
+    expect(b).not.toContain('the work:')
     expect(b).toContain('linked: <a href="https://archive.org/download/x/repro.lmp"')
   })
 
@@ -156,7 +164,7 @@ describe('the pass box (decided Oct 14, in place of the result page)', () => {
     expect(await page(new Browser(testEnv(w.db)))).not.toContain('class="box passbox"')
   })
 
-  it("its people's pass: when, the claim, its backers then and its pinned work; the status history, folded", async () => {
+  it("its people's pass: when, the claim, its backers then and its work; the status history, folded", async () => {
     const c = await passed()
     const html = await page(new Browser(testEnv(w.db)))
     const box = passBox(html)
@@ -164,13 +172,13 @@ describe('the pass box (decided Oct 14, in place of the result page)', () => {
     expect(box).toContain(
       `<li class="crowd"><div>passed as of <span title="${new Date(T0 + 24 * HOUR).toISOString().slice(0, 10)} ${new Date(T0 + 24 * HOUR).toISOString().slice(11, 16)} utc">`,
     )
-    expect(box).toContain(` · <a href="#${c}">@kestrel's passed claim</a> · backed by 2</div><div class="how pins"><b>pinned work:</b>`)
+    expect(box).toContain(` · <a href="#${c}">@kestrel's passed claim</a> · backed by 2</div><div class="how pins"><b>the work:</b>`)
     expect(box).toContain(`<code class="pin">${IPFS}</code>`)
     expect(box).toMatch(/<details class="hist"><summary>status history<\/summary><ol><li>on track → <a href="#p_\w+">passed<\/a> · <span title="[^"]+">[a-z]{3} \d+ \d\d:\d\d<\/span> · 2 to 0<\/li><\/ol><\/details>/)
     expect(box).not.toContain('since then')
-    // signed out, and for anyone but the author: no mark
-    expect(box).not.toContain('mark it passed')
-    expect(passBox(await page(await member(kestrel)))).not.toContain('mark it passed')
+    // signed out, and for anyone but the author: no approve form
+    expect(box).not.toContain('approve it')
+    expect(passBox(await page(await member(kestrel)))).not.toContain('approve it')
     // the badge says passed
     expect(part(html, '<div class="state">', '</section>')).toContain('class="st vs passed"')
   })
@@ -217,8 +225,8 @@ describe('the pass box (decided Oct 14, in place of the result page)', () => {
     tick(25 * HOUR)
     await w.run({ type: 'status', actor: site(kestrel), input: { node: BP, status: 'on_track' } })
     const box = passBox(await page(await member(myra), BP))
-    expect(box).toContain(`<a href="#${c.id}">@kestrel's passed claim</a> · backed by 2</div><p class="note pins">no pinned work</p>`)
-    expect(box).not.toContain('mark it passed')
+    expect(box).toContain(`<a href="#${c.id}">@kestrel's passed claim</a> · backed by 2</div><p class="note pins">no work linked</p>`)
+    expect(box).not.toContain('approve it')
   })
 
   it('from before Oct 14 (migration 0032): the passed submission, or the dead end and its note', async () => {
@@ -242,7 +250,7 @@ describe('the pass box (decided Oct 14, in place of the result page)', () => {
   })
 })
 
-describe('"mark it passed" (decided Oct 14): the author\'s own record', () => {
+describe('"approve it" (decided Oct 14 as "mark it passed", worded as approving Oct 15): the author\'s own record', () => {
   it('before any record: the author\'s box in the sidebar, once a passed claim exists; nobody else sees it', async () => {
     const b = await member(myra)
     expect(await page(b)).not.toContain('id="owner"')
@@ -250,25 +258,28 @@ describe('"mark it passed" (decided Oct 14): the author\'s own record', () => {
     const html = await page(b)
     const box = part(html, '<div class="box owner" id="owner">', '<div class="box people"')
     expect(box).toContain('<h2 class="sunny">your shwarm <span>only you see this box</span></h2>')
-    expect(box).toContain('<details class="passmark" open=""><summary>mark it passed</summary>')
+    expect(box).toContain('<details class="passmark" open=""><summary>approve it</summary>')
     expect(box).toMatch(new RegExp(`<option value="${c}" selected="">@kestrel's claim · 2 backers · [a-z]{3} \\d+ \\d\\d:\\d\\d · all nine maps from a pistol start, 60 fps on the reference…</option>`))
-    expect(box).toContain("your own record, beside its people's. it doesn't change the status or lock anything. confirms with your password.")
+    expect(box).toContain("your own approval, beside its people's pass. it doesn't change the status or lock anything. confirms with your password.")
+    expect(box).toContain('<button class="btn plain" type="submit">approve</button>')
+    expect(box).not.toMatch(/mark it passed|mark passed/)
     expect(await page(await member(kestrel))).not.toContain('id="owner"')
   })
 
-  it('in the pass box once there is a record: marking it writes "@myra says passed", and the form folds', async () => {
+  it('in the pass box once there is a record: approving writes "@myra approved", and the form folds', async () => {
     const c = await passed()
     const b = await member(myra)
     let box = passBox(await page(b))
-    expect(box).toContain('<div class="in owner"><details class="passmark" open=""><summary>mark it passed</summary>')
+    expect(box).toContain('<div class="in owner"><details class="passmark" open=""><summary>approve it</summary>')
     // signed in just now: the password was entered within 10 minutes, so it isn't asked again
     expect(box).not.toContain('type="password"')
     const r = await b.req(`/w/${MID}`, { form: { form_token: formTokenIn(await page(b)), do: 'mark_passed', post: c } })
     expect(r.status).toBe(303)
     expect(r.headers.get('location')).toBe(`/w/${MID}#passed`)
     box = passBox(await page(b))
-    expect(box).toMatch(new RegExp(`<li class="author"><div><b><a href="/@myra">@myra</a></b> says passed · <span title="[^"]+">[a-z]{3} \\d+ \\d\\d:\\d\\d</span> · <a href="#${c}">@kestrel's passed claim</a></div><div class="how pins">`))
-    expect(box).toContain('<details class="passmark"><summary>mark it passed</summary>')
+    expect(box).toMatch(new RegExp(`<li class="author"><div><b><a href="/@myra">@myra</a></b> approved · <span title="[^"]+">[a-z]{3} \\d+ \\d\\d:\\d\\d</span> · <a href="#${c}">citing @kestrel's claim</a></div><div class="how pins">`))
+    expect(part(box, '<ul class="records">', '</ul>')).not.toContain('says passed')
+    expect(box).toContain('<details class="passmark"><summary>approve it</summary>')
   })
 
   it('a refused mark shows in its form with the pick kept; the password is asked once the window closed', async () => {
@@ -293,10 +304,78 @@ describe('builds on (decided Oct 14: any shwarm, as of its latest pass)', () => 
     w.db.raw.prepare("UPDATE node SET triage = 'clear'").run()
     const day = new Date(T0 + 24 * HOUR)
     const after = part(await page(new Browser(testEnv(w.db)), 'survival'), '<div class="builds">', '</div>')
-    expect(after).toContain(
-      `builds on <a class="up" href="/w/${MID}"><b>minecraft in doom</b>/w/${MID}</a>, as passed <a href="/w/${MID}#passed" title="${day.toISOString().slice(0, 10)} ${day.toISOString().slice(11, 16)} utc">oct ${day.getUTCDate()}</a> · license`,
+    expect(after).toBe(
+      `<div class="builds">builds on <a class="up" href="/w/${MID}"><b>minecraft in doom</b>/w/${MID}</a>, as passed <a href="/w/${MID}#passed" title="${day.toISOString().slice(0, 10)} ${day.toISOString().slice(11, 16)} utc">oct ${day.getUTCDate()}</a>`,
     )
     const before = part(await page(new Browser(testEnv(w.db)), 'before-the-pass'), '<div class="builds">', '</div>')
-    expect(before).toContain(`builds on <a class="up" href="/w/${MID}"><b>minecraft in doom</b>/w/${MID}</a> · license`)
+    // no license carries over (decided Oct 15): the line names only what it builds on
+    expect(before).toBe(`<div class="builds">builds on <a class="up" href="/w/${MID}"><b>minecraft in doom</b>/w/${MID}</a>`)
+  })
+})
+
+describe('"✓ author approved" beside the badge (decided Oct 15)', () => {
+  const head = (html: string) => part(html, '<div class="state">', '</section>')
+  const when = (at: string) => `${['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'][new Date(at).getUTCMonth()]} ${new Date(at).getUTCDate()} ${at.slice(11, 16)}`
+
+  it('on the page head and the feed card, apart from the badge, with when and the claim; whatever the status is now', async () => {
+    const c = await passed()
+    const anon = new Browser(testEnv(w.db))
+    expect(await page(anon)).not.toContain('class="approved"') // the people's pass alone shows no mark
+    tick(HOUR)
+    const mark = await w.run<{ id: string; at: string }>({ type: 'markPassed', actor: stepped(myra), input: { node: MID, post: c } })
+    const mine = `<a class="approved" href="#passed" title="the author approved on ${when(mark.at)}, citing @kestrel's claim">✓ author approved</a>`
+    const h = head(await page(anon))
+    // a separate mark after the badge, inside the badges row: the badge itself still says only the people's status
+    expect(h).toMatch(new RegExp(`^<div class="state"><div class="badges"><div class="vote-badge"><button type="button" class="st vs passed"[^>]*>passed</button>[\\s\\S]*?</div></div></div>${mine.replace(/[.?*+()[\]\\/]/g, '\\$&')}</div>`))
+    // the feed card, once the stats job rolled it up: under the badge, linked to the pass box
+    await rollupStats(w.db, w.now)
+    forgetVersions()
+    const feed = await body(await anon.req('/?tab=passed', { headers: { accept: 'text/html' } }))
+    const card = part(feed, `<a class="title" href="/w/${MID}">`, '</li>')
+    expect(card).toContain(`<div class="right"><span class="st vs passed">passed</span><a class="approved" href="/w/${MID}#passed" title="the author approved on ${when(mark.at)}, citing @kestrel's claim">✓ author approved</a></div>`)
+    // the two are not the same: once the people's status moves on, the mark stays and the badge changes
+    const b = await w.post(site(ana), MID, 'corners fail again since the renderer patch.', { claim: 'blocked' })
+    for (const p of [kestrel, lumpy, ana]) await w.run({ type: 'back', actor: site(p), input: { node: MID, post: b.id, on: true } })
+    tick(25 * HOUR)
+    await w.run({ type: 'status', actor: site(myra), input: { node: MID, status: 'on_track' } })
+    const later = head(await page(anon))
+    expect(later).toContain('class="st vs blocked"')
+    expect(later).toContain('>✓ author approved</a>')
+    // a branch has no author's approval
+    expect(head(await page(anon, BP))).not.toContain('class="approved"')
+  })
+
+  it('once the cited claim is gone, the title says only when', async () => {
+    const c = await passed()
+    const mark = await w.run<{ id: string; at: string }>({ type: 'markPassed', actor: stepped(myra), input: { node: MID, post: c } })
+    w.db.raw.prepare('UPDATE post SET deleted_at = ? WHERE id = ?').run(new Date(w.now).toISOString(), c)
+    forgetVersions()
+    expect(head(await page(new Browser(testEnv(w.db))))).toContain(`<a class="approved" href="#passed" title="the author approved on ${when(mark.at)}">✓ author approved</a>`)
+  })
+})
+
+describe("the author's own approval in the JSON (decided Oct 15)", () => {
+  it('author_approved on the Node JSON and the list of shwarms, apart from the status; the passed claim pinned first in posts', async () => {
+    const c = await passed()
+    const b = new Browser(testEnv(w.db))
+    const json = async (path: string) => {
+      forgetVersions()
+      return (await (await b.req(path, { headers: { accept: 'application/json' } })).json()) as any
+    }
+    let j = await json(`/w/${MID}`)
+    expect(j.author_approved).toBeNull()
+    // the site pinned the claim its people passed it on: the first post, pinned
+    expect(j.posts[0]).toMatchObject({ id: c, pinned: true, claim: 'passed' })
+    tick(HOUR)
+    const mark = await w.run<{ id: string; at: string }>({ type: 'markPassed', actor: stepped(myra), input: { node: MID, post: c } })
+    j = await json(`/w/${MID}`)
+    expect(j.author_approved).toEqual({ at: mark.at, claim: { post: c, by: '@kestrel' } })
+    expect(schemaErrors('Node', j)).toEqual([])
+    expect((await json(`/w/${BP}`)).author_approved).toBeNull()
+    // the feed reads it as the stats job rolled it up
+    await rollupStats(w.db, w.now)
+    const list = await json('/shwarms?tab=passed&format=json')
+    expect(list.shwarms.find((x: any) => x.path === MID).author_approved).toEqual({ at: mark.at, claim: { post: c, by: '@kestrel' } })
+    expect(schemaErrors('ShwarmList', list)).toEqual([])
   })
 })

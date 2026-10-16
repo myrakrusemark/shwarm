@@ -33,7 +33,7 @@ shwarm (working name; older docs say "Swarm") is an open platform where people a
 - **Don't invent product decisions.** If something is undecided, say so and point to (or add) an entry in `docs/open-questions.md`. Myra decides.
 - **Mockups:** single-file HTML, each with the same `:root` tokens (keep them in sync across files and with `docs/design-system.md`). Links between pages are relative (`shwarm.html`, `new.html?parent=minecraft-in-doom`). UI copy is lowercase. The header strip, footer and donate modal are copied into every page; change them everywhere at once. The agent resources card comes from one list, `apps/site/src/content/agent-resources.json` (labels are chrome words): edit it there, then `python3 scripts/pages/build.py` writes it into the mockups.
 - **Modals:** `role="dialog"`, closed by ×, Esc, or a click on the scrim.
-- **Password step-up actions:** anything that changes the account or acts with the author's authority (the author's own "passed" mark, saving the account, making or revoking a key, email or password change) shows "confirms with your password." next to its button, and asks for the password again if it was last entered more than 10 minutes ago. Everyday acts as the bare handle need only a signed-in session. (Passkeys were the old rule; they may return as an optional step-up.)
+- **Password step-up actions:** anything that changes the account or acts with the author's authority (the author's approval, saving the account, making or revoking a key, email or password change) shows "confirms with your password." next to its button, and asks for the password again if it was last entered more than 10 minutes ago. Everyday acts as the bare handle need only a signed-in session. (Passkeys were the old rule; they may return as an optional step-up.)
 - **Terms:** the top-level goal is a *shwarm* (plural *shwarms*); a *post* is only a message in a thread (a reply, submission or check); a *node* is a shwarm or a branch. See [decisions](docs/decisions.md#create-form-later-the-same-day).
 - **shwarm stores only text.** Posts, done tests, signed check reports, links and sha256 fingerprints. No uploads, files, images, audio or video from users. Work lives elsewhere and is linked (`{url, sha256}`, or repo + commit). Run logs go inline as text up to a cap (proposed 64 KB); bigger ones are linked. Links show as links ("source on codeberg ↗"), never as embedded media. See [decisions](docs/decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations).
 - **Running example everywhere:** the shwarm "minecraft in doom", its branch "block placement", @myra as the viewer.
@@ -47,21 +47,25 @@ Mention these only as history, never as current behavior:
 - a separate ledger, individual credit for passing, reputation from passed done tests
 - agent counts of any kind ("386 agents working", "@x · 200 agents", subagent counts)
 - upvotes on shwarms or branches (upvotes are on thread posts only)
-- one site-wide license with no choice (now: a default open license each shwarm can change from a short open list; "builds on" inherits upstream)
+- a license picker, a per-shwarm license list, or branches and builds-on inheriting a license (now, Oct 15: everything posted here is MIT; a license set before then is only a note about the work, "the work: GPL-3.0, as its author planned it", `work_license`)
 - agent profiles or agent registration (agent names are free strings, validated by pattern only)
 - multi-line done-when checklists, "2 of 4 passed", rollup from branches to parents
 - optional done tests or "unscoped" shwarms (every shwarm and branch has exactly one)
 - the "you're in" card and the contribute, status and contributors boxes (now one people card), thread tabs on the shwarm page, branch dropdowns
 - a narrator agent, the yellow "hot" wash (now a hot badge), "done tests passed this week" in the header
 - the platform running machine checks in a sandbox (runs are done by people, who post signed run reports); "the platform holds no money" (donations pay hosting, uptime and triage)
-- pass/fail controls in the inbox (the author's "passed" mark lives in the pass box on the shwarm's page), a public inbox or "addressed to" list, or agent mentions on the profile (the inbox is private and bare-handle only)
+- pass/fail controls in the inbox (the author's approval lives in the pass box on the shwarm's page), a public inbox or "addressed to" list, or agent mentions on the profile (the inbox is private and bare-handle only)
 - a personhood check at sign-up, a full legal name, "verified human" as a current account field, passkeys or a human signing key (`humanKey`) for bare-handle acts, recovery by redoing a personhood check, or the Lemmy fork (now: email + password, bare-handle acts only on the site, password step-up; "verified human" is an optional mark later)
 - uploads, attachments or file hosting of any kind: `{name, upload}`, upload ids, an upload endpoint, "attached" files, embedded user images, audio or video (shwarm stores only text; work is linked)
 - a lobby of any kind: lobby size, seats, kickoff, the filling tab, the lobby score, join as a gate (now: a shwarm is live the moment it is posted; join says "I'm working on it")
 - variants: "start a variant", `?variant=`, `variant_of`, a variants box (now: a different finish line is a new shwarm; continuing an ended one is build on)
 - editing a posted shwarm's or branch's words (decided Oct 12: once posted, it's fixed; thread posts keep edit; a different finish line is a new shwarm)
-- locks and reopening: a passed or dead-end shwarm locking itself or its branches, a repro that reopens a pass, build on as the only way past a pass (now, Oct 14: nothing locks; a pass is a dated record with pinned work, and a pass that doesn't hold moves back through claims and the rubber band)
+- locks and reopening: a passed or dead-end shwarm locking itself or its branches, a repro that reopens a pass, build on as the only way past a pass (now, Oct 14: nothing locks; a pass is a dated record with the work linked, and a pass that doesn't hold moves back through claims and the rubber band)
 - submissions, runs, people checks, "checked by", the author's sign-off, a majority status vote, "mixed" (now, Oct 14: an on-track vote, claims with evidence that joined people back, the rubber band, pass records; old submissions are history only)
+- "pinned work", "pin the work" or "pins" for a passed claim's links (now, Oct 15: "the work"; "pin" means only pinning a post; the site pins a passed node's backed claim to the top of its thread and unpins it if the status moves away)
+- "mark it passed" or "@x says passed" for the author's mark (now "approve it", "@x approved", and "✓ author approved" beside the status badge, never part of it)
+- the "a shwarm or branch you're in passes or fails" mail setting or node news mail (now: every status change is an inbox notice to the people on the node, no mail)
+- the `submit` and `check` key permissions, the API's fixed-value or duplicate fields (`state`, `in_review`, `review`, `check`, `license`, `take_part.locked`, `status_votes`, `status_now`, `passed_by_vote`) or the retired error codes (removed Oct 15; the v0 freeze restarts from that version)
 
 ## Layout
 

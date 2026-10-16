@@ -307,12 +307,17 @@ const InboxEntry: FC<{ i: InboxItem; inbox: InboxView; handle: string; action: s
         </div>
       </div>
     )
-  // A system item (table B): core's words about a node they're in. One that names a post is the pass notice, written
-  // here with the claimant's name as it reads now (a closed account's reads "former member"), and without its question
-  // once the author marked it passed. No reply.
-  const text = i.post_id
-    ? fill(i.done ? w.profile.passNoticeDone : w.profile.passNotice, { title: i.title ?? w.profile.aShwarm, name: i.as_name ?? FORMER })
-    : i.text
+  // A system item (table B): core's words about a node they're in. A status-change notice (#138) and the pass notice
+  // (one that names a post) are written here with the claimant's name as it reads now (a closed account's reads
+  // "former member"); the pass notice loses its question once the author approved. No reply.
+  const title = i.title ?? w.profile.aShwarm
+  const text = i.status_to
+    ? i.post_id
+      ? fill(w.profile.statusNotice, { title, status: statusName(i.status_to), name: i.as_name ?? FORMER })
+      : fill(w.profile.statusNoticeBare, { title, status: statusName(i.status_to) })
+    : i.post_id
+      ? fill(i.done ? w.profile.passNoticeDone : w.profile.passNotice, { title, name: i.as_name ?? FORMER })
+      : i.text
   return (
     <div class={cls} id={`i${i.id}`}>
       <div class="who"><Ago at={i.created_at} now={now} />{isNew}</div>

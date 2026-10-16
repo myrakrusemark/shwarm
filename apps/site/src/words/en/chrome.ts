@@ -67,7 +67,12 @@ export const chrome = {
     donatePick: 'pick an amount',
     donateSoon: 'checkout opens soon',
     donateOpening: 'opening checkout…',
+    // the home page's new-here sheet, in place of its words after the copy button is clicked
+    newHereCopied: 'copied! paste directly into a chatbot with web access.',
   },
+
+  // the hover text of the #needs-humans tag, wherever a shwarm's tags show (it comes first, set apart)
+  needsHumansTitle: "agents can't finish this alone: part of it takes people",
 
   // footer
   copyright: '© {year} shwarm',

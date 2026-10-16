@@ -10,12 +10,15 @@ exports[`mapping the launch list > snapshots of a few mapped entries > bot-beats
     },
     "doneWhen": "an open bot finishes freedoom phase 2 maps 1 to 8 from a pistol start on skill 3, using only vizdoom's screen, depth, label and automap buffers, with eight recorded demos that replay to the exit on other people's machines.",
     "kind": "shwarm",
+    "license": "MIT",
     "slug": "bot-beats-freedoom",
     "tags": [
       "games",
       "ai",
       "doom",
       "benchmarks",
+      "coding",
+      "compute",
     ],
     "title": "a bot that beats freedoom",
     "what": "people keep saying ai can do almost anything, and a bot that plays a whole doom level is a simple, public way to check. it's also fun to watch. in the 2025 videogamebench test, the best ai models barely got out of the first room of doom ii. vizdoom lets a bot see the screen plus a few helper views like a depth map. build an open bot that finds the keys in real freedoom levels and reaches the exit alive, so anyone can rerun it and see where game-playing ai really stands.
@@ -46,7 +49,7 @@ why now: vizdoom 1.3.1 shipped in september 2026, and full single-player doom le
     {
       "field": "pinned post",
       "kind": "changed",
-      "text": "3 sources, plus the builds-on text as written",
+      "text": "3 sources, plus the builds-on text as written, plus how to check a passed claim: "run: python replay.py demos/ (replays each MAP01-MAP08 demo…"",
     },
   ],
   "pinned": "where this pitch comes from:
@@ -54,7 +57,11 @@ https://github.com/Farama-Foundation/ViZDoom
 https://arxiv.org/abs/2505.18134
 https://decrypt.co/315493/ai-bad-playing-doom
 
-builds on: ViZDoom (mit) https://github.com/Farama-Foundation/ViZDoom, which bundles freedoom2.wad",
+builds on: ViZDoom (mit) https://github.com/Farama-Foundation/ViZDoom, which bundles freedoom2.wad
+
+how to check a passed claim:
+run: python replay.py demos/ (replays each MAP01-MAP08 demo in vizdoom 1.3 and prints whether the exit was reached and the time, and exits 0 only when all eight demos reach the exit)
+watch at least two replays at full speed. note any wall clipping, god mode or other cheat, and confirm the bot used no map data beyond the allowed buffers by reading its input code.",
 }
 `;
 
@@ -69,6 +76,9 @@ exports[`mapping the launch list > snapshots of a few mapped entries > map-sherl
       "maps",
       "books",
       "public-domain",
+      "proofreading",
+      "data",
+      "sherlock-holmes",
     ],
     "title": "map every place sherlock holmes went",
     "what": "you can still stand on baker street or at the reichenbach falls. the 60 sherlock holmes stories are packed with real places, and we pin every one on an open map, each with the line from the story that names it.
@@ -89,14 +99,17 @@ why now: the last holmes stories entered the us public domain on january 1, 2023
     {
       "field": "pinned post",
       "kind": "changed",
-      "text": "2 sources, plus the builds-on text as written",
+      "text": "2 sources, plus the builds-on text as written, plus how to check a passed claim: "check 100 random rows against the story text and a map. the…"",
     },
   ],
   "pinned": "where this pitch comes from:
 https://en.wikipedia.org/wiki/Canon_of_Sherlock_Holmes
 https://en.wikisource.org/wiki/Author:Arthur_Conan_Doyle
 
-builds on: public-domain holmes texts on wikisource https://en.wikisource.org/wiki/Author:Arthur_Conan_Doyle and openstreetmap",
+builds on: public-domain holmes texts on wikisource https://en.wikisource.org/wiki/Author:Arthur_Conan_Doyle and openstreetmap
+
+how to check a passed claim:
+check 100 random rows against the story text and a map. then read 2 random stories and list any real place the file missed. pass at 97 of 100 correct and no more than 2 misses.",
 }
 `;
 
@@ -110,12 +123,17 @@ exports[`mapping the launch list > snapshots of a few mapped entries > minecraft
     },
     "doneWhen": "a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp-like one with its own name that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets.",
     "kind": "shwarm",
+    "license": "GPL-3.0",
     "slug": "minecraft-in-doom",
     "tags": [
       "weird",
       "games",
       "gzdoom",
       "uzdoom",
+      "pixel-art",
+      "level-design",
+      "playtesting",
+      "coding",
     ],
     "title": "minecraft in doom",
     "what": "this one is for fun, and anyone can play it free: no copy of doom or minecraft needed. freedoom's first nine maps, rebuilt block for block in uzdoom, the active fork of gzdoom. you're a blocky marine, and every wall can be dug through, so you can tunnel around a fight instead of through it. what you mine you can place again or craft with, and the shotgun you pick up lands in a minecraft-style inventory. freedoom's monsters share the maps with new blocky ones in minecraft's spirit, all there to be blown apart. picture an imp that sneaks up and blows a hole in your wall the way a creeper would, or monsters stitched together from imps and zombies. there's no build phase: you play the maps straight through. it takes pixel artists, mappers and playtesters together, and the hard part is holding 60 fps with thousands of diggable blocks on screen.
@@ -151,7 +169,7 @@ why now: uzdoom 5.0.3 shipped in september 2026 while gzdoom itself has had no r
     {
       "field": "pinned post",
       "kind": "changed",
-      "text": "6 sources, plus the builds-on text as written",
+      "text": "6 sources, plus the builds-on text as written, plus how to check a passed claim: "run: ./bench.sh (on the reference rig, plays the bundled be…"",
     },
   ],
   "pinned": "where this pitch comes from:
@@ -162,7 +180,11 @@ https://github.com/freedoom/freedoom/blob/master/manual/freedoom-manual-en.adoc
 https://www.moddb.com/mods/voxel-violence
 https://www.pcgamer.com/voxel-violence-mod-adds-minecraft-blocks-and-building-to-doom/
 
-builds on: uzdoom (gpl, active gzdoom fork) https://github.com/UZDoom/UZDoom + freedoom (bsd) https://github.com/freedoom/freedoom",
+builds on: uzdoom (gpl, active gzdoom fork) https://github.com/UZDoom/UZDoom + freedoom (bsd) https://github.com/freedoom/freedoom
+
+how to check a passed claim:
+run: ./bench.sh (on the reference rig, plays the bundled benchmark demo through e1m1 to e1m9 in uzdoom with freedoom1.wad and prints min and average fps, and exits non-zero if the minimum is under 60) && ./demos.sh (plays one pistol-start demo per map on skill 3 and prints whether each reached the exit, and exits non-zero if any map's demo doesn't) && ./audit.sh mcdoom.pk3 (counts the crafting recipes and the new monster classes, and lists, per map, any wall that isn't built from blocks or can't be dug out, and exits non-zero with fewer than 10 recipes, fewer than 4 new monster classes, or any wall listed) && ./license-scan.sh mcdoom.pk3 (exits non-zero if any file in the mod isn't from freedoom or under an open license)
+download the mod from its public link and play e1m1 and one later map from a pistol start for 15 minutes each: dig through a wall, mine blocks, place one again and craft at least one thing from them, pick up a gun and check it sits in the inventory, and blow up every kind of monster you meet, including the exploding imp-like one; check it has its own name in the game (not imp, serpentipede or creeper) and that it blows holes in block walls. post your fps, any block you could walk through or that broke or placed wrong, and any texture, sound or monster that looks taken from doom or minecraft rather than drawn fresh. at least one tester must be human.",
 }
 `;
 
@@ -176,11 +198,15 @@ exports[`mapping the launch list > snapshots of a few mapped entries > minecraft
     },
     "doneWhen": "the minecraft in doom mod plus a hunger meter and a 20-minute day and night cycle, where monsters spawn only on dark blocks, still at 60 fps on the reference rig.",
     "kind": "shwarm",
+    "license": "GPL-3.0",
     "slug": "minecraft-in-doom-survival",
     "tags": [
       "weird",
       "games",
       "uzdoom",
+      "design",
+      "playtesting",
+      "coding",
     ],
     "title": "minecraft in doom: survival",
     "what": "this one is for fun. survival is what gives building a point: you get hungry, and when night falls monsters spawn wherever it's dark, so a lit shelter is the line between dawn and a respawn. it builds on minecraft in doom and gives you a reason to build.
@@ -216,7 +242,7 @@ why now: it can start as soon as the block engine in minecraft in doom holds up;
     {
       "field": "pinned post",
       "kind": "changed",
-      "text": "3 sources, plus the builds-on text as written",
+      "text": "3 sources, plus the builds-on text as written, plus how to check a passed claim: "run: ./bench.sh --night (the base benchmark demo replayed a…"",
     },
   ],
   "pinned": "where this pitch comes from:
@@ -224,7 +250,11 @@ https://github.com/UZDoom/UZDoom
 https://github.com/freedoom/freedoom
 https://www.moddb.com/mods/voxel-violence
 
-builds on: uzdoom (gpl, active gzdoom fork) https://github.com/UZDoom/UZDoom + freedoom (bsd) https://github.com/freedoom/freedoom",
+builds on: uzdoom (gpl, active gzdoom fork) https://github.com/UZDoom/UZDoom + freedoom (bsd) https://github.com/freedoom/freedoom
+
+how to check a passed claim:
+run: ./bench.sh --night (the base benchmark demo replayed at night with spawning on) && ./license-scan.sh mcdoom-survival.pk3
+survive three in-game nights from a fresh world. confirm no monster spawns on a lit block, that going without food hurts you, and post your lowest fps. at least one tester must be human.",
 }
 `;
 
@@ -235,10 +265,15 @@ exports[`mapping the launch list > snapshots of a few mapped entries > where-am-
     "kind": "shwarm",
     "slug": "where-am-i-ask-the-birds",
     "tags": [
+      "needs-humans",
       "birds",
       "ai",
       "sound",
-      "needs-humans",
+      "recording",
+      "phone",
+      "worldwide",
+      "beginner-friendly",
+      "birding",
     ],
     "title": "where am i? ask the birds",
     "what": "it's geoguessr by ear, and anyone with a phone can play. the birds singing outside your window give away where you are: which species live there, and even their regional accents. models like birdnet and google's perch can already name the species, but the best published model for placing a sound on the map is still off by about 1,000 km on a typical clip. train a model that hears one minute of outdoor sound and guesses where on earth it was recorded, then test it on fresh minutes from all over the world that it never heard. the fresh minutes can come from a shared dawn-chorus day, when people everywhere record the same morning. a model that knows which birds sing where also shows what bird models really know about the world, and every minute recorded for the test is a dated note of what was singing where. it takes people recording in many countries, birders to check what's singing, and model builders.
@@ -254,13 +289,18 @@ why now: in 2025 a team at umass amherst published the first big test of placing
     {
       "field": "pinned post",
       "kind": "changed",
-      "text": "4 sources",
+      "text": "4 sources, plus how to check a passed claim: "run: python score.py model/ hidden-set/ · runs the model on…"",
     },
   ],
   "pinned": "where this pitch comes from:
 https://arxiv.org/abs/2505.18726
 https://arxiv.org/abs/2508.04665
 https://github.com/birdnet-team/BirdNET-Analyzer
-https://xeno-canto.org/",
+https://xeno-canto.org/
+
+how to check a passed claim:
+run: python score.py model/ hidden-set/
+runs the model on every hidden recording and prints the median distance error, counts the recordings, recorders and countries, checks that each recording was made after the shwarm opened, and checks that the model's sha256 was posted before the hidden set was released to the scorer run; it exits 0 only when the median error is under 500 km over at least 200 recordings by at least 50 people in at least 20 countries
+read the three live-test posts. confirm they come from 3 different continents, that each person recorded a fresh minute outdoors where they stood and ran the model on it, and that each guess landed within 500 km of where they were. confirm the hidden set was held by a scorer outside the model's builders and that the model scored is the one whose hash was posted first. then record your own minute outside and post how far off the model was.",
 }
 `;

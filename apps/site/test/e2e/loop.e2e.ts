@@ -3,12 +3,12 @@
 //   1. @myra starts a shwarm on /new: the done test is its sentence, no checks box. It's live at once (no lobby,
 //      decided Oct 9). Triage clears it.
 //   2. @submitter, @checker and @runner join it ("working on it").
-//   3. @submitter says it passed from the people card: a passed claim with the evidence and the pinned work.
+//   3. @submitter says it passed from the people card: a passed claim with the evidence and the work linked.
 //   4. @checker and @runner back the claim from the thread: passed leads on track by 3, and the card says when the
 //      status changes at this rate.
 //   5. A day goes by (the stats job writes the change when it comes due): the status is passed, the pass box shows
-//      the record with its pinned work, and @myra's inbox has the notice inviting her own mark. No mail.
-//   6. @myra marks it passed from the pass box, entering her password inline: "@myra says passed".
+//      the record with the work, and @myra's inbox has the notice inviting her own approval. No mail.
+//   6. @myra approves it from the pass box, entering her password inline: "@myra approved".
 //   7. Nothing locked: the thread, join and the claims stay; the feed lists it under passed.
 //   8. /w/<path>/log lists every event of the run, each linked to its evidence.
 // Each new page is checked as the page suite checks pages: no sideways scroll at 390–1280 px, no serious or critical
@@ -146,13 +146,13 @@ runIt('the whole loop, end to end (5.8)', () => {
     expect(seated).toEqual(LOOP_PEOPLE.map((handle, i) => ({ handle, number: i + 1 })))
   })
 
-  it('3. @submitter says it passed: a passed claim from the people card, with the evidence and the pinned work', async () => {
+  it('3. @submitter says it passed: a passed claim from the people card, with the evidence and the work linked', async () => {
     const page = pages.submitter
     await open('submitter', `/w/${path}`)
     await page.locator('.hows a[href="#claim-passed"]').click()
     expect(await page.locator('#claim-passed').isVisible()).toBe(true)
     expect(await page.evaluate(() => document.activeElement?.id)).toBe('cl-passed')
-    expect(await page.locator('#claim-passed .hint').textContent()).toContain("a pass without pinned work can't be checked later.")
+    expect(await page.locator('#claim-passed .hint').textContent()).toContain("a pass without them can't be checked later.")
     await pageChecks(page, 'the passed claim form, open')
     await page.fill('#cl-passed', EVIDENCE)
     await page.fill('#cl-passed-pins', PINS)
@@ -164,7 +164,7 @@ runIt('the whole loop, end to end (5.8)', () => {
     ])
     const post = page.locator(`[id="${claim}"]`)
     expect(await post.locator('.ct.passed').textContent()).toBe('says passed')
-    expect(await post.locator('.how.pins').textContent()).toContain('pinned work:')
+    expect(await post.locator('.how.pins').textContent()).toContain('the work:')
     expect(await post.locator('.how.pins code.pin').textContent()).toContain('ipfs://bafy')
     expect(await page.locator('.hows .btn.on').textContent(), 'the claimant backs their own claim').toBe('passed')
     await pageChecks(page, 'the thread, with a passed claim')
@@ -184,7 +184,7 @@ runIt('the whole loop, end to end (5.8)', () => {
     expect(await pages.out.locator('.head .st.vs').textContent()).toBe('on track')
   })
 
-  it("5. a day goes by: passed, the pass box with its record and pinned work, and @myra's notice inviting her own mark", async () => {
+  it("5. a day goes by: passed, the pass box with its record and the work, and @myra's notice inviting her approval", async () => {
     await server.passTime(path, 25)
     expect(all('SELECT h.from_status, h.to_status, h.claim_id, h.backers FROM status_change h JOIN node n ON n.id = h.node_id WHERE n.path = ?', path)).toEqual([
       { from_status: 'on_track', to_status: 'passed', claim_id: claim, backers: 3 },
@@ -192,7 +192,7 @@ runIt('the whole loop, end to end (5.8)', () => {
     expect(await open('out', `/w/${path}`)).toBe(200)
     const box = pages.out.locator('#passed')
     expect(await pages.out.locator('.head .st.vs').textContent()).toBe('passed')
-    expect(await box.locator('li.crowd').textContent()).toMatch(/^passed as of [a-z]{3} \d+ \d\d:\d\d · @submitter's passed claim · backed by 3pinned work:/)
+    expect(await box.locator('li.crowd').textContent()).toMatch(/^passed as of [a-z]{3} \d+ \d\d:\d\d · @submitter's passed claim · backed by 3the work:/)
     expect(await box.locator('code.pin').textContent()).toContain('ipfs://bafy')
     expect(await box.locator('details.passmark').count(), 'only the author marks it').toBe(0)
     await pageChecks(pages.out, 'a passed shwarm, signed out')
@@ -200,11 +200,11 @@ runIt('the whole loop, end to end (5.8)', () => {
     expect(all("SELECT template FROM email_outbox WHERE json_extract(payload, '$.title') = ?", TITLE)).toEqual([])
     const myra = all("SELECT id FROM person WHERE handle = 'myra'")[0].id
     const item = all("SELECT id, text FROM inbox_item WHERE person_id = ? AND kind = 'system' AND post_id = ?", myra, claim)[0]
-    expect(item.text).toBe(`${TITLE} passed: its people back a passed claim. mark it passed too?`) // stored naming no one
+    expect(item.text).toBe(`${TITLE} passed: its people back a passed claim. approve it too?`) // stored naming no one
     await open('myra', '/@myra')
     const entry = pages.myra.locator(`#addressed ~ #i${item.id}`)
     expect(await entry.getAttribute('class')).toBe('c new')
-    expect(await entry.locator('.txt').textContent()).toBe(`${TITLE} passed: its people back @submitter's passed claim. mark it passed too?`)
+    expect(await entry.locator('.txt').textContent()).toBe(`${TITLE} passed: its people back @submitter's passed claim. approve it too?`)
     expect(Number(await pages.myra.locator('.strip .me .n').textContent())).toBeGreaterThan(0)
     expect(await pages.myra.locator('.made li', { hasText: TITLE }).locator('.st').textContent()).toBe('passed')
     await pageChecks(pages.myra, 'the profile, with the notice')
@@ -212,7 +212,7 @@ runIt('the whole loop, end to end (5.8)', () => {
     expect(opened.pathname + opened.hash).toBe(`/w/${path}#passed`)
   })
 
-  it('6. @myra marks it passed from the pass box, with her password inline', async () => {
+  it('6. @myra approves it from the pass box, with her password inline', async () => {
     const my = pages.myra
     await open('myra', `/w/${path}`)
     const mark = my.locator('#passed details.passmark')
@@ -226,10 +226,18 @@ runIt('the whole loop, end to end (5.8)', () => {
       { kind: 'crowd', claim_id: claim, by_name: null },
       { kind: 'author', claim_id: claim, by_name: '@myra' },
     ])
-    expect(await my.locator('#passed li.author').textContent()).toMatch(/^@myra says passed · [a-z]{3} \d+ \d\d:\d\d · @submitter's passed claim/)
+    expect(await my.locator('#passed li.author').textContent()).toMatch(/^@myra approved · [a-z]{3} \d+ \d\d:\d\d · citing @submitter's claim/)
+    // "✓ author approved" beside the badge in the head, apart from it (decided Oct 15)
+    expect(await my.locator('.head .state .badges a.approved').textContent()).toBe('✓ author approved')
+    expect(await my.locator('.head .state .badges .st.vs').textContent()).toBe('passed')
     expect(await my.locator('#passed details.passmark').getAttribute('open'), 'folded once she has one').toBeNull()
     // her notice is answered: read and done
-    expect(all("SELECT read_at IS NOT NULL AS r, done_at IS NOT NULL AS d FROM inbox_item WHERE kind = 'system' AND post_id = ?", claim)).toEqual([{ r: 1, d: 1 }])
+    const myraId = all("SELECT id FROM person WHERE handle = 'myra'")[0].id
+    expect(all("SELECT read_at IS NOT NULL AS r, done_at IS NOT NULL AS d FROM inbox_item WHERE kind = 'system' AND post_id = ? AND person_id = ?", claim, myraId)).toEqual([{ r: 1, d: 1 }])
+    // the others' status-change notices (#138, decided Oct 15) stay theirs: her approval doesn't mark them done
+    const others = all("SELECT done_at IS NOT NULL AS d FROM inbox_item WHERE kind = 'system' AND post_id = ? AND person_id <> ?", claim, myraId)
+    expect(others.length).toBeGreaterThan(0)
+    expect(others.every((o: { d: number }) => o.d === 0)).toBe(true)
   })
 
   it('7. nothing locked: the thread, join and the claims stay; the feed lists it under passed', async () => {

@@ -1,3 +1,4 @@
+import { humansFirst } from '../core/tags'
 import { OPEN_NODE } from './visibility'
 // Reads for the node pages and the agent URLs (go-live 3.3, 3.4, 3.6): one node at /w/<path>, its ancestors,
 // branches, who joined, contributors, the submissions and checks from before Oct 14, and its thread. SQL lives here, not in
@@ -76,7 +77,7 @@ export const prefixes = (path: string) => path.split('/').map((_, i, a) => a.sli
  * from ("builds on minecraft in doom, as passed oct 14"; decided Oct 14), null when it had none or for one built on
  * before then. `title` and `as_of` are null when that shwarm doesn't show to the reader.
  */
-export type BuildsOn = { name: string; url?: string; license: string } | { node: string; title: string | null; as_of: { id: string; at: string } | null }
+export type BuildsOn = { name: string; url?: string; license?: string } | { node: string; title: string | null; as_of: { id: string; at: string } | null }
 
 export type NodeStatsRow = {
   impact: number
@@ -159,7 +160,8 @@ function toHead(r: HeadRow, viewerId: number | null): NodeHead {
   let builds_on: BuildsOn | null = null
   if (bo && typeof bo.node === 'string')
     builds_on = { node: bo.node, title: r.bo_title, as_of: typeof bo.as_of === 'string' && r.bo_as_of_at ? { id: bo.as_of, at: r.bo_as_of_at } : null }
-  else if (bo && typeof bo.name === 'string') builds_on = { name: bo.name, license: String(bo.license ?? ''), ...(typeof bo.url === 'string' ? { url: bo.url } : {}) }
+  // An outside project's license is kept when it was sent (it no longer becomes the node's, decided Oct 15).
+  else if (bo && typeof bo.name === 'string') builds_on = { name: bo.name, ...(typeof bo.license === 'string' && bo.license ? { license: bo.license } : {}), ...(typeof bo.url === 'string' ? { url: bo.url } : {}) }
   return {
     id: r.id,
     path: r.path,
@@ -186,7 +188,7 @@ function toHead(r: HeadRow, viewerId: number | null): NodeHead {
     live_at: r.live_at,
     closed_at: r.closed_at,
     changed_at: r.changed_at,
-    tags: r.tags ? r.tags.split(' ').filter(Boolean) : [], // in the author's order, as on the feed card
+    tags: humansFirst(r.tags ? r.tags.split(' ').filter(Boolean) : []), // in the author's order, #needs-humans first (core/tags.ts), as on the feed card
     stats:
       r.s_updated_at === null
         ? null
@@ -959,14 +961,16 @@ export type WorkRepo = SharedRepo & { from: string }
 /**
  * The shared repo, from the node's pinned posts (the latest pinned first), else from those of the nearest node above it
  * that names one (as `shwarm start` reads it). The launch seed's sources post is never a status update (core/stats.ts),
- * so a seeded shwarm's upstream links aren't taken for its repo. A hidden or deleted post is never pinned here.
+ * so a seeded shwarm's upstream links aren't taken for its repo. A hidden or deleted post is never pinned here. A claim
+ * is never read for it, pinned or not: a passed claim's links are the claimant's work (often their own fork), and the
+ * site pins the claim a pass cites by itself (decided Oct 15), so the crowd would otherwise choose the shared repo.
  */
 export async function readWorkRepo(db: D1Database, chain: Chain): Promise<WorkRepo | null> {
   const nodes = [chain.node, ...[...chain.ancestors].reverse()].filter(n => n.pins.length)
   if (!nodes.length) return null
   const ids = nodes.flatMap(n => n.pins)
   const { results } = await db
-    .prepare(`SELECT id, text, links FROM post WHERE id IN (${ids.map((_, i) => `?${i + 1}`).join(', ')}) AND hidden = 0 AND deleted_at IS NULL`)
+    .prepare(`SELECT id, text, links FROM post WHERE id IN (${ids.map((_, i) => `?${i + 1}`).join(', ')}) AND hidden = 0 AND deleted_at IS NULL AND claim IS NULL`)
     .bind(...ids)
     .all<{ id: string; text: string; links: string }>()
   const byId = new Map(results.map(r => [r.id, r]))

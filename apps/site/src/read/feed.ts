@@ -24,7 +24,9 @@ import { OPEN_NODE } from './visibility'
 import { readSettings } from '../core/settings'
 import { WEEK_MS, rankingFrom, type Ranking } from '../core/stats'
 import type { Status } from '../core/status'
+import type { AuthorApproved } from './status'
 import { NAME_SHOWN } from './names'
+import { humansFirst } from '../core/tags'
 
 export const TABS = ['live', 'passed'] as const
 export type FeedTab = (typeof TABS)[number]
@@ -59,7 +61,7 @@ export const visibleSql = OPEN_NODE // one rule for every page (src/read/visibil
 
 // OPEN: branches never appear in the feed; it lists shwarms (spec: "new (newest shwarms)", "branches don't take their
 // own tags", and tags filter every tab), and the variants made before they were dropped, which read as shwarms.
-const TOP = "n.kind IN ('shwarm', 'variant')"
+export const TOP = "n.kind IN ('shwarm', 'variant')"
 
 // ---------- search ----------
 
@@ -173,7 +175,7 @@ const STATUS = "COALESCE(bs.current, 'on_track')"
 // stands in for a row with none, so the key never moves while it stays passed.
 const PASSED_AT = 'COALESCE(bs.changed_at, n.created_at)'
 
-const TAB_SQL: Record<FeedTab, string> = { live: `${STATUS} <> 'passed'`, passed: `${STATUS} = 'passed'` }
+export const TAB_SQL: Record<FeedTab, string> = { live: `${STATUS} <> 'passed'`, passed: `${STATUS} = 'passed'` }
 
 // The counted sorts read node_stats, as the cards do (a shwarm the stats job hasn't reached yet counts its author as
 // its one person). Most first; ties go newest first. new is created_at on live and PASSED_AT on passed.
@@ -217,6 +219,11 @@ export type FeedCard = {
   statusLine: string
   buildsOn: { name: string; url?: string; path?: string } | null
   at: string // the card's time: its last change, or when its status became passed or dead end
+  /**
+   * Its author's own approval, apart from its status (read/status.ts readAuthorApproved): "✓ author approved". As the
+   * stats job last rolled it up (node_stats.author_approved), within minutes of the approval.
+   */
+  authorApproved: AuthorApproved | null
 }
 
 export type Feed = { tab: FeedTab; sort: FeedSort; query: Query; cards: FeedCard[]; next: string | null; paged: boolean; searchFailed: boolean }
@@ -245,6 +252,8 @@ type DetailRow = {
   tags: string
   b_title: string | null
   b_path: string | null
+  approved: string | null
+  approved_by: string | null // the cited claimant's name as it reads now (NAME_SHOWN)
 }
 
 async function details(db: D1Database, ids: number[]): Promise<Map<number, FeedCard>> {
@@ -258,7 +267,9 @@ async function details(db: D1Database, ids: number[]): Promise<Map<number, FeedC
               COALESCE(ns.posts_per_day, 0) AS posts_per_day, COALESCE(ns.people, 1) AS people, COALESCE(ns.hot, 0) AS hot,
               ns.surge, COALESCE(ns.status_line, '') AS status_line,
               (SELECT json_group_array(tag) FROM (SELECT tag FROM node_tag t WHERE t.node_id = n.id ORDER BY t.rowid)) AS tags,
-              b.title AS b_title, b.path AS b_path
+              b.title AS b_title, b.path AS b_path,
+              ns.author_approved AS approved,
+              ${NAME_SHOWN("(CASE WHEN json_valid(ns.author_approved) THEN json_extract(ns.author_approved, '$.claim.by') END)")} AS approved_by
        FROM node n
        LEFT JOIN node_stats ns ON ns.node_id = n.id
        LEFT JOIN branch_status bs ON bs.node_id = n.id
@@ -284,7 +295,7 @@ async function details(db: D1Database, ids: number[]): Promise<Map<number, FeedC
       doneWhen: r.done_when,
       status: r.status,
       postedBy: r.posted_by,
-      tags,
+      tags: humansFirst(tags),
       upvotes: r.upvotes,
       posts: r.posts,
       impact: r.impact,
@@ -295,9 +306,24 @@ async function details(db: D1Database, ids: number[]): Promise<Map<number, FeedC
       statusLine: r.status_line,
       buildsOn: buildsOn(r),
       at: r.status === 'passed' || r.status === 'dead_end' ? (r.status_at ?? r.created_at) : (r.changed_at ?? r.created_at),
+      authorApproved: approvedOf(r.approved, r.approved_by),
     })
   }
   return out
+}
+
+/**
+ * The stored approval (jobs/stats.ts: when, and the claim's post and stored name) with the claimant's name as it reads
+ * now, `by` (read/names.ts NAME_SHOWN): "former member" once that account is closed, before the job rolls it up again.
+ */
+function approvedOf(json: string | null, by: string | null): AuthorApproved | null {
+  if (!json) return null
+  try {
+    const a = JSON.parse(json) as { at?: unknown; claim?: { post?: unknown } | null }
+    return typeof a?.at === 'string' ? { at: a.at, claim: typeof a.claim?.post === 'string' && by !== null ? { post: a.claim.post, by } : null } : null
+  } catch {
+    return null
+  }
 }
 
 function buildsOn(r: DetailRow): FeedCard['buildsOn'] {

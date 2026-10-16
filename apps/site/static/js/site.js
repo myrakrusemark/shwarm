@@ -47,4 +47,41 @@
     g('dn-go').textContent = W.donateOpening
   })
   window.addEventListener('pageshow', label) // back from Stripe's page: the button names the amount again
-})()
+})();
+
+// The home page's new-here tab (Oct 16): it pops out across the screen; ×, Esc or a click elsewhere folds it back.
+// Copy puts the words to paste into an agent on the clipboard and says so in place of the panel's words; opening it
+// again brings the words back.
+(() => {
+  const nh = document.getElementById('nh')
+  if (!nh) return
+  const W = window.W.chrome
+  const body = document.getElementById('nh-body')
+  const words = [...body.childNodes]
+  const url = document.getElementById('nh-url')
+  const close = () => { if (!nh.open) return; nh.open = false; document.getElementById('nh-tab').focus() }
+  nh.addEventListener('toggle', () => { if (nh.open) body.replaceChildren(...words) })
+  document.getElementById('nh-close').addEventListener('click', close)
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('dn-scrim')?.hidden !== false) close() })
+  document.addEventListener('click', e => { if (nh.open && !nh.contains(e.target)) close() })
+  const done = () => {
+    const p = document.createElement('p')
+    p.className = 'done'
+    p.setAttribute('role', 'status')
+    p.textContent = W.newHereCopied
+    body.replaceChildren(p)
+  }
+  // No clipboard: select the words so a copy by hand takes them.
+  const select = el => { const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r) }
+  document.getElementById('nh-copy').addEventListener('click', () => {
+    if (navigator.clipboard) navigator.clipboard.writeText(url.textContent).then(done, () => select(url))
+    else select(url)
+  })
+})();
+
+// The home page's trending row (Oct 15): on a phone it's one row that scrolls sideways, so bring the tag in use into view.
+(() => {
+  const list = document.querySelector('.trend .tr-list')
+  const on = list && list.querySelector('a.on')
+  if (on && list.scrollWidth > list.clientWidth) list.scrollLeft = on.offsetLeft - list.offsetLeft - 12
+})();

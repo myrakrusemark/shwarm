@@ -37,7 +37,7 @@ const PAGES: [string, string][] = [
 
 /**
  * kestrel's passed claim on the shwarm, with its pinned work, backed by lumpy: it passes a day on, an act writes the
- * change, and the author marks it passed too. On the branch, a blocked claim.
+ * change, and the author approves it too. On the branch, a blocked claim.
  */
 async function passedWorld() {
   const w = new World()
@@ -90,9 +90,9 @@ describe('RENDER_VERSION', () => {
     expect(await fingerprint(), 'the fingerprint is not stable across runs').toBe(first)
     // A changed word moves WORDS_VERSION, which is in the ETag already: update it and the fingerprint here, no bump.
     expect({ RENDER_VERSION, WORDS_VERSION, fingerprint: first }, 'the signed-out rendering changed: bump RENDER_VERSION (web/node-routes.tsx), unless WORDS_VERSION moved too, then update this fingerprint').toEqual({
-      RENDER_VERSION: '28',
-      WORDS_VERSION: 'bngnmt',
-      fingerprint: '10b71688b06d6827', // also moves when passedWorld above changes (no bump then: the code renders the same)
+      RENDER_VERSION: '30',
+      WORDS_VERSION: 'ctrgh8',
+      fingerprint: '07126e2d09920cc6', // also moves when passedWorld above changes (no bump then: the code renders the same)
     })
   })
 })

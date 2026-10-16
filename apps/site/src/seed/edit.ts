@@ -96,7 +96,7 @@ export function editInputOf(entry: unknown): { slug: string; input: EditNodeInpu
   const i = m.input
   return {
     slug: m.slug,
-    input: { node: m.slug, title: i.title, what: i.what, doneWhen: i.doneWhen, check: null, tags: i.tags, license: i.buildsOn ? undefined : (i.license ?? undefined), buildsOn: i.buildsOn ?? null },
+    input: { node: m.slug, title: i.title, what: i.what, doneWhen: i.doneWhen, check: null, tags: i.tags, license: i.license, buildsOn: i.buildsOn ?? null }, // license: the note about the work, or none (kept as stored)
     notes: m.notes,
   }
 }

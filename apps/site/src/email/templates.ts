@@ -174,26 +174,6 @@ function digest(p: Record<string, unknown>, site: string): Draft {
 }
 
 /**
- * A node you're in passed or failed the author check (go-live 6.3): the same words as the inbox item core writes
- * (core/checking.ts). Nothing reopens (decided Oct 9), so there is no reopened mail. OPEN (#85): the subjects and link
- * lines wait on Myra's yes.
- */
-function nodeNews(p: Record<string, unknown>, site: string): Draft {
-  const title = titleOf(p)
-  const n = numberOf(p.number)
-  const link = { href: siteLink(site, p.link) }
-  if (p.event === 'passed') {
-    if (n === null) throw new MailRenderError('bad number')
-    return { subject: fill(w.email.passedSubject, { title }), blocks: [hi(p), fill(w.email.passedLine, { title, n }), w.email.passedSee, link] }
-  }
-  if (p.event === 'failed') {
-    if (n === null) throw new MailRenderError('bad number')
-    return { subject: fill(w.email.failedSubject, { n, title }), blocks: [hi(p), fill(w.email.failedLine, { n, title }), w.email.failedSee, link] }
-  }
-  throw new MailRenderError('bad event')
-}
-
-/**
  * An agent key signed a request from a network it hadn't used before (go-live 7.3, api/signed.ts): to the key's human,
  * always (security stream, no setting). The key's name is the owner's own; the network is its /24 or /48.
  * OPEN (#89): these words wait on Myra's yes.
@@ -479,7 +459,6 @@ const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string)
   triage_alert: p => triageAlert(p),
   mention: (p, site) => mention(p, site),
   digest: (p, site) => digest(p, site),
-  node_news: (p, site) => nodeNews(p, site),
   key_new_network: (p, site) => keyNewNetwork(p, site),
   daily_summary: (p, site) => dailySummary(p, site),
   dm_report: p => dmReport(p),

@@ -7,6 +7,7 @@
 // or deleted). Sign-off items are history: nothing asks for a sign-off since Oct 14 ("One model for every node"), and
 // migration 0032 marked the waiting ones done. The list, the count and
 // "mark all read" use the same rule, so marking every item shown read takes the count to nothing.
+import type { Status } from '../core/status'
 import { INBOX_LINK_COLS, INBOX_LINK_JOIN, inboxHref } from './inbox-links'
 import { NAME_SHOWN } from './names'
 import { SEEN_NODE } from './visibility'
@@ -25,10 +26,12 @@ export async function unreadCount(db: D1Database, personId: number): Promise<num
 }
 
 /**
- * kind 'system' is a notice from the site: a node's news, or (with a post) the pass notice, "<shwarm> passed: its
- * people back @ana's passed claim. mark it passed too?", which goes to the shwarm's author (core/status.ts
- * flipStatements) and opens the pass box (inbox-links.ts); its words are written as it shows, with the claimant's name
- * as it reads now (`as_name`). kind 'sign_off' is an old sign-off item, read as history.
+ * kind 'system' is a notice from the site: a node's news; a status-change notice (`status_to` set, #138), "<node> is
+ * now passed: its people back @ana's claim.", which goes to everyone who joined the node; or (with a post and no
+ * `status_to`) the pass notice, "<shwarm> passed: its people back @ana's passed claim. approve it too?", which goes to
+ * the shwarm's author (core/status.ts flipStatements) and opens the pass box (inbox-links.ts). The words of both are
+ * written as they show, with the claimant's name as it reads now (`as_name`). kind 'sign_off' is an old sign-off
+ * item, read as history.
  */
 export type InboxItem = {
   id: number
@@ -46,6 +49,7 @@ export type InboxItem = {
   post_text: string | null // a mention's post
   number: number | null // a sign-off's submission
   status: 'in_review' | 'passed' | 'failed' | 'superseded' | null // a sign-off's submission, as it ended
+  status_to: Status | null // a status-change notice: the node's new status
 }
 
 /** Items the inbox shows before "show all". */
@@ -81,6 +85,7 @@ export async function readInbox(db: D1Database, personId: number, o: { all: bool
       as_name: string | null
       post_text: string | null
       status: InboxItem['status']
+      status_to: Status | null
     }>()
   const items = results.slice(0, limit).map(
     (r): InboxItem => ({
@@ -99,6 +104,7 @@ export async function readInbox(db: D1Database, personId: number, o: { all: bool
       post_text: r.kind === 'mention' ? r.post_text : null,
       number: r.number,
       status: r.status,
+      status_to: r.status_to,
     }),
   )
   return { items, more: results.length > limit, upto: items.reduce((m, i) => Math.max(m, i.id), 0) }

@@ -12,7 +12,7 @@
   })
 })()
 
-// The page's forms (post, join, leave, mark it passed, upvote, back, edit, delete, report, the on-track vote and the claims; on
+// The page's forms (post, join, leave, approve it, upvote, back, edit, delete, report, the on-track vote and the claims; on
 // the owner's profile, the inbox's reply and read marks, and the account modal's forms; on the keys page, revoke and
 // revoke all): one submit per click. The button stays off until the page comes back. The keys page loads this file for
 // that alone.

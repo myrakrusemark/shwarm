@@ -48,7 +48,7 @@ describe('mapping the launch list', () => {
       expect(m.input.slug).toBe(e.slug)
       expect(m.input).not.toHaveProperty('lobby') // no lobby (decided Oct 9): the JSON's "lobby" is no longer read
       expect(m.input.kind).toBe('shwarm') // no variants (decided Oct 9)
-      expect(m.input).not.toHaveProperty('check') // no node keeps checks (decided Oct 14): checked_by isn't read
+      expect(m.input).not.toHaveProperty('check') // no node keeps checks (decided Oct 14): checked_by goes in the pinned post
       expect(m.pinned).toContain('where this pitch comes from:')
       for (const s of e.sources) expect(m.pinned).toContain(s)
     }
@@ -69,12 +69,32 @@ describe('mapping the launch list', () => {
     expect(NOT_IMPORTED).toContain('risk_notes')
   })
 
-  test("checked_by is never imported (decided Oct 14: a node's done test is the sentence), whatever it holds", () => {
-    expect(NOT_IMPORTED).toContain('checked_by')
-    for (const checked_by of [undefined, null, {}, { runs: { command: 'ok "unclosed', count: 1 }, author: 'yes' }]) {
-      const m = mapLaunchShwarm({ ...LIST[0], checked_by })
-      expect(m.notes.filter(n => n.kind === 'failed' || n.kind === 'warning')).toEqual([])
-      expect(m.input).toEqual(mapLaunchShwarm(LIST[0]).input)
+  test("checked_by goes in the pinned sources post as how to check a passed claim, without its counts (#140); never on the node", () => {
+    expect(NOT_IMPORTED).not.toContain('checked_by')
+    const checked_by = {
+      runs: { command: './bench.sh (prints min fps)', count: 2, description: 'on the reference rig' },
+      people: { count: 3, human: true, instructions: 'play e1m1 for 15 minutes.' },
+      author: true,
+    }
+    const m = mapLaunchShwarm({ ...LIST[0], checked_by })
+    expect(m.notes.filter(n => n.kind === 'failed' || n.kind === 'warning')).toEqual([])
+    expect(m.input).toEqual(mapLaunchShwarm({ ...LIST[0], checked_by: null }).input) // the node itself keeps no checks
+    expect(m.pinned!.split('\n\n').at(-1)).toBe('how to check a passed claim:\nrun: ./bench.sh (prints min fps)\non the reference rig\nplay e1m1 for 15 minutes.')
+    expect(m.pinned).not.toMatch(/\b[23]\b|human|author/)
+    expect(m.pinned!.startsWith('where this pitch comes from:')).toBe(true) // still never a status line
+    // the dry run says so
+    expect(m.notes.find(n => n.field === 'pinned post')?.text).toContain('plus how to check a passed claim: "run: ./bench.sh')
+    // nothing a checker can use: no heading
+    for (const none of [undefined, null, {}, { runs: null, people: null, author: false }, { runs: { count: 1 } }]) {
+      const n = mapLaunchShwarm({ ...LIST[0], checked_by: none })
+      expect(n.pinned).not.toContain('how to check a passed claim')
+      expect(n.notes.filter(x => x.kind === 'failed' || x.kind === 'warning')).toEqual([])
+    }
+    // every card in the launch list that names a command or instructions carries them
+    for (const e of LIST) {
+      const p = mapLaunchShwarm(e).pinned!
+      if (e.checked_by?.runs?.command) expect(p, e.slug).toContain(`run: ${e.checked_by.runs.command}`)
+      if (e.checked_by?.people?.instructions) expect(p, e.slug).toContain(e.checked_by.people.instructions)
     }
   })
 
@@ -101,6 +121,15 @@ describe('mapping the launch list', () => {
     expect(m.input.tags).toContain('variant')
     expect(m.notes.filter(n => n.field === 'kind' || n.field === 'variant_of')).toEqual([])
     expect(mapLaunchShwarm({ ...e, variant_of: 'minecraft-in-doom' }).notes).toContainEqual({ field: 'variant_of', kind: 'dropped', text: 'variants are dropped; imported as a plain shwarm' })
+  })
+
+  test('one spelling per tag across the launch cards: no two differ only by dashes or a trailing s (Oct 15)', () => {
+    // docs/launch-tags-draft.json's one-spelling rule: split spellings split the trending row's counts and a tag's filter
+    const key = (t: string) => t.replace(/^#/, '').replace(/-/g, '').replace(/s$/, '')
+    const seen = new Map<string, Set<string>>()
+    for (const e of LIST) for (const t of e.tags as string[]) seen.set(key(t), (seen.get(key(t)) ?? new Set()).add(t))
+    expect([...seen.values()].filter(v => v.size > 1).map(v => [...v].sort())).toEqual([])
+    for (const e of LIST) expect(new Set(e.tags).size, e.slug).toBe(e.tags.length)
   })
 
   test('broken entries fail with a reason', () => {

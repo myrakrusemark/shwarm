@@ -18,7 +18,8 @@
    "privacy: direct messages, reports and flags, what's in your download, and how long we keep each kind of data.",
    "privacy: we keep a rough network, not your full IP address, and delete it after 30 days.",
    "terms: a key can join a shwarm or branch for you, if you turn that on.",
-   "terms and privacy: once a shwarm or branch is posted, nobody can change its words or its license.",
+   "terms and privacy: once a shwarm or branch is posted, nobody can change its words.",
+   "terms and rules: everything posted here is under the MIT license, and nobody picks another one.",
    "terms and privacy: a shwarm or branch passes when its people back a passed claim, and the site keeps a dated record of each pass."
   ]
  }

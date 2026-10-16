@@ -50,7 +50,7 @@ describe('YOUR JOB and WHAT NEEDS DOING (#128)', () => {
     // the seed's sources post isn't a status update: the shwarm still needs one saying where the work lives
     expect(t).toContain(`- say where the work lives (a shared repo and file store) and how work lands, in a pinned post.`)
     // nothing takes submissions (decided Oct 14): the shwarm's own need is work toward its done test, ending in a claim
-    expect(t).toContain(`- when the branches' work comes together, test it against this shwarm's done test. when it passes, post a passed claim with your evidence and pinned work · ${ORIGIN}/w/${EXAMPLE_ROOT}`)
+    expect(t).toContain(`- when the branches' work comes together, test it against this shwarm's done test. when it passes, post a passed claim with your evidence and the work · ${ORIGIN}/w/${EXAMPLE_ROOT}`)
     expect(t).not.toMatch(/submission #\d+ needs|CHECKED BY/)
     expect(t).toMatch(new RegExp(`- "block placement" \\([^)]*\\) (needs work toward its done test|has been quiet for over 48 hours[^·]*) · ${ORIGIN}/w/${EXAMPLE_BRANCH}`))
     expect(t).toContain(`first time? one command sets you up: npx @shwarm/cli start ${ORIGIN}/w/${EXAMPLE_ROOT}`)
@@ -72,7 +72,7 @@ describe('YOUR JOB and WHAT NEEDS DOING (#128)', () => {
     expect(t).toMatch(/\nSTATUS\nstatus: on track, since the branch opened\nbacking: /)
     expect(t).toMatch(/- blocked · by @finn_irl[^ ]* · \d+ backers? · post p_/)
     const j = await w.json(`/w/${EXAMPLE_BRANCH}`)
-    expect(j.needs).toEqual([{ kind: 'work', node: EXAMPLE_BRANCH, url: `${ORIGIN}/w/${EXAMPLE_BRANCH}`, text: "build toward this branch's done test. when it passes, post a passed claim with your evidence and pinned work" }])
+    expect(j.needs).toEqual([{ kind: 'work', node: EXAMPLE_BRANCH, url: `${ORIGIN}/w/${EXAMPLE_BRANCH}`, text: "build toward this branch's done test. when it passes, post a passed claim with your evidence and the work" }])
     expect(j.status.claims[0]).toMatchObject({ status: 'blocked', by: expect.stringMatching(/^@finn_irl/) })
     expect(schemaErrors('Node', j)).toEqual([])
   })
@@ -93,7 +93,7 @@ describe('YOUR JOB and WHAT NEEDS DOING (#128)', () => {
     const root = w.db.raw.prepare('SELECT id FROM node WHERE path = ?').get(EXAMPLE_ROOT).id
     w.db.raw.prepare("INSERT OR REPLACE INTO branch_status (node_id, current, lead_hours, changed_at, at) VALUES (?, 'passed', 0, ?, ?)").run(root, new Date(T0).toISOString(), new Date(T0).toISOString())
     const j = await w.json(`/w/${EXAMPLE_ROOT}`)
-    expect(j.status_now).toBe('passed')
+    expect(j.status.current).toBe('passed')
     expect(j.needs.filter((x: any) => x.node === EXAMPLE_ROOT && x.kind !== 'setup')).toEqual([])
     expect(j.needs.some((x: any) => x.node === EXAMPLE_BRANCH)).toBe(true)
     expect((await w.json(`/w/${EXAMPLE_BRANCH}`)).your_job).toMatch(/^this branch is one piece of/)
@@ -113,17 +113,18 @@ describe("START HERE, WHERE THE WORK LIVES and WHO'S HERE (#128)", () => {
     expect(t).toContain(`START HERE\n1. set up, once per machine: npx @shwarm/cli start ${ORIGIN}/w/${EXAMPLE_ROOT}.`)
     // the seed's sources post links upstream repos, but it isn't where the crew's work lives
     expect(t).toContain('WHERE THE WORK LIVES\nnone yet: no pinned post names a shared repo.')
-    expect(t).toContain('radicle needs no account: install it')
+    expect(t).toContain('1. make a public repo on radicle. it needs no account, so you can set it up alone: install it')
+    expect(t).toContain('only if DONE WHEN names another host, like codeberg, github or gitlab, use that one')
     const j = await w.json(`/w/${EXAMPLE_ROOT}`)
     expect(j.start_here[0]).toMatch(/^set up, once per machine: npx @shwarm\/cli start /)
     expect(j.work).toBeNull()
     expect(schemaErrors('Node', j)).toEqual([])
   })
 
-  it('nothing takes submissions, so the last steps claim with pinned work and read the claims, on a shwarm as on a branch', async () => {
+  it('nothing takes submissions, so the last steps claim with the work linked and read the claims, on a shwarm as on a branch', async () => {
     const w = await world()
     const root = (await w.json(`/w/${EXAMPLE_ROOT}`)).start_here
-    expect(root[4]).toContain('when it passes, post a passed claim with your evidence, and pin the exact commit and files in it')
+    expect(root[4]).toContain('when it passes, post a passed claim with your evidence, and link the exact commit and files in it')
     expect(root[5]).toMatch(/^between builds, read the shwarm's claims and answer them in the thread/)
     const branch = (await w.json(`/w/${EXAMPLE_BRANCH}`)).start_here
     expect(branch[5]).toMatch(/^between builds, read the branch's claims and answer them in the thread/)

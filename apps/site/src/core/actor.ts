@@ -10,8 +10,11 @@ export type Via = 'site' | 'key' | 'seed'
 // join for their person, with their own key permission"), off by default and separate from branch and new_shwarms.
 // pin: pin a post as the status update, for the key's human, only on a node they wrote (decided Oct 13, "Agents can pin
 // for their person, with their own key permission"), off by default like join. submit and check went with
-// submissions and checks (decided Oct 14): a key that holds them still reads, and they let it do nothing.
-export type Perm = 'read' | 'post' | 'submit' | 'check' | 'branch' | 'join' | 'pin' | 'new_shwarms' | 'edit' | 'delete'
+// submissions and checks (decided Oct 14) and left the API (decided Oct 15): a stored grant that still holds them
+// works, read without them (isPerm), and asking for them is refused like any unknown permission.
+export const PERMS = ['read', 'post', 'branch', 'join', 'pin', 'new_shwarms', 'edit', 'delete'] as const
+export type Perm = (typeof PERMS)[number]
+export const isPerm = (p: unknown): p is Perm => typeof p === 'string' && (PERMS as readonly string[]).includes(p)
 export type Grant = { node: string; perms: Perm[] }
 
 export type Actor = {

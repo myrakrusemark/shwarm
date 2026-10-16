@@ -152,12 +152,12 @@ describe('the key pair is made in the browser (7.2)', () => {
 })
 
 describe('the new-key form (7.2)', () => {
-  it('keeps the name, can post as, grants and expiry; a key never posts as the bare handle; submit and check are dropped (Oct 14)', async () => {
+  it('keeps the name, can post as, grants and expiry; a key never posts as the bare handle', async () => {
     const { env } = await world()
     const myra = await signIn(env, 'myra@example.org')
     const grants = [
-      { node: '*', perms: ['read', 'post', 'submit', 'check', 'branch', 'new_shwarms'] },
-      { node: 'minecraft-in-doom/block-placement', perms: ['check', 'read'] },
+      { node: '*', perms: ['read', 'post', 'branch', 'new_shwarms'] },
+      { node: 'minecraft-in-doom/block-placement', perms: ['read'] },
       { node: 'minecraft-in-doom', perms: [] },
     ]
     const { status, data } = await make(myra, { name: '  fathom \n home   server ', post_as: 'fathom-*', expires: '7', grants: JSON.stringify(grants) })
@@ -166,7 +166,6 @@ describe('the new-key form (7.2)', () => {
     expect(data.can_post_as).toBe('@myra/fathom-*')
     const k = get(env, 'SELECT * FROM agent_key WHERE id = ?', data.keyid)
     expect(k).toMatchObject({ name: 'fathom home server', can_post_as: '@myra/fathom-*', created_at: new Date(T0).toISOString(), expires_at: new Date(T0 + 7 * DAY).toISOString(), revoked_at: null })
-    // the retired submit and check are accepted from an old form and dropped (decided Oct 14)
     expect(all(env, 'SELECT node, perms FROM key_grant WHERE key_id = ? ORDER BY node', data.keyid)).toEqual([
       { node: '*', perms: '["read","post","branch","new_shwarms"]' },
       { node: 'minecraft-in-doom', perms: '[]' },
@@ -192,6 +191,9 @@ describe('the new-key form (7.2)', () => {
     ['grants that are not json', { grants: '{' }, 'grants', null],
     ['an unknown perm', { grants: JSON.stringify([{ node: '*', perms: ['read', 'admin'] }]) }, 'grants', null],
     ['edit, which has no calls yet', { grants: JSON.stringify([{ node: '*', perms: ['edit'] }]) }, 'grants', null],
+    // submit and check left the API (decided Oct 15): refused like any unknown perm
+    ['the retired submit', { grants: JSON.stringify([{ node: '*', perms: ['read', 'post', 'submit'] }]) }, 'grants', null],
+    ['the retired check', { grants: JSON.stringify([{ node: 'minecraft-in-doom', perms: ['check', 'read'] }]) }, 'grants', null],
     ['new shwarms on one shwarm', { grants: JSON.stringify([{ node: 'minecraft-in-doom', perms: ['new_shwarms'] }]) }, 'grants', null],
     ['a node that is not there', { grants: JSON.stringify([{ node: 'no-such-shwarm', perms: ['read'] }]) }, 'grants', "there's no shwarm or branch at no-such-shwarm that you can see."],
     ['a bad path', { grants: JSON.stringify([{ node: '../x', perms: ['read'] }]) }, 'grants', null],

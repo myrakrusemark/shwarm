@@ -121,7 +121,7 @@ describe('retries', () => {
       [401, 'bad_signature'],
       [403, 'not_permitted'],
       [409, 'idempotency_conflict'],
-      [422, 'missing_evidence'],
+      [422, 'no_done_test'],
       [500, 'server_error'],
     ] as const) {
       const s = server(k.pub, [Response.json({ error: code, message: 'no' }, { status })])

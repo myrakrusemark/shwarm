@@ -78,21 +78,10 @@ describe('the templates (6.3, 4.4)', () => {
     expect(() => renderMail('digest', { handle: 'bob', items: [] }, notice('mention'))).toThrow(MailRenderError)
   })
 
-  it('pass and fail say what the inbox item says; the kickoff and reopened mails are gone (Oct 9)', () => {
+  it('the kickoff, reopened and passes-or-fails mails are gone (Oct 9; Oct 15, #138)', () => {
     expect(() => renderMail('kickoff', { handle: 'bob', title: 'minecraft in doom', link: '/w/minecraft-in-doom', seats: 2 }, notice('kickoff'))).toThrow(MailRenderError)
-    const news = (p: Record<string, unknown>) => renderMail('node_news', { handle: 'bob', title: 'minecraft in doom', link: '/w/minecraft-in-doom/s/2', ...p }, notice('pass and fail'))
-    expect(news({ event: 'passed', number: 2 })).toMatchObject({ subject: 'minecraft in doom passed' })
-    expect(news({ event: 'passed', number: 2 }).text).toContain('minecraft in doom passed with submission #2.')
-    expect(news({ event: 'failed', number: 2 }).subject).toBe('the author failed submission #2 on minecraft in doom')
-    expect(news({ event: 'failed', number: 2 }).text).toContain('the author failed submission #2 on minecraft in doom. every check on the done test starts over.')
-    expect(() => news({ event: 'reopened', number: 2 })).toThrow(MailRenderError) // nothing reopens (decided Oct 9)
-    expect(news({ event: 'passed', number: 2 }).text).toContain('you get this because pass and fail mails are on.')
-    expect(() => news({ event: 'exploded' })).toThrow(MailRenderError)
-    expect(() => news({ event: 'passed' })).toThrow(MailRenderError)
-    for (const m of [news({ event: 'passed', number: 2 }), news({ event: 'failed', number: 2 })]) {
-      expect(lower(m.text)).toBe(lower(m.text).toLowerCase())
-      expect(m.text + m.html).not.toMatch(/[—–]/)
-    }
+    for (const event of ['passed', 'failed', 'reopened'])
+      expect(() => renderMail('node_news', { handle: 'bob', title: 'minecraft in doom', link: '/w/minecraft-in-doom/s/2', event, number: 2 }, notice('pass_fail'))).toThrow(MailRenderError)
   })
 
   it('the closing mail is security mail with no link', () => {
@@ -278,7 +267,7 @@ describe('no kickoff (decided Oct 9), and no mail on a change of status (Oct 14)
     expect(w.all('SELECT 1 FROM inbox_item')).toEqual([])
   })
 
-  it('a change of status mails no one, pass and fail mails on or not; the author gets an inbox notice of a pass (decided Oct 14)', async () => {
+  it('a change of status mails no one, an old pass and fail setting or not; the author gets the approve notice, the people who joined a status notice (Oct 14, Oct 15)', async () => {
     const { w, myra, ana, bob, path } = await live()
     for (const p of [myra, ana, bob]) prefs(w, p, { pass_fail: true, inbox_every: 'now' })
     await w.join(site(ana), path)
@@ -288,7 +277,11 @@ describe('no kickoff (decided Oct 9), and no mail on a change of status (Oct 14)
     w.tick(DAY)
     await w.run({ type: 'status', actor: site(myra), input: { node: path, status: 'on_track' } }) // saves the change to passed
     expect(w.all('SELECT to_status FROM status_change')).toEqual([{ to_status: 'passed' }])
-    expect(w.all("SELECT person_id FROM inbox_item WHERE kind = 'system'")).toEqual([{ person_id: myra.id }])
+    expect(w.all("SELECT person_id, status_to FROM inbox_item WHERE kind = 'system' ORDER BY id")).toEqual([
+      { person_id: myra.id, status_to: null },
+      { person_id: ana.id, status_to: 'passed' },
+      { person_id: bob.id, status_to: 'passed' },
+    ])
     expect(outbox(w)).toEqual([])
   })
 })

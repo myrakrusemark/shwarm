@@ -52,7 +52,7 @@ const root = head({
 
 /** A status with nobody backing anything, or `current` as the band set it. */
 const status = (current: Status = 'on_track', o: Partial<NodeStatus> = {}): NodeStatus => ({ current, changed_at: current === 'on_track' ? null : ago(D), backing: emptyTally(), challenger: null, ...o })
-const statusData = (o: Partial<StatusData> = {}): StatusData => ({ now: status(), reason: null, claims: [], myBacking: null, records: [], history: [], passedClaims: [], ...o })
+const statusData = (o: Partial<StatusData> = {}): StatusData => ({ now: status(), reason: null, claims: [], myBacking: null, records: [], history: [], passedClaims: [], authorApproved: null, ...o })
 const child = (o: Partial<Child>): Child => ({
   path: 'x', title: '', kind: 'branch', status: status(), reason: null, dead_end_note: null, done_when: '', posted_by: '@bmo_fan', author: '@bmo_fan',
   impact: null, posts_per_day: null, people: null, status_line: null, created_at: ago(5 * D),
@@ -245,7 +245,7 @@ const profile: Profile = {
 }
 // The owner's inbox, as the mockup draws it: two mentions, all new, and the notice that her shwarm's people passed it
 // (decided Oct 14; the mockup's sign-off item retired).
-const inboxItem = { read: false, done: false, post_id: 'p_x', text: '', number: null, status: null as InboxView['items'][number]['status'], post_text: null }
+const inboxItem = { read: false, done: false, post_id: 'p_x', text: '', number: null, status: null as InboxView['items'][number]['status'], post_text: null, status_to: null }
 const inbox: InboxView = {
   items: [
     { ...inboxItem, id: 3, kind: 'system', href: '/w/reading-clock-for-kids#passed', created_at: ago(5), node_id: 20, path: 'reading-clock-for-kids', title: 'reading clock for kids', as_name: '@kestrel', text: 'reading clock for kids passed: its people back a passed claim. mark it passed too?' },

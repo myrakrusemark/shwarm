@@ -6,6 +6,7 @@ import { byScore } from '../src/core/stats'
 import { rollupStats } from '../src/jobs/stats'
 import type { Status } from '../src/core/status'
 import { decodeCursor, encodeCursor, ftsQuery, loadFeed, parseQuery, PAGE_SIZE } from '../src/read/feed'
+import { forgetTrending, loadTrending, rankTags, REST_MAX, SHOW_TOP } from '../src/read/trending'
 import { ago, countNum, perDay, shortNum } from '../src/render/numbers'
 import { homeShowsFeed } from '../src/web/feed'
 import { resetReadLimit } from '../src/web/read-limit'
@@ -207,6 +208,28 @@ describe('tabs', () => {
     expect(h.slice(h.indexOf('<main'), h.indexOf('</main>'))).not.toMatch(/filling|lobby|seats/)
   })
 
+  it('#needs-humans is emphasized, not moved: the card set apart, the order the sort\'s own (decided Oct 15)', async () => {
+    // Myra, Oct 15, asked whether these should go first in the feed: "its enough that theyre emphasized."
+    const r = await new Rows().init()
+    r.node({ title: 'busy plain', tags: ['games'], people: 40, score: 9, upvotes: 90, perDay: 9 })
+    r.node({ title: 'small nh', tags: ['art', 'needs-humans'], people: 2, score: 1, upvotes: 1, perDay: 1 })
+    r.node({ title: 'big nh', tags: ['needs-humans'], people: 20, score: 5, upvotes: 50, perDay: 5 })
+    r.node({ title: 'quiet plain', tags: ['games'], people: 3, score: 2, upvotes: 2, perDay: 2 })
+    r.node({ title: 'passed nh', tags: ['needs-humans'], current: 'passed', changedAt: T0 - 2 * HOUR, upvotes: 1, people: 1 })
+    r.node({ title: 'passed plain', tags: ['games'], current: 'passed', changedAt: T0 - HOUR, upvotes: 9, people: 9 })
+    // a needs-humans shwarm with fewer people sorts below one with more, in every sort
+    for (const path of ['/', '/?sort=hot', '/?sort=upvotes', '/?sort=active']) expect(titles(await html(r.db, path)), path).toEqual(['busy plain', 'big nh', 'quiet plain', 'small nh'])
+    expect(titles(await html(r.db, '/?sort=new'))).toEqual(['quiet plain', 'big nh', 'small nh', 'busy plain'])
+    expect(titles(await html(r.db, '/?tag=games'))).toEqual(['busy plain', 'quiet plain'])
+    expect(titles(await html(r.db, '/?tab=passed&sort=upvotes'))).toEqual(['passed plain', 'passed nh'])
+    const h = await html(r.db, '/')
+    expect(h).toMatch(/<li class="nh">\s*<div class="heat"[\s\S]*?>big nh</)
+    expect([...h.matchAll(/<li( class="nh")?>/g)].map(m => !!m[1])).toEqual([false, true, false, true])
+    // agents get the same order
+    const list: any = await (await app.request('https://shwarm.org/shwarms', { headers: { accept: 'application/json' } }, testEnv(r.db as ReturnType<typeof testDb>))).json()
+    expect(list.shwarms.map((x: any) => x.title)).toEqual(['busy plain', 'big nh', 'quiet plain', 'small nh'])
+  })
+
   it('an agent gets the front door: what shwarm is, where to learn how, the live shwarms (7.13)', async () => {
     const { r } = await tabFixture()
     const env = testEnv(r.db as ReturnType<typeof testDb>)
@@ -240,7 +263,8 @@ describe('tabs', () => {
     expect(j.tab).toBe('passed')
     expect(j.sort).toBe('new')
     expect(j.shwarms.map((x: any) => x.title)).toEqual(['passed late', 'passed early'])
-    expect(j.shwarms[0]).toMatchObject({ state: 'live', status: 'passed', url: expect.stringMatching(/^https:\/\/shwarm\.org\/w\//) })
+    expect(j.shwarms[0]).toMatchObject({ status: 'passed', author_approved: null, url: expect.stringMatching(/^https:\/\/shwarm\.org\/w\//) })
+    expect(j.shwarms[0]).not.toHaveProperty('state') // a field that only ever said live (gone Oct 15)
     expect(j.untrusted).toContain('shwarms[].what')
     expect((await req('/shwarms?format=xml')).status).toBe(400)
   })
@@ -341,9 +365,49 @@ describe('search', () => {
     expect(titles(await html(r.db, '/?q=gzdo'))).toEqual(['minecraft in doom']) // done test, prefix
     expect(titles(await html(r.db, '/?q=water+lead'))).toEqual(['every US lead pipe, mapped'])
     expect(titles(await html(r.db, '/?q=water+doom'))).toEqual([])
-    expect(titles(await html(r.db, '/?q=weird+%23games'))).toEqual([]) // "weird" is a tag, not a word in the text
+    // a plain word finds tags too (decided Oct 15): "weird" is only a tag here, and the #games filter still applies
+    expect(titles(await html(r.db, '/?q=weird+%23games'))).toEqual(['minecraft in doom'])
+    expect(titles(await html(r.db, '/?q=weird+%23music'))).toEqual(['printer-motor orchestra'])
     expect(titles(await html(r.db, '/?q=mod+%23gzdoom'))).toEqual(['minecraft in doom'])
     expect(titles(await html(r.db, '/?tab=passed&q=ramsey'))).toEqual(['a ramsey-number bound'])
+  })
+
+  it('a plain word finds a tag too, by prefix (decided Oct 15), and a tag split at its dashes', async () => {
+    const r = await searchFixture()
+    r.node({ title: 'ninety-five hands', tags: ['needs-humans', 'drawing', 'beginner-friendly'], score: 5 })
+    expect(titles(await html(r.db, '/?sort=hot&q=weird'))).toEqual(['minecraft in doom', 'printer-motor orchestra', 'moss-powered clock'])
+    expect(titles(await html(r.db, '/?sort=hot&q=weir'))).toEqual(['minecraft in doom', 'printer-motor orchestra', 'moss-powered clock'])
+    expect(titles(await html(r.db, '/?q=drawing'))).toEqual(['ninety-five hands'])
+    expect(titles(await html(r.db, '/?q=draw'))).toEqual(['ninety-five hands'])
+    expect(titles(await html(r.db, '/?q=humans'))).toEqual(['ninety-five hands'])
+    expect(titles(await html(r.db, '/?q=beginner+friendly'))).toEqual(['ninety-five hands'])
+    expect(titles(await html(r.db, '/?q=biology'))).toEqual(['moss-powered clock'])
+    expect(titles(await html(r.db, '/?tab=passed&q=math'))).toEqual(['a ramsey-number bound'])
+    // agents search the same way
+    const env = testEnv(r.db as ReturnType<typeof testDb>)
+    const j: any = await (await app.request('https://shwarm.org/shwarms?q=drawing', { headers: { accept: 'application/json' } }, env)).json()
+    expect(j.shwarms.map((x: any) => x.title)).toEqual(['ninety-five hands'])
+  })
+
+  it('the search index follows tags as a shwarm is made, and as its tags change', async () => {
+    const w = new World()
+    const myra = await person(w.db, 'myra')
+    await w.shwarm(site(myra), { title: 'ninety-five hands', tags: ['#drawing', '#needs-humans'] })
+    const id = w.node('ninety-five-hands').id
+    const hits = (q: string) => w.all('SELECT rowid FROM node_fts WHERE node_fts MATCH ?', q).map(r => r.rowid)
+    expect(hits('drawing')).toEqual([id])
+    expect(w.get('SELECT tags FROM node_fts WHERE rowid = ?', id).tags).toBe('drawing needs-humans')
+    w.db.raw.prepare("INSERT INTO node_tag (node_id, tag) VALUES (?, 'singing')").run(id)
+    expect(hits('singing')).toEqual([id])
+    w.db.raw.prepare("DELETE FROM node_tag WHERE node_id = ? AND tag = 'drawing'").run(id)
+    expect(hits('drawing')).toEqual([])
+    expect(hits('ninety')).toEqual([id]) // the title is still there
+    w.db.raw.prepare("UPDATE node SET title = 'ninety-six hands' WHERE id = ?").run(id)
+    expect(hits('six')).toEqual([id])
+    expect(hits('singing')).toEqual([id]) // a change to the words keeps the tags
+    w.db.raw.prepare('DELETE FROM node_tag WHERE node_id = ?').run(id)
+    w.db.raw.prepare('DELETE FROM node WHERE id = ?').run(id)
+    expect(hits('ninety')).toEqual([])
   })
 
   it('tokenizes and quotes every word, so no FTS operator survives', () => {
@@ -401,6 +465,143 @@ describe('search', () => {
 })
 
 // ---------- paging ----------
+
+describe('trending', () => {
+  // Myra's mockup a (decided Oct 15): the tags on the most live shwarms, with how many, #needs-humans pinned first.
+  async function trendFixture() {
+    const r = await new Rows().init()
+    r.node({ title: 'ninety-five hands', tags: ['art', 'drawing', 'needs-humans', 'type'], score: 9 })
+    r.node({ title: 'hand-drawn world', tags: ['maps', 'art', 'drawing'], score: 8 })
+    r.node({ title: 'amazing grace', tags: ['music', 'art'], score: 7 })
+    r.node({ title: 'printer orchestra', tags: ['music', 'weird'], score: 6 })
+    r.node({ title: 'given up', tags: ['weird', 'music'], current: 'dead_end', changedAt: T0 - HOUR }) // the live tab lists it, so it counts
+    r.node({ title: 'done already', tags: ['art', 'drawing', 'done-thing', 'done-thing-2'], current: 'passed', changedAt: T0 - HOUR }) // passed: not counted
+    r.node({ title: 'hidden one', tags: ['art', 'secret'], hidden: 1 }) // never counted
+    r.node({ title: 'held one', tags: ['art', 'secret'], triage: 'held', seeded: 0 })
+    return r
+  }
+  const row = (h: string) => /<section class="trend"[\s\S]*?<\/section>/.exec(h)?.[0] ?? ''
+  const rowTags = (h: string) => [...row(h).matchAll(/<a (?:class="([^"]*)" )?href="([^"]*)" title="([^"]*)"[^>]*>#([a-z0-9-]+)<span>(\d+)<\/span><\/a>/g)].map(m => ({ cls: m[1] ?? '', href: m[2].replace(/&amp;/g, '&'), tag: m[4], n: Number(m[5]) }))
+
+  it('counts tags across live shwarms: most first, #needs-humans pinned first whatever its count; passed, hidden and held left out', async () => {
+    const r = await trendFixture()
+    const t = await loadTrending(r.db)
+    expect(t.ranked).toEqual([
+      { tag: 'needs-humans', shwarms: 1 },
+      { tag: 'art', shwarms: 3 },
+      { tag: 'music', shwarms: 3 },
+      { tag: 'drawing', shwarms: 2 },
+      { tag: 'weird', shwarms: 2 },
+      { tag: 'maps', shwarms: 1 },
+      { tag: 'type', shwarms: 1 },
+    ])
+    // the row: tags on 2 or more (and #needs-humans); the rest behind "+ n more tags"
+    expect(t.top.map(x => x.tag)).toEqual(['needs-humans', 'art', 'music', 'drawing', 'weird'])
+    expect(t.rest.map(x => x.tag)).toEqual(['maps', 'type'])
+    // up to 16 in the row, then the rest in order
+    const many = rankTags(Array.from({ length: 20 }, (_, i) => ({ tag: `t${String(i).padStart(2, '0')}`, shwarms: 30 - i })))
+    expect(many.top).toHaveLength(16)
+    expect(many.rest.map(x => x.tag)).toEqual(['t16', 't17', 't18', 't19'])
+    expect(many.restTotal).toBe(4)
+    // the hidden list stops at REST_MAX, but "+ n more tags" counts every one, and the list says how many it left out
+    const lots = rankTags(Array.from({ length: SHOW_TOP + REST_MAX + 5 }, (_, i) => ({ tag: `t${String(i).padStart(4, '0')}`, shwarms: 1000 - i })))
+    expect(lots.rest).toHaveLength(REST_MAX)
+    expect(lots.restTotal).toBe(REST_MAX + 5)
+    // on the page: one shwarm with more tags than the list holds (written straight in, past the 15 a shwarm may have)
+    const r2 = await new Rows().init()
+    r2.node({ title: 'many tags', tags: Array.from({ length: REST_MAX + 7 }, (_, i) => `x${String(i).padStart(4, '0')}`) })
+    const h = row(await html(r2.db, '/'))
+    expect(h).toContain(`<summary>+ ${REST_MAX + 7} more tags</summary>`)
+    expect(h).toContain('<span class="tr-cut">and 7 more: search finds any #tag</span>')
+    expect(rowTags(h)).toHaveLength(REST_MAX)
+  })
+
+  it('shows over the sort line on the live tab: label, counts, #needs-humans set apart, links that filter the feed', async () => {
+    const r = await trendFixture()
+    const h = await html(r.db, '/')
+    expect(h.indexOf('<section class="trend"')).toBeLessThan(h.indexOf('<nav class="order"'))
+    expect(row(h)).toContain('<h2 class="tr-h" id="tr-h" title="the skills and topics on the most live shwarms right now">trending/skills/topics</h2>')
+    expect(rowTags(h)).toEqual([
+      { cls: 'nh', href: '/?tag=needs-humans', tag: 'needs-humans', n: 1 },
+      { cls: '', href: '/?tag=art', tag: 'art', n: 3 },
+      { cls: '', href: '/?tag=music', tag: 'music', n: 3 },
+      { cls: '', href: '/?tag=drawing', tag: 'drawing', n: 2 },
+      { cls: '', href: '/?tag=weird', tag: 'weird', n: 2 },
+      { cls: '', href: '/?tag=maps', tag: 'maps', n: 1 },
+      { cls: '', href: '/?tag=type', tag: 'type', n: 1 },
+    ])
+    expect(row(h)).toContain('title="3 shwarms tagged #art" aria-label="3 shwarms tagged #art"') // a screen reader's name for it, not "#art3"
+    expect(row(h)).toContain('title="1 shwarm tagged #needs-humans"')
+    expect(row(h)).toContain('<details class="tr-more"><summary>+ 2 more tags</summary>')
+    expect(row(h)).not.toContain('class="tr-on"')
+    // a sort is kept
+    expect(rowTags(await html(r.db, '/?sort=new'))[1].href).toBe('/?sort=new&tag=art')
+  })
+
+  it('filtered by a tag: that tag marked, its count and the way back; tapping it again clears it', async () => {
+    const r = await trendFixture()
+    for (const path of ['/?tag=drawing', '/?q=%23drawing']) {
+      const h = await html(r.db, path)
+      const on = rowTags(h).find(x => x.tag === 'drawing')!
+      expect(on, path).toEqual({ cls: 'on', href: '/', tag: 'drawing', n: 2 })
+      expect(row(h)).toContain('aria-current="true">#drawing<span>2</span></a>')
+      expect(row(h)).toContain('<p class="tr-on"><b>#drawing</b> · 2 shwarms · <a href="/">show every shwarm</a></p>')
+      expect(titles(h)).toEqual(['hand-drawn world', 'ninety-five hands']) // the sort's own order (one person each, newest first): #needs-humans isn't moved up
+    }
+    // a tag from the rest shows in the row while it's in use
+    const m = await html(r.db, '/?tag=maps')
+    expect(rowTags(m).map(x => x.tag)).toEqual(['needs-humans', 'art', 'music', 'drawing', 'weird', 'maps', 'type'])
+    expect(row(m)).toContain('<summary>+ 1 more tag</summary>')
+    expect(rowTags(await html(r.db, '/?tag=needs-humans'))[0]).toEqual({ cls: 'on nh', href: '/', tag: 'needs-humans', n: 1 })
+  })
+
+  it('not on the passed tab, a word search, several tags or a later page', async () => {
+    const r = await trendFixture()
+    for (const path of ['/?tab=passed', '/?q=music', '/?q=%23art+%23music', '/?tag=art&q=hands']) expect(row(await html(r.db, path)), path).toBe('')
+    for (let i = 0; i < PAGE_SIZE; i++) r.node({ title: `filler ${i}`, tags: ['filler'] })
+    forgetTrending(r.db)
+    const first = await html(r.db, '/')
+    expect(row(first)).not.toBe('')
+    expect(row(await html(r.db, moreHref(first)!))).toBe('')
+    // no live shwarms, no row
+    expect(await html(testDb(), '/')).not.toContain('class="trend"')
+  })
+
+  it('#needs-humans comes first among a card\'s tags and on the shwarm\'s page, set apart; the text and JSON put it first too', async () => {
+    const r = await trendFixture()
+    const h = await html(r.db, '/')
+    expect(card(h, 'ninety-five hands')).toContain(
+      '<span class="tags"><a class="t nh" href="/?tag=needs-humans" title="agents can&#39;t finish this alone: part of it takes people">#needs-humans</a><a class="t" href="/?tag=art">#art</a><a class="t" href="/?tag=drawing">#drawing</a><a class="t" href="/?tag=type">#type</a></span>',
+    )
+    const env = testEnv(r.db as ReturnType<typeof testDb>)
+    const page = await (await app.request('https://shwarm.org/w/ninety-five-hands', { headers: { accept: 'text/html' } }, env)).text()
+    expect(page).toContain('<div class="tags"><a class="t nh" href="/?tag=needs-humans" title="agents can&#39;t finish this alone: part of it takes people">#needs-humans</a><a class="t" href="/?tag=art">#art</a>')
+    const node: any = await (await app.request('https://shwarm.org/w/ninety-five-hands', { headers: { accept: 'application/json' } }, env)).json()
+    expect(node.node?.tags ?? node.tags).toEqual(['needs-humans', 'art', 'drawing', 'type'])
+    const list: any = await (await app.request('https://shwarm.org/shwarms?q=hands', { headers: { accept: 'application/json' } }, env)).json()
+    expect(list.shwarms[0].tags).toEqual(['needs-humans', 'art', 'drawing', 'type'])
+    // stored in the author's order all the same
+    expect(r.db.raw.prepare("SELECT group_concat(tag, ' ') AS t FROM (SELECT tag FROM node_tag WHERE node_id = (SELECT id FROM node WHERE slug = 'ninety-five-hands') ORDER BY rowid)").get().t).toBe('art drawing needs-humans type')
+  })
+
+  it('the front door carries it: one TRENDING line in the text, trending in the JSON', async () => {
+    const r = await trendFixture()
+    const env = testEnv(r.db as ReturnType<typeof testDb>)
+    const t = await (await app.request('https://shwarm.org/', { headers: { accept: '*/*' } }, env)).text()
+    expect(t).toContain('\nTRENDING (the tags on the most live shwarms, with how many; https://shwarm.org/shwarms?tag=<tag> lists them): #needs-humans 1 · #art 3 · #music 3 · #drawing 2 · #weird 2\n')
+    expect(t.indexOf('TRENDING')).toBeLessThan(t.indexOf('LIVE SHWARMS'))
+    expect(await (await app.request('https://shwarm.org/llms.txt', {}, env)).text()).toBe(t)
+    const j: any = await (await app.request('https://shwarm.org/', { headers: { accept: 'application/json' } }, env)).json()
+    expect(j.trending).toEqual([
+      { tag: 'needs-humans', shwarms: 1 },
+      { tag: 'art', shwarms: 3 },
+      { tag: 'music', shwarms: 3 },
+      { tag: 'drawing', shwarms: 2 },
+      { tag: 'weird', shwarms: 2 },
+    ])
+    expect(j.untrusted).toContain('trending[].tag')
+  })
+})
 
 describe('cursor paging', () => {
   it('new: pages of 20 that never repeat or skip, even when newer shwarms arrive between pages', async () => {

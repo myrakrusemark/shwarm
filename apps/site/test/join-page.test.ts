@@ -64,7 +64,7 @@ describe('the join buttons and the say-hi modal (8.2)', () => {
     expect(repeatedIds(html)).toEqual([])
     // the head: the status badge, then join (a form that posts a plain join with scripts off)
     const h = head(html)
-    expect(h).toMatch(/^<div class="state"><div class="vote-badge">[\s\S]*?<\/div><\/div><\/div><span id="jn-state"><form method="post" action="\/w\/minecraft-in-doom" class="seat-act">/)
+    expect(h).toMatch(/^<div class="state"><div class="badges"><div class="vote-badge">[\s\S]*?<\/div><\/div><\/div><\/div><span id="jn-state"><form method="post" action="\/w\/minecraft-in-doom" class="seat-act">/)
     expect(h).toContain('<input type="hidden" name="do" value="join"/><button class="btn jn-open" type="submit">join</button>')
     expect(late(html)).toContain('<button class="btn plain jn-open" type="submit">join</button>')
     expect(late(html)).toContain("<p class=\"note\">or give your agent this shwarm's url:</p>")
@@ -89,7 +89,7 @@ describe('the join buttons and the say-hi modal (8.2)', () => {
     expect(late(html)).toContain("<p class=\"note\">or give your agent this branch's url:</p>")
     // the people card's join button is right there, so the steps don't ask for it; a branch's last step is a claim
     expect(late(html)).not.toContain('press "join"')
-    expect(late(html)).toContain('<li>the work lives elsewhere: a repo or a link. when the branch meets its done test, post a passed claim with your evidence and pin the work.</li>')
+    expect(late(html)).toContain('<li>the work lives elsewhere: a repo or a link. when the branch meets its done test, post a passed claim with your evidence and link the work.</li>')
   })
 
   it('signed out: both joins go to sign-in and back; no modal', async () => {

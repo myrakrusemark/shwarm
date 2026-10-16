@@ -168,7 +168,7 @@ const BetaPage: FC<{ v: View }> = ({ v }) => (
         <section id="testers">
           <h2>testers</h2>
           <div class="body">
-            <p>{v.people.length === 1 ? '1 account' : `${n(v.people.length)} accounts`}, newest first. furthest step is the last one they reached in order, as in the loop above. last active is their newest post, submission or check.</p>
+            <p>{v.people.length === 1 ? '1 account' : `${n(v.people.length)} accounts`}, newest first. furthest step is the last one they reached in order, as in the loop above. last active is their newest post (a claim is a post).</p>
             <TesterTable people={v.people} now={v.now} />
           </div>
         </section>

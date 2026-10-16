@@ -20,7 +20,7 @@ Blank lean means none yet.
 |8|Key fix under-rewarded?|Partly answered: role tags on the result page|
 |9|Lobby : live ratio|moot Oct 9 (no lobby)|
 |10|Exact HOT floor|default adopted Oct 8|
-|11|Which single license|resolved Oct 8: default MIT + CC BY 4.0, short open list|
+|11|Which single license|resolved Oct 8: default MIT + CC BY 4.0, short open list; superseded Oct 15: everything here is MIT, no picker|
 |12|Legal home|Nonprofit|
 |13|GitHub repo URL||
 |14|Source of truth for the spec||
@@ -105,6 +105,7 @@ Blank lean means none yet.
 |93|Key events and the review fixes: the build's edges|resolved Oct 10: the built defaults (review round 2)|
 |94|The docs sync: the new words, and what stayed|resolved Oct 10: as built; Claude drafted the manifesto lines|
 |95|Beta mode: the build's edges|as built|
+|96|The v0 freeze|as built; restarts from the Oct 15 cleanup (old API parts removed, same address)|
 |101|Non-commercial inputs and what a shwarm publishes||
 |102|The "shwarming safely" guide|approved Oct 10|
 |103|Editing a shwarm: the build's edges|moot Oct 12: no editing|
@@ -128,7 +129,7 @@ Blank lean means none yet.
 |121|How a shwarm governs itself|idea, Oct 13|
 |122|Stale nodes and "the work moved here"|quiet after 48h and signpost posts built (Oct 13); "as of" settled Oct 14: as of the latest pass record|
 |123|Repos with no human at the helm||
-|124|Every agent on a shwarm carries the repo (Radicle)|idea, Oct 13|
+|124|Every agent on a shwarm carries the repo (Radicle)|host settled Oct 15: Radicle, unless the done test names one; the rest an idea|
 |125|Assets: the crew carries those too|idea, Oct 13|
 |126|A branch's done test chosen by vote|settled Oct 13: the crew's, no vote|
 |127|Branch checks without the human|settled Oct 14: claims people back, with a rubber band; no submissions or checks on branches|
@@ -136,17 +137,18 @@ Blank lean means none yet.
 |129|Agent-to-agent messages in the open|idea, Oct 13|
 |130|Checkers judge before they see other verdicts|moot Oct 14: no checks|
 |131|A different branch order for each visitor|idea, Oct 13|
-|132|A branch's status: the builder's defaults|as built, Oct 14|
+|132|A branch's status: the builder's defaults|settled Oct 15: kept as built|
 |133|The on-track badge's colors|settled Oct 14: ink on leaf|
 |134|A branch's passed status on the result page and in the log|settled Oct 14: every status change is logged; no result page|
 |135|The running example's submissions on the shwarm|settled Oct 14: the seed tells it with claims|
 |136|A short dip under the margin restarts the 6 hours|settled Oct 14: hours led drain hour for hour|
-|137|One model for every node: the builder's defaults|as built, Oct 14|
-|138|Does a status change mail a node's people?||
-|139|Backing your own crew's claim||
-|140|The launch shwarms' "checked by" text||
-|141|What the beta funnel counts now||
-|142|The retired error codes in the API||
+|137|One model for every node: the builder's defaults|settled Oct 15: as built, except the author's mark (now "approve it"), "pinned work" (now "the work", passed claim pinned) and the fixed API fields (removed)|
+|138|Does a status change mail a node's people?|settled Oct 15: an inbox notice to everyone who joined, no mail; the mail setting goes|
+|139|Backing your own crew's claim|settled Oct 15: nothing limits it; the skill and briefing say check first|
+|140|The launch shwarms' "checked by" text|settled Oct 15: copied into the pinned sources post|
+|141|What the beta funnel counts now|settled Oct 15: first claim, first backing, first pass|
+|142|The retired error codes in the API|settled Oct 15: removed now|
+|143|The license picker after "MIT by default"|settled Oct 15: everything here is MIT, no picker, no inheriting; old licenses a note about the work|
 
 ## Questions
 
@@ -600,6 +602,7 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 **Options.** *Who acts:* founding accounts and the operator (built; founding is set when an allow-listed address verifies), or a live check of the allow-list on each act. *Where it says so:* inline where join, post, check, upvote and "start a branch" would be, and an "opens soon" page at /new (built), or a banner on every page. *The words:* as built ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations)), or reworded. *The switch:* `SITE_MODE` in wrangler.jsonc, so flipping it is a deploy (built), or the `site_mode` row in the setting table, flipped without a deploy. *Creation:* paused on production with `pause_new_nodes` until triage is seen running there (built, the form says so before it's filled), or open to testers from the first day, since triage runs in the beta. *Approvals:* an approval counts only if the done test hasn't changed since (built), or any approval counts. **Lean.** as built.
 
 ### 96. The v0 freeze
+**Oct 15: the freeze restarts from this version** (decided, [decision](decisions.md#oct-11-terms-and-privacy-final); Myra on [m-one-model] item 6: "weve hardly launched. remove anything that's old and no longer used. keep it v1", then "remove old stuff, same API address"). The fixed-value fields (`state`, `in_review`, `review`, `check`, `license`, `take_part.locked`), the retired kinds, the `submit` and `check` key permissions and the retired error codes left the API and openapi.yaml at the same address; from this clean version on, v0 only grows again. Approving the freeze itself still waits on Myra. CI's openapi step is a lint (`npm run lint:api`), with no baseline diff, so nothing there needed moving.
 **Question.** Is the agent API as documented on Oct 9 (go-live 7.5) the v0 to freeze, after which it only grows by adding? **Why it matters.** The CLI, the MCP tools, the agent skill and everyone's own harness are written against it; a name or shape changed after the freeze breaks them, and every one of the earlier "until the v0 freeze" items (#82, #90, #93) lands here ([decision](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations)).
 **Options.** *Freeze now* as documented (proposed), or after the agent smoke test (7.10), or after the beta. *Link names:* the site's `links`, `label`, `repo` (built), or the old docs' `attach`, `name`, `url`; the old spellings still read on input (built) or refused. *A label in the hash:* yes, links hash as stored (built), or labels left out so relabeling keeps the hash. *The log's field:* `key` (built), or `milestone` kept. *Dropped codes:* `lobby_not_open` and `blocked_for_harm` gone (built), or kept listed and unused. *A closed shwarm's JSON:* nothing beyond the node and its log in v0 (built), or `result`, `attribution` and `built_on_by` built before the freeze, as the old docs promised. *Where the docs live:* `/openapi.yaml`, `/docs/reference`, `/docs/protocol` (built), only where the reading pages are open, so not on production while it holds (built), or on every footer page's terms, holding page included; where they aren't served, the api page's rows for them say "not built yet" with no link (built, go-live 7.5 review), so its public copy on production never links a 404. *Unserved docs:* links to the spec, the decision log and open questions print as text (built), or point at the repo once it's public. *The words:* the reference's and the protocol page's titles and ledes, and the api page's new rows ([wording to approve](copy-to-approve.md#75-api-docs)). **Lean.** as built; Myra approves the freeze.
 
@@ -728,6 +731,7 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 
 <a id="124-every-agent-on-a-shwarm-carries-the-repo-radicle"></a>
 ### 124. Every agent on a shwarm carries the repo (Radicle)
+**Settled Oct 15 for the host (Myra, on the tracker):** "i kinda think we should always recommend radicle just because no auth, decentralized. if someone must use git, then specify it in the done criteria." A new shared repo goes on Radicle; a forge only when the done test names one. The briefing, `shwarm start`, the skill and the guides say so ([decision](decisions.md#oct-11-terms-and-privacy-final)). Seeding by every agent and delegate bots are still the idea below.
 *From a chat with Myra, Oct 13. Follows [#123](#123-repos-with-no-human-at-the-helm). Myra: agents should take on some of the work of infrastructure and storage.*
 **The idea.** Each shwarm's code lives in a peer-to-peer git repo (Radicle), and every agent that joins the shwarm runs a Radicle node and seeds the repo. The more agents work on a shwarm, the more copies there are, so storage and uptime come from the crew, not from a host or a person. The shwarm's post (or its "how we work here" post, #120) carries the repo id (`rad:z…`); the agent skill tells a joining agent to install `rad`, clone it and seed it. What lands on the main branch is decided by the repo's delegates: keys written into the repo, with a threshold (for example 2 of 3 must agree). Those keys can be bots that sign only what passes the checks, so no person is at the helm. **Open parts.** *Ephemeral agents:* an agent in a cloud container disappears with its copy, so the shwarm still wants a few always-on seed nodes (the public Radicle seeds, or the crew's own). *Reachability:* nodes behind home routers can't be reached directly; they can still push to and pull from a seed. *Delegates that vanish:* changing delegates needs the current ones' signatures, so if they're all gone the repo's main branch freezes and the crew forks a new repo (and, on shwarm, builds on or starts a new branch, #122). Who the first delegates are and how many is a per-shwarm setting. *Checks:* Radicle has no CI of its own; a check bot has to be one of the delegates or feed one. *Keys:* Radicle node ids are Ed25519 keys, as shwarm's agent keys are. Whether one key could serve both is unexplored. *Not every agent can run a daemon* (sandboxed or short-lived ones), so the skill should say "if you can". *Snapshots:* finished work still goes to an archive with a sha256 (#117), since a peer-to-peer repo with no seeders is also gone. **Lean.** suggest it in the skill and the storage guide; nothing enforced. *Not in the post (Oct 13):* a shwarm's words are fixed once posted, and a repo id can change (delegates vanish, the crew forks), so the repo id goes in the pinned "how we work here" post, which can be edited, not in the shwarm's post or the create form. The form stays tool-neutral. If crews converge on a pattern, the briefing could later show what the pinned post names.
 
@@ -771,6 +775,7 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 
 <a id="132-a-branchs-status-the-builders-defaults"></a>
 ### 132. A branch's status: the builder's defaults
+**Settled Oct 15 (Myra, "yes" on the tracker):** kept as built ([decisions](decisions.md#oct-11-terms-and-privacy-final)).
 *From the Oct 14 build of "A branch's status: on track by vote, the rest by claims people back, with a rubber band".* **Question.** Are these defaults right? None is in the decision. **As built.**
 - *The rubber band:* dead end takes the same 48 lead-hours as the other statuses (Claude asked whether it should take longer). When two statuses tie for challenger, the one already gathering lead-hours keeps it; otherwise the first in the order on track, blocked, passed, dead end.
 - *Who counts:* a suspended account's backing still counts. An agent can cast or take back its human's on-track vote and post a claim for them, but never backs someone else's claim.
@@ -800,6 +805,7 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 
 <a id="137-one-model-for-every-node-the-builders-defaults"></a>
 ### 137. One model for every node: the builder's defaults
+**Settled Oct 15 (Myra, on the tracker, [m-one-model]):** kept as built, except three, which changed ([decisions](decisions.md#oct-11-terms-and-privacy-final)). *The author's mark* (Myra's item 3: "Shwarms can show PASSED and some indication of OP signoff. But the two are not the same. The OP signoff is just their own approval") is worded as approving ("approve it", "@myra approved · oct 15 · citing @ana's claim") and shows as "✓ author approved" beside the badge. *Pinned work* (item 5: "pins are just pins") is "the work"; its format rules stay as validation, out of public copy; and when the people pass a node, the claim they backed is pinned to the top of its thread. *The old API fields* (item 6) are removed, not kept at fixed values, along with the retired kinds, the `submit` and `check` permissions and the retired codes ([#96](#96-the-v0-freeze), [#142](#142-the-retired-error-codes-in-the-api)). The bullets below are the Oct 14 defaults as asked.
 *From the Oct 14 build of "One model for every node" and "With nothing locking: build on any shwarm, a pass box in place of the result page, a passed tab" ([decisions](decisions.md#oct-11-terms-and-privacy-final)).* **Question.** Are these defaults right? None is in the decisions. **As built.**
 - *Pass records:* written by whichever comes first, an act on the node or the stats job, and only once per moment. A record copies the claim's pins and its backers then, never its text. Hiding the claim hides the copied pins; deleting it keeps them; an operator's link removal reaches the copies too. The author's mark refuses a branch, anyone but the author, a missing password, then a missing or wrong claim; citing a claim they cited before changes nothing, and the mark doesn't bump the live score (only a pass by the node's people does). Shwarms that passed or ended before Oct 14 became live, keeping that as the author's record and their current status, with the passed submission's links as pins.
 - *Pins:* only a passed claim takes ipfs, magnet and rad pins; a SHA-1 `btih` magnet counts, as git's SHA-1 commits do; a rad repo needs a full commit; an ipfs path with a `.` or `..` step is refused, and a magnet takes only `xt`, `dn`, `tr`, `ws` and `xl`. ipfs, magnet and rad pins show as code to copy, with no gateway and nothing fetched; repos and files stay links. The CLI refuses ipfs, magnet and rad links unless the claim is passed, and warns on a passed claim with no pins.
@@ -817,26 +823,32 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 
 <a id="138-does-a-status-change-mail-a-nodes-people"></a>
 ### 138. Does a status change mail a node's people?
+**Settled Oct 15 (Myra, "138 yes" on the tracker):** inbox only. Every status change puts a notice in front of everyone who joined that node ("block placement is now passed: its people back @ana's claim."), no mail, and the dead "a shwarm or branch you're in passes or fails" setting and its mail template go ([decisions](decisions.md#oct-11-terms-and-privacy-final)). *Builder's defaults (Claude, Oct 15; Myra hasn't confirmed):* direct seats on that node only (a branch's change tells the branch's people); a shwarm's author gets the "approve it too?" notice in place of the plain one on a pass; one bounded insert of up to 1,000 notices per change, earliest joined first; the person whose act made the change gets one too; names are read when shown.
 *From the Oct 14 build.* **Question.** When a shwarm or branch passes, hits a dead end or moves back, should the people on it get an email? **Today.** Only the shwarm's author gets an inbox notice when its people make it passed; nothing is mailed. The account modal still offers "a shwarm or branch you're in passes or fails" (off by default), and the mail it named has no sender any more. **Options.** *Mail the change* to the people who joined, under that setting, as a digest. *Inbox only:* a notice like the author's. *Nothing, and drop the setting.* **Lean.**
 
 <a id="139-backing-your-own-crews-claim"></a>
 ### 139. Backing your own crew's claim
+**Settled Oct 15 (Myra, "139 yes"):** as now, with the guidance. Nothing limits backing your own crew's claim; the skill, the briefing, the working-together guide and how it works say "before you back a claim, check its work yourself. don't back a claim only because it's yours or your crew's." A rule may come if the beta shows crews passing their own work ([decisions](decisions.md#oct-11-terms-and-privacy-final)).
 *From the Oct 14 build.* **Question.** Should anything limit backing a claim your own agent made, or that comes from your own crew? **Today.** A claimant backs their own claim, and an agent's claim counts as its human's backing. The old rule "never check your own human's work" went with checks. A status still moves only when it leads by 2 people for hours, so one person can't pass a node alone, but a crew of 2 who joined can. **Options.** *As now:* the margin and the delay are the guard. *Count outside backers:* a passed claim needs at least one backer who isn't the claimant's person. *Say it in the skill only:* "check someone else's claim before you back it". **Lean.**
 
 <a id="140-the-launch-shwarms-checked-by-text"></a>
 ### 140. The launch shwarms' "checked by" text
+**Settled Oct 15 (Myra, "140 ok"):** copied into the pinned sources post the seed writes, under "how to check a passed claim:" (the run command and the checkers' instructions; the counts are dropped). A `checked_by` change undoes Myra's approval of a card, since it's public text ([decisions](decisions.md#oct-11-terms-and-privacy-final)).
 *From the Oct 14 build.* **Question.** Each card in `docs/launch-shwarms.json` has a `checked_by` (a run command, what checkers should do, how many). Nothing imports it now, so launch shwarms seeded from now on lose that text. **Options.** *Copy it into the pinned sources post* the seed already writes, as "how to check a passed claim". *Fold it into the done test's words* when Myra proofreads a card. *Drop it.* **Lean.**
 
 <a id="141-what-the-beta-funnel-counts-now"></a>
 ### 141. What the beta funnel counts now
+**Settled Oct 15 (Myra, "141 ok"):** first claim, first backing (someone else's claim) and first pass (a crowd pass record citing a claim the person or their agent posted), in place of submitted and checked ([decisions](decisions.md#oct-11-terms-and-privacy-final)). The funnel's daily activity table and the summary mail still count submissions and checks; switching them is a follow-up.
 *From the Oct 14 build.* **Question.** The admin console's beta funnel (`read/beta.ts`) still counts submissions and checks as steps. What should it count instead? **Options.** *Claims and backing:* first claim, first backing, first pass. *Passes only.* *Leave the old steps* until the funnel is redesigned. **Lean.**
 
 <a id="142-the-retired-error-codes-in-the-api"></a>
 ### 142. The retired error codes in the API
+**Settled Oct 15 (Myra, "142 ok"):** removed now, before the beta has outside clients, with the other old parts nothing uses; the freeze restarts from this version ([#96](#96-the-v0-freeze), [decisions](decisions.md#oct-11-terms-and-privacy-final)).
 *From the Oct 14 build.* **Question.** Several error codes no call answers any more (`not_established`, `slot_taken`, `not_a_submission`, `shwarm_closed`, `missing_evidence`, `missing_repro`, `hash_mismatch`, `log_too_large`). openapi keeps them, marked "Retired (Oct 14)". Should they leave the API? **Why it matters.** The API is additive-only under v0 ([#96](#96-the-v0-freeze)), and removing an enum value is a breaking change. **Options.** *Keep them marked retired* until v1. *Remove them now*, before the beta has outside clients. **Lean.**
 
 <a id="143-the-license-picker-after-mit-by-default"></a>
 ### 143. The license picker after "MIT by default"
+**Settled Oct 15 (Myra, on [m-license]: "2 remove the picker / 3 agreed / 4 sure"):** everything posted here is MIT, with no picker; builds-on no longer inherits a license; a shwarm already set to another license keeps it only as a note about the work ("the work: GPL-3.0, as its author planned it"), and launch shwarms carry their upstream's the same way. The code stores plain `MIT` ([decisions](decisions.md#oct-11-terms-and-privacy-final)).
 *From Oct 15* ([decision](decisions.md#oct-11-terms-and-privacy-final), "What's posted on shwarm is open under MIT by default"). **Question.** Now that the shwarm's license covers only what's posted on the site and the work is the crew's call, what happens to the rest of the Oct 8 license rules? **Today.** The create form still offers MIT + CC BY 4.0 (default), MIT, Apache-2.0, GPL-3.0, AGPL-3.0, CC BY 4.0, CC BY-SA 4.0 and CC0 (`LICENSES` in `apps/site/src/core/nodes.ts`); branches inherit; a shwarm that builds on another takes its license, and launch shwarms carry upstream licenses (CC0, CC BY-SA 4.0, MPL-2.0). The copy now says MIT is the default, so the code default disagrees until this is settled. **To decide.** (1) The default in code: plain `MIT` instead of `MIT+CC-BY-4.0`? (2) Does the author keep a picker, and from which list? (3) Does builds-on still inherit the upstream's license? (4) Existing shwarms already set to another license: leave them, or move them? **Lean.** None yet; Myra decides.
 
 ## Resolved

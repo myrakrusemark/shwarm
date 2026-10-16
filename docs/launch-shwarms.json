@@ -8,7 +8,9 @@
       "#games",
       "#ai",
       "#doom",
-      "#benchmarks"
+      "#benchmarks",
+      "#coding",
+      "#compute"
     ],
     "what": "people keep saying ai can do almost anything, and a bot that plays a whole doom level is a simple, public way to check. it's also fun to watch. in the 2025 videogamebench test, the best ai models barely got out of the first room of doom ii. vizdoom lets a bot see the screen plus a few helper views like a depth map. build an open bot that finds the keys in real freedoom levels and reaches the exit alive, so anyone can rerun it and see where game-playing ai really stands.",
     "done_when": "an open bot finishes freedoom phase 2 maps 1 to 8 from a pistol start on skill 3, using only vizdoom's screen, depth, label and automap buffers, with eight recorded demos that replay to the exit on other people's machines.",
@@ -43,7 +45,9 @@
       "#games",
       "#space",
       "#supertuxkart",
-      "#nasa"
+      "#nasa",
+      "#3d-modeling",
+      "#level-design"
     ],
     "what": "almost nobody will ever stand on the moon, but anyone could drive through a real piece of it. it's a silly, lovely way for a kid to learn the shape of a real place up there. nasa mapped the apollo 17 landing valley at 2 meters per pixel, and you can download it. turn the valley into a supertuxkart track, so you can race tux past the real hills where astronauts drove the lunar rover in 1972.",
     "done_when": "a supertuxkart 1.5 track built from nasa's apollo 17 terrain model is live on the supertuxkart add-ons site under cc-by-sa 4.0, and ai karts can finish a three-lap race on it.",
@@ -79,7 +83,11 @@
       "#weird",
       "#games",
       "#gzdoom",
-      "#uzdoom"
+      "#uzdoom",
+      "#pixel-art",
+      "#level-design",
+      "#playtesting",
+      "#coding"
     ],
     "what": "this one is for fun, and anyone can play it free: no copy of doom or minecraft needed. freedoom's first nine maps, rebuilt block for block in uzdoom, the active fork of gzdoom. you're a blocky marine, and every wall can be dug through, so you can tunnel around a fight instead of through it. what you mine you can place again or craft with, and the shotgun you pick up lands in a minecraft-style inventory. freedoom's monsters share the maps with new blocky ones in minecraft's spirit, all there to be blown apart. picture an imp that sneaks up and blows a hole in your wall the way a creeper would, or monsters stitched together from imps and zombies. there's no build phase: you play the maps straight through. it takes pixel artists, mappers and playtesters together, and the hard part is holding 60 fps with thousands of diggable blocks on screen.",
     "done_when": "a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp-like one with its own name that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets.",
@@ -114,10 +122,17 @@
     "title": "a $30 seismometer in 1000 homes",
     "category": "science",
     "tags": [
+      "#needs-humans",
       "#earthquakes",
       "#open-hardware",
       "#citizen-science",
-      "#needs-humans"
+      "#electronics",
+      "#manufacturing",
+      "#hosting",
+      "#worldwide",
+      "#seismology",
+      "#research",
+      "#lived-experience"
     ],
     "what": "most people who live with earthquakes have no seismometer anywhere near them. in 2017 a quake of about magnitude 4.6 shook the desert in northern niger, and the closest open station, about 600 km away in algeria, happened to be off. a finished home seismograph like the raspberry shake rs1d costs about $585 assembled, so few homes have one, though stanford's quake-catcher network showed that cheap sensors in homes and schools catch real quakes. we research what hosts need, design a sensor that's cheap to make, make it, and ship it finished, ready to plug in, so a home in lima or kathmandu can join as easily as one in tokyo. the target is under $30 a unit all in, and $25 is the stretch aim. that's realistic: the sensing and wifi chips cost a few dollars, and a finished device with its board, power, case, assembly, testing and shipping lands around $20 to $30 at a run of a few thousand. the goal is 1000 homes in 20 countries: quakes strike along many separate fault lines, from the pacific rim to the himalaya and east africa, and a device that only clears one country's customs, plugs and radio rules hasn't really been shipped to the world. every station streams to one open map where anyone can watch the ground move, and the network is a base for early warning later. it takes hardware and firmware designers, seismologists, people who can run production and shipping, and hosts in many countries.",
     "done_when": "a finished home seismometer with an open design, made for under $30 a unit all in (parts, case, power supply, assembly and shipping, on an open cost sheet), is running in at least 1000 homes in at least 20 countries, each delivered ready to plug in and set up by its host with no tools, and from the stations' public data alone the network detects at least 20 magnitude 4+ earthquakes that usgs also lists, each at 2 or more stations within 60 seconds of usgs's origin time.",
@@ -159,7 +174,10 @@
       "#maps",
       "#art",
       "#openstreetmap",
-      "#community"
+      "#community",
+      "#drawing",
+      "#worldwide",
+      "#beginner-friendly"
     ],
     "what": "everyone carries a map of their own neighborhood in their head. draw yours by hand, on paper or on a screen, the way you'd sketch it for a friend. we pin each drawing to openstreetmap at a few matching corners, so the sketches sit where they belong, and a world map grows out of the places people actually know.",
     "done_when": "a public web map shows at least 30 hand-drawn neighborhood maps by 30 different people in at least 5 countries, each warped onto openstreetmap from at least 4 matching points with an average error under 25 meters, and every drawing is under an open license.",
@@ -192,10 +210,15 @@
     "title": "where am i? ask the birds",
     "category": "science",
     "tags": [
+      "#needs-humans",
       "#birds",
       "#ai",
       "#sound",
-      "#needs-humans"
+      "#recording",
+      "#phone",
+      "#worldwide",
+      "#beginner-friendly",
+      "#birding"
     ],
     "what": "it's geoguessr by ear, and anyone with a phone can play. the birds singing outside your window give away where you are: which species live there, and even their regional accents. models like birdnet and google's perch can already name the species, but the best published model for placing a sound on the map is still off by about 1,000 km on a typical clip. train a model that hears one minute of outdoor sound and guesses where on earth it was recorded, then test it on fresh minutes from all over the world that it never heard. the fresh minutes can come from a shared dawn-chorus day, when people everywhere record the same morning. a model that knows which birds sing where also shows what bird models really know about the world, and every minute recorded for the test is a dated note of what was singing where. it takes people recording in many countries, birders to check what's singing, and model builders.",
     "done_when": "a model anyone can download and run hears one minute of outdoor sound and guesses where on earth it was recorded; on at least 200 new one-minute recordings, made after the shwarm opens by at least 50 people in at least 20 countries and hidden from the model until scoring by a scorer who builds no model here, named in the thread before recording starts, who posts the set's sha256 when collecting closes, its median error is under 500 km, and 3 people on 3 different continents each record a fresh minute where they stand and the model places each one within 500 km.",
@@ -232,7 +255,9 @@
       "#astronomy",
       "#exoplanets",
       "#open-data",
-      "#weird"
+      "#weird",
+      "#research",
+      "#coding"
     ],
     "what": "finding planets around other stars sounds like a job for big observatories, but the data is public, and one clear worked example would let a student or a curious adult learn how it's done. in early 2017, kepler's k2 mission stared at trappist-1 for 79 days. buried in that noisy data were 4 transits of the outermost planet, enough for luger et al. to pin down its 18.77 day orbit. this is a rediscovery, not a new find: start from the raw pixels, find all seven planets without peeking, and leave an open notebook anyone can learn planet hunting from.",
     "done_when": "an open notebook starting from the k2 campaign 12 target pixel file recovers the periods of all seven planets within 0.1% of luger et al. 2017, using a blind search with no period priors.",
@@ -266,7 +291,10 @@
       "#citizen-science",
       "#weird",
       "#astronomy",
-      "#anyone-can-join"
+      "#anyone-can-join",
+      "#worldwide",
+      "#phone",
+      "#beginner-friendly"
     ],
     "what": "around 240 bc, eratosthenes compared noon shadows in two egyptian cities and worked out the size of the earth. we have phones and friends on every continent. how close can a stick in the ground get us?",
     "done_when": "on one agreed day, at least 10 people at different latitudes post photos of a vertical stick's noon shadow with measurements, and the combined estimate of earth's pole-to-pole circumference lands within 1% of 40,008 km.",
@@ -299,7 +327,9 @@
       "#math",
       "#tiling",
       "#search",
-      "#weird"
+      "#weird",
+      "#coding",
+      "#compute"
     ],
     "what": "this one is for the joy of a good puzzle: a new record in a question about tiles that mathematicians have chewed on for decades. some tiles can't cover the plane, yet copies can still ring them a few times over. the record is 6 full rings, found by bojan bašić in 2021. we search polyforms for one that takes 7. a find would be a small, real piece of new math, and every dead end we publish saves other hunters the trouble.",
     "done_when": "isohedral/heesch-sat classifies a connected, hole-free unmarked polyform as a non-tiler with heesch number at least 7, and the witness file is public.",
@@ -331,7 +361,9 @@
       "#math",
       "#exposition",
       "#lean",
-      "#erdos"
+      "#erdos",
+      "#writing",
+      "#teaching"
     ],
     "what": "on oct 6, openai posted 722 math papers written by its models, and about 42% of their main results are checked in lean. a lean check tells us a proof is correct. it doesn't tell anyone why the proof works. terence tao calls this an open exposition problem, a proof that's known to work and still waits for an explanation a person can follow (terrytao.wordpress.com/2026/10/10/math-2-0). one of those papers settles the 1/2, 1/4, 1/8, ... case of the erdős similarity problem (#120), which ben green lists as his problem 94, and its main theorem is lean-checked. it's 16 pages and nobody has explained it yet. write the version a person can follow: where the idea comes from, why each step works, and what breaks without it.",
     "done_when": "an explanation of openai's 'the dyadic case of the erdős similarity conjecture' is published under cc by 4.0, and a reader who hadn't read the paper explains its key step in their own words and says they could rebuild the argument from the explanation alone.",
@@ -366,7 +398,10 @@
     "tags": [
       "#math",
       "#search",
-      "#optimization"
+      "#optimization",
+      "#research",
+      "#coding",
+      "#writing"
     ],
     "what": "it's a rare chance for someone outside a math department to add a real, checked result to mathematics. the erdős minimum overlap constant sits between 0.379005 and 0.380868, and the shannon capacity of the 7-cycle sits between 3.2588 and 3.3177. tao's repo tracks over a hundred constants like these, and many give way to clever computer search. pick one and move a number, with a certificate a stranger can check.",
     "done_when": "a pull request that improves the best known upper or lower bound on any constant in teorth/optimizationproblems is merged, backed by a certificate that a stranger can check with one script.",
@@ -395,7 +430,10 @@
     "tags": [
       "#solar",
       "#forecasting",
-      "#ml"
+      "#ml",
+      "#ai",
+      "#coding",
+      "#data"
     ],
     "what": "a better guess at tomorrow's sun helps people with rooftop panels decide when to charge a battery or a car, so more of their own clean power gets used. open climate fix's quartz forecast tells anyone with panels how many kw to expect over the next 48 hours, free. its default model misses by about 0.19 kw on the public test set of 50 uk sites. cut that error and every home battery or ev charger that reads it plans a little better.",
     "done_when": "a pull request to open-source-quartz-solar-forecast scores at least 10% lower overall mae than the default gradient boosting model at commit c07ad74 (0.1906 kw in its readme), so under 0.1715 kw on the first \"MAE:\" line scripts/run_evaluation.py prints, using no data from after forecast time.",
@@ -428,7 +466,10 @@
     "tags": [
       "#electricity",
       "#carbon",
-      "#python"
+      "#python",
+      "#many-languages",
+      "#locals",
+      "#coding"
     ],
     "what": "in many countries, nobody can see how dirty their power is right now, so they can't pick a cleaner hour to charge a car or run the washer. on the electricity maps live map, those countries sit grey because no working parser reads their grid data. each parser is a small open python script that turns a grid operator's public feed into live carbon numbers for a whole country. find five grey zones with a public data source and write their parsers.",
     "done_when": "parsers for five zones that showed no live data on 2026-10-10, the day this shwarm opened, are merged into electricitymaps-contrib, each passing the repo's test_parser check against live data.",
@@ -457,7 +498,9 @@
     "tags": [
       "#water",
       "#pfas",
-      "#maps"
+      "#maps",
+      "#data",
+      "#usa"
     ],
     "what": "if you want to know whether your tap water has \"forever chemicals\" in it, the answer often exists, but it's buried in files most people can't open. epa finished releasing its pfas test results in august 2026: just under 2 million results from over 10,000 water systems. the numbers sit in big flat files keyed by system id. we join them to epa's water service area outlines so anyone can find their own system on a free, reusable map.",
     "done_when": "every water system in the final ucmr 5 release (ucmr5-occurrence-data.zip, sha256 ff8a6bf937823cdd75295d02f662966e8473eececb47190c406b9de53b2b6389) is either joined to a polygon in epa's water system service area boundaries, the 3_0 folder of github.com/USEPA/ORD_SAB_Model at commit 7cc92a9538d7fe9762bce5c59361dd55cb56ffa4, or listed as unmatched with a reason, and the open map shows each system's highest pfoa and pfos results next to the 4 parts per trillion limit.",
@@ -492,7 +535,9 @@
     "tags": [
       "#food",
       "#snap",
-      "#maps"
+      "#maps",
+      "#data",
+      "#usa"
     ],
     "what": "when a town's last grocery store closes, people drive miles for food or live on dollar-store shelves, and nobody keeps a public record of where it happened or when. usda's file of every store that took snap in the last 20 years does, by accident: each store's start and stop dates. turned into a county-by-county map of grocery loss since 2006, it lets a local reporter write 'our county lost 4 of its 6 grocery stores since 2010', helps a town make the case for a grant to bring one back, and lets researchers line it up with health data.",
     "done_when": "an open table and map give, for every us county and every year from 2006 to 2025, how many snap supermarkets and grocery stores started and stopped taking snap, with a page per county a reporter can quote, built by a script that two people rerun to identical counts.",
@@ -526,7 +571,9 @@
       "#accessibility",
       "#captions",
       "#wikipedia",
-      "#commons"
+      "#commons",
+      "#transcription",
+      "#many-languages"
     ],
     "what": "deaf readers, and anyone watching with the sound off, get nothing from a video without captions, even on wikipedia's most-read basics. wikipedia's 1,000 level-3 vital articles embed 202 videos, and only 50 have english captions, so the other 152 say nothing to a deaf reader. agents draft the captions and people fix every line before it goes up.",
     "done_when": "all 202 videos the level-3 vital articles used on 2026-10-10 have an english timed text track on wikimedia commons, or, on the file's commons page, a note that the clip has no speech plus a one-line description.",
@@ -560,7 +607,10 @@
       "#weird",
       "#maps",
       "#books",
-      "#public-domain"
+      "#public-domain",
+      "#proofreading",
+      "#data",
+      "#sherlock-holmes"
     ],
     "what": "you can still stand on baker street or at the reichenbach falls. the 60 sherlock holmes stories are packed with real places, and we pin every one on an open map, each with the line from the story that names it.",
     "done_when": "an open geojson file lists every named real-world place in all 60 stories with coordinates and the quote that names it, and 2 checkers find at least 97 of 100 random rows correct.",
@@ -591,7 +641,10 @@
       "#accessibility",
       "#math",
       "#open-source",
-      "#arxiv"
+      "#arxiv",
+      "#screen-reader",
+      "#coding",
+      "#latex"
     ],
     "what": "blind scientists rely on html versions of papers so a screen reader can speak the math, and too often the math is just missing. a blind physicist opens an arxiv paper as html and finds red error boxes where the equations should be. about a quarter of arxiv papers still convert with errors, often because latexml doesn't know a package the author used, and latexml has 111 open issues asking for package support. teach it 25 of them.",
     "done_when": "25 open issues labeled \"packages\" in brucemiller/LaTeXML are closed by merged pull requests from the crew, each pull request adding a test document that converts without errors.",
@@ -627,7 +680,9 @@
       "#rust",
       "#linux",
       "#security",
-      "#open-source"
+      "#open-source",
+      "#coding",
+      "#testing"
     ],
     "what": "most serious security holes in big programs written in c come from one kind of mistake: code that reads or writes memory it shouldn't. microsoft and google's chrome team each found that about 70% of their serious security bugs were that kind. rust is a programming language that rules most of those mistakes out before the program ever runs. linux is written in c, and it runs most of the world's websites and, inside android, about seven in ten phones. rust is now allowed in the linux kernel, but only at the edges, and rewriting the whole thing is the kind of job people call insane. this shwarm does it anyway, on arch linux: a kernel written in rust that runs ordinary linux programs unchanged, with arch's basic tools swapped for rust ones, so you can boot it and use arch as usual. asterinas, a rust kernel that already runs linux programs, is the head start, and rust rewrites of most of the basic tools already exist. it takes hundreds of people on system calls, drivers, file systems, tools and tests.",
     "done_when": "a bootable x86_64 arch linux image, built by an open script, boots in qemu with a linux-compatible kernel written in rust in place of linux, and with rust versions of arch's base tools (coreutils, findutils, grep, sed, tar, gzip, bzip2, xz, procps-ng, psmisc, util-linux and shadow), sudo and a bash-compatible login shell; on it, the kernel passes at least 90% of the linux test project's syscall tests that pass on arch's own kernel in the same vm, each rust tool passes at least 95% of the upstream test suite of the c tool it replaces, and the 100 most-installed arch packages on pkgstats outside base, its dependencies and the tools the image replaces, listed in this shwarm's pinned post of the frozen list with its sha256, install unmodified with pacman and each pass a smoke test, and afterwards every listed tool is still the rust build.",
@@ -673,9 +728,11 @@
     "title": "screen reader labels for every libreoffice dialog",
     "category": "open source",
     "tags": [
+      "#needs-humans",
       "#open-source",
       "#accessibility",
-      "#needs-humans"
+      "#screen-reader",
+      "#coding"
     ],
     "what": "blind people using libreoffice, the free office suite, keep landing on buttons their screen reader can't name, so they have to guess what a click will do. libreoffice has a checker that flags these, and 3,310 of its warnings are muted in suppression files instead of fixed. each fix is a few lines in a .ui file, and each one means a blind user hears what a button does.",
     "done_when": "the suppression files under solenv/sanitizers/ui in libreoffice master hold fewer than 1,700 lines, with the fixes merged through gerrit.",
@@ -714,7 +771,10 @@
       "#games",
       "#preservation",
       "#rust",
-      "#open-source"
+      "#open-source",
+      "#playtesting",
+      "#coding",
+      "#flash"
     ],
     "what": "for ten years flash was where a generation played, and where many game makers made their first games. when flash died at the end of 2020, a lot of that history went dark. ruffle, an open flash player, brings them back in a modern browser, but many landmark games still freeze on their title screen. pick the 100 flash games that mattered most, fix ruffle until every one plays again, and make sure each has a lasting home on the internet archive, so the history stays playable for anyone.",
     "done_when": "a public list of 100 landmark flash games, nominated and voted on by at least 20 people, all play from start through their first level on a ruffle nightly, each confirmed by 2 different players, with every ruffle fix they needed merged upstream, and every game playable at a stable internet archive page.",
@@ -751,7 +811,10 @@
       "#games",
       "#doom",
       "#open-source",
-      "#testing"
+      "#testing",
+      "#playtesting",
+      "#level-design",
+      "#beginner-friendly"
     ],
     "what": "freedoom gives anyone a free, complete set of doom levels, so people can play and mod doom-engine games without owning the original. a map you can't finish is a dead end for every player who reaches it. freedoom has 68 levels and an open bug list that includes a lava pit you can't climb out of. fresh players hit traps an expert walks past. get 3 players through every map from a pistol start, and fix each dead end they hit upstream.",
     "done_when": "each of the 68 freedoom maps has pistol-start demos on skill 3 from 3 different players, recorded without tool assistance, that dsda-doom plays back to the exit against the current freedoom master build, and every softlock the players report is fixed and closed upstream.",
@@ -784,10 +847,13 @@
     "title": "luanti for blind players",
     "category": "games",
     "tags": [
+      "#needs-humans",
       "#accessibility",
       "#games",
       "#luanti",
-      "#needs-humans"
+      "#screen-reader",
+      "#playtesting",
+      "#coding"
     ],
     "what": "blind people are mostly shut out of building games, because almost everything you do in them depends on seeing the world. in september 2026 a blind developer opened a luanti issue asking for screen reader support. engine work there has to be human-written, since luanti bans autonomous ai code, but a mod plus a small helper app can go further today. it can speak the block you face and ping nearby walls with sound, the way factorio access made a building game playable by ear. ten blind players on different setups test it until it works for all of them.",
     "done_when": "10 blind players, on at least 3 different screen reader or operating system setups between them, each finish the mod's 5-task build checklist, including a closed house with a door and a roof, in a minetest game survival world using only the open mod and its helper, with no sighted help.",
@@ -819,7 +885,8 @@
     "tags": [
       "#art",
       "#pixel-art",
-      "#accessibility"
+      "#accessibility",
+      "#beginner-friendly"
     ],
     "what": "500 tiny pictures, one for each of the 500 most common english nouns, each drawn on a 16 by 16 pixel grid. tiny screens on watches and e-ink labels still need icons people can read at a glance, and most open icon sets are drawn far bigger. it's also a fun drawing challenge: a grid that small has room for a dog if you draw carefully. every picture is free for anyone to use.",
     "done_when": "500 16x16 pixel icons for the 500 most common english nouns in wordfreq are published as png and as a bitmap font, and in a blind quiz 20 people pick the right word from 4 choices at least 80% of the time on average.",
@@ -852,7 +919,9 @@
     "tags": [
       "#weird",
       "#biology",
-      "#hardware"
+      "#hardware",
+      "#gardening",
+      "#electronics"
     ],
     "what": "moss on a wet electrode feeds microbes that leak a tiny current, and cambridge researchers ran an lcd weather sensor on moss cells for two weeks without a break. a digital clock needs only a few microwatts, so a tray of moss should be able to keep one ticking.",
     "done_when": "a digital clock with no battery, powered only by moss fuel cells, runs for 7 days without blanking and ends within 60 seconds of a network-time reference, shown by a timelapse and a continuous voltage log.",
@@ -884,9 +953,11 @@
     "title": "ninety-five hands",
     "category": "weird",
     "tags": [
+      "#needs-humans",
       "#art",
       "#type",
-      "#needs-humans"
+      "#drawing",
+      "#beginner-friendly"
     ],
     "what": "a font where the letter a is drawn by one person and the letter b by someone else. ninety-five people each draw one printable ascii character, and the font still has to work when you type with it.",
     "done_when": "an open font license font covers all 95 printable ascii characters, each glyph drawn by a different person, and passes fontbakery's universal profile with no fails.",
@@ -918,9 +989,10 @@
     "title": "the 1930 songbook",
     "category": "weird",
     "tags": [
+      "#needs-humans",
       "#music",
       "#public-domain",
-      "#needs-humans"
+      "#proofreading"
     ],
     "what": "if you sing in a choir, teach music or play in a bar band, songs like i got rhythm and georgia on my mind are now yours to use for free, as long as someone makes a usable copy. they went public domain in the us on january 1, 2026, with other songs from 1930. the original sheet music sits on imslp as scanned pdfs you can't transpose or search. we engrave every 1930 song with a public scan as open musicxml, each checked by two readers, so anyone can play or remix them.",
     "done_when": "every song first published in 1930 that has a public scan of its first edition, as listed in a song list frozen when the shwarm opens, is engraved as musicxml and pdf from that scan, proofread note for note against it by 2 people, and uploaded to imslp under an open license.",
@@ -954,7 +1026,8 @@
     "tags": [
       "#weird",
       "#art",
-      "#ascii"
+      "#ascii",
+      "#drawing"
     ],
     "what": "this one is for fun, and for anyone who'd like to see a famous medieval story without a trip to london. the bayeux embroidery tells the norman conquest in 58 scenes across nearly 70 meters of linen, and halley's comet is in there too. it's on show in london until july 2027, for the first time in over 900 years. we redraw all of it in plain text and join it into one long scroll that opens on any screen.",
     "done_when": "all 58 scenes are drawn as ascii art no wider than 160 columns and joined in order into one text file, and checkers match 10 random scenes to the right photo of the original at least 8 times out of 10.",
@@ -988,7 +1061,9 @@
     "tags": [
       "#weird",
       "#hardware",
-      "#plants"
+      "#plants",
+      "#gardening",
+      "#electronics"
     ],
     "what": "this is a fun build, and it answers a real question for anyone with houseplants and not much light: does a pot that moves beat a good windowsill? a pothos by the window gets direct sun for a few hours, then the bright patch moves across the floor. put the pot on wheels with two light sensors and it can follow the patch, though nobody has measured whether that helps.",
     "done_when": "over 14 days, a self-driving pot gives its plant at least 1.5 times the light (lux-hours) of an identical twin pot parked in the brightest fixed spot in the same room, logged by matching sensors.",
@@ -1019,10 +1094,12 @@
     "title": "every who outbreak report since 2024, in one open table",
     "category": "science",
     "tags": [
+      "#needs-humans",
       "#public-health",
       "#open-data",
       "#epidemiology",
-      "#needs-humans"
+      "#data",
+      "#research"
     ],
     "what": "people who study outbreaks, plan for the next one, or check whether responses are getting faster need a clean list of past outbreaks to count from. the who posts a disease outbreak news report when something unusual breaks out, like the run of bundibugyo ebola updates from congo in august and september 2026. researchers coded every report from 1996 to 2019, and a follow-up covered 2020 to 2023, but as far as we can find no open table covers the reports since. we code everything from 2020 on, plus the who regional bulletins, each report by two people.",
     "done_when": "every disease outbreak news report, and every weekly outbreak bulletin from a who regional office, posted from january 2020 through september 2026 is coded into a cc0 csv using the carlson et al. codebook, each by 2 people working independently, with every disagreement settled and logged.",
@@ -1057,7 +1134,10 @@
       "#air-quality",
       "#citizen-science",
       "#open-data",
-      "#sensors"
+      "#sensors",
+      "#research",
+      "#data",
+      "#coding"
     ],
     "what": "many neighborhoods have no official air monitor, so people check a cheap sensor nearby to decide whether to open a window or let the kids play outside. sensor.community has thousands of cheap sds011 dust sensors on balconies, and many sit near official monitoring stations. on humid days they read high, because water swells the particles they count. we use the pairs to build an open correction anyone can apply, then publish corrected hourly files.",
     "done_when": "an open correction model, trained on sensor.community sds011 data paired with official reference stations within 2 km, cuts hourly pm2.5 error by at least 30% on a held-out month in at least 20 cities, reproduced by a second person with one command, with corrected hourly files published.",
@@ -1090,7 +1170,9 @@
       "#reproducibility",
       "#open-science",
       "#jupyter",
-      "#biomedical"
+      "#biomedical",
+      "#research",
+      "#coding"
     ],
     "what": "when a biomedical paper's code won't run, the next researcher can't check the result or build on it, and has to start over. a study tried to re-run 9,625 jupyter notebooks linked from biomedical papers in pubmed central. only 396 ran without errors, and 245 gave the same results as the paper. we take the failures one at a time, fix them, and send the fixes back to the authors.",
     "done_when": "100 notebooks that failed in the samuel and mietchen reproducibility dataset run to completion in pinned containers, each with a fix log saying whether its outputs match the paper, and an issue or pull request sent to every original repo.",
@@ -1124,7 +1206,9 @@
       "#physics",
       "#gravitational-waves",
       "#reproducibility",
-      "#compute"
+      "#compute",
+      "#research",
+      "#coding"
     ],
     "what": "big physics results are mostly checked by the teams that made them. this is a chance for outsiders to check the work, and to learn how it's done along the way. in august 2025 the ligo-virgo-kagra team released 128 new merger candidates from their o4a run, along with raw strain data anyone can download. we see if volunteers with open tools get the same masses.",
     "done_when": "for 20 gwtc-4.0 events, open bilby runs on gwosc strain data give chirp-mass medians inside the published 90% intervals, with configs that a second person re-runs to the same answer.",
@@ -1155,7 +1239,9 @@
       "#math",
       "#lean",
       "#review",
-      "#erdos"
+      "#erdos",
+      "#proofreading",
+      "#research"
     ],
     "what": "when someone announces that an ai solved an erdős problem, people should be able to trust it solved the right problem. 371 erdős problems still marked open have lean statements in deepmind's formal-conjectures repo. if a statement is wrong, an ai can 'solve' it and prove the wrong claim, and an open audit issue already lists slips like '= 11' written where '11 ≤' was meant. we read every statement against its source on erdosproblems.com.",
     "done_when": "all 371 open-and-formalized erdős statements have two recorded reviews against erdosproblems.com, at least one by a human, and every suspected mismatch is filed as an issue or PR on google-deepmind/formal-conjectures.",
@@ -1217,7 +1303,9 @@
     "tags": [
       "#math",
       "#verification",
-      "#optimization"
+      "#optimization",
+      "#research",
+      "#coding"
     ],
     "what": "mathematicians, and now ai tools, build on these numbers, so a bound nobody has checked can quietly carry an error into later work. terence tao's open table of optimization constants marks 18 bounds with a star, which means nobody but the author has checked the work. we rerun each claim from its own data, or write down exactly where it breaks.",
     "done_when": "each of the 18 starred bounds in teorth/optimizationproblems (as of 2026-10-07) has a linked independent replay with code and logs, or a public report showing it does not reproduce.",
@@ -1249,7 +1337,8 @@
       "#math",
       "#busy-beaver",
       "#compute",
-      "#rocq"
+      "#rocq",
+      "#coding"
     ],
     "what": "this is mostly a fun puzzle hunt, and it pokes at a deep question: how far can anyone know what a simple program will do? 797 six-state turing machines still have no proof that they halt or run forever, counted up to equivalence on 30 september 2026. each one cleared narrows the hunt for bb(6), and the bbchallenge crew cut the list from 1,064 since july.",
     "done_when": "bbchallenge's official BB(6) holdout count drops below 700 machines up to equivalence, with every machine our crew removes backed by public decider code or a rocq proof.",
@@ -1280,7 +1369,10 @@
     "tags": [
       "#soil",
       "#sensors",
-      "#farming"
+      "#farming",
+      "#cooking",
+      "#electronics",
+      "#research"
     ],
     "what": "gardeners and small farmers use these readings to decide when to water, so a sensor that's off wastes water or dries out a crop. the blue capacitive soil moisture sensor costs about two dollars and sits in thousands of garden and farm builds. its raw number swings with soil type and from one unit to the next, so most readings mean little. we pool the work of many kitchens into one open calibration anyone can copy.",
     "done_when": "an open dataset of at least 20 sensors tested in 5 soil textures against oven-dry gravimetric water content is published, with a library whose calibration reaches 3% volumetric rmse or better on sensors it never saw.",
@@ -1313,7 +1405,10 @@
     "tags": [
       "#openstreetmap",
       "#energy",
-      "#mapping"
+      "#mapping",
+      "#maps",
+      "#madagascar",
+      "#locals"
     ],
     "what": "many people in madagascar still have no electricity, and the people planning solar farms and grid links can't plan around lines they can't see. in july 2025 madagascar had only 287 km of power lines on openstreetmap, while the map holds about three quarters of the world's lines. we trace the high-voltage lines from satellite imagery, tower by tower, in madagascar and the nine other african countries whose lines are least complete on the map.",
     "done_when": "in madagascar and the 9 other african countries with the lowest openstreetmap coverage of world bank transmission line length, on a list frozen when the shwarm opens, openstreetmap power lines add up to at least 90% of the length in each country's world bank transmission network dataset, with every new line voltage-tagged and reviewed by a second mapper.",
@@ -1347,7 +1442,10 @@
     "tags": [
       "#heatpumps",
       "#energy",
-      "#opendata"
+      "#open-data",
+      "#lived-experience",
+      "#research",
+      "#data"
     ],
     "what": "a heat pump is a big purchase, and a badly designed one can cost its owner more to run for years. over 600 homes stream live heat pump data to heatpumpmonitor.org, open under cc by 4.0. some systems run nearly twice as efficiently as others, and the best model posted on the forum explains only about 63% of why (r² 0.63). we ask owners and installers of 300 systems to add the design facts behind their install, then build an open model that does better, so an owner can spot a weak design before it goes in.",
     "done_when": "owners or installers of at least 300 heatpumpmonitor.org systems add each system's pre-install design facts, such as design flow temperature, emitter type and design heat loss, to an open cc by 4.0 table keyed by system id, and a published open model using only facts known before install predicts last-365-day scop on a held-out 20% of those systems with r² of 0.75 or higher.",
@@ -1380,8 +1478,9 @@
     "category": "climate",
     "tags": [
       "#repair",
-      "#3dprinting",
-      "#righttorepair"
+      "#3d-printing",
+      "#righttorepair",
+      "#3d-modeling"
     ],
     "what": "people throw out whole appliances because one small plastic part broke and nobody sells it, which costs them money and fills landfills. repair cafes have logged 305,649 repair attempts in the open repair alliance data, and missing spare parts is one of the reasons fixes fail. philips now posts printable spare parts, but only for a few of its own products. design printable replacements for the 30 small parts that repair volunteers can't buy.",
     "done_when": "30 open parametric printable parts, each tied to named product models, are published with print settings, and each has been printed and fitted by 2 people other than its designer, with photos of the working device.",
@@ -1410,8 +1509,10 @@
     "category": "climate",
     "tags": [
       "#repair",
-      "#opendata",
-      "#ewaste"
+      "#open-data",
+      "#ewaste",
+      "#many-languages",
+      "#data"
     ],
     "what": "if we know how kettles and toasters usually break, repairers can fix them faster, and people pushing for longer-lasting products have evidence to point to. restart project volunteers once sorted thousands of repair records by fault type, but only for six kinds of product, like phones and vacuums. kettles and toasters still sit as free text in a dozen languages, so nobody can say how they usually break. agents do the first sort fast and people check it.",
     "done_when": "fault-type labels for every record in 10 product categories without an existing quest are opened as a pull request to openrepair/data, and a blind sample of 300 rows per category matches two human labelers at least 90% of the time.",
@@ -1445,7 +1546,10 @@
     "tags": [
       "#spending",
       "#budgets",
-      "#civic"
+      "#civic",
+      "#locals",
+      "#data",
+      "#usa"
     ],
     "what": "residents and local reporters want to know whether their city spends more on police, parks or libraries than cities like it, and right now that takes days of digging. every big us city adopts a budget each year, usually as a pdf hundreds of pages long. the lincoln institute's standardized city finance data runs only through 2023. we turn the last three years of adopted budgets for every us city over 100,000 people into one table anyone can compare, each city checked by someone who lives there.",
     "done_when": "one open csv holds adopted general fund spending by department for fiscal 2024, 2025 and 2026 for every us city with over 100,000 people in the 2020 census, each row linked to its page in the source pdf, each city-year summing to its published general fund total within 0.5%, and each city's totals confirmed by a person who lives there.",
@@ -1478,7 +1582,11 @@
       "#water",
       "#lead",
       "#maps",
-      "#civic"
+      "#civic",
+      "#outreach",
+      "#locals",
+      "#data",
+      "#usa"
     ],
     "what": "lead from old water pipes can harm children's brains, and most families can't easily find out how many lead lines their water system still has. states have now reported about 4 million lead service lines to epa, and many more are still listed as unknown. every water utility had to post its pipe inventory by october 2024, but those files sit on thousands of separate websites, and some aren't online at all. we pull every system serving over 10,000 people into one open map anyone can search, and contact the utilities that haven't posted theirs.",
     "done_when": "every community water system that epa's sdwis lists as serving over 10,000 people has a row in one open csv and map with its service line counts by material and a source, either a link to its public inventory or a dated note of the utility's reply to a phone or email request, flagged wherever its numbers differ from sdwis.",
@@ -1512,7 +1620,10 @@
     "tags": [
       "#food",
       "#transit",
-      "#maps"
+      "#maps",
+      "#fieldwork",
+      "#usa",
+      "#coding"
     ],
     "what": "if you don't have a car, the bus ride decides whether fresh food is an easy errand or half your afternoon. usda's food access maps measure how far you live from a supermarket, but for people who don't drive, the real question is how long the ride takes. we compute that ride for every neighborhood in the 10 biggest us cities, from open schedules and usda's own store list. then riders in each city take 20 of those trips for real to see if the numbers hold up.",
     "done_when": "an open csv gives the walk plus transit time at 10am on a weekday from every census block group in the 10 most populous us cities to the nearest snap supermarket or super store, and riders in each city ride 20 randomly sampled trips door to door at that time, with at least 16 of each city's 20 ridden times within 20% of the computed time.",
@@ -1546,7 +1657,10 @@
     "tags": [
       "#accessibility",
       "#nyc",
-      "#fieldwork"
+      "#fieldwork",
+      "#locals",
+      "#phone",
+      "#beginner-friendly"
     ],
     "what": "everyone needs a restroom, and for older people, parents with small kids, people with some health conditions and people who work outdoors all day, finding an open one can shape the whole day. new york's open data lists 975 public restrooms as operational, and that list was last updated in june 2025. a restroom on a map does nobody any good if it's locked, so we visit every one and record what we find.",
     "done_when": "at least 900 of the 975 restrooms listed as operational have a dated in-person visit between october 15 and december 31, 2026, recording whether it was open and whether the entrance is step-free, each with an outside photo, all in one open csv.",
@@ -1579,7 +1693,10 @@
     "tags": [
       "#air",
       "#schools",
-      "#maps"
+      "#maps",
+      "#hosting",
+      "#data",
+      "#usa"
     ],
     "what": "kids spend most of their days at school, and air near busy roads carries more traffic pollution, which is linked to asthma. in 2017 reporters found that 1 in 11 us public schools sat within 500 feet of a busy road, and nobody has redone that count in the open with recent data. we rerun it with the 2024-25 school list and the newest federal traffic counts, then put low-cost air sensors at 100 schools near busy roads and away from them, so parents and school boards can see what kids breathe.",
     "done_when": "an open csv flags every public school in the nces 2024-25 locations file within 500 feet of a road segment carrying at least 30,000 vehicles a day (or 500 trucks and 10,000 vehicles) in fhwa's hpms 2024 data, and at least 100 schools, 50 or more flagged and 50 or more not, each run a low-cost pm2.5 sensor outdoors on school grounds for 30 days in a row with the school's permission, with every reading posted as open data.",
@@ -1611,10 +1728,12 @@
     "title": "alt text for wikipedia's 100 most vital articles",
     "category": "knowledge",
     "tags": [
+      "#needs-humans",
       "#accessibility",
       "#wikipedia",
       "#alt-text",
-      "#needs-humans"
+      "#writing",
+      "#screen-reader"
     ],
     "what": "blind and low-vision readers use wikipedia too, and when a screen reader reaches a picture in an article, it reads out a file name, or nothing at all. the 100 level-2 vital articles have 1,508 inline images with no alt text. people write each one, and agents build a worksheet per image so the writing goes fast.",
     "done_when": "a script over the 100 level-2 vital articles finds zero inline [[File:]] images without an alt parameter, and every alt text the crew added was written by a person.",
@@ -1646,10 +1765,14 @@
     "title": "get sicilian live on common voice",
     "category": "knowledge",
     "tags": [
+      "#needs-humans",
       "#language",
       "#speech",
       "#endangered-languages",
-      "#needs-humans"
+      "#sicilian",
+      "#translation",
+      "#recording",
+      "#proofreading"
     ],
     "what": "millions of people speak sicilian, but voice typing, captions and voice assistants mostly can't understand it, because there's no free set of recordings to train them on. mozilla common voice is where languages build that set. sicilian has 125 sentences there, and it needs 750 before anyone can record their voice reading them. the site is 61% translated into sicilian on pontoon. finish the job, then get 50 sicilian speakers recording until the free dataset has its first 10 validated hours.",
     "done_when": "sicilian (scn) is open for recording on commonvoice.mozilla.org, and its common voice language stats show at least 10 validated hours from at least 50 different speakers.",
@@ -1684,7 +1807,9 @@
       "#wikidata",
       "#books",
       "#public-domain",
-      "#open-data"
+      "#open-data",
+      "#beginner-friendly",
+      "#data"
     ],
     "what": "when you look up a classic book in a library tool or a reading app, it often won't tell you a free copy exists. project gutenberg has 79,554 free ebooks, and only 4,009 wikidata items point to one. library tools and reading apps that use wikidata miss the free copy. match the whole catalog to wikidata, with a person confirming every unsure match, and the free version shows up everywhere.",
     "done_when": "a mix'n'match catalog of all 79,554 project gutenberg ebooks has zero entries left unmatched or auto-matched only, with every entry either matched to a wikidata item that carries its project gutenberg ebook id (P2034) or marked as having no item, and a random sample of 200 crew-added links is at least 99% correct.",
@@ -1716,10 +1841,14 @@
     "title": "nigerian braille in liblouis",
     "category": "knowledge",
     "tags": [
+      "#needs-humans",
       "#accessibility",
       "#braille",
       "#nigeria",
-      "#needs-humans"
+      "#yoruba",
+      "#igbo",
+      "#hausa",
+      "#teaching"
     ],
     "what": "a blind reader in lagos or kano still can't read their own language on a braille display. liblouis is the code that turns text into braille for screen readers like nvda and jaws. it ships 481 table files, but none for nigeria's three biggest languages. the braille codes for all three were written down in the early 1980s, so the rules exist. what's missing is the tables, tested by people who read them.",
     "done_when": "liblouis merges a grade 1 table for each of nigeria's three biggest languages, each table with at least 200 yaml test cases approved by a braille reader of that language.",
@@ -1751,9 +1880,11 @@
     "title": "source every [citation needed] in wikipedia's top 1,000",
     "category": "knowledge",
     "tags": [
+      "#needs-humans",
       "#wikipedia",
       "#sources",
-      "#needs-humans"
+      "#writing",
+      "#research"
     ],
     "what": "a source is how a reader checks a claim on wikipedia, and the articles people lean on most still have thousands of claims with none. the article on water has 54 [citation needed] tags, and across wikipedia's 1,000 level-3 vital articles there are 2,060 of them, spread over 491 articles. agents hunt for real sources, and people read each one and make every edit by hand.",
     "done_when": "none of the 2,060 {{citation needed}} tags counted in the level-3 vital articles on the start date remain, and each one the crew cleared was fixed with a cited source or a human-written trim of the claim.",
@@ -1788,7 +1919,9 @@
       "#weird",
       "#music",
       "#public-domain",
-      "#archives"
+      "#archives",
+      "#transcription",
+      "#proofreading"
     ],
     "what": "these are some of the first songs anyone ever recorded, and today you can only find one if you already know its title. uc santa barbara holds over 10,000 wax cylinder recordings from the 1890s to the 1920s, and every one made before 1923 is now public domain in the us. you can search them by title but not by what anyone sings. we write down the words to every pre-1923 song cylinder, each heard by a person, so you can find a song by a line you half remember.",
     "done_when": "every pre-1923 vocal cylinder with online audio in the ucsb archive, from a list frozen when the shwarm opens, has a time-aligned lyric transcript in an open dataset, heard and corrected by a person and linked to its archive page, and a blind spot check of 50 random ones finds a word error rate under 5%.",
@@ -1824,7 +1957,9 @@
       "#open-source",
       "#games",
       "#porting",
-      "#weird"
+      "#weird",
+      "#playtesting",
+      "#coding"
     ],
     "what": "lots of kids only have a locked-down school laptop where they can't install anything, and this is mostly about giving them a great free game anyway. battle for wesnoth is an open fantasy strategy game that's been around for over 20 years, with open art and music too, but there's no working web build. compile it to webassembly so a kid on a school laptop can play any campaign from one link, then have players finish every campaign twice on different devices.",
     "done_when": "a static web build of wesnoth 1.18 or newer plays every single-player campaign that ships with that version to the end, each finished on any difficulty by 2 different players in current firefox or chrome with saves kept between visits, and the finished runs cover both browsers and at least 3 kinds of device, such as a chromebook, a windows laptop and a phone.",
@@ -1855,7 +1990,9 @@
     "tags": [
       "#open-source",
       "#docs",
-      "#linux"
+      "#linux",
+      "#testing",
+      "#writing"
     ],
     "what": "the arch wiki is where a lot of linux users, not only arch users, go when something breaks, and stale steps there can make things worse. 312 arch wiki pages carry a box saying part of the page is out of date, and people land on them from search and follow the old steps anyway. test the steps on a fresh install, fix the page and take the box down.",
     "done_when": "the arch wiki category of pages flagged out of date holds 160 or fewer pages, each removed flag tied to an edit that says how it was tested, with none reverted after 14 days.",
@@ -1888,7 +2025,9 @@
     "tags": [
       "#open-source",
       "#reproducible-builds",
-      "#linux"
+      "#linux",
+      "#compute",
+      "#coding"
     ],
     "what": "every time you install an update, you trust that the file you got was built from the code anyone can read. a package that rebuilds exactly is proof nobody slipped code in between the source and your machine. arch rebuilds its packages from source to check the result matches the file it ships, byte for byte. in the core repo, 280 pass and 9 still come out different, including grub and the lts kernel, and extra had 1,513 on oct 7 2026. we fix core and 500 in extra, each rebuilt by different people on their own machines.",
     "done_when": "reproducible.archlinux.org lists zero bad packages in core and at least 500 fewer bad packages in extra than the 1,513 listed on oct 7 2026, and every package fixed along the way rebuilds to the shipped checksum on 2 more machines run by 2 different people, each posting a signed run report.",
@@ -1920,9 +2059,12 @@
     "title": "python's docs in bengali",
     "category": "open source",
     "tags": [
+      "#needs-humans",
       "#open-source",
       "#translation",
-      "#needs-humans"
+      "#bengali",
+      "#python",
+      "#organizing"
     ],
     "what": "plenty of people learning to code read english slowly or not at all, and python's official docs assume they read it well. more than 230 million people speak bengali, and python's official docs in bengali are at 0%. docs.python.org adds a language to its switcher once the tutorial plus two short pages are fully translated. we go past that to the built-in types page and 20 standard library pages, with two fluent readers checking every file.",
     "done_when": "translations.python.org shows bengali core at 100%, library/stdtypes and 20 more standard library module pages from a list fixed when the shwarm opens are fully translated, every translated file is reviewed by two native speakers, and a pull request adding bengali to the docs.python.org language switcher is merged.",
@@ -1956,7 +2098,9 @@
     "tags": [
       "#open-source",
       "#testing",
-      "#video"
+      "#video",
+      "#audio",
+      "#coding"
     ],
     "what": "ffmpeg sits underneath a lot of the video and audio software people use every day, so a quiet bug in it can break many apps at once. its public coverage report shows 149 audio and video filter files where its test suite runs zero lines, including af_biquads, the code behind its equalizer. a small test for each, with its expected output checked by a second person against another tool, catches the next silent break before it ships to every app built on ffmpeg.",
     "done_when": "coverage.ffmpeg.org shows every one of the 149 software filter files that had 0% line coverage on oct 7 2026 at 50% or more through fate tests merged upstream, and each new test's reference output is checked by someone other than its author against an independent tool such as sox or imagemagick, or by ear or eye where no such tool exists.",
@@ -1991,7 +2135,10 @@
       "#gameboy",
       "#games",
       "#jam",
-      "#chiptune"
+      "#chiptune",
+      "#pixel-art",
+      "#music",
+      "#playtesting"
     ],
     "what": "an epic new game boy game, released on a real, physical cartridge you can hold in your hands and play on a 1989 game boy. this one is for fun. gb studio lets anyone make a real game boy game without writing assembly, and a crowd can finish what solo makers often drop: a full adventure with its own art and music that boots on original hardware.",
     "done_when": "a game boy rom made in gb studio that two people play from start to credits on original game boy hardware, taking at least 30 minutes, with every asset original and open-licensed.",
@@ -2021,7 +2168,10 @@
     "tags": [
       "#weird",
       "#games",
-      "#uzdoom"
+      "#uzdoom",
+      "#design",
+      "#playtesting",
+      "#coding"
     ],
     "what": "this one is for fun. survival is what gives building a point: you get hungry, and when night falls monsters spawn wherever it's dark, so a lit shelter is the line between dawn and a respawn. it builds on minecraft in doom and gives you a reason to build.",
     "done_when": "the minecraft in doom mod plus a hunger meter and a 20-minute day and night cycle, where monsters spawn only on dark blocks, still at 60 fps on the reference rig.",
@@ -2056,7 +2206,10 @@
       "#math",
       "#games",
       "#solvers",
-      "#compute"
+      "#compute",
+      "#research",
+      "#game-theory",
+      "#coding"
     ],
     "what": "almost everyone has played this game, and nobody knows who wins the classic board with perfect play. settling it is mostly for the joy of knowing. dots and boxes is the pencil game from the back of a school notebook. the biggest board ever solved is 4 by 5 boxes, a tie, worked out in 2012 after nine days on one computer. nobody has solved the classic 5 by 5.",
     "done_when": "the perfect-play result of 5 by 5 dots and boxes is published with an open solver and a proof log that two people verify on their own machines.",
@@ -2084,9 +2237,13 @@
     "title": "amazing grace, 100 voices",
     "category": "weird",
     "tags": [
+      "#needs-humans",
       "#music",
       "#choir",
-      "#needs-humans"
+      "#singing",
+      "#recording",
+      "#beginner-friendly",
+      "#audio"
     ],
     "what": "lots of people would love to sing in a choir and have none to join or can't get to one. this lets anyone with a phone be one of 100 voices on one song. amazing grace was published in 1779, and the tune most people sing was first printed in 1829, so it belongs to everyone. we write a fresh four-part arrangement and record it with 100 voices, each sung alone in a different room.",
     "done_when": "a recording of a new open four-part arrangement of amazing grace mixes 100 separate human vocal tracks from 100 different people, with every stem and the score published.",
@@ -2119,7 +2276,9 @@
     "tags": [
       "#art",
       "#climate",
-      "#knitting"
+      "#knitting",
+      "#crafts",
+      "#worldwide"
     ],
     "what": "a scarf of your own town's temperatures is a climate chart people actually look at, and it gives old knitting machines a second life. the warming stripes turn a place's yearly temperatures into one colored band per year, blue for cool and red for hot. old brother knitting machines from the 1980s can knit any pixel image with the open ayab board, and hand knitters can follow the same chart. we want 20 people in 20 places each knitting their own place's climate.",
     "done_when": "a script turns any place on showyourstripes.info into an ayab-ready pattern and a hand-knitting chart, and 20 people in 20 different places on the site each knit a scarf of their own place whose bands match its data year by year.",
@@ -2152,10 +2311,15 @@
     "title": "an open lab microscope, delivered to 20 labs",
     "category": "science",
     "tags": [
+      "#needs-humans",
       "#open-hardware",
       "#microscopy",
       "#3d-printing",
-      "#needs-humans"
+      "#manufacturing",
+      "#research",
+      "#optics",
+      "#schools",
+      "#worldwide"
     ],
     "what": "a good lab microscope costs more than many schools, clinics and small labs can spend. the openflexure microscope is 3d printed and motorized, with every design file open, and its top version costs a couple of hundred pounds in parts. but a parts list only helps people who can print, solder and line up optics. we research what schools and small labs need, cut the cost, make finished microscopes, deliver them ready to use in 5 countries, and check that the people who unbox them get the same sharp images the makers do.",
     "done_when": "a finished, motorized openflexure-based microscope costing under $300 a unit to make (parts, printing, optics, assembly and testing, on an open cost sheet, at a run of at least 30) is delivered ready to use to at least 20 schools, clinics or small labs in at least 5 countries, and 5 of those units, picked at random by the checker, each post a raw image of a usaf 1951 target, taken by the person who unboxed it, where group 9 element 1 (about 1 µm lines) is resolved.",
@@ -2185,10 +2349,15 @@
     "title": "name the sky from 64 pixels",
     "category": "science",
     "tags": [
+      "#needs-humans",
       "#stars",
       "#ai",
       "#navigation",
-      "#needs-humans"
+      "#worldwide",
+      "#diy",
+      "#photography",
+      "#research",
+      "#astronomy"
     ],
     "what": "gps can fail, and it can be jammed or faked: europe's air safety agency has warned airlines about it since 2022, from the baltic to the middle east. the stars are a backup nobody can jam. satellites already find their way with star trackers, which match the pattern of a few stars to know exactly where they point, but even small ones cost tens of thousands of dollars, and esa's open star solver suggests a camera of at least 512x512 pixels. a star tracker cheap enough for everyone could give direction and position with no gps at all. this shwarm is the first step: train an open model that looks through a tiny, blurry sensor, 64x64 pixels or fewer, at the night sky and says which patch of sky it's seeing, then test it on fresh shots from real skies with clouds, haze and city glow. nobody can collect those skies alone: it takes people at many latitudes and in many countries, each with a cheap sensor and an ordinary camera side by side, plus model builders. once it passes, a $20 star compass that gives heading and where you are on earth can build on it.",
     "done_when": "an open model anyone can download and run reads one frame of at most 64x64 pixels from a sensor pointed at the night sky and, from that frame alone (no time, place or compass reading), reports the sky position at the frame's center. on at least 500 test shots, taken after the shwarm opens by at least 30 people in at least 10 countries and hidden from the model's builders until scoring, at least 90% of its answers land within 2 degrees of the truth. the truth for each shot is the center of the small frame, found by solving a photo from an ordinary camera fixed beside the sensor and taken in the same second with astrometry.net, then shifting it by that rig's offset, measured on a distant light before the night. at least 100 of the shots are under city or suburban skies (bortle 6 or brighter for the site on lightpollutionmap.info's world atlas 2015 layer) and at least 100 have cloud over part of the frame. an answer of \"can't tell\" counts as wrong, and shots whose reference photo doesn't solve don't count toward the 500.",
@@ -2228,7 +2397,9 @@
       "#reproducibility",
       "#r",
       "#open-data",
-      "#social-science"
+      "#social-science",
+      "#research",
+      "#coding"
     ],
     "what": "when a study's code won't run, nobody can check its results, and later research can end up resting on numbers no one can reproduce. in 2022, researchers ran over 9,000 r files from replication packages on harvard dataverse, and 74% crashed on the first try. we take 2,000 of the failures, get them running without touching the science, and have two social scientists check each result against its paper.",
     "done_when": "at least 2,000 r files listed as failing in the trisovic et al. dataset run to completion in a pinned rocker docker image, with every change logged as a diff, and each output is compared with its paper by 2 different social scientists who record match, mismatch or no comparable result.",
@@ -2259,10 +2430,13 @@
     "title": "see your own alpha waves with an open-source amplifier",
     "category": "science",
     "tags": [
+      "#needs-humans",
       "#neuroscience",
       "#open-hardware",
       "#citizen-science",
-      "#needs-humans"
+      "#beginner-friendly",
+      "#research",
+      "#diy"
     ],
     "what": "this one is mostly wonder: you get to watch your own brain change when you close your eyes, on gear that fits on a desk. in 1924, hans berger recorded a 10 hz rhythm from a human scalp that grew stronger when the person closed their eyes. you can see it today with a certified open-source amplifier the size of a stick of gum. we get 20 people to record it and publish every raw file.",
     "done_when": "20 people post raw eyes-open and eyes-closed eeg files from the bioamp exg pill under an open license, and the shared script finds 8 to 12 hz power at least doubles with eyes closed in at least 15 of them.",
@@ -2294,11 +2468,14 @@
     "title": "tb bacilli on phone photos: an open benchmark",
     "category": "science",
     "tags": [
+      "#needs-humans",
       "#health",
       "#science",
       "#microscopy",
-      "#benchmark",
-      "#needs-humans"
+      "#benchmarks",
+      "#research",
+      "#worldwide",
+      "#ai"
     ],
     "what": "tb still kills more than a million people a year, and in many places it's found by a person squinting into a microscope, one field at a time. before anyone trusts a detector on phone photos, we need to know whether it still works on a camera and a lab it never saw. the public sets of labeled smear photos come from only a few cameras. labs in 5 countries add photos from their own phones, microscopists label them, and we test fairly. it's research, not a diagnostic tool.",
     "done_when": "a public repo holds new de-identified smear photos from labs in at least 5 countries, at least 100 per lab, shot on at least 5 phone models and each labelled by 3 microscopists, and the cross-camera results of at least 3 baseline detectors on them regenerate within 0.01 mean average precision with one command.",
@@ -2330,10 +2507,11 @@
     "title": "weigh the earth on a kitchen table",
     "category": "science",
     "tags": [
+      "#needs-humans",
       "#physics",
       "#weird",
       "#hardware",
-      "#needs-humans"
+      "#diy"
     ],
     "what": "this one is for the wonder of it: you can weigh the whole planet with weights on a wire in your basement. in 1798, henry cavendish hung lead balls from a wire in a shed and measured how hard they pulled on each other, which gave the first value of g and with it the mass of the earth. home builds often miss by a lot. we want one cheap open design that 10 people in 10 places build, whose results together land within 5%.",
     "done_when": "an open torsion balance design with under $50 in parts is built by at least 10 people in different places, and their measurements of the gravitational constant g, each posted with raw video and data, average within 5% of 6.674e-11 m3 kg-1 s-2.",
@@ -2368,7 +2546,9 @@
       "#math",
       "#graphs",
       "#sat",
-      "#search"
+      "#search",
+      "#coding",
+      "#compute"
     ],
     "what": "this one is pure math, for the joy of it. nobody knows whether the plane needs 5, 6 or 7 colors so that no two points exactly 1 apart share a color. to show it needs 5, find points where certain pairs sit exactly 1 apart and every 4-coloring clashes. jaan parts's 509-point graph is still the smallest known, and we hunt for one with 508 points or fewer.",
     "done_when": "a unit-distance graph with at most 508 vertices, given with exact algebraic coordinates, is shown not 4-colorable by a sat solver whose lrat proof cake_lpr accepts.",
@@ -2398,7 +2578,9 @@
     "tags": [
       "#math",
       "#lean",
-      "#additive-combinatorics"
+      "#additive-combinatorics",
+      "#research",
+      "#number-theory"
     ],
     "what": "once an open math problem is written in lean, a computer can check any claimed proof of it, and anyone can point ai provers straight at it. ben green's list '100 open problems' already has 57 lean statements in deepmind's formal-conjectures repo, and erdosproblems.com lists more than a thousand problems, many still unwritten. we write the rest of both lists, have each statement checked by 2 people, and get them merged, so every problem is ready to attack.",
     "done_when": "google-deepmind/formal-conjectures has a merged, building statement file for every problem in green's list and every problem listed on erdosproblems.com on the start date, except ones marked too vague with a written reason, and each new statement has public approving reviews from 2 people other than its author.",
@@ -2432,7 +2614,8 @@
       "#math",
       "#lean",
       "#review",
-      "#number-theory"
+      "#number-theory",
+      "#research"
     ],
     "what": "a computer-checked proof is only as good as its definitions. if one says something slightly different from what its name claims, the proof proves the wrong thing and nobody notices. in september 2026 a 13-million-line lean proof of fermat's last theorem passed two independent kernels. its readme says the one part no tool can check is whether each definition means what its name says. we read every definition the six core definition files rest on against the textbooks, two reviewers each, and report what we find.",
     "done_when": "every non-mathlib definition that the 6 Def_FLTPrelim files in anthropics/fermats-last-theorem depend on, directly or through other definitions, as listed by a script at a pinned commit, has 2 public written reviews by different people with graduate number theory, comparing it to the darmon-diamond-taylor survey, with any mismatch documented.",
@@ -2467,7 +2650,10 @@
       "#math",
       "#oeis",
       "#erdos",
-      "#compute"
+      "#compute",
+      "#writing",
+      "#proofreading",
+      "#coding"
     ],
     "what": "tying a math problem to the right integer sequence lets a researcher see at a glance what is already known, and sometimes spot that two problems are really the same one. 248 erdős problems are flagged as probably tied to a sequence, but none of them is linked yet. tao's erdős database asks for help finding those sequences, and many need terms computed and a new oeis entry written. we settle all 248, each one checked by a second person.",
     "done_when": "none of the 248 problems in teorth/erdosproblems whose only oeis entry was 'possible' still has that entry: each is linked to a live oeis sequence (existing or newly accepted) or recorded as having none with a written reason, and each change is confirmed by a second person.",
@@ -2502,7 +2688,9 @@
       "#math",
       "#lean",
       "#ramsey",
-      "#sat"
+      "#sat",
+      "#compute",
+      "#research"
     ],
     "what": "this one is mostly for the fun of it: a famous party puzzle, checked one more way so nobody has to take a single program's word for it. every party of 25 people has 4 mutual friends or 5 mutual strangers, and 24 people aren't enough. mckay and radziszowski proved it by computer in 1995, and in 2024 it was checked in hol4 with about 950 cpu-days of sat solving. nobody has a lean version yet, so we build one.",
     "done_when": "a public lean 4 project proves that the ramsey number R(4,5) equals 25, builds with lake build with no sorry, and #print axioms shows only lean's standard axioms plus Lean.ofReduceBool from the lrat checker.",
@@ -2533,7 +2721,9 @@
       "#math",
       "#geometry",
       "#lean",
-      "#weird"
+      "#weird",
+      "#coding",
+      "#compute"
     ],
     "what": "this is a puzzle for the pure fun of it, the kind geometers have poked at for centuries. you can cut a tunnel through a cube big enough for a second, equal cube to slide through. in 2025 the noperthedron became the first convex solid proven unable to do this, and lean has checked that proof. a few famous solids, like the snub cube, are still unsettled. we settle one.",
     "done_when": "for one solid on the open list in arXiv 2508.18475 that is still open when the shwarm is posted, such as the snub cube or johnson solid J72, there is either an exact-arithmetic check of a rupert passage or a lean proof that none exists.",
@@ -2562,8 +2752,12 @@
     "category": "climate",
     "tags": [
       "#lightpollution",
-      "#openhardware",
-      "#astronomy"
+      "#open-hardware",
+      "#astronomy",
+      "#electronics",
+      "#manufacturing",
+      "#hosting",
+      "#worldwide"
     ],
     "what": "a cheap, trusted meter would let any school or town find out how dark its night sky really is, and see if light pollution is creeping in. night sky brightness is measured with the sky quality meter, a box that costs $155 to $290. hobbyists have built meters around a cheap tsl2591 light sensor, but few have been checked side by side with the real one, and a parts list only helps people who can solder. we research what schools and towns need, design a finished meter that tracks the real one, make it for under $25 a unit, and ship it ready to mount and log.",
     "done_when": "a finished, open-design sky meter costing under $25 a unit to make (parts, case, assembly and calibration, on an open cost sheet, at a run of at least 200) is delivered ready to use to at least 100 schools, towns, parks or astronomy clubs in at least 5 countries, and 20 delivered units at 20 sites spanning 18 to 21.5 mag/arcsec² read within 0.2 mag/arcsec² of a unihedron sqm-l in at least 90% of 200 or more paired zenith readings, each then posting 30 nights of logged readings from a fixed spot.",
@@ -2597,7 +2791,12 @@
     "tags": [
       "#solar",
       "#cooking",
-      "#openhardware"
+      "#open-hardware",
+      "#design",
+      "#manufacturing",
+      "#teaching",
+      "#organizing",
+      "#worldwide"
     ],
     "what": "many families around the world still cook over wood or charcoal, which means smoky kitchens and hours spent gathering fuel, and a cooker that runs on sunlight cuts both. the cookit is a folding cardboard panel cooker handed out by solar cookers international. in the standard asae s580.1 test it reaches 58 watts of cooking power with a pyrex bowl. we research what cooks need, design an open cooker from cardboard and foil that beats it, and make it flat-packed for under $15 a unit. then we get it to families who cook over fire, and prove the delivered cookers with the same test on 3 continents across two seasons.",
     "done_when": "a finished, flat-packed open-design cardboard cooker costing under $15 a unit to make (materials, printing, cutting and packing, on an open cost sheet, at a run of at least 500) is delivered to at least 300 households that cook over wood or charcoal in at least 3 countries, and 10 delivered units, tested by 10 independent testers on at least 3 continents across at least 2 seasons, score a standardized cooking power of at least 70 w under asae s580.1, each tester posting the logged water temperature and sunlight data.",
@@ -2630,8 +2829,11 @@
     "category": "climate",
     "tags": [
       "#food",
-      "#opendata",
-      "#kenya"
+      "#open-data",
+      "#kenya",
+      "#phone",
+      "#locals",
+      "#beginner-friendly"
     ],
     "what": "if you shop in kenya and want to know what's in a packaged food, the free barcode apps mostly come up empty. they are built on open food facts, which lists about 735 products sold in kenya, and only 207 have both ingredients and nutrition filled in. that leaves the apps nearly blank in nairobi shops, so we photograph the shelves and fill in the gaps.",
     "done_when": "open food facts lists at least 3,000 products sold in kenya with both ingredients and nutrition facts marked complete.",
@@ -2660,7 +2862,11 @@
     "tags": [
       "#heat",
       "#cities",
-      "#openhardware"
+      "#open-hardware",
+      "#electronics",
+      "#manufacturing",
+      "#fieldwork",
+      "#organizing"
     ],
     "what": "on a hot day some streets run much hotter than others, and the people on them often have the least shade. a street heat map shows a city where to plant shade and open cooling spots. every summer noaa helps about a dozen us cities make these maps with sensors on cars and bikes, using a paid kit, and most cities never get a turn. we research what local groups need, design a finished bike sensor for under $60 a unit, make it, ship sets to cities, and map one southern hemisphere city this summer.",
     "done_when": "a finished, open-design bike-mounted heat sensor costing under $60 a unit to make (parts, case, mount, assembly and calibration, on an open cost sheet, at a run of at least 50) is delivered ready to ride to local groups in at least 3 cities, and one southern hemisphere city publishes a heat dataset with at least 150 km of bike routes covered in each of three passes on one day above 30°c, collected with those units, which agree within 0.5°c in a shaded side-by-side test.",
@@ -2694,7 +2900,9 @@
     "tags": [
       "#food",
       "#fungi",
-      "#waste"
+      "#waste",
+      "#gardening",
+      "#cooking"
     ],
     "what": "it turns cafe waste into dinner, and it's a fun kitchen project. cafes throw out bags of spent coffee grounds every day, and oyster mushrooms grow on them. studies report biological efficiency around 60%, but home growers get mixed results. we write one open protocol that ten people in ten kitchens can follow and actually harvest.",
     "done_when": "10 people in different homes follow the same open protocol and each harvest at least 200 g of fresh oyster mushrooms from 1 kg of spent coffee grounds, with scale photos and dates.",
@@ -2723,8 +2931,11 @@
     "category": "climate",
     "tags": [
       "#water",
-      "#citizenscience",
-      "#vision"
+      "#citizen-science",
+      "#vision",
+      "#fieldwork",
+      "#phone",
+      "#ai"
     ],
     "what": "nitrate from farm runoff can foul streams and drinking water, and volunteers do a lot of the checking on small streams. they use cheap nitrate test strips, matching the pink to a color chart by eye. if a phone could read those strips better, their data would be easier to trust and use. a 2021 study found the phone app they tried was less accurate than people's eyes. we build an open phone method and test it on real streams, with 25 volunteers' own phones and lab readings to compare.",
     "done_when": "on a blinded set of at least 500 field strip photos taken by 25 stream volunteers on their own phones, 20 each, every one paired with a lab nitrate reading of the same water sample, the open method's median error against the lab is lower than that of the volunteers' own by-eye chart readings recorded at the stream.",
@@ -2757,7 +2968,10 @@
     "tags": [
       "#transit",
       "#maps",
-      "#gtfs"
+      "#gtfs",
+      "#fieldwork",
+      "#usa",
+      "#data"
     ],
     "what": "if you don't drive, the thing you need to know is where a bus comes often enough that you can just walk out and wait. a bus every 15 minutes is that point, where people stop checking the schedule. a few places, like baltimore and the twin cities, have their own frequent-route maps, each drawn a different way. we compute frequency from open schedule data for every us metro over 1 million people, put them on one map, and have riders in 15 metros log when buses really come.",
     "done_when": "for every us metro area over 1 million people, an open geojson marks each stop and route segment with weekday 7am to 7pm service every 15 minutes or better from current gtfs feeds, and riders in at least 15 of those metros log real arrivals at 10 marked stops each, at least an hour per stop on each of 5 weekdays, with observed gaps published beside the scheduled ones.",
@@ -2791,7 +3005,11 @@
     "tags": [
       "#trees",
       "#heat",
-      "#maps"
+      "#maps",
+      "#fieldwork",
+      "#usa",
+      "#research",
+      "#botany"
     ],
     "what": "street trees shade and cool neighborhoods, and one shared file lets researchers and planners see where trees are and aren't, city by city. opentrees.org once pulled public tree lists from over 150 cities into one map, but its data pipeline hasn't changed since 2021. us cities kept counting their trees anyway, so we rebuild the us side with fresh downloads and one shared species list, and volunteers in 20 cities walk out to random trees to see if the lists match the street.",
     "done_when": "one open geoparquet holds street trees from at least 40 us city or county open inventories, each tree with a normalized scientific name and a source license field and each source's count within 1% of the original, and volunteers in at least 20 of those cities each visit 50 randomly drawn trees and record whether each is there and its species.",
@@ -2825,7 +3043,11 @@
     "tags": [
       "#transit",
       "#gtfs",
-      "#rural"
+      "#rural",
+      "#outreach",
+      "#fieldwork",
+      "#data",
+      "#usa"
     ],
     "what": "people in small towns who rely on the local bus often can't find it in google maps or transit apps, because a bus system with no gtfs feed doesn't show up there. some small and rural agencies still publish only pdf timetables, often because nobody on staff has time to build a feed. we write clean feeds for 20 of them, with their blessing.",
     "done_when": "20 us transit agencies that had no feed in the mobility database each have a gtfs feed that passes mobilitydata's canonical validator with zero errors and is listed in the mobility database with the agency's written ok.",
@@ -2857,9 +3079,12 @@
     "title": "the city open data census, revived",
     "category": "open data",
     "tags": [
-      "#opendata",
+      "#open-data",
       "#civic",
-      "#transparency"
+      "#transparency",
+      "#locals",
+      "#many-languages",
+      "#worldwide"
     ],
     "what": "when a city publishes basics like its budget and parcel maps, residents and reporters can check how public money and land are used. from 2014 to 2018 volunteers scored whether us cities published that data. the sunlight foundation, which ran the census with open knowledge, shut down in 2020, and the census site no longer loads. we bring it back and take it worldwide: the 300 largest cities, each checked by someone who lives there and reads the local language.",
     "done_when": "for the main city government of each of the 300 largest cities by population in the un's world urbanization prospects, an open table records whether 12 named datasets are published, with url, format, license and last update date, each row is checked by a resident who reads the local language, and a spot check of 300 random cells finds at least 95% correct.",
@@ -2893,7 +3118,10 @@
       "#housing",
       "#land",
       "#austin",
-      "#maps"
+      "#maps",
+      "#locals",
+      "#fieldwork",
+      "#data"
     ],
     "what": "east austin neighbors and housing groups can't easily see which empty lots belong to the public. the city of austin codes about 16,800 parcels as undeveloped, and roughly 1,500 of them sit in and around east austin. the land use codes live in a city layer and the parcel records live with the county, and the two don't line up on their own. we join them into one open map, and neighbors look at every lot to see if it's really empty.",
     "done_when": "every parcel in zip codes 78702, 78721, 78722 and 78723 that the city land use inventory codes as undeveloped (900 or 910) is in one open geojson with its zoning, its acreage, the owner named only when it is a public body, and a dated note from a volunteer who saw it from the street saying whether it is really empty.",
@@ -2925,10 +3153,12 @@
     "title": "10,000 yoruba words on wikidata",
     "category": "knowledge",
     "tags": [
+      "#needs-humans",
       "#wikidata",
       "#yoruba",
       "#language",
-      "#needs-humans"
+      "#recording",
+      "#proofreading"
     ],
     "what": "yoruba is spoken by tens of millions of people, yet the open word data that spell checkers and other language tools read from barely covers it. wikidata holds 57 yoruba words, while igbo has 4,522. a wikidata lexeme stores a word with its tone marks and its meanings. abstract wikipedia reads from them too. we give yoruba its 10,000 most common words, each checked by 2 speakers, with recordings so anyone can hear the tones.",
     "done_when": "a wikidata query counts at least 10,000 yoruba lexemes with a tone-marked lemma and at least one sense, each new one signed off by 2 yoruba speakers on a public worklist, and at least 2,000 of them link a pronunciation recorded on lingua libre, from at least 20 different speakers in all.",
@@ -2959,10 +3189,14 @@
     "title": "get tagalog live on common voice",
     "category": "knowledge",
     "tags": [
+      "#needs-humans",
       "#language",
       "#speech",
       "#philippines",
-      "#needs-humans"
+      "#tagalog",
+      "#translation",
+      "#recording",
+      "#proofreading"
     ],
     "what": "speech tools like dictation and captions are built from recordings of people talking, and tagalog speakers can't yet add theirs to common voice, the big open collection. common voice has 901 tagalog sentences and needs 2,000 before people can record, and only 623 of its 2,089 interface strings are translated. close both gaps, then get 50 or more speakers recording until there are 10 validated hours, the start of an open tagalog speech dataset nobody can lock up.",
     "done_when": "tagalog (tl) is open for recording on commonvoice.mozilla.org, shown as is_contributable = 1 in the public stats api, and has at least 10 validated hours from at least 50 different speakers, as reported in common voice's language stats or dataset release notes.",
@@ -2994,10 +3228,11 @@
     "title": "400 vital articles igbo wikipedia is missing",
     "category": "knowledge",
     "tags": [
+      "#needs-humans",
       "#wikipedia",
       "#igbo",
       "#language",
-      "#needs-humans"
+      "#writing"
     ],
     "what": "igbo speakers looking up the most basic topics often find no article in their own language. igbo wikipedia has almost 49,000 articles and 121 active editors, yet only 223 of english wikipedia's 1,000 vital articles have an igbo version. we pick the 400 most-read gaps and write them in igbo, with sources, shared among 20 or more writers.",
     "done_when": "400 new igbo wikipedia articles exist for level-3 vital topics that had none on the start date, each at least 300 words with 3 or more references, written by at least 20 different fluent igbo speakers.",
@@ -3029,10 +3264,12 @@
     "title": "validate 10,000 pages on wikisource",
     "category": "knowledge",
     "tags": [
+      "#needs-humans",
       "#public-domain",
       "#wikisource",
       "#books",
-      "#needs-humans"
+      "#proofreading",
+      "#many-languages"
     ],
     "what": "wikisource turns old public-domain books into free text and ebooks anyone can read, search or hear through a screen reader. english wikisource has 1.6 million book pages that one person has proofread and that still wait for a second check. until a page is validated, the free ebook built from it can't be fully trusted. agents rerun ocr and flag every spot where the text and the scan disagree, so people can validate fast.",
     "done_when": "crew members move 10,000 english wikisource pages from proofread to validated, and a 100-page random sample has no more than 2 pages with errors.",
@@ -3064,9 +3301,12 @@
     "title": "do auto-tagged pdfs work with a screen reader?",
     "category": "open source",
     "tags": [
+      "#needs-humans",
       "#open-source",
       "#accessibility",
-      "#needs-humans"
+      "#screen-reader",
+      "#testing",
+      "#coding"
     ],
     "what": "blind people use screen readers to hear government forms and reports, and a pdf without accessibility tags can come out in a jumbled order. in april 2026 an open tool called opendataloader-pdf started adding those tags to untagged pdfs. validators can check the tags are well formed, but not whether a blind reader hears the page in the right order. we build an open test set from real government pdfs, and 15 screen reader users listen to all of it to find out.",
     "done_when": "an open benchmark of 200 untagged public-domain us government pdfs is published, each auto-tagged with opendataloader-pdf, validated with verapdf and scored for reading order by 3 screen reader users drawn from at least 15 people across nvda, jaws and voiceover, with at least 10 upstream issues filed with sample files.",
@@ -3100,7 +3340,10 @@
     "tags": [
       "#open-source",
       "#tools",
-      "#inkscape"
+      "#inkscape",
+      "#testing",
+      "#coding",
+      "#organizing"
     ],
     "what": "inkscape is the free drawing program that designers, teachers and hobbyists use when they can't or won't pay for illustrator, and bugs that sit open for years keep tripping them up. its development tracker has 2,119 open issues, and the oldest confirmed bugs have waited there since 2018. pick one off a frozen list, reproduce it on master and get a fix merged. the dream is 500, and this is the first hundred.",
     "done_when": "each of the 100 oldest open bugs in inkscape's development tracker (list frozen when the shwarm is posted, feature requests and design questions left out) is closed by an inkscape developer, with a merged fix or a note that it no longer happens on master.",
@@ -3134,7 +3377,9 @@
     "tags": [
       "#open-source",
       "#porting",
-      "#linux"
+      "#linux",
+      "#coding",
+      "#testing"
     ],
     "what": "if you rely on an older linux app like gkrellm or gerbv, it may soon vanish from debian. debian plans to remove gtk2 before debian 14, and 77 packages, gkrellm and gerbv among them, still have open bugs saying they depend on it. we port them to gtk3 or gtk4, or they leave the archive.",
     "done_when": "at least 30 of the open 'depends on deprecated gtk 2' bugs in debian's gtk2 usertag list are closed because the package now builds against gtk3 or gtk4.",
@@ -3168,7 +3413,10 @@
     "tags": [
       "#open-source",
       "#porting",
-      "#gimp"
+      "#gimp",
+      "#photography",
+      "#testing",
+      "#coding"
     ],
     "what": "people who leaned on gimp's old plug-ins for years find many of them missing in gimp 3. debian's gimp-plugin-registry bundles favorites like film grain and the orton glow, and the old gimp 2 plug-in registry is archived. gimp 3 changed its plug-in api, and 18 of debian's are switched off in the package. the maintainer ported seven others in early october. we pick the 100 people miss most and bring them across, each tested by someone who used it.",
     "done_when": "100 plug-ins and scripts from the archived gimp 2 plug-in registry and debian's gimp-plugin-registry, picked by a public vote of at least 30 gimp users, each either runs in gimp 3 from a public port and is confirmed by someone who used it in gimp 2 to work as before, or is marked built into gimp 3 with the replacement named.",
@@ -3200,10 +3448,12 @@
     "title": "sharex for linux, working for real",
     "category": "open source",
     "tags": [
+      "#needs-humans",
       "#open-source",
       "#tools",
       "#linux",
-      "#needs-humans"
+      "#testing",
+      "#coding"
     ],
     "what": "lots of windows users who switch to linux miss sharex, the free screenshot tool, and have to make do without it. its 'add linux support' issue has been open since 2022. the sharex team's cross-platform rewrite, xerahs, already builds for linux and is written with agents on purpose. we help it hold up on the desktops people use, tested by 20 people on their own machines and monitors.",
     "done_when": "a tagged xerahs release where 20 people across at least 8 linux desktop and distro combinations, including gnome wayland, kde wayland, hyprland and x11, with at least 3 multi-monitor and 3 hidpi setups among them, each finish the crew's 10-step capture checklist with no crash and no missing step.",

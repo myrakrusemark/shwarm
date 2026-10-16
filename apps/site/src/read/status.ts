@@ -188,6 +188,34 @@ export async function readLatestPass(db: D1Database, nodeId: number): Promise<{ 
     .first<{ id: string; at: string }>()
 }
 
+/**
+ * The shwarm author's own approval (decided Oct 15, "The author's own approval shows beside the status, as '✓ author
+ * approved'"): their latest pass record of status passed, when it was made and the claim it cites (null once that claim
+ * is hidden or deleted, or for a record migrated from a pass before Oct 14, which cites a submission). It stands apart
+ * from the people's status, whatever that is now. Null on a branch, or when the author hasn't approved.
+ * A record migrated from a pass before Oct 14 (migration 0032) counts only when the author passed that submission's
+ * author check themselves: the check was opt-in, so an old pass alone was never their approval (AUTHOR_APPROVED_SQL).
+ */
+export type AuthorApproved = { at: string; claim: { post: string; by: string } | null }
+
+/** SQL: pass record `r` is its author's own approval (readAuthorApproved; jobs/stats.ts reads the same). */
+export const AUTHOR_APPROVED_SQL = (r: string) =>
+  `${r}.kind = 'author' AND ${r}.status = 'passed' AND (${r}.submission_id IS NULL OR EXISTS (
+     SELECT 1 FROM check_report k WHERE k.submission_id = ${r}.submission_id AND k.slot = 'author' AND k.verdict = 'pass'
+       AND k.counted = 1 AND k.person_id = ${r}.person_id))`
+
+export async function readAuthorApproved(db: D1Database, nodeId: number): Promise<AuthorApproved | null> {
+  const r = await db
+    .prepare(
+      `SELECT r.at, CASE WHEN c.hidden = 0 AND c.deleted_at IS NULL THEN c.id END AS post, ${NAME_SHOWN('c.as_name')} AS "by"
+       FROM pass_record r JOIN node n ON n.id = r.node_id AND n.kind <> 'branch' LEFT JOIN post c ON c.id = r.claim_id
+       WHERE r.node_id = ? AND ${AUTHOR_APPROVED_SQL('r')} ORDER BY r.at DESC, r.rowid DESC LIMIT 1`,
+    )
+    .bind(nodeId)
+    .first<{ at: string; post: string | null; by: string | null }>()
+  return r ? { at: r.at, claim: r.post ? { post: r.post, by: r.by ?? '' } : null } : null
+}
+
 /** The pass box's id on a node's page: the author's inbox notice links there (read/inbox-links.ts). */
 export const PASS_BOX = 'passed'
 
@@ -206,6 +234,8 @@ export type StatusData = {
   records: PassRecord[]
   /** Newest first, at most HISTORY_SHOWN. */
   history: StatusChange[]
+  /** The shwarm author's own approval, beside the people's status (readAuthorApproved); null on a branch or until then. */
+  authorApproved: AuthorApproved | null
   /**
    * For the shwarm's author, the passed claims "mark it passed" may cite, most-backed first (readPassedClaims); empty
    * for anyone else and on a branch.
@@ -219,13 +249,14 @@ export type StatusData = {
  */
 export async function loadStatus(db: D1Database, node: { id: number; kind: string; author_id: number }, viewer: number | null, now: number): Promise<StatusData> {
   const author = viewer !== null && viewer === node.author_id && node.kind !== 'branch'
-  const [status, claims, myBacking, records, history, passedClaims] = await Promise.all([
+  const [status, claims, myBacking, records, history, passedClaims, authorApproved] = await Promise.all([
     readNodeStatus(db, node.id, now),
     readClaims(db, node.id),
     viewer === null ? Promise.resolve(null) : readMyBacking(db, node.id, viewer),
     readPassRecords(db, node.id),
     readStatusHistory(db, node.id),
     author ? readPassedClaims(db, node.id) : Promise.resolve([]),
+    node.kind === 'branch' ? Promise.resolve(null) : readAuthorApproved(db, node.id),
   ])
-  return { now: status, reason: await readReason(db, node.id, status.current), claims, myBacking, records, history, passedClaims }
+  return { now: status, reason: await readReason(db, node.id, status.current), claims, myBacking, records, history, passedClaims, authorApproved }
 }

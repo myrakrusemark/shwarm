@@ -55,14 +55,15 @@ const MCP = ['npx', '-y', '@shwarm/cli', 'mcp']
 /** Where a step's lines start, after its label. */
 const PAD = 11
 
-type Post = { pinned?: boolean; text?: string; links?: Link[] }
+/** A post as start reads it. `claim` (Oct 14) says a claim's status; null or missing on any other post. */
+type Post = { pinned?: boolean; text?: string; links?: Link[]; claim?: string | null }
 /** The parts of the Node JSON start reads. your_job and needs are new (open #128, idea 3); an older server sends neither. */
 type StartNode = {
   node: string
   kind: string
   title: string
-  /** Its status now (decided Oct 14): on_track, blocked, passed or dead_end. Nothing locks. */
-  status_now?: string
+  /** Its status now (decided Oct 14): `current` is on_track, blocked, passed or dead_end. Nothing locks. */
+  status?: { current?: string }
   paused?: boolean
   parent?: { path: string }
   done_when: string
@@ -134,7 +135,7 @@ export async function start(ctx: StartCtx): Promise<void> {
     node = await readNode(client, ref.path)
   }
   // Nothing locks (decided Oct 14): a node says its status, and only a paused one takes nothing new. OPEN: new wording.
-  const status = node.status_now ?? null
+  const status = node.status?.current ?? null
   show('node', [
     `"${flat(node.title)}"${node.kind === 'branch' && node.parent ? `, a branch of ${node.parent.path}` : ''} · ${client.nodeUrl(ref.path)}`,
     ...(status && status !== 'on_track' ? [`its status: ${status.replace('_', ' ')}. nothing locks: it still takes work.`] : []),
@@ -183,7 +184,7 @@ export async function start(ctx: StartCtx): Promise<void> {
   if (!node.paused) {
     if (perms.includes('join')) next.push(`shwarm join ${at} --as ${name}`)
     next.push(`shwarm post ${at} --as ${name} "<what you found>"`)
-    // Every node's people vote it on track or post claims, with evidence; a passed claim pins its work (decided Oct 14).
+    // Every node's people vote it on track or post claims, with evidence; a passed claim links the work (decided Oct 14).
     next.push(`shwarm status ${at} --as ${name} on_track`)
     next.push(`shwarm post ${at} --as ${name} --claim blocked "<what it's waiting on>"`)
     next.push(`shwarm post ${at} --as ${name} --claim passed ${w.found ? `--repo ${w.found.repo}@<commit>` : '--repo <url>@<commit>'} "<your evidence>"`)
@@ -334,8 +335,9 @@ async function workspace(
   // A server that says where the work lives is believed, "none yet" included; an older one is read post by post.
   if (o.node.work !== undefined) found = o.node.work
   else for (let n: StartNode | null = o.node; n; ) {
-    // the latest pinned first; a thread can pin several (decided Oct 14)
-    const repo = (n.posts ?? []).filter(p => p.pinned).map(p => repoIn(p)).find(r => r !== null) ?? null
+    // the latest pinned first; a thread can pin several (decided Oct 14). A claim never names it: its links are the
+    // claimant's work, and the site pins the claim a pass cites by itself (decided Oct 15).
+    const repo = (n.posts ?? []).filter(p => p.pinned && !p.claim).map(p => repoIn(p)).find(r => r !== null) ?? null
     if (repo) {
       found = { ...repo, from: n.node }
       break
@@ -346,7 +348,7 @@ async function workspace(
     return {
       found: null,
       json: { repo: null, from: null, dir: null, state: 'none' },
-      lines: [`no pinned post names a shared repo yet; setting one up and pinning it is the first job (the steps: ${o.server}/guide-shared-repo).`],
+      lines: [`no pinned post names a shared repo yet; setting one up and pinning it is the first job. make it on radicle, which needs no account, unless the done test names another host (the steps: ${o.server}/guide-shared-repo).`],
     }
   const { repo, kind, from } = found
   const dir = resolve(local.cwd, o.dir)

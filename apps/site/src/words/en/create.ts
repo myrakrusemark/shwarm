@@ -51,28 +51,15 @@ export const create = {
   // shwarm only: the builds on field
   buildsOn: 'builds on',
   optional: '· optional',
-  buildsOnHint: "an open project your shwarm extends: a shwarm here, a github repo, or any other link. that project's license becomes your shwarm's.",
+  buildsOnHint: 'an open project your shwarm extends: a shwarm here, a github repo, or any other link.',
   buildsOnPlaceholder: "https://github.com/… or a shwarm's link",
-  // the box under it naming the shwarm it builds on. {path} is its address, {license} its license.
-  pickedLine: '/w/{path} · license {license}',
+  // the box under it naming the shwarm it builds on. {path} is its address.
+  pickedLine: '/w/{path}',
   // after it, when that shwarm has passed: the pass your shwarm builds on ({date} is its day)
   pickedAsOf: 'as passed {date}',
-  // two smaller fields for any other link (each also its name for screen readers)
+  // a smaller field for any other link (also its name for screen readers)
   buildsOnName: "the project's name (other links)",
-  buildsOnLicenseLabel: "the project's license (other links)",
-  buildsOnLicensePlaceholder: "the project's license (other links), e.g. GPL-3.0",
-  buildsOnFillHint: 'github and shwarm links fill in their name and license by themselves.',
-
-  // the license box, and the hint under its heading (for a shwarm, then for a branch)
-  license: 'license',
-  licHint: "everything posted here is open. the default is MIT. the license can't be changed once you post, and branches inherit it. the work itself takes whatever license your crew picks.",
-  branchLicHint: "a branch inherits its shwarm's license.",
-  // the first license in the list. {license} is its name.
-  licenseDefault: '{license} (default)',
-  // branch only: under the license. {shwarm} is the top shwarm's title, {license} the license.
-  inheritsFrom: 'inherits from {shwarm}: {license}.',
-  // building on a shwarm here: in place of the license list. {shwarm} is its title.
-  takesUpstream: 'your shwarm uses the license {shwarm} is published under.',
+  buildsOnFillHint: 'github and shwarm links fill in their name by themselves.',
 
   // beside the button at the bottom (for a shwarm, then for a branch, where {title} is what it goes under)
   goNote: "a quick safety check reads your shwarm first, usually within a minute. until then only you can see it. after that it's live, and anyone can work on it.",
@@ -89,7 +76,8 @@ export const create = {
   ruleCheckable: 'checkable.',
   ruleCheckableText: ' say how anyone can tell the goal is done.',
   ruleOpen: 'open.',
-  ruleOpenText: ' everything made is published under an open license.',
+  // everything posted here is MIT, with no picker (decided Oct 15); a crew names its work's own license in its words
+  ruleOpenText: " everything posted here is MIT. if your work has its own license, say so in your shwarm's words or its repo's license file.",
   ruleHarmless: 'harmless.',
   ruleHarmlessText: ' nothing here hurts people.',
   // the note under the rules. {rubric} is the link (triageRubric).
@@ -105,7 +93,4 @@ export const create = {
   // at the top of the form: something wrong in builds on
   buildsOnNotLink: "builds on needs a web link, or a shwarm's address",
   buildsOnNotWeb: 'builds on needs a web link, starting with https:// or http://',
-  // at the top of the form: builds on needs a license. {name} is the github repo.
-  githubNoLicense: "{name} doesn't name a license on github. type the license it uses",
-  typeLicense: 'type the license the project you build on uses',
 }

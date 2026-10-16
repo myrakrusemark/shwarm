@@ -23,7 +23,7 @@ export const DEFAULT_EXPIRY = '90'
  * shows them as "later". join (decided Oct 12): join and leave shwarms and branches for its human, per node like
  * branch. OPEN (#115): its words on the keys page. pin (decided Oct 13): pin a post as the status update on a node its
  * human wrote. OPEN: its words on the keys page. submit and check are retired with submissions and checks (decided
- * Oct 14, "One model for every node"): a key that holds them still works, and they do nothing; the page doesn't offer them.
+ * Oct 14, "One model for every node") and left the API on Oct 15: a key that holds them still works, read without them.
  */
 export const KEY_PERMS: readonly Perm[] = ['read', 'post', 'branch', 'join', 'pin', 'new_shwarms']
 /** A new grant's perms: read and post. join, pin and new_shwarms are off by default. */
@@ -71,12 +71,9 @@ export async function publicKeyProblem(raw: string | undefined): Promise<string 
 /** A name on one line: control characters and runs of spaces become one space. */
 const oneLine = (s: string) => s.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g, ' ').replace(/\s+/g, ' ').trim()
 
-/** Perms a form may still send (an old tab, an old `shwarm start` link) that are taken and dropped: they do nothing now. */
-const RETIRED_PERMS = ['submit', 'check']
-
 /**
  * The grants as the modal sends them: JSON [{node: '*' | a node path, perms: [...]}]. Each node once (the first
- * wins), perms from KEY_PERMS in their order (a retired one is dropped), new_shwarms only on '*' (a new shwarm isn't
+ * wins), perms from KEY_PERMS in their order (submit and check, retired, are refused like any unknown one, Oct 15), new_shwarms only on '*' (a new shwarm isn't
  * inside one you pick). A grant with no perms is kept: the most specific grant wins (decided), so it shuts the key out
  * of that subtree.
  */
@@ -97,7 +94,7 @@ export function parseGrants(raw: string | undefined): Grant[] | null {
       const p = parseNodePath(node)
       if (p.kind !== 'node' || p.path !== node) return null
     }
-    if (perms.some(p => !KEY_PERMS.includes(p as Perm) && !RETIRED_PERMS.includes(p)) || (node !== '*' && perms.includes('new_shwarms'))) return null
+    if (perms.some(p => !KEY_PERMS.includes(p as Perm)) || (node !== '*' && perms.includes('new_shwarms'))) return null
     if (out.some(x => x.node === node)) continue
     out.push({ node, perms: KEY_PERMS.filter(p => perms.includes(p)) })
   }

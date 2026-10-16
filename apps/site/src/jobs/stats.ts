@@ -22,6 +22,7 @@
 // Upvotes count only when counted = 1 (A6, established accounts). Agents are never counted: posts and upvotes
 // roll up to the human under the name, and "people" is people.
 import { readSettings } from '../core/settings'
+import { AUTHOR_APPROVED_SQL } from '../read/status'
 import { DAY_MS, HOUR_MS, WEEK_MS, impact, isHot, liveScoreFrom, postsPerDay, rankingFrom, ranks, statusLine, surge, type Ranking } from '../core/stats'
 import { advance, BACKERS_SQL, BACKING_SQL, emptyTally, flipStatements, startBand, tallyOf, type Band, type Status, type StatusTally } from '../core/status'
 
@@ -72,6 +73,8 @@ export type NodeStats = {
   upvotes: number
   posts: number
   stale_at: string | null
+  /** The shwarm author's own approval as the feed card shows it (read/status.ts AuthorApproved), as JSON; null when none. */
+  author_approved: string | null
 }
 
 /** Roll up stats for changed and stale nodes. */
@@ -185,15 +188,15 @@ export async function computeNodes(
   // The pinned posts, the latest pinned first (decided Oct 14, "A thread can pin several posts"). The seed (A18) creates
   // a node and pins its sources post in one go at the same clock time, as the author with no key; that post never sets
   // the status line (table B #40, see core/stats statusLine).
-  const pins = await all<{ node_id: number; text: string; by_seed: number }>(
-    `SELECT pp.node_id, pp.text,
+  const pins = await all<{ node_id: number; text: string; by_seed: number; claim: Status | null }>(
+    `SELECT pp.node_id, pp.text, pp.claim,
             (n.seeded = 1 AND pp.person_id = n.author_id AND pp.key_id IS NULL AND pp.created_at = n.created_at AND pp.edited_at IS NULL) AS by_seed
      FROM post pp JOIN node n ON n.id = pp.node_id
      WHERE pp.node_id ${IN} AND pp.pinned_at IS NOT NULL AND pp.hidden = 0 AND pp.deleted_at IS NULL
      ORDER BY pp.pinned_at DESC, pp.id DESC`,
   )
-  const pinsBy = new Map<number, { text: string; bySeed: boolean }[]>()
-  for (const p of pins) (pinsBy.get(p.node_id) ?? pinsBy.set(p.node_id, []).get(p.node_id)!).push({ text: p.text, bySeed: p.by_seed === 1 })
+  const pinsBy = new Map<number, { text: string; bySeed: boolean; claim: Status | null }[]>()
+  for (const p of pins) (pinsBy.get(p.node_id) ?? pinsBy.set(p.node_id, []).get(p.node_id)!).push({ text: p.text, bySeed: p.by_seed === 1, claim: p.claim })
   // People (table B #44): everyone who joined (said they're working on it), humans who posted (themselves or by agent) in the last 7 days, and the author.
   const people = await all<{ node_id: number; n: number }>(
     `SELECT node_id, COUNT(*) AS n FROM (
@@ -266,6 +269,18 @@ export async function computeNodes(
     `SELECT c.parent_id, COALESCE(b.current, 'on_track') AS status, COUNT(*) AS n FROM node c LEFT JOIN branch_status b ON b.node_id = c.id
      WHERE c.parent_id ${IN} AND c.hidden = 0 GROUP BY c.parent_id, status`,
   )
+  // The author's own approval (decided Oct 15), for the feed card: the latest on each shwarm, as read/status.ts
+  // readAuthorApproved reads it, so the feed reads it stored and never a thread's posts. The claim's name is stored as
+  // posted, and the feed shows it through NAME_SHOWN as it reads then (read/feed.ts), so a closed account reads as a
+  // former member before the next roll-up.
+  const approvals = await all<{ node_id: number; at: string; post: string | null; by: string | null }>(
+    `SELECT node_id, at, post, "by" FROM (
+       SELECT r.node_id, r.at, CASE WHEN c.hidden = 0 AND c.deleted_at IS NULL THEN c.id END AS post, c.as_name AS "by",
+              ROW_NUMBER() OVER (PARTITION BY r.node_id ORDER BY r.at DESC, r.rowid DESC) AS rk
+       FROM pass_record r JOIN node n ON n.id = r.node_id AND n.kind <> 'branch' LEFT JOIN post c ON c.id = r.claim_id
+       WHERE r.node_id ${IN} AND ${AUTHOR_APPROVED_SQL('r')})
+     WHERE rk = 1`,
+  )
   const before = await all<{ node_id: number; person_id: number; posts: number; upvotes: number }>(
     `SELECT node_id, person_id, posts, upvotes FROM person_node_stats WHERE node_id ${IN}`,
   )
@@ -281,6 +296,7 @@ export async function computeNodes(
   const upsBy = byNode(ups)
   const bumpsBy = byNode(bumps)
   const bandBy = byNode(bands)
+  const approvedBy = byNode(approvals)
   const backingBy = new Map<number, StatusTally>()
   for (const [id, rows] of group(backing)) backingBy.set(id, tallyOf(rows))
   const reasonBy = new Map(reasons.map(x => [`${x.node_id}:${x.claim}`, x.text]))
@@ -354,6 +370,7 @@ export async function computeNodes(
       upvotes: totalUps,
       posts: totalPosts,
       stale_at: when.length ? iso(Math.min(...when)) : null,
+      author_approved: (a => (a ? JSON.stringify({ at: a.at, claim: a.post ? { post: a.post, by: a.by ?? '' } : null }) : null))(approvedBy.get(n.id)),
     })
   }
 
@@ -396,15 +413,15 @@ function nodeStatsWrites(db: D1Database, rows: NodeStats[], now: number): D1Prep
     stmts.push(
       db
         .prepare(
-          `INSERT INTO node_stats (node_id, impact, posts_per_day, people, hot, surge, score, status_line, upvotes, posts, stale_at, updated_at)
+          `INSERT INTO node_stats (node_id, impact, posts_per_day, people, hot, surge, score, status_line, upvotes, posts, stale_at, updated_at, author_approved)
            SELECT json_extract(j.value, '$.id'), json_extract(j.value, '$.impact'), json_extract(j.value, '$.posts_per_day'),
                   json_extract(j.value, '$.people'), json_extract(j.value, '$.hot'), json_extract(j.value, '$.surge'), json_extract(j.value, '$.score'),
                   json_extract(j.value, '$.status_line'), json_extract(j.value, '$.upvotes'), json_extract(j.value, '$.posts'),
-                  json_extract(j.value, '$.stale_at'), ?2
+                  json_extract(j.value, '$.stale_at'), ?2, json_extract(j.value, '$.author_approved')
            FROM json_each(?1) j WHERE 1
            ON CONFLICT (node_id) DO UPDATE SET impact = excluded.impact, posts_per_day = excluded.posts_per_day, people = excluded.people,
              hot = excluded.hot, surge = excluded.surge, score = excluded.score, status_line = excluded.status_line, upvotes = excluded.upvotes,
-             posts = excluded.posts, stale_at = excluded.stale_at, updated_at = excluded.updated_at`,
+             posts = excluded.posts, stale_at = excluded.stale_at, updated_at = excluded.updated_at, author_approved = excluded.author_approved`,
         )
         .bind(JSON.stringify(rows.slice(i, i + 200)), iso(now)),
     )

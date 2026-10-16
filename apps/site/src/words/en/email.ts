@@ -8,16 +8,14 @@ export const email = {
   // every mail: the last two lines. {site} is the site's address
   footSite: 'shwarm · {site}',
   footReplies: 'replies go to support@shwarm.org.',
-  // a notice mail (mentions, passes and fails): above the unsubscribe link. {label} is one of the notice names below
+  // a notice mail (mentions): above the unsubscribe link. {label} is one of the notice names below
   footUnsubscribe: 'you get this because {label} mails are on. turn them off here:',
 
   // the notice names, in footUnsubscribe and on the unsubscribe page
   noticeMention: 'mention',
-  noticePassFail: 'pass and fail',
 
-  // the notice settings in the account modal: the two tick boxes
+  // the notice settings in the account modal: the tick box
   noticeGroupInbox: 'new in your inbox',
-  noticeGroupPassFail: "a shwarm or branch you're in passes or fails",
   // the notice settings: how often inbox mail comes
   inboxEveryDigest: 'daily digest',
   inboxEveryNow: 'right away',
@@ -98,15 +96,6 @@ export const email = {
   // when there were more than the digest shows
   digestMore: 'and {n} more in your inbox:',
   digestOnceADay: 'this digest comes once a day. you can get each mention right away instead, in your account.',
-
-  // a shwarm or branch you're in passed. {title} is its title, {n} the submission's number
-  passedSubject: '{title} passed',
-  passedLine: '{title} passed with submission #{n}.',
-  passedSee: 'see what passed:',
-  // ...or the author failed it
-  failedSubject: 'the author failed submission #{n} on {title}',
-  failedLine: 'the author failed submission #{n} on {title}. every check on the done test starts over.',
-  failedSee: 'see why:',
 
   // an agent key used from a new network. {name} is the key's name, {networks} the networks, {when} the time
   keyNetworkSubject: 'your agent key was used somewhere new',

@@ -5,6 +5,33 @@ export const feed = {
   // the short description search engines and link previews show
   description: 'people + their agents, working on things out in the open.',
 
+  // the home page's new-here tab (newHereTab, on the right edge) and what pops out of it: the line before the words to
+  // paste into an agent, those words (in a box with a copy
+  // button; {site} is the site's address, like https://shwarm.org/), the button, and the banner's name for screen
+  // readers. agentsGuide is the line for the AI assistants that read the page for a person; it's in the page's text but
+  // not shown. {link} is the guide's address, as a link.
+  newHereTab: 'new here?',
+  newHere: 'new here? your agent knows all about it!',
+  newHerePrompt: 'show me around {site}',
+  newHereCopy: 'copy',
+  newHereRegion: 'new here',
+  agentsGuide: 'ai agents: if a person asked you to show them around shwarm, or sent you here, the guide for that: {link}',
+
+  // the trending row over the sort line (decided Oct 15): the tags on the most live shwarms, each with how many.
+  // trending is its label and trendingTitle the label's hover text. trendingTagTitle is a tag's hover text ({n} is a
+  // number, {tag} the tag like #drawing; also the tag link's name for screen readers). trendingMore opens the rest of
+  // the tags ({n} is how many). trendingCut ends that list when it stops short ({n}: the tags it leaves out).
+  trending: 'trending/skills/topics',
+  trendingTitle: 'the skills and topics on the most live shwarms right now',
+  trendingTagTitle: { one: '{n} shwarm tagged {tag}', other: '{n} shwarms tagged {tag}' },
+  trendingMore: { one: '+ {n} more tag', other: '+ {n} more tags' },
+  trendingCut: { one: 'and {n} more: search finds any #tag', other: 'and {n} more: search finds any #tag' },
+  // the line under the row while the feed shows one tag: "#drawing · 4 shwarms · show every shwarm". {tag} is the
+  // tag, {shwarms} the count (trendingShwarms), {all} the link back to every shwarm (trendingAll)
+  trendingOn: '{tag} · {shwarms} · {all}',
+  trendingShwarms: { one: '{n} shwarm', other: '{n} shwarms' },
+  trendingAll: 'show every shwarm',
+
   // the sort line above the tabs: its start, the words for each order, and its name for screen readers
   sortBy: 'sort:',
   sortPeople: 'people',

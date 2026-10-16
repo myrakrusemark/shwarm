@@ -17,7 +17,6 @@ export type MailTemplate =
   | 'triage_alert' // to the admins: a node triage held or flagged (go-live 8.1, triage/run.ts)
   | 'mention' // to someone named as their bare handle, who asked for inbox mail right away (go-live 6.3, notice 'mention')
   | 'digest' // the day's unread mentions in one mail, for everyone else (go-live 6.3, jobs/digest.ts, notice 'mention')
-  | 'node_news' // a node you're in passed or failed the author check (go-live 6.3, notice 'pass_fail')
   | 'account_closed' // to the address an account had, as it closes (go-live 6.4)
   | 'key_new_network' // to a key's human: the key signed a request from a network it hadn't used (go-live 7.3, api/signed.ts)
   | 'daily_summary' // to the admins: yesterday's counts in one line (go-live 11.4, jobs/summary.ts)
@@ -81,29 +80,6 @@ export function mailToPersonStatement(
        SELECT lower(email), id, ?, ?, json_set(?, '$.handle', handle), ?, ? FROM person WHERE id = ? AND status = 'active'${where ? ` AND ${where}` : ''}`,
     )
     .bind(m.template, m.stream, JSON.stringify(m.payload ?? {}), now, m.sendAfter ?? now, m.personId, ...whereArgs)
-}
-
-/**
- * The same mail to everyone a SQL query names (`ids`: a SELECT of person ids, with its own binds), each addressed and
- * greeted inside the batch, active accounts only, and only those whose `where` holds (alias `person`). For notices to
- * the people in a node, so the set is read as the batch commits. OPEN: nothing sends one since a pass stopped being a
- * submission's (Oct 14); whether a status change mails a node's people ('pass_fail', node_news) isn't decided.
- */
-export function mailToPeopleStatement(
-  db: D1Database,
-  m: Omit<Mail, 'to' | 'personId'>,
-  ids: string,
-  idArgs: unknown[],
-  where: string,
-  now = new Date().toISOString(),
-): D1PreparedStatement {
-  return db
-    .prepare(
-      `INSERT INTO email_outbox (to_email, person_id, template, stream, payload, created_at, send_after)
-       SELECT lower(email), id, ?, ?, json_set(?, '$.handle', handle), ?, ? FROM person
-       WHERE id IN (${ids}) AND status = 'active' AND email_verified_at IS NOT NULL AND ${where}`,
-    )
-    .bind(m.template, m.stream, JSON.stringify(m.payload ?? {}), now, m.sendAfter ?? now, ...idArgs)
 }
 
 /**

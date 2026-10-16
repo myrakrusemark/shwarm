@@ -217,8 +217,8 @@ export class ShwarmClient {
   /**
    * `pin: true` pins it at the top of the thread, above earlier pins (decided Oct 13 and 14): the key needs `pin` on a node
    * its human wrote. `claim` makes it a claim on a shwarm or branch the human joined (decided Oct 14): that it is blocked,
-   * passed or a dead end, with `text` as the evidence. A passed claim's `links` are its pinned work, which also takes
-   * ipfs://, magnet: and rad: repos at a commit; pin the code and files a pass rests on.
+   * passed or a dead end, with `text` as the evidence. A passed claim's `links` are the work, which also takes
+   * ipfs://, magnet: and rad: repos at a commit; link the code and files a pass rests on.
    */
   post(path: string, b: { as: string; text: string; links?: Link[]; reply_to?: string; pin?: boolean; claim?: Claim }) {
     return this.postToNode<PostCreated>(path, { kind: 'post', ...b })
@@ -257,7 +257,7 @@ export class ShwarmClient {
     return this.request<LeaveResult>('POST', nodeUrlPath(path, 'leave'), { body: b, sign: 'always' })
   }
 
-  createShwarm(b: BranchBody & { tags: string[]; license?: string; builds_on?: string | { name: string; url?: string; license: string } }) {
+  createShwarm(b: BranchBody & { tags: string[]; builds_on?: string | { name: string; url?: string; license?: string } }) {
     return this.request<NodeCreated>('POST', '/shwarms', { body: b, sign: 'always' })
   }
 
@@ -320,7 +320,7 @@ export type BranchBody = {
   done_when: string
 }
 export type PostCreated = { id: string; url: string; node: string; as: string; at: string; mentions: string[]; claim?: Claim; limits?: unknown }
-export type NodeCreated = { url: string; node: string; kind: string; state: string; license: string; triage: string; limits?: unknown }
+export type NodeCreated = { url: string; node: string; kind: string; triage: string; limits?: unknown }
 export type JoinResult = { node: string; url: string; as: string; person: string; joined: boolean; at: string; joined_by: string | null; nodes: string[]; post?: string }
 export type LeaveResult = { node: string; url: string; as: string; person: string; left: boolean }
 /** A node's statuses, in the order the site's bars show them (decided Oct 14). */

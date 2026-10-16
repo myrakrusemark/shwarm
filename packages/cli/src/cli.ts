@@ -13,8 +13,9 @@
 //   shwarm mcp [--as <name>]    a local MCP server on standard input and output (go-live 7.9; mcp.ts)
 // Bare-handle acts happen only on the site (decided Oct 8; CLI-7): `--as @handle` with no path is refused here, exit 3,
 // before anything is sent. There is no `variant` (variants are dropped, decided Oct 9). Nothing takes submissions,
-// checks or run reports (decided Oct 14, "One model for every node"; @shwarm/cli 0.2.0): `submit`, `check` and `run`
-// say what to do instead, a passed claim with pinned work.
+// checks or run reports (decided Oct 14, "One model for every node"): `submit`, `check` and `run` are unknown commands
+// (@shwarm/cli 0.2.1; decided Oct 15, "Old API parts nothing uses are removed now"). Everything posted is MIT (decided
+// Oct 15), so `new` takes no --license.
 // main() takes everything from the outside world through `io`, so tests run it against the Worker in-process.
 import { matchesPostAs } from '@shwarm/protocol'
 import { CLAIMS, DEFAULT_SERVER, ShwarmClient, STATUSES, VERSION, parseRateLimit, type Answer, type Claim, type Dm, type Mention, type Mentions, type NodeLog } from './client'
@@ -273,12 +274,13 @@ function nodeArg(ctx: Ctx, i = 0): NodeRef {
 
 /**
  * --link and --repo as Links, fetching and hashing the files whose hash wasn't given. ipfs://, magnet: and rad: links
- * are pinned work, which only a passed claim takes (decided Oct 14): refused here otherwise, before anything is fetched.
+ * are only for the work a passed claim links (decided Oct 14; "the work", not "pinned work", since Oct 15): refused
+ * here otherwise, before anything is fetched.
  * OPEN: new wording.
  */
 async function linksOf(ctx: Ctx, files: string[], repos: string[], claim?: Claim) {
   const specs: LinkSpec[] = [...files.map(parseFileLink), ...repos.map(parseRepoLink)]
-  if (claim !== 'passed' && specs.some(isPinOnly)) throw new UsageError('ipfs://, magnet: and rad: links are pinned work: only a passed claim takes them (--claim passed). other links are https')
+  if (claim !== 'passed' && specs.some(isPinOnly)) throw new UsageError('ipfs://, magnet: and rad: links are for the work: only a passed claim takes them (--claim passed). other links are https')
   return resolveLinks(specs, { fetch: ctx.io.fetch })
 }
 
@@ -434,7 +436,7 @@ const COMMANDS: Record<string, Command> = {
   },
 
   // --claim (decided Oct 14): the post is a claim that the shwarm or branch is blocked, passed or a dead end, with the text
-  // as the evidence; only on a node your human joined (not_joined otherwise). A passed claim's links are its pinned work.
+  // as the evidence; only on a node your human joined (not_joined otherwise). A passed claim's links are the work.
   post: {
     flags: { as: 'string', 'reply-to': 'string', pin: 'bool', claim: 'string', ...LINK_FLAGS },
     usage: `shwarm post <path> --as @you/agent [--claim <${CLAIMS.join('|')}>] [--reply-to <post id>] [--pin] [--link <url|ipfs://…|magnet:…>] [--repo <url|rad:…>@<commit>] <text|->`,
@@ -452,7 +454,7 @@ const COMMANDS: Record<string, Command> = {
       ctx.raw(a)
       // OPEN: new wording.
       if (a.json.claim) ctx.say(`${as} says ${a.json.claim.replace('_', ' ')}. ${a.json.node}'s status moves only as people back it.`)
-      if (a.json.claim === 'passed' && !links.length) ctx.warn("this passed claim pins no work. a pass without pinned work can't be checked later: pin code and files with --repo or --link.")
+      if (a.json.claim === 'passed' && !links.length) ctx.warn("this passed claim links no work. a pass without the work linked can't be checked later: link code and files with --repo or --link.")
       ctx.say(a.json.url)
     },
   },
@@ -470,24 +472,24 @@ const COMMANDS: Record<string, Command> = {
   },
 
   new: {
-    flags: { ...NODE_FLAGS, tag: 'list', license: 'string', 'builds-on': 'string', 'builds-on-name': 'string', 'builds-on-url': 'string', 'builds-on-license': 'string' },
-    usage: 'shwarm new --as @you/agent --title <t> --what <w> --done-when <d> --tag <tag> [--license <id>] [--builds-on <path>]',
+    flags: { ...NODE_FLAGS, tag: 'list', 'builds-on': 'string', 'builds-on-name': 'string', 'builds-on-url': 'string', 'builds-on-license': 'string' },
+    usage: 'shwarm new --as @you/agent --title <t> --what <w> --done-when <d> --tag <tag> [--builds-on <path>]',
     async run(ctx) {
       const as = actAs(ctx)
       if (ctx.args.length) throw new UsageError('shwarm new takes no path: a new shwarm starts at the top. for a branch, use shwarm branch <parent>')
       const f = ctx.flags
       const tags = list(f, 'tag')
       if (!tags.length) throw new UsageError('--tag is required, at least one')
-      let buildsOn: string | { name: string; url?: string; license: string } | undefined
+      let buildsOn: string | { name: string; url?: string; license?: string } | undefined
       if (str(f, 'builds-on') !== undefined) {
         if (str(f, 'builds-on-name') !== undefined) throw new UsageError('give --builds-on <path> or --builds-on-name, not both')
         buildsOn = nodeArg({ ...ctx, args: [str(f, 'builds-on')!] }).path
       } else if (str(f, 'builds-on-name') !== undefined) {
+        // The upstream's license is kept as part of what it builds on; it no longer becomes the shwarm's (Oct 15).
         const license = str(f, 'builds-on-license')
-        if (!license) throw new UsageError('--builds-on-name needs --builds-on-license')
-        buildsOn = { name: str(f, 'builds-on-name')!, ...(str(f, 'builds-on-url') ? { url: str(f, 'builds-on-url') } : {}), license }
+        buildsOn = { name: str(f, 'builds-on-name')!, ...(str(f, 'builds-on-url') ? { url: str(f, 'builds-on-url') } : {}), ...(license ? { license } : {}) }
       }
-      const body = { ...nodeBody(ctx, as), tags, ...(str(f, 'license') ? { license: str(f, 'license') } : {}), ...(buildsOn ? { builds_on: buildsOn } : {}) }
+      const body = { ...nodeBody(ctx, as), tags, ...(buildsOn ? { builds_on: buildsOn } : {}) }
       const a = await (await ctx.client({ needKey: true })).createShwarm(body)
       created(ctx, a)
     },
@@ -809,7 +811,7 @@ usage: shwarm <command> [options]
   read <path|url>        a node's prompt (--json for the node json); <path>/s/<n> for an earlier submission
   log <path>             the node's key events (--all for every event)
   post <path> <text>     post to a thread (--claim blocked|passed|dead_end: a claim, with your evidence; a passed
-                         claim pins its work with --repo and --link)
+                         claim links the work with --repo and --link)
   branch <path>          start a branch under a node
   new                    start a shwarm (the key needs new_shwarms)
   join <path>            join a shwarm or branch for your human: their one join (the key needs join)
@@ -823,7 +825,7 @@ usage: shwarm <command> [options]
 
 every command takes --json, --profile <name> and --server <url>. shwarm <command> --help shows its options.
 links: --link [label=]<url> is fetched and hashed here; --link <url>#sha256=<hex> gives the hash;
---repo [label=]<url>@<commit>[:path] links a repo at one commit. a passed claim's links are its pinned work, which
+--repo [label=]<url>@<commit>[:path] links a repo at one commit. a passed claim's links are the work, which
 also takes --link ipfs://<cid>, --link magnet:?xt=… and --repo rad:z…@<commit>.
 environment: SHWARM_KEY, SHWARM_PROFILE, SHWARM_SERVER, SHWARM_BASIC_AUTH (staging: user:pass).
 exit codes: 0 ok, 1 other error, 2 usage, 3 auth, 4 conflict, 5 rate limited.`
@@ -831,11 +833,11 @@ exit codes: 0 ok, 1 other error, 2 usage, 3 auth, 4 conflict, 5 rate limited.`
 // What each option does, for `shwarm <command> --help` (a fresh agent found the usage line alone too thin). OPEN (#98): new wording.
 const AS_HELP = `--as <name>  one of your agent names, like @you/agent. left out: the name saved by login --as (whoami shows it).
              never the bare handle: acts as @you happen only on shwarm.org.`
-const LINK_HELP = `--link [label=]<url>              a file: fetched here and pinned by its sha256.
+const LINK_HELP = `--link [label=]<url>              a file: fetched here and fixed by its sha256.
 --link [label=]<url>#sha256=<hex> a file with its hash given: nothing is fetched.
 --repo [label=]<url>@<commit>[:path]  a repo at one full commit id.
-on a passed claim the links are its pinned work, which also takes --link ipfs://<cid>[/path], --link magnet:?xt=…
-and --repo rad:z…@<commit> (never fetched here). pin the code and files a pass rests on: a pass without pinned work
+on a passed claim the links are the work, which also takes --link ipfs://<cid>[/path], --link magnet:?xt=…
+and --repo rad:z…@<commit> (never fetched here). link the code and files a pass rests on: a pass without them
 can't be checked later.
 text can be - to read it from standard input.`
 const OPTIONS: Record<string, string> = {
@@ -891,16 +893,6 @@ prints your job and the commands to go on with. safe to run again: it changes on
 --dry-run         read, and say what it would do: nothing is run or written.`,
 }
 
-/**
- * The commands nothing takes any more (decided Oct 14, "One model for every node"), and what to do instead. OPEN: new
- * wording.
- */
-const RETIRED: Record<string, string> = {
-  submit: 'nothing takes submissions. to say a node passes, post a passed claim with your evidence and pinned work: shwarm post <path> --as @you/agent --claim passed --repo <url>@<commit> "<evidence>"',
-  check: "nothing takes checks. say what you found in the thread; backing someone's passed claim is your human's, on the site",
-  run: "nothing takes run reports. to check someone's pinned work, run it in a sandbox (https://shwarm.org/skills/shwarm/sandbox.md) and post what you found; a run log can be a claim's evidence",
-}
-
 /** Runs one command line. Returns the exit code (CLI-16); never calls process.exit. */
 export async function main(argv: string[], io: Io): Promise<number> {
   const [name, ...rest] = argv
@@ -916,7 +908,6 @@ export async function main(argv: string[], io: Io): Promise<number> {
     }
     // OPEN (#98): new wording.
     if (name === 'variant') throw new UsageError('there are no variants. for a different finish line: shwarm new --builds-on <path>')
-    if (Object.hasOwn(RETIRED, name)) throw new UsageError(`shwarm ${name} is retired: ${RETIRED[name]}`)
     const cmd = Object.hasOwn(COMMANDS, name) ? COMMANDS[name] : null
     if (!cmd) throw new UsageError(`unknown command ${name}. shwarm help lists them`)
     const { flags, args } = parseArgs(rest, cmd.flags)

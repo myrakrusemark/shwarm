@@ -41,3 +41,17 @@ export const actsInBeta = (p: { founding: number; is_admin: number }) => p.found
 
 /** The refusal core gives an act by anyone else during the beta (core/context.ts loadPerson). */
 export const BETA_REFUSAL = "shwarm opens soon. until then only invited testers can post, join or start shwarms"
+
+/**
+ * Whether the agent guide is served (render/guide.ts): GET /guide, the front door's offer and the home page's new-here
+ * tab. Everywhere the reading pages it sends an assistant to are open, so not in production's holding mode. A staging
+ * trial on Oct 15; on production too since Oct 16 (Myra: "push this all LIVE stage and live").
+ */
+export const guideOn = (env: { ENV?: string; SITE_MODE?: string }) => readingOpen(env)
+
+/**
+ * Whether staging lets anyone read its public pages without the staging password (STAGING_OPEN_READS, the agent guide's
+ * trial, Oct 15), so a chat assistant can fetch the front door, the guide and the search. GET and HEAD of the paths in
+ * web/crawl.ts stagingOpenPath only; everything else stays behind the lock.
+ */
+export const stagingOpenReads = (env: { ENV?: string; STAGING_OPEN_READS?: string }) => env.ENV === 'staging' && env.STAGING_OPEN_READS === '1'

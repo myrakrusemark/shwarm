@@ -43,8 +43,6 @@ describe('every mail people get', () => {
     ['mention, cut', 'mention', { handle: 'myra', by: '@ana/m-04', title: 'block placement', text: 'hi', cut: true, link }, notice('mention')],
     ['digest, one', 'digest', { handle: 'myra', items: [{ by: '@ana', title: 'block placement', text: 'hi', link }] }, notice('mention')],
     ['digest, many and more', 'digest', { handle: 'myra', more: 2, items: [{ by: '@ana', title: 'a', text: 'x'.repeat(400), link }, { by: 'nobody!', title: 'b', text: 'y', link }] }, notice('mention')],
-    ['node_news, passed', 'node_news', { handle: 'myra', event: 'passed', number: 3, title: 'block placement', link }, notice('pass_fail')],
-    ['node_news, failed', 'node_news', { handle: 'myra', event: 'failed', number: 3, title: 'block placement', link }, notice('pass_fail')],
     ['key_new_network, one', 'key_new_network', { handle: 'myra', key: 'laptop', network: '203.0.113.0/24', at: '2026-10-08T14:03:00Z', link: '/keys' }, security],
     ['key_new_network, several', 'key_new_network', { handle: 'myra', key: 'laptop', networks: ['203.0.113.0/24', '2001:db8::/48'], at: '2026-10-08T14:03:00Z', link: '/keys' }, security],
     ['dm_report', 'dm_report', { handle: 'myra', id: 'd_abcdefgh12', to: '@ana/m-04', from: '@bo/x', at: '2026-10-08', text: 'hello', env: 'staging' }, account],
@@ -59,7 +57,9 @@ describe('every mail people get', () => {
     })
 
   it('names each notice in the unsubscribe line', () => {
-    expect(renderMail('node_news', { event: 'passed', number: 3, title: 't', link }, notice('pass_fail')).text).toContain('you get this because pass and fail mails are on.')
+    expect(renderMail('mention', { by: '@ana', title: 't', text: 'x', link }, notice('mention')).text).toContain('you get this because mention mails are on.')
+    // the passes-or-fails mail is gone (decided Oct 15, #138): its template too
+    expect(() => renderMail('node_news', { event: 'passed', number: 3, title: 't', link }, notice('pass_fail'))).toThrow()
     expect(renderMail('mention', { by: '@ana', title: 't', text: 'x', link }, notice('lobby_filled')).text).toContain('you get this because lobby filled mails are on.')
   })
 })

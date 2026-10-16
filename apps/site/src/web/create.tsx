@@ -1,18 +1,19 @@
 // The create form, /new (go-live 4.2), ported from mockups/new.html in shwarm mode: title, what, done when, tags,
-// builds on, license. The done test is the "done when" sentence alone (decided Oct 14: no checks; its people say it
-// passed with a claim they back). No lobby (decided Oct 9): it publishes a live shwarm
+// builds on. No license picker (decided Oct 15): everything posted here is MIT, and the rules in the sidebar say so.
+// The done test is the "done when" sentence alone (decided Oct 14: no checks; its people say it passed with a claim
+// they back). No lobby (decided Oct 9): it publishes a live shwarm
 // with the author down as working on it, through the shwarm tree (core/nodes.ts createNode), counted toward 3 new
 // nodes a day, and goes to the new page. New nodes start 'pending' and triage (8.1, triage/run.ts) runs right after the redirect;
 // production keeps creation paused (setting pause_new_nodes) until triage is seen running there; the form says so up front.
 // In the beta (go-live 3.10) anyone who isn't invited gets "opens soon" (web/opens-soon.tsx) instead of the form.
 //
-// Builds on: paste the link or path of any shwarm here, or any link. GitHub repo links get their name and SPDX license
-// from the GitHub API; any other link is stored as its URL and a name, with the license typed in. A builds-on
-// license replaces the license picker (protocol §8).
+// Builds on: paste the link or path of any shwarm here, or any link. GitHub repo links get their name (and the SPDX
+// license GitHub names, kept inside builds on as a note) from the GitHub API; any other link is stored as its URL and
+// a name. Building on something no longer copies its license (decided Oct 15).
 // OPEN: the mockup's live search and the chip with "change" need JavaScript; this first version is a plain form.
 //
 // Branch mode (go-live 4.3), as mockups/new.html draws it. /new?parent=<path> makes a branch: the parent's done
-// test shown as what it helps reach, no tags or builds-on, the parent's license, live at once. It reaches the parent
+// test shown as what it helps reach, no tags or builds-on, live at once. It reaches the parent
 // only as the node page would show it to this viewer. Variants are dropped (decided Oct 9): there is no ?variant= mode.
 // /new?builds_on=<path> fills the builds-on field, and names the shwarm when it's one this viewer can see (every
 // shwarm's "build on this"; decided Oct 14, "With nothing locking: build on any shwarm"), with its latest pass, the
@@ -31,13 +32,13 @@ import { formOf, FORM_FIELD, later, postedTokenOk, who, type AuthContext } from 
 import { signInHref } from '../auth/return-to'
 import { siteActor } from '../core/actor'
 import { isId } from '../core/ids'
-import { LICENSES, NO_EDIT, type CreateNodeInput } from '../core/nodes'
+import { NO_EDIT, type CreateNodeInput } from '../core/nodes'
 import { readSettings } from '../core/settings'
 import { MAX_TEXT, MAX_TITLE } from '../core/text'
 import { runInTree } from '../do/shwarm-tree'
 import { parseNodePath, readChain, type Chain, type NodeHead } from '../read/node'
 import { readLatestPass } from '../read/status'
-import { cut, licenseName, monthDay } from '../render/format'
+import { cut, monthDay } from '../render/format'
 import { showHidden } from '../render/hidden'
 import { Plain, Text } from '../render/text'
 import { triageNew } from '../triage/run'
@@ -52,7 +53,7 @@ type Env = { Bindings: { DB: D1Database; TREE: DurableObjectNamespace; AI: Ai; T
 type C = Context<Env>
 
 /** The form's fields, as posted (and as shown again after a refusal). `edit` only marks a form from an old edit tab. */
-export type CreateForm = Partial<Record<'title' | 'what' | 'done_when' | 'tags' | 'license' | 'builds_on' | 'builds_on_name' | 'builds_on_license' | 'parent' | 'edit', string>>
+export type CreateForm = Partial<Record<'title' | 'what' | 'done_when' | 'tags' | 'builds_on' | 'builds_on_name' | 'parent' | 'edit', string>>
 
 /**
  * What the form makes (go-live 4.3): a shwarm, with `upstream` when ?builds_on= names a shwarm this viewer can see, and
@@ -61,7 +62,7 @@ export type CreateForm = Partial<Record<'title' | 'what' | 'done_when' | 'tags' 
  */
 export type Mode = { kind: 'shwarm'; upstream?: NodeHead | null; asOf?: { id: string; at: string } | null } | { kind: 'branch'; chain: Chain }
 
-const FRESH: CreateForm = { license: LICENSES[0] }
+const FRESH: CreateForm = {}
 
 const place = () => ({
   title: w.create.placeTitle,
@@ -107,36 +108,29 @@ const lockNote = () => <>{fillx(w.create.lockNote, { newShwarm: <b>{w.create.loc
 function wordsOf(mode: Mode) {
   if (mode.kind === 'branch') {
     const n = mode.chain.node
-    const root = mode.chain.ancestors[0] ?? n
     return {
       page: fill(w.create.branchPageTitle, { title: showHidden(n.title) }),
       heading: w.create.branchHeading,
       sub: w.create.branchSub, // OPEN: mockups/new.html's "no lobby:" dropped; waits on Myra's yes
       pitchHint: w.create.branchPitchHint,
       doneHint: w.create.branchDoneHint,
-      licHint: w.create.branchLicHint,
       // OPEN (#77): the mockup's "goes live right away" predates triage; the check-first sentence is the shwarm form's.
       goNote: fill(w.create.branchGoNote, { title: showHidden(n.title) }),
       go: w.create.branchGo,
       place: branchPlace(),
-      root,
     }
   }
-  // OPEN (decided Oct 9, "No lobby"): the sub line, the license hint's "locks once you post it", the go note's last
-  // sentence and the button lost their lobby words; the new words wait on Myra's yes.
+  // OPEN (decided Oct 9, "No lobby"): the sub line, the go note's last sentence and the button lost their lobby words;
+  // the new words wait on Myra's yes.
   return {
     page: w.create.pageTitle,
     heading: w.create.heading,
     sub: w.create.sub,
     pitchHint: w.create.pitchHint,
     doneHint: w.create.doneHint,
-    // OPEN (decided Oct 12, once posted it can't be changed): "it can't be changed once you post it" replaces "it locks
-    // once someone else joins or anything is submitted"; the words wait on Myra's yes.
-    licHint: w.create.licHint,
     goNote: w.create.goNote,
     go: w.create.go,
     place: place(),
-    root: null,
   }
 }
 
@@ -233,7 +227,7 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refus
                     {upstream && (
                       <div class="picked" id="picked">
                         <div>
-                          <b><Plain text={upstream.title} /></b> <span>{fill(w.create.pickedLine, { path: upstream.path, license: licenseName(upstream.license) })}</span>
+                          <b><Plain text={upstream.title} /></b> <span>{fill(w.create.pickedLine, { path: upstream.path })}</span>
                           {/* the point it builds on: the upstream's latest pass (decided Oct 14), as its page says it */}
                           {asOf && <span> · {fill(w.create.pickedAsOf, { date: monthDay(asOf.at) })}</span>}
                         </div>
@@ -241,34 +235,11 @@ export const NewPage: FC<{ token?: string; v?: CreateForm; error?: string; refus
                     )}
                     <div class="row two">
                       <input type="text" name="builds_on_name" aria-label={w.create.buildsOnName} placeholder={w.create.buildsOnName} maxlength={200} value={v.builds_on_name ?? ''} />
-                      <input type="text" name="builds_on_license" aria-label={w.create.buildsOnLicenseLabel} placeholder={w.create.buildsOnLicensePlaceholder} maxlength={100} value={v.builds_on_license ?? ''} />
                     </div>
                     <p class="hint" style="margin:6px 0 0">{w.create.buildsOnFillHint}</p>
                   </div>
                 </div>
               )}
-              <div class="box" id="f-license">
-                <div class="f">
-                  <label for="license">{w.create.license}</label>
-                  <p class="hint" id="lic-hint">{t.licHint}</p>
-                  {branch ? (
-                    // Branches inherit the license, so nothing is sent: the select is shown, not posted.
-                    <select id="license" aria-describedby="lic-hint" disabled>
-                      <option>{licenseName(branch.license)}</option>
-                    </select>
-                  ) : (
-                    <select id="license" name="license" aria-describedby="lic-hint" hidden={upstream ? true : undefined}>
-                      {LICENSES.map((l, i) => <option value={l} selected={(v.license ?? LICENSES[0]) === l}>{i === 0 ? fill(w.create.licenseDefault, { license: licenseName(l) }) : licenseName(l)}</option>)}
-                    </select>
-                  )}
-                  {branch && t.root && (
-                    <p class="note" id="lic-up" style="margin:6px 0 0">{fillx(w.create.inheritsFrom, { shwarm: <Plain text={t.root.title} />, license: licenseName(branch.license) })}</p>
-                  )}
-                  {upstream && (
-                    <p class="note" id="lic-up" style="margin:6px 0 0">{fillx(w.create.takesUpstream, { shwarm: <Plain text={upstream.title} /> })}</p>
-                  )}
-                </div>
-              </div>
               <div class="go">
                 <span class="note" id="go-note">{t.goNote} <b id="fixed-note">{fixedNote()}</b></span>
                 <button class="btn" type="submit" id="go">{t.go}</button>
@@ -346,10 +317,12 @@ export function shwarmPathOf(raw: string, origin: string): string | null {
   }
 }
 
-/** The builds-on fields as createNode takes them: a shwarm path, an outside {name, url, license}, or null. */
+/**
+ * The builds-on fields as createNode takes them: a shwarm path, an outside {name, url}, or null. A github repo's license,
+ * when GitHub names one, goes along inside builds on as a note; nothing asks for one (decided Oct 15: no inheriting).
+ */
 export async function buildsOnFromForm(f: CreateForm, origin: string, get: Fetch = fetch): Promise<CreateNodeInput['buildsOn']> {
   const raw = (f.builds_on ?? '').trim()
-  const typed = (f.builds_on_license ?? '').trim()
   const name = (f.builds_on_name ?? '').trim()
   if (!raw) return null
   const path = shwarmPathOf(raw, origin)
@@ -358,16 +331,14 @@ export async function buildsOnFromForm(f: CreateForm, origin: string, get: Fetch
   if (!url) throw bad(w.create.buildsOnNotLink)
   if (url.protocol !== 'https:' && url.protocol !== 'http:') throw bad(w.create.buildsOnNotWeb)
   const gh = await githubRepo(url, get)
-  const license = gh?.license ?? typed
-  if (!license) throw new ShwarmError('bad_license', gh ? fill(w.create.githubNoLicense, { name: gh.name }) : w.create.typeLicense)
-  return { name: gh?.name ?? (name || url.hostname + url.pathname.replace(/\/+$/, '')), url: gh?.url ?? url.toString(), license }
+  return { name: gh?.name ?? (name || url.hostname + url.pathname.replace(/\/+$/, '')), url: gh?.url ?? url.toString(), ...(gh?.license ? { license: gh.license } : {}) }
 }
 
 export const create = new Hono<Env>()
 
 const formFields = (f: Record<string, string>): CreateForm => {
   const keep: CreateForm = {}
-  for (const k of ['title', 'what', 'done_when', 'tags', 'license', 'builds_on', 'builds_on_name', 'builds_on_license', 'parent', 'edit'] as const)
+  for (const k of ['title', 'what', 'done_when', 'tags', 'builds_on', 'builds_on_name', 'parent', 'edit'] as const)
     if (typeof f[k] === 'string') keep[k] = f[k]
   return keep
 }
@@ -456,7 +427,7 @@ create.post('/new', async (c: C) => {
   // A form from an old edit tab (retired Oct 12) changes nothing, and never falls through to making a new shwarm.
   if (f.edit !== undefined) return noEdit(c, session.verified)
   const origin = new URL(c.req.url).origin
-  // builds_on too, so a refused form that builds on a shwarm comes back with its chip and the license picker hidden.
+  // builds_on too, so a refused form that builds on a shwarm comes back with its chip.
   const m = await modeOf(c.env.DB, { parent: f.parent, builds_on: f.builds_on }, session.personId, origin)
   if (!m) return noNode(c)
   const mode = m.mode
@@ -468,7 +439,7 @@ create.post('/new', async (c: C) => {
     let input: CreateNodeInput
     // No node keeps checks (decided Oct 14: the done test is the "done when" sentence), so none are sent.
     if (mode.kind === 'branch') {
-      // A branch takes its parent's license and builds-on, and has no tags.
+      // A branch takes its parent's builds-on, and has no tags.
       input = { kind: 'branch', parent: mode.chain.node.path, ...text }
     } else {
       const buildsOn = await buildsOnFromForm(f, origin)
@@ -476,7 +447,6 @@ create.post('/new', async (c: C) => {
         kind: 'shwarm',
         ...text,
         tags: parseTagField(f.tags),
-        license: buildsOn ? undefined : f.license,
         buildsOn,
       }
     }

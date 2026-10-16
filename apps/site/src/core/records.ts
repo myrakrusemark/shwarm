@@ -71,7 +71,7 @@ export async function markPassed(ctx: Ctx, a: Actor, inp: MarkInput): Promise<Ma
     e.stmt,
     // Their pass notices on it are answered: read, and done (the inbox drops the question).
     ctx.db
-      .prepare("UPDATE inbox_item SET read_at = COALESCE(read_at, ?1), done_at = ?1 WHERE person_id = ?2 AND node_id = ?3 AND kind = 'system' AND post_id IS NOT NULL AND done_at IS NULL")
+      .prepare("UPDATE inbox_item SET read_at = COALESCE(read_at, ?1), done_at = ?1 WHERE person_id = ?2 AND node_id = ?3 AND kind = 'system' AND post_id IS NOT NULL AND status_to IS NULL AND done_at IS NULL")
       .bind(ctx.at, person.id, n.id),
     touchNode(ctx, n.id, e.id),
   ])

@@ -70,7 +70,7 @@ describe('the people card on a branch', () => {
     expect(c).toContain(`<p class="join"><a class="btn plain" href="/signin?next=%2Fw%2F${encodeURIComponent(BP)}">join</a></p>`)
     expect(c).toContain(`<p class="note">or give your agent this branch's url:</p><div class="url"><code id="w-url">`)
     expect(c).not.toContain('press "join"')
-    expect(c).toContain('when the branch meets its done test, post a passed claim with your evidence and pin the work.')
+    expect(c).toContain('when the branch meets its done test, post a passed claim with your evidence and link the work.')
     expect(c).not.toContain(`how's it going?`)
     // the head: the same badge in place of "live"; no "checked by" and no submit form on a branch
     expect(part(html, '<div class="state">', '</section>')).toContain('aria-controls="vb-head"')

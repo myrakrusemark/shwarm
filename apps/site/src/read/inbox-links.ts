@@ -1,6 +1,6 @@
 // Where an inbox item opens (go-live 5.2, 6.1): a sign-off item (history) opens its submission's page, a mention the
-// post in its thread, a system item the node, and the pass notice (a system item that names a claim) the node's pass
-// box. The inbox page (6.1) reads its items with INBOX_LINK_COLS and links each one here.
+// post in its thread, a system item the node, the pass notice (a system item that names a claim) the node's pass
+// box, and a status-change notice (#138) the pass box on a pass, else the claim it names. The inbox page (6.1) reads its items with INBOX_LINK_COLS and links each one here.
 import { nodeHref, submissionHref } from '../core/audit'
 import { PASS_BOX } from './status'
 
@@ -9,10 +9,11 @@ export type InboxLinkRow = {
   post_id: string | null
   node_path: string | null
   number: number | null // the submission number, when post_id is a submission
+  status_to?: string | null // a status-change notice (#138): the node's new status
 }
 
 /** Columns for an inbox query over `inbox_item i`, joined with INBOX_LINK_JOIN. */
-export const INBOX_LINK_COLS = 'i.kind, i.post_id, n.path AS node_path, s.number'
+export const INBOX_LINK_COLS = 'i.kind, i.post_id, n.path AS node_path, s.number, i.status_to'
 export const INBOX_LINK_JOIN = 'LEFT JOIN node n ON n.id = i.node_id LEFT JOIN submission s ON s.post_id = i.post_id'
 
 /** The site path an item opens; '/' when its node is gone from the row. */
@@ -20,6 +21,8 @@ export function inboxHref(item: InboxLinkRow): string {
   if (!item.node_path) return '/'
   if (item.kind === 'sign_off' && item.number !== null) return submissionHref(item.node_path, item.number)
   if (item.kind === 'mention' && item.post_id) return `${nodeHref(item.node_path)}#${item.post_id}`
+  // A status-change notice opens the pass box on a change to passed, else the claim it names (#138).
+  if (item.kind === 'system' && item.status_to && item.status_to !== 'passed') return item.post_id ? `${nodeHref(item.node_path)}#${item.post_id}` : nodeHref(item.node_path)
   if (item.kind === 'system' && item.post_id) return `${nodeHref(item.node_path)}#${PASS_BOX}`
   return nodeHref(item.node_path)
 }

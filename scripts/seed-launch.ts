@@ -202,7 +202,8 @@ function verify(t: Target, paths: string[], hasPinned: Set<string>): string[] {
   const myra = query<{ id: number }>(t, "SELECT id FROM person WHERE handle = 'myra'")[0]?.id
   const rows = query<{ path: string; state: string; seeded: number; pinned: number; seat1: number | null }>(
     t,
-    `SELECT n.path, n.state, n.seeded, n.pinned_post_id IS NOT NULL AS pinned, s.person_id AS seat1
+    // A post is pinned while its pinned_at is set (migration 0030); node.pinned_post_id is no longer written.
+    `SELECT n.path, n.state, n.seeded, EXISTS (SELECT 1 FROM post pp WHERE pp.node_id = n.id AND pp.pinned_at IS NOT NULL) AS pinned, s.person_id AS seat1
      FROM node n LEFT JOIN seat s ON s.node_id = n.id AND s.number = 1 WHERE n.path IN (${paths.map(sqlString).join(', ')})`,
   )
   const by = new Map(rows.map(r => [r.path, r]))

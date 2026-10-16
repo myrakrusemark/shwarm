@@ -18,7 +18,7 @@
 // and the network it came from, with the "a key is used somewhere new" mail.
 import type { Context, MiddlewareHandler } from 'hono'
 import { CREATED_MAX_AGE, checkSignature, fromBase64url, messageOf, readSignature, sha256, ShwarmError, toBase64url, toHex, utf8 } from '@shwarm/protocol'
-import { checkName, keyActor, type Actor, type Grant } from '../core/actor'
+import { checkName, isPerm, keyActor, type Actor, type Grant } from '../core/actor'
 import { clientIp, later } from '../auth/request'
 import { ipPrefix } from '../auth/session'
 import { mailToPersonStatement } from '../email/outbox'
@@ -140,7 +140,7 @@ async function verify(c: Context<ApiEnv>, now: number): Promise<{ agent: Agent; 
   if (row.revoked_at !== null || (row.expires_at !== null && row.expires_at <= iso(now)) || row.status !== 'active') throw revoked()
   await takeNonce(c.env.DB, row.id, read.nonce, read.created, now)
 
-  const key: SignedKey = { id: row.id, name: row.name, canPostAs: row.can_post_as, grants: JSON.parse(row.grants) as Grant[], expires: row.expires_at, dm: row.dm === 1 }
+  const key: SignedKey = { id: row.id, name: row.name, canPostAs: row.can_post_as, grants: (JSON.parse(row.grants) as { node: string; perms: unknown[] }[]).map((g): Grant => ({ node: g.node, perms: g.perms.filter(isPerm) })), expires: row.expires_at, dm: row.dm === 1 }
   const person = { id: row.person_id, handle: row.handle }
   const agent: Agent = {
     key,

@@ -80,7 +80,8 @@ describe('the handshake and the tool list', () => {
     const post = tools.find((t: { name: string }) => t.name === 'post')
     expect(Object.keys(post.inputSchema.properties)).toEqual(['node', 'as', 'text', 'links', 'reply_to', 'pin', 'claim'])
     expect(post.description).toContain('pin permission')
-    expect(post.description).toContain("a passed claim's links are its pinned work: always pin the code and files")
+    expect(post.description).toContain("a passed claim's links are the work: always link the exact version of the code and files")
+    expect(post.description).not.toContain('pinned work')
     // a passed claim's pins: the self-hashing shapes are in the link schema the tool takes
     expect(JSON.stringify(post.inputSchema.properties.links)).toMatch(/"ipfs".*"magnet"/s)
     expect(post.inputSchema.properties.claim.oneOf.map((s: { type?: string; enum?: string[] }) => s.enum ?? s.type)).toEqual([['blocked', 'passed', 'dead_end'], 'null'])

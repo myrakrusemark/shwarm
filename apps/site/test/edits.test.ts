@@ -169,7 +169,7 @@ describe("core editNode, the operator's seed card-fix tool only (no user edits s
     await refused(edit(stepped(myra), { title: 'x'.repeat(121) }), 'bad_request')
     await refused(edit(stepped(myra), { doneWhen: ' ' }), 'no_done_test')
     await refused(edit(stepped(myra), { tags: [] }), 'bad_request')
-    await refused(edit(stepped(myra), { license: 'WTFPL' }), 'bad_license')
+    await refused(edit(stepped(myra), { license: 'x'.repeat(101) }), 'bad_license') // the note about the work, up to 100 characters (Oct 15)
     expect(w.all('SELECT 1 FROM node_edit')).toEqual([])
   })
 
@@ -209,7 +209,7 @@ describe("core editNode, the operator's seed card-fix tool only (no user edits s
     expect(await edit(stepped(myra), { license: 'GPL-3.0' })).toMatchObject({ edited: true })
     expect([w.node(MID).license, w.node(`${MID}/block-placement`).license]).toEqual(['GPL-3.0', 'GPL-3.0'])
     const e = await refused(edit(stepped(myra), { buildsOn: `${MID}/block-placement` }), 'bad_request')
-    expect(e.message).toBe('builds_on names a shwarm on shwarm, or an outside project as {name, url, license}')
+    expect(e.message).toBe('builds_on names a shwarm on shwarm, or an outside project as {name, url}')
     expect(w.node(`${MID}/block-placement`).builds_on).toBeNull()
   })
 
@@ -233,22 +233,24 @@ describe("core editNode, the operator's seed card-fix tool only (no user edits s
     expect(w.all('SELECT 1 FROM node_edit')).toEqual([])
   })
 
-  it('builds on as a create takes it: any shwarm brings its license, to the branches too (decided Oct 14)', async () => {
+  it('builds on as a create takes it: any shwarm, bringing no license (decided Oct 15); the license sent, or the one stored, reaches the branches', async () => {
     await w.shwarm(site(ana), { title: 'doom speedruns', license: 'GPL-3.0' })
     await refused(edit(stepped(myra), { buildsOn: 'doom-speedruns' }), 'bad_request') // still being checked: myra can't see it
     w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = 'doom-speedruns'").run()
     await refused(edit(stepped(myra), { buildsOn: 'no-such-shwarm' }), 'bad_request')
     await w.branch(site(myra), MID)
-    // the upstream license wins over any sent; it has no pass record, so it's built on as it stands
+    // no upstream license carries over (Oct 15); it has no pass record, so it's built on as it stands
+    w.db.raw.prepare("UPDATE node SET license = 'GPL-3.0' WHERE path = 'doom-speedruns'").run() // a pick from before Oct 15
     const upstream = '{"node":"doom-speedruns","as_of":null}'
-    expect(await edit(stepped(myra), { buildsOn: 'doom-speedruns', license: 'MIT' })).toMatchObject({ edited: true })
-    expect(w.node(MID)).toMatchObject({ license: 'GPL-3.0', builds_on: upstream })
-    expect(w.node(`${MID}/block-placement`)).toMatchObject({ license: 'GPL-3.0', builds_on: upstream })
-    // an outside project needs its license
-    await refused(edit(stepped(myra), { buildsOn: { name: 'freedoom' } as any }), 'bad_license')
+    expect(await edit(stepped(myra), { buildsOn: 'doom-speedruns' })).toMatchObject({ edited: true })
+    expect(w.node(MID)).toMatchObject({ license: 'MIT', builds_on: upstream })
+    expect(w.node(`${MID}/block-placement`)).toMatchObject({ license: 'MIT', builds_on: upstream })
+    // an outside project needs no license; one sent stays part of what it builds on, and the stored one stays
+    await edit(stepped(myra), { buildsOn: { name: 'freedoom' } as any })
+    expect(w.node(MID)).toMatchObject({ license: 'MIT', builds_on: '{"name":"freedoom"}' })
     await edit(stepped(myra), { buildsOn: { name: 'freedoom', url: 'https://freedoom.github.io/', license: 'BSD-3-Clause' } })
-    expect(w.node(MID).license).toBe('BSD-3-Clause')
-    // and builds on nothing again: the license picked
+    expect(w.node(MID).license).toBe('MIT')
+    // the card fix's license is the note about the work, and reaches the branches
     await edit(stepped(myra), { buildsOn: null, license: 'Apache-2.0' })
     expect(w.node(MID)).toMatchObject({ license: 'Apache-2.0', builds_on: null })
     expect(w.node(`${MID}/block-placement`)).toMatchObject({ license: 'Apache-2.0', builds_on: null })

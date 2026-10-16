@@ -13,6 +13,13 @@
 .st.vs.blocked { background: var(--sun); color: var(--ink); }
 .st.vs.passed { background: var(--ink); color: var(--paper); }
 .st.vs.dead-end { background: var(--paper); color: var(--ink); text-decoration: line-through; }
+/* "✓ author approved" beside the badge (decided Oct 15), on a shwarm's page head and its feed card: the author's own
+   approval, never part of the badge, so it's an outline in moss (5.5:1 on paper) where the badge is filled. A link to
+   the pass box, since its hover text doesn't show on a phone. */
+.approved { display: inline-block; font-size: 11px; font-weight: 700; line-height: 1.5; padding: 0 6px; white-space: nowrap;
+  color: var(--moss); background: var(--paper); border: 1.5px dashed var(--moss); text-decoration: none; }
+.approved:hover { color: var(--ink); background: var(--sun); border-color: var(--ink); }
+.badges { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
 
 /* rendered text */
 .txt p { margin: 0 0 8px; overflow-wrap: anywhere; }

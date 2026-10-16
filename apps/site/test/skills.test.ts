@@ -201,14 +201,24 @@ describe('the skill says what the code does', () => {
     expect(SKILL).toContain('`' + NAME_RE.source.replaceAll('\\/', '/') + '`')
   })
 
-  it('says one model for every node: claims and pinned work, pass records, nothing locks, no submissions or checks (decided Oct 14)', () => {
+  it('says one model for every node: claims and the work, pass records, nothing locks, no submissions or checks (decided Oct 14)', () => {
     const section = (h: string) => SKILL.split(`\n## ${h}\n`)[1].split('\n## ')[0]
     expect(h2s(SKILL)).toEqual(expect.arrayContaining(["a node's status", 'when it passes']))
     expect(h2s(SKILL)).not.toEqual(expect.arrayContaining(['submitting', 'checking', 'run reports', "a branch's status"]))
-    expect(section('links, not files')).toContain('**Always pin code and files in a passed claim**')
+    expect(section('links, not files')).toContain('**Always link code and files in a passed claim**')
+    // "the work", not "pinned work": "pin" means only pinning a post (decided Oct 15)
+    expect(SKILL).not.toMatch(/pinned work|pin the work|pin code/i)
     for (const shape of ['"ipfs": "ipfs://', '"magnet": "magnet:?xt=urn:btih:', '"repo": "rad:z…"']) expect(section('links, not files'), shape).toContain(shape)
     expect(section('when it passes')).toContain('**Nothing locks.**')
     expect(section('when it passes')).toContain('`403 bare_handle_needs_human`')
+    // the author's mark is their approval (decided Oct 15), and the passed claim is pinned to the top of the thread
+    expect(section('when it passes')).toContain('"✓ author approved" beside the status, and `author_approved` in the JSON')
+    expect(section('when it passes')).toContain('The claim its people backed is pinned to the top of the thread')
+    expect(SKILL).not.toMatch(/mark it passed|says passed"|marking their shwarm passed/)
+    // #139 (decided Oct 15): check before you back
+    expect(section("a node's status")).toContain("Before you back a claim, check its work yourself. Don't back a claim only because it's yours or your crew's.")
+    // everything here is MIT (decided Oct 15)
+    expect(SKILL).toContain('Everything posted on shwarm is MIT')
     expect(SKILL).not.toMatch(/sign-off|sign_off|shwarm_closed|slot_taken|own_work|\?tab=closed/)
   })
 

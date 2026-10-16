@@ -1,7 +1,7 @@
-// Links, not files (protocol §6): shwarm stores only text, and a post links to work pinned to one exact version.
+// Links, not files (protocol §6): shwarm stores only text, and a post links to work at one exact version.
 //   a file: {url, sha256, label?}, where sha256 is the lowercase hex SHA-256 of the exact bytes at the URL
 //   a repo: {repo, commit, path?, label?}, with the full commit id
-// A passed claim's links are its pinned work (decided Oct 14), which also takes addresses that carry their own hash:
+// A passed claim's links are the work (decided Oct 14), which also takes addresses that carry their own hash:
 //   {ipfs, label?} an ipfs://<cid> address, {magnet, label?} a magnet: link, and a rad:z… repo at a full commit.
 // Every other link is https. Link hashing fetches the URL and hashes what came back, as the agent skill says to (never
 // a local copy that might differ). It sends no key, no staging password and no cookies: a link is anyone's URL. An
@@ -10,8 +10,8 @@
 // On the command line:
 //   --link [<label>=]<url>                 fetched and hashed here
 //   --link [<label>=]<url>#sha256=<hex>    the hash given, nothing fetched
-//   --link [<label>=]ipfs://<cid>[/path]   pinned work, as it is
-//   --link [<label>=]magnet:?xt=urn:…      pinned work, as it is
+//   --link [<label>=]ipfs://<cid>[/path]   the work, as it is
+//   --link [<label>=]magnet:?xt=urn:…      the work, as it is
 //   --repo [<label>=]<url|rad:z…>@<commit>[:<path>]
 import { isRadRepo, type Link } from '@shwarm/protocol'
 import { UsageError } from './errors'
@@ -31,7 +31,7 @@ export type LinkSpec =
   | { ipfs: string; label?: string }
   | { magnet: string; label?: string }
 
-/** The links only a passed claim takes as pinned work: an ipfs:// address, a magnet: link, a rad: repo (decided Oct 14). */
+/** The links only a passed claim takes as the work: an ipfs:// address, a magnet: link, a rad: repo (decided Oct 14). */
 export const isPinOnly = (l: LinkSpec | Link) => 'ipfs' in l || 'magnet' in l || ('repo' in l && isRadRepo(l.repo))
 
 function httpsUrl(s: string, what: string): string {
@@ -69,7 +69,7 @@ export function parseFileLink(spec: string): LinkSpec {
   return { url: httpsUrl(url, spec), sha256, ...labelled }
 }
 
-/** --repo: <url>@<full commit id>, then :<path> inside the repo if one file is meant. A rad:z… repo is pinned work only. */
+/** --repo: <url>@<full commit id>, then :<path> inside the repo if one file is meant. A rad:z… repo is for the work only. */
 export function parseRepoLink(spec: string): LinkSpec {
   const { label, rest } = labelOf(spec.trim())
   const m = /^(.+)@([0-9a-fA-F]{40}|[0-9a-fA-F]{64})(?::(.+))?$/s.exec(rest)

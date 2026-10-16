@@ -23,11 +23,27 @@ import { checkWritable, readSettings } from './settings'
 import { OPEN_NODE } from '../read/visibility'
 import { lf, MAX_SLUG, MAX_TITLE, needText, RESERVED_SLUGS, slugify } from './text'
 
-// A2 (decided Oct 8): a default and a short open list. OPEN: the identifiers are proposed in protocol §8.
-export const DEFAULT_LICENSE = 'MIT+CC-BY-4.0'
+// Everything posted here is MIT, with no picker (decided Oct 15, "Everything here is MIT; the license picker goes;
+// builds-on no longer inherits a license; old licenses become a note about the work"). Every new node's license is
+// MIT, whatever a caller sends. A node set to another license before then keeps it, shown only as a note about the
+// work (workLicense); a branch carries its shwarm's, so it shows the same note. The launch import alone still stores a
+// card's license (seed/launch.ts: the upstream's, or the list's own), so launch shwarms carry that note too.
+export const DEFAULT_LICENSE = 'MIT'
+/** The old picker's list (A2, Oct 8), which the launch import still checks a card's own license against. */
 export const LICENSES: readonly string[] = ['MIT+CC-BY-4.0', 'MIT', 'Apache-2.0', 'GPL-3.0', 'AGPL-3.0', 'CC-BY-4.0', 'CC-BY-SA-4.0', 'CC0-1.0']
+/** The licenses that are this site's own: MIT, and the old default pair, which nobody picked (it was the default). */
+const SITE_LICENSES = new Set(['MIT', 'MIT+CC-BY-4.0'])
 
-const MAX_TAGS = 8 // OPEN: no tag count or tag pattern is decided
+/**
+ * A node's stored license as a note about its work (decided Oct 15): null when it's the site's own (MIT, or the old
+ * default), else the license its author planned the work under ("the work: GPL-3.0, as its author planned it").
+ */
+export const workLicense = (stored: string | null | undefined): string | null => {
+  const l = (stored ?? '').trim()
+  return !l || SITE_LICENSES.has(l) ? null : l
+}
+
+const MAX_TAGS = 15 // decided Oct 15 (Myra: "yeah wed raise the cap"); tags hold topics, skills, places and languages. The pattern is still OPEN
 const TAG_RE = /^[a-z0-9][a-z0-9-]{0,31}$/
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
@@ -41,16 +57,16 @@ export type CreateNodeInput = {
   doneWhen: string
   check?: unknown // taken and ignored: no node keeps checks (decided Oct 14), so callers that still send one keep working
   tags?: string[]
+  /** Taken and ignored (decided Oct 15: everything here is MIT), but from the launch import (seed/launch.ts). */
   license?: string
-  buildsOn?: string | { name: string; url?: string; license: string } | null
+  /** An outside project's license is kept as part of what it builds on, and never becomes the node's (Oct 15). */
+  buildsOn?: string | { name: string; url?: string; license?: string } | null
   slug?: string // the launch import only (A18): keeps the slug the launch list chose instead of one from the title
 }
 
 export type CreateNodeResult = {
   path: string
   kind: NodeKind
-  state: 'live'
-  license: string
   limits: { new_nodes_today: { left: number } }
 }
 
@@ -62,15 +78,16 @@ function parseTags(v: unknown): string[] {
   return tags
 }
 
-const NO_UPSTREAM = 'builds_on names a shwarm on shwarm, or an outside project as {name, url, license}'
+const NO_UPSTREAM = 'builds_on names a shwarm on shwarm, or an outside project as {name, url}'
 
 /**
- * builds_on: the path of a shwarm, or an outside project {name, url?, license}. Either way its license carries over.
+ * builds_on: the path of a shwarm, or an outside project {name, url?, license?}. Its license no longer carries over
+ * (decided Oct 15); an outside project's, when sent, is kept as part of what the node builds on.
  * A path its actor's person can't see is refused as not there, for site actors too: the site passes the typed path on.
  * A shwarm is built on at any time (decided Oct 14): `as_of` names its latest pass record ("as passed oct 14"), or is
  * null when it has none, so the new shwarm says which pass it took the work from.
  */
-async function parseBuildsOn(ctx: Ctx, a: Actor, v: CreateNodeInput['buildsOn']): Promise<{ json: string; license: string; node?: NodeRow } | null> {
+async function parseBuildsOn(ctx: Ctx, a: Actor, v: CreateNodeInput['buildsOn']): Promise<{ json: string; node?: NodeRow } | null> {
   if (v === undefined || v === null || v === '') return null
   if (typeof v === 'string') {
     const n = await findNode(ctx, v)
@@ -79,12 +96,13 @@ async function parseBuildsOn(ctx: Ctx, a: Actor, v: CreateNodeInput['buildsOn'])
       .prepare("SELECT id FROM pass_record WHERE node_id = ? AND status = 'passed' ORDER BY at DESC, rowid DESC LIMIT 1")
       .bind(n.id)
       .first<{ id: string }>()
-    return { json: JSON.stringify({ node: n.path, as_of: pass?.id ?? null }), license: n.license, node: n }
+    return { json: JSON.stringify({ node: n.path, as_of: pass?.id ?? null }), node: n }
   }
-  if (typeof v !== 'object') throw bad('builds_on is a path or {name, url, license}')
+  if (typeof v !== 'object') throw bad('builds_on is a path or {name, url}')
   const name = needText(v.name, 'builds_on.name', 200)
-  if (typeof v.license !== 'string' || !v.license.trim() || v.license.length > 100)
-    throw new ShwarmError('bad_license', 'builds_on needs the upstream license, which this node takes')
+  const license = typeof v.license === 'string' ? v.license.trim() : ''
+  if (v.license !== undefined && v.license !== null && (typeof v.license !== 'string' || license.length > 100))
+    throw new ShwarmError('bad_license', "builds_on.license is the upstream's license, up to 100 characters")
   let url: string | undefined
   if (v.url !== undefined) {
     try {
@@ -95,7 +113,7 @@ async function parseBuildsOn(ctx: Ctx, a: Actor, v: CreateNodeInput['buildsOn'])
       throw bad('builds_on.url is not a web address')
     }
   }
-  return { json: JSON.stringify({ name, ...(url ? { url } : {}), license: v.license.trim() }), license: v.license.trim() }
+  return { json: JSON.stringify({ name, ...(url ? { url } : {}), ...(license ? { license } : {}) }) }
 }
 
 async function freePath(ctx: Ctx, prefix: string, base: string): Promise<string> {
@@ -129,22 +147,17 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
   let tags: string[] = []
   if (kind === 'branch') {
     parent = await loadNode(ctx, inp.parent, a)
-    if (inp.license !== undefined && inp.license !== null && inp.license !== parent.license)
-      throw new ShwarmError('bad_license', `branches take the parent's license (${parent.license})`)
     if (inp.buildsOn !== undefined && inp.buildsOn !== null) throw bad("branches take the parent's builds on. send none")
     if (Array.isArray(inp.tags) && inp.tags.length) throw bad('branches have no tags')
-    license = parent.license
+    license = parent.license // a branch shows its shwarm's note about the work, if it has one; any license sent is ignored
     buildsOn = parent.builds_on
   } else {
     tags = parseTags(inp.tags)
-    const b = await parseBuildsOn(ctx, a, inp.buildsOn)
-    if (b) {
-      buildsOn = b.json
-      license = b.license // the upstream license wins; any license sent is ignored (protocol §8)
-    } else {
-      license = inp.license ?? DEFAULT_LICENSE
-      if (!LICENSES.includes(license)) throw new ShwarmError('bad_license', `pick one of ${LICENSES.join(', ')}`, { allowed: LICENSES })
-    }
+    buildsOn = (await parseBuildsOn(ctx, a, inp.buildsOn))?.json ?? null
+    // MIT, whatever is sent (decided Oct 15); the launch import keeps its card's license as the note about the work.
+    const seeded = a.via === 'seed' && typeof inp.license === 'string' ? inp.license.trim() : ''
+    if (seeded.length > 100) throw new ShwarmError('bad_license', 'a license is up to 100 characters')
+    license = seeded || DEFAULT_LICENSE
   }
 
   const left = a.via === 'seed' ? Infinity : await checkNewNodes(ctx.db, { personId: person.id, handle: person.handle }, ctx.now)
@@ -228,8 +241,6 @@ export async function createNode(ctx: Ctx, a: Actor, inp: CreateNodeInput): Prom
   return {
     path,
     kind,
-    state: 'live',
-    license,
     limits: { new_nodes_today: { left: Number.isFinite(left) ? left : 0 } },
   }
 }
@@ -452,8 +463,8 @@ export async function editLock(db: D1Database, n: { id: number; path: string; ki
  * Edit a shwarm (decided Oct 10, '"edit" replaces re-pitch'; it supersedes re-pitch): its author changes everything the
  * /new form holds (title, what, done test, tags, license, builds on) until someone other than the author joins or
  * anything was ever submitted, whichever comes first; after that its words are locked for good (EDITABLE). The address
- * stays. Each field is checked as createNode checks it: builds on is a shwarm the author can see, or an outside project
- * with its license, and its license replaces any sent. Its stored checks stay as they are: no node keeps checks now, and
+ * stays. Each field is checked as createNode checks it: builds on is a shwarm the author can see, or an outside project.
+ * The license is the note about the work (decided Oct 15): the one sent, else the one stored. Its stored checks stay as they are: no node keeps checks now, and
  * a `check` sent is ignored (decided Oct 14). Branches carry their shwarm's license and
  * builds on, so a change to either reaches them too. A branch itself keeps the words it was opened with (Claude's
  * default, Oct 10). The version it replaces goes to node_edit, so the page can show the history: to everyone only if
@@ -482,12 +493,10 @@ export async function editNode(ctx: Ctx, a: Actor, inp: EditNodeInput): Promise<
   const doneWhen = needText(lf(inp.doneWhen), 'done_when', 2000)
   const tags = parseTags(inp.tags)
   const b = await parseBuildsOn(ctx, a, inp.buildsOn)
-  let license: string
-  if (b) license = b.license // the upstream license wins; any license sent is ignored (protocol §8)
-  else {
-    license = inp.license ?? DEFAULT_LICENSE
-    if (!LICENSES.includes(license)) throw new ShwarmError('bad_license', `pick one of ${LICENSES.join(', ')}`, { allowed: LICENSES })
-  }
+  // The stored license is a note about the work (decided Oct 15): the card fix sets it, or it stays as it is.
+  const sent = typeof inp.license === 'string' ? inp.license.trim() : ''
+  if (sent.length > 100) throw new ShwarmError('bad_license', 'a license is up to 100 characters')
+  const license = sent || n.license
   // A new shwarm can't name its own branch (it has none yet); an edit could, and the branch would then build on itself.
   if (b?.node && (b.node.id === n.id || b.node.root_id === n.id)) throw bad(NO_UPSTREAM)
   const buildsOn = b?.json ?? null

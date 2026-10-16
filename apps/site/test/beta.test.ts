@@ -32,8 +32,9 @@ afterEach(() => {
 
 /**
  * A small world at T0 (2026-10-08 12:00 utc). @myra is the admin and @bmo_fan a seed account; neither is a tester.
- *   ana    invited, verified, joined, posted, submitted #1, which passed
- *   bo     invited, verified, joined, checked #1 (a people check, pass)
+ *   ana    invited, verified, joined, posted, submitted #1, which passed (history), and posted a passed claim by her agent,
+ *          which the crowd's pass record cites
+ *   bo     invited, verified, joined, checked #1 (a people check, pass; history), and backs ana's claim
  *   cy     invited, never verified
  *   dee    not invited, verified, joined
  *   early  not invited, never verified
@@ -76,6 +77,12 @@ async function world() {
   post('p_chk', bo, '@bo', 'check', T0 - DAY)
   run("INSERT INTO check_report (id, post_id, submission_id, person_id, slot, verdict, created_at) VALUES ('c_1', 'p_chk', 'p_sub', ?, 'people', 'pass', ?)", bo, iso(T0 - DAY))
   run("INSERT INTO audit_event (id, at, event, node_id, submission_id, number) VALUES ('e_1', ?, 'passed', ?, 'p_sub', 1)", iso(T0 - DAY), node)
+  // The loop since Oct 14 (#141): ana's agent claims passed, bo backs it, and the crowd's pass record cites it.
+  post('p_claim', ana, '@ana/m-01', 'post', T0 - 2 * DAY - HOUR)
+  run("UPDATE post SET claim = 'passed' WHERE id = 'p_claim'")
+  run("INSERT INTO status_vote (node_id, person_id, status, claim_id, as_name, at) VALUES (?, ?, 'passed', 'p_claim', '@ana/m-01', ?)", node, ana, iso(T0 - 2 * DAY - HOUR))
+  run("INSERT INTO status_vote (node_id, person_id, status, claim_id, as_name, at) VALUES (?, ?, 'passed', 'p_claim', '@bo', ?)", node, bo, iso(T0 - 2 * DAY))
+  run("INSERT INTO pass_record (id, node_id, kind, status, at, claim_id, backers) VALUES ('r_crowd1', ?, 'crowd', 'passed', ?, 'p_claim', 2)", node, iso(T0 - DAY))
   post('p_myra', myra, '@myra', 'post', T0 - DAY)
   post('p_seed', seed, '@bmo_fan', 'post', T0 - DAY)
   return { db, run, node, ids: { myra, seed, early, ana, bo, cy, dee } }
@@ -108,7 +115,7 @@ describe('the beta funnel page', () => {
     expect(ok.headers.get('cache-control')).toBe('private, no-store')
     expect(ok.headers.get('x-robots-tag')).toBe('noindex')
     const page = await body(ok)
-    for (const s of ['beta funnel', 'the loop', 'testers', 'daily activity', 'traffic', '@ana', '@dee', 'part of a pass']) expect(page).toContain(s)
+    for (const s of ['beta funnel', 'the loop', 'testers', 'daily activity', 'traffic', '@ana', '@dee', 'first pass']) expect(page).toContain(s)
     expect(page).not.toContain('@bmo_fan') // seed accounts aren't testers
     expect(page).not.toMatch(/agents? (working|here|online)/)
 
@@ -123,20 +130,21 @@ describe('the beta funnel page', () => {
     expect(people.map(t => t.handle)).toEqual(['dee', 'cy', 'bo', 'ana', 'early']) // newest sign-up first
     const f = await funnel(db, people)
     expect(f.invited).toBe(4) // ana, bo, cy, eve; not @myra's own row
-    // A person counts at a step only with every step before it: dee joined without a post, bo checked without a
-    // submission and ana submitted without a check, so each stops short of the steps they reached out of order.
+    // A person counts at a step only with every step before it: dee joined without a post, bo backed a claim without
+    // making one and ana's claim passed though she backed no one else's, so each stops short of the steps they reached
+    // out of order. The submission and check from before Oct 14 count for nothing (#141).
     expect(Object.fromEntries(STEPS.map((s, i) => [s, [f.fromInvites[i], f.all[i]]]))).toEqual({
       'signed up': [3, 5],
       verified: [2, 3],
       'first post': [2, 2],
       'joined a shwarm or branch': [2, 2],
-      'first submission': [1, 1],
-      'first check given': [0, 0],
-      'part of a pass': [0, 0],
+      'first claim': [1, 1],
+      'first backing': [0, 0],
+      'first pass': [0, 0],
     })
     // so no step counts more people than the one above it, and the drop is never negative
     for (const list of [f.all, f.fromInvites]) for (let i = 1; i < list.length; i++) expect(list[i]).toBeLessThanOrEqual(list[i - 1])
-    // had ana also given a check, she'd be through the whole loop
+    // had ana also backed someone else's claim, she'd be through the whole loop
     const more = people.map(t => (t.handle === 'ana' ? { ...t, furthest: through(t.reached.map((r, i) => r || i === 5)) } : t))
     expect((await funnel(db, more)).all.slice(-3)).toEqual([1, 1, 1])
     expect(through([true, true, false, true])).toBe(1)
@@ -148,13 +156,17 @@ describe('the beta funnel page', () => {
     const { db } = await world()
     const by = Object.fromEntries((await testers(db)).map(t => [t.handle, t]))
     // the furthest step in order, as the loop counts them; each step reached on its own is kept too
-    expect(STEPS[by.ana.furthest]).toBe('first submission') // submitted the passing work, but gave no check
-    expect(STEPS[by.bo.furthest]).toBe('joined a shwarm or branch') // checked it, but submitted nothing
-    expect(by.ana.reached.at(-1) && by.bo.reached.at(-1)).toBe(true) // both part of the pass
+    expect(STEPS[by.ana.furthest]).toBe('first claim') // her claim passed, but she backs no one else's
+    expect(STEPS[by.bo.furthest]).toBe('joined a shwarm or branch') // backs ana's claim, but made none
+    expect(by.ana.reached.at(-1)).toBe(true) // the pass cites her claim, posted by her agent
+    expect(by.ana.reached[5]).toBe(false) // backing her own claim isn't a backing
+    expect(by.bo.reached[5] && !by.bo.reached[4] && !by.bo.reached.at(-1)).toBe(true) // a backer's pass isn't theirs
+    // a submission or check from before Oct 14 is no claim and no pass
+    expect(by.dee.reached.slice(4)).toEqual([false, false, false])
     expect(STEPS[by.dee.furthest]).toBe('verified') // joined, but never posted
     expect(STEPS[by.cy.furthest]).toBe('signed up')
     expect(by.cy.invited && !by.dee.invited).toBe(true)
-    expect(by.ana.last_active).toBe(iso(T0 - 2 * DAY)) // the submission, newer than the post
+    expect(by.ana.last_active).toBe(iso(T0 - 2 * DAY)) // her newest post (the old submission), newer than the claim
     expect(by.bo.last_active).toBe(iso(T0 - DAY))
     expect(by.early.last_active).toBeNull()
   })

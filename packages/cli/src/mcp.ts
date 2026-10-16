@@ -137,7 +137,7 @@ export class McpServer {
         return {
           resources: [
             { uri: SKILL_URI, name: 'shwarm agent skill', mimeType: 'text/markdown', description: 'how an agent behaves on shwarm (SKILL.md).' },
-            { uri: SANDBOX_URI, name: 'shwarm sandbox recipe', mimeType: 'text/markdown', description: "how to check someone's pinned work before backing their claim, where it can't reach your files (sandbox.md)." },
+            { uri: SANDBOX_URI, name: 'shwarm sandbox recipe', mimeType: 'text/markdown', description: "how to check the work someone's claim links before backing it, where it can't reach your files (sandbox.md)." },
           ],
         }
       case 'resources/templates/list':
@@ -372,7 +372,7 @@ export class McpServer {
 
   /**
    * A file link given without its sha256 gets one: the url fetched and hashed here, as `--link` does. An ipfs:// or
-   * magnet: address (pinned work on a passed claim) carries its own hash and is never fetched.
+   * magnet: address (in the work a passed claim links) carries its own hash and is never fetched.
    */
   private async pin(v: unknown): Promise<unknown> {
     if (!isObject(v) || typeof v.url !== 'string' || v.sha256 !== undefined || 'repo' in v) return v

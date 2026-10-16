@@ -11,11 +11,12 @@
 export const SEED = (a: string) => `${a}.password_hash LIKE '!%'`
 
 /**
- * The steps of the loop, in order. The funnel is nested: a person is through a step only if they also reached every
- * step before it, so no step counts more people than the one above it, and a person's furthest step is the last one
- * of that unbroken run (someone who checked work but never submitted their own stops at "joined").
+ * The steps of the loop, in order (decided Oct 15, #141: claims in place of submissions and checks). The funnel is
+ * nested: a person is through a step only if they also reached every step before it, so no step counts more people
+ * than the one above it, and a person's furthest step is the last one of that unbroken run (someone who backed
+ * another's claim but never made one stops at "joined").
  */
-export const STEPS = ['signed up', 'verified', 'first post', 'joined a shwarm or branch', 'first submission', 'first check given', 'part of a pass'] as const
+export const STEPS = ['signed up', 'verified', 'first post', 'joined a shwarm or branch', 'first claim', 'first backing', 'first pass'] as const
 
 export type Tester = {
   id: number
@@ -37,17 +38,17 @@ type TesterRow = {
   verified: number
   last_post: string | null
   joined: number
-  submitted: number
-  checked: number
-  last_check: string | null
+  claimed: number
+  backed: number
   passed: number
 }
 
 /**
- * Every tester, newest sign-up first, with the steps they reached. A check given is a run or people check (an author's
- * sign-off is theirs to give, not a check of someone else's work); part of a pass is submitting the passing work, or a
- * standing pass check or sign-off on it. Per person, each column is an indexed lookup (post_person, seat_person,
- * check_person).
+ * Every tester, newest sign-up first, with the steps they reached (#141). A first claim is a claim they posted, on
+ * the site or by an agent of theirs. A first backing is backing someone else's claim (their own claim backs itself, so
+ * it doesn't count); backing isn't kept once it's taken off, so this counts one they hold now (a builder's default). A
+ * first pass is a crowd pass record citing a claim they posted. Submissions and checks from before Oct 14 count for
+ * none of these. Per person, each column is an indexed lookup (post_person, status_vote_person, pass_record_claim).
  */
 export async function testers(db: D1Database): Promise<Tester[]> {
   const { results } = await db
@@ -57,20 +58,17 @@ export async function testers(db: D1Database): Promise<Tester[]> {
          p.email_verified_at IS NOT NULL AS verified,
          (SELECT MAX(created_at) FROM post WHERE person_id = p.id) AS last_post,
          EXISTS (SELECT 1 FROM seat WHERE person_id = p.id) AS joined,
-         EXISTS (SELECT 1 FROM post po JOIN submission s ON s.post_id = po.id WHERE po.person_id = p.id) AS submitted,
-         EXISTS (SELECT 1 FROM check_report WHERE person_id = p.id AND slot <> 'author') AS checked,
-         (SELECT MAX(created_at) FROM check_report WHERE person_id = p.id) AS last_check,
-         (EXISTS (SELECT 1 FROM post po JOIN submission s ON s.post_id = po.id WHERE po.person_id = p.id AND s.status = 'passed')
-          OR EXISTS (SELECT 1 FROM check_report c JOIN submission s ON s.post_id = c.submission_id
-                     WHERE c.person_id = p.id AND c.verdict = 'pass' AND c.reset_at IS NULL AND s.status = 'passed')) AS passed
+         EXISTS (SELECT 1 FROM post po WHERE po.person_id = p.id AND po.claim IS NOT NULL) AS claimed,
+         EXISTS (SELECT 1 FROM status_vote v JOIN post c ON c.id = v.claim_id WHERE v.person_id = p.id AND c.person_id <> p.id) AS backed,
+         EXISTS (SELECT 1 FROM post po JOIN pass_record r ON r.claim_id = po.id
+                 WHERE po.person_id = p.id AND po.claim = 'passed' AND r.kind = 'crowd' AND r.status = 'passed') AS passed
        FROM person p WHERE NOT ${SEED('p')} AND p.is_admin = 0
        ORDER BY p.created_at DESC, p.id DESC`,
     )
     .all<TesterRow>()
   return results.map(r => {
-    const reached = [true, !!r.verified, !!r.last_post, !!r.joined, !!r.submitted, !!r.checked, !!r.passed]
-    const last = [r.last_post, r.last_check].filter((x): x is string => !!x).sort().at(-1) ?? null
-    return { id: r.id, handle: r.handle, status: r.status, created_at: r.created_at, invited: !!r.invited, reached, furthest: through(reached), last_active: last }
+    const reached = [true, !!r.verified, !!r.last_post, !!r.joined, !!r.claimed, !!r.backed, !!r.passed]
+    return { id: r.id, handle: r.handle, status: r.status, created_at: r.created_at, invited: !!r.invited, reached, furthest: through(reached), last_active: r.last_post }
   })
 }
 

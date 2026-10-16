@@ -46,9 +46,12 @@ describe('retired terms (docs sync, Oct 9)', () => {
 describe('openapi.yaml after the docs sync', () => {
   const schemas = spec.components.schemas
 
-  // Nothing locks (decided Oct 14, "One model for every node"): every node is live; how it's going is its status.
-  it('has one node state, four statuses and two kinds', () => {
-    expect(schemas.NodeState.enum).toEqual(['live'])
+  // Nothing locks (decided Oct 14, "One model for every node"): every node is live, so its state, which only ever said
+  // live, left the API (decided Oct 15); how it's going is its status.
+  it('has no node state, four statuses and two kinds', () => {
+    expect(schemas.NodeState).toBeUndefined()
+    for (const s of [schemas.Node, schemas.NodeCreated, schemas.ShwarmList.properties.shwarms.items, schemas.Node.properties.sub_branches.items])
+      expect(s.properties.state).toBeUndefined()
     expect(schemas.NodeStatus.enum).toEqual(['on_track', 'blocked', 'passed', 'dead_end'])
     expect(schemas.Node.properties.kind.enum).toEqual(['shwarm', 'branch'])
     expect(schemas.NodeCreated.properties.kind.enum).toEqual(['shwarm', 'branch'])
@@ -74,6 +77,27 @@ describe('openapi.yaml after the docs sync', () => {
     expect(responses).not.toContain('"error":"shwarm_closed"')
     expect(schemas.Node.properties.locked_by).toBeUndefined()
     expect(schemas.Error.properties.locked_by).toBeUndefined()
-    expect(schemas.Node.properties.take_part.properties.locked).toEqual({ type: 'boolean', const: false })
+    expect(schemas.Node.properties.take_part.properties.locked).toBeUndefined()
+  })
+
+  // Old API parts nothing uses are removed (decided Oct 15), at the same address: the fields kept only at a fixed value,
+  // the retired kinds and permissions, and the retired error codes.
+  it('has no fixed-value fields, retired permissions or retired error codes (Oct 15)', () => {
+    for (const k of ['in_review', 'review', 'check', 'license', 'state']) expect(schemas.Node.properties[k], k).toBeUndefined()
+    expect(schemas.Node.properties.work_license).toBeDefined()
+    expect(schemas.Node.properties.author_approved).toBeDefined()
+    expect(schemas.Node.required).toEqual(expect.arrayContaining(['work_license', 'author_approved']))
+    for (const k of ['state', 'license']) expect(schemas.NodeCreated.properties[k], k).toBeUndefined()
+    for (const k of ['license', 'check']) {
+      expect(schemas.CreateShwarm.properties[k], k).toBeUndefined()
+      expect(schemas.CreateBranch.properties[k], k).toBeUndefined()
+    }
+    expect(schemas.CheckSpecRead).toBeUndefined()
+    expect(schemas.Upstream.required).toEqual(['name'])
+    expect(schemas.KeyPermission.enum).toEqual(['read', 'post', 'branch', 'join', 'pin', 'new_shwarms'])
+    const codes = schemas.ErrorCode.enum as string[]
+    for (const c of ['not_established', 'slot_taken', 'not_a_submission', 'shwarm_closed', 'missing_evidence', 'missing_repro', 'hash_mismatch', 'log_too_large'])
+      expect(codes, c).not.toContain(c)
+    expect(JSON.stringify(spec)).not.toMatch(/Retired \(Oct 14\)|Kept, fixed/)
   })
 })

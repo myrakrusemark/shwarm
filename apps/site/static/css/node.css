@@ -8,6 +8,8 @@
 .head.shwarm { background: linear-gradient(90deg, rgba(244,197,49,.35), transparent 70%), var(--paper); }
 .tags { display: inline-flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
 .t { font-size: 11px; padding: 0 5px; border: 1px solid var(--ink); background: var(--paper-2); color: var(--ink); text-decoration: none; }
+/* #needs-humans, first and set apart (decided Oct 15), as on the feed's cards */
+.t.nh { background: var(--paper); border-width: 2px; font-weight: 700; } /* bold and heavier, not yellow: one yellow pin in the trending row is enough (Myra, Oct 16: "its making a lot of yellow on the page") */
 .builds { font-size: 12px; margin: 0 0 6px; }
 .builds .up { display: inline-flex; gap: 6px; align-items: baseline; margin-left: 4px; padding: 1px 7px; border: 1.5px solid var(--ink); background: var(--paper-2); color: var(--ink); text-decoration: none; font-size: 11.5px; }
 .builds .up b { font-size: 12px; }
@@ -69,7 +71,7 @@
 .compose .btn[aria-busy="true"] { opacity: .55; cursor: progress; }
 main > .err.flash { margin: 0 0 10px; }
 
-/* not in the mockup: the author's own box, "mark it passed" behind the password (go-live 5.6; decided Oct 14) */
+/* not in the mockup: the author's own box, "approve it" behind the password (go-live 5.6; decided Oct 14) */
 .owner details summary { cursor: pointer; font-weight: 700; font-size: 13px; }
 .owner form > label { display: block; margin-top: 8px; font-weight: 700; font-size: 12.5px; }
 .owner form > label + .note { display: block; }
@@ -239,7 +241,7 @@ main > .err.flash { margin: 0 0 10px; }
 .acts .back-act { display: inline; margin: 0; }
 .acts .back-act button.up[aria-busy="true"] { opacity: .55; cursor: progress; }
 
-/* A passed claim's pinned work (decided Oct 14): under its evidence, or "no pinned work". A pin that carries its own hash
+/* A passed claim's work (decided Oct 14): under its evidence, or "no work linked". A pin that carries its own hash
    (ipfs, magnet, a rad repo) is code to copy, broken anywhere so a long magnet link can't widen the page. The passed
    claim's form takes them one per line. */
 .how.pins { margin-top: 4px; }
@@ -254,7 +256,7 @@ code.pin { font-size: 11.5px; overflow-wrap: anywhere; word-break: break-all; us
 .claim-act textarea.pins { min-height: 44px; }
 
 /* The pass box above the thread (decided Oct 14, in place of the result page): its records newest first, each with its
-   pinned work, then "since then", the folded status history, and the author's "mark it passed". */
+   pinned work, then "since then", the folded status history, and the author's "approve it". */
 .passbox { margin-bottom: 18px; }
 .passbox h2 { background: var(--ink); color: var(--paper); }
 .passbox .records { list-style: none; margin: 0; padding: 0; font-size: 13px; }

@@ -94,7 +94,7 @@ describe('the account modal (6.2)', () => {
     expect(open).not.toContain('name="password"')
     expect(open).toContain('<option value="digest" selected="">daily digest</option>')
     expect(open).toMatch(/id="n-inbox" name="n_inbox" value="1" form="acct-save" checked=""/)
-    expect(open).not.toMatch(/id="n-pass_fail"[^>]*checked/)
+    expect(open).not.toContain('n-pass_fail') // the passes-or-fails mail is gone (decided Oct 15, #138)
     expect(open).toContain('<input type="checkbox" id="n-key" checked="" disabled=""/>')
 
     // Nobody else: not @ana, not signed out, not even with ?account=1. The address never shows to them.
@@ -173,12 +173,13 @@ describe('the account modal (6.2)', () => {
     const b = await signIn(env, 'myra@example.org')
     const prefs = () => JSON.parse(get(env, 'SELECT notice_prefs FROM person WHERE id = ?', id).notice_prefs)
 
-    // untick "new in your inbox", tick passes or fails, right away
+    // untick "new in your inbox", right away; an old form's passes-or-fails box (gone Oct 15, #138) is ignored
     expect((await acct(b, 'myra', saveForm('myra', { n_inbox: undefined, n_pass_fail: '1', inbox_every: 'now' }))).status).toBe(303)
-    expect(prefs()).toEqual({ mention: false, pass_fail: true, inbox_every: 'now' })
+    expect(prefs()).toEqual({ mention: false, inbox_every: 'now' })
     let html = modalIn(await body(await b.get('/@myra?account=1')))!
     expect(html).not.toMatch(/id="n-inbox"[^>]*checked/)
-    expect(html).toMatch(/id="n-pass_fail"[^>]*checked/)
+    expect(html).not.toContain('pass_fail')
+    expect(html).not.toContain('passes or fails')
     expect(html).toContain('<option value="now" selected="">right away</option>')
 
     // a one-click unsubscribe from a mention mail turned mention off only; the box shows unticked, and saving the
@@ -195,24 +196,25 @@ describe('the account modal (6.2)', () => {
 
   it('the notices module: defaults, groups and the sweep honouring them', async () => {
     expect(noticeOn({}, 'mention')).toBe(true)
-    expect(noticeOn({}, 'pass_fail')).toBe(false)
     expect(noticeOn({}, 'lobby_filled')).toBe(true) // a type with no group is on until turned off
-    expect(noticeOn({ pass_fail: true }, 'pass_fail')).toBe(true)
+    // one group: the passes-or-fails one went with its mail (decided Oct 15, #138); a stored setting for it is kept, unread
+    expect(NOTICE_GROUPS.map(g => g.key)).toEqual(['inbox'])
     expect(groupOn({ mention: false }, NOTICE_GROUPS[0])).toBe(false)
     expect(inboxEvery({})).toBe('digest')
     expect(inboxEvery({ inbox_every: 'now' })).toBe('now')
-    expect(nextPrefs({ mention: false }, { inbox: false, pass_fail: false }, undefined)).toEqual({ mention: false })
+    expect(nextPrefs({ mention: false, pass_fail: true }, { inbox: false, pass_fail: false }, undefined)).toEqual({ mention: false, pass_fail: true })
 
-    // the sweep skips a notice whose type is off by default and was never turned on
+    // the sweep skips a notice whose type the person turned off
     const env = testEnv()
     const id = await member(env, 'myra')
     env.DB.raw.prepare("INSERT INTO signup_allow (email_norm, note, added_at) VALUES ('myra@example.org', 'test', ?)").run(new Date(T0).toISOString())
     env.DB.raw
-      .prepare("INSERT INTO email_outbox (to_email, person_id, template, stream, payload, created_at, send_after) VALUES ('myra@example.org', ?, 'node_news', 'notices', ?, ?, ?)")
-      .run(id, JSON.stringify({ notice: 'pass_fail', event: 'passed', number: 1, title: 'x', link: '/w/x/s/1' }), new Date(T0).toISOString(), new Date(T0).toISOString())
+      .prepare("INSERT INTO email_outbox (to_email, person_id, template, stream, payload, created_at, send_after) VALUES ('myra@example.org', ?, 'mention', 'notices', ?, ?, ?)")
+      .run(id, JSON.stringify({ notice: 'mention', title: 'x', link: '/w/x' }), new Date(T0).toISOString(), new Date(T0).toISOString())
+    env.DB.raw.prepare('UPDATE person SET notice_prefs = ? WHERE id = ?').run(JSON.stringify({ mention: false }), id)
     const out = await sweepOutbox({ DB: env.DB, ENV: 'test', SITE_URL: 'https://shwarm.org', RESEND_API_KEY: 're_test', MAIL_SECRET: 'm' } as any, { now: T0, fetch: (async () => Response.json({ id: 'x' })) as any })
     expect(out.skipped).toBe(1)
-    expect(get(env, 'SELECT last_error FROM email_outbox').last_error).toBe('skipped: turned off pass_fail notices')
+    expect(get(env, 'SELECT last_error FROM email_outbox').last_error).toBe('skipped: turned off mention notices')
   })
 
   it('links: only http(s) addresses the pages would link', () => {

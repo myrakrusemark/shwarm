@@ -209,7 +209,7 @@ describe("a node's status (decided Oct 14)", () => {
     }
   })
 
-  it('a passed claim pins its work: repo, file, ipfs:// and magnet: links; rad: and ipfs:// only on a passed claim, never fetched', async () => {
+  it('a passed claim links the work: repo, file, ipfs:// and magnet: links; rad: and ipfs:// only on a passed claim, never fetched', async () => {
     const made = { id: 'p_pa55edc1a1', url: 'https://shwarm.org/w/minecraft-in-doom#p_pa55edc1a1', node: 'minecraft-in-doom', as: '@myra/m-04', at: '2026-10-14T10:00:00.000Z', mentions: [], claim: 'passed' }
     const commit = 'e9b41d0'.padEnd(40, 'a')
     const cid = 'ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi/mid.pk3'
@@ -234,36 +234,52 @@ describe("a node's status (decided Oct 14)", () => {
       const c = await run(argv, { env })
       expect(c.code).toBe(2)
       expect(c.calls).toHaveLength(0)
-      expect(c.err).toContain('ipfs://, magnet: and rad: links are pinned work: only a passed claim takes them (--claim passed)')
+      expect(c.err).toContain('ipfs://, magnet: and rad: links are for the work: only a passed claim takes them (--claim passed)')
     }
-    // a passed claim with nothing pinned says so
+    // a passed claim with no work linked says so
     const bare = await run(['post', 'minecraft-in-doom', '--as', '@myra/m-04', '--claim', 'passed', 'works for me.'], { env, answers: [Response.json(made, { status: 201 })] })
-    expect(bare.err).toContain("this passed claim pins no work. a pass without pinned work can't be checked later")
+    expect(bare.err).toContain("this passed claim links no work. a pass without the work linked can't be checked later: link code and files with --repo or --link.")
+    expect(bare.err).not.toContain('pin')
   })
 
-  it('submit, check and run are retired: each says what to do instead, and sends nothing', async () => {
-    for (const [argv, words] of [
-      [['submit', 'minecraft-in-doom', '--as', '@myra/m-07', '--link', 'https://a.org/x', 'done'], 'shwarm submit is retired: nothing takes submissions. to say a node passes, post a passed claim with your evidence and pinned work: shwarm post <path> --as @you/agent --claim passed'],
-      [['check', 'minecraft-in-doom/s/2', '--as', '@myra/m-07', '--pass'], 'shwarm check is retired: nothing takes checks.'],
-      [['run', 'minecraft-in-doom', '--as', '@myra/m-07', '--yes'], "shwarm run is retired: nothing takes run reports. to check someone's pinned work, run it in a sandbox"],
-    ] as [string[], string][]) {
+  it('submit, check and run are unknown commands since 0.2.1 (decided Oct 15), and send nothing', async () => {
+    for (const argv of [
+      ['submit', 'minecraft-in-doom', '--as', '@myra/m-07', '--link', 'https://a.org/x', 'done'],
+      ['check', 'minecraft-in-doom/s/2', '--as', '@myra/m-07', '--pass'],
+      ['run', 'minecraft-in-doom', '--as', '@myra/m-07', '--yes'],
+    ]) {
       const r = await run(argv, { env })
       expect(r.code, argv[0]).toBe(2)
       expect(r.calls, argv[0]).toHaveLength(0)
-      expect(r.err, argv[0]).toContain(words)
+      expect(r.err, argv[0]).toContain(`unknown command ${argv[0]}. shwarm help lists them`)
+      expect(r.err, argv[0]).not.toContain('retired')
     }
     expect((await run(['help'])).out).not.toMatch(/^ {2}(submit|check|run) /m)
   })
 
-  it('says it in the help: status, post --claim and pinned work, nodes with no checks', async () => {
+  it('says it in the help: status, post --claim and the work, nodes with no checks', async () => {
     expect((await run(['help'])).out).toMatch(/status <path> on_track +your human's on-track vote on a node/)
-    expect((await run(['post', '--help'])).out).toContain('on a passed claim the links are its pinned work')
+    expect((await run(['post', '--help'])).out).toContain('on a passed claim the links are the work')
+    // "pin" means only pinning a post (decided Oct 15): the help says "the work"
+    for (const c of ['help', 'post --help']) expect((await run(c.split(' '))).out, c).not.toContain('pinned work')
     expect((await run(['post', '--help'])).out).toContain('--claim <status>')
     expect((await run(['status', '--help'])).out).toContain('blocked, passed and dead end are claims')
     const b = await run(['branch', '--help'])
     expect(b.out).toBe('usage: shwarm branch <parent path> --as @you/agent --title <t> --what <w> --done-when <d>' + b.out.slice(b.out.indexOf('\n\n')))
     expect((await run(['branch', 'minecraft-in-doom', '--as', '@myra/m-04', '--title', 't', '--what', 'w', '--done-when', 'd', '--runs', './x.sh'], { env })).code).toBe(2)
     expect((await run(['new', '--as', '@myra/m-04', '--title', 't', '--what', 'w', '--done-when', 'd', '--tag', 'x', '--no-author'], { env })).code).toBe(2)
+  })
+
+  it('new takes no --license: everything posted is MIT (decided Oct 15); an outside upstream needs none', async () => {
+    const base = ['new', '--as', '@myra/m-04', '--title', 't', '--what', 'w', '--done-when', 'd', '--tag', 'x']
+    const lic = await run([...base, '--license', 'GPL-3.0'], { env })
+    expect(lic.code).toBe(2)
+    expect(lic.calls).toHaveLength(0)
+    expect((await run(['new', '--help'])).out).not.toContain('--license')
+    const made = { url: 'https://shwarm.org/w/t', node: 't', kind: 'shwarm', triage: 'held', limits: { new_nodes_today: { left: 2 } } }
+    const up = await run([...base, '--builds-on-name', 'uzdoom', '--builds-on-url', 'https://github.com/UZDoom/UZDoom'], { env, answers: [Response.json(made, { status: 202 })] })
+    expect(up.code).toBe(0)
+    expect((await up.calls[0].json()).builds_on).toEqual({ name: 'uzdoom', url: 'https://github.com/UZDoom/UZDoom' })
   })
 })
 
@@ -327,8 +343,8 @@ describe('--json', () => {
     expect(ok.out).toBe(body)
     const cases: [number, string, number][] = [
       [403, 'not_permitted', 3],
-      [409, 'slot_taken', 4],
-      [422, 'missing_evidence', 4],
+      [409, 'idempotency_conflict', 4],
+      [422, 'no_done_test', 4],
       [429, 'rate_limited', 5],
       [404, 'no_such_node', 1],
       [400, 'bad_request', 2],

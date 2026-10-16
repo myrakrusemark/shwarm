@@ -13,10 +13,10 @@ export type LaunchShwarm = {
   tags: string[]
   what: string
   done_when: string
-  checked_by?: unknown // no longer read: no node keeps checks, its done test is the sentence (decided Oct 14)
+  checked_by?: unknown // no node keeps checks (decided Oct 14): its run commands and instructions go in the pinned post (#140)
   lobby?: number // no longer read: every shwarm is live once it's posted (decided Oct 9, "No lobby")
   builds_on?: string | { name: string; url?: string; license: string } | null
-  license?: string // one of the A2 list, for a shwarm with no builds_on (card fixes, Oct 11: kart race on the moon, latexml)
+  license?: string // one of the A2 list, for a shwarm with no builds_on (card fixes, Oct 11: kart race on the moon, latexml); a note about the work since Oct 15
   sources?: string[]
   why_now?: string | null
   size?: string
@@ -32,7 +32,7 @@ export type MappedShwarm = {
   slug: string
   wave: number | null
   input: CreateNodeInput
-  pinned: string | null // the pinned first post: the sources, and the builds-on text when the structured field lost some of it
+  pinned: string | null // the pinned first post: the sources, the builds-on text when the structured field lost some of it, and how to check a passed claim
   notes: Note[]
 }
 
@@ -41,10 +41,10 @@ const KNOWN_FIELDS = new Set(['slug', 'wave', 'title', 'category', 'tags', 'what
 
 /**
  * Fields the import never copies: risk notes stay private (table B; they now live outside the list, in the git-ignored
- * docs/launch-risk-notes.json, which nothing here reads); checked_by has had no place on a node since Oct 14; the rest
- * has no place on a node yet.
+ * docs/launch-risk-notes.json, which nothing here reads); the rest has no place on a node yet. checked_by has had no
+ * place on a node since Oct 14, but its text goes in the pinned post (decided Oct 15, #140: checkingText).
  */
-export const NOT_IMPORTED = ['wave', 'category', 'size', 'needs_humans', 'risk_notes', 'lobby', 'variant_of', 'checked_by'] as const
+export const NOT_IMPORTED = ['wave', 'category', 'size', 'needs_humans', 'risk_notes', 'lobby', 'variant_of'] as const
 
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/
 const TAG_RE = /^[a-z0-9][a-z0-9-]{0,31}$/
@@ -299,14 +299,39 @@ function isHttpUrl(s: unknown): s is string {
 
 // ---------- the whole entry ----------
 
+/** The heading over a card's checking text in its pinned post (decided Oct 15, #140). OPEN: new words. */
+export const CHECKING_HEADING = 'how to check a passed claim:'
+
+/**
+ * A card's checked_by as text for its pinned post (decided Oct 15, #140): each run command (with its description, when
+ * it has one), then the checkers' instructions, one to a line; the counts and the old author check are dropped, since
+ * nothing takes checks. Null when it says nothing a checker can use.
+ */
+export function checkingText(v: unknown): string | null {
+  const o = v && typeof v === 'object' ? (v as Record<string, unknown>) : {}
+  const one = (x: unknown) => (typeof x === 'string' ? x.trim() : '')
+  const lines: string[] = []
+  for (const r of Array.isArray(o.runs) ? o.runs : [o.runs]) {
+    const run = r && typeof r === 'object' ? (r as Record<string, unknown>) : {}
+    if (one(run.command)) lines.push(`run: ${one(run.command)}`)
+    if (one(run.description)) lines.push(one(run.description))
+  }
+  for (const p of Array.isArray(o.people) ? o.people : [o.people]) {
+    const people = p && typeof p === 'object' ? (p as Record<string, unknown>) : {}
+    if (one(people.instructions)) lines.push(one(people.instructions))
+  }
+  return lines.length ? lines.join('\n') : null
+}
+
 /**
  * The pinned first post. It is never the status line (table B #40, A18: core/stats isSeedSourcesPost); a seeded
  * shwarm shows its recorded state until the author pins a post of their own.
  */
-export function pinnedPostText(sources: string[], buildsOnText: string | null): string | null {
+export function pinnedPostText(sources: string[], buildsOnText: string | null, checking: string | null = null): string | null {
   const parts: string[] = []
   if (sources.length) parts.push([SOURCES_HEADING, ...sources].join('\n'))
   if (buildsOnText) parts.push(`builds on: ${buildsOnText}`)
+  if (checking) parts.push(`${CHECKING_HEADING}\n${checking}`)
   return parts.length ? parts.join('\n\n') : null
 }
 
@@ -355,7 +380,7 @@ export function mapLaunchShwarm(raw: unknown): MappedShwarm {
       if (!TAG_RE.test(tag)) fail('tags', `${q(str(t))} is not a tag`)
       else if (!tags.includes(tag)) tags.push(tag)
     }
-    if (tags.length > 8) fail('tags', 'more than 8 tags')
+    if (tags.length > 15) fail('tags', 'more than 15 tags')
   }
 
   const b = parseBuildsOn(e.builds_on)
@@ -371,8 +396,14 @@ export function mapLaunchShwarm(raw: unknown): MappedShwarm {
     if (!isHttpUrl(s)) fail('sources', `${q(String(s))} is not a web address`)
     else sources.push(s)
   }
-  const pinned = pinnedPostText(sources, b.keepText && typeof e.builds_on === 'string' ? e.builds_on.trim() : null)
-  if (pinned) notes.push({ field: 'pinned post', kind: 'changed', text: `${sources.length} source${sources.length === 1 ? '' : 's'}${b.keepText && typeof e.builds_on === 'string' ? ', plus the builds-on text as written' : ''}` })
+  const checking = checkingText(e.checked_by)
+  const pinned = pinnedPostText(sources, b.keepText && typeof e.builds_on === 'string' ? e.builds_on.trim() : null, checking)
+  if (pinned)
+    notes.push({
+      field: 'pinned post',
+      kind: 'changed',
+      text: `${sources.length} source${sources.length === 1 ? '' : 's'}${b.keepText && typeof e.builds_on === 'string' ? ', plus the builds-on text as written' : ''}${checking ? `, plus ${CHECKING_HEADING.replace(/:$/, '')}: "${short(checking.replace(/\n/g, ' · '), 60)}"` : ''}`,
+    })
   else notes.push({ field: 'pinned post', kind: 'warning', text: 'no sources, so no pinned post' })
 
   // Variants are dropped (decided Oct 9): one named as such goes in as a plain shwarm, its #variant tag kept as a tag.
@@ -385,7 +416,8 @@ export function mapLaunchShwarm(raw: unknown): MappedShwarm {
     doneWhen,
     tags,
     ...(b.buildsOn ? { buildsOn: b.buildsOn } : {}),
-    ...(license ? { license } : {}),
+    // The note about the work (decided Oct 15: everything here is MIT): the list's own license, or the upstream's.
+    ...(license || b.buildsOn ? { license: license ?? b.buildsOn!.license } : {}),
   }
   return { slug, wave: typeof e.wave === 'number' ? e.wave : null, input, pinned, notes }
 }

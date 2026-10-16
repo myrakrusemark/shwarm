@@ -98,8 +98,8 @@ describe('actor and permissions', () => {
 describe('creating nodes', () => {
   it('starts a shwarm live at once, with the author down as working on it: no lobby, no kickoff (decided Oct 9)', async () => {
     const r = await w.shwarm(site(myra))
-    expect(r).toEqual({ path: MID, kind: 'shwarm', state: 'live', license: 'MIT+CC-BY-4.0', limits: { new_nodes_today: { left: 2 } } })
-    expect(w.node(MID)).toMatchObject({ state: 'live', live_at: new Date(w.now).toISOString(), variant_of_id: null })
+    expect(r).toEqual({ path: MID, kind: 'shwarm', limits: { new_nodes_today: { left: 2 } } })
+    expect(w.node(MID)).toMatchObject({ state: 'live', license: 'MIT', live_at: new Date(w.now).toISOString(), variant_of_id: null })
     expect(w.events(MID)).toEqual([])
     expect(w.all('SELECT person_id, number FROM seat')).toEqual([{ person_id: myra.id, number: 1 }])
     expect(w.all('SELECT tag FROM node_tag ORDER BY tag').map(t => t.tag)).toEqual(['games', 'gzdoom'])
@@ -109,7 +109,7 @@ describe('creating nodes', () => {
   it("opens an agent's shwarm with no one joined; the author is the human at the top", async () => {
     await refused(w.shwarm(agent(myra, 'scribe')), 'not_permitted', { need: 'new_shwarms', node: '*' })
     const r = await w.shwarm(agent(myra, 'scribe', ['new_shwarms']))
-    expect(r).toMatchObject({ state: 'live' })
+    expect(w.node(r.path).state).toBe('live')
     expect(w.all('SELECT 1 FROM seat')).toEqual([])
     expect(w.node(MID)).toMatchObject({ posted_by: '@myra/scribe', author_id: myra.id })
   })
@@ -127,15 +127,20 @@ describe('creating nodes', () => {
     expect((await readChain(w.db, 'shwarm-0/block-placement', myra.id))!.node.spec).toEqual({ author: false })
   })
 
-  it('takes a license from the short list only: bad_license', async () => {
-    await refused(w.shwarm(site(myra), { license: 'CC-BY-NC-4.0' }), 'bad_license')
-    expect((await w.shwarm(site(myra), { license: 'GPL-3.0' })).license).toBe('GPL-3.0')
+  it('makes every new shwarm MIT, whatever license it sends; the launch import alone keeps its card\'s as the note (Oct 15)', async () => {
+    const r = await w.shwarm(site(myra), { license: 'CC-BY-NC-4.0' })
+    expect(w.node(r.path).license).toBe('MIT')
+    const s = await w.run<any>({ type: 'createNode', actor: seed(kestrel), input: { kind: 'shwarm', title: 'seeded', what: 'w', doneWhen: 'd', tags: ['x'], license: 'GPL-3.0' } })
+    expect(w.node(s.path).license).toBe('GPL-3.0')
+    await refused(w.run({ type: 'createNode', actor: seed(kestrel), input: { kind: 'shwarm', title: 'long', what: 'w', doneWhen: 'd', tags: ['x'], license: 'x'.repeat(101) } }), 'bad_license')
   })
 
-  it('takes the upstream license with builds on', async () => {
+  it("keeps an upstream's license as part of what it builds on, never as the node's; an upstream needs none (Oct 15)", async () => {
     const r = await w.shwarm(site(myra), { license: 'MIT', buildsOn: { name: 'gzdoom', url: 'https://zdoom.org', license: 'GPL-3.0' } })
-    expect(r.license).toBe('GPL-3.0')
-    await refused(w.shwarm(site(myra), { title: 'other', buildsOn: { name: 'gzdoom' } }), 'bad_license')
+    expect(w.node(r.path)).toMatchObject({ license: 'MIT', builds_on: JSON.stringify({ name: 'gzdoom', url: 'https://zdoom.org/', license: 'GPL-3.0' }) })
+    const bare = await w.shwarm(site(myra), { title: 'other', buildsOn: { name: 'gzdoom' } })
+    expect(w.node(bare.path)).toMatchObject({ license: 'MIT', builds_on: JSON.stringify({ name: 'gzdoom' }) })
+    await refused(w.shwarm(site(myra), { title: 'third', buildsOn: { name: 'gzdoom', license: 'x'.repeat(101) } }), 'bad_license')
   })
 
   it('takes no lobby and makes no variants (decided Oct 9)', async () => {
@@ -145,8 +150,8 @@ describe('creating nodes', () => {
       'bad_request',
     )
     // a lobby size sent anyway changes nothing: it's live at once
-    const r = await w.run({ type: 'createNode', actor: site(lumpy), input: { kind: 'shwarm', title: 'quiet', what: 'w', doneWhen: 'd', tags: ['x'], lobby: 12 } as any })
-    expect(r).toMatchObject({ state: 'live' })
+    const r = await w.run<any>({ type: 'createNode', actor: site(lumpy), input: { kind: 'shwarm', title: 'quiet', what: 'w', doneWhen: 'd', tags: ['x'], lobby: 12 } as any })
+    expect(w.node(r.path).state).toBe('live')
     expect(w.all("SELECT 1 FROM node WHERE kind = 'variant' OR state = 'lobby'")).toEqual([])
   })
 
@@ -156,21 +161,26 @@ describe('creating nodes', () => {
     expect((await w.shwarm(site(lumpy), { title: 'log' })).path).toBe('log-2')
   })
 
-  it('opens branches live at once, inheriting the license, on a shwarm the minute it is posted', async () => {
-    await w.shwarm(site(myra), { license: 'GPL-3.0' })
-    expect(await w.branch(site(myra), MID, { title: 'first' })).toMatchObject({ path: `${MID}/first`, state: 'live' })
+  it("opens branches live at once, carrying their shwarm's note about the work, on a shwarm the minute it is posted", async () => {
+    await w.shwarm(site(myra))
+    w.db.raw.prepare("UPDATE node SET license = 'GPL-3.0' WHERE path = ?").run(MID) // a pick from before Oct 15
+    expect(await w.branch(site(myra), MID, { title: 'first' })).toMatchObject({ path: `${MID}/first` })
+    expect(w.node(`${MID}/first`).state).toBe('live')
     await refused(w.branch(site(kestrel), 'no-such-thing'), 'no_such_node')
     // An agent key acts only on nodes its human can see (7.4): @myra's shwarm is still being checked.
     await refused(w.branch(agent(kestrel, 'swarm/r-03'), MID), 'no_such_node')
     w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = ?").run(MID)
     const b = await w.branch(agent(kestrel, 'swarm/r-03'), MID)
-    expect(b).toMatchObject({ path: BP, kind: 'branch', state: 'live', license: 'GPL-3.0' })
+    expect(b).toMatchObject({ path: BP, kind: 'branch' })
+    expect(w.node(BP)).toMatchObject({ state: 'live', license: 'GPL-3.0' })
     expect(w.node(BP)).toMatchObject({ root_id: w.node(MID).id, parent_id: w.node(MID).id, author_id: kestrel.id, lobby_size: null })
     const sub = await w.branch(site(kestrel), BP, { title: 'monster collision' })
     expect(sub.path).toBe('minecraft-in-doom/block-placement/monster-collision')
     expect(w.node(sub.path).root_id).toBe(w.node(MID).id)
     expect(w.events(BP)).toMatchObject([{ event: 'branch_opened', by_name: '@kestrel/swarm/r-03', milestone: 1 }])
-    await refused(w.run({ type: 'createNode', actor: site(kestrel), input: { kind: 'branch', parent: MID, title: 'x', what: 'w', doneWhen: 'd', license: 'MIT' } }), 'bad_license')
+    // a license sent is ignored (Oct 15): the branch still carries its shwarm's
+    const x = await w.run<any>({ type: 'createNode', actor: site(kestrel), input: { kind: 'branch', parent: MID, title: 'x', what: 'w', doneWhen: 'd', license: 'MIT' } })
+    expect(w.node(x.path).license).toBe('GPL-3.0')
   })
 
   it("refuses an agent key every node its human can't see, as not there: parent, builds on (7.4)", async () => {
@@ -178,21 +188,22 @@ describe('creating nodes', () => {
     const keyed = (p: P) => agent(p, 'm-04', ['read', 'branch', 'new_shwarms'])
     // still being checked: only its author, and the author's own agents, can see it
     await refused(w.branch(keyed(kestrel), MID), 'no_such_node')
-    expect(await w.branch(keyed(myra), MID)).toMatchObject({ kind: 'branch', state: 'live' })
+    expect(await w.branch(keyed(myra), MID)).toMatchObject({ kind: 'branch' })
     w.db.raw.prepare("UPDATE node SET triage = 'held' WHERE path = ?").run(MID)
     await refused(w.branch(keyed(kestrel), MID), 'no_such_node')
     // a closed shwarm held for Myra can't be built on by anyone else's key, and says so as for a path that isn't there
     w.db.raw.prepare("UPDATE node SET state = 'closed' WHERE path = ?").run(MID)
     const buildOn = (by: Actor) => w.shwarm(by, { title: 'speedruns', buildsOn: MID })
     const e = await buildOn(keyed(kestrel)).catch(x => x)
-    expect(e).toMatchObject({ code: 'bad_request', message: 'builds_on names a shwarm on shwarm, or an outside project as {name, url, license}' })
+    expect(e).toMatchObject({ code: 'bad_request', message: 'builds_on names a shwarm on shwarm, or an outside project as {name, url}' })
     w.db.raw.prepare("UPDATE node SET triage = 'clear' WHERE path = ?").run(MID)
-    expect(await buildOn(keyed(kestrel))).toMatchObject({ kind: 'shwarm', state: 'live' })
+    expect(await buildOn(keyed(kestrel))).toMatchObject({ kind: 'shwarm' })
     // builds on is a typed path the site passes on unread, so core asks for site actors too
     w.db.raw.prepare("UPDATE node SET triage = 'held' WHERE path = ?").run(MID)
     expect(await w.shwarm(site(lumpy), { title: 'site build', buildsOn: MID }).catch(x => x)).toMatchObject({ code: 'bad_request', message: e.message })
     // its author still sees it, and may build on it
-    expect(await w.shwarm(site(myra), { title: 'site build', buildsOn: MID })).toMatchObject({ kind: 'shwarm', license: 'MIT+CC-BY-4.0' })
+    const own = await w.shwarm(site(myra), { title: 'site build', buildsOn: MID })
+    expect(w.node(own.path).license).toBe('MIT')
   })
 
   it('limits new shwarms and branches to 3 per person per rolling day', async () => {
@@ -324,7 +335,10 @@ describe("a branch's pass is its own (decided Oct 14)", () => {
     expect(w.events(MID).map(e => e.event)).toEqual([])
     expect((await readNodeStatus(w.db, w.node(MID).id, w.now)).current).toBe('on_track')
     expect([w.node(BP).state, w.node(MID).state]).toEqual(['live', 'live'])
-    expect(w.all("SELECT kind FROM inbox_item WHERE kind = 'system'")).toEqual([]) // a branch has no author mark
+    // a branch has no author mark, so no approve notice: only its people's status-change notices (#138), on the branch
+    expect(w.all("SELECT i.status_to, n.path FROM inbox_item i JOIN node n ON n.id = i.node_id WHERE i.kind = 'system'")).toEqual(
+      [kestrel, lumpy, finn].map(() => ({ status_to: 'passed', path: BP })),
+    )
   })
 })
 

@@ -215,30 +215,12 @@
         <div class="box" id="f-builds">
           <div class="f">
             <label for="upstream">builds on <span class="note" style="font-weight:400">· optional</span></label>
-            <p class="hint">an existing open project this extends. paste a link or search.</p>
+            <p class="hint">an open project your shwarm extends: a shwarm here, a github repo, or any other link. paste a link or search.</p>
             <div class="pick">
               <input type="text" id="upstream" placeholder="https://… or search: uzdoom" autocomplete="off">
               <ul class="results" id="results" hidden></ul>
             </div>
             <div class="picked" id="picked" hidden></div>
-          </div>
-        </div>
-
-        <div class="box" id="f-license">
-          <div class="f">
-            <label for="license">license</label>
-            <p class="hint" id="lic-hint">everything posted here is open. the default is MIT. the license can't be changed once you post, and branches inherit it. the work itself takes whatever license your crew picks.</p>
-            <select id="license">
-              <option selected>MIT + CC BY 4.0 (default)</option>
-              <option>MIT</option>
-              <option>Apache-2.0</option>
-              <option>GPL-3.0</option>
-              <option>AGPL-3.0</option>
-              <option>CC BY 4.0</option>
-              <option>CC BY-SA 4.0</option>
-              <option>CC0</option>
-            </select>
-            <p class="note" id="lic-up" style="margin:6px 0 0" hidden></p>
           </div>
         </div>
 
@@ -255,7 +237,7 @@
         <div class="in">
           <ol class="rules">
             <li><b>checkable.</b> say how anyone can tell it's done.</li>
-            <li><b>open.</b> everything made is published under an open license.</li>
+            <li><b>open.</b> everything posted here is MIT. if your work has its own license, say so in your shwarm's words or its repo's license file.</li>
             <li><b>harmless.</b> nothing here hurts people.</li>
           </ol>
           <p class="note">a triage agent reads every new shwarm and branch. it may suggest a sharper done test, but it only blocks for harm. <a href="#">its rubric is public.</a></p>
@@ -310,13 +292,11 @@
   const NODES = {
     'minecraft-in-doom': {
       crumbs: [['minecraft in doom', 'shwarm.html']],
-      license: 'GPL-3.0, from uzdoom',
       passed: 'oct 6', // its latest pass record, the point a new shwarm builds on
       test: "a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp-like one with its own name that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets."
     },
     'minecraft-in-doom/block-placement': {
       crumbs: [['minecraft in doom', 'shwarm.html'], ['block placement', 'branch.html']],
-      license: 'GPL-3.0, from uzdoom',
       test: 'blocks place and break on any face, including chunk edges and corners, and the player can\'t walk through them.'
     }
   };
@@ -337,13 +317,8 @@
     $('p-test').textContent = parent.test;
     $('f-shwarm').hidden = true;
     $('f-builds').hidden = true; // branches inherit builds-on from their shwarm
-    $('license').disabled = true; // branches inherit the license too
-    $('license').innerHTML = `<option>${parent.license}</option>`;
-    $('lic-hint').textContent = 'a branch inherits its shwarm\'s license.';
     $('lock-note').hidden = true;
     $('done-hint').textContent = 'what is true when the branch is finished. people on the branch say so with a passed claim and their evidence, and the others back it.';
-    $('lic-up').textContent = 'inherits from ' + parent.crumbs[0][0] + ': ' + parent.license + '.';
-    $('lic-up').hidden = false;
     $('title').placeholder = 'monster collision';
     $('pitch').placeholder = 'imps walk straight through placed blocks because the blockmap is only built at level load…';
     $('pitch-hint').textContent = 'what is stuck or missing, and how this branch helps the parent get done.';
@@ -363,17 +338,11 @@
     ['inkscape', 'gitlab.com/inkscape/inkscape', 'vector graphics editor'],
   ];
   const box = $('upstream'), list = $('results'), picked = $('picked');
-  // builds on: the shwarm takes the upstream project's license instead of picking one
-  function upstreamLicense(name) {
-    $('license').hidden = !!name;
-    $('lic-up').textContent = name ? `takes the upstream license: whatever ${name} is published under.` : '';
-    $('lic-up').hidden = !name;
-  }
+  // builds on takes no license from the project (decided Oct 15: everything posted here is MIT, with no picker)
   function pick(name, where, asOf) {
     picked.innerHTML = `<div><b>${name}</b> <span>${where}${asOf ? ` · as passed ${asOf}` : ''}</span></div><button type="button">change</button>`;
     picked.hidden = false; list.hidden = true; box.value = ''; box.parentElement.hidden = true;
-    upstreamLicense(name);
-    picked.querySelector('button').onclick = () => { picked.hidden = true; box.parentElement.hidden = false; upstreamLicense(null); box.focus(); };
+    picked.querySelector('button').onclick = () => { picked.hidden = true; box.parentElement.hidden = false; box.focus(); };
   }
   box.addEventListener('input', () => {
     const v = box.value.trim().toLowerCase();

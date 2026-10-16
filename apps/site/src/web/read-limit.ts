@@ -1,6 +1,8 @@
 // The per-IP token bucket on public reads (go-live 3.6, table B "technical caps"): a burst, then a steady refill;
 // past it, 429 with Retry-After. It covers every public page that reads D1: shwarm and branch pages (with their
 // submissions), the feed and profiles (4.9), all from one bucket per network.
+// A second bucket per network counts searches (the agent guide's staging trial, Oct 15): an unsigned read of /shwarms
+// or the feed at '/' with ?q= or ?tag=, on top of the read it also is. Signed agent-API reads keep their key's limit only.
 //
 // OPEN: the bucket lives in the Worker isolate's memory, not in D1's rate_bucket table. A D1 bucket costs one row
 // write per page view, and the free plan's 100,000 writes a day would then be spent by readers (a crawler could use
@@ -15,29 +17,45 @@ import type { Format } from './format'
 
 export const READ_BURST = 120 // requests
 export const READ_REFILL_PER_S = 2 // requests per second, per network (/24 or /48)
+// OPEN: a first guess (builder's default, Oct 15). Chat assistants (ChatGPT, Claude, Gemini) fetch from their provider's
+// shared networks, so many people's tours can land in one /24 and this may need raising, or a per-provider allowance.
+export const SEARCH_PER_HOUR = 300 // searches an hour, per network: a burst of 300, then one every 12 seconds
 const MAX_KEYS = 5000
 
 type Bucket = { tokens: number; at: number }
-const buckets = new Map<string, Bucket>()
+
+/** One token bucket per network (/24 or /48), kept to MAX_KEYS networks. */
+function bucketsOf(burst: number, refillPerS: number) {
+  const buckets = new Map<string, Bucket>()
+  /** Takes one. Null when allowed, else the seconds to wait. */
+  function take(ip: string | null | undefined, now = Date.now()): number | null {
+    const key = ipPrefix(ip ?? null) ?? 'unknown'
+    const b = buckets.get(key)
+    const tokens = b ? Math.min(burst, b.tokens + ((now - b.at) / 1000) * refillPerS) : burst
+    if (tokens < 1) {
+      buckets.set(key, { tokens, at: now })
+      return Math.max(1, Math.ceil((1 - tokens) / refillPerS))
+    }
+    if (!b && buckets.size >= MAX_KEYS) {
+      // Drop the full buckets (nobody near the cap) first, then the oldest, so the map stays small.
+      for (const [k, v] of buckets) if (v.tokens + ((now - v.at) / 1000) * refillPerS >= burst) buckets.delete(k)
+      if (buckets.size >= MAX_KEYS) buckets.delete(buckets.keys().next().value!)
+    }
+    buckets.delete(key) // re-insert, so map order is least recently used first
+    buckets.set(key, { tokens: tokens - 1, at: now })
+    return null
+  }
+  return { take, clear: () => buckets.clear() }
+}
+
+const reads = bucketsOf(READ_BURST, READ_REFILL_PER_S)
+const searches = bucketsOf(SEARCH_PER_HOUR, SEARCH_PER_HOUR / 3600)
 
 /** Takes one read. Null when allowed, else the seconds to wait. */
-export function takeRead(ip: string | null | undefined, now = Date.now()): number | null {
-  const key = ipPrefix(ip ?? null) ?? 'unknown'
-  const b = buckets.get(key)
-  const tokens = b ? Math.min(READ_BURST, b.tokens + ((now - b.at) / 1000) * READ_REFILL_PER_S) : READ_BURST
-  if (tokens < 1) {
-    buckets.set(key, { tokens, at: now })
-    return Math.max(1, Math.ceil((1 - tokens) / READ_REFILL_PER_S))
-  }
-  if (!b && buckets.size >= MAX_KEYS) {
-    // Drop the full buckets (nobody near the cap) first, then the oldest, so the map stays small.
-    for (const [k, v] of buckets) if (v.tokens + ((now - v.at) / 1000) * READ_REFILL_PER_S >= READ_BURST) buckets.delete(k)
-    if (buckets.size >= MAX_KEYS) buckets.delete(buckets.keys().next().value!)
-  }
-  buckets.delete(key) // re-insert, so map order is least recently used first
-  buckets.set(key, { tokens: tokens - 1, at: now })
-  return null
-}
+export const takeRead = (ip: string | null | undefined, now = Date.now()): number | null => reads.take(ip, now)
+
+/** Takes one search. Null when allowed, else the seconds to wait. */
+export const takeSearch = (ip: string | null | undefined, now = Date.now()): number | null => searches.take(ip, now)
 
 /**
  * Takes one read for this request: null when allowed, else the 429 to send (in the form `f`, or the one asked for).
@@ -49,7 +67,21 @@ export function overReadCap(c: Context, f?: Format): Promise<Response> | null {
   return wait === null ? null : sendError(c, { status: 429, text: 'too many reads from your network.', wait, extra: { limit: 'public_reads' }, signedOut: true }, f)
 }
 
-/** For tests. */
+/** Whether a public read is a search: ?q= or ?tag= with something in it. */
+export const isSearch = (c: Context) => !!(c.req.query('q')?.trim() || c.req.query('tag')?.trim())
+
+/**
+ * Takes one search for this request when it is one (isSearch): null when allowed or not a search, else the 429 to send,
+ * the way overReadCap sends it. Call it after overReadCap, so a refused read doesn't spend a search.
+ */
+export function overSearchCap(c: Context, f?: Format): Promise<Response> | null {
+  if (!isSearch(c)) return null
+  const wait = takeSearch(clientIp(c))
+  return wait === null ? null : sendError(c, { status: 429, text: 'too many searches from your network.', wait, extra: { limit: 'public_searches' }, signedOut: true }, f)
+}
+
+/** For tests: both buckets. */
 export function resetReadLimit(): void {
-  buckets.clear()
+  reads.clear()
+  searches.clear()
 }

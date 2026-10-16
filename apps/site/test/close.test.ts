@@ -191,11 +191,12 @@ describe('closing an account (6.4)', () => {
     await w.run({ type: 'back', actor: site(kes), input: { node: path, post: c.id, on: true } })
     await closeAccount(w.db, myra.id, w.now)
     expect(w.get('SELECT is_admin FROM person WHERE id = ?', myra.id).is_admin).toBe(0)
-    // nobody stands in for an author who's gone (decided Oct 14): the crowd's pass is enough, and no notice goes to anyone
+    // nobody stands in for an author who's gone (decided Oct 14): the crowd's pass is enough, and no approve notice goes
+    // to anyone; the people who joined get the status-change notice (decided Oct 15, #138)
     w.tick(2 * 24 * 3_600_000)
     await w.run({ type: 'status', actor: site(lumpy), input: { node: path, status: 'on_track' } })
     expect(w.all('SELECT kind, claim_id FROM pass_record')).toEqual([{ kind: 'crowd', claim_id: c.id }])
-    expect(w.all("SELECT person_id FROM inbox_item WHERE kind = 'system'")).toEqual([])
+    expect(w.all("SELECT person_id, status_to FROM inbox_item WHERE kind = 'system' ORDER BY id")).toEqual([ana, kes, lumpy].map(p => ({ person_id: p.id, status_to: 'passed' })))
   })
 })
 

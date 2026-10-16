@@ -96,11 +96,18 @@ export async function pinPost(ctx: Ctx, a: Actor, inp: PinInput): Promise<PinRes
   needPinner(a, person, n)
   const p = await threadPost(ctx, n.id, inp.post)
   const pin = inp.pin === true
+  // Pinning the claim the site pinned on a pass makes it the author's pin, so it stays when the status moves on
+  // (core/status.ts flipStatements); nothing else changes.
+  if (pin && p.pinned_at !== null && p.pinned_by === 'site') {
+    await ctx.db.prepare('UPDATE post SET pinned_by = NULL WHERE id = ?').bind(p.id).run()
+    return { id: p.id, node: n.path, pinned: true, changed: false, at: ctx.at }
+  }
   if ((p.pinned_at !== null) === pin) return { id: p.id, node: n.path, pinned: pin, changed: false, at: ctx.at }
   if (pin && p.reply_to) throw bad("a reply can't be pinned. pin a post of its own")
   if (pin && p.kind !== 'post' && p.kind !== 'submission') throw new ShwarmError('not_permitted', `a ${p.kind === 'dead_end' ? 'dead-end note' : p.kind} can't be pinned`, { kind: p.kind })
   await ctx.db.batch([
-    ctx.db.prepare('UPDATE post SET pinned_at = ? WHERE id = ?').bind(pin ? ctx.at : null, p.id),
+    // By hand, so never the site's pin (core/status.ts flipStatements).
+    ctx.db.prepare('UPDATE post SET pinned_at = ?, pinned_by = NULL WHERE id = ?').bind(pin ? ctx.at : null, p.id),
     touchNode(ctx, n.id, null), // the latest pin's first line is the status line, so the stats job rolls the node up again
   ])
   return { id: p.id, node: n.path, pinned: pin, changed: true, at: ctx.at }
@@ -114,7 +121,7 @@ async function threadPost(ctx: Ctx, nodeId: number, id: unknown, o: { deleted?: 
   const p = isId('p', id)
     ? await ctx.db
         .prepare(
-          `SELECT p.id, p.person_id, p.as_name, p.kind, p.text, p.links, p.reply_to, p.deleted_at, p.pinned_at, p.claim,
+          `SELECT p.id, p.person_id, p.as_name, p.kind, p.text, p.links, p.reply_to, p.deleted_at, p.pinned_at, p.pinned_by, p.claim,
                   pr.created_at AS person_created_at, pr.founding AS person_founding
            FROM post p JOIN person pr ON pr.id = p.person_id WHERE p.id = ? AND p.node_id = ? AND p.hidden = 0`,
         )
@@ -129,6 +136,7 @@ async function threadPost(ctx: Ctx, nodeId: number, id: unknown, o: { deleted?: 
           reply_to: string | null
           deleted_at: string | null
           pinned_at: string | null
+          pinned_by: 'site' | null
           claim: Claim | null
           person_created_at: string
           person_founding: number
@@ -268,7 +276,7 @@ export async function deletePost(ctx: Ctx, a: Actor, inp: DeleteInput): Promise<
     // The feed's status line may be a copy of this pinned post's first line (jobs/stats.ts): blank it now, so the deleted
     // text leaves the feed at once; the next stats run fills in the line from the next pin or recorded state.
     ...(p.pinned_at ? [ctx.db.prepare("UPDATE node_stats SET status_line = '' WHERE node_id = ?").bind(n.id)] : []),
-    ctx.db.prepare("UPDATE post SET text = '', links = '[]', deleted_at = ?, pinned_at = NULL WHERE id = ?").bind(ctx.at, p.id),
+    ctx.db.prepare("UPDATE post SET text = '', links = '[]', deleted_at = ?, pinned_at = NULL, pinned_by = NULL WHERE id = ?").bind(ctx.at, p.id),
     touchNode(ctx, n.id, null), // the tombstone shows signed out, and a pinned one moves the status line
   ])
   return { id: p.id, node: n.path, deleted: true, at: ctx.at }

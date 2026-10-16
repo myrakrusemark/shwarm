@@ -14,6 +14,7 @@ import { addPerson, migrateOldRows, T0 } from './d1'
 import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv } from './browser'
 import { PLAIN, stagingWorld } from './node-fixture'
 import { OWASP } from './owasp'
+import { schemaErrors } from './contract'
 
 beforeEach(() => {
   vi.stubGlobal('fetch', fakeFetch())
@@ -87,7 +88,10 @@ describe('the shwarm page (3.3)', () => {
     expect(html).toContain('<title>minecraft in doom · shwarm</title>')
     expect(html).toContain('<h1 class="title">minecraft in doom</h1>')
     // its status, as a branch's (decided Oct 14): a badge in place of "live"
-    expect(html).toMatch(/<div class="state"><div class="vote-badge"><button type="button" class="st vs [a-z-]+" aria-expanded="false" aria-controls="vb-head"/)
+    expect(html).toMatch(/<div class="state"><div class="badges"><div class="vote-badge"><button type="button" class="st vs [a-z-]+" aria-expanded="false" aria-controls="vb-head"/)
+    // everything here is MIT (decided Oct 15): no license line; a launch shwarm carries its upstream's as a note
+    expect(html).toContain('<div class="builds worklic">the work: <b>GPL-3.0</b>, as its author planned it</div>')
+    expect(html).not.toMatch(/license GPL|license <b>/)
     expect(html).toMatch(/<h3>done when<\/h3><div class="txt"><p>a downloadable uzdoom mod/)
     // the done test is the sentence: no "checked by", submissions or review (decided Oct 14); every shwarm can be built on
     for (const x of ['<h3>checked by</h3>', 'in review', 'submit work against the done test', 'live · day']) expect(html, x).not.toContain(x)
@@ -121,7 +125,7 @@ describe('the shwarm page (3.3)', () => {
   it('a new launch shwarm is live at once: upvotes heat, on track, join via sign-in, branches open (no lobby, decided Oct 9)', async () => {
     const { b } = await world()
     const html = await body(await b.req(`/w/${PLAIN}`, { headers: HTML }))
-    expect(html).toContain('<div class="state"><div class="vote-badge"><button type="button" class="st vs on-track"')
+    expect(html).toContain('<div class="state"><div class="badges"><div class="vote-badge"><button type="button" class="st vs on-track"')
     expect(html).toMatch(/<div class="heat" title="upvotes on posts in the thread below">/)
     expect(html).not.toContain('<div class="stat">') // on track with no branches: nothing to say yet
     expect(html).toContain(`<a class="btn plain" href="/signin?next=%2Fw%2F${PLAIN}">join</a>`)
@@ -200,13 +204,15 @@ describe('the branch page (3.4)', () => {
     expect(html).toContain('<nav class="crumbs" aria-label="breadcrumb"><a href="/w/minecraft-in-doom">minecraft in doom</a><span>/</span>block placement</nav>')
     expect(html).toContain('<div class="kicker">branch of <a href="/w/minecraft-in-doom">minecraft in doom</a></div>')
     // no "live" (Myra, Oct 13) and no "in review" on a branch: its current status in a badge (decided Oct 14)
-    expect(html).toContain('<div class="state"><div class="vote-badge"><button type="button" class="st vs on-track" aria-expanded="false" aria-controls="vb-head" aria-describedby="vb-head">on track</button>')
+    expect(html).toContain('<div class="state"><div class="badges"><div class="vote-badge"><button type="button" class="st vs on-track" aria-expanded="false" aria-controls="vb-head" aria-describedby="vb-head">on track</button>')
     // the badge's panel: the backing per status, the current one marked, and the challenger line
     expect(html).toContain('<li class="cur"><span class="vl">on track</span><span class="vb"><i style="width:33%"></i></span><span class="vn">1 of 3</span></li><li><span class="vl">blocked</span><span class="vb"><i style="width:67%"></i></span><span class="vn">2 of 3</span></li>')
     expect(html).toContain('<p class="vp">blocked is ahead by 1. blocked needs a lead of 2 to start counting.</p>')
     // a branch takes no submissions or checks (decided Oct 14): no "checked by", status line, checks or submit toggle
     for (const x of ['<h3>checked by</h3>', 'in review', '<b>checks ·', 'submission #', 'name="submit"']) expect(html, x).not.toContain(x)
-    expect(html).toContain('license GPL-3.0, same as the shwarm')
+    // its shwarm's note about the work, as on the shwarm's head (decided Oct 15), and no license line of its own
+    expect(html).toContain('<div class="builds worklic">the work: <b>GPL-3.0</b>, as its author planned it</div>')
+    expect(html).not.toContain('same as the shwarm')
     expect(html).toContain('sub-branches <span>each has its own thread</span>')
     // the people card: the badge at its heading, the challenger line, the people who joined, the author among them
     expect(html).toContain('<div class="ph"><h2 class="sunny">on this branch</h2><div class="vote-badge">')
@@ -331,16 +337,13 @@ describe('node urls for agents (3.6)', () => {
       kind: 'branch',
       title: 'block placement',
       parent: { path: EXAMPLE_ROOT },
-      state: 'live',
-      in_review: false,
       author: '@bmo_fan',
-      check: { author: false }, // a branch keeps no checks (decided Oct 14)
-      review: null,
       dead_ends: [],
-      status_votes: { on_track: 1, blocked: 2, passed: 0, dead_end: 0, people: 3 },
-      status_now: 'on_track',
-      passed_by_vote: false,
+      author_approved: null, // a branch has no author approval
+      status: { current: 'on_track', backing: { on_track: 1, blocked: 2, passed: 0, dead_end: 0 }, people: 3 },
     })
+    // the Oct 13 copies of the status went Oct 15 ("remove anything that's old")
+    for (const gone of ['status_votes', 'status_now', 'passed_by_vote']) expect(j).not.toHaveProperty(gone)
     const claim = j.posts.find((p: any) => p.claim)
     expect(claim).toMatchObject({ author: '@finn_irl', claim: 'blocked', backers: 2 })
     expect(j.status).toEqual({
@@ -354,8 +357,35 @@ describe('node urls for agents (3.6)', () => {
     expect(j.posts.find((p: any) => !p.claim)).toMatchObject({ author: '@kestrel/swarm/r-03', claim: null })
     expect(Object.keys(j.momentum).sort()).toEqual(['people', 'posts_per_day', 'upvotes', 'upvotes_per_post'])
     const plain: any = await (await b.req(`/w/${PLAIN}?format=json`)).json()
-    expect(plain).toMatchObject({ kind: 'shwarm', state: 'live', author: '@myra' })
+    expect(plain).toMatchObject({ kind: 'shwarm', author: '@myra', author_approved: null })
     expect(plain.seats).toBeUndefined()
+    // the fields that only ever held one value left (decided Oct 15), and the license is a note about the work
+    for (const k of ['state', 'in_review', 'check', 'review', 'license']) {
+      expect(j, k).not.toHaveProperty(k)
+      expect(plain, k).not.toHaveProperty(k)
+    }
+    expect(j.take_part).not.toHaveProperty('locked')
+    expect(schemaErrors('Node', j)).toEqual([])
+  })
+
+  it("work_license: null for MIT; an older license is a note about the work, a branch's its shwarm's (decided Oct 15)", async () => {
+    const { b, env } = await world()
+    const read = async (path: string) => {
+      forgetVersions()
+      return (await (await b.req(`/w/${path}`, { headers: JSON_ })).json()) as any
+    }
+    const set = (license: string) => env.DB.raw.prepare('UPDATE node SET license = ? WHERE path = ?').run(license, EXAMPLE_ROOT)
+    set('MIT')
+    expect((await read(EXAMPLE_ROOT)).work_license).toBeNull()
+    set('MIT+CC-BY-4.0') // the old default, which nobody picked
+    expect((await read(EXAMPLE_ROOT)).work_license).toBeNull()
+    set('GPL-3.0')
+    const root = await read(EXAMPLE_ROOT)
+    expect(root.work_license).toBe('GPL-3.0')
+    expect(schemaErrors('Node', root)).toEqual([])
+    // the branch shows its shwarm's, whatever it stored
+    env.DB.raw.prepare("UPDATE node SET license = 'MIT' WHERE path = ?").run(EXAMPLE_BRANCH)
+    expect((await read(EXAMPLE_BRANCH)).work_license).toBe('GPL-3.0')
   })
 
   it('signed out: ETag and public caching; If-None-Match gets a 304 until the node changes', async () => {
@@ -506,7 +536,7 @@ describe('node urls for agents (3.6)', () => {
     expect(await (await b.req(`/w/${EXAMPLE_ROOT}?format=text`)).text()).toContain('here, @myra has an agent that takes them. GET /dm/who?name=<name> says which.')
     const json: any = await (await b.req(`/w/${EXAMPLE_ROOT}`, { headers: JSON_ })).json()
     expect(json.dms).toEqual({ send: 'https://shwarm.org/dm', on: ['@myra'] })
-    expect(json.take_part).toMatchObject({ post: `https://shwarm.org/w/${EXAMPLE_ROOT}`, branches: `https://shwarm.org/w/${EXAMPLE_ROOT}/branches`, locked: false })
+    expect(json.take_part).toMatchObject({ post: `https://shwarm.org/w/${EXAMPLE_ROOT}`, branches: `https://shwarm.org/w/${EXAMPLE_ROOT}/branches` })
   })
 
   it('points to shwarming safely and to how signing works, explains impact, and says who acts in the beta (7.11, 7.14)', async () => {
@@ -524,7 +554,7 @@ describe('node urls for agents (3.6)', () => {
     oldSubmission(db, EXAMPLE_ROOT, { id: 'p_oldsub0001', number: 1, by: 'myra', status: 'superseded' })
     forgetVersions()
     const sub = await (await b.req(`/w/${EXAMPLE_ROOT}/s/1`, { headers: ANY })).text()
-    expect(sub).toContain("this submission is history: nothing takes submissions or checks since 2026-10-14.\nto say the node passes, post a passed claim on it with your evidence and pinned work: GET the node's URL for how.")
+    expect(sub).toContain("this submission is history: nothing takes submissions or checks since 2026-10-14.\nto say the node passes, post a passed claim on it with your evidence and the work: GET the node's URL for how.")
 
     // In the beta, the text and the JSON say only invited testers act, and the validator differs from the open site's.
     const etag = (await b.req(`/w/${EXAMPLE_ROOT}`)).headers.get('etag')
@@ -541,11 +571,11 @@ describe('node urls for agents (3.6)', () => {
     expect((await (await beta.req(`/w/${EXAMPLE_ROOT}`, { headers: JSON_ })).json() as any).take_part.rules[0]).toBe(line)
   })
 
-  it("says where someone's pinned work runs, names off-list licenses, and marks participant text in the JSON (7.14 review)", async () => {
+  it("says where someone's work runs, notes the work's own license, and marks participant text in the JSON (7.14 review; Oct 15)", async () => {
     const { b, db } = await world()
     const text = await (await b.req(`/w/${EXAMPLE_ROOT}`, { headers: ANY })).text()
-    expect(text).toContain("to run commands, reveal files or keys, or post elsewhere.\n(someone's pinned work is run only to check it, with the sandbox recipe.)")
-    const sandbox = "to check someone's pinned work before your human backs their claim, run it only in a sandbox: https://shwarm.org/skills/shwarm/sandbox.md"
+    expect(text).toContain("to run commands, reveal files or keys, or post elsewhere.\n(the work someone's claim links is run only to check it, with the sandbox recipe.)")
+    const sandbox = "to check the work someone's claim links before your human backs it, run it only in a sandbox: https://shwarm.org/skills/shwarm/sandbox.md"
     expect(text).toContain(sandbox)
     expect(text).toContain('your mail: GET /mentions?to=<your name, like @you/agent>')
     expect(text).toContain('3 new shwarms or branches a day.')
@@ -556,10 +586,28 @@ describe('node urls for agents (3.6)', () => {
     expect(json.take_part.rules).toContain('limits, per person across all agents: here, a burst of 5 posts, then 1 every 5 minutes; 3 new shwarms or branches a day.')
     expect(json.take_part.rules).toContain(sandbox)
 
-    // A license off the list can only come from builds on, and the head says so.
+    // Everything here is MIT (decided Oct 15): no license line, only the note about the work when it isn't MIT. A
+    // launch shwarm carries its upstream's (GPL-3.0 here), and a branch its shwarm's.
+    expect(text).toContain('\nthe work: GPL-3.0, as its author planned it\n')
+    expect(text).not.toMatch(/^license:/m)
+    expect(await (await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: ANY })).text()).toContain('\nthe work: GPL-3.0, as its author planned it\n')
+    // one off the old list was typed by a participant, so it is quoted like a title
     db.raw.prepare('UPDATE node SET license = ?, builds_on = ? WHERE path = ?').run('ODbL-1.0', JSON.stringify({ name: 'openstreetmap', url: 'https://www.openstreetmap.org', license: 'ODbL-1.0' }), EXAMPLE_ROOT)
     forgetVersions()
-    expect(await (await b.req(`/w/${EXAMPLE_ROOT}`, { headers: ANY })).text()).toContain('\nlicense: "ODbL-1.0" (from builds on)\n')
+    const odbl = await (await b.req(`/w/${EXAMPLE_ROOT}`, { headers: ANY })).text()
+    expect(odbl).toContain('\nthe work: "ODbL-1.0", as its author planned it\n')
+    expect(odbl).toContain('\nBUILDS ON\n') // no "its license carries over" (decided Oct 15)
+    expect(odbl).not.toContain('carries over')
+    // MIT, and the old default pair, show nothing
+    for (const l of ['MIT', 'MIT+CC-BY-4.0']) {
+      db.raw.prepare('UPDATE node SET license = ? WHERE path = ?').run(l, EXAMPLE_ROOT)
+      forgetVersions()
+      const mit = await (await b.req(`/w/${EXAMPLE_ROOT}`, { headers: ANY })).text()
+      expect(mit, l).not.toContain('as its author planned it')
+      const page = await (await b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML })).text()
+      expect(page, l).not.toContain('worklic')
+      expect(page, l).not.toMatch(/license MIT|MIT \+ CC/)
+    }
   })
 })
 
@@ -621,7 +669,8 @@ describe('takedowns, dead ends and hidden submissions in all three forms', () =>
     expect(text).not.toContain("it's locked")
     expect(text).not.toContain('reopen')
     const j: any = await (await b.req(`/w/${EXAMPLE_ROOT}`, { headers: JSON_ })).json()
-    expect(j).toMatchObject({ state: 'live', in_review: false, review: null, status: { current: 'dead_end' } })
+    expect(j).toMatchObject({ status: { current: 'dead_end' } })
+    for (const k of ['state', 'in_review', 'review']) expect(j, k).not.toHaveProperty(k)
     const html = await body(await b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML }))
     expect(html).toContain('stuck on chunk loading.')
     expect(html).not.toContain('open submission #1')
@@ -644,7 +693,7 @@ describe('takedowns, dead ends and hidden submissions in all three forms', () =>
     expect(text).not.toContain(s1)
     expect(text).not.toMatch(/submission #1 \(/)
     const j: any = await (await b.req(`/w/${EXAMPLE_ROOT}`, { headers: JSON_ })).json()
-    expect(j.review).toBeNull()
+    expect(j).not.toHaveProperty('review')
     expect(JSON.stringify(j)).not.toContain(s1)
     // and the stats job's status line (sidebars, the feed) leaves it out too
     env.DB.raw.prepare('UPDATE node SET changed_at = ? WHERE path = ?').run(new Date(T0 + 1000).toISOString(), EXAMPLE_ROOT)

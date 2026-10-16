@@ -241,6 +241,9 @@ export async function bandStatements(ctx: Ctx, nodeId: number): Promise<D1Prepar
   ]
 }
 
+/** At most this many people get a status-change notice from one change (#138). OPEN: a guess, for Workers Free CPU. */
+export const NOTICE_CAP = 1000
+
 /** The most-backed claim of status `s` (SQL text) on node `n` now, the newest among equals: what a change to `s` cites. */
 const TOP_CLAIM = (n: string, s: string) =>
   `(SELECT p.id FROM post p WHERE p.node_id = ${n} AND p.claim = ${s} AND p.hidden = 0 AND p.deleted_at IS NULL
@@ -254,9 +257,12 @@ const TOP_CLAIM = (n: string, s: string) =>
  * written only beside the line this call inserted (its fresh id), so nothing is written twice:
  *   * the line: from, to, the moment, the most-backed claim of the new status then (none for on track), its backers and
  *     the old status's; read inside the batch, before the batch's own change to the backing.
- *   * to passed: the crowd's pass record, with a copy of that claim's links as its pinned work (never its text, so the
+ *   * to passed: the crowd's pass record, with a copy of that claim's links as its work (never its text, so the
  *     record outlives the claim; a builder's default); an audit 'passed' row, which the log shows and the live score's
- *     pass bump reads (jobs/stats.ts); and on a shwarm, a notice in its author's inbox inviting their own mark. No mail.
+ *     pass bump reads (jobs/stats.ts); on a shwarm, a notice in its author's inbox inviting their own approval; and that
+ *     claim pinned to the top of the thread as the site's pin (decided Oct 15).
+ *   * from passed: the site's pin taken off, unless the author pinned it again by hand.
+ *   * every change: a notice in the inbox of each person who joined the node (#138). No mail.
  * `bandAt` (the job): write only while the stored band is the one the job just saved, at that moment, so a newer band
  * from the tree is never answered with a change the tree didn't make. `touch` (the job): the node's version and its
  * parent's move, as an act's would.
@@ -289,18 +295,53 @@ export function flipStatements(db: D1Database, nodeId: number, f: Flip, o: { by:
            FROM status_change sc JOIN node n ON n.id = sc.node_id WHERE sc.id = ?2`,
         )
         .bind(newId('e'), h),
-      // A system item that names a post is this notice (read/inbox-links.ts). The inbox writes its words when it shows
-      // it, with the claimant's name as it reads then (web/profile.tsx); the stored text names no one, since a name
-      // in it would outlive a closed account. OPEN: new words (Claude's draft, Oct 14).
+      // A system item that names a post with no status_to is this notice (read/inbox-links.ts). The inbox writes its
+      // words when it shows it, with the claimant's name as it reads then (web/profile.tsx); the stored text names no
+      // one, since a name in it would outlive a closed account. OPEN: new words (Claude's draft, Oct 14).
       db
         .prepare(
           `INSERT INTO inbox_item (person_id, kind, node_id, post_id, text, created_at)
-           SELECT n.author_id, 'system', n.id, sc.claim_id, n.title || ' passed: its people back a passed claim. mark it passed too?', ?2
+           SELECT n.author_id, 'system', n.id, sc.claim_id, n.title || ' passed: its people back a passed claim. approve it too?', ?2
            FROM status_change sc JOIN node n ON n.id = sc.node_id JOIN person pr ON pr.id = n.author_id AND pr.status = 'active'
            WHERE sc.id = ?1 AND n.kind <> 'branch'`,
         )
         .bind(h, o.at),
+      // The claim it cites is pinned to the top of the thread (decided Oct 15, "a passed node's claim is pinned to the
+      // top of its thread"), marked as the site's pin, unless it's pinned already (an author's pin stays theirs), a
+      // reply (which can't be pinned) or gone.
+      db
+        .prepare(
+          `UPDATE post SET pinned_at = ?2, pinned_by = 'site'
+           WHERE id = (SELECT claim_id FROM status_change WHERE id = ?1) AND pinned_at IS NULL AND reply_to IS NULL AND hidden = 0 AND deleted_at IS NULL`,
+        )
+        .bind(h, f.at),
     )
+  // Away from passed: the claim the site pinned on the way in is unpinned, unless the author pinned it again by hand,
+  // which clears the site's mark (core/posts.ts pinPost).
+  if (f.from === 'passed' && f.to !== 'passed')
+    out.push(
+      db
+        .prepare(`UPDATE post SET pinned_at = NULL, pinned_by = NULL WHERE node_id = ?2 AND pinned_by = 'site' AND EXISTS (SELECT 1 FROM status_change WHERE id = ?1)`)
+        .bind(h, nodeId),
+    )
+  // #138 (decided Oct 15): every change puts a notice in the inbox of everyone who joined this node, but the shwarm's
+  // author on a change to passed, who has the notice above. No mail. The people are those on it at the change's
+  // moment, which can be earlier than this write (the next act or job run writes it): joined by then, and not left by
+  // then. The inbox writes its words as it shows it, from status_to and the claim's name then; the stored text names
+  // no one. Bounded by NOTICE_CAP, the earliest joined first. OPEN: new words (Claude's draft, Oct 15).
+  out.push(
+    db
+      .prepare(
+        `INSERT INTO inbox_item (person_id, kind, node_id, post_id, text, created_at, status_to)
+         SELECT s.person_id, 'system', n.id, sc.claim_id, n.title || ' is now ' || replace(sc.to_status, '_', ' ') || '.', ?2, sc.to_status
+         FROM status_change sc JOIN node n ON n.id = sc.node_id
+         JOIN seat s ON s.node_id = n.id AND s.joined_at <= sc.at AND (s.left_at IS NULL OR s.left_at > sc.at)
+         JOIN person pr ON pr.id = s.person_id AND pr.status = 'active'
+         WHERE sc.id = ?1 AND NOT (sc.to_status = 'passed' AND n.kind <> 'branch' AND s.person_id = n.author_id)
+         ORDER BY s.joined_at, s.person_id LIMIT ${NOTICE_CAP}`,
+      )
+      .bind(h, o.at),
+  )
   if (o.touch)
     out.push(
       db

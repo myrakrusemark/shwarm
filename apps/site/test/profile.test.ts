@@ -242,7 +242,7 @@ describe('the name view', () => {
     expect(m07).toContain('found it. the neighbor lookup rounds toward zero')
     // its passed claim is tagged as the thread tags it, with the work it pins
     expect(m07).toMatch(/<b>@myra\/m-07<\/b><span class="sb">says passed<\/span>/)
-    expect(m07).toContain('<div class="how pins"><b>pinned work:</b>')
+    expect(m07).toContain('<div class="how pins"><b>the work:</b>')
     const bare = await body(await get(env, '/@myra?as=@myra'))
     expect(bare).toContain('where this pitch comes from:') // the 95 pinned sources posts, newest first
     expect(bare).not.toContain("confirmed finn's diagnosis")

@@ -11,7 +11,7 @@
 // is its result page, so it is listed once. Where the reading pages are closed (production in holding mode) it lists
 // only home, the footer pages and the triage page. A public read like the feed: the same per-network read limit, cached 15 minutes.
 import type { Context } from 'hono'
-import { readingOpen } from '../core/site-mode'
+import { readingOpen, stagingOpenReads } from '../core/site-mode'
 import { PUBLIC_NODE } from '../read/visibility'
 import { PAGES } from './doc'
 import { overReadCap } from './read-limit'
@@ -43,9 +43,27 @@ export const ROBOTS_DISALLOW = [
   '/hooks/',
 ] as const
 
-type Env = { Bindings: { DB: D1Database; ENV?: string; SITE_MODE?: string; SITE_URL?: string } }
+type Env = { Bindings: { DB: D1Database; ENV?: string; SITE_MODE?: string; SITE_URL?: string; STAGING_OPEN_READS?: string } }
 
-export function robotsTxt(env: { ENV?: string }, origin: string): string {
+/**
+ * What staging lets anyone read without its password when STAGING_OPEN_READS is set (the agent guide's trial, Oct 15):
+ * home and the front door, the guide, the shwarm list and search, shwarm and branch pages, the skill and its files, and
+ * the footer pages and guides (already public on production). The lock in src/index.ts lets GET and HEAD of these
+ * through, and robots.txt allows them. Forms, accounts, keys, messages and admin stay locked.
+ */
+export const STAGING_OPEN_EXACT = ['/', '/guide', '/llms.txt', '/shwarms', '/skills'] as const
+export const STAGING_OPEN_PREFIX = ['/w/', '/skills/'] as const
+export const stagingOpenPath = (path: string) =>
+  (STAGING_OPEN_EXACT as readonly string[]).includes(path) || STAGING_OPEN_PREFIX.some(p => path.startsWith(p)) || PAGES.some(p => path === `/${p.slug}`)
+
+export function robotsTxt(env: { ENV?: string; STAGING_OPEN_READS?: string }, origin: string): string {
+  // Staging with open reads: the open paths, as prefixes so a query string still matches (home is `/$` and `/?`, since
+  // `$` ends a path). A prefix that also covers a locked path (/terms covers /terms/accept) only meets the lock's 401.
+  // X-Robots-Tag: noindex still keeps every page out of search results.
+  if (stagingOpenReads(env)) {
+    const allow = ['/$', '/?', ...STAGING_OPEN_EXACT.filter(p => p !== '/'), ...STAGING_OPEN_PREFIX, ...PAGES.map(p => `/${p.slug}`)]
+    return ['User-agent: *', ...allow.map(p => `Allow: ${p}`), 'Disallow: /', ''].join('\n')
+  }
   if (env.ENV !== 'production') return 'User-agent: *\nDisallow: /\n'
   return ['User-agent: *', 'Allow: /w/', ...ROBOTS_DISALLOW.map(p => `Disallow: ${p}`), '', `Sitemap: ${origin}/sitemap.xml`, ''].join('\n')
 }
