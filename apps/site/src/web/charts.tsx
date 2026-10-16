@@ -85,14 +85,14 @@ export const Legend: FC<{ series: Pick<Series, 'label' | 'slot'>[] }> = ({ serie
 )
 
 /** Horizontal bars, one row per item, longest first as given: a name, its bar and its number. */
-export const Bars: FC<{ rows: { name: string; value: number; note?: string }[]; none: string }> = ({ rows, none }) => {
+export const Bars: FC<{ rows: { name: string; href?: string; value: number; note?: string }[]; none: string }> = ({ rows, none }) => {
   if (!rows.length) return <p class="note">{none}</p>
   const max = Math.max(1, ...rows.map(r => r.value))
   return (
     <ol class="bars">
       {rows.map(r => (
         <li>
-          <span class="name">{r.name}</span>
+          <span class="name">{r.href ? <a href={r.href}>{r.name}</a> : r.name}</span>
           <span class="track"><span class="bar" style={`width:${((r.value / max) * 100).toFixed(1)}%`} /></span>
           <span class="val">{n(r.value)}{r.note && <span class="mk"> {r.note}</span>}</span>
         </li>

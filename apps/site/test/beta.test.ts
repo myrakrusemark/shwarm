@@ -10,8 +10,8 @@ import { hashPassword } from '../src/auth/password'
 import { renderMail } from '../src/email/templates'
 import { MAIL_CRON, scheduled } from '../src/jobs'
 import { dayUsage, sendSummary, summaryDay, USAGE_FLOOR } from '../src/jobs/summary'
-import { activity, daySummary, funnel, lastDays, STEPS, testers, through } from '../src/read/beta'
-import { countTraffic, firstLanguage, referrerHost, resetTrafficLog, trafficKind, trafficRow, trafficWho } from '../src/web/traffic'
+import { activity, daySummary, funnel, mostViewed, lastDays, STEPS, testers, through } from '../src/read/beta'
+import { countTraffic, firstLanguage, pruneNodeViews, referrerHost, resetTrafficLog, trafficKind, trafficRow, trafficWho, viewedNode } from '../src/web/traffic'
 import { addPerson, T0, testDb } from './d1'
 import { body, Browser, fakeFetch, GOOD_PASSWORD, pepper, testEnv } from './browser'
 
@@ -314,6 +314,59 @@ describe('the traffic counter', () => {
     const quiet = testDb()
     await app.fetch(req('/rules'), { ...testEnv(quiet) })
     expect(quiet.raw.prepare('SELECT COUNT(*) AS n FROM traffic_count').get().n).toBe(0)
+  })
+
+  it('counts a view of a shwarm or branch page that was found, by hour and who, and nothing else', async () => {
+    const get = (path: string, status = 200, method = 'GET') => viewedNode(new Request('https://shwarm.org' + path, { method }), new Response(null, { status }))
+    expect(get('/w/minecraft-in-doom')).toBe('minecraft-in-doom')
+    expect(get('/w/minecraft-in-doom/block-placement/')).toBe('minecraft-in-doom/block-placement')
+    expect(get('/w/minecraft-in-doom?format=json', 304)).toBe('minecraft-in-doom')
+    expect(get('/w/minecraft-in-doom', 200, 'HEAD')).toBe('minecraft-in-doom')
+    for (const [path, status, method] of [['/w/minecraft-in-doom', 404, 'GET'], ['/w/minecraft-in-doom/people', 200, 'GET'], ['/w/minecraft-in-doom/log', 200, 'GET'], ['/w/minecraft-in-doom', 303, 'POST'], ['/rules', 200, 'GET'], ['/w/../etc', 200, 'GET']] as const)
+      expect(get(path, status, method), `${method} ${path} ${status}`).toBeNull()
+
+    const w = await world()
+    const env = { ...testEnv(w.db), ENV: 'production', SITE_MODE: 'open' }
+    const browser = { 'user-agent': 'Mozilla/5.0 Firefox/141', 'sec-fetch-mode': 'navigate' }
+    expect((await app.fetch(req('/w/minecraft-in-doom', browser), env)).status).toBe(200)
+    await app.fetch(req('/w/minecraft-in-doom', browser), env)
+    await app.fetch(req('/w/minecraft-in-doom?format=json', { 'user-agent': 'curl/8.5.0' }), env)
+    await app.fetch(req('/w/no-such-shwarm', browser), env)
+    await app.fetch(req('/rules', browser), env)
+    expect(w.db.raw.prepare('SELECT * FROM node_view ORDER BY who').all().map((r: any) => ({ ...r }))).toEqual([
+      { hour: '2026-10-08T12', path: 'minecraft-in-doom', who: 'person', hits: 2 },
+      { hour: '2026-10-08T12', path: 'minecraft-in-doom', who: 'script', hits: 1 },
+    ])
+    // kept 8 days
+    w.run("INSERT INTO node_view (hour, path, who, hits) VALUES ('2026-09-30T11', 'old', 'person', 5)")
+    expect(await pruneNodeViews(w.db, T0)).toBe(1)
+    expect(w.db.raw.prepare('SELECT COUNT(*) AS n FROM node_view').get().n).toBe(2)
+  })
+
+  it('ranks the shwarms looked at most in the last 24 hours by people, branches counting toward their shwarm', async () => {
+    const w = await world()
+    const view = (hour: string, path: string, who: string, hits: number) => w.run('INSERT INTO node_view (hour, path, who, hits) VALUES (?, ?, ?, ?)', hour, path, who, hits)
+    view('2026-10-08T11', 'minecraft-in-doom', 'person', 4)
+    view('2026-10-08T09', 'minecraft-in-doom/block-placement', 'person', 3)
+    view('2026-10-08T09', 'minecraft-in-doom', 'crawler', 50)
+    view('2026-10-07T13', 'quiet-one', 'person', 2)
+    view('2026-10-08T10', 'busy-with-bots', 'crawler', 900)
+    view('2026-10-07T11', 'too-old', 'person', 99) // more than 24 hours ago
+    const top = await mostViewed(w.db, T0)
+    expect(top.map(r => [r.path, r.person, r.hits, r.branches])).toEqual([
+      ['minecraft-in-doom', 7, 57, 3],
+      ['quiet-one', 2, 2, 0],
+      ['busy-with-bots', 0, 900, 0],
+    ])
+    expect(top[0]).toMatchObject({ title: 'minecraft in doom', shown: true, crawler: 50 })
+    expect(top[1]).toMatchObject({ title: null, shown: false })
+    const myra = await signIn(testEnv(w.db), 'myra@example.org')
+    const page = await body(await myra.get('/admin/analytics'))
+    const sec = page.slice(page.indexOf('<section id="viewed">'), page.indexOf('<section id="growth">'))
+    expect(sec).toContain('most looked at')
+    expect(sec).toMatch(/<a href="\/w\/minecraft-in-doom">minecraft in doom<\/a>.*?<span class="val">7<span class="mk"> 57 in all<\/span>/)
+    expect(sec).toContain('quiet-one (not public)')
+    expect(sec).not.toContain('too-old')
   })
 
   it('counts after the answer when there is an ExecutionContext', async () => {

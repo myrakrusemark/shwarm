@@ -8,6 +8,7 @@ import { refreshDisposable } from '../auth/disposable'
 import { countsD1, flushUsage, tallied } from '../core/d1-usage'
 import { backup, BACKUP_HOUR_UTC, BACKUP_MINUTE, type BackupEnv } from './backup'
 import { sweepTriage, type TriageEnv } from '../triage/run'
+import { pruneNodeViews } from '../web/traffic'
 import { deleteUnverified, prunePlumbing, pruneReports, pruneThrottle, pruneTokens, purgeNetworks } from '../auth/cleanup'
 import { pruneDms } from '../core/dm'
 import { sweepDigests } from './digest'
@@ -86,7 +87,8 @@ export async function scheduled(event: ScheduledController, env: MailEnv & Triag
   // Once an hour: unverified accounts older than 7 days and their handles go (table B); old throttle rows are pruned;
   // direct messages older than 30 days are deleted (7.17). Then, on their own so neither holds the other back (go-live
   // 11.5): IP and browser data older than 30 days (#61), the signed-request plumbing that can no longer matter, and
-  // reports and flags a year after they were resolved, and emailed links an hour after they were used or expired.
+  // reports and flags a year after they were resolved, emailed links an hour after they were used or expired, and node
+  // views after 8 days.
   if (at.getUTCMinutes() === 7) {
     ctx.waitUntil(
       Promise.all([deleteUnverified(env.DB), pruneThrottle(env.DB), pruneDms(env.DB)]).then(([gone, pruned, dms]) => {
@@ -115,6 +117,14 @@ export async function scheduled(event: ScheduledController, env: MailEnv & Triag
           if (r.idempotency || r.nonces || r.buckets) console.log('plumbing', JSON.stringify(r))
         },
         failed('plumbing-prune'),
+      ),
+    )
+    ctx.waitUntil(
+      pruneNodeViews(env.DB).then(
+        n => {
+          if (n) console.log('node views', JSON.stringify({ hours_pruned: n }))
+        },
+        failed('view-prune'),
       ),
     )
     ctx.waitUntil(

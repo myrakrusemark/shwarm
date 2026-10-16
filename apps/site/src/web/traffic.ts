@@ -3,7 +3,9 @@
 // site that linked here, the country, the status class, who sent it (a person's browser, a crawler, a script or a
 // signed agent) and, for people, the browser's first language (decided Oct 13). The user agent is read to pick who
 // and never kept. traffic_daily holds the counts from before Oct 13, with no who or language. No IP, user agent, path,
-// query or account id is kept, and no cookie is set or read for it. Only the admin page (/admin/analytics) and the daily summary mail read the counts; agent
+// query or account id is kept, and no cookie is set or read for it. Views of a shwarm or branch page also go up by hour
+// in node_view, keyed by the node's public path and who sent them (decided Oct 16), for the admin page's "most looked
+// at"; a request that isn't a node's page writes nothing there. Only the admin page (/admin/analytics) and the daily summary mail read the counts; agent
 // traffic (kind 'api', and much of 'prompt' and 'json') is never shown publicly as agent counts.
 //
 // Cost: one UPSERT per counted request, after the answer (waitUntil), so it adds no time to the response. D1's free
@@ -12,6 +14,7 @@
 // A counting error never touches the response: it's caught and logged once per isolate.
 import type { Context, MiddlewareHandler } from 'hono'
 import { isSigned } from '../api/signed'
+import { parseNodePath } from '../read/node'
 import { countsD1, flushUsage, tallied } from '../core/d1-usage'
 import { errorFormat, type Format } from './format'
 
@@ -95,6 +98,29 @@ export function trafficRow(req: Request, res: Response, now = Date.now()): Traff
   }
 }
 
+/** The node a request looked at: a GET or HEAD of /w/<path> that found it (200 or 304), in any format. Else null. */
+export function viewedNode(req: Request, res: Response): string | null {
+  if ((req.method !== 'GET' && req.method !== 'HEAD') || (res.status !== 200 && res.status !== 304)) return null
+  const { pathname } = new URL(req.url)
+  if (!pathname.startsWith('/w/')) return null
+  const parsed = parseNodePath(pathname.slice('/w/'.length).replace(/\/+$/, ''))
+  return parsed.kind === 'node' ? parsed.path : null
+}
+
+export const viewHour = (ms: number) => new Date(ms).toISOString().slice(0, 13)
+
+export function viewStatement(db: D1Database, path: string, who: TrafficWho, now = Date.now()): D1PreparedStatement {
+  return db
+    .prepare('INSERT INTO node_view (hour, path, who, hits) VALUES (?, ?, ?, 1) ON CONFLICT (hour, path, who) DO UPDATE SET hits = hits + 1')
+    .bind(viewHour(now), path, who)
+}
+
+/** Node views older than 8 days (the hourly cleanup, jobs/index.ts). Returns how many hour rows went. */
+export async function pruneNodeViews(db: D1Database, now = Date.now()): Promise<number> {
+  const r = await db.prepare('DELETE FROM node_view WHERE hour < ?').bind(viewHour(now - 8 * 86_400_000)).run()
+  return r.meta.changes ?? 0
+}
+
 export function countStatement(db: D1Database, r: TrafficRow): D1PreparedStatement {
   return db
     .prepare(
@@ -155,7 +181,9 @@ export function countTraffic(): MiddlewareHandler<{ Bindings: { DB: D1Database; 
       const row = trafficRow(c.req.raw, c.res)
       if (!row) return
       const db = c.env.DB
-      const work = (row.status_class === 5 ? db.batch([countStatement(db, row), errorCountStatement(db)]) : countStatement(db, row).run()).catch(quietly)
+      const node = viewedNode(c.req.raw, c.res)
+      const stmts = [countStatement(db, row), ...(row.status_class === 5 ? [errorCountStatement(db)] : []), ...(node ? [viewStatement(db, node, row.who)] : [])]
+      const work = (stmts.length > 1 ? db.batch(stmts) : stmts[0].run()).catch(quietly)
       const ctx = executionCtx(c)
       if (ctx) ctx.waitUntil(work)
       else await work

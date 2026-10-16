@@ -6,7 +6,7 @@
 // address isn't advertised. A reading page: prose under headings, the sidebar's boxes only.
 import { Hono } from 'hono'
 import type { FC } from 'hono/jsx'
-import { activity, funnel, lastDays, STEPS, testers, trafficByDay, trafficTop, type DayActivity, type Funnel, type CountryWho, type Ranked, type Tester, type TrafficDay } from '../read/beta'
+import { activity, funnel, mostViewed, type Viewed, lastDays, STEPS, testers, trafficByDay, trafficTop, type DayActivity, type Funnel, type CountryWho, type Ranked, type Tester, type TrafficDay } from '../read/beta'
 import { adminGate, type AdminEnv } from './admin-gate'
 import { AdminNav } from './admin-nav'
 import { Bars, Columns, Legend, type Series } from './charts'
@@ -35,14 +35,15 @@ admin.get(PATH, async c => {
   const days = lastDays(now, DAYS)
   const db = c.env.DB
   const people = await testers(db)
-  const [f, act, traffic, top] = await Promise.all([funnel(db, people), activity(db, days), trafficByDay(db, days), trafficTop(db, days)])
-  return page(c, <AnalyticsPage v={{ funnel: f, people, activity: act, traffic, top, now }} />)
+  const [f, act, traffic, top, viewed] = await Promise.all([funnel(db, people), activity(db, days), trafficByDay(db, days), trafficTop(db, days), mostViewed(db, now)])
+  return page(c, <AnalyticsPage v={{ funnel: f, people, activity: act, traffic, top, viewed, now }} />)
 })
 
-type View = { funnel: Funnel; people: Tester[]; activity: DayActivity[]; traffic: TrafficDay[]; top: { referrers: Ranked[]; countries: CountryWho[]; languages: Ranked[] }; now: number }
+type View = { viewed: Viewed[]; funnel: Funnel; people: Tester[]; activity: DayActivity[]; traffic: TrafficDay[]; top: { referrers: Ranked[]; countries: CountryWho[]; languages: Ranked[] }; now: number }
 
 const SECTIONS: [string, string][] = [
   ['glance', 'at a glance'],
+  ['viewed', 'most looked at'],
   ['growth', 'sign-ups and posts'],
   ['visits', 'visits'],
   ['where', 'where they come from'],
@@ -151,6 +152,17 @@ const CountryTable: FC<{ rows: CountryWho[] }> = ({ rows }) => (
 )
 
 /** The numbers behind a chart, folded away under it. */
+const ViewedTable: FC<{ rows: Viewed[] }> = ({ rows }) => (
+  <table class="adm">
+    <thead><tr><th>shwarm</th><th class="num">people</th><th class="num">crawlers</th><th class="num">scripts</th><th class="num">agents</th><th class="num">on branches</th><th class="num">all</th></tr></thead>
+    <tbody>
+      {rows.map(r => (
+        <tr><td>{r.path}</td><td class="num">{n(r.person)}</td><td class="num">{n(r.crawler)}</td><td class="num">{n(r.script)}</td><td class="num">{n(r.agent)}</td><td class="num">{n(r.branches)}</td><td class="num">{n(r.hits)}</td></tr>
+      ))}
+    </tbody>
+  </table>
+)
+
 const Numbers: FC<{ children: unknown }> = ({ children }) => (
   <details class="nums">
     <summary>the numbers</summary>
@@ -204,6 +216,22 @@ const AnalyticsPage: FC<{ v: View }> = ({ v }) => {
                 <Tile value={sum(v.traffic.map(r => r.api))} label="agent calls" />
               </div>
               <p class="note">accounts leave out seed accounts and admins. new this week is the last 7 days; posts, requests and calls are the last {DAYS}.</p>
+            </div>
+          </section>
+          <section id="viewed">
+            <h2>most looked at</h2>
+            <div class="body">
+              <p>the shwarms people looked at most in the last 24 hours, counted each time a shwarm's page was asked for. a branch's views count toward its shwarm. the number after each bar is every request, crawlers, scripts and agents included. counted from oct 16.</p>
+              <Bars
+                rows={v.viewed.map(r => ({
+                  name: (r.title ?? r.path) + (r.shown ? '' : ' (not public)'),
+                  href: `/w/${r.path}`,
+                  value: r.person,
+                  note: `${n(r.hits)} in all`,
+                }))}
+                none="no shwarm was looked at in the last 24 hours."
+              />
+              {v.viewed.length > 0 && <Numbers><ViewedTable rows={v.viewed} /></Numbers>}
             </div>
           </section>
           <section id="growth">

@@ -7,6 +7,8 @@
 // whose password hash starts with '!', seed/plan.ts) and admins (the operator, not a tester). Daily activity and the
 // summary leave out seed accounts only.
 
+import { OPEN_NODE as OPEN } from './visibility'
+
 /** SQL: the person row `a` is a seeded account, which can't sign in. */
 export const SEED = (a: string) => `${a}.password_hash LIKE '!%'`
 
@@ -199,6 +201,32 @@ export async function trafficTop(
       .all<Ranked>(),
   ])
   return { referrers: r.results, countries: c.results, languages: l.results }
+}
+
+/** One shwarm and how often its page and its branches' pages were looked at, by who sent the requests. */
+export type Viewed = { path: string; title: string | null; shown: boolean; person: number; crawler: number; script: number; agent: number; branches: number; hits: number }
+
+/**
+ * The shwarms looked at most in the last 24 hours (node_view, web/traffic.ts), ranked by people's views, then all. A
+ * branch's views count toward its shwarm (`branches` says how many of them were). `shown` is whether the shwarm shows
+ * publicly now (one taken down still lists, so its views aren't lost). One query on the table's key: hour first.
+ */
+export async function mostViewed(db: D1Database, now: number, limit = 10): Promise<Viewed[]> {
+  const from = new Date(now - 86_400_000).toISOString().slice(0, 13)
+  const { results } = await db
+    .prepare(
+      `SELECT v.shwarm AS path, n.title AS title, COALESCE(${OPEN('n')}, 0) AS shown,
+         SUM(CASE WHEN v.who = 'person' THEN v.hits ELSE 0 END) AS person, SUM(CASE WHEN v.who = 'crawler' THEN v.hits ELSE 0 END) AS crawler,
+         SUM(CASE WHEN v.who = 'script' THEN v.hits ELSE 0 END) AS script, SUM(CASE WHEN v.who = 'agent' THEN v.hits ELSE 0 END) AS agent,
+         SUM(CASE WHEN v.path <> v.shwarm THEN v.hits ELSE 0 END) AS branches, SUM(v.hits) AS hits
+       FROM (SELECT CASE WHEN instr(path, '/') > 0 THEN substr(path, 1, instr(path, '/') - 1) ELSE path END AS shwarm, path, who, hits
+             FROM node_view WHERE hour >= ?) v
+       LEFT JOIN node n ON n.path = v.shwarm
+       GROUP BY v.shwarm ORDER BY person DESC, hits DESC, v.shwarm LIMIT ?`,
+    )
+    .bind(from, limit)
+    .all<Omit<Viewed, 'shown'> & { shown: number }>()
+  return results.map(r => ({ ...r, shown: !!r.shown }))
 }
 
 export type DaySummary = {
