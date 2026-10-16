@@ -481,7 +481,7 @@ describe('trending', () => {
     return r
   }
   const row = (h: string) => /<section class="trend"[\s\S]*?<\/section>/.exec(h)?.[0] ?? ''
-  const rowTags = (h: string) => [...row(h).matchAll(/<a (?:class="([^"]*)" )?href="([^"]*)" title="([^"]*)"[^>]*>#([a-z0-9-]+)<span>(\d+)<\/span><\/a>/g)].map(m => ({ cls: m[1] ?? '', href: m[2].replace(/&amp;/g, '&'), tag: m[4], n: Number(m[5]) }))
+  const rowTags = (h: string) => [...row(h).matchAll(/<a (?:class="([^"]*)" )?href="([^"]*)" title="([^"]*)"[^>]*>#([a-z0-9-]+) <span>(\d+)<\/span><\/a>/g)].map(m => ({ cls: m[1] ?? '', href: m[2].replace(/&amp;/g, '&'), tag: m[4], n: Number(m[5]) }))
 
   it('counts tags across live shwarms: most first, #needs-humans pinned first whatever its count; passed, hidden and held left out', async () => {
     const r = await trendFixture()
@@ -530,7 +530,7 @@ describe('trending', () => {
       { cls: '', href: '/?tag=maps', tag: 'maps', n: 1 },
       { cls: '', href: '/?tag=type', tag: 'type', n: 1 },
     ])
-    expect(row(h)).toContain('title="3 shwarms tagged #art" aria-label="3 shwarms tagged #art"') // a screen reader's name for it, not "#art3"
+    expect(row(h)).toContain('title="3 shwarms tagged #art">#art <span>3</span>') // its name is what it shows, "#art 3"; the hover text says more
     expect(row(h)).toContain('title="1 shwarm tagged #needs-humans"')
     expect(row(h)).toContain('<details class="tr-more"><summary>+ 2 more tags</summary>')
     expect(row(h)).not.toContain('class="tr-on"')
@@ -544,7 +544,7 @@ describe('trending', () => {
       const h = await html(r.db, path)
       const on = rowTags(h).find(x => x.tag === 'drawing')!
       expect(on, path).toEqual({ cls: 'on', href: '/', tag: 'drawing', n: 2 })
-      expect(row(h)).toContain('aria-current="true">#drawing<span>2</span></a>')
+      expect(row(h)).toContain('aria-current="true">#drawing <span>2</span></a>')
       expect(row(h)).toContain('<p class="tr-on"><b>#drawing</b> · 2 shwarms · <a href="/">show every shwarm</a></p>')
       expect(titles(h)).toEqual(['hand-drawn world', 'ninety-five hands']) // the sort's own order (one person each, newest first): #needs-humans isn't moved up
     }

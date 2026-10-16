@@ -166,18 +166,13 @@ function tagFeedHref(tag: string, sort: FeedSort): string {
 
 const TrendLink: FC<{ t: TrendingTag; on: string | null; sort: FeedSort }> = ({ t, on, sort }) => {
   const cls = [t.tag === on ? 'on' : '', t.tag === NEEDS_HUMANS ? 'nh' : ''].filter(Boolean).join(' ')
-  // The tag in use links back to every shwarm, so tapping it again clears it (as in the mockup). Its name for a screen
-  // reader is the hover text, "32 shwarms tagged #coding", not the run-together "#coding32" the link shows.
+  // The tag in use links back to every shwarm, so tapping it again clears it (as in the mockup). Its name is what it
+  // shows, "#coding 32" (a space before the count, so it doesn't run together); the hover text says "32 shwarms tagged
+  // #coding". An aria-label of the hover text failed axe: a name has to include the words a person sees.
   const label = count(w.feed.trendingTagTitle, t.shwarms, { n: countNum(t.shwarms), tag: `#${t.tag}` })
   return (
-    <a
-      class={cls || undefined}
-      href={tagFeedHref(t.tag === on ? '' : t.tag, sort)}
-      title={label}
-      aria-label={label}
-      aria-current={t.tag === on ? 'true' : undefined}
-    >
-      #{t.tag}<span>{countNum(t.shwarms)}</span>
+    <a class={cls || undefined} href={tagFeedHref(t.tag === on ? '' : t.tag, sort)} title={label} aria-current={t.tag === on ? 'true' : undefined}>
+      #{t.tag} <span>{countNum(t.shwarms)}</span>
     </a>
   )
 }

@@ -95,7 +95,7 @@ body { line-height: 1.45; }
 .tr-list { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 0; }
 .tr-list .sep { padding: 0 8px; opacity: .45; }
 .tr-list a { color: var(--ink); text-decoration: none; font-weight: 700; white-space: nowrap; }
-.tr-list a span { font-weight: 400; opacity: .6; margin-left: 4px; font-variant-numeric: tabular-nums; }
+.tr-list a span { font-weight: 400; opacity: .6; font-variant-numeric: tabular-nums; }
 .tr-list a:hover { background: var(--sun); }
 .tr-list a.on { background: var(--ink); color: var(--paper); padding: 0 4px; }
 .tr-list a.on span { opacity: .8; }

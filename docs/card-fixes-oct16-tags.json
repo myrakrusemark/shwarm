@@ -1,0 +1,2254 @@
+[
+ {
+  "slug": "bot-beats-freedoom",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "games",
+     "ai",
+     "doom",
+     "benchmarks"
+    ],
+    "new": [
+     "games",
+     "ai",
+     "doom",
+     "benchmarks",
+     "coding",
+     "compute"
+    ],
+    "why": "no needs_humans line, so the tags come from the work: an open bot people write (#coding) and a game-playing model trained on gpu time people can lend (#compute). #ai and #games are already on the card."
+   }
+  ]
+ },
+ {
+  "slug": "kart-race-on-the-moon",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "games",
+     "space",
+     "supertuxkart",
+     "nasa"
+    ],
+    "new": [
+     "games",
+     "space",
+     "supertuxkart",
+     "nasa",
+     "3d-modeling",
+     "level-design"
+    ],
+    "why": "blender track builders and texture artists model the apollo 17 terrain and its textures (#3d-modeling) and turn it into a raceable three-lap track (#level-design). no #playtesting: the done test is ai karts finishing."
+   }
+  ]
+ },
+ {
+  "slug": "minecraft-in-doom",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "weird",
+     "games",
+     "gzdoom",
+     "uzdoom"
+    ],
+    "new": [
+     "weird",
+     "games",
+     "gzdoom",
+     "uzdoom",
+     "pixel-art",
+     "level-design",
+     "playtesting",
+     "coding"
+    ],
+    "why": "needs_humans names three crowds: pixel artists for blocks, guns and monsters (#pixel-art), mappers to rebuild nine maps (#level-design), and playtesters who feel a bad hitbox (#playtesting). the 60 fps engine work is code (#coding)."
+   }
+  ]
+ },
+ {
+  "slug": "a-seismometer-in-1000-homes",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "earthquakes",
+     "open-hardware",
+     "citizen-science",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "earthquakes",
+     "open-hardware",
+     "citizen-science",
+     "electronics",
+     "manufacturing",
+     "hosting",
+     "worldwide",
+     "seismology",
+     "research",
+     "lived-experience"
+    ],
+    "why": "mariano's case. hardware and firmware designers (#electronics), people who run production and ship across borders (#manufacturing), hosts in quake-prone places (#hosting) in at least 20 countries (#worldwide), seismologists to tune detection (#research with the field tag #seismology), and people who have lived through quakes and can say what a shake felt like (#lived-experience). this is the vocabulary's own example; #needs-humans stays, first."
+   }
+  ]
+ },
+ {
+  "slug": "the-hand-drawn-world",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "maps",
+     "art",
+     "openstreetmap",
+     "community"
+    ],
+    "new": [
+     "maps",
+     "art",
+     "openstreetmap",
+     "community",
+     "drawing",
+     "worldwide",
+     "beginner-friendly"
+    ],
+    "why": "people draw their own neighborhood by hand (#drawing) in at least 5 countries (#worldwide), and anyone who knows their street can draw one (#beginner-friendly). #art stays as the topic tag."
+   }
+  ]
+ },
+ {
+  "slug": "where-am-i-ask-the-birds",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "birds",
+     "ai",
+     "sound",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "birds",
+     "ai",
+     "sound",
+     "recording",
+     "phone",
+     "worldwide",
+     "beginner-friendly",
+     "birding"
+    ],
+    "why": "people in at least 20 countries (#worldwide) each record one minute of outdoor sound (#recording) with a phone (#phone), which takes no special skill (#beginner-friendly). birders who check species get the free tag #birding beside the topic tag #birds. model builders are already #ai."
+   }
+  ]
+ },
+ {
+  "slug": "trappist-1-blind-search",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "astronomy",
+     "exoplanets",
+     "open-data",
+     "weird"
+    ],
+    "new": [
+     "astronomy",
+     "exoplanets",
+     "open-data",
+     "weird",
+     "research",
+     "coding"
+    ],
+    "why": "an astronomer catches false signals from thruster firings and flares (#research; the field tag #astronomy is already there), and the result is an open notebook working from raw pixels (#coding)."
+   }
+  ]
+ },
+ {
+  "slug": "measure-the-earth-with-sticks",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "citizen-science",
+     "weird",
+     "astronomy",
+     "anyone-can-join"
+    ],
+    "new": [
+     "citizen-science",
+     "weird",
+     "astronomy",
+     "anyone-can-join",
+     "worldwide",
+     "phone",
+     "beginner-friendly"
+    ],
+    "why": "people across many latitudes on both sides of the equator (#worldwide), with a stick and a phone photo (#phone) and no special skill (#beginner-friendly). the card's #anyone-can-join turns into #beginner-friendly in the cleanup, so the card doesn't show both."
+   }
+  ]
+ },
+ {
+  "slug": "heesch-number-7",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "math",
+     "tiling",
+     "search",
+     "weird"
+    ],
+    "new": [
+     "math",
+     "tiling",
+     "search",
+     "weird",
+     "coding",
+     "compute"
+    ],
+    "why": "needs_humans asks for an eye for tile families, which #math already covers. the hunt is a polyform search people write and run (#coding) on spare cpu time (#compute), the same as the other math searches."
+   }
+  ]
+ },
+ {
+  "slug": "explain-one-ai-proof",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "math",
+     "exposition",
+     "lean",
+     "erdos"
+    ],
+    "new": [
+     "math",
+     "exposition",
+     "lean",
+     "erdos",
+     "writing",
+     "teaching"
+    ],
+    "why": "the work is writing an explanation a person can follow (#writing, #teaching). #math and #lean cover reading the paper. the cold reader who tries the explanation needs only measure theory and some probability, which #math covers."
+   }
+  ]
+ },
+ {
+  "slug": "beat-one-bound-in-taos-table",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "math",
+     "search",
+     "optimization"
+    ],
+    "new": [
+     "math",
+     "search",
+     "optimization",
+     "research",
+     "coding",
+     "writing"
+    ],
+    "why": "needs_humans asks for someone who can tell which constant is ripe (#research; the field is #math, already there) and a write-up a referee can follow (#writing). the bounds fall to a computer search plus a checker script (#coding)."
+   }
+  ]
+ },
+ {
+  "slug": "beat-the-open-solar-forecast",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "solar",
+     "forecasting",
+     "ml"
+    ],
+    "new": [
+     "solar",
+     "forecasting",
+     "ml",
+     "ai",
+     "coding",
+     "data"
+    ],
+    "why": "no needs_humans line, so the tags come from the work: a model pull request that cuts the error (#ai, #coding) without leaking data from after forecast time (#data). the card's #ml folds into #ai in the cleanup."
+   }
+  ]
+ },
+ {
+  "slug": "light-up-grey-zones",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "electricity",
+     "carbon",
+     "python"
+    ],
+    "new": [
+     "electricity",
+     "carbon",
+     "python",
+     "many-languages",
+     "locals",
+     "coding"
+    ],
+    "why": "people who read a grid operator's site in its local language (#many-languages) and know where its public data lives (#locals); each zone is a parser (#coding, beside the card's #python)."
+   }
+  ]
+ },
+ {
+  "slug": "pfas-in-your-tap",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "water",
+     "pfas",
+     "maps"
+    ],
+    "new": [
+     "water",
+     "pfas",
+     "maps",
+     "data",
+     "usa"
+    ],
+    "why": "no needs_humans line, so the tags come from the work: joining epa's result files to service-area outlines and listing unmatched systems (#data), for us water systems (#usa). #maps is already there."
+   }
+  ]
+ },
+ {
+  "slug": "where-the-grocery-stores-went",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "food",
+     "snap",
+     "maps"
+    ],
+    "new": [
+     "food",
+     "snap",
+     "maps",
+     "data",
+     "usa"
+    ],
+    "why": "no needs_humans line, so the tags come from the work: turning the usda snap store file into county-by-year counts (#data) for every us county (#usa). table work like this is #data on every card, not #coding."
+   }
+  ]
+ },
+ {
+  "slug": "caption-vital-article-videos",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "accessibility",
+     "captions",
+     "wikipedia",
+     "commons"
+    ],
+    "new": [
+     "accessibility",
+     "captions",
+     "wikipedia",
+     "commons",
+     "transcription",
+     "many-languages"
+    ],
+    "why": "careful listeners fix every caption line (#transcription), in whatever language each clip uses (#many-languages). no #video: nobody shoots or edits video here."
+   }
+  ]
+ },
+ {
+  "slug": "map-sherlock-holmes",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "weird",
+     "maps",
+     "books",
+     "public-domain"
+    ],
+    "new": [
+     "weird",
+     "maps",
+     "books",
+     "public-domain",
+     "proofreading",
+     "data",
+     "sherlock-holmes"
+    ],
+    "why": "two checkers compare 100 random rows against the stories (#proofreading), and the output is an open table of places, coordinates and quotes (#data). fans who know the canon well enough to tell doyle's made-up places from real ones find it by the free tag #sherlock-holmes, the way fans tag on instagram."
+   }
+  ]
+ },
+ {
+  "slug": "teach-latexml-25-packages",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "accessibility",
+     "math",
+     "open-source",
+     "arxiv"
+    ],
+    "new": [
+     "accessibility",
+     "math",
+     "open-source",
+     "arxiv",
+     "screen-reader",
+     "coding",
+     "latex"
+    ],
+    "why": "screen reader users judge the spoken math (#screen-reader), and each pull request is code merged into latexml (#coding). latex experts who know rare packages get the free tool tag #latex."
+   }
+  ]
+ },
+ {
+  "slug": "all-of-linux-in-rust",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "rust",
+     "linux",
+     "security",
+     "open-source"
+    ],
+    "new": [
+     "rust",
+     "linux",
+     "security",
+     "open-source",
+     "coding",
+     "testing"
+    ],
+    "why": "kernel and rust developers, authors for each base tool and arch packagers who build the image are all #coding (#rust is already there; packagers are #coding on arch core too), and people who boot it and report what breaks are #testing."
+   }
+  ]
+ },
+ {
+  "slug": "libreoffice-screen-reader-labels",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "open-source",
+     "accessibility",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "open-source",
+     "accessibility",
+     "screen-reader",
+     "coding"
+    ],
+    "why": "screen reader users who tell a useful label from a useless one (#screen-reader); each fix is a few lines merged through gerrit (#coding). #needs-humans stays, first."
+   }
+  ]
+ },
+ {
+  "slug": "ruffle-flash-games",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "games",
+     "preservation",
+     "rust",
+     "open-source"
+    ],
+    "new": [
+     "games",
+     "preservation",
+     "rust",
+     "open-source",
+     "playtesting",
+     "coding",
+     "flash"
+    ],
+    "why": "each of the 100 games is played through by 2 people (#playtesting), and ruffle fixes in rust are merged upstream (#coding; #rust is already there). people who remember flash games or keep old collections find it by the free tag #flash."
+   }
+  ]
+ },
+ {
+  "slug": "every-freedoom-map-beatable",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "games",
+     "doom",
+     "open-source",
+     "testing"
+    ],
+    "new": [
+     "games",
+     "doom",
+     "open-source",
+     "testing",
+     "playtesting",
+     "level-design",
+     "beginner-friendly"
+    ],
+    "why": "doom players of any skill record pistol-start demos on maps they haven't played (#playtesting, and #beginner-friendly because fresh players are the point), and mappers fix broken spots in freedoom's style (#level-design)."
+   }
+  ]
+ },
+ {
+  "slug": "luanti-for-blind-players",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "accessibility",
+     "games",
+     "luanti",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "accessibility",
+     "games",
+     "luanti",
+     "screen-reader",
+     "playtesting",
+     "coding"
+    ],
+    "why": "can't pass without 10 blind and low-vision players on different screen readers (#screen-reader), who design and play it through (#playtesting); the mod and helper app are code, and luanti takes only human-written code (#coding)."
+   }
+  ]
+ },
+ {
+  "slug": "500-nouns-in-16-pixels",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "art",
+     "pixel-art",
+     "accessibility"
+    ],
+    "new": [
+     "art",
+     "pixel-art",
+     "accessibility",
+     "beginner-friendly"
+    ],
+    "why": "#pixel-art is already there for the artists. the 20 people who take the quiz cold need no skill at all (#beginner-friendly)."
+   }
+  ]
+ },
+ {
+  "slug": "moss-powered-clock",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "weird",
+     "biology",
+     "hardware"
+    ],
+    "new": [
+     "weird",
+     "biology",
+     "hardware",
+     "gardening",
+     "electronics"
+    ],
+    "why": "needs_humans names two people: someone who keeps moss alive and damp for weeks (#gardening) and someone who solders a micropower circuit (#electronics)."
+   }
+  ]
+ },
+ {
+  "slug": "ninety-five-hands",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "art",
+     "type",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "art",
+     "type",
+     "drawing",
+     "beginner-friendly"
+    ],
+    "why": "95 people each draw one glyph with a pen or a mouse (#drawing), with no font skill needed because agents do spacing and builds (#beginner-friendly). #art stays as the topic tag. no #design: agents handle the type design."
+   }
+  ]
+ },
+ {
+  "slug": "the-1930-songbook",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "music",
+     "public-domain",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "music",
+     "public-domain",
+     "proofreading"
+    ],
+    "why": "every song needs 2 proofreaders who check it note for note against the scan (#proofreading). reading and engraving sheet music is #music, already on the card."
+   }
+  ]
+ },
+ {
+  "slug": "bayeux-in-ascii",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "weird",
+     "art",
+     "ascii"
+    ],
+    "new": [
+     "weird",
+     "art",
+     "ascii",
+     "drawing"
+    ],
+    "why": "people with an eye for drawing in characters (#drawing). #art and #ascii stay as topic tags. nothing else is needed: checkers only match scenes to photos."
+   }
+  ]
+ },
+ {
+  "slug": "plant-that-drives-to-the-sun",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "weird",
+     "hardware",
+     "plants"
+    ],
+    "new": [
+     "weird",
+     "hardware",
+     "plants",
+     "gardening",
+     "electronics"
+    ],
+    "why": "someone who keeps plants alive (#gardening), and the wheeled pot with light sensors and matching loggers (#electronics), the same pair as the moss-powered clock. 'people with sunny rooms' has no tag; #gardening is the closest."
+   }
+  ]
+ },
+ {
+  "slug": "who-outbreak-reports-table",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "public-health",
+     "open-data",
+     "epidemiology",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "public-health",
+     "open-data",
+     "epidemiology",
+     "data",
+     "research"
+    ],
+    "why": "every report is coded into a table by two people (#data), and experienced epidemiologists settle tricky coding calls (#research, beside the field tag #epidemiology)."
+   }
+  ]
+ },
+ {
+  "slug": "fix-cheap-air-sensors-humid-days",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "air-quality",
+     "citizen-science",
+     "open-data",
+     "sensors"
+    ],
+    "new": [
+     "air-quality",
+     "citizen-science",
+     "open-data",
+     "sensors",
+     "research",
+     "data",
+     "coding"
+    ],
+    "why": "air-quality people who know which monitors in their country are reference grade (#research; the field tag #air-quality is already there). the work pairs sensor and station tables (#data) into an open correction model a second person reruns (#coding)."
+   }
+  ]
+ },
+ {
+  "slug": "fix-100-biomedical-notebooks",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "reproducibility",
+     "open-science",
+     "jupyter",
+     "biomedical"
+    ],
+    "new": [
+     "reproducibility",
+     "open-science",
+     "jupyter",
+     "biomedical",
+     "research",
+     "coding"
+    ],
+    "why": "people from the papers' fields judge whether a changed output is a real difference or noise (#research; the field tag #biomedical is already there), and fixing broken jupyter notebooks is #coding. no #compute: the runs are small."
+   }
+  ]
+ },
+ {
+  "slug": "rerun-20-black-hole-mergers",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "physics",
+     "gravitational-waves",
+     "reproducibility",
+     "compute"
+    ],
+    "new": [
+     "physics",
+     "gravitational-waves",
+     "reproducibility",
+     "compute",
+     "research",
+     "coding"
+    ],
+    "why": "gravitational-wave people pick priors and spot bad runs (#research; the field tag #gravitational-waves is already there), and the runs and configs are python (#coding). #compute is already there."
+   }
+  ]
+ },
+ {
+  "slug": "audit-erdos-lean-statements",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "math",
+     "lean",
+     "review",
+     "erdos"
+    ],
+    "new": [
+     "math",
+     "lean",
+     "review",
+     "erdos",
+     "proofreading",
+     "research"
+    ],
+    "why": "reading each lean statement line by line against its source (#proofreading), and knowing what erdős meant from the original papers (#research; the field is #math). #lean is already there."
+   }
+  ]
+ },
+ {
+  "slug": "pick-and-morley-in-mathlib",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "math",
+     "lean",
+     "mathlib",
+     "geometry"
+    ],
+    "new": [
+     "math",
+     "lean",
+     "mathlib",
+     "geometry"
+    ],
+    "why": "#math, #lean, #mathlib and #geometry already say who this needs: lean users with taste in definitions, and reviewers on the lean zulip. no new tag needed."
+   }
+  ]
+ },
+ {
+  "slug": "replay-tao-starred-bounds",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "math",
+     "verification",
+     "optimization"
+    ],
+    "new": [
+     "math",
+     "verification",
+     "optimization",
+     "research",
+     "coding"
+    ],
+    "why": "people who read the source papers and judge whether a replay is really independent (#research; the field is #math), and each replay is code with logs (#coding). no #compute: the card names no big runs."
+   }
+  ]
+ },
+ {
+  "slug": "bb6-holdouts-below-700",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "math",
+     "busy-beaver",
+     "compute",
+     "rocq"
+    ],
+    "new": [
+     "math",
+     "busy-beaver",
+     "compute",
+     "rocq",
+     "coding"
+    ],
+    "why": "pattern spotting that leads to a new public decider is #coding. #math, #compute and #rocq (the proofs) are already on the card."
+   }
+  ]
+ },
+ {
+  "slug": "calibrate-the-2-dollar-soil-sensor",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "soil",
+     "sensors",
+     "farming"
+    ],
+    "new": [
+     "soil",
+     "sensors",
+     "farming",
+     "cooking",
+     "electronics",
+     "research"
+    ],
+    "why": "people with an oven, a kitchen scale and their own soil (#cooking), each wiring a sensor to a board to read it (#electronics), and a soil scientist to review the method (#research; the field tag #soil is already there)."
+   }
+  ]
+ },
+ {
+  "slug": "map-madagascars-power-grid",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "openstreetmap",
+     "energy",
+     "mapping"
+    ],
+    "new": [
+     "openstreetmap",
+     "energy",
+     "mapping",
+     "maps",
+     "madagascar",
+     "locals"
+    ],
+    "why": "many mappers and osm validators (#maps; the card's #mapping folds into it in the cleanup), in madagascar (#madagascar), and mappers there who know where lines really run (#locals). #openstreetmap is already there."
+   }
+  ]
+ },
+ {
+  "slug": "predict-heat-pump-efficiency",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "heatpumps",
+     "energy",
+     "open-data"
+    ],
+    "new": [
+     "heatpumps",
+     "energy",
+     "open-data",
+     "lived-experience",
+     "research",
+     "data"
+    ],
+    "why": "owners of monitored heat pumps dig out their own design facts (#lived-experience), installers and heat pump designers judge which inputs are known before install (#research; the field tag is #heat-pumps after the cleanup), and the open table and model are #data."
+   }
+  ]
+ },
+ {
+  "slug": "print-the-parts-that-break",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "repair",
+     "3d-printing",
+     "righttorepair"
+    ],
+    "new": [
+     "repair",
+     "3d-printing",
+     "righttorepair",
+     "3d-modeling"
+    ],
+    "why": "30 open parametric parts are designed in cad (#3d-modeling), then printed and fitted by people with 3d printers (#3d-printing; the card's #3dprinting folds into it in the cleanup). repair cafe volunteers are #repair, already there."
+   }
+  ]
+ },
+ {
+  "slug": "why-kettles-die",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "repair",
+     "open-data",
+     "ewaste"
+    ],
+    "new": [
+     "repair",
+     "open-data",
+     "ewaste",
+     "many-languages",
+     "data"
+    ],
+    "why": "repairers who read a two-line fault note are #repair, already there; native speakers for the non-english rows (#many-languages); labeling fault types in a table (#data)."
+   }
+  ]
+ },
+ {
+  "slug": "city-budgets-one-table",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "spending",
+     "budgets",
+     "civic"
+    ],
+    "new": [
+     "spending",
+     "budgets",
+     "civic",
+     "locals",
+     "data",
+     "usa"
+    ],
+    "why": "residents confirm their own city's totals (#locals), people who know a general fund from a capital fund pull spending out of budget books (#data), for every us city over 100,000 people (#usa)."
+   }
+  ]
+ },
+ {
+  "slug": "us-lead-pipes-mapped",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "water",
+     "lead",
+     "maps",
+     "civic"
+    ],
+    "new": [
+     "water",
+     "lead",
+     "maps",
+     "civic",
+     "outreach",
+     "locals",
+     "data",
+     "usa"
+    ],
+    "why": "volunteers phone or email utilities (#outreach), ideally people who live in each system's area (#locals), plus people who read an inventory file and pull out the counts (#data), for us water systems (#usa)."
+   }
+  ]
+ },
+ {
+  "slug": "grocery-by-bus",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "food",
+     "transit",
+     "maps"
+    ],
+    "new": [
+     "food",
+     "transit",
+     "maps",
+     "fieldwork",
+     "usa",
+     "coding"
+    ],
+    "why": "riders in each city take sampled trips door to door and log the time (#fieldwork), in the 10 biggest us cities (#usa), plus people who run the routing pipeline (#coding)."
+   }
+  ]
+ },
+ {
+  "slug": "nyc-restrooms-checked",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "accessibility",
+     "nyc",
+     "fieldwork"
+    ],
+    "new": [
+     "accessibility",
+     "nyc",
+     "fieldwork",
+     "locals",
+     "phone",
+     "beginner-friendly"
+    ],
+    "why": "people in all five boroughs (#locals; #nyc and #fieldwork are already there) walk to a restroom and take a photo with a phone (#phone); noting whether it was open and step-free takes no special skill (#beginner-friendly)."
+   }
+  ]
+ },
+ {
+  "slug": "schools-by-busy-roads",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "air",
+     "schools",
+     "maps"
+    ],
+    "new": [
+     "air",
+     "schools",
+     "maps",
+     "hosting",
+     "data",
+     "usa"
+    ],
+    "why": "parents, teachers and students keep a sensor running at their school for a month (#hosting; #schools is already there), flagging schools means joining federal files (#data), and it covers us public schools (#usa)."
+   }
+  ]
+ },
+ {
+  "slug": "alt-text-for-vital-articles",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "accessibility",
+     "wikipedia",
+     "alt-text",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "accessibility",
+     "wikipedia",
+     "alt-text",
+     "writing",
+     "screen-reader"
+    ],
+    "why": "people who write clear alt text (#writing) and screen reader users to judge it (#screen-reader). #alt-text is already there."
+   }
+  ]
+ },
+ {
+  "slug": "sicilian-on-common-voice",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "language",
+     "speech",
+     "endangered-languages",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "language",
+     "speech",
+     "endangered-languages",
+     "sicilian",
+     "translation",
+     "recording",
+     "proofreading"
+    ],
+    "why": "fluent sicilian speakers (#sicilian) finish the interface strings (#translation), approve sentences and validate clips (#proofreading), and at least 50 speakers record (#recording). same tags as the tagalog card."
+   }
+  ]
+ },
+ {
+  "slug": "gutenberg-books-on-wikidata",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "wikidata",
+     "books",
+     "public-domain",
+     "open-data"
+    ],
+    "new": [
+     "wikidata",
+     "books",
+     "public-domain",
+     "open-data",
+     "beginner-friendly",
+     "data"
+    ],
+    "why": "lots of volunteers confirm fuzzy matches one at a time, which takes care, not a special skill (#beginner-friendly); matching a 79,554-row catalog is #data. wikidata editors who know bot approval are covered by #wikidata."
+   }
+  ]
+ },
+ {
+  "slug": "nigerian-braille-in-liblouis",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "accessibility",
+     "braille",
+     "nigeria",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "accessibility",
+     "braille",
+     "nigeria",
+     "yoruba",
+     "igbo",
+     "hausa",
+     "teaching"
+    ],
+    "why": "braille readers of each language approve its table, so the language tags are how they find the card (#braille and #nigeria are already there); teachers at nigerian schools for the blind are #teaching. the card's text says 'nigeria's three biggest languages' without naming them."
+   }
+  ]
+ },
+ {
+  "slug": "citation-needed-top-1000",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "wikipedia",
+     "sources",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "wikipedia",
+     "sources",
+     "writing",
+     "research"
+    ],
+    "why": "wikipedia editors read each source and write each edit (#writing), and people who know a field judge whether a source backs the claim (#research). librarians with journal database access have no tag; see gaps."
+   }
+  ]
+ },
+ {
+  "slug": "wax-cylinder-lyrics",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "weird",
+     "music",
+     "public-domain",
+     "archives"
+    ],
+    "new": [
+     "weird",
+     "music",
+     "public-domain",
+     "archives",
+     "transcription",
+     "proofreading"
+    ],
+    "why": "many patient ears write down what is sung (#transcription) and spot-check each other's work (#proofreading). #music is already there."
+   }
+  ]
+ },
+ {
+  "slug": "wesnoth-in-a-browser-tab",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "open-source",
+     "games",
+     "porting",
+     "weird"
+    ],
+    "new": [
+     "open-source",
+     "games",
+     "porting",
+     "weird",
+     "playtesting",
+     "coding"
+    ],
+    "why": "players who know wesnoth's campaigns, on different browsers and devices, finish each one twice and spot units or the ai acting wrong (#playtesting); compiling to webassembly is #coding (#porting is already there)."
+   }
+  ]
+ },
+ {
+  "slug": "arch-wiki-out-of-date",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "open-source",
+     "docs",
+     "linux"
+    ],
+    "new": [
+     "open-source",
+     "docs",
+     "linux",
+     "testing",
+     "writing"
+    ],
+    "why": "arch users try the old steps on real hardware a vm can't fake, like laptops and gpus (#testing), then fix the wiki page (#writing)."
+   }
+  ]
+ },
+ {
+  "slug": "arch-core-reproducible",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "open-source",
+     "reproducible-builds",
+     "linux"
+    ],
+    "new": [
+     "open-source",
+     "reproducible-builds",
+     "linux",
+     "compute",
+     "coding"
+    ],
+    "why": "people with their own machines run independent rebuilds (#compute), and packagers get fixes accepted upstream and in arch's packaging repos (#coding)."
+   }
+  ]
+ },
+ {
+  "slug": "python-docs-bengali",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "open-source",
+     "translation",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "open-source",
+     "translation",
+     "bengali",
+     "python",
+     "organizing"
+    ],
+    "why": "native bengali speakers (#bengali; #translation is already there) who know some python (#python, a free tool tag), and one person to be the translation coordinator python asks for (#organizing)."
+   }
+  ]
+ },
+ {
+  "slug": "ffmpeg-untested-filters",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "open-source",
+     "testing",
+     "video"
+    ],
+    "new": [
+     "open-source",
+     "testing",
+     "video",
+     "audio",
+     "coding"
+    ],
+    "why": "audio and video people who can tell whether a filter's output is right (#audio; #video and #testing are already there); the tests are merged upstream (#coding)."
+   }
+  ]
+ },
+ {
+  "slug": "game-boy-cartridge",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "gameboy",
+     "games",
+     "jam",
+     "chiptune"
+    ],
+    "new": [
+     "gameboy",
+     "games",
+     "jam",
+     "chiptune",
+     "pixel-art",
+     "music",
+     "playtesting"
+    ],
+    "why": "pixel artists (#pixel-art), chiptune composers (#music; #chiptune stays beside it), and people who play it start to finish on a real game boy with a flash cart (#playtesting). owners find it by #game-boy, which the card's #gameboy folds into in the cleanup."
+   }
+  ]
+ },
+ {
+  "slug": "minecraft-in-doom-survival",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "weird",
+     "games",
+     "uzdoom"
+    ],
+    "new": [
+     "weird",
+     "games",
+     "uzdoom",
+     "design",
+     "playtesting",
+     "coding"
+    ],
+    "why": "game designers tune hunger and night length (#design) by playing until it feels tense, not tedious (#playtesting); the hunger meter and spawn rules are mod code (#coding)."
+   }
+  ]
+ },
+ {
+  "slug": "dots-and-boxes-5x5",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "math",
+     "games",
+     "solvers",
+     "compute"
+    ],
+    "new": [
+     "math",
+     "games",
+     "solvers",
+     "compute",
+     "research",
+     "game-theory",
+     "coding"
+    ],
+    "why": "game theorists who know chain and loop strategy prune the search (#research, with the free field tag #game-theory), and the solver is code (#coding). #compute is already there."
+   }
+  ]
+ },
+ {
+  "slug": "amazing-grace-100-voices",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "music",
+     "choir",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "music",
+     "choir",
+     "singing",
+     "recording",
+     "beginner-friendly",
+     "audio"
+    ],
+    "why": "singers of any level (#singing, #beginner-friendly), each recorded alone on a phone (#recording), and someone to mix 100 voices (#audio). arranging is #music, already there. the card's #choir folds into #singing in the cleanup."
+   }
+  ]
+ },
+ {
+  "slug": "knit-the-warming-stripes",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "art",
+     "climate",
+     "knitting"
+    ],
+    "new": [
+     "art",
+     "climate",
+     "knitting",
+     "crafts",
+     "worldwide"
+    ],
+    "why": "knitters by machine or by hand (#crafts; #knitting stays beside it) in 20 places, each knitting their own place's climate (#worldwide). owners of a brother machine with an ayab board are covered by #knitting."
+   }
+  ]
+ },
+ {
+  "slug": "five-strangers-one-microscope",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "open-hardware",
+     "microscopy",
+     "3d-printing",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "open-hardware",
+     "microscopy",
+     "3d-printing",
+     "manufacturing",
+     "research",
+     "optics",
+     "schools",
+     "worldwide"
+    ],
+    "why": "people who 3d print, assemble and test in batches (#manufacturing; #3d-printing is already there), optics people who cut cost without losing resolution (#research with the free field tag #optics), and schools, clinics and small labs (#schools) in 5 countries (#worldwide) who take one and use it."
+   }
+  ]
+ },
+ {
+  "slug": "name-the-sky-from-64-pixels",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "stars",
+     "ai",
+     "navigation",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "stars",
+     "ai",
+     "navigation",
+     "worldwide",
+     "diy",
+     "photography",
+     "research",
+     "astronomy"
+    ],
+    "why": "people in at least 10 countries (#worldwide) build a two-camera rig (#diy) and shoot the hidden test set (#photography); people who know astrometry solve the reference photos (#research with the field tag #astronomy). model builders are already #ai."
+   }
+  ]
+ },
+ {
+  "slug": "rerun-200-dataverse-r-scripts",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "reproducibility",
+     "r",
+     "open-data",
+     "social-science"
+    ],
+    "new": [
+     "reproducibility",
+     "r",
+     "open-data",
+     "social-science",
+     "research",
+     "coding"
+    ],
+    "why": "social scientists who read a regression table and judge whether a rerun matches the paper (#research; the field tag #social-science is already there); getting 2,000 r files running is #coding (#r is already there)."
+   }
+  ]
+ },
+ {
+  "slug": "see-your-alpha-waves",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "neuroscience",
+     "open-hardware",
+     "citizen-science",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "neuroscience",
+     "open-hardware",
+     "citizen-science",
+     "beginner-friendly",
+     "research",
+     "diy"
+    ],
+    "why": "20 volunteers who only wear electrodes for ten minutes (#beginner-friendly), someone with eeg experience to judge signal quality (#research; the field tag #neuroscience is already there), and the board and electrodes put together at home (#diy)."
+   }
+  ]
+ },
+ {
+  "slug": "tb-smear-photo-benchmark",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "health",
+     "science",
+     "microscopy",
+     "benchmarks",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "health",
+     "science",
+     "microscopy",
+     "benchmarks",
+     "research",
+     "worldwide",
+     "ai"
+    ],
+    "why": "microscopists who read tb smears label every photo (#research; the field tag #microscopy is already there), from labs in at least 5 countries (#worldwide); the benchmark tests detectors (#ai). no #photography: the labs share photos they take for their own work."
+   }
+  ]
+ },
+ {
+  "slug": "weigh-the-earth-on-a-table",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "physics",
+     "weird",
+     "hardware",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "physics",
+     "weird",
+     "hardware",
+     "diy"
+    ],
+    "why": "10 builders each put together a torsion balance from an under-$50 parts list (#diy). 'different places' only means independent builds, so no #worldwide; a quiet basement and patience have no tag."
+   }
+  ]
+ },
+ {
+  "slug": "smaller-5-chromatic-graph",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "math",
+     "graphs",
+     "sat",
+     "search"
+    ],
+    "new": [
+     "math",
+     "graphs",
+     "sat",
+     "search",
+     "coding",
+     "compute"
+    ],
+    "why": "the geometric intuition in needs_humans is #math, already there. hunting candidate graphs is a search people write (#coding) and run on spare cpu time with a sat solver (#compute), the same as the other math searches."
+   }
+  ]
+ },
+ {
+  "slug": "green-100-problems-in-lean",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "math",
+     "lean",
+     "additive-combinatorics"
+    ],
+    "new": [
+     "math",
+     "lean",
+     "additive-combinatorics",
+     "research",
+     "number-theory"
+    ],
+    "why": "reviewers who read research combinatorics and number theory and catch a statement that is subtly too weak or too strong (#research, with the free field tag #number-theory beside #additive-combinatorics). #lean is already there."
+   }
+  ]
+ },
+ {
+  "slug": "flt-definitions-review",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "math",
+     "lean",
+     "review",
+     "number-theory"
+    ],
+    "new": [
+     "math",
+     "lean",
+     "review",
+     "number-theory",
+     "research"
+    ],
+    "why": "every definition needs 2 reviewers with graduate-level number theory (#research; #number-theory, #lean and #math are already there)."
+   }
+  ]
+ },
+ {
+  "slug": "link-erdos-problems-to-oeis",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "math",
+     "oeis",
+     "erdos",
+     "compute"
+    ],
+    "new": [
+     "math",
+     "oeis",
+     "erdos",
+     "compute",
+     "writing",
+     "proofreading",
+     "coding"
+    ],
+    "why": "people who write oeis entries editors accept (#writing), a second reader for each of the 248 (#proofreading), and terms computed for many sequences (#coding; #compute is already there)."
+   }
+  ]
+ },
+ {
+  "slug": "r45-in-lean",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "math",
+     "lean",
+     "ramsey",
+     "sat"
+    ],
+    "new": [
+     "math",
+     "lean",
+     "ramsey",
+     "sat",
+     "compute",
+     "research"
+    ],
+    "why": "spare cpu time and storage (#compute) and people who know ramsey graph enumeration (#research; the field tag #ramsey is already there). #lean and #math are already there."
+   }
+  ]
+ },
+ {
+  "slug": "settle-a-rupert-solid",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "math",
+     "geometry",
+     "lean",
+     "weird"
+    ],
+    "new": [
+     "math",
+     "geometry",
+     "lean",
+     "weird",
+     "coding",
+     "compute"
+    ],
+    "why": "the geometric insight in needs_humans is #math and #geometry, already there. searching orientations for a passage, or ruling them all out, is a search people write (#coding) and run on spare cpu time (#compute), the same as the other math searches."
+   }
+  ]
+ },
+ {
+  "slug": "25-dollar-sky-darkness-meter",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "lightpollution",
+     "open-hardware",
+     "astronomy"
+    ],
+    "new": [
+     "lightpollution",
+     "open-hardware",
+     "astronomy",
+     "electronics",
+     "manufacturing",
+     "hosting",
+     "worldwide"
+    ],
+    "why": "hardware designers (#electronics), people who run a production batch and ship it (#manufacturing), and hosts at 20 sites who log 30 nights (#hosting) in at least 5 countries (#worldwide). owning or borrowing a reference meter has no tag. #lightpollution and #openhardware fold into their hyphenated spellings in the cleanup."
+   }
+  ]
+ },
+ {
+  "slug": "cardboard-solar-cooker",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "solar",
+     "cooking",
+     "open-hardware"
+    ],
+    "new": [
+     "solar",
+     "cooking",
+     "open-hardware",
+     "design",
+     "manufacturing",
+     "teaching",
+     "organizing",
+     "worldwide"
+    ],
+    "why": "designers for the cooker (#design), a print-and-cut run of at least 500 (#manufacturing), local groups that hand cookers out (#organizing) and teach solar cooking (#teaching), and testers on 3 continents (#worldwide). no #crafts: the cookers are made in a production run. a tester's probe thermometer and solar meter have no tag."
+   }
+  ]
+ },
+ {
+  "slug": "kenya-on-open-food-facts",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "food",
+     "open-data",
+     "kenya"
+    ],
+    "new": [
+     "food",
+     "open-data",
+     "kenya",
+     "phone",
+     "locals",
+     "beginner-friendly"
+    ],
+    "why": "shoppers in kenya (#locals; #kenya is already there) photograph real products on real shelves with a phone (#phone), which takes care, not a special skill (#beginner-friendly)."
+   }
+  ]
+ },
+ {
+  "slug": "open-heat-mapping-kit",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "heat",
+     "cities",
+     "open-hardware"
+    ],
+    "new": [
+     "heat",
+     "cities",
+     "open-hardware",
+     "electronics",
+     "manufacturing",
+     "fieldwork",
+     "organizing"
+    ],
+    "why": "hardware designers (#electronics), people who run a production batch and ship it (#manufacturing), riders who cover routes in the chosen city (#fieldwork), and local groups in other cities who use the sensors and maps to plan shade (#organizing)."
+   }
+  ]
+ },
+ {
+  "slug": "oysters-on-coffee-grounds",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "food",
+     "fungi",
+     "waste"
+    ],
+    "new": [
+     "food",
+     "fungi",
+     "waste",
+     "gardening",
+     "cooking"
+    ],
+    "why": "growers who keep oyster mushrooms alive (#gardening), each with a kitchen and a scale (#cooking). a cafe nearby is a place need no single place tag fits."
+   }
+  ]
+ },
+ {
+  "slug": "read-nitrate-strips-by-phone",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "water",
+     "citizen-science",
+     "vision"
+    ],
+    "new": [
+     "water",
+     "citizen-science",
+     "vision",
+     "fieldwork",
+     "phone",
+     "ai"
+    ],
+    "why": "25 stream volunteers test water at the stream (#fieldwork) and photograph strips with their own phones (#phone); the open method reads strip colors from photos (#ai, beside the card's #vision). getting a lab reading on the same sample has no tag."
+   }
+  ]
+ },
+ {
+  "slug": "every-15-minute-bus",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "transit",
+     "maps",
+     "gtfs"
+    ],
+    "new": [
+     "transit",
+     "maps",
+     "gtfs",
+     "fieldwork",
+     "usa",
+     "data"
+    ],
+    "why": "riders in at least 15 us metros stand at stops and log real arrivals (#fieldwork, #usa), and working out frequency from transit feeds is #data."
+   }
+  ]
+ },
+ {
+  "slug": "every-us-street-tree",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "trees",
+     "heat",
+     "maps"
+    ],
+    "new": [
+     "trees",
+     "heat",
+     "maps",
+     "fieldwork",
+     "usa",
+     "research",
+     "botany"
+    ],
+    "why": "volunteers in 20 us cities walk to sampled trees and name them to species (#fieldwork, #usa), and an arborist or botanist untangles messy species names (#research with the free field tag #botany)."
+   }
+  ]
+ },
+ {
+  "slug": "gtfs-for-small-agencies",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "transit",
+     "gtfs",
+     "rural"
+    ],
+    "new": [
+     "transit",
+     "gtfs",
+     "rural",
+     "outreach",
+     "fieldwork",
+     "data",
+     "usa"
+    ],
+    "why": "calling or emailing small agencies (#outreach), checking stop locations in person (#fieldwork), turning pdf timetables into a valid feed (#data), all for us agencies (#usa)."
+   }
+  ]
+ },
+ {
+  "slug": "city-open-data-census",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "open-data",
+     "civic",
+     "transparency"
+    ],
+    "new": [
+     "open-data",
+     "civic",
+     "transparency",
+     "locals",
+     "many-languages",
+     "worldwide"
+    ],
+    "why": "each city is checked by a resident (#locals) who reads the local language (#many-languages), across the 300 largest cities in the world (#worldwide)."
+   }
+  ]
+ },
+ {
+  "slug": "east-austin-vacant-parcels",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "housing",
+     "land",
+     "austin",
+     "maps"
+    ],
+    "new": [
+     "housing",
+     "land",
+     "austin",
+     "maps",
+     "locals",
+     "fieldwork",
+     "data"
+    ],
+    "why": "neighbors walk four zip codes and look at each lot from the street (#locals, #fieldwork; #austin and #maps are already there), and the city land use layer is joined to county parcel records (#data). someone who reads austin zoning codes has no tag."
+   }
+  ]
+ },
+ {
+  "slug": "2000-yoruba-words-on-wikidata",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "wikidata",
+     "yoruba",
+     "language",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "wikidata",
+     "yoruba",
+     "language",
+     "recording",
+     "proofreading"
+    ],
+    "why": "at least 20 speakers record pronunciations (#recording), and 2 fluent speakers check every word's tone marks (#proofreading). #yoruba is already there; no #nigeria, since speakers anywhere can help."
+   }
+  ]
+ },
+ {
+  "slug": "tagalog-on-common-voice",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "language",
+     "speech",
+     "philippines",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "language",
+     "speech",
+     "philippines",
+     "tagalog",
+     "translation",
+     "recording",
+     "proofreading"
+    ],
+    "why": "fluent tagalog speakers (#tagalog) translate interface strings (#translation), approve sentences and validate clips (#proofreading), and at least 50 speakers record (#recording). #philippines is already there. same tags as the sicilian card."
+   }
+  ]
+ },
+ {
+  "slug": "igbo-vital-articles",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "wikipedia",
+     "igbo",
+     "language",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "wikipedia",
+     "igbo",
+     "language",
+     "writing"
+    ],
+    "why": "at least 20 fluent igbo writers write sourced articles editors accept (#writing). #igbo is already there; igbo wikipedia editors are covered by #wikipedia."
+   }
+  ]
+ },
+ {
+  "slug": "validate-10000-wikisource-pages",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "public-domain",
+     "wikisource",
+     "books",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "public-domain",
+     "wikisource",
+     "books",
+     "proofreading",
+     "many-languages"
+    ],
+    "why": "careful proofreaders check each page against the scan (#proofreading), and people who read non-english quotes help (#many-languages). reading old typefaces is part of #proofreading."
+   }
+  ]
+ },
+ {
+  "slug": "auto-tagged-pdfs-screen-readers",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "open-source",
+     "accessibility",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "open-source",
+     "accessibility",
+     "screen-reader",
+     "testing",
+     "coding"
+    ],
+    "why": "at least 15 people who use nvda, jaws or voiceover every day score reading order (#screen-reader), upstream issues with sample files get filed (#testing), and the benchmark is built (#coding)."
+   }
+  ]
+ },
+ {
+  "slug": "inkscape-100-oldest-bugs",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "open-source",
+     "tools",
+     "inkscape"
+    ],
+    "new": [
+     "open-source",
+     "tools",
+     "inkscape",
+     "testing",
+     "coding",
+     "organizing"
+    ],
+    "why": "daily inkscape users reproduce bugs and confirm fixes (#testing), fixes are merged into inkscape (#coding), and one person the inkscape devs know is the crew's contact (#organizing)."
+   }
+  ]
+ },
+ {
+  "slug": "gtk2-holdouts",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "open-source",
+     "porting",
+     "linux"
+    ],
+    "new": [
+     "open-source",
+     "porting",
+     "linux",
+     "coding",
+     "testing"
+    ],
+    "why": "each package is ported to gtk3 or gtk4 (#coding), and people who use these apps say when a port behaves wrong (#testing)."
+   }
+  ]
+ },
+ {
+  "slug": "gimp-plugins-gimp-3",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "open-source",
+     "porting",
+     "gimp"
+    ],
+    "new": [
+     "open-source",
+     "porting",
+     "gimp",
+     "photography",
+     "testing",
+     "coding"
+    ],
+    "why": "photographers and longtime gimp users who used these plug-ins vote and test each port (#photography, #testing); porting python and script-fu plug-ins is #coding (#porting is already there)."
+   }
+  ]
+ },
+ {
+  "slug": "xerahs-on-linux",
+  "locked": false,
+  "fixes": [
+   {
+    "field": "tags",
+    "old": [
+     "open-source",
+     "tools",
+     "linux",
+     "needs-humans"
+    ],
+    "new": [
+     "needs-humans",
+     "open-source",
+     "tools",
+     "linux",
+     "testing",
+     "coding"
+    ],
+    "why": "20 people who run linux daily, some on multi-monitor and hidpi screens, work through the capture checklist on their own machines (#testing), and the crew fixes what breaks (#coding)."
+   }
+  ]
+ }
+]
