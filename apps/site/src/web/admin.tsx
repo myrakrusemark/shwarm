@@ -1,13 +1,15 @@
-// The beta funnel (go-live 11.4, decided Oct 9: "Analytics: our own counts, a funnel first, on an admin page"):
-// /admin/beta answers "are beta testers getting through the loop?" from our own tables (read/beta.ts) and the
-// server-side traffic counts (web/traffic.ts). Behind adminGate like every other admin page (web/admin-gate.ts: Access,
+// The analytics page (go-live 11.4, decided Oct 9: "Analytics: our own counts, a funnel first, on an admin page";
+// renamed from the beta funnel, Myra, Oct 16: "i want general analytics. graphs."). /admin/analytics answers "how is
+// shwarm doing?" from our own tables (read/beta.ts) and the server-side traffic counts (web/traffic.ts), as charts with
+// their numbers under each (web/charts.tsx). Behind adminGate like every other admin page (web/admin-gate.ts: Access,
 // a verified active admin, the password step-up); everyone else, signed out included, gets the plain 404 page, so the
-// address isn't advertised. A reading page: prose under headings, tables for the numbers, the sidebar's boxes only.
+// address isn't advertised. A reading page: prose under headings, the sidebar's boxes only.
 import { Hono } from 'hono'
 import type { FC } from 'hono/jsx'
 import { activity, funnel, lastDays, STEPS, testers, trafficByDay, trafficTop, type DayActivity, type Funnel, type CountryWho, type Ranked, type Tester, type TrafficDay } from '../read/beta'
 import { adminGate, type AdminEnv } from './admin-gate'
 import { AdminNav } from './admin-nav'
+import { Bars, Columns, Legend, type Series } from './charts'
 import { AgentResources, Layout } from './layout'
 import { w } from '../words'
 import { page } from './viewer'
@@ -15,10 +17,18 @@ import { page } from './viewer'
 type Env = { Bindings: AdminEnv & { CSRF_SECRET: string } }
 export const admin = new Hono<Env>()
 
-const DAYS = 14
+export const PATH = '/admin/analytics'
+const DAYS = 30
 const DAY = 86_400_000
 
+// The old address, from before the rename (old summary mails link to it). Gated first, so it stays a 404 for others.
 admin.get('/admin/beta', async c => {
+  const g = await adminGate(c)
+  if ('stop' in g) return g.stop
+  return c.redirect(PATH, 301)
+})
+
+admin.get(PATH, async c => {
   const g = await adminGate(c)
   if ('stop' in g) return g.stop
   const now = Date.now()
@@ -26,16 +36,18 @@ admin.get('/admin/beta', async c => {
   const db = c.env.DB
   const people = await testers(db)
   const [f, act, traffic, top] = await Promise.all([funnel(db, people), activity(db, days), trafficByDay(db, days), trafficTop(db, days)])
-  return page(c, <BetaPage v={{ funnel: f, people, activity: act, traffic, top, now }} />)
+  return page(c, <AnalyticsPage v={{ funnel: f, people, activity: act, traffic, top, now }} />)
 })
 
 type View = { funnel: Funnel; people: Tester[]; activity: DayActivity[]; traffic: TrafficDay[]; top: { referrers: Ranked[]; countries: CountryWho[]; languages: Ranked[] }; now: number }
 
 const SECTIONS: [string, string][] = [
+  ['glance', 'at a glance'],
+  ['growth', 'sign-ups and posts'],
+  ['visits', 'visits'],
+  ['where', 'where they come from'],
   ['loop', 'the loop'],
   ['testers', 'testers'],
-  ['activity', 'daily activity'],
-  ['traffic', 'traffic'],
 ]
 
 const n = (x: number) => x.toLocaleString('en-US')
@@ -96,10 +108,10 @@ const TesterTable: FC<{ people: Tester[]; now: number }> = ({ people, now }) =>
 
 const ActivityTable: FC<{ rows: DayActivity[] }> = ({ rows }) => (
   <table class="adm">
-    <thead><tr><th>day</th><th class="num">sign-ups</th><th class="num">posts</th><th class="num">submissions</th><th class="num">checks</th><th class="num">passes</th></tr></thead>
+    <thead><tr><th>day</th><th class="num">sign-ups</th><th class="num">posts</th><th class="num">claims</th></tr></thead>
     <tbody>
       {[...rows].reverse().map(r => (
-        <tr><td class="day">{r.day}</td><td class="num">{n(r.signups)}</td><td class="num">{n(r.posts)}</td><td class="num">{n(r.submissions)}</td><td class="num">{n(r.checks)}</td><td class="num">{n(r.passes)}</td></tr>
+        <tr><td class="day">{r.day}</td><td class="num">{n(r.signups)}</td><td class="num">{n(r.posts)}</td><td class="num">{n(r.claims)}</td></tr>
       ))}
     </tbody>
   </table>
@@ -127,77 +139,132 @@ const WhoTable: FC<{ rows: TrafficDay[] }> = ({ rows }) => (
   </table>
 )
 
-const CountryTable: FC<{ rows: CountryWho[] }> = ({ rows }) =>
-  rows.length ? (
-    <table class="adm">
-      <thead><tr><th>country</th><th class="num">all</th><th class="num">people</th><th class="num">crawlers</th><th class="num">scripts</th><th class="num">agents</th><th class="num">unknown</th></tr></thead>
-      <tbody>
-        {rows.map(r => (
-          <tr><td>{r.name}</td><td class="num">{n(r.hits)}</td><td class="num">{n(r.person)}</td><td class="num">{n(r.crawler)}</td><td class="num">{n(r.script)}</td><td class="num">{n(r.agent)}</td><td class="num">{n(r.unknown)}</td></tr>
-        ))}
-      </tbody>
-    </table>
-  ) : (
-    <p>no countries yet.</p>
+const CountryTable: FC<{ rows: CountryWho[] }> = ({ rows }) => (
+  <table class="adm">
+    <thead><tr><th>country</th><th class="num">all</th><th class="num">people</th><th class="num">crawlers</th><th class="num">scripts</th><th class="num">agents</th><th class="num">unknown</th></tr></thead>
+    <tbody>
+      {rows.map(r => (
+        <tr><td>{r.name}</td><td class="num">{n(r.hits)}</td><td class="num">{n(r.person)}</td><td class="num">{n(r.crawler)}</td><td class="num">{n(r.script)}</td><td class="num">{n(r.agent)}</td><td class="num">{n(r.unknown)}</td></tr>
+      ))}
+    </tbody>
+  </table>
+)
+
+/** The numbers behind a chart, folded away under it. */
+const Numbers: FC<{ children: unknown }> = ({ children }) => (
+  <details class="nums">
+    <summary>the numbers</summary>
+    {children}
+  </details>
+)
+
+const Tile: FC<{ value: number; label: string }> = ({ value, label }) => (
+  <div class="tile"><b>{n(value)}</b><span>{label}</span></div>
+)
+
+const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0)
+
+const WHO: { key: keyof TrafficDay['who']; label: string; slot: Series['slot'] }[] = [
+  { key: 'person', label: 'people', slot: 1 },
+  { key: 'crawler', label: 'crawlers', slot: 2 },
+  { key: 'script', label: 'scripts', slot: 3 },
+  { key: 'agent', label: 'agents', slot: 4 },
+  { key: 'unknown', label: 'unknown', slot: 'none' },
+]
+
+const ranked = (rows: Ranked[]) => rows.map(r => ({ name: r.name, value: r.hits }))
+
+const AnalyticsPage: FC<{ v: View }> = ({ v }) => {
+  const days = v.activity.map(r => r.day)
+  const week = v.activity.slice(-7)
+  const who = WHO.map(x => ({ label: x.label, slot: x.slot, values: v.traffic.map(r => r.who[x.key]) }))
+  const whoShown = who.filter(s => sum(s.values) > 0)
+  const posts: Series[] = [
+    { label: 'other posts', slot: 1, values: v.activity.map(r => Math.max(0, r.posts - r.claims)) },
+    { label: 'claims', slot: 2, values: v.activity.map(r => r.claims) },
+  ]
+  return (
+    <Layout title="analytics · shwarm" noindex>
+      <link rel="stylesheet" href="/css/admin.css" />
+      <div class="dochead">
+        <h1>analytics</h1>
+        <p>how shwarm is doing, from our own tables and counts kept on the server. no cookies, nothing from other companies. the last {DAYS} days, in utc. only admins see this page.</p>
+      </div>
+      <div class="doc">
+        <article id="main" tabindex={-1}>
+          <AdminNav here={PATH} />
+          <section id="glance">
+            <h2>at a glance</h2>
+            <div class="body">
+              <div class="tiles">
+                <Tile value={v.people.length} label="accounts" />
+                <Tile value={sum(week.map(r => r.signups))} label="new this week" />
+                <Tile value={sum(v.activity.map(r => r.posts))} label="posts" />
+                <Tile value={sum(v.traffic.map(r => r.who.person))} label="people's requests" />
+                <Tile value={sum(v.traffic.map(r => r.api))} label="agent calls" />
+              </div>
+              <p class="note">accounts leave out seed accounts and admins. new this week is the last 7 days; posts, requests and calls are the last {DAYS}.</p>
+            </div>
+          </section>
+          <section id="growth">
+            <h2>sign-ups and posts</h2>
+            <div class="body">
+              <p>new accounts per day. hover over a day to see its numbers.</p>
+              <Columns days={days} label="sign-ups per day" series={[{ label: 'sign-ups', slot: 1, values: v.activity.map(r => r.signups) }]} />
+              <h3>posts</h3>
+              <p>thread posts per day, claims among them.</p>
+              <Legend series={posts} />
+              <Columns days={days} label="posts per day, claims among them" series={posts} />
+              <Numbers><ActivityTable rows={v.activity} /></Numbers>
+            </div>
+          </section>
+          <section id="visits">
+            <h2>visits</h2>
+            <div class="body">
+              <p>requests per day, by who sent them. these are requests, not people: there are no cookies, so one person reading ten pages counts ten. people are browsers. crawlers say they are one, or send no name. scripts are the rest, like curl. agents are signed api calls. it's a guess from the headers: a careful bot can pass as a person. unknown is before oct 13, when this wasn't counted.</p>
+              <Legend series={whoShown} />
+              <Columns days={days} label="requests per day, by who sent them" series={whoShown} />
+              <Numbers>
+                <WhoTable rows={v.traffic} />
+                <h3>by kind</h3>
+                <p>pages are html, prompts are text answers, api is signed agent calls.</p>
+                <TrafficTable rows={v.traffic} />
+              </Numbers>
+            </div>
+          </section>
+          <section id="where">
+            <h2>where they come from</h2>
+            <div class="body">
+              <h3>referring sites</h3>
+              <Bars rows={ranked(v.top.referrers)} none="no other sites linked here yet." />
+              <h3>countries</h3>
+              <Bars rows={v.top.countries.map(c => ({ name: c.name, value: c.hits, note: `${n(c.person)} from people` }))} none="no countries yet." />
+              {v.top.countries.length > 0 && <Numbers><CountryTable rows={v.top.countries} /></Numbers>}
+              <h3>people's browser languages</h3>
+              <Bars rows={ranked(v.top.languages)} none="no languages yet. counted from oct 13." />
+            </div>
+          </section>
+          <section id="loop">
+            <h2>the loop</h2>
+            <div class="body">
+              <p>how many accounts got through each step in order. an account counts at a step only if it also reached every step before it. seed accounts and admins aren't counted.</p>
+              <Bars rows={STEPS.map((step, i) => ({ name: step, value: v.funnel.all[i], note: `${n(v.funnel.fromInvites[i])} invited` }))} none="no accounts yet." />
+              <Numbers><LoopTable f={v.funnel} /></Numbers>
+            </div>
+          </section>
+          <section id="testers">
+            <h2>testers</h2>
+            <div class="body">
+              <p>{v.people.length === 1 ? '1 account' : `${n(v.people.length)} accounts`}, newest first. furthest step is the last one they reached in order, as in the loop. last active is their newest post (a claim is a post).</p>
+              <TesterTable people={v.people} now={v.now} />
+            </div>
+          </section>
+        </article>
+        <aside class="toc">
+          <div class="box"><h2>{w.chrome.onThisPage}</h2><ol>{SECTIONS.map(([id, h]) => <li><a href={`#${id}`}>{h}</a></li>)}</ol></div>
+          <AgentResources />
+        </aside>
+      </div>
+    </Layout>
   )
-
-const Top: FC<{ title: string; rows: Ranked[]; none: string }> = ({ title, rows, none }) => (
-  <>
-    <h3>{title}</h3>
-    {rows.length ? <ol>{rows.map(r => <li>{r.name} <span class="mk">{n(r.hits)}</span></li>)}</ol> : <p>{none}</p>}
-  </>
-)
-
-const BetaPage: FC<{ v: View }> = ({ v }) => (
-  <Layout title="beta funnel · shwarm" noindex>
-    <link rel="stylesheet" href="/css/admin.css" />
-    <div class="dochead">
-      <h1>beta funnel</h1>
-      <p>are testers getting through the loop? counted from our own tables. only admins see this page.</p>
-    </div>
-    <div class="doc">
-      <article id="main" tabindex={-1}>
-        <AdminNav here="/admin/beta" />
-        <section id="loop">
-          <h2>the loop</h2>
-          <div class="body">
-            <p>how many accounts got through each step of the loop in order, and how many stopped at the step before. an account counts at a step only if it also reached every step before it. seed accounts and admins aren't counted.</p>
-            <LoopTable f={v.funnel} />
-          </div>
-        </section>
-        <section id="testers">
-          <h2>testers</h2>
-          <div class="body">
-            <p>{v.people.length === 1 ? '1 account' : `${n(v.people.length)} accounts`}, newest first. furthest step is the last one they reached in order, as in the loop above. last active is their newest post (a claim is a post).</p>
-            <TesterTable people={v.people} now={v.now} />
-          </div>
-        </section>
-        <section id="activity">
-          <h2>daily activity</h2>
-          <div class="body">
-            <p>the last {DAYS} days in utc, newest first. checks are run and people checks; sign-offs show in passes.</p>
-            <ActivityTable rows={v.activity} />
-          </div>
-        </section>
-        <section id="traffic">
-          <h2>traffic</h2>
-          <div class="body">
-            <p>requests per day, counted on the server. these are requests, not people: there are no cookies, so one person reading ten pages counts ten. api is signed agent calls; prompts are text answers.</p>
-            <TrafficTable rows={v.traffic} />
-            <h3>who sent them</h3>
-            <p>people are browsers. crawlers say they are one (search engines, ai crawlers, link previews), or send no name. scripts are everything else, like curl or a code library. agents are signed api calls. this is a guess from the request's headers: a careful bot can pass as a person. unknown is before oct 13, when this wasn't counted.</p>
-            <WhoTable rows={v.traffic} />
-            <Top title="top referring sites" rows={v.top.referrers} none="no other sites linked here yet." />
-            <h3>top countries</h3>
-            <CountryTable rows={v.top.countries} />
-            <Top title="people's browser languages" rows={v.top.languages} none="no languages yet. counted from oct 13." />
-          </div>
-        </section>
-      </article>
-      <aside class="toc">
-        <div class="box"><h2>{w.chrome.onThisPage}</h2><ol>{SECTIONS.map(([id, h]) => <li><a href={`#${id}`}>{h}</a></li>)}</ol></div>
-        <AgentResources />
-      </aside>
-    </div>
-  </Layout>
-)
+}

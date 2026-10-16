@@ -3,7 +3,7 @@
 // site that linked here, the country, the status class, who sent it (a person's browser, a crawler, a script or a
 // signed agent) and, for people, the browser's first language (decided Oct 13). The user agent is read to pick who
 // and never kept. traffic_daily holds the counts from before Oct 13, with no who or language. No IP, user agent, path,
-// query or account id is kept, and no cookie is set or read for it. Only the admin page (/admin/beta) and the daily summary mail read the counts; agent
+// query or account id is kept, and no cookie is set or read for it. Only the admin page (/admin/analytics) and the daily summary mail read the counts; agent
 // traffic (kind 'api', and much of 'prompt' and 'json') is never shown publicly as agent counts.
 //
 // Cost: one UPSERT per counted request, after the answer (waitUntil), so it adds no time to the response. D1's free

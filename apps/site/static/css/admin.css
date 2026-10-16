@@ -1,5 +1,5 @@
-/* the beta funnel admin page (go-live 11.4, web/admin.tsx). a reading page: .dochead and .doc come from site.css;
-   these are only its number tables. */
+/* the analytics admin page (go-live 11.4, web/admin.tsx; charts in web/charts.tsx). a reading page: .dochead and .doc
+   come from site.css; these are its tiles, charts and number tables. */
 .doc .body .adm { width: 100%; border-collapse: collapse; font-size: 13px; margin: 0 0 18px; }
 .adm th { text-align: left; font-size: 11px; font-weight: 400; opacity: .7; padding: 6px 8px; border-bottom: 1px solid var(--ink); background: var(--paper-2); }
 .adm td { padding: 7px 8px; border-bottom: 1px dashed rgba(19,38,27,.3); vertical-align: top; }
@@ -10,4 +10,38 @@
 .doc .mk { font-size: 11.5px; opacity: .7; }
 .doc .body h3 { margin: 18px 0 8px; font-size: 14px; }
 .doc .body ol li { margin-bottom: 4px; }
-@media (max-width: 700px) { .doc .body { overflow-x: auto; } }
+/* the admin links, then the first section */
+.doc article > .adminnav { margin: 0 0 22px; }
+/* at a glance */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin: 0 0 8px; }
+.tile { border: var(--rule); background: var(--paper); padding: 10px 12px; }
+.tile b { display: block; font-size: 26px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.tile span { display: block; font-size: 12px; opacity: .75; margin-top: 2px; }
+.doc .body .note { font-size: 12px; opacity: .7; }
+/* series colors: blue, orange, aqua, violet, checked for colorblind separation on the paper; gray is unknown */
+.viz, .legend, .bars { --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #4a3aa7; --snone: #a8a493; }
+.viz { display: block; width: 100%; height: auto; margin: 4px 0 10px; overflow: visible; }
+.viz .grid { stroke: rgba(19,38,27,.14); stroke-width: 1; }
+.viz .base { stroke: var(--ink); stroke-width: 1; }
+.viz .tick { font-size: 10.5px; fill: var(--ink); opacity: .65; font-variant-numeric: tabular-nums; }
+.viz .hit { fill: transparent; }
+.viz .col:hover .hit { fill: rgba(19,38,27,.07); }
+.viz .s1, .legend .s1 { fill: var(--s1); background: var(--s1); }
+.viz .s2, .legend .s2 { fill: var(--s2); background: var(--s2); }
+.viz .s3, .legend .s3 { fill: var(--s3); background: var(--s3); }
+.viz .s4, .legend .s4 { fill: var(--s4); background: var(--s4); }
+.viz .snone, .legend .snone { fill: var(--snone); background: var(--snone); }
+.doc .body .legend { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 0; margin: 0 0 2px; font-size: 12px; }
+.doc .body .legend li { margin: 0; display: flex; align-items: center; gap: 6px; }
+.legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+/* horizontal bars: the loop, referrers, countries, languages */
+.doc .body .bars { list-style: none; padding: 0; margin: 0 0 12px; font-size: 13px; }
+.doc .body .bars li { display: grid; grid-template-columns: minmax(90px, 32%) 1fr auto; align-items: center; gap: 10px; margin: 0 0 6px; }
+.bars .name { overflow-wrap: anywhere; }
+.bars .track { height: 12px; }
+.bars .bar { display: block; height: 100%; min-width: 2px; background: var(--s1); border-radius: 0 4px 4px 0; }
+.bars .val { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* the numbers behind a chart */
+.nums { margin: 0 0 16px; font-size: 13px; }
+.nums summary { cursor: pointer; font-size: 12.5px; opacity: .8; margin-bottom: 8px; }
+@media (max-width: 700px) { .doc .body { overflow-x: auto; } .doc .body .bars li { grid-template-columns: 1fr auto; } .bars .track { grid-column: 1 / -1; grid-row: 2; } }

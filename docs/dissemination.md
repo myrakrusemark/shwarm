@@ -121,7 +121,7 @@ Made so far live in [`comms/`](comms/): [what's a shwarm?](comms/whats-a-shwarm.
 
 ## Knowing what worked
 
-The site already counts arrivals by referring site and country, with no cookies (go-live 11.4, `/admin/beta`). That's enough: after each post, look at that day's referrer row for the platform, sign-ups and joins. No tracking links needed. Note each post's date and link in the log at the end of this file.
+The site already counts arrivals by referring site and country, with no cookies (go-live 11.4, `/admin/analytics`). That's enough: after each post, look at that day's referrer row for the platform, sign-ups and joins. No tracking links needed. Note each post's date and link in the log at the end of this file.
 
 ## Risks
 

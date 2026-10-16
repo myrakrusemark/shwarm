@@ -1,7 +1,7 @@
 // The daily summary (go-live 11.4, decided Oct 9: "Analytics: our own counts, a funnel first, on an admin page"):
 // once a day, one plain line about yesterday (UTC) to every active admin, through the outbox on the account stream:
 // requests by kind, sign-ups, first posts, first submissions, checks and passes (read/beta.ts daySummary), with a link
-// to /admin/beta. The stats cron runs it every 5 minutes; from SUMMARY_HOUR_UTC on, the first run sends it.
+// to /admin/analytics. The stats cron runs it every 5 minutes; from SUMMARY_HOUR_UTC on, the first run sends it.
 // meta.summary_day holds the last day sent. The mail rows and the mark go in one batch, and the rows are written only
 // while the mark is still behind, so two runs that overlap send one summary.
 //
@@ -62,7 +62,7 @@ export async function sendSummary(db: D1Database, env: string, now = Date.now())
   if (last && last.value >= day) return null
   const [s, u] = await Promise.all([daySummary(db, day), dayUsage(db, day)])
   const at = new Date(now).toISOString()
-  const payload = { ...s, ...u, env, link: '/admin/beta' }
+  const payload = { ...s, ...u, env, link: '/admin/analytics' }
   await db.batch([
     // One mail per active admin, only while the mark is behind `day` as the batch reaches it.
     mailToAdminsStatement(db, { template: 'daily_summary', stream: 'account', payload }, at, {

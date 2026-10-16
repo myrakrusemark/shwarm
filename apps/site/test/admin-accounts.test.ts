@@ -164,6 +164,49 @@ describe('/admin/people: lookup', () => {
   })
 })
 
+describe('/admin/people: everyone', () => {
+  it('lists every account but seeded ones, newest first, with its age in days; a handle opens it and the open one is marked', async () => {
+    const w = await world()
+    w.raw.prepare('UPDATE person SET created_at = ? WHERE id = ?').run(iso(T0 - 3 * 86_400_000), w.ids.ana)
+    w.raw.prepare('UPDATE person SET created_at = ? WHERE id = ?').run(iso(T0 - 86_400_000), w.ids.op)
+    await addPerson(w.db, 'seedy', { hash: '!seed' })
+    const myra = await signIn(w.env, 'myra')
+    const html = await body(await myra.get('/admin/people'))
+    const list = html.slice(html.indexOf('class="box plist"'))
+    const order = [...list.matchAll(/>@([a-z0-9_]+)<\/a>/g)].map(m => m[1])
+    expect(order.slice(0, 2).sort()).toEqual(['cy', 'myra'])
+    expect(order.slice(2)).toEqual(['op', 'ana'])
+    expect(list).toContain('4 accounts')
+    expect(list).toContain('3 days')
+    expect(list).toContain('1 day<')
+    expect(list).toContain('not verified')
+    expect(list).toContain('href="/admin/people?q=ana"')
+    const open = await body(await lookup(myra, 'ana'))
+    expect(open.slice(open.indexOf('class="box plist"'))).toMatch(/<tr class="here" aria-current="true"><td><a href="\/admin\/people\?q=ana">/)
+  })
+})
+
+describe('/admin/people: invite someone', () => {
+  it('puts a new address on the allow-list with its note, writes one private row, and opens the address', async () => {
+    const w = await world()
+    const myra = await signIn(w.env, 'myra')
+    const html = await body(await myra.get('/admin/people'))
+    expect(html).toContain('invite someone')
+    const i = html.indexOf('class="box pinvite"')
+    const once = /name="once" value="([^"]+)"/.exec(html.slice(i))![1]
+    const r = await myra.req('/admin/people', { form: { form_token: formTokenIn(html), do: 'allow_add', once, email: 'New.Friend@Example.org', reason: 'met at the meetup' } })
+    expect(r.status).toBe(303)
+    expect(r.headers.get('location')).toBe('/admin/people?q=New.Friend%40Example.org&done=allow_add')
+    expect(w.q("SELECT note FROM signup_allow WHERE email_norm = 'new.friend@example.org'")).toEqual({ note: 'met at the meetup' })
+    expect(w.modRows()).toEqual([{ by_person: w.ids.myra, action: 'allow_add', node_id: null, post_id: null, person_id: null, reason: 'met at the meetup', public: 0 }])
+    // with no note: nothing on the list
+    const again = await body(await myra.get('/admin/people'))
+    const once2 = /name="once" value="([^"]+)"/.exec(again.slice(again.indexOf('class="box pinvite"')))![1]
+    expect((await myra.req('/admin/people', { form: { form_token: formTokenIn(again), do: 'allow_add', once: once2, email: 'other@example.org', reason: '' } })).status).toBe(400)
+    expect(w.q("SELECT COUNT(*) AS n FROM signup_allow WHERE email_norm = 'other@example.org'").n).toBe(0)
+  })
+})
+
 describe('/admin/people: the acts', () => {
   it('every act needs a reason; none written, nothing changed', async () => {
     const w = await world()

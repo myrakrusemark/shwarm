@@ -5,7 +5,7 @@ export const ADMIN_PAGES = [
   ['/admin', 'queue'],
   ['/admin/people', 'people'],
   ['/admin/switches', 'switches'],
-  ['/admin/beta', 'beta funnel'],
+  ['/admin/analytics', 'analytics'],
   ['/moderation', 'public log'],
 ] as const
 

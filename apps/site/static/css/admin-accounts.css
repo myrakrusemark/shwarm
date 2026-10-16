@@ -17,13 +17,20 @@
 .people .pt.kv th { width: 28%; font-size: 12px; opacity: .8; background: none; border-bottom: 1px dashed rgba(19,38,27,.3); vertical-align: top; }
 .people .pt.kv tr:last-child th { border-bottom: 0; }
 .people .pt tr.gone td { opacity: .5; }
+.people .pt .num { text-align: right; }
+.people .plist .pt tr.here td { background: var(--paper-2); font-weight: 700; }
 .people .sub { display: block; font-size: 11.5px; opacity: .75; }
 .people .sub.err { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); opacity: 1; }
 .people .off { color: color-mix(in srgb, var(--clay) 80%, var(--ink)); }
 .people .day { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .people code { font-size: 12px; background: var(--paper-2); padding: 0 4px; overflow-wrap: anywhere; }
 .people .in p .sub { margin-top: 2px; }
-/* the acts, in the sidebar */
+/* the invite form and the acts, in the sidebar */
+.people aside .box + .box { margin-top: 18px; }
+.people .pinvite label { display: block; font-weight: 700; font-size: 12.5px; margin-top: 6px; }
+.people .pinvite input[type="email"], .people .pinvite input[type="text"] { width: 100%; box-sizing: border-box; font: inherit; font-size: 13px; padding: 4px 8px; border: 1.5px solid var(--ink); background: var(--paper); margin: 2px 0 4px; }
+.people .pinvite p { margin: 0 0 6px; }
+.people .pinvite .go { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
 .people .pact { border-top: 1px dashed rgba(19,38,27,.3); }
 .people .pacts h2 + .pact { border-top: 0; }
 .people .pact summary { cursor: pointer; padding: 8px 12px; font-weight: 700; font-size: 13px; }

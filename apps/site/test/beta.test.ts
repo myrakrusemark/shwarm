@@ -94,34 +94,39 @@ async function signIn(env: ReturnType<typeof testEnv>, email: string) {
   return b
 }
 
-describe('the beta funnel page', () => {
+describe('the analytics page', () => {
   it('is a plain 404 for everyone but an active admin, signed out included', async () => {
     const w = await world()
     const env = testEnv(w.db)
-    const signedOut = await new Browser(env).get('/admin/beta')
+    const signedOut = await new Browser(env).get('/admin/analytics')
     expect(signedOut.status).toBe(404)
     const text = await body(signedOut)
     expect(text).toContain('there is nothing at this address.')
-    expect(text).not.toContain('beta funnel')
+    expect(text).not.toContain('<h1>analytics</h1>')
+    expect((await new Browser(env).get('/admin/beta')).status).toBe(404) // the old address too
 
     const ana = await signIn(env, 'ana@example.org')
-    const res = await ana.get('/admin/beta')
+    const res = await ana.get('/admin/analytics')
     expect(res.status).toBe(404)
-    expect(await body(res)).not.toContain('beta funnel')
+    expect(await body(res)).not.toContain('<h1>analytics</h1>')
+    expect((await ana.get('/admin/beta')).status).toBe(404)
 
     const myra = await signIn(env, 'myra@example.org')
-    const ok = await myra.get('/admin/beta')
+    const old = await myra.get('/admin/beta')
+    expect(old.status).toBe(301)
+    expect(old.headers.get('location')).toBe('/admin/analytics')
+    const ok = await myra.get('/admin/analytics')
     expect(ok.status).toBe(200)
     expect(ok.headers.get('cache-control')).toBe('private, no-store')
     expect(ok.headers.get('x-robots-tag')).toBe('noindex')
     const page = await body(ok)
-    for (const s of ['beta funnel', 'the loop', 'testers', 'daily activity', 'traffic', '@ana', '@dee', 'first pass']) expect(page).toContain(s)
+    for (const s of ['<h1>analytics</h1>', 'at a glance', 'sign-ups and posts', 'visits', 'where they come from', 'the loop', 'testers', '@ana', '@dee', 'first pass', '<svg class="viz cols"']) expect(page).toContain(s)
     expect(page).not.toContain('@bmo_fan') // seed accounts aren't testers
     expect(page).not.toMatch(/agents? (working|here|online)/)
 
     // An admin no longer: the page is gone again.
     w.run("UPDATE person SET is_admin = 0 WHERE handle = 'myra'")
-    expect((await myra.get('/admin/beta')).status).toBe(404)
+    expect((await myra.get('/admin/analytics')).status).toBe(404)
   })
 
   it('counts the loop for all accounts and for invited ones, nested, leaving out seed accounts and admins', async () => {
@@ -177,8 +182,8 @@ describe('the beta funnel page', () => {
     expect(days).toHaveLength(14)
     expect(days.at(-1)).toBe('2026-10-08')
     const rows = Object.fromEntries((await activity(db, days)).map(r => [r.day, r]))
-    expect(rows['2026-10-07']).toEqual({ day: '2026-10-07', signups: 2, posts: 1, submissions: 0, checks: 1, passes: 1 })
-    expect(rows['2026-10-06']).toMatchObject({ submissions: 1 })
+    expect(rows['2026-10-07']).toEqual({ day: '2026-10-07', signups: 2, posts: 1, claims: 0 })
+    expect(rows['2026-10-06']).toMatchObject({ claims: 1 })
     expect(rows['2026-10-05']).toMatchObject({ posts: 1 })
   })
 
@@ -188,9 +193,9 @@ describe('the beta funnel page', () => {
       w.run('INSERT INTO traffic_daily (day, kind, referrer, country, status_class, hits) VALUES (?, ?, ?, ?, 2, ?)', day, kind, ref, country, hits)
     ins('2026-10-07', 'page', 'news.ycombinator.com', 'DE', 40)
     ins('2026-10-07', 'prompt', '', 'US', 7)
-    ins('2026-09-01', 'page', 'old.example', 'FR', 99) // outside the 14 days
+    ins('2026-09-01', 'page', 'old.example', 'FR', 99) // outside the 30 days
     const myra = await signIn(testEnv(w.db), 'myra@example.org')
-    const page = await body(await myra.get('/admin/beta'))
+    const page = await body(await myra.get('/admin/analytics'))
     expect(page).toContain('news.ycombinator.com')
     expect(page).toMatch(/<td class="day">2026-10-07<\/td><td class="num">40<\/td><td class="num">7<\/td>/)
     // dates don't wrap in the narrow column
@@ -209,13 +214,14 @@ describe('the beta funnel page', () => {
     ins('crawler', '', 70)
     ins('script', '', 9)
     const myra = await signIn(testEnv(w.db), 'myra@example.org')
-    const page = await body(await myra.get('/admin/beta'))
+    const page = await body(await myra.get('/admin/analytics'))
     expect(page).toContain('who sent them')
     expect(page).toMatch(/<td class="day">2026-10-07<\/td><td class="num">15<\/td><td class="num">70<\/td><td class="num">9<\/td><td class="num">0<\/td><td class="num">0<\/td>/)
     expect(page).toMatch(/<td class="day">2026-10-06<\/td><td class="num">0<\/td><td class="num">0<\/td><td class="num">0<\/td><td class="num">0<\/td><td class="num">50<\/td>/)
     // JP: all, people, crawlers, scripts, agents, unknown
     expect(page).toMatch(/<td>JP<\/td><td class="num">144<\/td><td class="num">15<\/td><td class="num">70<\/td><td class="num">9<\/td><td class="num">0<\/td><td class="num">50<\/td>/)
-    expect(page).toMatch(/people's browser languages<\/h3><ol><li>ja <span class="mk">12<\/span><\/li><li>en <span class="mk">3<\/span><\/li><\/ol>/)
+    const langs = page.slice(page.indexOf("people's browser languages"))
+    expect(langs).toMatch(/<span class="name">ja<\/span>.*?<span class="val">12<\/span>.*?<span class="name">en<\/span>.*?<span class="val">3<\/span>/)
   })
 })
 
@@ -384,7 +390,7 @@ describe('the daily summary', () => {
     expect(mail.text).toContain(
       'yesterday (2026-10-07): 140 requests (pages 90, prompts 30, json 12, api 8), 2 sign-ups, 2 first posts, 0 first submissions, 1 check, 1 pass.',
     )
-    expect(mail.text).toContain('https://shwarm.org/admin/beta')
+    expect(mail.text).toContain('https://shwarm.org/admin/analytics')
     // 'other' shows when there was any, so the parts add up to the total
     const withOther = renderMail('daily_summary', { ...JSON.parse(m.payload), requests: { page: 90, prompt: 30, json: 12, api: 8, other: 5 } }, { siteUrl: 'https://shwarm.org', stream: 'account' })
     expect(withOther.subject).toBe('shwarm yesterday: 145 requests, 2 sign-ups')

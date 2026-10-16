@@ -14,6 +14,7 @@ import { verifyMail } from '../auth/signup'
 import { newToken } from '../auth/tokens'
 import { emailKeys, emailNorm } from '../email/norm'
 import { mailStatement } from '../email/outbox'
+import { SEED } from '../read/beta'
 import { ctxAt, moderatedStatement } from './context'
 import { modLog, type ModAction } from './moderation'
 import { ESTABLISHED_AGE_MS } from './upvotes'
@@ -99,6 +100,22 @@ function stateOf(r: { sent_at: string | null; last_error: string | null; attempt
   if (r.provider_id) return 'sent'
   if (r.sent_at) return r.last_error?.startsWith('skipped') ? 'not sent' : 'failed'
   return r.attempts > 0 ? 'retrying' : 'waiting'
+}
+
+/** One row of the list of every account, under the lookup: enough to pick one. */
+export type ListRow = Pick<AccountRow, 'id' | 'handle' | 'status' | 'email_verified_at' | 'founding' | 'is_admin' | 'created_at'> & { invited: number }
+
+/** Every account but the seeded ones (which can't sign in, read/beta.ts SEED), newest first. One query. */
+export async function allAccounts(db: D1Database): Promise<ListRow[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT p.id, p.handle, p.status, p.email_verified_at, p.founding, p.is_admin, p.created_at,
+         EXISTS (SELECT 1 FROM signup_allow a WHERE a.email_norm = p.email_norm) AS invited
+       FROM person p WHERE NOT ${SEED('p')}
+       ORDER BY p.created_at DESC, p.id DESC`,
+    )
+    .all<ListRow>()
+  return results
 }
 
 /** Everything the page shows about an account or an address. Never a session id or a token. */

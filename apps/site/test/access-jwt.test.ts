@@ -92,7 +92,7 @@ describe('the Access token on /admin (go-live 9.6)', () => {
   it('a good token gets the admin in; a bad signature, wrong aud or iss, expired, not yet valid, made up or missing is the plain 404', async () => {
     const certs = stubFetch(() => [A, B])
     const { get } = await admin({ ACCESS_AUD: AUD, ACCESS_TEAM: TEAM })
-    for (const p of ['/admin', '/admin/beta', '/admin/switches']) expect((await get(p, await token(A))).status, p).toBe(200)
+    for (const p of ['/admin', '/admin/analytics', '/admin/switches']) expect((await get(p, await token(A))).status, p).toBe(200)
     expect((await get('/admin', await token(B))).status).toBe(200) // either published key
     expect((await get('/admin', await token(A, { aud: AUD }))).status).toBe(200) // aud as a plain string too
     expect((await get('/admin', await token(A, { exp: sec(T0) - 10 }))).status).toBe(200) // inside the clock skew
@@ -113,7 +113,7 @@ describe('the Access token on /admin (go-live 9.6)', () => {
       ['unknown kid', await token(A, {}, { kid: 'kid-nobody' })],
     ]
     for (const [why, jwt] of bad)
-      for (const p of ['/admin', '/admin/beta']) {
+      for (const p of ['/admin', '/admin/analytics']) {
         const r = await get(p, jwt)
         expect(r.status, `${why} ${p}`).toBe(404)
         expect(await r.text(), `${why} ${p}`).toContain('there is nothing at this address.')
@@ -141,7 +141,7 @@ describe('the Access token on /admin (go-live 9.6)', () => {
     const certs = stubFetch(() => [A])
     const { get } = await admin({})
     expect((await get('/admin')).status).toBe(200)
-    expect((await get('/admin/beta')).status).toBe(200)
+    expect((await get('/admin/analytics')).status).toBe(200)
     expect(certs.length).toBe(0)
   })
 

@@ -1,9 +1,9 @@
-// What the beta funnel admin page (web/admin.tsx) and the daily summary mail (jobs/summary.ts) read (go-live 11.4,
+// What the analytics admin page (web/admin.tsx) and the daily summary mail (jobs/summary.ts) read (go-live 11.4,
 // decided Oct 9: "Analytics: our own counts, a funnel first, on an admin page"). All from our own tables: no
 // third-party analytics. Each is one query, aggregated in SQL or by indexed lookups per person, so a view costs a
 // handful of queries on the free D1 plan whatever the site's size.
 //
-// Who counts: the funnel and the testers leave out seed accounts (the launch seed's and the running example's people,
+// Who counts: the loop and the testers leave out seed accounts (the launch seed's and the running example's people,
 // whose password hash starts with '!', seed/plan.ts) and admins (the operator, not a tester). Daily activity and the
 // summary leave out seed accounts only.
 
@@ -95,8 +95,8 @@ export async function funnel(db: D1Database, people: Tester[]): Promise<Funnel> 
   return { invited: row?.n ?? 0, all: count(people), fromInvites: count(people.filter(t => t.invited)) }
 }
 
-export type DayActivity = { day: string; signups: number; posts: number; submissions: number; checks: number; passes: number }
-const ACTIVITY = ['signups', 'posts', 'submissions', 'checks', 'passes'] as const
+export type DayActivity = { day: string; signups: number; posts: number; claims: number }
+const ACTIVITY = ['signups', 'posts', 'claims'] as const
 
 /** 'YYYY-MM-DD' for `days` UTC days ending today, oldest first. */
 export function lastDays(now: number, days: number): string[] {
@@ -104,7 +104,7 @@ export function lastDays(now: number, days: number): string[] {
   return Array.from({ length: days }, (_, i) => new Date(today - (days - 1 - i) * 86_400_000).toISOString().slice(0, 10))
 }
 
-/** Sign-ups, thread posts, submissions, checks (run and people) and passes per UTC day, over `days` (from lastDays). */
+/** Sign-ups, thread posts and claims (a claim is a post too) per UTC day, over `days` (from lastDays). */
 export async function activity(db: D1Database, days: string[]): Promise<DayActivity[]> {
   const from = days[0]
   const real = `SELECT id FROM person WHERE NOT ${SEED('person')}`
@@ -116,20 +116,12 @@ export async function activity(db: D1Database, days: string[]): Promise<DayActiv
        SELECT substr(created_at, 1, 10), 'posts', COUNT(*) FROM post
          WHERE created_at >= ?1 AND kind = 'post' AND person_id IN (${real}) GROUP BY 1
        UNION ALL
-       SELECT substr(po.created_at, 1, 10), 'submissions', COUNT(*) FROM post po JOIN submission s ON s.post_id = po.id
-         WHERE po.created_at >= ?1 AND po.kind = 'submission' AND po.person_id IN (${real}) GROUP BY 1
-       UNION ALL
-       SELECT substr(created_at, 1, 10), 'checks', COUNT(*) FROM check_report
-         WHERE created_at >= ?1 AND slot <> 'author' AND person_id IN (${real}) GROUP BY 1
-       UNION ALL
-       SELECT substr(a.at, 1, 10), 'passes', COUNT(*) FROM audit_event a
-         WHERE a.event = 'passed' AND a.at >= ?1
-           AND NOT EXISTS (SELECT 1 FROM post po JOIN person pe ON pe.id = po.person_id WHERE po.id = a.submission_id AND ${SEED('pe')})
-         GROUP BY 1`,
+       SELECT substr(created_at, 1, 10), 'claims', COUNT(*) FROM post
+         WHERE created_at >= ?1 AND claim IS NOT NULL AND person_id IN (${real}) GROUP BY 1`,
     )
     .bind(from)
     .all<{ day: string; what: (typeof ACTIVITY)[number]; n: number }>()
-  const out = new Map(days.map(d => [d, { day: d, signups: 0, posts: 0, submissions: 0, checks: 0, passes: 0 } as DayActivity]))
+  const out = new Map(days.map(d => [d, { day: d, signups: 0, posts: 0, claims: 0 } as DayActivity]))
   for (const r of results) {
     const d = out.get(r.day)
     if (d) d[r.what] = r.n

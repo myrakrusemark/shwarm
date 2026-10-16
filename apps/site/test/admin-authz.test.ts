@@ -71,7 +71,7 @@ async function signIn(env: ReturnType<typeof testEnv>, handle: string) {
 
 const node = `/admin/node?path=${encodeURIComponent(EXAMPLE_BRANCH)}`
 const post = `/admin/post?id=${POST_ID}`
-const PAGES = ['/admin', '/admin/', node, post, '/admin/report?id=1', '/admin/people?q=ana', '/admin/people/', '/admin/switches', '/admin/switches/', '/admin/beta']
+const PAGES = ['/admin', '/admin/', node, post, '/admin/report?id=1', '/admin/people?q=ana', '/admin/people/', '/admin/switches', '/admin/switches/', '/admin/analytics', '/admin/beta']
 /** One harmful form for each act endpoint, as an admin's page would send it (minus the token). */
 const FORMS: [string, Record<string, string>][] = [
   [node, { do: 'hide', reason: 'x' }],

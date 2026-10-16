@@ -16,6 +16,7 @@ import { MOD_REASON_MAX, modReason } from '../core/moderation'
 import {
   accountAct,
   accountView,
+  allAccounts,
   findTarget,
   isAccountAct,
   newOnce,
@@ -23,6 +24,7 @@ import {
   PUBLIC_ACTS,
   type AccountAct,
   type AccountView,
+  type ListRow,
 } from '../core/admin-accounts'
 import { exact } from '../render/format'
 import { adminGate, type AdminEnv } from './admin-gate'
@@ -84,7 +86,7 @@ const REASON_NEEDED = `give a reason: one line, up to ${MOD_REASON_MAX} characte
 // OPEN (#107): new wording: every word in the components below.
 
 type Flash = { act: AccountAct; error: string }
-type View = { q: string; me: number; token: string; found: AccountView | null; done?: string; flash?: Flash; now: number }
+type View = { q: string; me: number; token: string; found: AccountView | null; list: ListRow[]; done?: string; flash?: Flash; now: number }
 
 const When: FC<{ at: string | null; none?: string }> = ({ at, none = '—' }) => <span class="day">{at ? exact(at) : none}</span>
 
@@ -261,6 +263,48 @@ const HistoryBox: FC<{ v: AccountView }> = ({ v }) => (
   </div>
 )
 
+const DAY = 86_400_000
+
+/** How long ago an account joined, in whole days. */
+const age = (at: string, now: number) => {
+  const d = Math.floor((now - Date.parse(at)) / DAY)
+  return d <= 0 ? 'today' : d === 1 ? '1 day' : `${d} days`
+}
+
+/** Every account, newest first; a handle opens it here. The one looked up is marked. */
+const ListBox: FC<{ rows: ListRow[]; here: number | null; now: number }> = ({ rows, here, now }) => (
+  <div class="box plist">
+    <h2>everyone <span>{rows.length === 1 ? '1 account' : `${rows.length} accounts`}, newest first</span></h2>
+    {rows.length ? (
+      <table class="pt">
+        <thead><tr><th>handle</th><th>joined</th><th class="num">age</th><th>marks</th></tr></thead>
+        <tbody>
+          {rows.map(r => (
+            <tr class={r.id === here ? 'here' : r.status === 'closed' ? 'gone' : undefined} aria-current={r.id === here ? 'true' : undefined}>
+              <td><a href={`${PATH}?q=${encodeURIComponent(r.handle)}`}>@{r.handle}</a></td>
+              <td><span class="day">{r.created_at.slice(0, 10)}</span></td>
+              <td class="num day">{age(r.created_at, now)}</td>
+              <td>
+                {[
+                  r.status !== 'active' && <b class="off">{r.status}</b>,
+                  !r.email_verified_at && r.status !== 'closed' && <b class="off">not verified</b>,
+                  r.invited && 'invited',
+                  r.founding && 'founding',
+                  r.is_admin && 'admin',
+                ]
+                  .filter(Boolean)
+                  .map((m, i) => <>{i > 0 && ' · '}{m}</>)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    ) : (
+      <p class="in note">no accounts yet.</p>
+    )}
+  </div>
+)
+
 /** The acts that make sense for what was found right now. */
 function actsFor(v: AccountView, me: number): AccountAct[] {
   const p = v.target.person
@@ -309,6 +353,27 @@ const ActForm: FC<{ act: AccountAct; v: View; found: AccountView }> = ({ act, v,
   )
 }
 
+/** Invite someone new: their address goes on the allow-list (the allow_add act), with who they are as the note. */
+const InviteBox: FC<{ v: View }> = ({ v }) => (
+    <form class="box pinvite" method="post" action={PATH}>
+      <h2>invite someone</h2>
+      <div class="in">
+        <input type="hidden" name="form_token" value={v.token} />
+        <input type="hidden" name="do" value="allow_add" />
+        <input type="hidden" name="once" value={newOnce()} />
+        <label for="inv-email">their email</label>
+        <input id="inv-email" type="email" name="email" maxlength={254} required autocomplete="off" spellcheck={false} autocapitalize="off" />
+        <label for="inv-note">who they are</label>
+        <input id="inv-note" type="text" name="reason" maxlength={MOD_REASON_MAX} required autocomplete="off" aria-describedby="inv-h" />
+        <p class="note" id="inv-h">kept as the invite note. they can sign up with this address, and are founding once verified. shwarm sends them no mail, so send them the link yourself.</p>
+        <div class="go">
+          <button class="btn sm" type="submit">invite</button>
+          <span class="note">confirms with your password.</span>
+        </div>
+      </div>
+    </form>
+)
+
 const PeoplePage: FC<{ v: View }> = ({ v }) => {
   const f = v.found
   const acts = f ? actsFor(f, v.me) : []
@@ -318,7 +383,7 @@ const PeoplePage: FC<{ v: View }> = ({ v }) => {
       <div class="people">
         <h1 class="title">people</h1>
         <AdminNav here={PATH} />
-        <p class="lede">look up an account by handle or email. every act needs a reason and goes to the moderation log.</p>
+        <p class="lede">look up an account by handle or email, or pick one from everyone below. every act needs a reason and goes to the moderation log.</p>
         {v.done && <p class="msg ok" role="status">{v.done}</p>}
         {v.flash && <p class="msg" role="alert">{ACTS[v.flash.act].title}: {v.flash.error}</p>}
         <div class="grid">
@@ -345,8 +410,10 @@ const PeoplePage: FC<{ v: View }> = ({ v }) => {
                 <HistoryBox v={f} />
               </>
             )}
+            <ListBox rows={v.list} here={f?.target.person?.id ?? null} now={v.now} />
           </main>
           <aside>
+            <InviteBox v={v} />
             {f && (
               <div class="box pacts">
                 <h2>acts <span>{f.target.person ? `@${f.target.person.handle}` : f.target.email}</span></h2>
@@ -365,9 +432,9 @@ const PeoplePage: FC<{ v: View }> = ({ v }) => {
 async function render(c: C, me: { personId: number; id: string }, o: { q: string; done?: string; flash?: Flash }, status: 200 | 400 = 200) {
   const db = c.env.DB
   const target = o.q ? await findTarget(db, o.q) : null
-  const found = target ? await accountView(db, target) : null
+  const [found, list] = await Promise.all([target ? accountView(db, target) : null, allAccounts(db)])
   const token = await formToken(c.env.CSRF_SECRET, me.id)
-  return page(c, <PeoplePage v={{ q: o.q, me: me.personId, token, found, done: o.done, flash: o.flash, now: Date.now() }} />, status)
+  return page(c, <PeoplePage v={{ q: o.q, me: me.personId, token, found, list, done: o.done, flash: o.flash, now: Date.now() }} />, status)
 }
 
 const qOf = (c: C) => (c.req.query('q') ?? '').trim().slice(0, 254)
@@ -387,7 +454,8 @@ adminAccounts.post(PATH, async c => {
   if (!(await postedTokenOk(ac, await who(ac), f))) return sendError(c, { status: 403, heading: 'this form expired', text: 'go back, reload the page and try again.' }, 'html')
   if (!isAccountAct(f.do)) return sendError(c, { status: 400, text: 'that form asked for nothing we know.' }, 'html')
   const act = f.do
-  const q = qOf(c)
+  // The invite form has no lookup behind it: after it, the page looks up the address it invited.
+  const q = qOf(c) || (f.email ?? '').trim().slice(0, 254)
   const reason = modReason(f.reason)
   if (!reason) return render(c, g.session, { q, flash: { act, error: REASON_NEEDED } }, 400)
   const personId = /^\d{1,15}$/.test(f.person ?? '') ? Number(f.person) : null
