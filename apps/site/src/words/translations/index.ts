@@ -4,5 +4,6 @@ import type { Translation } from '../index'
 import fr from './fr.json'
 import de from './de.json'
 import zh_Hans from './zh-Hans.json'
+import es from './es.json'
 
-export const translations: Record<string, Translation> = { fr, de, 'zh-Hans': zh_Hans }
+export const translations: Record<string, Translation> = { fr, de, 'zh-Hans': zh_Hans, es }

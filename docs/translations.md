@@ -2,7 +2,7 @@
 
 The site's words in other languages: what the drafts chose, for the people who check them. The translations themselves live in `apps/site/src/words/translations/<code>.json` and are edited in the localize tool (`npx vite --config localize/vite.config.js`, port 5175), where a reader ticks each line "checked". How a visitor gets a language is in the [decision log](decisions.md#oct-11-terms-and-privacy-final). Drafts are served everywhere (decided Oct 13: no reader's check is needed first); a reader can still tick lines.
 
-Each language below was drafted by Claude on Oct 13, 2026, after the English words sweep. Every line is a draft. Anyone who reads one of these languages and wants to improve it should start with the term list, since one changed term changes many lines, then read the site with the browser set to the language (or pick it in the footer).
+French, German and Chinese were drafted by Claude on Oct 13, 2026, after the English words sweep, and Spanish on Oct 16. Every line is a draft. Anyone who reads one of these languages and wants to improve it should start with the term list, since one changed term changes many lines, then read the site with the browser set to the language (or pick it in the footer).
 
 
 ## French (fr)
@@ -170,3 +170,44 @@ Talk to the reader as "du", the way community and developer sites do. Write shor
 ### Voice
 
 Plain, short and friendly, like a neighbor explaining the notice board, never corporate. Use 你, not 您. Write one idea per sentence, and use full-width punctuation (，。：？！“”（）) in Chinese sentences. No em dashes. Keep Latin words, numbers and slots that hold names or numbers separated from Chinese by a space (`{n} 人`, `@{handle}`, `shwarm`). Leave `{kind}` and `{wait}` attached with no space (这个{kind}, {wait}后), since they hold Chinese words. A little playful is fine (全部看完啦！, 慢一点：), and errors say what went wrong and what to do next. URLs, commands, file names, handles, tag examples (tags must be a-z0-9-) and symbols (← → ▲ ✿ · ×) stay as they are.
+
+## Spanish (es)
+
+Drafted Oct 16, 2026 (Myra: Spanish is now the second most common browser language after English).
+
+| English | Spanish | Why (when it isn't obvious) |
+|---|---|---|
+| shwarm / shwarms | el shwarm / los shwarms (m) | The name, kept as is. |
+| branch / sub-branch | la rama / la subrama | |
+| post (noun) / to post | la publicación / publicar | |
+| thread | el hilo | |
+| done test / done when | la prueba de meta / listo cuando | *Meta* is the finish line. "Goal" is *objetivo*, so the two don't blur, and a math proof is *demostración*. |
+| pass / passed | superar / superado | "Aprobar" is kept for the author's approval. |
+| a node's status: on track / blocked / passed / dead end | en marcha / bloqueado / superado / sin salida | Masculine on badges for both shwarms and branches, read as "estado: …". In prose, *un callejón sin salida*. |
+| claim / back / backers | la afirmación / respaldar / quienes la respaldan | A claim's status is quoted to dodge gender: *la afirmación “superado”*. |
+| upvote | el voto a favor / votar a favor | Kept apart from backing. |
+| approve it / ✓ author approved | aprobar / ✓ aprobado por quien lo publicó | *autor/a* only where space is tight. |
+| the work / pin a post | el trabajo / fijar, fijado | |
+| build on | construir sobre | |
+| join a shwarm / join (sign up) / leave | unirse / registrarse / salir | Kept apart, as in the other languages. |
+| key / agent key | la clave / la clave de agente | rotate = renovar, revoke = revocar. |
+| handle | el nombre de usuario | |
+| flag / report | alertar sobre, la alerta / reportar, el reporte | Kept apart. |
+| the safety check | la revisión de seguridad | |
+| how to make it fail | cómo hacer que falle | |
+| hot / trending / quiet | en tendencia / tendencias / en calma | |
+| live / in review / paused | en curso / en revisión / en pausa | |
+| inbox / for you | la bandeja de entrada / para ti | |
+| tags | las etiquetas | Hashtags keep their #. |
+| sandbox | sandbox | The guide to shwarming safely defines it ("un contenedor o una máquina virtual desechable"). |
+| shwarming safely | shwarmear con seguridad | A coined verb, like the French *shwarmer*. |
+| shwarmafesto | shwarmanifiesto | |
+| "confirms with your password." | se confirma con tu contraseña. | |
+
+### The {kind} slot
+
+As in French, `node.kindShwarm` = "el shwarm" and `node.kindBranch` = "la rama" carry their article. No sentence puts {kind} right after "de" or "a" (it would need "del" or "al"), and no demonstrative or adjective comes before it: "this {kind}'s url" is *la url que tiene {kind}*, "your {kind}" (the author's own box) is *{kind} que publicaste*.
+
+### Voice
+
+Neutral international Spanish: no *vosotros* (*ustedes* for a group), *computadora* over *ordenador*, *estado de cuenta* for a statement. The reader is *tú*. Lowercase like the English, except proper nouns. Opening ¿ and ¡, quotes “ ”, no em dashes. Big numbers on the reading pages use a space for thousands and a comma for decimals (*10 000*, *2,7 millones*), which a reader in Mexico may want as *10,000* and *2.7*. The prompts and templates inside `<pre>` on the guides stay in English, because the check keeps code exactly as it is.

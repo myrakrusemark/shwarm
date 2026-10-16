@@ -14,7 +14,7 @@ const kept = (s: string) => ({ links: bag(s, /href="([^"]*)"/g), code: bag(s, /<
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 
 describe('reading pages in other languages', () => {
-  const env = () => ({ ...testEnv(testDb()), SITE_MODE: 'open', LANGUAGES: 'fr,de,zh-Hans' })
+  const env = () => ({ ...testEnv(testDb()), SITE_MODE: 'open', LANGUAGES: 'fr,de,zh-Hans,es' })
   const get = (path: string, lang: string) => app.fetch(new Request('https://shwarm.org' + path, { headers: { cookie: `lang=${lang}` } }), env())
 
   it('has lines only for parts of pages that exist', () => {
@@ -33,7 +33,7 @@ describe('reading pages in other languages', () => {
 
   it('serves a page in the reader’s language, with English for any part it lacks', async () => {
     const about = PAGES.find(p => p.slug === 'about')!
-    for (const code of ['fr', 'de', 'zh-Hans']) {
+    for (const code of ['fr', 'de', 'zh-Hans', 'es']) {
       const html = await body(await get('/about', code))
       const t = translations[code]
       expect(html, code).toContain(`<h1>${esc(t['doc.about.title']?.text || about.title)}</h1>`)
