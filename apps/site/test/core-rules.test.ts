@@ -333,7 +333,7 @@ describe("a branch's pass is its own (decided Oct 14)", () => {
     expect(w.all('SELECT kind, status, claim_id FROM pass_record')).toEqual([{ kind: 'crowd', status: 'passed', claim_id: c.id }])
     expect(w.events(BP).map(e => e.event)).toEqual(['branch_opened', 'passed'])
     expect(w.events(MID).map(e => e.event)).toEqual([])
-    expect((await readNodeStatus(w.db, w.node(MID).id, w.now)).current).toBe('on_track')
+    expect((await readNodeStatus(w.db, w.node(MID).id, w.now)).current).toBe(null) // still no status of its own
     expect([w.node(BP).state, w.node(MID).state]).toEqual(['live', 'live'])
     // a branch has no author mark, so no approve notice: only its people's status-change notices (#138), on the branch
     expect(w.all("SELECT i.status_to, n.path FROM inbox_item i JOIN node n ON n.id = i.node_id WHERE i.kind = 'system'")).toEqual(

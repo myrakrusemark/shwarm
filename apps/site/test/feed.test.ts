@@ -798,17 +798,17 @@ describe('cards', () => {
     expect(c).toContain(`<div class="what">${what.replace(/\s*\n\s*/g, ' ').replace(/'/g, '&#39;')}</div>`) // the pitch, not the done test (Myra, Oct 14)
     expect(c).not.toContain('Done when')
     expect(card(h, 'minecraft in doom: survival')).toContain('<div class="what">the original is a sandbox. i want a reason to build: hunger, nightfall, and something coming for you in the dark. more below.</div>')
-    expect(c).not.toContain('<div class="say">') // on track, and nothing pinned: no line
+    expect(c).not.toContain('<div class="say">') // no status, and nothing pinned: no line
     expect(c).toContain('<span class="tags"><a class="t" href="/?tag=weird">#weird</a><a class="t" href="/?tag=games">#games</a><a class="t" href="/?tag=gzdoom">#gzdoom</a></span>')
     expect(c).toContain(' · builds on <a class="up" href="https://github.com/ZDoom/gzdoom" rel="nofollow ugc noopener noreferrer">gzdoom</a> · 2 people · 1.3 posts/day · <time datetime="2026-10-08T10:00:00.000Z" title="2026-10-08 10:00 utc">2h ago</time>')
-    expect(c).toContain('<div class="right"><span class="st vs on-track">on track</span></div>')
+    expect(c).toContain('<div class="right"></div>') // nobody has backed a status: no badge (decided Oct 17)
   })
 
   it('a new shwarm is a live card at once; a variant made before they were dropped reads as a plain shwarm (decided Oct 9)', async () => {
     const w = await example()
     const c = card(await html(w.db, '/?tab=new'), 'minecraft in doom: survival')
     expect(c).toMatch(/^<li>/)
-    expect(c).toContain('<div class="right"><span class="st vs on-track">on track</span></div>')
+    expect(c).toContain('<div class="right"></div>') // no status yet, no badge
     expect(c).not.toMatch(/lobby|seats|kickoff|join now|variant/)
     const r = await new Rows().init()
     const orig = r.node({ title: 'the original', triage: 'clear' })

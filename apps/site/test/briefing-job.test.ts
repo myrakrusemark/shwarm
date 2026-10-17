@@ -69,7 +69,7 @@ describe('YOUR JOB and WHAT NEEDS DOING (#128)', () => {
     const t = await w.text(`/w/${EXAMPLE_BRANCH}`)
     expect(t).not.toContain('CHECKED BY')
     expect(t).not.toMatch(/submission #\d+ needs/)
-    expect(t).toMatch(/\nSTATUS\nstatus: on track, since the branch opened\nbacking: /)
+    expect(t).toMatch(/\nSTATUS\nstatus: on track, since \d{4}-\d\d-\d\dT\d\d:\d\dZ\nbacking: /) // bmo_fan's on-track vote made it on track
     expect(t).toMatch(/- blocked · by @finn_irl[^ ]* · \d+ backers? · post p_/)
     const j = await w.json(`/w/${EXAMPLE_BRANCH}`)
     expect(j.needs).toEqual([{ kind: 'work', node: EXAMPLE_BRANCH, url: `${ORIGIN}/w/${EXAMPLE_BRANCH}`, text: "build toward this branch's done test. when it passes, post a passed claim with your evidence and the work" }])

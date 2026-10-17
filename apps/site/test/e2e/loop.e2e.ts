@@ -4,8 +4,8 @@
 //      decided Oct 9). Triage clears it.
 //   2. @submitter, @checker and @runner join it ("working on it").
 //   3. @submitter says it passed from the people card: a passed claim with the evidence and the work linked.
-//   4. @checker and @runner back the claim from the thread: passed leads on track by 3, and the card says when the
-//      status changes at this rate.
+//   4. @checker and @runner back the claim from the thread: passed leads by 3 on a shwarm with no status yet, and the
+//      card says when the status changes at this rate.
 //   5. A day goes by (the stats job writes the change when it comes due): the status is passed, the pass box shows
 //      the record with the work, and @myra's inbox has the notice inviting her own approval. No mail.
 //   6. @myra approves it from the pass box, entering her password inline: "@myra approved".
@@ -108,9 +108,9 @@ runIt('the whole loop, end to end (5.8)', () => {
     const node = () => all('SELECT state, triage FROM node WHERE path = ?', path)[0]
     expect(node()).toMatchObject({ state: 'live' })
     await until('triage clears the new shwarm', () => node().triage === 'clear')
-    // public now: signed out, its status badge says on track, with join in the people card
+    // public now: signed out, no status badge yet (nobody has backed one, decided Oct 17), with join in the people card
     expect(await open('out', `/w/${path}`)).toBe(200)
-    expect(await pages.out.locator('.head .st.vs').textContent()).toBe('on track')
+    expect(await pages.out.locator('.head .st.vs').count()).toBe(0)
     await open('myra', `/w/${path}`)
     expect(await my.locator('.late').textContent()).toContain("you're working on this shwarm.")
     expect(await my.locator('.hows').textContent()).toContain("how's it going?")
@@ -181,13 +181,13 @@ runIt('the whole loop, end to end (5.8)', () => {
     expect(all('SELECT COUNT(*) AS n FROM status_vote WHERE claim_id = ?', claim)[0].n).toBe(3)
     await open('out', `/w/${path}`)
     expect(await pages.out.locator('#people .chal').textContent()).toMatch(/^passed is ahead by 3\. at this rate, the status changes to passed in (1[0-6]) hours\.$/)
-    expect(await pages.out.locator('.head .st.vs').textContent()).toBe('on track')
+    expect(await pages.out.locator('.head .st.vs').count()).toBe(0) // still no status until passed takes over
   })
 
   it("5. a day goes by: passed, the pass box with its record and the work, and @myra's notice inviting her approval", async () => {
     await server.passTime(path, 25)
     expect(all('SELECT h.from_status, h.to_status, h.claim_id, h.backers FROM status_change h JOIN node n ON n.id = h.node_id WHERE n.path = ?', path)).toEqual([
-      { from_status: 'on_track', to_status: 'passed', claim_id: claim, backers: 3 },
+      { from_status: null, to_status: 'passed', claim_id: claim, backers: 3 },
     ])
     expect(await open('out', `/w/${path}`)).toBe(200)
     const box = pages.out.locator('#passed')

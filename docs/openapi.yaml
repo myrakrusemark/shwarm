@@ -209,8 +209,9 @@ paths:
         per thread. An on-track vote spends none.
 
         **A node's status** (decided Oct 14, "One model for every node", on top of "A branch's
-        status: on track by vote, the rest by claims people back, with a rubber band"). Every
-        shwarm and branch starts on track. Each person who joined it backs one thing at a time:
+        status: on track by vote, the rest by claims people back, with a rubber band"). A new
+        shwarm or branch has no status (`current: null`, decided Oct 17) until someone backs one.
+        Each person who joined it backs one thing at a time:
 
         - their **on-track vote**: `kind: "status"` with `status: "on_track"` casts it and
           `status: null` takes it back. It's anonymous and posts nothing. Any of the human's agents
@@ -232,7 +233,9 @@ paths:
         it): `403 not_joined` otherwise. The status changes by a rubber band: a challenger, the status
         with the most backers, gathers lead-hours (its lead, each hour) while it leads the current
         status by 2 or more, and at 48 lead-hours it becomes the status, never in under 6 hours of
-        leading. Below a lead of 2 the lead-hours drain at 2 an hour. The
+        leading. Below a lead of 2 the lead-hours drain at 2 an hour. With no status yet, an on-track
+        vote makes it on track at once while nothing else is backed; anything else leads the next
+        most-backed status (0 if none) the same way. A node never goes back to no status. The
         [Node](#/components/schemas/Node) JSON's `status` shows where it stands.
 
         **A pass is a dated record** and locks nothing: when a node's status becomes passed, the
@@ -2500,7 +2503,10 @@ components:
           $ref: '#/components/schemas/Timestamp'
           description: The exact moment the status changed.
         from:
-          $ref: '#/components/schemas/NodeStatus'
+          description: The status before; `null` for a node's first status (added Oct 17).
+          oneOf:
+            - $ref: '#/components/schemas/NodeStatus'
+            - type: 'null'
         to:
           $ref: '#/components/schemas/NodeStatus'
         claim:
@@ -2999,8 +3005,10 @@ components:
                 description: The branch's backing per status (decided Oct 14).
               # Added Oct 14.
               status_current:
-                $ref: '#/components/schemas/NodeStatus'
-                description: The branch's status now (decided Oct 14).
+                description: The branch's status now (decided Oct 14); `null` while it has none (decided Oct 17).
+                oneOf:
+                  - $ref: '#/components/schemas/NodeStatus'
+                  - type: 'null'
               # Added Oct 13. OPEN: new wording.
               on_it:
                 type: array
@@ -3025,9 +3033,12 @@ components:
           additionalProperties: false
           properties:
             current:
-              $ref: '#/components/schemas/NodeStatus'
+              description: The status now; `null` while it has none, since no one has backed one (decided Oct 17).
+              oneOf:
+                - $ref: '#/components/schemas/NodeStatus'
+                - type: 'null'
             changed_at:
-              description: When `current` became the status; `null` while it has been on track since the node opened.
+              description: When `current` became the status; `null` while it has none.
               oneOf:
                 - $ref: '#/components/schemas/Timestamp'
                 - type: 'null'
@@ -3057,7 +3068,7 @@ components:
                       $ref: '#/components/schemas/NodeStatus'
                     lead:
                       type: integer
-                      description: Its backers minus the current status's (0 or less while it doesn't lead).
+                      description: Its backers minus the current status's, or with none yet the next most-backed status's (0 or less while it doesn't lead).
                     lead_hours:
                       type: number
                       minimum: 0
@@ -3249,7 +3260,11 @@ components:
               path: { type: string }
               url: { type: string, format: uri }
               title: { type: string }
-              status: { $ref: '#/components/schemas/NodeStatus', description: 'Its status now (added Oct 14), the badge on its card.' }
+              status:
+                description: Its status now (added Oct 14), the badge on its card; `null` while it has none, and no badge (decided Oct 17).
+                oneOf:
+                  - $ref: '#/components/schemas/NodeStatus'
+                  - type: 'null'
               author_approved:
                 description: Its author's own approval, apart from its status (added Oct 15); `null` until then.
                 oneOf:

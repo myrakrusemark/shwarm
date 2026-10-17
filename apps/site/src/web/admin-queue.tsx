@@ -329,7 +329,7 @@ const NodeFacts: FC<{ n: AdminNode }> = ({ n }) => (
       <dt>path</dt><dd><code>{n.path}</code> · <a href={`/w/${n.path}`}>public page</a></dd>
       <dt>title</dt><dd>{said(n.title)}</dd>
       <dt>author</dt><dd><Who handle={n.author_handle} />{n.author_status !== 'active' && <span class="mk"> {n.author_status}</span>}</dd>
-      <dt>status</dt><dd>{n.status.replace('_', ' ')}</dd>
+      <dt>status</dt><dd>{n.status === null ? 'none yet' : n.status.replace('_', ' ')}</dd>
       <dt>triage</dt><dd>{n.triage}{n.seeded ? ' (launch shwarm)' : ''}</dd>
       <dt>hidden</dt><dd>{n.hidden ? <b>hidden</b> : 'no'}</dd>
       <dt>paused</dt><dd>{n.paused ? <b>paused</b> : 'no'}</dd>

@@ -168,14 +168,14 @@ async function list(db: D1Database, spec: ListSpec, filter: { sql: string; args:
 
 const keyOf = (r: Row): Key => [r.k1, r.k2, r.id]
 
-/** A shwarm's status as stored with its band (`bs`, branch_status): on track when it has none. */
-const STATUS = "COALESCE(bs.current, 'on_track')"
+/** A shwarm's status as stored with its band (`bs`, branch_status): NULL while it has none (decided Oct 17). */
+const STATUS = 'bs.current'
 
 // When a shwarm passed: when its status became passed (never changed_at, which every later post moves). created_at only
 // stands in for a row with none, so the key never moves while it stays passed.
 const PASSED_AT = 'COALESCE(bs.changed_at, n.created_at)'
 
-export const TAB_SQL: Record<FeedTab, string> = { live: `${STATUS} <> 'passed'`, passed: `${STATUS} = 'passed'` }
+export const TAB_SQL: Record<FeedTab, string> = { live: `(${STATUS} IS NULL OR ${STATUS} <> 'passed')`, passed: `${STATUS} = 'passed'` }
 
 // The counted sorts read node_stats, as the cards do (a shwarm the stats job hasn't reached yet counts its author as
 // its one person). Most first; ties go newest first. new is created_at on live and PASSED_AT on passed.
@@ -205,8 +205,8 @@ export type FeedCard = {
   title: string
   what: string
   doneWhen: string
-  /** Its status as stored with its band (core/status.ts): the card's badge. */
-  status: Status
+  /** Its status as stored with its band (core/status.ts): the card's badge; null while it has none (no badge). */
+  status: Status | null
   postedBy: string
   tags: string[]
   upvotes: number
@@ -235,7 +235,7 @@ type DetailRow = {
   title: string
   what: string
   done_when: string
-  status: Status
+  status: Status | null
   posted_by: string
   builds_on: string | null
   created_at: string

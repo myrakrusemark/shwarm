@@ -84,13 +84,13 @@ const kindLabel = (r: { kind: string; up_title: string | null }, branchOf = fals
 /** A status's name, as the node pages say it (decided Oct 14: every node has one). */
 const statusName = (s: Status) => w.node.statusNames[s]
 
-/** Where a node stands, in working on's small line: its status, unless it's on track. */
-const statusLabel = (r: { status: Status }) => (r.status === 'on_track' ? '' : statusName(r.status))
+/** Where a node stands, in working on's small line: its status, unless it's on track or it has none. */
+const statusLabel = (r: { status: Status | null }) => (r.status === null || r.status === 'on_track' ? '' : statusName(r.status))
 
-/** Created's badge: its status, in the node pages' colors (common.css), or, to the owner, that it isn't public yet (A8). */
-function badge(r: CreatedRow): { cls: string; text: string } {
+/** Created's badge: its status, in the node pages' colors (common.css), or, to the owner, that it isn't public yet (A8); none with no status. */
+function badge(r: CreatedRow): { cls: string; text: string } | null {
   if (!r.public) return r.triage === 'blocked' ? { cls: 'st dead', text: w.profile.blocked } : { cls: 'st wait', text: w.profile.beingChecked }
-  return { cls: `st vs ${r.status.replace('_', '-')}`, text: statusName(r.status) }
+  return r.status === null ? null : { cls: `st vs ${r.status.replace('_', '-')}`, text: statusName(r.status) }
 }
 
 const Imp: FC<{ figures: WorkingRow['figures'] }> = ({ figures }) => {
@@ -171,7 +171,7 @@ const Created: FC<{ rows: CreatedRow[]; all: boolean; more: boolean; handle: str
                 <a href={nodeHref(r.path)}><Name name={r.title} /></a>
                 <div class="sub">{dotted([kindLabel(r, true), <>{fillx(w.profile.doneWhen, { text: <Text inline text={r.done_when} /> })}</>])}</div>
               </div>
-              <span class={b.cls}>{b.text}</span>
+              {b && <span class={b.cls}>{b.text}</span>}
             </li>
           )
         })}

@@ -3,6 +3,8 @@
 // the current status", "AND makes sense", "i like the rate--no less that 6h tho"): a challenger leading by 2 or more
 // gathers lead-hours, and the status changes at 48 of them, never in under 6 hours of leading; below a lead of 2 they
 // drain. Each change it goes through is reported, so a write can record it. core/status.ts advance and nodeStatus, pure.
+// A node has no status until someone backs one (decided Oct 17): its first on-track vote makes it on track at once, and
+// anything else takes the band against the next most-backed status.
 import { describe, expect, it } from 'vitest'
 import { advance, DRAIN_PER_HOUR, LEAD_HOURS, MARGIN, MIN_HOURS, nodeStatus, startBand, type Band, type Status } from '../src/core/status'
 import { T0 } from './d1'
@@ -13,7 +15,10 @@ const t = (o: Partial<Record<Status, number>>) => {
   const x = { on_track: 0, blocked: 0, passed: 0, dead_end: 0, ...o }
   return { ...x, people: x.on_track + x.blocked + x.passed + x.dead_end }
 }
-const start = startBand(at(0))
+/** A new node: no status. */
+const fresh = startBand(at(0))
+/** A node that its first on-track vote made on track at hour 0, where most of the band's cases start. */
+const start: Band = { ...fresh, current: 'on_track', changed_at: at(0) }
 /** The band's stored part, as a write saves it. */
 const saved = ({ current, challenger, lead_hours, leading_since, changed_at, at }: Band): Band => ({ current, challenger, lead_hours, leading_since, changed_at, at })
 /** When the challenger takes over from a fresh start with this tally. */
@@ -24,7 +29,7 @@ describe('the rubber band (decided Oct 14)', () => {
     expect({ MARGIN, LEAD_HOURS, MIN_HOURS, DRAIN_PER_HOUR }).toEqual({ MARGIN: 2, LEAD_HOURS: 48, MIN_HOURS: 6, DRAIN_PER_HOUR: 2 })
   })
 
-  it('a new node is on track, nothing gathered, nobody challenging', () => {
+  it('on track with nothing else backed: nothing gathered, nobody challenging', () => {
     expect(advance(start, t({}), T0 + 100 * H)).toEqual({ ...start, at: at(100), lead: 0, changes_at: null, needs: null, flips: [] })
     expect(advance(start, t({ on_track: 5 }), T0 + 100 * H)).toMatchObject({ current: 'on_track', challenger: null, lead: 0, needs: null })
   })
@@ -133,13 +138,43 @@ describe('the rubber band (decided Oct 14)', () => {
     const stored = saved(advance(start, t({ passed: 2 }), T0 + 10 * H))
     expect(nodeStatus(stored, t({ passed: 2 }), T0 + 12 * H)).toEqual({
       current: 'on_track',
-      changed_at: null,
+      changed_at: at(0),
       backing: t({ passed: 2 }),
       challenger: { status: 'passed', lead: 2, lead_hours: 24, changes_at: at(24), needs: null },
     })
     expect(nodeStatus(stored, t({ passed: 2 }), T0 + 30 * H)).toMatchObject({ current: 'passed', changed_at: at(24), challenger: null })
     expect(nodeStatus(stored, t({ passed: 2 }), T0 + 500 * H)).toMatchObject({ current: 'passed', changed_at: at(24) })
-    // no row yet: on track, nothing gathered
-    expect(nodeStatus(null, t({}), T0)).toEqual({ current: 'on_track', changed_at: null, backing: t({}), challenger: null })
+    // no row yet: no status, nothing gathered
+    expect(nodeStatus(null, t({}), T0)).toEqual({ current: null, changed_at: null, backing: t({}), challenger: null })
+  })
+})
+
+describe('no status until someone backs one (decided Oct 17)', () => {
+  it('a new node has none, and nothing gathers while nobody backs anything', () => {
+    expect(advance(fresh, t({}), T0 + 100 * H)).toEqual({ ...fresh, at: at(100), lead: 0, changes_at: null, needs: null, flips: [] })
+  })
+
+  it('its first on-track vote makes it on track at once, with no wait', () => {
+    const b = advance(fresh, t({ on_track: 1 }), T0 + 2 * H)
+    expect(b).toMatchObject({ current: 'on_track', changed_at: at(0), challenger: null, lead: 0, at: at(2) })
+    expect(b.flips).toEqual([{ from: null, to: 'on_track', at: at(0), backers: 1, against: 0 }])
+  })
+
+  it('a claim takes the rubber band against nothing: one person alone never passes a node', () => {
+    expect(advance(fresh, t({ passed: 1 }), T0 + 500 * H)).toMatchObject({ current: null, challenger: 'passed', lead: 1, needs: 1, changes_at: null, flips: [] })
+    const two = advance(fresh, t({ passed: 2 }), T0 + 30 * H)
+    expect(two).toMatchObject({ current: 'passed', changed_at: at(24) })
+    expect(two.flips).toEqual([{ from: null, to: 'passed', at: at(24), backers: 2, against: 0 }])
+  })
+
+  it('on track against other backing leads the next most-backed status, as any challenger', () => {
+    expect(advance(fresh, t({ on_track: 1, blocked: 1 }), T0 + 500 * H)).toMatchObject({ current: null, challenger: 'on_track', lead: 0, needs: 2 })
+    const b = advance(fresh, t({ on_track: 3, blocked: 1 }), T0 + 30 * H)
+    expect(b.flips).toEqual([{ from: null, to: 'on_track', at: at(24), backers: 3, against: 1 }])
+  })
+
+  it('never goes back to none: taking every vote back leaves the status it had', () => {
+    const on = advance(fresh, t({ on_track: 1 }), T0 + H)
+    expect(advance(saved(on), t({}), T0 + 100 * H)).toMatchObject({ current: 'on_track', changed_at: at(0), flips: [] })
   })
 })

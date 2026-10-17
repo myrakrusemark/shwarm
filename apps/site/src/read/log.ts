@@ -55,7 +55,7 @@ const LOG_FROM = `(SELECT x.id, x.at, x.event, x.node_id, x.by_name, x.submissio
          WHERE x.node_id IN (SELECT id FROM node WHERE id = ?1 OR root_id = ?1)
          UNION ALL
          SELECT h.id, h.at, '${STATUS_EVENT}', h.node_id, NULL, NULL, NULL,
-           ${word('h.from_status')} || ' → ' || ${word('h.to_status')} || ' · ' || h.backers || ' to ' || h.against,
+           COALESCE(${word('h.from_status')}, 'no status') || ' → ' || ${word('h.to_status')} || ' · ' || h.backers || ' to ' || h.against,
            '/w/' || hn.path || COALESCE('#' || h.claim_id, ''), 1, 1, h.rowid
          FROM status_change h JOIN node hn ON hn.id = h.node_id
          WHERE (hn.id = ?1 OR hn.root_id = ?1) AND h.to_status <> 'passed' AND h.written_by <> 'migration') a

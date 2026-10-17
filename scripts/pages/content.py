@@ -21,11 +21,11 @@ HOW = ("how-it-works", "how shwarm works",
  ("branches", "split it into branches",
   "<p>big goals get broken into smaller pieces called <b>branches</b>. \"block placement\" is a branch of minecraft in doom. it has its own thread and its own finish line. anyone can open a branch when it helps, and a branch can have branches of its own.</p>"),
  # decided Oct 14: every shwarm and branch has a status, by an on-track vote and claims people back, with the rubber
- # band ("One model for every node"). OPEN: new words
+ # band ("One model for every node"); none, and no badge, until someone backs one (decided Oct 17). OPEN: new words
  ("status", "how's it going?",
-  "<p>every shwarm and branch has a small badge that says how it's going: <b>on track</b>, <b>blocked</b>, <b>passed</b> or <b>dead end</b>. it starts out on track. each person who joined gets one say in it, and nobody else gets any.</p>"
+  "<p>every shwarm and branch gets a small badge that says how it's going: <b>on track</b>, <b>blocked</b>, <b>passed</b> or <b>dead end</b>. a new one starts with no badge. each person who joined gets one say in it, and nobody else gets any.</p>"
   "<p>to say it's on track, press <b>on track</b> on its page. nobody sees who pressed it, only how many people did. blocked, passed and dead end need evidence. you post a <b>claim</b> in the thread, like \"blocked: monsters still see through new walls. here's the repro.\" people who agree press <b>back</b> on your claim. its backers show as a number, never as names. your say goes to whatever you backed last, until you leave. your agents can vote on track or post a claim for you, but only you can back someone else's claim.</p>"
-  "<p>the badge doesn't flip on one busy afternoon. another status has to lead by at least 2 people, for long enough: a day at a lead of 2, 12 hours at a lead of 4, and never less than 6 hours. the page says how long that takes at this rate. if the lead drops below 2, the clock winds back down.</p>"
+  "<p>the first on-track vote puts the badge up right away, if nobody has backed anything else. after that, the badge doesn't flip on one busy afternoon. another status has to lead by at least 2 people, for long enough: a day at a lead of 2, 12 hours at a lead of 4, and never less than 6 hours. the page says how long that takes at this rate. if the lead drops below 2, the clock winds back down.</p>"
   "<p>a branch that passes doesn't pass its shwarm. it's a piece of work the shwarm builds on. the shwarm passes the same way a branch does, when the people on it back a passed claim.</p>"),
  ("agents", "bring your agents (or don't)",
   "<p>you can work by yourself. you can also point your AI agents at a branch. every branch has a web address; give it to your agent's software and the agent gets a briefing it can read, with the goal and the latest posts, dead ends included.</p>"

@@ -8,6 +8,10 @@
 //     an upvote, which stays a human act on the site (core/posts.ts back).
 //   * each person backs one thing at a time, their on-track vote or one claim (status_vote's primary key keeps it one);
 //     a new backing moves it, and taking it off takes it back.
+//   * no status until someone backs one (decided Oct 17, "No badge until someone votes"): a new node has none. An
+//     on-track vote makes it on track at once while no one backs anything else; a claim, or on track against rival
+//     backing, takes the rubber band below, leading the next most-backed status (0 when there's none), so one person
+//     alone still can't pass a node or end it (a builder's default, Oct 17). A node never goes back to having none.
 //   * the rubber band: the status stays what it is until a challenger, the other status with the most backers, leads it
 //     by MARGIN or more. While it does, it gathers lead-hours (its lead, each hour); at LEAD_HOURS it becomes the status,
 //     but never in less than MIN_HOURS of leading. Below MARGIN, the gathered lead-hours drain at DRAIN_PER_HOUR, and
@@ -71,7 +75,8 @@ export const hoursUntil = (at: string, now: number) => Math.floor((Date.parse(at
 
 /** The band's state as of `at` (a branch_status row). */
 export type Band = {
-  current: Status
+  /** Null: no status yet, since no one has backed one. */
+  current: Status | null
   /** The status gathering lead-hours, or null when no other status has a backer. */
   challenger: Status | null
   lead_hours: number
@@ -80,23 +85,23 @@ export type Band = {
    * it doesn't); null when it has none.
    */
   leading_since: string | null
-  /** When `current` became the status; null: on track since the node was opened. */
+  /** When `current` became the status; null while there's none. */
   changed_at: string | null
   at: string
 }
 
-/** Every node starts on track with nothing gathered. */
-export const startBand = (at: string): Band => ({ current: 'on_track', challenger: null, lead_hours: 0, leading_since: null, changed_at: null, at })
+/** Every node starts with no status and nothing gathered. */
+export const startBand = (at: string): Band => ({ current: null, challenger: null, lead_hours: 0, leading_since: null, changed_at: null, at })
 
 /**
  * A change of status the band went through: from one status to another at an exact moment, with the backers of the new
  * status and of the old one then (the backing held still since the band's `at`).
  */
-export type Flip = { from: Status; to: Status; at: string; backers: number; against: number }
+export type Flip = { from: Status | null; to: Status; at: string; backers: number; against: number }
 
 /** The band advanced to a moment, with what it would do next if the backing stayed as it is. */
 export type BandNow = Band & {
-  /** The challenger's backers minus the current status's; 0 with no challenger. */
+  /** The challenger's backers minus the current status's (with none, the next most-backed status's); 0 with no challenger. */
   lead: number
   /** When the challenger becomes the status if the backing stays as it is; null while its lead is under MARGIN. */
   changes_at: string | null
@@ -107,16 +112,21 @@ export type BandNow = Band & {
 }
 
 /**
- * The challenger for `current`: the other status with the most backers. A tie keeps the stored challenger when it's among
- * the tied, else goes to the first in STATUSES order. Null when no other status has a backer.
+ * The challenger for `current`: the other status with the most backers (with no status yet, any status). A tie keeps
+ * the stored challenger when it's among the tied, else goes to the first in STATUSES order. Null when no other status
+ * has a backer.
  */
-function challengerOf(current: Status, stored: Status | null, t: Record<Status, number>): Status | null {
+function challengerOf(current: Status | null, stored: Status | null, t: Record<Status, number>): Status | null {
   const others = STATUSES.filter(s => s !== current)
   const most = Math.max(...others.map(s => t[s]))
   if (most <= 0) return null
   const tied = others.filter(s => t[s] === most)
   return stored && tied.includes(stored) ? stored : tied[0]
 }
+
+/** What the challenger has to beat: the current status's backers, or with none yet, the most any other status has. */
+const against = (current: Status | null, ch: Status, t: Record<Status, number>) =>
+  current !== null ? t[current] : Math.max(...STATUSES.filter(s => s !== ch).map(s => t[s]))
 
 /** The first moment both hold: `hours` have reached LEAD_HOURS (growing by `lead` an hour from `from`), and MIN_HOURS have passed since `since`. */
 function flipAt(hours: number, lead: number, from: number, since: number): number {
@@ -138,7 +148,13 @@ export function advance(state: Band, t: Record<Status, number>, now: number): Ba
   for (;;) {
     const ch = challengerOf(s.current, s.challenger, t)
     if (ch !== s.challenger) Object.assign(s, { challenger: ch, lead_hours: 0, leading_since: null })
-    const lead = ch === null ? 0 : t[ch] - t[s.current]
+    // The first status: with no status yet and nothing else backed, an on-track vote makes it on track at once.
+    if (ch === 'on_track' && s.current === null && against(null, ch, t) === 0) {
+      flips.push({ from: null, to: ch, at: iso(from), backers: t[ch], against: 0 })
+      Object.assign(s, { current: ch, challenger: null, lead_hours: 0, leading_since: null, changed_at: iso(from) })
+      continue
+    }
+    const lead = ch === null ? 0 : t[ch] - against(s.current, ch, t)
     if (ch === null || lead < MARGIN) {
       s.lead_hours = Math.max(0, s.lead_hours - (DRAIN_PER_HOUR * (to - from)) / HOUR_MS)
       const led = s.leading_since === null ? 0 : Math.max(0, from - Date.parse(s.leading_since) - (to - from))
@@ -153,12 +169,12 @@ export function advance(state: Band, t: Record<Status, number>, now: number): Ba
       break
     }
     // The challenger becomes the status; the band starts over under it, with the same backers.
-    flips.push({ from: s.current, to: ch, at: iso(flip), backers: t[ch], against: t[s.current] })
+    flips.push({ from: s.current, to: ch, at: iso(flip), backers: t[ch], against: against(s.current, ch, t) })
     Object.assign(s, { current: ch, challenger: null, lead_hours: 0, leading_since: null, changed_at: iso(flip) })
     from = flip
   }
   s.at = iso(to)
-  const lead = s.challenger === null ? 0 : t[s.challenger] - t[s.current]
+  const lead = s.challenger === null ? 0 : t[s.challenger] - against(s.current, s.challenger, t)
   return {
     ...s,
     lead,
@@ -173,15 +189,16 @@ export type Challenger = { status: Status; lead: number; lead_hours: number; cha
 
 /** A node's status as everyone sees it now (read/status.ts readNodeStatus). */
 export type NodeStatus = {
-  current: Status
-  /** When it became the status; null: on track since the node was opened. */
+  /** Null: no status yet (no badge), since no one has backed one. */
+  current: Status | null
+  /** When it became the status; null while there's none. */
   changed_at: string | null
   /** Backers per status, and how many people back anything. */
   backing: StatusTally
   challenger: Challenger | null
 }
 
-/** The status from the stored band (null: none stored, so on track with nothing gathered) and the backing as it stands, advanced to `now`. */
+/** The status from the stored band (null: none stored, so no status and nothing gathered) and the backing as it stands, advanced to `now`. */
 export function nodeStatus(stored: Band | null, backing: StatusTally, now: number): NodeStatus {
   const b = advance(stored ?? startBand(iso(now)), backing, now)
   return {
@@ -329,6 +346,7 @@ export function flipStatements(db: D1Database, nodeId: number, f: Flip, o: { by:
   // moment, which can be earlier than this write (the next act or job run writes it): joined by then, and not left by
   // then. The inbox writes its words as it shows it, from status_to and the claim's name then; the stored text names
   // no one. Bounded by NOTICE_CAP, the earliest joined first. OPEN: new words (Claude's draft, Oct 15).
+  // A first status of on track sends none (a builder's default, Oct 17): its backers just said so; it isn't news.
   out.push(
     db
       .prepare(
@@ -338,6 +356,7 @@ export function flipStatements(db: D1Database, nodeId: number, f: Flip, o: { by:
          JOIN seat s ON s.node_id = n.id AND s.joined_at <= sc.at AND (s.left_at IS NULL OR s.left_at > sc.at)
          JOIN person pr ON pr.id = s.person_id AND pr.status = 'active'
          WHERE sc.id = ?1 AND NOT (sc.to_status = 'passed' AND n.kind <> 'branch' AND s.person_id = n.author_id)
+           AND NOT (sc.from_status IS NULL AND sc.to_status = 'on_track')
          ORDER BY s.joined_at, s.person_id LIMIT ${NOTICE_CAP}`,
       )
       .bind(h, o.at),

@@ -163,7 +163,7 @@ export const PASS_RULE = (what: What) =>
 export const BUILD_ON_RULE = 'for a different finish line, start a shwarm with builds_on set to this path: it builds on this one as of its latest pass record.'
 
 /** A status as words: "on track", "dead end". */
-const said = (s: Status) => s.replace('_', ' ')
+const said = (s: Status | null) => (s === null ? 'no status' : s.replace('_', ' '))
 
 /** "3 on track, 2 blocked; 5 people": the backers per status, those with any in the bars' order, then everyone backing something. */
 export const tallyText = (t: StatusTally) =>
@@ -199,8 +199,8 @@ export const tallyJson = (t: StatusTally) => ({ on_track: t.on_track, blocked: t
 /** "@myra (joined by @myra/claude)": a contributor, and the agent that made their join. Names are pattern-checked. */
 export const contributorLine = (c: Pick<Contributor, 'handle' | 'joined_by'>) => flat(c.handle) + (c.joined_by ? ` (joined by ${flat(c.joined_by)})` : '')
 
-/** A branch that still takes work: its status is on track or blocked (passed and dead end need nothing; nothing locks). */
-const open = (b: Child) => b.status.current === 'on_track' || b.status.current === 'blocked'
+/** A branch that still takes work: no status yet, on track or blocked (passed and dead end need nothing; nothing locks). */
+const open = (b: Child) => b.status.current === null || b.status.current === 'on_track' || b.status.current === 'blocked'
 
 // ---------- the job (Myra, Oct 13: "drop a shwarm url into a harness, and the agent just knows exactly what to do") ----------
 
@@ -255,8 +255,8 @@ export function needsOf(v: AgentView): Need[] {
   const cur = v.status.now.current
   const top = topClaim(v.status)
   if (cur === 'blocked') add('blocked', n.path, `this ${what} is blocked, its backers say${top ? ` in ${top.post}` : ''}: read what it's waiting on, and help with that`, top ? `${url}#${top.post}` : url)
-  else if (cur === 'on_track' && what === 'branch') add('work', n.path, "build toward this branch's done test. when it passes, post a passed claim with your evidence and the work")
-  else if (cur === 'on_track' && v.branches.length)
+  else if ((cur === null || cur === 'on_track') && what === 'branch') add('work', n.path, "build toward this branch's done test. when it passes, post a passed claim with your evidence and the work")
+  else if ((cur === null || cur === 'on_track') && v.branches.length)
     add('work', n.path, "when the branches' work comes together, test it against this shwarm's done test. when it passes, post a passed claim with your evidence and the work")
   for (const b of v.branches) {
     if (!open(b)) continue
@@ -611,7 +611,7 @@ const pinsText = (pins: Link[]) => (pins.length ? `the work: ${pins.map(l => lin
  */
 function statusLines(s: StatusData, n: NodeHead, now: number, nonce: string, line: (s?: string) => void) {
   const b = s.now
-  line(`status: ${said(b.current)}, ${b.changed_at ? `since ${b.changed_at.slice(0, 16)}Z` : `since the ${whatOf(n)} opened`}`)
+  line(b.current === null || !b.changed_at ? `status: none yet. nobody has backed one since the ${whatOf(n)} opened` : `status: ${said(b.current)}, since ${b.changed_at.slice(0, 16)}Z`)
   if (s.authorApproved) line(`the author approved it on ${s.authorApproved.at.slice(0, 10)}.`)
   line(`backing: ${tallyText(b.backing)}`)
   const ch = challengerText(b, now)
@@ -662,12 +662,13 @@ function passRecordLines(s: StatusData, n: NodeHead, field: FieldFn, block: Bloc
   }
   const latest = s.records[0]
   const now = s.now
-  if (latest && now.current !== latest.status)
+  if (latest && now.current !== null && now.current !== latest.status)
     line(now.changed_at && now.changed_at > latest.at ? `since then: ${said(now.current)} (${now.changed_at.slice(0, 16)}Z)` : `now: ${said(now.current)}`)
 }
 
 /**
- * One status change: "on track → blocked · 2026-10-12T18:00Z · 3 to 1 · claim p_…". The changes migration 0032
+ * One status change: "on track → blocked · 2026-10-12T18:00Z · 3 to 1 · claim p_…"; a node's first, "no status → on
+ * track". The changes migration 0032
  * recorded from before Oct 14 have no tally, so they say so instead of "0 to 0".
  */
 const historyLine = (h: StatusChange) =>

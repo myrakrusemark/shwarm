@@ -63,7 +63,7 @@ export function liveScoreFrom(decayed: { upvotes: number; passes: number }, r: R
  * Whether a node with this status ranks (a score, the hot flag): not once its status is passed or a dead end (decided
  * Oct 14, "One model for every node": its work stopped being the open kind). It ranks again once the status moves on.
  */
-export const ranks = (status: Status) => status !== 'passed' && status !== 'dead_end'
+export const ranks = (status: Status | null) => status !== 'passed' && status !== 'dead_end'
 
 /**
  * A stored score brought to `now`, for ranking rows the job computed at different times. Between its updated_at and
@@ -134,11 +134,11 @@ export function isSeedSourcesPost(text: string | null | undefined, bySeed = fals
 export type StatusInput = {
   pins: { text: string; bySeed?: boolean; claim?: Status | null }[] // the thread's pinned posts (not hidden), the latest
   // pinned first; bySeed: the launch seed pinned it (see isSeedSourcesPost); claim: the status a pinned claim says
-  /** The node's status now (core/status.ts). */
-  status: Status
+  /** The node's status now (core/status.ts); null while it has none. */
+  status: Status | null
   /**
    * Why it isn't on track: the evidence of the most-backed claim of its status, or for a shwarm marked a dead end before
-   * Oct 14, its dead-end note; null when it's on track or nothing says why.
+   * Oct 14, its dead-end note; null when it's on track, has no status, or nothing says why.
    */
   reason: string | null
   /** Its branches by their status now. */
@@ -161,7 +161,7 @@ export function statusLine(s: StatusInput): string {
   // claim, and a status that moved on wins the line over a claim still pinned).
   const pin = s.pins.find(p => !isSeedSourcesPost(p.text, p.bySeed) && firstLine(p.text) && (!p.claim || p.claim === s.status))
   if (pin) return firstLine(pin.text)
-  if (s.status !== 'on_track') return firstLine(s.reason) || `${STATUS_WORDS[s.status]}.`
+  if (s.status !== null && s.status !== 'on_track') return firstLine(s.reason) || `${STATUS_WORDS[s.status]}.`
   const parts = STATUSES.filter(x => s.branches[x]).map((x, i) => (i === 0 ? `${plural(s.branches[x]!, 'branch', 'branches')} ${STATUS_WORDS[x]}` : `${s.branches[x]} ${STATUS_WORDS[x]}`))
   return parts.length ? `${parts.join(', ')}.` : ''
 }

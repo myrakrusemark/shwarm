@@ -121,8 +121,8 @@ export type AdminNode = {
   kind: string
   title: string
   what: string
-  /** Its status as last stored (core/status.ts); every node's state is live. */
-  status: string
+  /** Its status as last stored (core/status.ts), null while it has none; every node's state is live. */
+  status: string | null
   triage: string
   seeded: number
   hidden: number
@@ -142,7 +142,7 @@ export type PostRowShown = { id: string; as_name: string; kind: string; text: st
 const MOD_SQL = `SELECT m.id, m.action, n.path AS node_path, m.post_id, m.reason, m.public, m.created_at, p.handle AS by_handle
   FROM moderation_action m JOIN person p ON p.id = m.by_person LEFT JOIN node n ON n.id = m.node_id`
 
-const NODE_SQL = `SELECT n.id, n.path, n.kind, n.title, n.what, COALESCE((SELECT b.current FROM branch_status b WHERE b.node_id = n.id), 'on_track') AS status, n.triage, n.seeded, n.hidden, n.paused, n.parent_id, n.created_at,
+const NODE_SQL = `SELECT n.id, n.path, n.kind, n.title, n.what, (SELECT b.current FROM branch_status b WHERE b.node_id = n.id) AS status, n.triage, n.seeded, n.hidden, n.paused, n.parent_id, n.created_at,
          n.last_event_id, p.handle AS author_handle, p.status AS author_status
   FROM node n JOIN person p ON p.id = n.author_id`
 

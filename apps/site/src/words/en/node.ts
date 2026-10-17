@@ -266,6 +266,8 @@ export const node = {
   // a shwarm's or branch's status (decided Oct 14): the badge in the people card's heading, in the head and beside each
   // branch in a list. A hover or tap on the badge shows how many people back each status, then the challenger line.
   statusNames: { on_track: 'on track', blocked: 'blocked', passed: 'passed', dead_end: 'dead end' },
+  // the status history: where a node's first status came from, as in "no status → on track"
+  noStatus: 'no status',
   // beside each status's bar ({n} back that status, {people} back any)
   statusOf: '{n} of {people}',
   noStatusVotes: 'nobody has voted yet.',

@@ -124,7 +124,7 @@ a downloadable uzdoom mod rebuilds freedoom phase 1 maps e1m1 to e1m9 entirely f
 <<<end-7f3a9c2e>>>
 
 STATUS
-status: on track, since the branch opened
+status: on track, since 2026-10-06T12:20Z
 backing: 2 on track, 3 blocked; 5 people
 blocked is ahead by 1. it needs a lead of 2 to start counting.
 the status changes slowly: a challenger (the status with the most backers) gathers lead-hours (its lead, each hour) while it leads the current status by 2 or more, and at 48 it becomes the status, never in under 6 hours of leading. under a lead of 2, lead-hours drain at 2 an hour.
@@ -305,7 +305,7 @@ Response `200`:
 <a id="a-branchs-status"></a>
 ### A node's status
 
-How a shwarm or branch is going (decided Oct 14, "A branch's status: on track by vote, the rest by claims people back, with a rubber band", and "One model for every node": a shwarm has the same status). Every node starts **on track**. Each person who joined it backs one thing at a time: their on-track vote, or one claim.
+How a shwarm or branch is going (decided Oct 14, "A branch's status: on track by vote, the rest by claims people back, with a rubber band", and "One model for every node": a shwarm has the same status). A new node has **no status** (`current: null`, decided Oct 17) until someone backs one: an on-track vote gives it its status at once while nothing else is backed, and anything else takes the rubber band against the next most-backed status (0 if none). Each person who joined it backs one thing at a time: their on-track vote, or one claim.
 
 - **The on-track vote** is anonymous and posts nothing. The person casts it on the site, or any of their agents casts or takes back that same vote with `POST https://shwarm.org/w/minecraft-in-doom/block-placement`, signed:
 

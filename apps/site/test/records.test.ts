@@ -69,7 +69,7 @@ describe('a change of status is written by whoever first advances past it (decid
     w.tick(25 * HOUR)
     await w.join(site(ana), MID)
     await vote(ana, MID, 'on_track') // the next act on the shwarm saves the band, and with it the change at hour 24
-    expect(lines(MID)).toEqual([{ at: at(24), from_status: 'on_track', to_status: 'passed', claim_id: c, backers: 2, against: 0, written_by: 'act' }])
+    expect(lines(MID)).toEqual([{ at: at(24), from_status: null, to_status: 'passed', claim_id: c, backers: 2, against: 0, written_by: 'act' }])
     expect(records(MID)).toEqual([{ kind: 'crowd', status: 'passed', at: at(24), claim_id: c, backers: 2, pins: JSON.stringify(PINS), by_name: null, crowd: 1 }])
     const passed = w.events(MID, 'passed')
     expect(passed).toHaveLength(1)
@@ -98,7 +98,7 @@ describe('a change of status is written by whoever first advances past it (decid
     await back(lumpy, BP, c.id)
     w.tick(DAY)
     await vote(kestrel, BP, 'on_track') // kestrel moves: the change at hour 24 is saved first, with the backing it had
-    expect(lines(BP)).toEqual([{ at: at(24), from_status: 'on_track', to_status: 'passed', claim_id: c.id, backers: 2, against: 0, written_by: 'act' }])
+    expect(lines(BP)).toEqual([{ at: at(24), from_status: null, to_status: 'passed', claim_id: c.id, backers: 2, against: 0, written_by: 'act' }])
     expect(records(BP)).toEqual([{ kind: 'crowd', status: 'passed', at: at(24), claim_id: c.id, backers: 2, pins: '[]', by_name: null, crowd: 1 }])
     expect(notices()).toEqual([])
     // a change to anything but passed is a line only
@@ -122,7 +122,7 @@ describe('a change of status is written by whoever first advances past it (decid
     w.tick(24 * HOUR + 5 * MIN)
     const version = w.node(MID).last_event_id
     await rollupStats(w.db, w.now)
-    expect(lines(MID)).toEqual([{ at: at(24), from_status: 'on_track', to_status: 'passed', claim_id: c, backers: 2, against: 0, written_by: 'job' }])
+    expect(lines(MID)).toEqual([{ at: at(24), from_status: null, to_status: 'passed', claim_id: c, backers: 2, against: 0, written_by: 'job' }])
     expect(records(MID)).toHaveLength(1)
     expect(w.events(MID, 'passed')).toHaveLength(1)
     expect(notices()).toHaveLength(1)
@@ -170,7 +170,7 @@ describe('a change of status is written by whoever first advances past it (decid
     await w.db.batch(job.bandWrites)
     expect(lines(MID)).toEqual([])
     expect(records(MID)).toEqual([])
-    expect(w.get('SELECT current, at FROM branch_status WHERE node_id = ?', n.id)).toEqual({ current: 'on_track', at: at(10) })
+    expect(w.get('SELECT current, at FROM branch_status WHERE node_id = ?', n.id)).toEqual({ current: null, at: at(10) })
   })
 })
 
@@ -214,9 +214,9 @@ describe("the author's mark (decided Oct 14: \"the poster can mark their own shw
     expect(records(MID)).toEqual([{ kind: 'author', status: 'passed', at: at(1), claim_id: c, backers: 2, pins: JSON.stringify(PINS), by_name: '@myra', crowd: 0 }])
     expect(w.events(MID, 'passed').map(e => [e.by_name, e.detail, e.evidence])).toEqual([['@myra', 'the author marks it passed', `/w/${MID}#${c}`]])
     expect(w.node(MID).last_event_id).toBe(w.events(MID, 'passed')[0].id)
-    // the status is the crowd's: still on track, leading
+    // the status is the crowd's: still none, passed leading
     const s = await loadStatus(w.db, w.node(MID), myra.id, w.now)
-    expect(s.now).toMatchObject({ current: 'on_track', challenger: { status: 'passed', lead: 2 } })
+    expect(s.now).toMatchObject({ current: null, challenger: { status: 'passed', lead: 2 } })
     expect(s.records.map(r => [r.kind, r.by, r.claim, r.pins])).toEqual([['author', '@myra', { post: c, by: '@kestrel' }, PINS]])
     // the author's picker lists the passed claims, most-backed first; nobody else gets one
     expect(s.passedClaims.map(x => [x.post, x.backers])).toEqual([[c, 2]])
@@ -283,7 +283,7 @@ describe('nothing locks (decided Oct 14)', () => {
     w.tick(DAY)
     await vote(kestrel, MID, 'on_track')
     expect(lines(MID).map(l => [l.at, l.from_status, l.to_status])).toEqual([
-      [at(24), 'on_track', 'passed'],
+      [at(24), null, 'passed'],
       [at(48), 'passed', 'blocked'],
     ])
     // the pass record stays in the history
@@ -294,7 +294,7 @@ describe('nothing locks (decided Oct 14)', () => {
     expect(s.records.map(r => [r.kind, r.at, r.claim?.post, r.backers])).toEqual([['crowd', at(24), c, 2]])
     expect(s.history.map(h => [h.from, h.to, h.claim])).toEqual([
       ['passed', 'blocked', b.id],
-      ['on_track', 'passed', c],
+      [null, 'passed', c],
     ])
   })
 

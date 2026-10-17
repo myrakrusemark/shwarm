@@ -418,7 +418,9 @@ describe('deleting a post (4.8)', () => {
 
   it("a deleted pinned post's first line leaves the feed's status line at once, not at the next stats run", async () => {
     const id = w.node(MID).id
-    await w.branch(site(myra), MID) // on track, the status line falls back to its branches
+    await w.branch(site(myra), MID) // the status line falls back to its branches by status
+    await w.join(site(myra), `${MID}/block-placement`)
+    await w.run({ type: 'status', actor: site(myra), input: { node: `${MID}/block-placement`, status: 'on_track' } }) // the branch's first status
     const pin = await w.post(site(myra), MID, 'status update: something to take back.', { pin: true })
     await rollupStats(w.db, w.now)
     const line = () => w.get('SELECT status_line FROM node_stats WHERE node_id = ?', id).status_line

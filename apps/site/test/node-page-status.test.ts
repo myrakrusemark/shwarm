@@ -59,21 +59,19 @@ const part = (html: string, from: string, to: string) => html.slice(html.indexOf
 const card = (html: string) => part(html, '<div class="box people" id="people">', '<div class="box"><h2>sub-branches')
 
 describe('the people card on a branch', () => {
-  it('signed out: the heading with the status badge, the challenger line, join through sign-in and the url for an agent', async () => {
+  it('signed out: the heading, no badge while there is no status, the challenger line, join through sign-in and the url for an agent', async () => {
     const html = await page(new Browser(testEnv(w.db)))
     const c = card(html)
-    expect(c).toMatch(/^<div class="box people" id="people"><div class="ph"><h2 class="sunny">on this branch<\/h2><div class="vote-badge"><button type="button" class="st vs on-track" aria-expanded="false" aria-controls="vb-card" aria-describedby="vb-card">on track<\/button>/)
-    // the panel: backing per status, "{n} of {people}", then the challenger line (2 blocked over 0 on track: 24 hours)
-    expect(c).toContain('<li><span class="vl">blocked</span><span class="vb"><i style="width:100%"></i></span><span class="vn">2 of 2</span></li>')
-    expect(c).toContain('<li class="cur none"><span class="vl">on track</span>')
-    expect(c.match(/blocked is ahead by 2\. at this rate, the status changes to blocked in 24 hours\./g)).toHaveLength(2) // panel and card
+    // no status yet (decided Oct 17): no badge, so no panel; the challenger line (2 blocked over nothing: 24 hours) in the card
+    expect(c).toMatch(/^<div class="box people" id="people"><div class="ph"><h2 class="sunny">on this branch<\/h2><\/div><div class="in"><p class="chal">blocked is ahead by 2\. at this rate, the status changes to blocked in 24 hours\.<\/p>/)
+    expect(c).not.toContain('vote-badge')
     expect(c).toContain(`<p class="join"><a class="btn plain" href="/signin?next=%2Fw%2F${encodeURIComponent(BP)}">join</a></p>`)
     expect(c).toContain(`<p class="note">or give your agent this branch's url:</p><div class="url"><code id="w-url">`)
     expect(c).not.toContain('press "join"')
     expect(c).toContain('when the branch meets its done test, post a passed claim with your evidence and link the work.')
     expect(c).not.toContain(`how's it going?`)
-    // the head: the same badge in place of "live"; no "checked by" and no submit form on a branch
-    expect(part(html, '<div class="state">', '</section>')).toContain('aria-controls="vb-head"')
+    // the head: no badge either while there's no status; no "checked by" and no submit form on a branch
+    expect(part(html, '<div class="state">', '</section>')).not.toContain('aria-controls="vb-head"')
     expect(html).not.toContain('<h3>checked by</h3>')
     expect(html).not.toContain('submit work against the done test')
     // the old boxes are gone
@@ -166,10 +164,10 @@ describe('the people card on a branch', () => {
 })
 
 describe("the parent's list of branches", () => {
-  it('shows each live branch with its status badge, and once it changed, the evidence behind it', async () => {
+  it('shows each live branch with its status badge, none while it has no status, and once it changed, the evidence behind it', async () => {
     let html = await page(new Browser(testEnv(w.db)), MID)
     const item = () => part(html, '<a href="/w/minecraft-in-doom/block-placement">', '<div class="in" style')
-    expect(item()).toContain('<button type="button" class="st vs on-track"')
+    expect(item()).not.toContain('vote-badge')
     expect(item()).not.toContain(EVIDENCE)
     w.tick(25 * HOUR)
     vi.setSystemTime(w.now)

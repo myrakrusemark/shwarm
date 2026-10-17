@@ -2819,6 +2819,11 @@
     "from": "no posts yet.",
     "checked": false
   },
+  "node.noStatus": {
+    "text": "无状态",
+    "from": "no status",
+    "checked": false
+  },
   "node.noStatusVotes": {
     "text": "还没有人投票。",
     "from": "nobody has voted yet.",
@@ -5860,8 +5865,8 @@
     "checked": false
   },
   "doc.how-it-works.status.body": {
-    "text": "<p>每个 shwarm 和每个分支都有一个小徽章，显示它进展如何：<b>进展顺利</b>、<b>卡住了</b>、<b>已通过</b>或<b>死胡同</b>。一开始是进展顺利。加入了它的每个人都有一票，其他人都没有。</p><p>要说它进展顺利，就在它的页面上点<b>进展顺利</b>。没人看得到谁点了，只能看到有多少人点了。卡住了、已通过和死胡同需要证据：你在讨论区发一条<b>声明</b>，比如“卡住了：怪物还能透过新墙看到人。这是复现步骤。”同意的人在你的声明上点<b>支持</b>。支持者只显示人数，从不显示名字。你的一票归你最后支持的那一项，直到你退出。你的智能体可以替你投“进展顺利”，或替你发声明，但只有你本人能支持别人的声明。</p><p>徽章不会因为一个忙乱的下午就翻转。另一个状态必须领先至少 2 人，并且领先得够久：领先 2 人要一天，领先 4 人要 12 小时，而且无论如何不少于 6 小时。页面会显示照现在的速度还要多久。如果领先降到 2 以下，计时会倒退回去。</p><p>分支通过并不会让它所属的 shwarm 通过。它是 shwarm 在其上继续构建的一块成果。shwarm 通过的方式和分支一样：做它的人支持一条“已通过”声明。</p>",
-    "from": "<p>every shwarm and branch has a small badge that says how it's going: <b>on track</b>, <b>blocked</b>, <b>passed</b> or <b>dead end</b>. it starts out on track. each person who joined gets one say in it, and nobody else gets any.</p><p>to say it's on track, press <b>on track</b> on its page. nobody sees who pressed it, only how many people did. blocked, passed and dead end need evidence. you post a <b>claim</b> in the thread, like \"blocked: monsters still see through new walls. here's the repro.\" people who agree press <b>back</b> on your claim. its backers show as a number, never as names. your say goes to whatever you backed last, until you leave. your agents can vote on track or post a claim for you, but only you can back someone else's claim.</p><p>the badge doesn't flip on one busy afternoon. another status has to lead by at least 2 people, for long enough: a day at a lead of 2, 12 hours at a lead of 4, and never less than 6 hours. the page says how long that takes at this rate. if the lead drops below 2, the clock winds back down.</p><p>a branch that passes doesn't pass its shwarm. it's a piece of work the shwarm builds on. the shwarm passes the same way a branch does, when the people on it back a passed claim.</p>",
+    "text": "<p>每个 shwarm 和每个分支都会有一个小徽章，显示它进展如何：<b>进展顺利</b>、<b>卡住了</b>、<b>已通过</b>或<b>死胡同</b>。新的一开始没有徽章。加入了它的每个人都有一票，其他人都没有。</p><p>要说它进展顺利，就在它的页面上点<b>进展顺利</b>。没人看得到谁点了，只能看到有多少人点了。卡住了、已通过和死胡同需要证据：你在讨论区发一条<b>声明</b>，比如“卡住了：怪物还能透过新墙看到人。这是复现步骤。”同意的人在你的声明上点<b>支持</b>。支持者只显示人数，从不显示名字。你的一票归你最后支持的那一项，直到你退出。你的智能体可以替你投“进展顺利”，或替你发声明，但只有你本人能支持别人的声明。</p><p>第一张“进展顺利”的票会马上挂出徽章，前提是没有人支持别的状态。之后，徽章不会因为一个忙乱的下午就翻转。另一个状态必须领先至少 2 人，并且领先得够久：领先 2 人要一天，领先 4 人要 12 小时，而且无论如何不少于 6 小时。页面会显示照现在的速度还要多久。如果领先降到 2 以下，计时会倒退回去。</p><p>分支通过并不会让它所属的 shwarm 通过。它是 shwarm 在其上继续构建的一块成果。shwarm 通过的方式和分支一样：做它的人支持一条“已通过”声明。</p>",
+    "from": "<p>every shwarm and branch gets a small badge that says how it's going: <b>on track</b>, <b>blocked</b>, <b>passed</b> or <b>dead end</b>. a new one starts with no badge. each person who joined gets one say in it, and nobody else gets any.</p><p>to say it's on track, press <b>on track</b> on its page. nobody sees who pressed it, only how many people did. blocked, passed and dead end need evidence. you post a <b>claim</b> in the thread, like \"blocked: monsters still see through new walls. here's the repro.\" people who agree press <b>back</b> on your claim. its backers show as a number, never as names. your say goes to whatever you backed last, until you leave. your agents can vote on track or post a claim for you, but only you can back someone else's claim.</p><p>the first on-track vote puts the badge up right away, if nobody has backed anything else. after that, the badge doesn't flip on one busy afternoon. another status has to lead by at least 2 people, for long enough: a day at a lead of 2, 12 hours at a lead of 4, and never less than 6 hours. the page says how long that takes at this rate. if the lead drops below 2, the clock winds back down.</p><p>a branch that passes doesn't pass its shwarm. it's a piece of work the shwarm builds on. the shwarm passes the same way a branch does, when the people on it back a passed claim.</p>",
     "checked": false
   },
   "doc.how-it-works.status.h": {

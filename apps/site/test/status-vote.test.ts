@@ -233,22 +233,22 @@ describe('back (decided Oct 14)', () => {
     const c = await claim(site(kestrel), BP, 'passed')
     expect(w.node(BP).last_event_id).toBe(c.id)
     expect(w.node(MID).last_event_id).not.toBe(before[1])
-    expect(band(BP)).toMatchObject({ current: 'on_track', challenger: null, lead_hours: 0, at: at(0) })
+    expect(band(BP)).toMatchObject({ current: null, challenger: null, lead_hours: 0, at: at(0) })
     w.tick(HOUR)
     await back(site(lumpy), BP, c.id)
     // saved with the backing it had until then: passed led by 1, which gathers nothing
-    expect(band(BP)).toMatchObject({ current: 'on_track', challenger: 'passed', lead_hours: 0, leading_since: null, at: at(1) })
+    expect(band(BP)).toMatchObject({ current: null, challenger: 'passed', lead_hours: 0, leading_since: null, at: at(1) })
   })
 })
 
 describe('the rubber band through the acts', () => {
-  it('two backers of passed over nobody on track: passed after 24 hours, and on track pushes back', async () => {
+  it('two backers of passed on a branch with no status: passed after 24 hours, and on track pushes back', async () => {
     const c = await claim(site(kestrel), BP, 'passed')
     await back(site(lumpy), BP, c.id)
     const status = async () => readNodeStatus(w.db, w.node(BP).id, w.now)
-    expect(await status()).toMatchObject({ current: 'on_track', backing: tally({ passed: 2 }), challenger: { status: 'passed', lead: 2, changes_at: at(24) } })
+    expect(await status()).toMatchObject({ current: null, backing: tally({ passed: 2 }), challenger: { status: 'passed', lead: 2, changes_at: at(24) } })
     w.tick(23 * HOUR)
-    expect((await status()).current).toBe('on_track')
+    expect((await status()).current).toBe(null)
     w.tick(HOUR)
     expect(await status()).toMatchObject({ current: 'passed', changed_at: at(24), challenger: null })
     // on-track votes push back: a challenger leading by 2 starts gathering again
@@ -280,7 +280,7 @@ describe('the reads the page and the briefing build on', () => {
     const weaker = await claim(site(lumpy), BP, 'blocked', 'stuck too')
     await back(site(lumpy), BP, c.id) // lumpy moves to kestrel's: 2 for it, 0 for lumpy's own
     const list = async () => (await readChildren(w.db, w.node(MID).id, w.now)).branches[0]
-    expect(await list()).toMatchObject({ path: BP, votes: tally({ blocked: 2 }), status: { current: 'on_track', challenger: { status: 'blocked', lead: 2 } }, reason: null })
+    expect(await list()).toMatchObject({ path: BP, votes: tally({ blocked: 2 }), status: { current: null, challenger: { status: 'blocked', lead: 2 } }, reason: null })
     w.tick(DAY)
     expect(await list()).toMatchObject({ status: { current: 'blocked', changed_at: at(24) }, reason: { post: c.id, text: 'waiting on the engine: P_CheckSight caches the old block.' } })
     expect(weaker.id).not.toBe(c.id)
@@ -300,7 +300,7 @@ describe('the reads the page and the briefing build on', () => {
     ])
     expect(s.myBacking).toEqual({ status: 'passed', claim: { post: d.id, by: '@lumpy' } })
     expect(s.now.backing).toEqual(tally({ blocked: 1, passed: 2 }))
-    expect(s.reason).toBeNull() // on track: nothing to say why
+    expect(s.reason).toBeNull() // no status yet: nothing to say why
     expect(s.passedClaims).toEqual([]) // ana isn't its author, and a branch has no author's mark
     expect((await loadStatus(w.db, chain.node, null, w.now)).myBacking).toBeNull()
     const plain = await w.post(site(kestrel), BP, 'a note')
@@ -308,12 +308,12 @@ describe('the reads the page and the briefing build on', () => {
     expect(Object.fromEntries(rows.map(r => [r.id, [r.claim, r.backers]]))).toEqual({ [c.id]: ['blocked', 1], [d.id]: ['passed', 2], [plain.id]: [null, 0] })
     // the page and the agent view carry it, on the shwarm as on the branch
     const page = await loadPageData(w.db, chain, { sort: 'active', show: 'all', page: 1, url: '', here: '', me: { personId: ana.id, handle: 'ana', verified: true }, now: w.now })
-    expect(page.status).toMatchObject({ myBacking: { status: 'passed' }, now: { current: 'on_track' } })
+    expect(page.status).toMatchObject({ myBacking: { status: 'passed' }, now: { current: null } })
     const view = (await loadAgentView(w.db, chain, { origin: 'https://shwarm.org', before: null, now: w.now })) as any
     expect(view.status.claims).toHaveLength(2)
     expect(view.status.now.backing).toEqual(tally({ blocked: 1, passed: 2 }))
     const shwarm = (await loadAgentView(w.db, (await readChain(w.db, MID, null))!, { origin: '', before: null, now: w.now }))!
-    expect(shwarm.status).toMatchObject({ now: { current: 'on_track', backing: tally({}) }, claims: [], records: [], history: [] })
+    expect(shwarm.status).toMatchObject({ now: { current: null, backing: tally({}) }, claims: [], records: [], history: [] })
   })
 
   it('counts no vote a worker from before 0031 writes: one with no claim behind it, or from someone not on the branch', async () => {

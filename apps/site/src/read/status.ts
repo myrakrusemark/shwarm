@@ -59,10 +59,11 @@ export async function readPassedClaims(db: D1Database, nodeId: number, limit = P
 
 /**
  * Why a node isn't on track: the most-backed claim of `status` on it (the newest among equals), its post and whole
- * evidence; null for on track, or when no such claim shows (a status a migrated record set, or a claim hidden since).
+ * evidence; null for on track or no status, or when no such claim shows (a status a migrated record set, or a claim
+ * hidden since).
  */
-export async function readReason(db: D1Database, nodeId: number, status: Status): Promise<{ post: string; text: string } | null> {
-  if (status === 'on_track') return null
+export async function readReason(db: D1Database, nodeId: number, status: Status | null): Promise<{ post: string; text: string } | null> {
+  if (status === null || status === 'on_track') return null
   return db
     .prepare(`SELECT p.id AS post, p.text FROM post p WHERE p.node_id = ? AND p.claim = ? AND p.hidden = 0 AND p.deleted_at IS NULL ORDER BY ${BACKERS_SQL('p')} DESC, p.created_at DESC, p.id DESC LIMIT 1`)
     .bind(nodeId, status)
@@ -163,7 +164,7 @@ export async function readPassRecords(db: D1Database, nodeId: number, limit = RE
  * of the new status then; null for on track, or once that claim is hidden or deleted), its backers and the old
  * status's then ("on track → blocked · oct 12 · 3 to 1").
  */
-export type StatusChange = { id: string; at: string; from: Status; to: Status; claim: string | null; backers: number; against: number }
+export type StatusChange = { id: string; at: string; from: Status | null; to: Status; claim: string | null; backers: number; against: number }
 
 /** How many lines of a node's status history show, newest first. OPEN: a builder's default. */
 export const HISTORY_SHOWN = 20

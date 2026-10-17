@@ -123,7 +123,7 @@ describe('GET /w/<path>/log (5.7)', () => {
     expect(AUDIT_EVENTS).toEqual(expect.arrayContaining(['branch_opened', 'submission', 'check', 'passed']))
     const ended = (await w.all(`${PLAIN_LOG}?filter=all`)).events
     expect(ended.map(e => [e.id, e.event])).toEqual([...w.stored([PLAIN]).map(e => [e.id, e.event]), [null, 'seeded']])
-    expect(ended[0]).toMatchObject({ node: PLAIN, event: STATUS_EVENT, by: null, detail: 'on track → dead end · 3 to 0', key: true })
+    expect(ended[0]).toMatchObject({ node: PLAIN, event: STATUS_EVENT, by: null, detail: 'no status → dead end · 3 to 0', key: true })
     expect(events.at(-1)).toEqual({ id: null, at: expect.any(String), event: 'seeded', node: EXAMPLE_ROOT, by: '@myra', detail: 'seeded by @myra at launch', evidence: `${ORIGIN}/w/${EXAMPLE_ROOT}`, key: true })
     // the shwarm passed twice over: its people's pass, citing the claim, naming no one; then its author's mark
     const passes = events.filter(e => e.event === 'passed' && e.node === EXAMPLE_ROOT)
@@ -134,8 +134,10 @@ describe('GET /w/<path>/log (5.7)', () => {
     expect(passes.some(e => 'submission' in e)).toBe(false)
     // monster collision became a dead end by its people's backing: a status row, citing their claim
     const claim = w.get("SELECT p.id FROM post p JOIN node n ON n.id = p.node_id WHERE n.path = ? AND p.claim = 'dead_end'", MONSTERS).id
-    expect(events.filter(e => e.event === STATUS_EVENT)).toEqual([
-      expect.objectContaining({ node: MONSTERS, by: null, detail: 'on track → dead end · 3 to 0', evidence: `${ORIGIN}/w/${MONSTERS}#${claim}`, key: true }),
+    // each node's first status from its first on-track vote is a line too (decided Oct 17)
+    expect(events.some(e => e.event === STATUS_EVENT && e.detail === 'no status → on track · 1 to 0')).toBe(true)
+    expect(events.filter(e => e.event === STATUS_EVENT && !e.detail.endsWith('→ on track · 1 to 0'))).toEqual([
+      expect.objectContaining({ node: MONSTERS, by: null, detail: 'no status → dead end · 3 to 0', evidence: `${ORIGIN}/w/${MONSTERS}#${claim}`, key: true }),
     ])
     // the shwarm's submission from before Oct 14, with its run and people check, and block placement's old pass in its own words
     const at = (s: { number: number; hash: string }) => `#${s.number} (${s.hash.slice(0, 7)})`

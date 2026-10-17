@@ -47,7 +47,7 @@ export function linksOf(json: string): { label: string; url: string }[] {
 }
 
 /** `status`: its status as stored with its band (core/status.ts), the row's badge. */
-type NodeBits = { id: number; path: string; kind: NodeKind; title: string; status: Status; up_title: string | null }
+type NodeBits = { id: number; path: string; kind: NodeKind; title: string; status: Status | null; up_title: string | null }
 
 export type WorkingRow = NodeBits & { last_post: string | null; joined_at: string | null; figures: Figures | null }
 export type CreatedRow = NodeBits & { done_when: string; triage: string; public: number }
@@ -62,8 +62,8 @@ export const LIST_MAX = 500
 // "branch". (Variants are dropped, decided Oct 9: one made before reads as a shwarm, with no original.)
 const UP = 'LEFT JOIN node up ON up.id = n.parent_id'
 const UP_TITLE = `CASE WHEN ${PUBLIC_NODE('up')} THEN up.title END AS up_title`
-/** A node's status as stored with its band: on track when it has none. */
-const STATUS = "COALESCE((SELECT b.current FROM branch_status b WHERE b.node_id = n.id), 'on_track') AS status"
+/** A node's status as stored with its band: NULL while it has none. */
+const STATUS = '(SELECT b.current FROM branch_status b WHERE b.node_id = n.id) AS status'
 
 /**
  * Working on, created and the head figures.

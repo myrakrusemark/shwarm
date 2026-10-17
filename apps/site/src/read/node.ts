@@ -282,7 +282,7 @@ export type Child = {
 
 /** A branch_status row's columns as readChildren reads them beside each branch (null: no row). */
 type ChildBandCols = {
-  b_current: Band['current'] | null
+  b_current: Band['current']
   b_challenger: Band['challenger']
   b_lead_hours: number | null
   b_leading_since: string | null
@@ -310,7 +310,7 @@ async function readReasons(db: D1Database, parentId: number): Promise<Map<string
 export const ON_IT_SHOWN = 5
 
 /** The branch list's first sort: open work first, then the passed, then the dead ends (as live, closed, dead end before). */
-const STATUS_RANK: Record<Status, number> = { on_track: 0, blocked: 0, passed: 1, dead_end: 2 }
+const STATUS_RANK: Record<Status | 'none', number> = { none: 0, on_track: 0, blocked: 0, passed: 1, dead_end: 2 }
 
 /** OPEN (proposed by Myra, Oct 13: "Maybe quiet for more than 48h?"): a branch is quiet after 48 hours with no post. */
 export const QUIET_HOURS = 48
@@ -373,9 +373,9 @@ export async function readChildren(db: D1Database, nodeId: number, now = Date.no
     const last = a?.last_at && a.last_at > c.created_at ? a.last_at : c.created_at
     const votes = votes_json ? tallyOf(JSON.parse(votes_json) as { status: string; n: number }[]) : emptyTally()
     const band: Band | null =
-      b_current === null ? null : { current: b_current, challenger: b_challenger, lead_hours: b_lead_hours ?? 0, leading_since: b_leading_since, changed_at: b_changed_at, at: b_at ?? c.created_at }
+      b_at === null ? null : { current: b_current, challenger: b_challenger, lead_hours: b_lead_hours ?? 0, leading_since: b_leading_since, changed_at: b_changed_at, at: b_at }
     const status = nodeStatus(band, votes, now)
-    const top = status.current === 'on_track' ? undefined : reasons.get(`${id}:${status.current}`)
+    const top = status.current === null || status.current === 'on_track' ? undefined : reasons.get(`${id}:${status.current}`)
     const reason = top ? { post: top.id, text: top.text } : null
     return { ...c, last_active: last, week_posts: a?.week ?? 0, quiet: last < quietBefore, votes, status, reason, on_it: on_it_json ? (JSON.parse(on_it_json) as string[]) : [] }
   })
@@ -383,7 +383,7 @@ export async function readChildren(db: D1Database, nodeId: number, now = Date.no
   // dead ends. Within each, the active ones (a post here or under here in the last QUIET_HOURS) come first, busiest in the last 7 days
   // first; then the quiet ones, the most recently active first, so the longest quiet sink to the bottom. Votes sort nothing.
   const order = (a: Child, b: Child) =>
-    STATUS_RANK[a.status.current] - STATUS_RANK[b.status.current] ||
+    STATUS_RANK[a.status.current ?? 'none'] - STATUS_RANK[b.status.current ?? 'none'] ||
     Number(a.quiet) - Number(b.quiet) ||
     (a.quiet ? 0 : b.week_posts - a.week_posts) ||
     (a.last_active < b.last_active ? 1 : a.last_active > b.last_active ? -1 : 0) ||

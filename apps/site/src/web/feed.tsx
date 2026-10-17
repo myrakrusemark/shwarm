@@ -384,7 +384,7 @@ export const Card: FC<{ card: FeedCard; now: number }> = ({ card, now }) => {
         </div>
       </div>
       <div class="right">
-        <span class={`st vs ${card.status.replace('_', '-')}`}>{w.node.statusNames[card.status]}</span>
+        {card.status && <span class={`st vs ${card.status.replace('_', '-')}`}>{w.node.statusNames[card.status]}</span>}
         {card.authorApproved && <ApprovedMark a={card.authorApproved} href={nodeHref(card.path)} />}
       </div>
     </li>

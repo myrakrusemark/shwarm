@@ -348,10 +348,14 @@ describe('the plan end to end', () => {
       challenger: 'passed',
       lead_hours: 0,
       leading_since: null,
-      changed_at: null,
+      changed_at: expect.any(String), // @bmo_fan's on-track vote, before any claim, made it on track at once (decided Oct 17)
     })
     expect(db.raw.prepare('SELECT count(*) AS n FROM pass_record').get().n).toBe(0)
-    expect(db.raw.prepare('SELECT count(*) AS n FROM status_change').get().n).toBe(0)
+    // the shwarm's and the branch's first status, each from its first on-track vote, and no notice for either
+    expect(db.raw.prepare('SELECT from_status, to_status FROM status_change').all()).toEqual([
+      { from_status: null, to_status: 'on_track' },
+      { from_status: null, to_status: 'on_track' },
+    ])
     expect(db.raw.prepare("SELECT text FROM post WHERE node_id = ? AND as_name = '@bmo_fan' ORDER BY created_at DESC").get(root.id).text).toMatch(/^status update:/)
     expect(db.raw.prepare('SELECT count(*) AS n FROM inbox_item WHERE kind = ?').get('system').n).toBe(0)
 
@@ -381,7 +385,7 @@ describe('the plan end to end', () => {
       challenger: 'blocked',
       lead_hours: 0,
       leading_since: null,
-      changed_at: null,
+      changed_at: expect.any(String), // @bmo_fan's on-track vote came first
     })
     // Demo accounts can't sign in.
     for (const h of EXAMPLE_PEOPLE) expect(db.raw.prepare('SELECT password_hash FROM person WHERE handle = ?').get(h).password_hash).toMatch(/^!/)

@@ -51,7 +51,7 @@ A thread post on a shwarm or branch saying it is blocked, passed or a dead end, 
 ### Create form
 The one form for a new shwarm or branch. [spec](spec.md#creating-a-node)
 ### Current status
-What every shwarm and branch shows: on track, blocked, passed or dead end. Every node starts on track; it changes only through the [rubber band](#rubber-band), and each change is a line in its [status history](#status-history). Shown as a badge in the head, in the [people card](#people-card), in the parent's branch list, on feed cards and on profiles (Oct 14). [spec][t]
+What a shwarm or branch shows: on track, blocked, passed or dead end. A new node has none, and no badge, until someone backs one (Oct 17): an on-track vote gives it its status at once while nothing else is backed. After that it changes only through the [rubber band](#rubber-band), and each change is a line in its [status history](#status-history), the first "no status → on track". Shown as a badge in the head, in the [people card](#people-card), in the parent's branch list, on feed cards and on profiles (Oct 14). [spec][t]
 
 ## D
 

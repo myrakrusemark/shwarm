@@ -264,10 +264,10 @@ export async function computeNodes(
        FROM post p WHERE p.node_id ${IN} AND p.claim IS NOT NULL AND p.hidden = 0 AND p.deleted_at IS NULL)
      WHERE rk = 1`,
   )
-  // Its branches by their stored status, for the status line.
+  // Its branches by their stored status, for the status line (a branch with no status yet isn't in it).
   const branches = await all<{ parent_id: number; status: Status; n: number }>(
-    `SELECT c.parent_id, COALESCE(b.current, 'on_track') AS status, COUNT(*) AS n FROM node c LEFT JOIN branch_status b ON b.node_id = c.id
-     WHERE c.parent_id ${IN} AND c.hidden = 0 GROUP BY c.parent_id, status`,
+    `SELECT c.parent_id, b.current AS status, COUNT(*) AS n FROM node c JOIN branch_status b ON b.node_id = c.id
+     WHERE c.parent_id ${IN} AND c.hidden = 0 AND b.current IS NOT NULL GROUP BY c.parent_id, status`,
   )
   // The author's own approval (decided Oct 15), for the feed card: the latest on each shwarm, as read/status.ts
   // readAuthorApproved reads it, so the feed reads it stored and never a thread's posts. The claim's name is stored as

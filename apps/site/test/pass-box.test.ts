@@ -82,6 +82,7 @@ async function passed() {
 
 describe("a shwarm's status, as a branch's (decided Oct 14)", () => {
   it('the head and the people card show its badge; no "checked by", submit form or result page; build on is offered', async () => {
+    await w.run({ type: 'status', actor: site(kestrel), input: { node: MID, status: 'on_track' } }) // its first status
     const html = await page(new Browser(testEnv(w.db)))
     expect(part(html, '<div class="state">', '</section>')).toContain('<button type="button" class="st vs on-track" aria-expanded="false" aria-controls="vb-head"')
     expect(part(html, '<div class="box people" id="people">', '</div><div class="in">')).toContain('<h2 class="sunny">on this shwarm</h2><div class="vote-badge">')
@@ -174,7 +175,7 @@ describe('the pass box (decided Oct 14, in place of the result page)', () => {
     )
     expect(box).toContain(` · <a href="#${c}">@kestrel's passed claim</a> · backed by 2</div><div class="how pins"><b>the work:</b>`)
     expect(box).toContain(`<code class="pin">${IPFS}</code>`)
-    expect(box).toMatch(/<details class="hist"><summary>status history<\/summary><ol><li>on track → <a href="#p_\w+">passed<\/a> · <span title="[^"]+">[a-z]{3} \d+ \d\d:\d\d<\/span> · 2 to 0<\/li><\/ol><\/details>/)
+    expect(box).toMatch(/<details class="hist"><summary>status history<\/summary><ol><li>no status → <a href="#p_\w+">passed<\/a> · <span title="[^"]+">[a-z]{3} \d+ \d\d:\d\d<\/span> · 2 to 0<\/li><\/ol><\/details>/)
     expect(box).not.toContain('since then')
     // signed out, and for anyone but the author: no approve form
     expect(box).not.toContain('approve it')
@@ -196,6 +197,7 @@ describe('the pass box (decided Oct 14, in place of the result page)', () => {
   })
 
   it('an author\'s mark on a shwarm that isn\'t passed: "now: on track", not "since then"', async () => {
+    await w.run({ type: 'status', actor: site(kestrel), input: { node: MID, status: 'on_track' } }) // on track first
     const c = await passing() // leading, not passed yet
     await w.run({ type: 'markPassed', actor: stepped(myra), input: { node: MID, post: c } })
     const box = passBox(await page(new Browser(testEnv(w.db))))

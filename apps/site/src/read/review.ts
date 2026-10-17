@@ -76,7 +76,7 @@ export function waitingDays(at: string | null, now: number): number | null {
  */
 export function recordedStatus(n: Pick<NodeHead, 'dead_end_note'>, s: Pick<StatusData, 'now' | 'reason'>, branches: Child[]): string {
   const counts: Partial<Record<Status, number>> = {}
-  for (const b of branches) counts[b.status.current] = (counts[b.status.current] ?? 0) + 1
+  for (const b of branches) if (b.status.current) counts[b.status.current] = (counts[b.status.current] ?? 0) + 1
   const reason = s.reason?.text ?? (s.now.current === 'dead_end' ? n.dead_end_note : null)
   return statusLine({ pins: [], status: s.now.current, reason, branches: counts })
 }

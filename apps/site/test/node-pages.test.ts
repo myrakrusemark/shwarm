@@ -122,12 +122,12 @@ describe('the shwarm page (3.3)', () => {
     expect(html).toContain('<a class="flag-it" href="/signin?next=%2Fw%2Fminecraft-in-doom">flag this shwarm</a>')
   })
 
-  it('a new launch shwarm is live at once: upvotes heat, on track, join via sign-in, branches open (no lobby, decided Oct 9)', async () => {
+  it('a new launch shwarm is live at once: upvotes heat, no status badge, join via sign-in, branches open (no lobby, decided Oct 9)', async () => {
     const { b } = await world()
     const html = await body(await b.req(`/w/${PLAIN}`, { headers: HTML }))
-    expect(html).toContain('<div class="state"><div class="badges"><div class="vote-badge"><button type="button" class="st vs on-track"')
+    expect(html).toContain('<div class="state"><div class="badges"></div>') // no status until someone backs one (decided Oct 17)
     expect(html).toMatch(/<div class="heat" title="upvotes on posts in the thread below">/)
-    expect(html).not.toContain('<div class="stat">') // on track with no branches: nothing to say yet
+    expect(html).not.toContain('<div class="stat">') // no status and no branches: nothing to say yet
     expect(html).toContain(`<a class="btn plain" href="/signin?next=%2Fw%2F${PLAIN}">join</a>`)
     expect(html).toContain('no branches yet.')
     expect(html).toContain('+ start a branch')
@@ -269,7 +269,7 @@ describe('node urls for agents (3.6)', () => {
       expect(text).toContain(s)
     // a branch takes no checks (decided Oct 14): its STATUS is its current status, the backing and the claims
     expect(text).not.toContain('CHECKED BY')
-    expect(text).toContain('STATUS\nstatus: on track, since the branch opened\nbacking: 1 on track, 2 blocked; 3 people\nblocked is ahead by 1. it needs a lead of 2 to start counting.\n')
+    expect(text).toMatch(/STATUS\nstatus: on track, since \d{4}-\d\d-\d\dT\d\d:\d\dZ\nbacking: 1 on track, 2 blocked; 3 people\nblocked is ahead by 1\. it needs a lead of 2 to start counting\.\n/)
     expect(text).toMatch(new RegExp(`- blocked · by @finn_irl · 2 backers · post (p_\\w+) · \\d{4}-\\d\\d-\\d\\d\n<<<post-${nonce} id=\\1 author=@finn_irl claim=blocked>>>\nheads up for anyone on placement`))
     expect(text).toMatch(new RegExp(`<<<post-${nonce} id=p_\\w+ author=@finn_irl claim=blocked backers=2 at=`))
     expect(text).not.toMatch(/submission #\d|signs off last|· waiting/)
@@ -321,8 +321,8 @@ describe('node urls for agents (3.6)', () => {
   it('a new shwarm prompts like any live one: no lobby form, seats or kickoff (decided Oct 9)', async () => {
     const { b } = await world()
     const text = await (await b.req(`/w/${PLAIN}`)).text()
-    expect(text).toContain('state:  live · on track')
-    expect(text).toContain('STATUS\nstatus: on track, since the shwarm opened\nbacking: nobody backs anything yet\n')
+    expect(text).toContain('state:  live · no status')
+    expect(text).toContain('STATUS\nstatus: none yet. nobody has backed one since the shwarm opened\nbacking: nobody backs anything yet\n')
     expect(text).toContain('sub-branch: POST this URL + /branches.')
     expect(text).not.toMatch(/lobby|SEATS|seat \d|kick/)
   })
@@ -348,7 +348,7 @@ describe('node urls for agents (3.6)', () => {
     expect(claim).toMatchObject({ author: '@finn_irl', claim: 'blocked', backers: 2 })
     expect(j.status).toEqual({
       current: 'on_track',
-      changed_at: null,
+      changed_at: expect.stringMatching(/Z$/), // bmo_fan's on-track vote made it on track at once
       backing: { on_track: 1, blocked: 2, passed: 0, dead_end: 0 },
       people: 3,
       challenger: { status: 'blocked', lead: 1, lead_hours: 0, changes_at: null, needs: 1 },

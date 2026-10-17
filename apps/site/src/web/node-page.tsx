@@ -1015,7 +1015,8 @@ const PassBox: FC<{ d: NodePageData }> = ({ d }) => {
   const latest = s.records[0]
   if (!latest) return null
   const now = s.now
-  const other = now.current !== latest.status
+  // An author's approval can come before the node has any status of its people's: then nothing is said beside it.
+  const other = now.current !== null && now.current !== latest.status
   const moved = other && !!now.changed_at && now.changed_at > latest.at
   const authored = s.authorApproved !== null // a pass from before Oct 14 isn't their approval unless they checked it (read/status.ts)
   return (
@@ -1028,7 +1029,7 @@ const PassBox: FC<{ d: NodePageData }> = ({ d }) => {
         <div class="in since">
           {other && (
             <p>
-              <b>{moved ? fillx(w.node.sinceThen, { status: statusName(now.current), when: <When at={now.changed_at!} /> }) : fill(w.node.statusNow, { status: statusName(now.current) })}</b>
+              <b>{moved ? fillx(w.node.sinceThen, { status: statusName(now.current!), when: <When at={now.changed_at!} /> }) : fill(w.node.statusNow, { status: statusName(now.current!) })}</b>
             </p>
           )}
           {s.history.length > 0 && <StatusHistory d={d} />}
@@ -1071,7 +1072,7 @@ const RecordView: FC<{ r: PassRecord; d: NodePageData }> = ({ r, d }) => {
   )
 }
 
-/** The node's dated status changes, newest first (read/status.ts StatusChange): "on track → blocked · oct 12 09:00 · 3 to 1". */
+/** The node's dated status changes, newest first (read/status.ts StatusChange): "on track → blocked · oct 12 09:00 · 3 to 1", or for its first status "no status → on track". */
 const StatusHistory: FC<{ d: NodePageData }> = ({ d }) => (
   <details class="hist">
     <summary>{w.node.statusHistory}</summary>
@@ -1079,7 +1080,7 @@ const StatusHistory: FC<{ d: NodePageData }> = ({ d }) => (
       {d.status.history.map(h => (
         <li>
           {fillx(w.node.historyLine, {
-            from: statusName(h.from),
+            from: h.from === null ? w.node.noStatus : statusName(h.from),
             to: h.claim ? <a href={`#${h.claim}`}>{statusName(h.to)}</a> : statusName(h.to),
             when: <When at={h.at} />,
           })}
@@ -1337,21 +1338,22 @@ const BackingBars: FC<{ s: NodeStatus; mine?: Status | null; now: number }> = ({
 
 /**
  * A node's status badge (Myra, Oct 13: "Just show a badge for the branch and a hover/tap shows the values"; decided
- * Oct 14, every node): its current status (on track until a challenger takes over, core/status.ts), in place of "live"
- * in the head, at the right of the people card's heading and beside a branch in its parent's list. Hover or keyboard focus
- * shows the bars; with scripts on, a tap or click opens and closes them (static/js/node.js). Screen readers get the bars
- * as the badge's description.
+ * Oct 14, every node): its current status (core/status.ts), in place of "live" in the head, at the right of the people
+ * card's heading and beside a branch in its parent's list. No status yet, no badge (decided Oct 17: "if nobody has voted
+ * on a shwarm or branch, why is it on track by default?"). Hover or keyboard focus shows the bars; with scripts on, a
+ * tap or click opens and closes them (static/js/node.js). Screen readers get the bars as the badge's description.
  */
-const StatusBadge: FC<{ s: NodeStatus; mine?: Status | null; now: number; id: string }> = ({ s, mine, now, id }) => (
-  <div class="vote-badge">
-    <button type="button" class={`st vs ${s.current.replace('_', '-')}`} aria-expanded="false" aria-controls={id} aria-describedby={id}>
-      {statusName(s.current)}
-    </button>
-    <div class="vb-panel" id={id}>
-      <BackingBars s={s} mine={mine} now={now} />
+const StatusBadge: FC<{ s: NodeStatus; mine?: Status | null; now: number; id: string }> = ({ s, mine, now, id }) =>
+  s.current === null ? null : (
+    <div class="vote-badge">
+      <button type="button" class={`st vs ${s.current.replace('_', '-')}`} aria-expanded="false" aria-controls={id} aria-describedby={id}>
+        {statusName(s.current)}
+      </button>
+      <div class="vb-panel" id={id}>
+        <BackingBars s={s} mine={mine} now={now} />
+      </div>
     </div>
-  </div>
-)
+  )
 
 /** A badge's id in a list of branches: from the branch's path, which is unique. */
 const badgeId = (path: string) => `vb-${path.replace(/[^a-z0-9]+/g, '-')}`
