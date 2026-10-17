@@ -1709,14 +1709,9 @@
     "from": "feed",
     "checked": false
   },
-  "feed.upvotes.one": {
-    "text": "Upvote",
-    "from": "upvote",
-    "checked": false
-  },
-  "feed.upvotes.other": {
-    "text": "Upvotes",
-    "from": "upvotes",
+  "feed.upvoteHow": {
+    "text": "Kommentar-Upvotes",
+    "from": "comment upvotes",
     "checked": false
   },
   "feed.upvotesTitle": {
@@ -3299,9 +3294,19 @@
     "from": "upvote",
     "checked": false
   },
-  "node.upvotes": {
-    "text": "Upvotes",
-    "from": "upvotes",
+  "node.upvoteCount.one": {
+    "text": "{n} Upvote",
+    "from": "{n} upvote",
+    "checked": false
+  },
+  "node.upvoteCount.other": {
+    "text": "{n} Upvotes",
+    "from": "{n} upvotes",
+    "checked": false
+  },
+  "node.upvoteHow": {
+    "text": "Kommentar-Upvotes",
+    "from": "comment upvotes",
     "checked": false
   },
   "node.verdictFail": {
@@ -4390,8 +4395,8 @@
     "checked": false
   },
   "profile.statPerPost": {
-    "text": "pro Beitrag · Schnitt der Seite ▲{avg}",
-    "from": "per post · site avg ▲{avg}",
+    "text": "Upvotes pro Beitrag · Schnitt der Seite {avg}",
+    "from": "upvotes per post · site avg {avg}",
     "checked": false
   },
   "profile.statPostsThisWeek": {

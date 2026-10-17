@@ -344,7 +344,7 @@ describe('on the page', () => {
       await act(b, { do: 'post', text: 'my own post' })
       const mine = env.DB.raw.prepare("SELECT id FROM post WHERE text = 'my own post'").get().id
       const block = postIn(await page(b), mine)
-      expect(block).toContain('<span class="up">▲ 0</span>')
+      expect(block).toContain('<span class="up">0 upvotes</span>')
       expect(block).not.toContain('name="up"')
       const res = await act(b, { do: 'upvote', post: mine, up: '1' })
       expect(res.status).toBe(400)
@@ -378,7 +378,7 @@ describe('on the page', () => {
       const pid = await addPerson(env.DB, 'quiet', { hash: await hashPassword(GOOD_PASSWORD, pepper, 1000) })
       expect(pid).toBeGreaterThan(0)
       const b = await signIn(env, 'quiet', { make: false })
-      expect(postIn(await page(b), finnPost)).toContain('<span class="up">▲ 0</span>')
+      expect(postIn(await page(b), finnPost)).toContain('<span class="up">0 upvotes</span>')
     })
   })
 

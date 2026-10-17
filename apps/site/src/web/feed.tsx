@@ -333,7 +333,7 @@ const Heat: FC<{ card: FeedCard; mark: boolean }> = ({ card, mark }) => {
   const q = Math.round(impactBar(card.impact) * 10) / 10
   return (
     <div class="heat" title={w.feed.upvotesTitle}>
-      ▲<br />{shortNum(card.upvotes)}<small>{count(w.feed.upvotes, card.upvotes)}</small>
+      {shortNum(card.upvotes)}<small>{w.feed.upvoteHow}</small>
       {mark && <span class="qbar" style={`--q:${q}`} title={fill(w.feed.impactTitle, { n: (Math.round(card.impact * 10) / 10).toFixed(1) })}></span>}
     </div>
   )

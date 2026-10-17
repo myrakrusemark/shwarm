@@ -113,7 +113,7 @@ describe('/@myra', () => {
     expect(html).toContain('<p class="about">product designer who also ships the things i make. mostly here for games and tools.</p>')
     expect(html).toContain('<small>working on</small>')
     expect(html).toContain('<small>posts this week</small>')
-    expect(html).toMatch(/▲[\d.]+<small>per post · site avg ▲[\d.]+<\/small>/)
+    expect(html).toMatch(/[\d.]+<small>upvotes per post · site avg [\d.]+<\/small>/)
     expect(html).toContain('<h2>working on <span>upvotes per post · posts per day, both on average</span></h2>')
     expect(html).toContain('<h2>created <span>shwarms and branches</span></h2>')
     expect(html).toContain('<h2>look up a name</h2>')
@@ -145,7 +145,7 @@ describe('/@myra', () => {
     const mine = one(db, 'SELECT SUM(upvotes) AS u, SUM(posts) AS p FROM person_node_stats WHERE person_id = ?', myra)
     const site = one(db, 'SELECT SUM(upvotes) AS u, SUM(posts) AS p FROM node_stats')
     expect(mine.u).toBeGreaterThan(0)
-    expect(html).toContain(`▲${oneDecimal(mine.u / mine.p)}<small>per post · site avg ▲${oneDecimal(site.u / site.p)}</small>`)
+    expect(html).toContain(`${oneDecimal(mine.u / mine.p)}<small>upvotes per post · site avg ${oneDecimal(site.u / site.p)}</small>`)
 
     // Each row's mark: impact from her person_node_stats row there, posts per day by the node's own formula.
     for (const path of [EXAMPLE_ROOT]) {
@@ -154,7 +154,7 @@ describe('/@myra', () => {
       const n7 = one(db, 'SELECT COUNT(*) AS n FROM post WHERE person_id = ? AND node_id = ? AND hidden = 0 AND created_at > ?', myra, n.id, iso(NOW - WEEK_MS)).n
       const imp = st.upvotes / st.posts
       const perDay = postsPerDay(n7, Date.parse(n.created_at), NOW)
-      expect(rowMark(html, n.title), path).toEqual({ q: oneDecimal(Math.min(5, imp)), text: oneDecimal(perDay), title: `▲${oneDecimal(imp)} per post · ${oneDecimal(perDay)} posts a day` })
+      expect(rowMark(html, n.title), path).toEqual({ q: oneDecimal(Math.min(5, imp)), text: oneDecimal(perDay), title: `${oneDecimal(imp)} upvotes per post · ${oneDecimal(perDay)} posts a day` })
       // person_node_stats adds up to the node's own totals on node_stats (what the node page's head shows).
       const sum = one(db, 'SELECT SUM(posts) AS p, SUM(upvotes) AS u FROM person_node_stats WHERE node_id = ?', n.id)
       expect(one(db, 'SELECT posts, upvotes FROM node_stats WHERE node_id = ?', n.id)).toEqual({ posts: sum.p, upvotes: sum.u })

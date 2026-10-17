@@ -100,7 +100,7 @@ describe("a shwarm's status, as a branch's (decided Oct 14)", () => {
     expect(html).toContain('<label for="cl-passed">what shows this shwarm passes its done test?</label>')
     // not joined: the count, and why there's no button
     const c = await w.post(site(kestrel), MID, 'the corner case is back.', { claim: 'blocked' })
-    expect(await page(await member(ana))).toContain(`<span class="up" title="join this shwarm to back its claims">▲ 1 backer</span>`)
+    expect(await page(await member(ana))).toContain(`<span class="up" title="join this shwarm to back its claims">1 backer</span>`)
     expect(c.id).toMatch(/^p_/)
   })
 })

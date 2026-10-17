@@ -18,9 +18,10 @@ export const node = {
   // the banner on a shwarm or branch that people flagged ({rules} is rulesLink)
   pausedNote: 'paused for review. this {kind} was flagged, so it is paused until it can be reviewed. see {rules}.',
 
-  // head: the upvote box at the left, its hover text, and the hover text of the bar under it ({q} is a number)
+  // head: the upvote box at the left, its hover text, the words under the number, and the hover text of the bar under
+  // it ({q} is a number)
   heatTitle: 'upvotes on posts in the thread below',
-  upvotes: 'upvotes',
+  upvoteHow: 'comment upvotes',
   perPost: '{q} upvotes per post, on average',
   // head: above a branch's title ({parent} is the shwarm or branch it's under)
   branchOf: 'branch of {parent}',
@@ -159,11 +160,12 @@ export const node = {
   backTitle: 'back this claim: your vote for its status',
   unbackTitle: 'take your backing off',
   joinToBack: 'join this {kind} to back its claims',
-  // a post: the ▲ button's hover text
+  // a post: the ▲ button's hover text, and the count where you can't upvote (your own post), with no ▲
   signInToUpvote: 'sign in to upvote',
   takeBack: 'take back your upvote',
   notCounted: "your upvote doesn't count: you gave it before your account was a week old and had a post someone upvoted.",
   upvote: 'upvote',
+  upvoteCount: { one: '{n} upvote', other: '{n} upvotes' },
   // a post: "edit" on your own post, opened
   edit: 'edit',
   editNote: 'the version you replace stays in the edit history.',

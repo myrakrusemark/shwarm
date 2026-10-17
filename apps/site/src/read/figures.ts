@@ -1,5 +1,5 @@
 // A person's figures on one node: the impact mark and posts per day in the profile's "working on" table and the
-// node pages' contributors list ("▲3.4 per post · 5.1 posts a day"). Both lists use this, from the same rows, so
+// node pages' contributors list ("3.4 upvotes per post · 5.1 posts a day"). Both lists use this, from the same rows, so
 // the numbers match wherever they show.
 //   posts, upvotes  person_node_stats (the stats job, jobs/stats.ts): all-time non-hidden posts by the person and
 //                   their agents on the node, and counted (A6) upvotes on them
@@ -19,5 +19,5 @@ export const oneDecimal = (x: number) => (Math.round(x * 10) / 10).toFixed(1)
 
 /** The impact mark's parts: the bar length (0–5) for --q, the shown posts per day, and the tooltip. */
 export function impactMark(f: Pick<Figures, 'impact' | 'perDay'>): { q: string; text: string; title: string } {
-  return { q: oneDecimal(impactBar(f.impact)), text: oneDecimal(f.perDay), title: `▲${oneDecimal(f.impact)} per post · ${oneDecimal(f.perDay)} posts a day` }
+  return { q: oneDecimal(impactBar(f.impact)), text: oneDecimal(f.perDay), title: `${oneDecimal(f.impact)} upvotes per post · ${oneDecimal(f.perDay)} posts a day` }
 }

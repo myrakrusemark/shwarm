@@ -125,7 +125,7 @@ const WhoHead: FC<{ person: Person; head: Head; now: number; owner?: boolean }> 
         <div>{head.workingMore ? `${head.workingOn}+` : head.workingOn}<small>{w.profile.statWorkingOn}</small></div>
         <div>{head.postsThisWeek}<small>{w.profile.statPostsThisWeek}</small></div>
         <div>
-          ▲{head.perPost === null ? '–' : oneDecimal(head.perPost)}
+          {head.perPost === null ? '–' : oneDecimal(head.perPost)}
           <small>{fill(w.profile.statPerPost, { avg: head.siteAvg === null ? '–' : oneDecimal(head.siteAvg) })}</small>
         </div>
       </div>

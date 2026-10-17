@@ -1689,9 +1689,9 @@
     "from": "feed",
     "checked": false
   },
-  "feed.upvotes.other": {
-    "text": "赞",
-    "from": "upvotes",
+  "feed.upvoteHow": {
+    "text": "评论获赞",
+    "from": "comment upvotes",
     "checked": false
   },
   "feed.upvotesTitle": {
@@ -3244,9 +3244,14 @@
     "from": "upvote",
     "checked": false
   },
-  "node.upvotes": {
-    "text": "赞",
-    "from": "upvotes",
+  "node.upvoteCount.other": {
+    "text": "{n} 个赞",
+    "from": "{n} upvotes",
+    "checked": false
+  },
+  "node.upvoteHow": {
+    "text": "评论获赞",
+    "from": "comment upvotes",
     "checked": false
   },
   "node.verdictFail": {
@@ -4335,8 +4340,8 @@
     "checked": false
   },
   "profile.statPerPost": {
-    "text": "每帖 · 全站平均 ▲{avg}",
-    "from": "per post · site avg ▲{avg}",
+    "text": "每帖获赞 · 全站平均 {avg}",
+    "from": "upvotes per post · site avg {avg}",
     "checked": false
   },
   "profile.statPostsThisWeek": {

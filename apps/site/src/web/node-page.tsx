@@ -158,9 +158,8 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
   return (
     <section class={isBranch ? 'head' : 'head shwarm'}>
       <div class="heat" title={w.node.heatTitle}>
-        ▲<br />
         {shortNum(s?.upvotes ?? 0)}
-        <small>{w.node.upvotes}</small>
+        <small>{w.node.upvoteHow}</small>
         <span class="qbar" style={`--q:${q1(s?.impact ?? 0)}`} title={fill(w.node.perPost, { q: q1(s?.impact ?? 0) })}></span>
       </div>
       <div>
@@ -686,9 +685,9 @@ export const makeBranchHref = (path: string, post: string) => `/new?parent=${pat
  * OPEN (#78): the button's title and the "not counted yet" words wait on Myra's yes.
  */
 const Upvote: FC<{ p: PostRow; d: NodePageData }> = ({ p, d }) => {
-  if (useContext(PageContext).opensSoon) return <span class="up" title={OPENS_SOON.upvote}>▲ {p.ups}</span>
+  if (useContext(PageContext).opensSoon) return <span class="up" title={OPENS_SOON.upvote}>{count(w.node.upvoteCount, p.ups)}</span>
   if (!d.me) return <a class="up" href={signInHref(d.here)} title={w.node.signInToUpvote}>▲ {p.ups}</a>
-  if (!d.me.verified || p.person_id === d.me.personId) return <span class="up">▲ {p.ups}</span>
+  if (!d.me.verified || p.person_id === d.me.personId) return <span class="up">{count(w.node.upvoteCount, p.ups)}</span>
   const mine = d.myUps?.get(p.id)
   const on = mine !== undefined
   return (
@@ -718,7 +717,7 @@ const Upvote: FC<{ p: PostRow; d: NodePageData }> = ({ p, d }) => {
 const Back: FC<{ p: PostRow; d: NodePageData }> = ({ p, d }) => {
   const opensSoon = useContext(PageContext).opensSoon
   const backers = count(w.node.backers, p.backers ?? 0)
-  if (!hasStatusForm(d, opensSoon)) return <span class="up" title={opensSoon ? OPENS_SOON.upvote : fill(w.node.joinToBack, { kind: kindWord(d.chain.node) })}>▲ {backers}</span>
+  if (!hasStatusForm(d, opensSoon)) return <span class="up" title={opensSoon ? OPENS_SOON.upvote : fill(w.node.joinToBack, { kind: kindWord(d.chain.node) })}>{backers}</span>
   const on = d.status?.myBacking?.claim?.post === p.id
   return (
     <>

@@ -1729,19 +1729,9 @@
     "from": "feed",
     "checked": false
   },
-  "feed.upvotes.many": {
-    "text": "votes",
-    "from": "upvotes",
-    "checked": false
-  },
-  "feed.upvotes.one": {
-    "text": "vote",
-    "from": "upvote",
-    "checked": false
-  },
-  "feed.upvotes.other": {
-    "text": "votes",
-    "from": "upvotes",
+  "feed.upvoteHow": {
+    "text": "votes sur les commentaires",
+    "from": "comment upvotes",
     "checked": false
   },
   "feed.upvotesTitle": {
@@ -3354,9 +3344,24 @@
     "from": "upvote",
     "checked": false
   },
-  "node.upvotes": {
-    "text": "votes",
-    "from": "upvotes",
+  "node.upvoteCount.many": {
+    "text": "{n} votes",
+    "from": "{n} upvotes",
+    "checked": false
+  },
+  "node.upvoteCount.one": {
+    "text": "{n} vote",
+    "from": "{n} upvote",
+    "checked": false
+  },
+  "node.upvoteCount.other": {
+    "text": "{n} votes",
+    "from": "{n} upvotes",
+    "checked": false
+  },
+  "node.upvoteHow": {
+    "text": "votes sur les commentaires",
+    "from": "comment upvotes",
     "checked": false
   },
   "node.verdictFail": {
@@ -4445,8 +4450,8 @@
     "checked": false
   },
   "profile.statPerPost": {
-    "text": "par message · moy. du site ▲{avg}",
-    "from": "per post · site avg ▲{avg}",
+    "text": "votes par message · moy. du site {avg}",
+    "from": "upvotes per post · site avg {avg}",
     "checked": false
   },
   "profile.statPostsThisWeek": {

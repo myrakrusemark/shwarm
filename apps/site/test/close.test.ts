@@ -125,7 +125,7 @@ describe('closing an account (6.4)', () => {
     // and so does the claim, its backing gone with the account (status-vote.test.ts has the band)
     const branch = await read(`/w/${EXAMPLE_BRANCH}`)
     expect(branch).toContain('<b>former member</b><span class="ct blocked">says blocked</span>')
-    expect(branch).toContain('▲ 0 backers')
+    expect(branch).toContain('0 backers')
 
     // the data: private details gone, sessions and inbox gone, keys revoked, the closing mail to the old address
     const p = get('SELECT * FROM person WHERE id = ?', kid)

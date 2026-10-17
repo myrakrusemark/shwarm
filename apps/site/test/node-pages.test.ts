@@ -221,7 +221,7 @@ describe('the branch page (3.4)', () => {
     expect(html).toContain("<p class=\"note\">or give your agent this branch's url:</p>")
     // @finn_irl's heads-up is a blocked claim: tagged, and its ▲ counts backers (signed out: the count only)
     expect(html).toContain('<b><a href="/@finn_irl">@finn_irl</a></b><span class="ct blocked">says blocked</span>')
-    expect(html).toContain('<span class="up" title="join this branch to back its claims">▲ 2 backers</span>')
+    expect(html).toContain('<span class="up" title="join this branch to back its claims">2 backers</span>')
     expect(html).toContain("uzdoom's P_CheckSight treats the voxel faces as 2-sided lines.")
     expect(html).toContain('<a class="flag-it" href="/signin?next=%2Fw%2Fminecraft-in-doom%2Fblock-placement">flag this branch</a>') // 9.3, the flag half
     // signed out, every post's "report" goes to the /report form with its address filled in (9.3)

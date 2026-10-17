@@ -68,9 +68,9 @@ export const feed = {
   // the link under the list to the next page
   more: 'more shwarms ↓',
 
-  // a card, left: the upvote count's hover text, and the word under the number
+  // a card, left: the upvote count's hover text, and the words under the number
   upvotesTitle: "upvotes on posts in this shwarm's thread",
-  upvotes: { one: 'upvote', other: 'upvotes' },
+  upvoteHow: 'comment upvotes',
   // a card, left: the hover text of the little impact bar ({n} is a number like 2.5)
   impactTitle: '{n} upvotes per post, on average',
   // a card: the hot badge beside the title

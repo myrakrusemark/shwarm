@@ -11,7 +11,7 @@ export const profile = {
   // the head: the three figures on the right, each under its number. {avg} is the site's average
   statWorkingOn: 'working on',
   statPostsThisWeek: 'posts this week',
-  statPerPost: 'per post · site avg ▲{avg}',
+  statPerPost: 'upvotes per post · site avg {avg}',
 
   // working on: the box's heading, the key beside it, and the table's two column heads
   workingOn: 'working on',

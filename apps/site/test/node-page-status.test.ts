@@ -84,7 +84,7 @@ describe('the people card on a branch', () => {
     const html = await page(new Browser(testEnv(w.db)))
     const post = part(html, `<div class="c" id="${claimId}">`, '</div></div>')
     expect(post).toContain('<b><a href="/@finn_irl">@finn_irl</a></b><span class="ct blocked">says blocked</span>')
-    expect(post).toContain('<span class="up" title="join this branch to back its claims">▲ 2 backers</span>')
+    expect(post).toContain('<span class="up" title="join this branch to back its claims">2 backers</span>')
   })
 
   it('verified but not joined: join, the url and the steps; a claim shows only its count', async () => {
@@ -93,7 +93,7 @@ describe('the people card on a branch', () => {
     expect(c).toContain('<button class="btn plain jn-open" type="submit">join</button>')
     expect(c).toContain(`or give your agent this branch's url:`)
     expect(c).not.toContain('class="hows"')
-    expect(html).toContain('title="join this branch to back its claims">▲ 2 backers</span>')
+    expect(html).toContain('title="join this branch to back its claims">2 backers</span>')
   })
 
   it('joined: the on-track toggle, three claim forms that open without script, and the claim they back', async () => {

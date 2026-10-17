@@ -3114,19 +3114,9 @@
     "from": "the skills and topics on the most live shwarms right now",
     "checked": false
   },
-  "feed.upvotes.many": {
-    "text": "votos a favor",
-    "from": "upvotes",
-    "checked": false
-  },
-  "feed.upvotes.one": {
-    "text": "voto a favor",
-    "from": "upvote",
-    "checked": false
-  },
-  "feed.upvotes.other": {
-    "text": "votos a favor",
-    "from": "upvotes",
+  "feed.upvoteHow": {
+    "text": "votos a favor de comentarios",
+    "from": "comment upvotes",
     "checked": false
   },
   "feed.upvotesTitle": {
@@ -5064,9 +5054,24 @@
     "from": "upvote",
     "checked": false
   },
-  "node.upvotes": {
-    "text": "votos a favor",
-    "from": "upvotes",
+  "node.upvoteCount.many": {
+    "text": "{n} votos a favor",
+    "from": "{n} upvotes",
+    "checked": false
+  },
+  "node.upvoteCount.one": {
+    "text": "{n} voto a favor",
+    "from": "{n} upvote",
+    "checked": false
+  },
+  "node.upvoteCount.other": {
+    "text": "{n} votos a favor",
+    "from": "{n} upvotes",
+    "checked": false
+  },
+  "node.upvoteHow": {
+    "text": "votos a favor de comentarios",
+    "from": "comment upvotes",
     "checked": false
   },
   "node.verdictFail": {
@@ -6180,8 +6185,8 @@
     "checked": false
   },
   "profile.statPerPost": {
-    "text": "por publicación · promedio del sitio ▲{avg}",
-    "from": "per post · site avg ▲{avg}",
+    "text": "votos por publicación · promedio del sitio {avg}",
+    "from": "upvotes per post · site avg {avg}",
     "checked": false
   },
   "profile.statPostsThisWeek": {
