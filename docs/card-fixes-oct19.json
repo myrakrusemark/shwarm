@@ -1,0 +1,314 @@
+[
+  {
+    "slug": "beat-one-bound-in-taos-table",
+    "locked": false,
+    "fixes": [
+      {
+        "field": "what",
+        "old": "the erdős minimum overlap constant sits between 0.379005 and 0.380868, and the shannon capacity of the 7-cycle sits between 3.2588 and 3.3177. tao's repo",
+        "new": "two of them, and where they sit now:\n\n| constant | lower bound | upper bound |\n|---|--:|--:|\n| erdős minimum overlap | 0.379005 | 0.380868 |\n| shannon capacity of the 7-cycle | 3.2588 | 3.3177 |\n\ntao's repo",
+        "why": "numbers that compare, as a table"
+      },
+      {
+        "field": "done_when",
+        "old": "teorth/optimizationproblems",
+        "new": "`teorth/optimizationproblems`",
+        "why": "names of files, commands and code as `code`"
+      }
+    ]
+  },
+  {
+    "slug": "tagalog-on-common-voice",
+    "locked": false,
+    "fixes": [
+      {
+        "field": "what",
+        "old": "common voice has 901 tagalog sentences and needs 2,000 before people can record, and only 623 of its 2,089 interface strings are translated. close both gaps,",
+        "new": "where tagalog stands on common voice:\n\n| | now | needed |\n|---|--:|---|\n| tagalog sentences | 901 | 2,000 before people can record |\n| interface strings translated | 623 | all 2,089 |\n\nclose both gaps,",
+        "why": "numbers that compare, as a table"
+      },
+      {
+        "field": "done_when",
+        "old": "shown as is_contributable = 1 in",
+        "new": "shown as `is_contributable = 1` in",
+        "why": "names of files, commands and code as `code`"
+      }
+    ]
+  },
+  {
+    "slug": "minecraft-in-doom",
+    "locked": false,
+    "fixes": [
+      {
+        "field": "done_when",
+        "old": "entirely from blocks, where every wall can be dug out, gathered blocks can be placed again or crafted with at least 10 recipes, guns you pick up sit in a minecraft-style inventory, and freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp-like one with its own name that explodes and blows holes in block walls; each map can be finished from a pistol start on skill 3, it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p), and it uses only freedoom and other open assets.",
+        "new": "entirely from blocks, and:\n\n- every wall can be dug out\n- gathered blocks can be placed again or crafted with at least 10 recipes\n- guns you pick up sit in a minecraft-style inventory\n- freedoom's monsters fight beside at least 4 new blocky ones drawn fresh, including an imp-like one with its own name that explodes and blows holes in block walls\n- each map can be finished from a pistol start on skill 3\n- it holds 60 fps on the reference rig (a ryzen 5 3600 with a gtx 1660 at 1080p)\n- it uses only freedoom and other open assets",
+        "why": "a done test with several conditions, as a list"
+      }
+    ]
+  },
+  {
+    "slug": "a-seismometer-in-1000-homes",
+    "locked": false,
+    "fixes": [
+      {
+        "field": "done_when",
+        "old": "a finished home seismometer with an open design, made for under $30 a unit all in (parts, case, power supply, assembly and shipping, on an open cost sheet), is running in at least 1000 homes in at least 20 countries, each delivered ready to plug in and set up by its host with no tools, and from the stations' public data alone the network detects",
+        "new": "a finished home seismometer with an open design:\n\n- is made for under $30 a unit all in (parts, case, power supply, assembly and shipping, on an open cost sheet)\n- is running in at least 1000 homes in at least 20 countries, each delivered ready to plug in and set up by its host with no tools\n- and from the stations' public data alone, the network detects",
+        "why": "a done test with several conditions, as a list"
+      },
+      {
+        "field": "what",
+        "old": "catch real quakes. we research",
+        "new": "catch real quakes.\n\nwe research",
+        "why": "paragraph breaks in a long pitch"
+      },
+      {
+        "field": "what",
+        "old": "at a run of a few thousand. the goal is",
+        "new": "at a run of a few thousand.\n\nthe goal is",
+        "why": "paragraph breaks in a long pitch"
+      }
+    ]
+  },
+  {
+    "slug": "all-of-linux-in-rust",
+    "locked": false,
+    "fixes": [
+      {
+        "field": "done_when",
+        "old": "boots in qemu with a linux-compatible kernel written in rust in place of linux, and with rust versions of arch's base tools (coreutils, findutils, grep, sed, tar, gzip, bzip2, xz, procps-ng, psmisc, util-linux and shadow), sudo and a bash-compatible login shell; on it, the kernel passes at least 90% of the linux test project's syscall tests that pass on arch's own kernel in the same vm, each rust tool passes at least 95% of the upstream test suite of the c tool it replaces, and the 100 most-installed arch packages on pkgstats outside base, its dependencies and the tools the image replaces, listed in this shwarm's pinned post of the frozen list with its sha256, install unmodified with pacman and each pass a smoke test, and afterwards every listed tool is still the rust build.",
+        "new": "boots in qemu with:\n\n- a linux-compatible kernel written in rust in place of linux\n- rust versions of arch's base tools (coreutils, findutils, grep, sed, tar, gzip, bzip2, xz, procps-ng, psmisc, util-linux and shadow), sudo and a bash-compatible login shell\n\non it:\n\n- the kernel passes at least 90% of the linux test project's syscall tests that pass on arch's own kernel in the same vm\n- each rust tool passes at least 95% of the upstream test suite of the c tool it replaces\n- the 100 most-installed arch packages on pkgstats outside base, its dependencies and the tools the image replaces, listed in this shwarm's pinned post of the frozen list with its sha256, install unmodified with pacman and each pass a smoke test\n- afterwards, every listed tool is still the rust build",
+        "why": "a done test with several conditions, as a list"
+      },
+      {
+        "field": "what",
+        "old": "the kind of job people call insane. this shwarm does it anyway",
+        "new": "the kind of job people call insane.\n\nthis shwarm does it anyway",
+        "why": "paragraph breaks in a long pitch"
+      }
+    ]
+  },
+  {
+    "slug": "name-the-sky-from-64-pixels",
+    "locked": false,
+    "fixes": [
+      {
+        "field": "done_when",
+        "old": "reports the sky position at the frame's center. on at least 500 test shots,",
+        "new": "reports the sky position at the frame's center.\n\n- on at least 500 test shots,",
+        "why": "a done test with several conditions, as a list"
+      },
+      {
+        "field": "done_when",
+        "old": " within 2 degrees of the truth. the truth for each shot",
+        "new": " within 2 degrees of the truth.\n- the truth for each shot",
+        "why": "a done test with several conditions, as a list"
+      },
+      {
+        "field": "done_when",
+        "old": " measured on a distant light before the night. at least 100 of the shots",
+        "new": " measured on a distant light before the night.\n- at least 100 of the shots",
+        "why": "a done test with several conditions, as a list"
+      },
+      {
+        "field": "done_when",
+        "old": " have cloud over part of the frame. an answer of",
+        "new": " have cloud over part of the frame.\n- an answer of",
+        "why": "a done test with several conditions, as a list"
+      },
+      {
+        "field": "what",
+        "old": "with no gps at all. this shwarm is the first step",
+        "new": "with no gps at all.\n\nthis shwarm is the first step",
+        "why": "paragraph breaks in a long pitch"
+      }
+    ]
+  },
+  {
+    "slug": "where-am-i-ask-the-birds",
+    "locked": false,
+    "fixes": [
+      {
+        "field": "done_when",
+        "old": "guesses where on earth it was recorded; on at least 200 new one-minute recordings,",
+        "new": "guesses where on earth it was recorded, and:\n\n- on at least 200 new one-minute recordings,",
+        "why": "a done test with several conditions, as a list"
+      },
+      {
+        "field": "done_when",
+        "old": "its median error is under 500 km, and 3 people on 3 different continents each record a fresh minute where they stand and the model places each one within 500 km.",
+        "new": "its median error is under 500 km\n- 3 people on 3 different continents each record a fresh minute where they stand, and the model places each one within 500 km",
+        "why": "a done test with several conditions, as a list"
+      },
+      {
+        "field": "what",
+        "old": "on a typical clip. train a model",
+        "new": "on a typical clip.\n\ntrain a model",
+        "why": "paragraph breaks in a long pitch"
+      }
+    ]
+  },
+  {
+    "slug": "schools-by-busy-roads",
+    "locked": false,
+    "fixes": [
+      {
+        "field": "done_when",
+        "old": "an open csv flags every public school in the nces 2024-25 locations file within 500 feet of a road segment carrying at least 30,000 vehicles a day (or 500 trucks and 10,000 vehicles) in fhwa's hpms 2024 data, and at least 100 schools,",
+        "new": "- an open csv flags every public school in the nces 2024-25 locations file within 500 feet of a road segment carrying at least 30,000 vehicles a day (or 500 trucks and 10,000 vehicles) in fhwa's hpms 2024 data\n- at least 100 schools,",
+        "why": "a done test with several conditions, as a list"
+      }
+    ]
+  },
+  {
+    "slug": "city-budgets-one-table",
+    "locked": false,
+    "fixes": [
+      {
+        "field": "done_when",
+        "old": "in the 2020 census, each row linked to its page in the source pdf, each city-year summing to its published general fund total within 0.5%, and each city's totals confirmed by a person who lives there.",
+        "new": "in the 2020 census, with:\n\n- each row linked to its page in the source pdf\n- each city-year summing to its published general fund total within 0.5%\n- each city's totals confirmed by a person who lives there",
+        "why": "a done test with several conditions, as a list"
+      }
+    ]
+  },
+  {
+    "slug": "25-dollar-sky-darkness-meter",
+    "locked": false,
+    "fixes": [
+      {
+        "field": "done_when",
+        "old": "a finished,",
+        "new": "- a finished,",
+        "why": "a done test with several conditions, as a list"
+      },
+      {
+        "field": "done_when",
+        "old": " in at least 5 countries, and 20 delivered units",
+        "new": " in at least 5 countries\n- 20 delivered units",
+        "why": "a done test with several conditions, as a list"
+      }
+    ]
+  },
+  {
+    "slug": "cardboard-solar-cooker",
+    "locked": false,
+    "fixes": [
+      {
+        "field": "done_when",
+        "old": "a finished,",
+        "new": "- a finished,",
+        "why": "a done test with several conditions, as a list"
+      },
+      {
+        "field": "done_when",
+        "old": " in at least 3 countries, and 10 delivered units",
+        "new": " in at least 3 countries\n- 10 delivered units",
+        "why": "a done test with several conditions, as a list"
+      }
+    ]
+  },
+  {
+    "slug": "open-heat-mapping-kit",
+    "locked": false,
+    "fixes": [
+      {
+        "field": "done_when",
+        "old": "a finished,",
+        "new": "- a finished,",
+        "why": "a done test with several conditions, as a list"
+      },
+      {
+        "field": "done_when",
+        "old": " in at least 3 cities, and one southern hemisphere city",
+        "new": " in at least 3 cities\n- one southern hemisphere city",
+        "why": "a done test with several conditions, as a list"
+      }
+    ]
+  },
+  {
+    "slug": "five-strangers-one-microscope",
+    "locked": false,
+    "fixes": [
+      {
+        "field": "done_when",
+        "old": "a finished,",
+        "new": "- a finished,",
+        "why": "a done test with several conditions, as a list"
+      },
+      {
+        "field": "done_when",
+        "old": " in at least 5 countries, and 5 of those units",
+        "new": " in at least 5 countries\n- 5 of those units",
+        "why": "a done test with several conditions, as a list"
+      }
+    ]
+  },
+  {
+    "slug": "pfas-in-your-tap",
+    "locked": false,
+    "fixes": [
+      {
+        "field": "done_when",
+        "old": "(ucmr5-occurrence-data.zip, sha256 ff8a6bf937823cdd75295d02f662966e8473eececb47190c406b9de53b2b6389)",
+        "new": "(`ucmr5-occurrence-data.zip`, sha256 `ff8a6bf937823cdd75295d02f662966e8473eececb47190c406b9de53b2b6389`)",
+        "why": "names of files, commands and code as `code`"
+      },
+      {
+        "field": "done_when",
+        "old": "the 3_0 folder of github.com/USEPA/ORD_SAB_Model at commit 7cc92a9538d7fe9762bce5c59361dd55cb56ffa4,",
+        "new": "the `3_0` folder of github.com/USEPA/ORD_SAB_Model at commit `7cc92a9538d7fe9762bce5c59361dd55cb56ffa4`,",
+        "why": "names of files, commands and code as `code`"
+      }
+    ]
+  },
+  {
+    "slug": "r45-in-lean",
+    "locked": false,
+    "fixes": [
+      {
+        "field": "done_when",
+        "old": "builds with lake build with no sorry, and #print axioms shows only lean's standard axioms plus Lean.ofReduceBool from the lrat checker.",
+        "new": "builds with `lake build` with no `sorry`, and `#print axioms` shows only lean's standard axioms plus `Lean.ofReduceBool` from the lrat checker.",
+        "why": "names of files, commands and code as `code`"
+      }
+    ]
+  },
+  {
+    "slug": "smaller-5-chromatic-graph",
+    "locked": false,
+    "fixes": [
+      {
+        "field": "done_when",
+        "old": "whose lrat proof cake_lpr accepts.",
+        "new": "whose lrat proof `cake_lpr` accepts.",
+        "why": "names of files, commands and code as `code`"
+      }
+    ]
+  },
+  {
+    "slug": "light-up-grey-zones",
+    "locked": false,
+    "fixes": [
+      {
+        "field": "done_when",
+        "old": "are merged into electricitymaps-contrib, each passing the repo's test_parser check",
+        "new": "are merged into `electricitymaps-contrib`, each passing the repo's `test_parser` check",
+        "why": "names of files, commands and code as `code`"
+      }
+    ]
+  },
+  {
+    "slug": "explain-one-ai-proof",
+    "locked": false,
+    "fixes": [
+      {
+        "field": "what",
+        "old": "(terrytao.wordpress.com/2026/10/10/math-2-0)",
+        "new": "([terrytao.wordpress.com/2026/10/10/math-2-0](https://terrytao.wordpress.com/2026/10/10/math-2-0/))",
+        "why": "the link in the pitch, as a link (it's in the card's sources)"
+      }
+    ]
+  }
+]

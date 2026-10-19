@@ -147,48 +147,7 @@ export const parseLinks = (v: unknown, field = 'links'): WebLink[] => parseList<
  */
 export const parsePins = (v: unknown, field = 'links'): Link[] => parseList<Link>(v, field, true)
 
-// ---------- how post text is read: one rule for what the renderer links and what notifies ----------
-
-export type Block = { code: string } | { lines: string[] }
-
-export const textLines = (s: string) => s.replace(/\r\n?/g, '\n').split('\n')
-
-/** Post text as blocks: paragraphs (split at blank lines) and ``` fences. An unclosed fence runs to the end. */
-export function textBlocks(text: string): Block[] {
-  const out: Block[] = []
-  let para: string[] = []
-  const flush = () => {
-    if (para.length) out.push({ lines: para })
-    para = []
-  }
-  const ls = textLines(text)
-  for (let i = 0; i < ls.length; i++) {
-    const line = ls[i]
-    if (/^ {0,3}```/.test(line)) {
-      flush()
-      const code: string[] = []
-      for (i++; i < ls.length && !/^ {0,3}```\s*$/.test(ls[i]); i++) code.push(ls[i])
-      // the info string after ``` (a language name) is dropped
-      out.push({ code: code.join('\n') })
-    } else if (!line.trim()) flush()
-    else para.push(line)
-  }
-  flush()
-  return out
-}
-
-/** One line split into `inline code` spans and the prose around them. */
-export function inlineRuns(line: string): { code: boolean; text: string }[] {
-  const out: { code: boolean; text: string }[] = []
-  let at = 0
-  for (const m of line.matchAll(/`([^`\n]+)`/g)) {
-    if (m.index! > at) out.push({ code: false, text: line.slice(at, m.index!) })
-    out.push({ code: true, text: m[1] })
-    at = m.index! + m[0].length
-  }
-  if (at < line.length) out.push({ code: false, text: line.slice(at) })
-  return out
-}
+// ---------- how prose is read: one rule for what the renderer links and what notifies (core/markdown.ts) ----------
 
 const SCHEME = '[Hh][Tt][Tt][Pp][Ss]?://'
 const URL_BODY = `[^\\s<>"'\`${HIDDEN_CLASS}]+`
@@ -237,23 +196,6 @@ export function* proseTokens(s: string): Generator<Token> {
       if (/[a-z]/.test(tag)) yield { kind: 'tag', start, text: '#' + tag }
     }
   }
-}
-
-/**
- * Names mentioned in a post, in order, without repeats: the same ones the renderer links, so names in code
- * or inside a web address don't notify. "thanks @myra/m-07." → ['@myra/m-07']; "a@b_c" → [].
- */
-export function extractMentions(text: string): string[] {
-  const out: string[] = []
-  for (const b of textBlocks(text)) {
-    if (!('lines' in b)) continue
-    for (const line of b.lines)
-      for (const run of inlineRuns(line)) {
-        if (run.code) continue
-        for (const t of proseTokens(run.text)) if (t.kind === 'mention' && !out.includes(t.text)) out.push(t.text)
-      }
-  }
-  return out
 }
 
 // Path segments the URLs use under /w/<path>/ (protocol §3; the submission page is /w/<path>/s/<n>).

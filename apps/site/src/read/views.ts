@@ -25,6 +25,7 @@ import { readActivity } from './activity'
 import { readMyReports } from '../core/reports'
 import { flaggedBy } from '../core/flags'
 import { loadStatus } from './status'
+import { readRelated } from './related'
 
 export async function loadPageData(
   db: D1Database,
@@ -33,7 +34,7 @@ export async function loadPageData(
 ): Promise<NodePageData> {
   const n = chain.node
   const mine = o.me?.personId === n.author_id
-  const [children, contributors, subs, thread, nodeEdits, activity, joins, status] = await Promise.all([
+  const [children, contributors, subs, thread, nodeEdits, activity, joins, status, related] = await Promise.all([
     readChildren(db, n.id, o.now),
     readContributors(db, n, PEOPLE_SHOWN),
     readSubmissions(db, n.id),
@@ -45,6 +46,7 @@ export async function loadPageData(
     readJoins(db, n), // the thread's quiet join lines (go-live 8.2)
     // Its status, claims, pass records and history, and the viewer's own backing (decided Oct 14).
     loadStatus(db, n, o.me?.personId ?? null, o.now),
+    readRelated(db, n), // the sidebar's related shwarms, by shared tags (decided Oct 19)
   ])
   // Checks for the old submissions on this page of the thread (history: nothing takes checks since Oct 14).
   const shown = new Set<string>()
@@ -60,7 +62,7 @@ export async function loadPageData(
     o.me ? readMyReports(db, o.me.personId, onPage) : Promise.resolve(new Set<string>()),
     o.me && o.me.personId !== n.author_id ? flaggedBy(db, o.me.personId, n.id) : Promise.resolve(false),
   ])
-  return { chain, branches: children.branches, contributors, subs, checks, thread, myUps, mySeat, joins, myReports, myFlag, nodeEdits, activity, status, sort: o.sort, show: o.show, url: o.url, here: o.here, me: o.me, now: o.now }
+  return { chain, branches: children.branches, contributors, subs, checks, thread, myUps, mySeat, joins, myReports, myFlag, nodeEdits, activity, status, related, sort: o.sort, show: o.show, url: o.url, here: o.here, me: o.me, now: o.now }
 }
 
 /** The prompt's and the JSON's data; null when ?before= doesn't name a post in this thread. */

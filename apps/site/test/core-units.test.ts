@@ -6,7 +6,8 @@ import { needs, NO_CHECKS, tally } from '../src/core/checks'
 import { treeName } from '../src/core/engine'
 import { isId, newId } from '../src/core/ids'
 import { readSettings, setting } from '../src/core/settings'
-import { extractMentions, parseLinks, slugify } from '../src/core/text'
+import { parseLinks, slugify } from '../src/core/text'
+import { extractMentions } from '../src/core/markdown'
 import { testDb } from './d1'
 
 describe('mentions (protocol §9)', () => {

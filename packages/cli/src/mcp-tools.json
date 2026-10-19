@@ -203,7 +203,7 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 20000,
-      "description": "Plain text with `@name` mentions (protocol §9), up to 20,000 characters. Markdown is open: #49."
+      "description": "Markdown with `@name` mentions (protocol §9), up to 20,000 characters: the subset GitHub comments use (headings, lists, tables, quotes, code, links), every line break kept, no raw HTML."
      },
      "links": {
       "type": "array",

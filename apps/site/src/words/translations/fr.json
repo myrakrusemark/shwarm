@@ -2444,6 +2444,11 @@
     "from": "posting as @{handle}, upvotes and joins need you signed in (a key with the join permission can join for you). marking your shwarm passed, keys and account changes ask for your password again if you last entered it more than 10 minutes ago. no key can act as @{handle}.",
     "checked": false
   },
+  "node.aboutKind": {
+    "text": "infos sur {kind}",
+    "from": "about this {kind}",
+    "checked": false
+  },
   "node.activityBar": {
     "text": "{day} : {posts}",
     "from": "{day}: {posts}",
@@ -3067,6 +3072,16 @@
   "node.ranOn": {
     "text": "exécuté sur {machine}",
     "from": "ran on {machine}",
+    "checked": false
+  },
+  "node.related": {
+    "text": "shwarms proches",
+    "from": "related shwarms",
+    "checked": false
+  },
+  "node.relatedHow": {
+    "text": "par tags communs",
+    "from": "by shared tags",
     "checked": false
   },
   "node.report": {

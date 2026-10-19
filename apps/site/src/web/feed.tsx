@@ -1,6 +1,7 @@
 import { Hono, type Context } from 'hono'
 import { useContext, type FC } from 'hono/jsx'
 import { guideOn, homeShowsFeed } from '../core/site-mode'
+import { blockless } from '../core/markdown'
 import { impactBar } from '../core/stats'
 import { defaultSort, feedView, loadFeed, parseQuery, queryText, sortsFor, TABS, type Feed, type FeedCard, type FeedSort, type FeedTab } from '../read/feed'
 import { loadTrending, shwarmsTagged, type Trending, type TrendingTag } from '../read/trending'
@@ -369,7 +370,7 @@ export const Card: FC<{ card: FeedCard; now: number }> = ({ card, now }) => {
       <Heat card={card} mark={!dead} />
       <div>
         <Title card={card} />
-        <div class="what"><Text inline text={card.what.replace(/\s*\n\s*/g, ' ')} /></div>
+        <div class="what"><Text inline text={blockless(card.what).replace(/\s*\n\s*/g, ' ')} /></div>
         <Say card={card} />
         <div class="meta">
           <Tags tags={card.tags} />

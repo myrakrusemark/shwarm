@@ -26,7 +26,7 @@ How shwarm looks, taken from the [mockups](../mockups/). If this file and a mock
 - **Craigslist density.** Small type, tight rows, plain links. If it fits on the card, it doesn't hide behind a hover.
 - **Brutalist borders.** Solid ink rules, hard offset shadows, flat fills. No rounded corners, blur or soft shadows.
 - **Solarpunk palette.** Cream paper, moss and leaf greens, sun yellow, a little clay. A garden notice board.
-- **Monospace everywhere** except the logo and page titles. **Lowercase UI copy** ("post", "join", "done when"); micro-labels are uppercased by CSS only. Labels say what the number is ("12 people", "84 posts/day").
+- **Monospace everywhere** except the logo, page titles and what people write (posts, what, done when), which is set in a proportional face (Oct 19). **Lowercase UI copy** ("post", "join", "done when"); micro-labels are uppercased by CSS only. Labels say what the number is ("12 people", "84 posts/day").
 
 ## Words
 
@@ -63,6 +63,8 @@ Every mockup declares the same `:root`.
 | `--sky` | `#1d4ed8` | Links, underlined, offset 2px. Hover: sun background, ink text. |
 | `--rule` | `1.5px solid var(--ink)` | Container border. See [Borders](#borders). |
 | `--rule-heavy` | `3px solid var(--ink)` | Header, strip, button, modal. |
+| `--mono` | `ui-monospace, "JetBrains Mono", "IBM Plex Mono", Menlo, Consolas, monospace` | Body text, the UI, code, commands, logs. |
+| `--prose` | `"Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif` | What people write: `.txt` (Oct 19). |
 
 Derived colors are a token's RGB with alpha, never a new hue:
 
@@ -81,7 +83,8 @@ The shwarm header's sun wash is a page style. Heat is shown only by the [HOT bad
 
 | Role | Font | Size / weight |
 | --- | --- | --- |
-| Body | `ui-monospace, "JetBrains Mono", "IBM Plex Mono", Menlo, Consolas, monospace` | 14px, line height 1.45 (feed) / 1.5. |
+| Body | `--mono` | 14px, line height 1.45 (feed) / 1.5. |
+| What people write (`.txt`: posts, what, done when) | `--prose` | 15px / 1.6. Its `code` and fences stay `--mono`. |
 | Logo | `"Arial Black", Arial, sans-serif` | 900, 40px / 1, letter-spacing -2px. |
 | Page title (`h1.title`, profile name) | Arial Black | 900, 30px / 1.1, -1px. Submission `h1`: 28px. |
 | Form title field (`.big`) | Arial Black | 900, 22px / 1.2, -.5px. |
@@ -205,17 +208,15 @@ A green bar whose length is **upvotes per post** (0–5), paired with **posts pe
 
 `.hotb` after a live feed card's title marks a surge in thread upvotes ([rule](decisions.md#metrics-ranking-the-feed); `title` gives the ratio). 10.5px bold uppercase, `1px 5px`, sun, 1.5px ink border, `cursor: help`. Badge only: no hot wash.
 
-### What | done-when halves
+### What, then done when
 
-`.pitch` in `.head` on shwarm and branch pages: two equal columns (`1fr 1fr`, gap 22px) under a dashed line. Equal on purpose: the done test matters as much as the description.
+`.pitch` in `.head` on shwarm and branch pages (Oct 19, [decision](decisions.md#oct-11-terms-and-privacy-final); two equal columns until then): one column under a dashed line, gap 14px, each part at most 780px wide. What first; done when under it (`.pitch .done`, 4px sun left rule): the sentence, a bold `.stat` line (the claim behind the current status), and on a shwarm `build on this shwarm` (`.alt`, 12px). `h3`s are 11px uppercase at .7. Both are [participant text](#participant-text). *Retired Oct 14:* the `checked by` list.
 
-Left `what`; right `done when` (`.pitch .done`, 4px sun left rule): one sentence, a bold `.stat` line (the claim behind the current status), and on a shwarm `build on this shwarm` (`.alt`, 12px). `h3`s are 11px uppercase at .7. *Retired Oct 14:* the `checked by` list.
-
-Shwarm headers add the sun wash, `← back to hot` and the [builds-on chip](#builds-on); branch headers the leaf wash, breadcrumbs and "branch of …". The create form stacks them ([Create form](#create-form)).
+The head holds the title, the tags, the status badge and join. Shwarm headers add the sun wash and `← back to hot`; branch headers the leaf wash, breadcrumbs and "branch of …". Who started it and the rest are in the [about card](#about-card). The create form stacks what and done when ([Create form](#create-form)).
 
 ### Builds on
 
-Shwarm header: `.builds` (12px, under the tags) with an `a.up` chip (paper-2, 1.5px ink border, `1px 7px`, 11.5px; bold name then address, `uzdoom github.com/UZDoom/UZDoom`; sun hover): "builds on uzdoom", with no license since Oct 15 ([decision](decisions.md#oct-11-terms-and-privacy-final)). A shwarm set to another license before Oct 15, or a launch shwarm with its upstream's, adds a note about the work in `.builds.worklic`: "the work: **GPL-3.0**, as its author planned it"; a branch shows its shwarm's; an MIT shwarm shows nothing. *Oct 8 to Oct 15:* "· license **GPL-3.0**, from uzdoom", and "license GPL-3.0, inherited" on a branch. Feed meta: `.meta .up`, an ink link with a 1.5px ink bottom border instead of an underline. Branches don't repeat it.
+[About card](#about-card) (the shwarm header until Oct 19): `.builds` (12px) with an `a.up` chip (paper-2, 1.5px ink border, `1px 7px`, 11.5px; bold name then address, `uzdoom github.com/UZDoom/UZDoom`; sun hover): "builds on uzdoom", with no license since Oct 15 ([decision](decisions.md#oct-11-terms-and-privacy-final)). A shwarm set to another license before Oct 15, or a launch shwarm with its upstream's, adds a note about the work in `.builds.worklic`: "the work: **GPL-3.0**, as its author planned it"; a branch shows its shwarm's; an MIT shwarm shows nothing. *Oct 8 to Oct 15:* "· license **GPL-3.0**, from uzdoom", and "license GPL-3.0, inherited" on a branch. Feed meta: `.meta .up`, an ink link with a 1.5px ink bottom border instead of an underline. Branches don't repeat it.
 
 ### Thread posts
 
@@ -226,6 +227,10 @@ Shwarm header: `.builds` (12px, under the tags) with an `a.up` chip (paper-2, 1.
 - **Branch label** (`.br`): a chip in shwarm.html; not settled ([mockup drift](#mockup-drift)).
 - **Claim** (on any node, Oct 14): an ordinary `.c` whose `.who` has a `.ct` tag after the name, "says blocked" / "says passed" / "says dead end" (10.5px bold, `0 5px`, 1px ink border, the badge's colors: sun, ink, paper). Its ▲ reads `▲ back` (a button, `aria-pressed`, bold moss once you back it), then "· 3 backers". Not joined or signed out: only "▲ 3 backers", with the title "join this branch to back its claims". A claim has delete but no edit.
 - **The work** (a passed claim, Oct 14; "pinned work" until Oct 15): under its evidence, `.pins` (12px): "the work:" then a `ul` with one link per line, each after a `· `. A repo at a commit or a url with its sha256 is a link (`source ↗` + `.note` "(codeberg.org, commit 4e1d2c7)"); an `ipfs://`, `magnet:` or `rad:` address is `code.pin` (11.5px, breaks anywhere, `user-select: all`), never a link and never fetched. None: `.nopins` "no work linked" (12px, .8).
+
+### Participant text
+
+`.txt` (Oct 19, [decision](decisions.md#oct-11-terms-and-privacy-final)): what people write, rendered from Markdown by `apps/site/src/render/text.tsx`, in `--prose` at 15px / 1.6. Every line break is kept. Headings are `h3`–`h6` `.mh` (bold, 1.25em / 1.1em / 1em, no uppercase), under the page's own. Lists indent 1.6em; a task item drops its bullet for ☐ or ☑. Quotes have a 3px 30%-ink left rule. Tables sit in `.tbl` (scrolls sideways inside the post, never the page): collapsed 1px 35%-ink borders, `3px 8px` cells, a 7%-ink header row, `.c` / `.r` alignment. `code` is `--mono` at .88em on 8% ink; fences are `pre.code` (ink, paper text, 12.5px mono). A `[label](address)` link is an outside link with its ↗ and, when the label doesn't name it, the host after it in `.host` (.8em, .75). Feed cards show the pitch without block marks, still in mono.
 
 ### Addressing
 
@@ -270,9 +275,17 @@ shwarm stores only text ([decision log](decisions.md)), so user work always show
 
 `.box`: `--rule` border, paper. `.box h2`: moss bar (12px uppercase, paper text, `--rule` bottom), name left, lowercase note `span` right. `h2.sunny` (sun, ink text) marks action boxes: the people card, the author's own box. Lists: `.branches` (name + badge on `.nm`, 11.5px `.sub` with the impact mark) and `.crew` (name left, mark right).
 
+### About card
+
+`.box.about` (Oct 19, [decision](decisions.md#oct-11-terms-and-privacy-final)): first sidebar box on shwarm and branch pages, under the author's own box. `h2` "about this shwarm" / "about this branch". In `.in`, one line each, 4px apart: "started by @bmo_fan 6 days ago" ("opened by" on a branch); a `.note` with people (branch only), posts a day and last activity; the [builds-on chip](#builds-on) (wraps inside the card); the note about the work's license; `.flagline` (12px) "flag this shwarm", which opens its form in place.
+
+### Related shwarms
+
+`.box.related` (Oct 19, [decision](decisions.md#oct-11-terms-and-privacy-final)): on a shwarm page, under the branches. `h2` "related shwarms" with the note "by shared tags". A `.branches` list of up to five: the title as a link on `.nm`, and a `.sub` "12 people · #games #gzdoom" (up to three shared tags, plain text). No box on a branch or when nothing shares a tag.
+
 ### People card
 
-`.box.people` (decided Oct 14): first sidebar box on shwarm and branch pages, under the author's own box. [shwarm.html](../mockups/shwarm.html) and [branch.html](../mockups/branch.html) draw it; it replaced the contribute card, the status box and the contributors box.
+`.box.people` (decided Oct 14): on shwarm and branch pages, under the [about card](#about-card) (first under the author's own box until Oct 19). [shwarm.html](../mockups/shwarm.html) and [branch.html](../mockups/branch.html) draw it; it replaced the contribute card, the status box and the contributors box.
 
 - **Heading** `.ph`: a sun bar (flex, `--rule` bottom) holding `h2.sunny` "on this branch" ("on this shwarm") and the [status badge](#status-badges) at its right.
 - **Challenger line** `.chal` (12px bold): "blocked is ahead by 2. at this rate, the status changes to blocked in 21 hours." or "… blocked needs a lead of 2 to start counting.", only while another status leads. Hour-grained ("in 9 hours", "in under an hour").

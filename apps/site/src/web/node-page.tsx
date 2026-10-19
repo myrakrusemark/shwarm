@@ -22,10 +22,12 @@ import { PASS_BOX, type ClaimRow, type PassRecord, type StatusData } from '../re
 import { FORMER } from '../read/names'
 import { postsPerDay } from '../read/people'
 import { ACTIVITY_DAYS, type ActivityDay } from '../read/activity'
+import type { Related } from '../read/related'
 import { recordedStatus, review, type ReviewRow } from '../read/review'
 import { ago, cut, exact, licenseName, monthDay, perDay, q1, shortNum, triageNote } from '../render/format'
 import { showHidden } from '../render/hidden'
 import { MAX_TEXT } from '../core/text'
+import { plainOf } from '../core/markdown'
 import { Command, LINK_REL, linkParts, Log, Name, Plain, Text } from '../render/text'
 import { REASON_LABEL, REASONS, REPORT_TEXT_MAX } from '../core/reports'
 import { FLAG_LABEL, FLAG_REASONS, PAUSE_AT } from '../core/flags'
@@ -73,6 +75,7 @@ export type NodePageData = {
   joins?: JoinLine[] // the thread's quiet "✿ @you joined" lines: joins made here with no hello, oldest first (read/node.ts readJoins)
   nodeEdits?: NodeEdit[] // the shwarm's earlier versions, newest first (its author's edits until Oct 12; re-pitches before Oct 10)
   activity: ActivityDay[] // public posts per UTC day here and under here, oldest first, today last (read/activity.ts)
+  related?: Related[] // the sidebar's related shwarms, by shared tags (read/related.ts); none on a branch
   status: StatusData // its status, claims, pass records and history, and the viewer's own backing (decided Oct 14)
   sort: Sort
   show: Show
@@ -91,7 +94,7 @@ export const subHref = (path: string, n: number) => `/w/${path}/s/${n}` // an ol
 /** A shwarm's "build on this": the create form with builds-on filled in (go-live 4.3; decided Oct 14, any shwarm). */
 export const buildOnHref = (path: string) => `/new?builds_on=${encodeURIComponent(path)}`
 /** A shwarm's or branch's link preview (go-live 11.7, web/layout.tsx `card`): its title, and its pitch as the description. */
-export const previewCard = (n: { title: string; what: string }) => ({ title: showHidden(n.title), description: cut(showHidden(n.what), 200) })
+export const previewCard = (n: { title: string; what: string }) => ({ title: showHidden(n.title), description: cut(showHidden(plainOf(n.what)), 200) })
 export const Ago: FC<{ at: string | null; now: number; short?: boolean }> = ({ at, now, short }) => <span title={exact(at)}>{ago(at, now, short)}</span>
 const Imp: FC<{ q: number; ppd: number }> = ({ q, ppd }) => (
   <span class="imp" style={`--q:${q1(q)}`} title={fill(w.node.impTitle, { q: q1(q), ppd: perDay(ppd) })}>{fill(w.node.impPerDay, { ppd: perDay(ppd) })}</span>
@@ -106,7 +109,7 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
   const opensSoon = useContext(PageContext).opensSoon
   return (
-    <Layout title={fill(w.node.pageTitle, { title: showHidden(n.title) })} description={cut(showHidden(n.what), 200)} canonical={nodeHref(n.path)} card={previewCard(n)}>
+    <Layout title={fill(w.node.pageTitle, { title: showHidden(n.title) })} description={cut(showHidden(plainOf(n.what)), 200)} canonical={nodeHref(n.path)} card={previewCard(n)}>
       <link rel="stylesheet" href="/css/node.css" />
       {n.kind === 'branch' ? <Crumbs chain={d.chain} /> : <a class="back" href="/">{w.node.backToHot}</a>}
       {n.visibility === 'author' && <TriageNote triage={n.triage} />}
@@ -124,8 +127,10 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
         </main>
         <aside>
           <Owner d={d} />
+          <About d={d} />
           <PeopleCard d={d} />
           <Branches d={d} />
+          <RelatedShwarms d={d} />
           <AgentResources />
         </aside>
       </div>
@@ -165,21 +170,13 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
       <div>
         {isBranch && <div class="kicker">{fillx(w.node.branchOf, { parent: <a href={nodeHref(parent.path)}><Plain text={parent.title} /></a> })}</div>}
         <h1 class="title">
-          <Text inline text={n.title} />
+          <Text inline marks={false} text={n.title} />
           {s?.hot === 1 && <span class="hotb">{w.node.hot}</span>}
         </h1>
         {!isBranch && n.tags.length > 0 && (
           <div class="tags">{n.tags.map(t => <TagLink tag={t} />)}</div>
         )}
-        {!isBranch && <Builds n={n} />}
-        <WorkLicense d={d} />
-        <div class="meta">
-          {fillx(isBranch ? w.node.openedBy : w.node.startedBy, { name: <Name name={n.posted_by} link />, ago: <Ago at={n.created_at} now={d.now} /> })}
-          {isBranch && s && <> · {count(w.node.people, s.people)}</>}
-          {s && s.posts_per_day > 0 && <> · {fill(w.node.postsPerDay, { n: perDay(s.posts_per_day) })}</>}
-          {n.changed_at && <> · {fillx(w.node.lastActivity, { ago: <Ago at={n.changed_at} now={d.now} /> })}</>}
-          <FlagNode d={d} />
-        </div>
+        {/* what, then done when under it (decided Oct 19); who started it and what it builds on are in the about card */}
         <div class="pitch">
           <div class="what">
             <h3>{w.node.what}</h3>
@@ -206,6 +203,58 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
     </section>
   )
 }
+
+/**
+ * The about card, first in the sidebar under the author's own box (decided Oct 19, after rstation's "about this
+ * problem"): who started the shwarm or opened the branch and when, its last activity and pace, what it builds on, the
+ * note about its work's license, and "flag this shwarm". They were the lines under the title; the head keeps the title,
+ * the tags and the words.
+ */
+const About: FC<{ d: NodePageData }> = ({ d }) => {
+  const n = d.chain.node
+  const isBranch = n.kind === 'branch'
+  const s = n.stats
+  const pace = [
+    isBranch && s ? count(w.node.people, s.people) : null,
+    s && s.posts_per_day > 0 ? fill(w.node.postsPerDay, { n: perDay(s.posts_per_day) }) : null,
+    n.changed_at ? fillx(w.node.lastActivity, { ago: <Ago at={n.changed_at} now={d.now} /> }) : null,
+  ].filter(x => x !== null)
+  return (
+    <section class="box about">
+      <h2>{fill(w.node.aboutKind, { kind: kindWord(n) })}</h2>
+      <div class="in">
+        <div>{fillx(isBranch ? w.node.openedBy : w.node.startedBy, { name: <Name name={n.posted_by} link />, ago: <Ago at={n.created_at} now={d.now} /> })}</div>
+        {pace.length > 0 && <div class="note">{pace.map((x, i) => <>{i > 0 && ' · '}{x}</>)}</div>}
+        {!isBranch && <Builds n={n} />}
+        <WorkLicense d={d} />
+        <FlagNode d={d} />
+      </div>
+    </section>
+  )
+}
+
+/**
+ * The related shwarms card (decided Oct 19), under the branches: up to five shwarms that share tags with this one
+ * (read/related.ts), each with how many people are on it and the tags it shares. Not on a branch, nor when nothing
+ * shares a tag.
+ */
+const RelatedShwarms: FC<{ d: NodePageData }> = ({ d }) =>
+  d.related?.length ? (
+    <section class="box related">
+      <h2>
+        {w.node.related}
+        <span>{w.node.relatedHow}</span>
+      </h2>
+      <ul class="branches">
+        {d.related.map(r => (
+          <li>
+            <div class="nm"><a href={nodeHref(r.path)}><Plain text={r.title} /></a></div>
+            <div class="sub">{count(w.node.people, r.people)}{r.shared.length > 0 && <> · {r.shared.map(t => `#${t}`).join(' ')}</>}</div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  ) : null
 
 /**
  * An edited shwarm's earlier versions, newest first, as a post's edit history shows its versions: each with when it was
@@ -382,23 +431,22 @@ export const PausedNote: FC<{ kind: string }> = ({ kind }) => (
 const hasFlagSpot = (d: NodePageData) => !!d.me?.verified && d.me.personId !== d.chain.node.author_id
 
 /**
- * "flag this shwarm" / "flag this branch" in the head's meta line (go-live 9.3, core/flags.ts): for a signed-in person
+ * "flag this shwarm" / "flag this branch", last in the about card (go-live 9.3, core/flags.ts): for a signed-in person
  * with a verified email but the node's author, once per node, then "you flagged this". Not an act the beta limits, and
  * not behind the password. Signed out, it goes to sign-in and back. Not shown before the email is verified: a flag
- * there would only be refused. Rendered with its own " · " first.
+ * there would only be refused.
  * OPEN (#106): new wording. No mockup draws it.
  */
 const FlagNode: FC<{ d: NodePageData }> = ({ d }) => {
   const n = d.chain.node
   const word = kindWord(n)
-  if (!d.me) return <> · <a class="flag-it" href={signInHref(d.here)}>{fill(w.node.flagThis, { kind: word })}</a></>
+  if (!d.me) return <div class="flagline"><a class="flag-it" href={signInHref(d.here)}>{fill(w.node.flagThis, { kind: word })}</a></div>
   if (!hasFlagSpot(d)) return null
   const flash = d.flash?.at === 'flag' ? d.flash : undefined
-  if (d.myFlag) return <> · <span class="note flag-it" role={flash ? 'status' : undefined}>{flash ? flash.text : fill(w.node.youFlagged, { kind: word })}</span></>
+  if (d.myFlag) return <div class="flagline"><span class="note flag-it" role={flash ? 'status' : undefined}>{flash ? flash.text : fill(w.node.youFlagged, { kind: word })}</span></div>
   const reason = flash?.fields?.reason
   return (
-    <>
-      {' · '}
+    <div class="flagline">
       <details class="flag" open={flash ? true : undefined}>
         <summary>{fill(w.node.flagThis, { kind: word })}</summary>
         <form method="post" action={d.here} class="flag-act">
@@ -417,7 +465,7 @@ const FlagNode: FC<{ d: NodePageData }> = ({ d }) => {
           </div>
         </form>
       </details>
-    </>
+    </div>
   )
 }
 

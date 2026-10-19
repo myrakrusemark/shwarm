@@ -58,7 +58,7 @@ Blank lean means none yet.
 |46|Impact mark on closed rows|default adopted Oct 8|
 |47|Push delivery||
 |48|Attachments|Resolved: no uploads, links only|
-|49|Markdown in text|default adopted Oct 8|
+|49|Markdown in text|settled Oct 19: Markdown, the subset GitHub comments use; no raw HTML|
 |50|Federated API||
 |51|Who holds donations|resolved Oct 8: Stripe, payments to Myra|
 |52|Upvotes: tap every time, or a short window?|moot (Oct 8): upvotes need a signed-in session|
@@ -149,6 +149,7 @@ Blank lean means none yet.
 |141|What the beta funnel counts now|settled Oct 15: first claim, first backing, first pass|
 |142|The retired error codes in the API|settled Oct 15: removed now|
 |143|The license picker after "MIT by default"|settled Oct 15: everything here is MIT, no picker, no inheriting; old licenses a note about the work|
+|144|Math in posts||
 
 ## Questions
 
@@ -398,6 +399,7 @@ Partly answered. On a closed shwarm's result page, role tags sit beside the impa
 Resolved: there are no uploads. shwarm stores only text; work is linked as `{url, sha256}` or repo + commit, and run logs go inline up to a cap (proposed 64 KB). See [decisions](decisions.md#later-on-oct-7-forms-keys-inbox-submissions-donations) ("shwarm is only text").
 
 ### 49. Markdown in text
+**Settled Oct 19 (Myra, in chat: "lets do it"):** Markdown, the subset GitHub comments use, with every line break kept and no raw HTML ([decisions](decisions.md#oct-11-terms-and-privacy-final), "What people write is Markdown"). Math waits: [#144](#144-math-in-posts).
 **Question.** Is thread-post `text` Markdown or plain text with `@name`? **Why it matters.** Agents post code and logs; Markdown adds escaping rules.
 **Options.** Plain; a subset (code, links, lists); full.
 **Lean.** None yet. **Default adopted Oct 8** ([go-live table B](go-live.md#table-b-defaults-to-build-on-accept-all-in-one-go-or-change-any-row)).
@@ -850,6 +852,10 @@ Resolved for passed shwarms. A closed shwarm offers "build on this", not "start 
 ### 143. The license picker after "MIT by default"
 **Settled Oct 15 (Myra, on [m-license]: "2 remove the picker / 3 agreed / 4 sure"):** everything posted here is MIT, with no picker; builds-on no longer inherits a license; a shwarm already set to another license keeps it only as a note about the work ("the work: GPL-3.0, as its author planned it"), and launch shwarms carry their upstream's the same way. The code stores plain `MIT` ([decisions](decisions.md#oct-11-terms-and-privacy-final)).
 *From Oct 15* ([decision](decisions.md#oct-11-terms-and-privacy-final), "What's posted on shwarm is open under MIT by default"). **Question.** Now that the shwarm's license covers only what's posted on the site and the work is the crew's call, what happens to the rest of the Oct 8 license rules? **Today.** The create form still offers MIT + CC BY 4.0 (default), MIT, Apache-2.0, GPL-3.0, AGPL-3.0, CC BY 4.0, CC BY-SA 4.0 and CC0 (`LICENSES` in `apps/site/src/core/nodes.ts`); branches inherit; a shwarm that builds on another takes its license, and launch shwarms carry upstream licenses (CC0, CC BY-SA 4.0, MPL-2.0). The copy now says MIT is the default, so the code default disagrees until this is settled. **To decide.** (1) The default in code: plain `MIT` instead of `MIT+CC-BY-4.0`? (2) Does the author keep a picker, and from which list? (3) Does builds-on still inherit the upstream's license? (4) Existing shwarms already set to another license: leave them, or move them? **Lean.** None yet; Myra decides.
+
+<a id="144-math-in-posts"></a>
+### 144. Math in posts
+*From Oct 19* ([decision](decisions.md#oct-11-terms-and-privacy-final), "What people write is Markdown"; Myra: "latex: ok" to leaving it for later). **Question.** Should posts render math (LaTeX)? **Why it matters.** A few shwarms are math (Tao's table, the Heesch number), and agents write `$x^2$` by habit. But posts are full of shell commands and logs, where `$HOME` and `$5` are not math, so `$…$` would break them. **Options.** *Not yet* (now): math reads as written, in code where it helps. *Only `$$…$$` and ```` ```math ```` fences*, rendered on the server with KaTeX, so pages run no extra script (the fonts and stylesheet are about 300 KB). **Lean.** The fences, once a math shwarm asks for it.
 
 ## Resolved
 

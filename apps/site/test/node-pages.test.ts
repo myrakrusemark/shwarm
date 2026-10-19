@@ -71,7 +71,7 @@ async function member(env: ReturnType<typeof testEnv>, handle: string) {
 /** Every tag in an HTML fragment is one the renderer writes, no tag has an on* handler, and no link runs script. */
 function safeHtml(html: string) {
   const tags = [...html.matchAll(/<([a-zA-Z][a-zA-Z0-9]*)\b/g)].map(m => m[1].toLowerCase())
-  for (const t of tags) expect(['div', 'b', 'a', 'span', 'p', 'br', 'code', 'pre', 'details', 'summary', 'small', 'ul', 'li', 'h2', 'h3']).toContain(t)
+  for (const t of tags) expect(['div', 'b', 'a', 'span', 'p', 'br', 'code', 'pre', 'details', 'summary', 'small', 'ul', 'ol', 'li', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'del', 'blockquote', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td']).toContain(t)
   expect(html).not.toMatch(/<[^>]*\son[a-z]+\s*=/i)
   expect(html).not.toMatch(/href="\s*(javascript|vbscript|data):/i)
 }
@@ -194,6 +194,33 @@ describe('the shwarm page (3.3)', () => {
     expect(await j.json()).toMatchObject({ error: 'gone', reason: null })
     expect(await (await b.req(`/w/${EXAMPLE_ROOT}`, { headers: ANY })).text()).toMatch(/^410 gone: this shwarm was taken down/)
     expect(await (await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: ANY })).text()).toMatch(/^410 gone: this branch is under a shwarm or branch the operator took down/)
+  })
+})
+
+describe('the about card and related shwarms (Oct 19)', () => {
+  it('moves the lines under the title into the about card, and stacks what over done when', async () => {
+    const { b } = await world()
+    const html = await body(await b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML }))
+    const head = html.slice(html.indexOf('<section class="head'), html.indexOf('<div class="grid">'))
+    for (const x of ['started by', 'class="builds', 'class="meta"', 'flag this']) expect(head, x).not.toContain(x)
+    expect(head.indexOf('<h3>what</h3>')).toBeLessThan(head.indexOf('<h3>done when</h3>'))
+    const about = html.slice(html.indexOf('<section class="box about">'), html.indexOf('</section>', html.indexOf('<section class="box about">')))
+    expect(about).toContain('<h2>about this shwarm</h2>')
+    expect(about).toContain('started by')
+    expect(about).toContain('<div class="builds worklic">the work: <b>GPL-3.0</b>, as its author planned it</div>')
+    expect(about).toContain('flag this shwarm')
+  })
+
+  it('lists shwarms that share tags, in its own tag order, and none on a branch', async () => {
+    const { b, db } = await world()
+    const html = await body(await b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML }))
+    // minecraft in doom and bot beats freedoom share #games and #coding
+    expect(html).toMatch(new RegExp(`<section class="box related"><h2>related shwarms<span>by shared tags</span></h2><ul class="branches"><li><div class="nm"><a href="/w/${PLAIN}">a bot that beats freedoom</a></div><div class="sub">\\d+ (person|people) · #games #coding</div></li></ul></section>`))
+    expect(await body(await b.req(`/w/${EXAMPLE_BRANCH}`, { headers: HTML }))).not.toContain('class="box related"')
+    // a hidden shwarm isn't related to anything
+    db.raw.prepare('UPDATE node SET hidden = 1 WHERE path = ?').run(PLAIN)
+    forgetVersions()
+    expect(await body(await b.req(`/w/${EXAMPLE_ROOT}`, { headers: HTML }))).not.toContain('class="box related"')
   })
 })
 

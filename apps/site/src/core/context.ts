@@ -6,7 +6,7 @@ import { mailToPersonStatement } from '../email/outbox'
 import type { Actor } from './actor'
 import { nodeHref } from './audit'
 import { newId } from './ids'
-import { extractMentions } from './text'
+import { extractMentions } from './markdown'
 import { SEEN_NODE } from '../read/visibility'
 import { actsInBeta, BETA_REFUSAL } from './site-mode'
 

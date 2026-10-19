@@ -1,11 +1,13 @@
-// The safe text renderer (go-live 3.3, table B #49): post text, done tests, commands, logs and names.
-// Plain text in, HTML out. No raw HTML ever: every character of input is escaped, and the only markup is
-// what this file writes. Line breaks are kept; ``` fences and `inline code` show monospace; http(s) links,
-// @names and #tags become links. Links are never embedded as media.
+// The safe text renderer (go-live 3.3): post text, done tests, commands, logs and names.
+// Markdown in, HTML out (decided Oct 19; core/markdown.ts reads it). No raw HTML ever: every character of input is
+// escaped, and the only markup is what this file writes. Line breaks are kept; http(s) links, @names and #tags become
+// links. Links are never embedded as media: an image is a link. A [label](address) link names its host beside the
+// label unless the label already does, so the words can't hide where it goes.
 import { raw } from 'hono/html'
 import type { FC } from 'hono/jsx'
 import { isValidName } from '@shwarm/protocol'
-import { inlineRuns, proseTokens, textBlocks, textLines } from '../core/text'
+import { labelText, parseInline, parseText, textLines, type Block, type Inline } from '../core/markdown'
+import { proseTokens } from '../core/text'
 import { BIDI_RE, escapeOf, HIDDEN_RE, hiddenName } from './hidden'
 
 /** rel on every outside link: no ranking credit, user content, no window.opener, no referrer. */
@@ -99,21 +101,83 @@ function linkify(s: string): string {
   return out + prose(s.slice(at))
 }
 
-/** One line or paragraph: `code` spans first, then links in the rest. */
-const inline = (s: string) => inlineRuns(s).map(r => (r.code ? `<code>${strict(r.text)}</code>` : linkify(r.text))).join('')
+/** A [label](address) link. Outside, with nofollow and the ↗, and the host beside it unless the label names it. */
+function mdLink(n: Extract<Inline, { t: 'link' }>): string {
+  const label = inlines(n.kids, false)
+  if (n.href.startsWith('/')) return `<a href="${esc(n.href)}">${label || strict(n.href)}</a>`
+  const p = linkParts(n.href)
+  if (!p) return label ? `${label} (${strict(n.href)})` : strict(n.href)
+  const host = new URL(p.href).host
+  const named = labelText(n.kids).toLowerCase().includes(host.replace(/^www\./, ''))
+  const tail = label && !named ? ` <span class="host">${strict(host)}</span>` : ''
+  return `<a class="out" href="${esc(p.href)}" rel="${LINK_REL}">${label || strict(p.text)}<span class="ext" aria-hidden="true"> ↗</span></a>${tail}`
+}
+
+/** Inline nodes as HTML. Inside a link's label (`linked` false) nothing more is linked. */
+function inlines(ns: Inline[], linked = true): string {
+  let out = ''
+  for (const n of ns) {
+    if (n.t === 'text') out += linked ? linkify(n.s) : prose(n.s)
+    else if (n.t === 'code') out += `<code>${strict(n.s)}</code>`
+    else if (n.t === 'link') out += linked ? mdLink(n) : inlines(n.kids, false)
+    else out += `<${n.t}>${inlines(n.kids, linked)}</${n.t}>`
+  }
+  return out
+}
+
+const ALIGN = { left: ' class="l"', center: ' class="c"', right: ' class="r"' } as const
+const cellAttr = (a: 'left' | 'center' | 'right' | null) => (a ? ALIGN[a] : '')
+const lineHtml = (ls: Inline[][]) => ls.map(l => inlines(l)).join('<br>')
+
+/** Blocks as HTML. A heading sits under the page's own: # is an <h3>, ###### an <h6>. */
+function blocks(bs: Block[]): string {
+  return bs
+    .map(b => {
+      switch (b.t) {
+        case 'p':
+          return `<p>${lineHtml(b.lines)}</p>`
+        case 'h': {
+          const h = `h${Math.min(6, b.level + 2)}`
+          return `<${h} class="mh">${inlines(b.kids)}</${h}>`
+        }
+        case 'code':
+          return `<pre class="code"><code>${strict(b.code)}</code></pre>`
+        case 'quote':
+          return `<blockquote>${blocks(b.blocks)}</blockquote>`
+        case 'hr':
+          return '<hr>'
+        case 'list': {
+          const tag = b.ordered ? 'ol' : 'ul'
+          const items = b.items.map(it => {
+            // an item's first paragraph sits in the <li> itself, as GitHub draws a tight list
+            const [first, ...rest] = it.blocks
+            const body = first?.t === 'p' ? lineHtml(first.lines) + (rest.length ? '\n' + blocks(rest) : '') : blocks(it.blocks)
+            const box = it.task === null ? '' : `<span class="tick" aria-hidden="true">${it.task ? '☑' : '☐'}</span> `
+            return `<li${it.task === null ? '' : ' class="task"'}>${box}${body}</li>`
+          })
+          return `<${tag}${b.ordered && b.start !== 1 ? ` start="${b.start}"` : ''}>${items.join('')}</${tag}>`
+        }
+        case 'table': {
+          const head = b.head.map((c, k) => `<th${cellAttr(b.align[k])}>${inlines(c)}</th>`).join('')
+          const rows = b.rows.map(r => `<tr>${r.map((c, k) => `<td${cellAttr(b.align[k])}>${inlines(c)}</td>`).join('')}</tr>`).join('')
+          return `<div class="tbl"><table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>`
+        }
+      }
+    })
+    .join('\n')
+}
 
 // ---------- the public functions ----------
 
 /**
- * Post text as HTML: paragraphs at blank lines, <br> at line breaks, ``` fences as <pre><code>.
- * With `inline`, one run of text with <br> at line breaks and no paragraphs or fences (done tests, titles).
+ * Post text as HTML: Markdown blocks (core/markdown.ts), every line break kept.
+ * With `inline`, one run of text with <br> at line breaks and only inline marks (done tests in lists, notes); with
+ * `marks: false` as well, only `code` and links (a title).
  * With `addressed`, an @name that opens the text is marked as who the post is addressed to (design system `.to`).
  */
-export function renderText(text: string, opts: { inline?: boolean; addressed?: boolean } = {}): string {
-  if (opts.inline) return textLines(text).map(inline).join('<br>')
-  const html = textBlocks(text)
-    .map(b => ('code' in b ? `<pre class="code"><code>${strict(b.code)}</code></pre>` : `<p>${b.lines.map(inline).join('<br>')}</p>`))
-    .join('\n')
+export function renderText(text: string, opts: { inline?: boolean; addressed?: boolean; marks?: boolean } = {}): string {
+  if (opts.inline) return textLines(text).map(l => inlines(parseInline(l, 0, opts.marks !== false))).join('<br>')
+  const html = blocks(parseText(text))
   // An opening @name renders as `<a href="/@…">` (urls carry class="out", tags class="t"), so this only adds a class.
   return opts.addressed && html.startsWith('<p><a href="/@') ? '<p><a class="to" href="/@' + html.slice('<p><a href="/@'.length) : html
 }
@@ -127,8 +191,8 @@ export const renderLog = (log: string) => `<pre class="log">${strict(log.replace
 
 // ---------- components ----------
 
-export const Text: FC<{ text: string; inline?: boolean; addressed?: boolean }> = ({ text, inline, addressed }) =>
-  inline ? raw(renderText(text, { inline: true })) : raw(`<div class="txt">${renderText(text, { addressed })}</div>`)
+export const Text: FC<{ text: string; inline?: boolean; addressed?: boolean; marks?: boolean }> = ({ text, inline, addressed, marks }) =>
+  inline ? raw(renderText(text, { inline: true, marks })) : raw(`<div class="txt">${renderText(text, { addressed })}</div>`)
 export const Command: FC<{ cmd: string }> = ({ cmd }) => raw(renderCommand(cmd))
 export const Log: FC<{ text: string }> = ({ text }) => raw(renderLog(text))
 export const Name: FC<{ name: string; link?: boolean; class?: string }> = props =>

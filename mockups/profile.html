@@ -17,11 +17,13 @@
     --sky: #1d4ed8;
     --rule: 1.5px solid var(--ink);
     --rule-heavy: 3px solid var(--ink);
+    --mono: ui-monospace, "JetBrains Mono", "IBM Plex Mono", Menlo, Consolas, monospace;
+    --prose: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--paper); color: var(--ink); }
   body {
-    font: 14px/1.5 ui-monospace, "JetBrains Mono", "IBM Plex Mono", Menlo, Consolas, monospace;
+    font: 14px/1.5 var(--mono);
     background-image: radial-gradient(circle at 1px 1px, rgba(19,38,27,.10) 1px, transparent 0);
     background-size: 14px 14px;
   }
@@ -53,12 +55,13 @@
   .meta { font-size: 12px; opacity: .85; }
   .st { font-size: 11px; font-weight: 700; padding: 1px 6px; border: 2px solid var(--ink); white-space: nowrap; display: inline-block; }
 
-  .pitch { margin-top: 12px; padding-top: 10px; border-top: 1px dashed rgba(19,38,27,.35); display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  .pitch { margin-top: 12px; padding-top: 10px; border-top: 1px dashed rgba(19,38,27,.35); display: grid; gap: 14px; }
+  .pitch > div { max-width: 780px; }
   .pitch p { margin: 0 0 8px; }
   .pitch h3 { margin: 0 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: .7; }
   .pitch .done { border-left: 4px solid var(--sun); padding-left: 14px; }
-  .pitch .done ul { list-style: none; margin: 0 0 6px; padding: 0; font-size: 12.5px; }
-  .pitch .done li::before { content: "· "; }
+  .pitch .done > ul { list-style: none; margin: 0 0 6px; padding: 0; font-size: 12.5px; }
+  .pitch .done > ul > li::before { content: "· "; }
   .pitch .done .stat { font-size: 12px; font-weight: 700; }
   .pitch .done .alt { font-size: 12px; margin-top: 6px; }
   .grid { display: grid; grid-template-columns: 1fr 320px; gap: 18px; margin-top: 18px; align-items: start; }
@@ -121,7 +124,7 @@
   footer { margin-top: 24px; font-size: 12px; display: flex; flex-wrap: wrap; gap: 14px; }
   footer .vine { flex-basis: 100%; color: var(--leaf); letter-spacing: 2px; overflow: hidden; white-space: nowrap; }
 
-  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } .tag { display: none; } .pitch { grid-template-columns: 1fr; } }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } .tag { display: none; } }
 
   /* profile */
   .who-head { background: linear-gradient(90deg, rgba(92,154,62,.22), transparent 70%), var(--paper); padding: 14px; display: grid; grid-template-columns: 1fr auto; gap: 14px; margin-top: 16px; }

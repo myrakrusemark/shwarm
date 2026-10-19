@@ -66,11 +66,11 @@ async function signIn(env: ReturnType<typeof testEnv>, handle: string, o: { esta
 }
 
 const page = async (b: Browser, path = ROOT) => body(await b.req(path, { headers: HTML }))
-/** The head's meta line, where the flag control is. */
+/** The sidebar's about card, where the flag control is (decided Oct 19). */
 const metaIn = (html: string) => {
-  const i = html.indexOf('<div class="meta">')
+  const i = html.indexOf('<section class="box about">')
   expect(i).toBeGreaterThan(-1)
-  return html.slice(i, html.indexOf('<div class="pitch">', i))
+  return html.slice(i, html.indexOf('</section>', i))
 }
 async function act(b: Browser, fields: Record<string, string>, path = ROOT) {
   const token = formTokenIn(await page(b, path))

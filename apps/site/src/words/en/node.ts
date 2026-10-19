@@ -27,17 +27,19 @@ export const node = {
   branchOf: 'branch of {parent}',
   // head: the "hot" badge beside the title
   hot: 'hot',
-  // head: the line under the title ({name} is who, {ago} is when)
+  // sidebar: the about card, first under the author's own box ({kind} is shwarm or branch), and its lines ({name} is
+  // who, {ago} is when)
+  aboutKind: 'about this {kind}',
   startedBy: 'started by {name} {ago}',
   openedBy: 'opened by {name} {ago}',
   people: { one: '{n} person', other: '{n} people' },
   postsPerDay: '{n} posts/day',
   lastActivity: 'last activity {ago}',
-  // head: on a shwarm set to another license before everything here became MIT (decided Oct 15), or a launch shwarm
+  // about card: on a shwarm set to another license before everything here became MIT (decided Oct 15), or a launch shwarm
   // carrying its upstream's, a note about its work ({license} is that license); a branch shows its shwarm's. An MIT
   // shwarm shows nothing: the footer and the rules say everything here is MIT.
   workLicense: 'the work: {license}, as its author planned it',
-  // head: what a shwarm builds on ({node} is a shwarm here, {source} any other project)
+  // about card: what a shwarm builds on ({node} is a shwarm here, {source} any other project)
   buildsOnNode: 'builds on {node}',
   // the same, for a shwarm built on another one as it was when it last passed ({date} is that day, a link to its pass box)
   buildsOnNodeAsOf: 'builds on {node}, as passed {date}',
@@ -48,14 +50,14 @@ export const node = {
   authorApproved: '✓ author approved',
   authorApprovedTitle: "the author approved on {date}, citing {name}'s claim",
   authorApprovedOn: 'the author approved on {date}',
-  // head: "flag this shwarm" at the end of the line under the title, and its form
+  // about card: "flag this shwarm" on its last line, and its form
   flagThis: 'flag this {kind}',
   youFlagged: 'you flagged this {kind}',
   flagWhatsWrong: "what's wrong with this {kind}?",
   // {n} is how many flags pause it, {kind} is shwarm or branch
   flagNote: "flags are private: only the people who run shwarm see who flagged. after {n} flags from accounts at least a week old with an upvoted post, the {kind} pauses until they review the flags.",
   flagIt: 'send flag',
-  // head: the two columns, what and done when
+  // head: what, and done when under it
   what: 'what',
   doneWhen: 'done when',
   checkedBy: 'checked by',
@@ -249,6 +251,9 @@ export const node = {
   yourKind: 'your {kind}',
   onlyYou: 'only you see this box',
 
+  // sidebar: the related shwarms box, under the branches: shwarms sharing tags with this one, and its note
+  related: 'related shwarms',
+  relatedHow: 'by shared tags',
   // sidebar: the branches box ({kinds} is branches or subBranches, {kind} is kindBranch or subBranch)
   branches: 'branches',
   subBranches: 'sub-branches',

@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { extractMentions } from '../src/core/text'
+import { extractMentions } from '../src/core/markdown'
 import { hasHidden, hiddenIn, hiddenProblem, showHidden } from '../src/render/hidden'
 import { linkParts, nameHref, renderCommand, renderLink, renderLog, renderName, renderNameLink, renderText, Text } from '../src/render/text'
 
 import { OWASP } from './owasp'
 
-const TAGS = new Set(['p', 'br', 'a', 'code', 'pre', 'span', 'div'])
-const ATTRS = new Set(['class', 'href', 'rel', 'title', 'aria-hidden'])
+const TAGS = new Set(['p', 'br', 'a', 'code', 'pre', 'span', 'div', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'strong', 'em', 'del'])
+const ATTRS = new Set(['class', 'href', 'rel', 'title', 'aria-hidden', 'start'])
 
 /** Every tag in `html` is one the renderer writes, every attribute is allowed, every href is safe. */
 function inert(html: string) {
@@ -17,7 +17,7 @@ function inert(html: string) {
     expect(attrs, html).toMatch(/^(?:[a-z-]+="[^"<]*"\s*)*\/?$/)
     for (const a of attrs.matchAll(/([a-z-]+)="([^"]*)"/g)) {
       expect(ATTRS.has(a[1]), `attribute ${a[1]} in ${html}`).toBe(true)
-      if (a[1] === 'href') expect(a[2], html).toMatch(/^(\/[@?]|https?:\/\/)/)
+      if (a[1] === 'href') expect(a[2], html).toMatch(/^(\/(?!\/)|https?:\/\/)/)
     }
   }
   // no stray < > from the input
@@ -49,7 +49,7 @@ describe('the text renderer: XSS', () => {
       expect(textOf(renderLog(p)), p).toBe(p)
       expect(textOf(renderCommand(p)), p).toBe(p)
       const shown = textOf(renderText(p, { inline: true })).replace(/ ↗/g, '')
-      if (!/https?:|`/i.test(p)) expect(shown, p).toBe(p) // backticks become code, links gain ↗
+      if (!/https?:|[`\\*_~[]/i.test(p)) expect(shown, p).toBe(p) // backticks become code, Markdown marks go, links gain ↗
     }
   })
 
