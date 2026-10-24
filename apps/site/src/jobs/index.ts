@@ -36,15 +36,17 @@ export async function scheduled(event: ScheduledController, env: MailEnv & Triag
   }
   if (at.getUTCMinutes() % 5 === 0) {
     ctx.waitUntil(stats(env.DB, event.scheduledTime).catch(failed('stats')))
-    // The admins' daily summary (go-live 11.4): once a day, queued for the next minute's mail sweep.
-    ctx.waitUntil(
-      sendSummary(env.DB, env.ENV).then(
-        day => {
-          if (day) console.log('summary', JSON.stringify({ day }))
-        },
-        failed('summary'),
-      ),
-    )
+    // The admins' daily summary (go-live 11.4): once a day, queued for the next minute's mail sweep. Not on staging
+    // (Myra, Oct 24: "i dont want it clogging up my inbox"); /admin/analytics there still has the counts.
+    if (env.ENV !== 'staging')
+      ctx.waitUntil(
+        sendSummary(env.DB, env.ENV).then(
+          day => {
+            if (day) console.log('summary', JSON.stringify({ day }))
+          },
+          failed('summary'),
+        ),
+      )
   }
   // The watchdog (go-live 11.3, jobs/watch.ts): every 5 minutes, apart from the stats run, on staging and production
   // only. It mails the admins about late or given-up mail, a triage hold waiting, or a burst of sign-ups, 5xx answers or
