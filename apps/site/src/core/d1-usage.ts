@@ -11,6 +11,10 @@
 // (under a minute's worth, usually less), raw() reads (no meta: one count in the outbox sweep), and the flush's own
 // write. first() is run as all(), which is what D1 does underneath anyway (the whole result comes back, then row 0).
 // Only staging and production count (countsD1), so tests and local runs keep their exact queries.
+//
+// The same wrapper retries a SELECT that D1 drops with a transient error (READ_RETRY): D1 already retries read-only
+// queries twice on its own, quickly, and production still saw "Network connection lost" a few times a day (Sentry,
+// Oct 19-23), each one a 500 page. Writes aren't retried: a lost connection may have landed the write.
 
 export const FLUSH_MS = 60_000
 export const FLUSH_ROWS = 50_000
@@ -37,13 +41,37 @@ function add(meta: Partial<D1Meta> | undefined, now = Date.now()) {
   rows += Math.max(0, read) + Math.max(0, written)
 }
 
+// D1's retryable errors (developers.cloudflare.com/d1/best-practices/retry-queries) and the waits before each retry,
+// with up to half again of jitter: a dropped read costs a page under a second more instead of a 500.
+const TRANSIENT = /Network connection lost|storage caused object to be reset|reset because its code was updated/
+export const READ_RETRY = [150, 500]
+const pause = (ms: number) => new Promise(r => setTimeout(r, ms * (1 + Math.random() / 2)))
+
+/** Runs a read, again after each READ_RETRY wait while D1 answers with a transient error. */
+export async function retryRead<T>(read: () => Promise<T>): Promise<T> {
+  for (let i = 0; ; i++) {
+    try {
+      return await read()
+    } catch (e) {
+      if (i >= READ_RETRY.length || !TRANSIENT.test(String((e as Error)?.message ?? e))) throw e
+      await pause(READ_RETRY[i])
+    }
+  }
+}
+
 class Counted {
-  constructor(readonly inner: D1PreparedStatement) {}
+  readonly reads: boolean
+  constructor(
+    readonly inner: D1PreparedStatement,
+    readonly sql: string,
+  ) {
+    this.reads = /^\s*SELECT\b/i.test(sql)
+  }
   bind(...values: unknown[]) {
-    return new Counted(this.inner.bind(...values))
+    return new Counted(this.inner.bind(...values), this.sql)
   }
   async all<T>() {
-    const r = await this.inner.all<T>()
+    const r = this.reads ? await retryRead(() => this.inner.all<T>()) : await this.inner.all<T>()
     add(r.meta)
     return r
   }
@@ -60,7 +88,8 @@ class Counted {
     return (row?.[col] ?? null) as T | null
   }
   raw<T>(opts?: { columnNames?: boolean }) {
-    return opts?.columnNames ? this.inner.raw<T>({ columnNames: true }) : this.inner.raw<T>()
+    const read = (): Promise<unknown> => (opts?.columnNames ? this.inner.raw<T>({ columnNames: true }) : this.inner.raw<T>())
+    return this.reads ? retryRead(read) : read()
   }
 }
 
@@ -69,7 +98,7 @@ const unwrap = (s: D1PreparedStatement) => (s instanceof Counted ? s.inner : s) 
 /** The binding, counting what each statement and batch read and wrote. Statements from it batch only through it. */
 export function tallied(db: D1Database): D1Database {
   return {
-    prepare: (sql: string) => new Counted(db.prepare(sql)) as unknown as D1PreparedStatement,
+    prepare: (sql: string) => new Counted(db.prepare(sql), sql) as unknown as D1PreparedStatement,
     batch: async <T>(stmts: D1PreparedStatement[]) => {
       const out = await db.batch<T>(stmts.map(unwrap))
       for (const r of out) add(r.meta)

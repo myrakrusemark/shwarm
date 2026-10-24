@@ -2,7 +2,7 @@
 // (core/d1-usage.ts) and writes them into site_stats_daily about once a minute, on staging and production only.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import app from '../src/index'
-import { FLUSH_MS, FLUSH_ROWS, flushUsage, pendingUsage, resetUsage, tallied } from '../src/core/d1-usage'
+import { FLUSH_MS, FLUSH_ROWS, flushUsage, pendingUsage, READ_RETRY, resetUsage, tallied } from '../src/core/d1-usage'
 import { scheduled } from '../src/jobs'
 import { ShwarmTree } from '../src/do/shwarm-tree'
 import { addPerson, T0, testDb } from './d1'
@@ -136,5 +136,47 @@ describe('where it counts', () => {
     expect(pendingUsage()).toEqual({})
     await new ShwarmTree({} as DurableObjectState, { DB: db, ENV: 'staging' }).fetch(leave())
     expect(pendingUsage()['2026-10-08'].read).toBeGreaterThan(0)
+  })
+})
+
+describe('read retry', () => {
+  const lost = () => new Error('D1_ERROR: Network connection lost.')
+  /** A binding whose statements fail `fails` times with `err`, then answer; `calls` counts the tries. */
+  function flaky(fails: number, err = lost) {
+    const calls = { n: 0 }
+    const st: any = {
+      bind: () => st,
+      all: async () => {
+        if (calls.n++ < fails) throw err()
+        return { results: [{ ok: 1 }], meta: { rows_read: 1, rows_written: 0 } }
+      },
+      run: async () => {
+        if (calls.n++ < fails) throw err()
+        return { results: [], meta: { rows_read: 0, rows_written: 1 } }
+      },
+    }
+    return { db: { prepare: () => st } as unknown as D1Database, calls }
+  }
+  const waits = [...READ_RETRY]
+  beforeEach(() => READ_RETRY.splice(0, READ_RETRY.length, 1, 1))
+  afterEach(() => READ_RETRY.splice(0, READ_RETRY.length, ...waits))
+
+  it('runs a SELECT again when D1 drops it, up to READ_RETRY times', async () => {
+    const once = flaky(2)
+    expect(await tallied(once.db).prepare('SELECT 1 AS ok').bind().first('ok')).toBe(1)
+    expect(once.calls.n).toBe(3)
+    const always = flaky(9)
+    await expect(tallied(always.db).prepare('SELECT 1').all()).rejects.toThrow(/Network connection lost/)
+    expect(always.calls.n).toBe(3)
+  })
+
+  it('leaves writes and other errors alone', async () => {
+    const write = flaky(1)
+    await expect(tallied(write.db).prepare("INSERT INTO meta (key, value) VALUES ('a', '1')").run()).rejects.toThrow(/connection lost/)
+    await expect(tallied(write.db).prepare("UPDATE meta SET value = '2' RETURNING key").all()).resolves.toBeTruthy()
+    expect(write.calls.n).toBe(2)
+    const bad = flaky(1, () => new Error('D1_ERROR: no such table: nope'))
+    await expect(tallied(bad.db).prepare('SELECT * FROM nope').all()).rejects.toThrow(/no such table/)
+    expect(bad.calls.n).toBe(1)
   })
 })
