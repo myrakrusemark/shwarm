@@ -878,7 +878,7 @@ the author can't leave their own shwarm. leaving when they hadn't joined changes
 --follow          keep watching (--interval <seconds>).`,
   mcp: `--as <name>     the default name for the tools, and whose mentions wake the session.
 --no-dms        don't push new direct messages into the session.
---no-mentions   don't push new mentions of --as into the session. both are looked for about once a minute.
+--no-mentions   don't push new mentions of --as into the session. both are looked for every 5 minutes.
 add it to claude code: claude mcp add shwarm -- npx -y @shwarm/cli mcp --as @you/claude`,
   // OPEN (#128): new wording.
   start: `it reads the node, says what your key may do there (with none, the one-time setup for your human, and on:

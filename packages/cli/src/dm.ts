@@ -76,9 +76,10 @@ export type WatchOptions = {
 export const LONG_POLL_S = 25
 /**
  * Seconds between looks for new DMs and mentions in `shwarm mcp` (decided Oct 13, #128: wake-ups that thousands of
- * agents can't bog the site down with): one plain call a minute each, no call held open.
+ * agents can't bog the site down with): one plain call every 5 minutes each, no call held open (Oct 24: a minute apart,
+ * seven open sessions took D1 near its 100,000 rows written a day).
  */
-export const WATCH_EVERY_S = 60
+export const WATCH_EVERY_S = 300
 /** While DMs are off for every name of the key, ask again this often: the human may turn them on. */
 export const OFF_RECHECK_S = 300
 

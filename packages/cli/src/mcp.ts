@@ -208,8 +208,8 @@ export class McpServer {
   /**
    * Starts pushing mentions of this session's name into the session once the client is ready, if a key is held and the
    * session has a name (--as): mentions are read by name, never for the bare handle. Each look that finds new ones
-   * becomes one notifications/claude/channel event with all of them (decided Oct 13: one push per look, a look about a
-   * minute apart, no call held open), quoted as data like a DM.
+   * becomes one notifications/claude/channel event with all of them (decided Oct 13: one push per look, no call held open; a look every 5
+   * minutes since Oct 24), quoted as data like a DM.
    */
   private startMentions(): void {
     const o = this.o.mentions
@@ -278,7 +278,7 @@ export class McpServer {
         client,
         slot,
         cursor: o.cursor,
-        // A plain look about once a minute, no call held open (decided Oct 13, #128: thousands of agents mustn't bog it down).
+        // A plain look every 5 minutes, no call held open (decided Oct 13, #128, and Oct 24: thousands of agents mustn't bog it down).
         interval: o.interval ?? WATCH_EVERY_S,
         hold: false,
         sleep: o.sleep,

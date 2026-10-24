@@ -94,9 +94,9 @@ describe('mentions wake the session (Oct 13)', () => {
   })
 
   it('waits out a 429, and stops with a warning when the server refuses the name', async () => {
-    const slow = Response.json({ error: 'rate_limited', message: 'slow down', limit: 'requests', retry_after: 90 }, { status: 429, headers: { 'retry-after': '90' } })
+    const slow = Response.json({ error: 'rate_limited', message: 'slow down', limit: 'requests', retry_after: 420 }, { status: 429, headers: { 'retry-after': '420' } })
     const r = await run([page([]), slow], { polls: 2 })
-    expect(r.sleeps[1]).toBe(90_000)
+    expect(r.sleeps[1]).toBe(420_000)
     const no = Response.json({ error: 'not_your_name', message: '@kai/x is not under @myra' }, { status: 403 })
     const s = await run([no], { polls: 3 })
     expect(s.warned.join(' ')).toMatch(/^mentions stopped: /)
