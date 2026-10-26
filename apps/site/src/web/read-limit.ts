@@ -4,14 +4,15 @@
 // A second bucket per network counts searches (the agent guide's staging trial, Oct 15): an unsigned read of /shwarms
 // or the feed at '/' with ?q= or ?tag=, on top of the read it also is. Signed agent-API reads keep their key's limit only.
 //
-// OPEN: the bucket lives in the Worker isolate's memory, not in D1's rate_bucket table. A D1 bucket costs one row
-// write per page view, and the free plan's 100,000 writes a day would then be spent by readers (a crawler could use
+// OPEN: the bucket lives in the Worker isolate's memory (core/buckets.ts), not in D1's rate_bucket table. A D1 bucket
+// costs one row write per page view, and the free plan's 100,000 writes a day would then be spent by readers (a crawler could use
 // up the writes that posting needs). In memory it costs nothing, but each isolate keeps its own count, so a reader
 // spread over many isolates gets more. The numbers are first guesses; nothing is decided. A Workers rate-limit
 // binding, or rate_bucket for heavy hitters only, is the step up (4.9 tests the cap).
 import type { Context } from 'hono'
 import { clientIp } from '../auth/request'
 import { ipPrefix } from '../auth/session'
+import { memoryBuckets } from '../core/buckets'
 import { sendError } from './errors'
 import type { Format } from './format'
 
@@ -20,32 +21,13 @@ export const READ_REFILL_PER_S = 2 // requests per second, per network (/24 or /
 // OPEN: a first guess (builder's default, Oct 15). Chat assistants (ChatGPT, Claude, Gemini) fetch from their provider's
 // shared networks, so many people's tours can land in one /24 and this may need raising, or a per-provider allowance.
 export const SEARCH_PER_HOUR = 300 // searches an hour, per network: a burst of 300, then one every 12 seconds
-const MAX_KEYS = 5000
 
-type Bucket = { tokens: number; at: number }
-
-/** One token bucket per network (/24 or /48), kept to MAX_KEYS networks. */
+/** One bucket per network (/24 or /48). */
 function bucketsOf(burst: number, refillPerS: number) {
-  const buckets = new Map<string, Bucket>()
+  const b = memoryBuckets(burst, refillPerS)
   /** Takes one. Null when allowed, else the seconds to wait. */
-  function take(ip: string | null | undefined, now = Date.now()): number | null {
-    const key = ipPrefix(ip ?? null) ?? 'unknown'
-    const b = buckets.get(key)
-    const tokens = b ? Math.min(burst, b.tokens + ((now - b.at) / 1000) * refillPerS) : burst
-    if (tokens < 1) {
-      buckets.set(key, { tokens, at: now })
-      return Math.max(1, Math.ceil((1 - tokens) / refillPerS))
-    }
-    if (!b && buckets.size >= MAX_KEYS) {
-      // Drop the full buckets (nobody near the cap) first, then the oldest, so the map stays small.
-      for (const [k, v] of buckets) if (v.tokens + ((now - v.at) / 1000) * refillPerS >= burst) buckets.delete(k)
-      if (buckets.size >= MAX_KEYS) buckets.delete(buckets.keys().next().value!)
-    }
-    buckets.delete(key) // re-insert, so map order is least recently used first
-    buckets.set(key, { tokens: tokens - 1, at: now })
-    return null
-  }
-  return { take, clear: () => buckets.clear() }
+  const take = (ip: string | null | undefined, now = Date.now()): number | null => b.take(ipPrefix(ip ?? null) ?? 'unknown', now).wait
+  return { take, clear: b.clear }
 }
 
 const reads = bucketsOf(READ_BURST, READ_REFILL_PER_S)

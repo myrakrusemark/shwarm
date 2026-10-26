@@ -11,7 +11,7 @@ import { renderMail } from '../src/email/templates'
 import { MAIL_CRON, scheduled } from '../src/jobs'
 import { dayUsage, sendSummary, summaryDay, USAGE_FLOOR } from '../src/jobs/summary'
 import { activity, daySummary, funnel, mostViewed, lastDays, STEPS, testers, through } from '../src/read/beta'
-import { countTraffic, firstLanguage, pruneNodeViews, referrerHost, resetTrafficLog, trafficKind, trafficRow, trafficWho, viewedNode } from '../src/web/traffic'
+import { countTraffic, firstLanguage, pruneNodeViews, referrerHost, resetTally, resetTrafficLog, TALLY_EVERY, trafficKind, trafficRow, trafficWho, viewedNode } from '../src/web/traffic'
 import { addPerson, T0, testDb } from './d1'
 import { body, Browser, fakeFetch, GOOD_PASSWORD, pepper, testEnv } from './browser'
 
@@ -378,6 +378,30 @@ describe('the traffic counter', () => {
     expect(pending).toHaveLength(1)
     await Promise.all(pending)
     expect(db.raw.prepare('SELECT kind, status_class, hits FROM traffic_count').all().map((x: any) => ({ ...x }))).toEqual([{ kind: 'prompt', status_class: 4, hits: 1 }])
+  })
+
+  it('tallies signed reads in the isolate and writes the tally at most once a minute; signed writes count at once', async () => {
+    resetTally()
+    const db = testDb()
+    const mini = new Hono<{ Bindings: { DB: D1Database; ENV: string } }>()
+    mini.use('*', countTraffic())
+    mini.get('/w/*', c => c.json({ ok: true }))
+    mini.post('/w/*', c => c.json({ ok: true }, 201))
+    const env = { DB: db, ENV: 'production' }
+    const agent = (method = 'GET') => mini.request('/w/minecraft-in-doom', { method, headers: { 'signature-input': 'shwarm=()', signature: 'shwarm=::' } }, env)
+    const counts = () => db.raw.prepare("SELECT kind, status_class, hits FROM traffic_count WHERE kind = 'api'").all().map((x: any) => ({ ...x }))
+    const views = () => db.raw.prepare('SELECT path, who, hits FROM node_view').all().map((x: any) => ({ ...x }))
+    await agent() // the first is written with the tally, which holds only it
+    expect(counts()).toEqual([{ kind: 'api', status_class: 2, hits: 1 }])
+    for (let i = 0; i < 4; i++) await agent()
+    expect(counts()[0].hits).toBe(1)
+    await agent('POST')
+    expect(db.raw.prepare("SELECT hits FROM traffic_count WHERE kind = 'api'").all().reduce((n: number, r: any) => n + r.hits, 0)).toBe(2)
+    vi.setSystemTime(T0 + TALLY_EVERY)
+    await agent()
+    expect(counts()).toEqual([{ kind: 'api', status_class: 2, hits: 7 }])
+    expect(views()).toEqual([{ path: 'minecraft-in-doom', who: 'agent', hits: 6 }]) // a POST is no view
+    resetTally()
   })
 
   it('never lets a counting error touch the response, and logs it once', async () => {

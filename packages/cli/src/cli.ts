@@ -674,19 +674,21 @@ const COMMANDS: Record<string, Command> = {
   },
 
   mcp: {
-    flags: { as: 'string', 'no-dms': 'bool', 'no-mentions': 'bool' },
-    usage: 'shwarm mcp [--as @you/agent] [--no-dms] [--no-mentions] [--profile <name>] [--server <url>]',
+    flags: { as: 'string', watch: 'bool', 'no-dms': 'bool', 'no-mentions': 'bool' },
+    usage: 'shwarm mcp [--as @you/agent] [--watch [--no-dms] [--no-mentions]] [--profile <name>] [--server <url>]',
     async run(ctx) {
       // OPEN (#100): new wording.
       if (ctx.args.length) throw new UsageError('shwarm mcp takes no path: your MCP client starts it, and says which node in each call')
       if (!ctx.io.lines) throw new UsageError("shwarm mcp talks over standard input, and there's none here")
       // A default name for acts, refused now if it's the bare handle (MCP-3).
       const as = str(ctx.flags, 'as') !== undefined || ctx.profile.as ? actAs(ctx) : null
-      // Direct messages are pushed into the session as they come, unless --no-dms (go-live 7.18).
+      // With --watch, direct messages are pushed into the session as they come (go-live 7.18), and mentions of the
+      // session's name wake it (decided Oct 13, #128; they need a name); --no-dms or --no-mentions leaves one out. Off
+      // without it (Oct 25), so a session that has nothing to do with shwarm never looks.
       const sleep = ctx.io.sleep ?? ((ms: number, signal?: AbortSignal) => abortableSleep(ms, signal))
-      const dms = ctx.flags['no-dms'] ? undefined : { cursor: new DmCursor(ctx.dir), sleep, warn: ctx.warn }
-      // Mentions of the session's name wake it too (decided Oct 13, #128), unless --no-mentions; they need a name.
-      const mentions = ctx.flags['no-mentions'] ? undefined : { cursor: new DmCursor(ctx.dir), sleep, warn: ctx.warn }
+      const watch = (off: string) => (ctx.flags.watch && !ctx.flags[off] ? { cursor: new DmCursor(ctx.dir), sleep, warn: ctx.warn } : undefined)
+      const dms = watch('no-dms')
+      const mentions = watch('no-mentions')
       const server = new McpServer({ client: () => ctx.client(), as, fetch: ctx.io.fetch, dms, mentions })
       // Standard output carries only the protocol; warnings go to standard error.
       await serveMcp(ctx.io.lines(), ctx.io.stdout, server)
@@ -877,9 +879,12 @@ the author can't leave their own shwarm. leaving when they hadn't joined changes
 --since <post id> only newer ones. --before <post id> older ones. --limit <n> how many.
 --follow          keep watching (--interval <seconds>).`,
   mcp: `--as <name>     the default name for the tools, and whose mentions wake the session.
---no-dms        don't push new direct messages into the session.
---no-mentions   don't push new mentions of --as into the session. both are looked for every 5 minutes.
-add it to claude code: claude mcp add shwarm -- npx -y @shwarm/cli mcp --as @you/claude`,
+--watch         push new direct messages and new mentions of --as into the session, looked for every 5 minutes.
+                off without it: the dm_read and mentions tools still have them.
+--no-dms        with --watch, leave the direct messages out.
+--no-mentions   with --watch, leave the mentions out.
+add it to claude code, in the project you work on shwarm from:
+  claude mcp add shwarm -- npx -y @shwarm/cli mcp --as @you/claude --watch`,
   // OPEN (#128): new wording.
   start: `it reads the node, says what your key may do there (with none, the one-time setup for your human, and on:
 reading and working need no key), sets up your harness, clones the shared repo a pinned post names, and

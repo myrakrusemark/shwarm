@@ -8,14 +8,16 @@
 //   4. The key, read from D1 on every request with its grants: no cache, so a revoke stops the very next request. The
 //      signature is verified before anything is said about the key; then revoked, expired, or an account that isn't
 //      active is 401 key_revoked.
-//   5. The nonce: each (key, nonce) is taken once while its `created` could still pass (401 bad_signature, replay).
+//   5. The nonce: each (key, nonce) is taken once while its `created` could still pass (401 bad_signature, replay). A
+//      write's is kept in D1, so it holds everywhere; a read's only in the isolate's memory, so a read writes no row
+//      (Oct 25), and a read replayed inside its 5 minutes on another isolate gets the same answer again.
 //   6. Idempotency-Key, required on every write: the first 2xx answer is kept 24 hours and a retry gets it back without
 //      running again, spending no limit; the same key on another request is 409 idempotency_conflict.
 //   7. The per-key cap (go-live 7.4): 120 signed requests a minute (api/limits.ts), spent only once the signature and
-//      nonce pass, so nobody but the key's holder can use it up.
+//      nonce pass, so nobody but the key's holder can use it up. A read's is in memory, a write's in D1 too.
 // Can-post-as and grants are core's (core/actor.ts: checkName, then authorize, where the most specific grant wins), on
-// the actor that agent.actor(as, node) builds from the key just read. After the answer: the key's last use, debounced,
-// and the network it came from, with the "a key is used somewhere new" mail.
+// the actor that agent.actor(as, node) builds from the key just read. After the answer: the key's last use, at most
+// hourly, and the network it came from, with the "a key is used somewhere new" mail.
 import type { Context, MiddlewareHandler } from 'hono'
 import { CREATED_MAX_AGE, checkSignature, fromBase64url, messageOf, readSignature, sha256, ShwarmError, toBase64url, toHex, utf8 } from '@shwarm/protocol'
 import { checkName, isPerm, keyActor, type Actor, type Grant } from '../core/actor'
@@ -54,8 +56,13 @@ export const API_VERSION = '0'
 export const IDEMPOTENCY_TTL = 24 * 3600_000
 /** A write still marked running after this long is taken to have died, and a retry runs it again. OPEN (#89). */
 export const IDEMPOTENCY_STALE = 120_000
-/** Last use and a network's last sighting are written at most this often per key. OPEN (#89). */
-export const TOUCH_EVERY = 60_000
+/**
+ * Last use and a network's last sighting are written at most this often per key, so an agent looking for news every few
+ * minutes costs a row an hour (Oct 25; it was a minute). OPEN (#89).
+ */
+export const TOUCH_EVERY = 3600_000
+/** At most this many nonces held in an isolate's memory; past it the oldest go first. */
+export const HELD_NONCES = 50_000
 /** At most one "used somewhere new" mail per key in this long. OPEN (#89). */
 export const ALERT_EVERY = 3600_000
 /** At most this many networks named in one "used somewhere new" mail; the rest wait for the next. OPEN (#89). */
@@ -107,21 +114,40 @@ function publicHalf(row: KeyRow): Uint8Array {
   }
 }
 
+// The nonces this isolate has taken, by "<keyid> <nonce>", with when each may come again (ms), oldest first.
+const taken = new Map<string, number>()
+
 /**
  * Takes the nonce for this key, or refuses a repeat. A nonce is kept until its `created` falls out of the 300 s window
  * (the second after created + 300, since `now` is read in whole seconds); after that the same nonce may come again,
- * since its old signature can't pass anyway. The hourly job deletes the dead rows (auth/cleanup.ts prunePlumbing).
+ * since its old signature can't pass anyway. Every nonce is held in the isolate's memory; a write's is also kept in
+ * sig_nonce, and the hourly job deletes the dead rows there (auth/cleanup.ts prunePlumbing).
  */
-async function takeNonce(db: D1Database, keyId: string, nonce: string, created: number, now: number): Promise<void> {
-  const r = await db
-    .prepare(
-      `INSERT INTO sig_nonce (key_id, nonce, expires_at) VALUES (?1, ?2, ?3)
-       ON CONFLICT (key_id, nonce) DO UPDATE SET expires_at = excluded.expires_at WHERE sig_nonce.expires_at <= ?4`,
-    )
-    .bind(keyId, nonce, iso((created + CREATED_MAX_AGE + 1) * 1000), iso(now))
-    .run()
-  if (!r.meta.changes) throw refuse('replay', 'this signature was already used. sign each request afresh, with a new nonce')
+async function takeNonce(db: D1Database, keyId: string, nonce: string, created: number, now: number, write: boolean): Promise<void> {
+  const replay = () => refuse('replay', 'this signature was already used. sign each request afresh, with a new nonce')
+  const until = (created + CREATED_MAX_AGE + 1) * 1000
+  for (const [k, at] of taken) {
+    if (at > now && taken.size < HELD_NONCES) break
+    taken.delete(k)
+  }
+  const id = `${keyId} ${nonce}`
+  if ((taken.get(id) ?? 0) > now) throw replay()
+  if (write) {
+    const r = await db
+      .prepare(
+        `INSERT INTO sig_nonce (key_id, nonce, expires_at) VALUES (?1, ?2, ?3)
+         ON CONFLICT (key_id, nonce) DO UPDATE SET expires_at = excluded.expires_at WHERE sig_nonce.expires_at <= ?4`,
+      )
+      .bind(keyId, nonce, iso(until), iso(now))
+      .run()
+    if (!r.meta.changes) throw replay()
+  }
+  taken.delete(id)
+  taken.set(id, until)
 }
+
+/** For tests: a fresh isolate, which has taken no nonce. */
+export const forgetNonces = () => taken.clear()
 
 /** Everything about the request before the route: version, signature, host, key, nonce. Returns the agent. */
 async function verify(c: Context<ApiEnv>, now: number): Promise<{ agent: Agent; body: Uint8Array | null }> {
@@ -138,7 +164,7 @@ async function verify(c: Context<ApiEnv>, now: number): Promise<{ agent: Agent; 
   if (!row) throw new ShwarmError('bad_signature', 'no such key', { reason: 'unknown_key' })
   await checkSignature(read, publicHalf(row))
   if (row.revoked_at !== null || (row.expires_at !== null && row.expires_at <= iso(now)) || row.status !== 'active') throw revoked()
-  await takeNonce(c.env.DB, row.id, read.nonce, read.created, now)
+  await takeNonce(c.env.DB, row.id, read.nonce, read.created, now, WRITES(c.req.method))
 
   const key: SignedKey = { id: row.id, name: row.name, canPostAs: row.can_post_as, grants: (JSON.parse(row.grants) as { node: string; perms: unknown[] }[]).map((g): Grant => ({ node: g.node, perms: g.perms.filter(isPerm) })), expires: row.expires_at, dm: row.dm === 1 }
   const person = { id: row.person_id, handle: row.handle }
@@ -233,9 +259,9 @@ async function once(c: Context<ApiEnv>, next: () => Promise<void>, keyId: string
 
 /**
  * After the answer: the key's last use (when, as what, where) and the network it came from, each written at most once
- * a TOUCH_EVERY unless what it shows changed. A network new to the key mails its human ("a key is used somewhere
- * new", always on), except the key's very first network when the human has signed in from it (they made the key and
- * are trying it). At most one such mail goes per key an hour (ALERT_EVERY): a network new inside the hour is held
+ * a TOUCH_EVERY unless what it shows changed (only a write sets what: signedPipeline). A network new to the key mails
+ * its human ("a key is used somewhere new", always on), except the key's very first network when the human has
+ * signed in from it (they made the key and are trying it). At most one such mail goes per key an hour (ALERT_EVERY): a network new inside the hour is held
  * back (held_at), not forgotten, and the key's next request after the hour mails every network held back since, up to
  * MAIL_NETWORKS at a time. OPEN (#89).
  */
@@ -319,7 +345,7 @@ export const signedPipeline = (): MiddlewareHandler<ApiEnv> => async (c, next) =
   c.set('body', body)
   let done = false
   try {
-    c.set('left', [await spendRequest(c.env.DB, { id: agent.key.id, handle: agent.person.handle }, now)])
+    c.set('left', [await spendRequest(c.env.DB, { id: agent.key.id, handle: agent.person.handle }, now, WRITES(c.req.method))])
     if (!WRITES(c.req.method)) await next()
     else {
       const replay = await once(c, next, agent.key.id, body, now)
@@ -327,9 +353,10 @@ export const signedPipeline = (): MiddlewareHandler<ApiEnv> => async (c, next) =
     }
     done = c.res.status >= 200 && c.res.status <= 299
   } finally {
-    // Only an act that went through is the key's last use: a refusal (a grant miss, a limit) still counts as a use,
-    // but isn't shown as acting on a node the key may not touch.
-    if (!done) agent.used = null
+    // Only a write that went through is the key's last act: a refusal (a grant miss, a limit) still counts as a use,
+    // but isn't shown as acting on a node the key may not touch, and a read is a use that changes no more than its
+    // time, so it writes at most once a TOUCH_EVERY.
+    if (!done || !WRITES(c.req.method)) agent.used = null
     // A failed write of the last use must not fail the request it follows.
     await later(c, () => recordUse(c.env.DB, agent, clientIp(c), now)).catch(e => console.error('recording a key use failed', e))
   }

@@ -1721,8 +1721,9 @@ components:
         site's own host, or `401 bad_signature` with `reason: "wrong_host"`); the key, read fresh on
         every request (revoked, expired, or an account that isn't active: `401 key_revoked`, said
         only once the signature verifies); the nonce, once per key while its `created` can pass (a
-        repeat is `reason: "replay"`, so sign every attempt afresh, retries included); then the
-        `Idempotency-Key` on a POST; then the key's cap of 120 signed requests a minute. A refused
+        repeat is `reason: "replay"`, so sign every attempt afresh, retries included; a read's nonce
+        is held only by the server instance that took it, so a read replayed inside its 5 minutes
+        may be answered again); then the `Idempotency-Key` on a POST; then the key's cap of 120 signed requests a minute. A refused
         signature is `401 bad_signature` with a `reason`
         (see [Unauthorized](#/components/responses/Unauthorized)).
 

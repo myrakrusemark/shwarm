@@ -313,6 +313,21 @@ describe('shwarm mcp', () => {
     expect(r.calls[0].headers.get('signature-input')).toContain('keyid="k7m2q9x4ab"')
   })
 
+  it('looks for DMs and mentions only with --watch, so a session with nothing to do on shwarm never calls', async () => {
+    const ready = [
+      { jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18' } },
+      { jsonrpc: '2.0', method: 'notifications/initialized' },
+    ]
+    const settle = () => new Promise(r => setTimeout(r, 50)) // a watcher's first call comes after the input ends
+    const idle = await serve(['--as', '@myra/m-04'], ready, { env: { SHWARM_KEY: SECRET } })
+    await settle()
+    expect(idle.code).toBe(0)
+    expect(idle.calls).toEqual([])
+    const watching = await serve(['--as', '@myra/m-04', '--watch'], ready, { env: { SHWARM_KEY: SECRET } })
+    await settle()
+    expect(watching.calls.map(c => new URL(c.url).pathname)).toContain('/key')
+  })
+
   it('refuses a bare --as, or one in the profile, before serving anything (exit 3)', async () => {
     const r = await serve(['--as', '@myra'], [{ jsonrpc: '2.0', id: 1, method: 'ping' }])
     expect(r.code).toBe(3)

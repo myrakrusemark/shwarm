@@ -1,12 +1,15 @@
 // The agent API's limits on the wire (go-live 7.4; protocol §11; prd-api API-16, API-17; table B technical caps).
-//   * the per-key cap: 120 signed requests a minute, a token bucket per key in rate_bucket ('key:<keyid>'), spent by
-//     every signed request once its signature and nonce pass, so only the key's holder can use it up
+//   * the per-key cap: 120 signed requests a minute, spent by every signed request once its signature and nonce pass,
+//     so only the key's holder can use it up. A token bucket per key in the isolate's memory (core/buckets.ts) takes
+//     every request, so a read writes no row (Oct 25: one idle MCP session's looks for DMs used up D1's free writes);
+//     a write also takes from the key's bucket in rate_bucket ('key:<keyid>'), which holds across isolates
 //   * RateLimit and RateLimit-Policy on every signed answer (IETF RateLimit header fields draft): the limit the act
 //     spent, if any, then the key's own; a 429 names the limit it hit with r=0 and its wait
 // The product limits themselves (thread posts, new nodes) are core's (core/limits.ts): the same on the site and the
 // API, per person, shared by all their agents.
 import { ShwarmError } from '@shwarm/protocol'
 import { DM_EVERY_S, DM_KEEP_DAYS, DM_RECIPIENTS_PER_DAY, DMS_PER_CONVERSATION } from '../core/dm'
+import { memoryBuckets } from '../core/buckets'
 import { NEW_NODES_PER_DAY, THREAD_BURST, THREAD_REFILL_S } from '../core/limits'
 
 /** Signed requests a minute, per key (table B, technical caps). */
@@ -38,12 +41,28 @@ const iso = (ms: number) => new Date(ms).toISOString()
 /** SQL: the bucket's tokens at ?3 (an ISO time), refilled since its last use and capped at ?2; refill ?4 a second. */
 const REFILLED = 'MIN(?2, rate_bucket.tokens + MAX(0, (julianday(?3) - julianday(rate_bucket.updated_at)) * 86400.0) * ?4)'
 
+/** The per-key cap in this isolate's memory: every signed request takes from it. */
+const keyBuckets = memoryBuckets(KEY_REQUESTS, REFILL_PER_S)
+
+/** What is left of the key's cap, from a bucket's tokens. */
+function leftOf(tokens: number): Left {
+  const r = Math.floor(tokens)
+  return { limit: 'requests', r, t: r > 0 ? 0 : Math.ceil((1 - (tokens - r)) / REFILL_PER_S) }
+}
+
+const limited = (key: { handle: string }, wait: number) =>
+  new ShwarmError('rate_limited', `slow down: ${KEY_RULE}`, { limit: 'requests', rule: KEY_RULE, person: '@' + key.handle, retry_after: wait })
+
 /**
- * Spends one of the key's signed requests, in one statement, so two requests at once can't both take the last one.
- * Returns what is left; past the cap it throws 429 rate_limited with limit "requests" and the wait.
+ * Spends one of the key's signed requests: from the isolate's bucket, and for a write also from rate_bucket in one
+ * statement, so two writes at once can't both take the last one. Returns what is left; past the cap it throws 429
+ * rate_limited with limit "requests" and the wait.
  */
-export async function spendRequest(db: D1Database, key: { id: string; handle: string }, now: number): Promise<Left> {
+export async function spendRequest(db: D1Database, key: { id: string; handle: string }, now: number, write: boolean): Promise<Left> {
   const bucket = `key:${key.id}`
+  const mem = keyBuckets.take(bucket, now)
+  if (mem.wait !== null) throw limited(key, mem.wait)
+  if (!write) return leftOf(mem.tokens)
   const row = await db
     .prepare(
       `INSERT INTO rate_bucket (bucket, tokens, updated_at) VALUES (?1, ?2 - 1, ?3)
@@ -52,18 +71,10 @@ export async function spendRequest(db: D1Database, key: { id: string; handle: st
     )
     .bind(bucket, KEY_REQUESTS, iso(now), REFILL_PER_S)
     .first<{ tokens: number }>()
-  if (row) {
-    const r = Math.floor(row.tokens)
-    return { limit: 'requests', r, t: r > 0 ? 0 : Math.ceil((1 - (row.tokens - r)) / REFILL_PER_S) }
-  }
+  if (row) return leftOf(Math.min(mem.tokens, row.tokens))
   const held = await db.prepare('SELECT tokens, updated_at FROM rate_bucket WHERE bucket = ?').bind(bucket).first<{ tokens: number; updated_at: string }>()
   const tokens = held ? Math.min(KEY_REQUESTS, held.tokens + (Math.max(0, now - Date.parse(held.updated_at)) / 1000) * REFILL_PER_S) : 0
-  throw new ShwarmError('rate_limited', `slow down: ${KEY_RULE}`, {
-    limit: 'requests',
-    rule: KEY_RULE,
-    person: '@' + key.handle,
-    retry_after: Math.max(1, Math.ceil((1 - tokens) / REFILL_PER_S)),
-  })
+  throw limited(key, Math.max(1, Math.ceil((1 - tokens) / REFILL_PER_S)))
 }
 
 /** The two headers for what is left, the act's own limit first. */

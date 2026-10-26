@@ -9,7 +9,7 @@ import { newSeed, publicKeyFromSeed, signRequest, toBase64url } from '@shwarm/pr
 import { SHWARM_V0, signedVectorRequest } from '@shwarm/protocol/vectors'
 import app from '../src/index'
 import { agentApi } from '../src/api'
-import { ALERT_EVERY, IDEMPOTENCY_STALE, IDEMPOTENCY_TTL, isSigned, MAIL_NETWORKS, TOUCH_EVERY } from '../src/api/signed'
+import { ALERT_EVERY, forgetNonces, IDEMPOTENCY_STALE, IDEMPOTENCY_TTL, isSigned, MAIL_NETWORKS, TOUCH_EVERY } from '../src/api/signed'
 import type { Grant } from '../src/core/actor'
 import { makeKey, revokeKey } from '../src/auth/keys'
 import { runInTree } from '../src/do/shwarm-tree'
@@ -147,6 +147,36 @@ describe('reading the signature', () => {
     // the same nonce on another request is a replay too, and a write's nonce is taken before its Idempotency-Key is read
     const write = await signed(probe, env, { ...post(key, BRANCH, '@myra/m-04'), nonce: 'once-only-1' })
     expect(write.json).toMatchObject({ error: 'bad_signature', reason: 'replay' })
+  })
+
+  it("keeps a read's nonce in memory and a write's in D1 too, so a replayed write is refused on any isolate", async () => {
+    const { env, key, all } = await world()
+    expect((await signed(app, env, { path: '/mentions?to=@myra/m-04', key, nonce: 'once-a-read-1' })).status).toBe(200)
+    expect((await signed(probe, env, { ...post(key, BRANCH, '@myra/m-04'), nonce: 'once-a-write-1', idem: 'w1' })).status).toBe(201)
+    expect(all('SELECT nonce FROM sig_nonce WHERE key_id = ?', key.keyid)).toEqual([{ nonce: 'once-a-write-1' }])
+    forgetNonces() // another isolate
+    // a read replayed there gets its answer again, inside its 5 minutes; a write is refused
+    expect((await signed(app, env, { path: '/mentions?to=@myra/m-04', key, nonce: 'once-a-read-1' })).status).toBe(200)
+    const again = await signed(probe, env, { ...post(key, BRANCH, '@myra/m-04'), nonce: 'once-a-write-1', idem: 'w1' })
+    expect(again.json).toMatchObject({ error: 'bad_signature', reason: 'replay' })
+  })
+
+  it('writes no row for a read once the hour has its last use: no nonce, no limit, no touch', async () => {
+    const { env, key, get } = await world()
+    const changes = () => get('SELECT total_changes() AS n').n as number
+    await signed(app, env, { path: '/mentions?to=@myra/m-04', key }) // the first use, and a network new to the key
+    const before = changes()
+    for (let i = 1; i <= 5; i++) {
+      vi.setSystemTime(T0 + i * 300_000) // a look every 5 minutes, as the MCP's watchers look
+      expect((await signed(app, env, { path: '/mentions?to=@myra/m-04', key })).status).toBe(200)
+      expect((await signed(app, env, { path: '/key', key })).status).toBe(200)
+    }
+    expect(changes()).toBe(before)
+    expect(get('SELECT COUNT(*) AS n FROM rate_bucket WHERE bucket = ?', 'key:' + key.keyid).n).toBe(0)
+    // the next hour's first look writes its time once
+    vi.setSystemTime(T0 + TOUCH_EVERY)
+    await signed(app, env, { path: '/mentions?to=@myra/m-04', key })
+    expect(get('SELECT last_used_at FROM agent_key WHERE id = ?', key.keyid).last_used_at).toBe(new Date(T0 + TOUCH_EVERY).toISOString())
   })
 
   it('refuses a stale created and a future one with clock_skew and the server time, and takes the edges', async () => {
@@ -340,7 +370,7 @@ describe('last use and networks', () => {
   const lastUse = (w: Awaited<ReturnType<typeof world>>) => w.get('SELECT last_used_at, last_used_as, last_used_node FROM agent_key WHERE id = ?', w.key.keyid)
   const at = (ms: number) => new Date(ms).toISOString()
 
-  it('records when, as what and where, at most once a minute unless that changes', async () => {
+  it('records when, as what and where, at most once an hour unless a write changes what', async () => {
     const w = await world()
     expect(lastUse(w)).toEqual({ last_used_at: null, last_used_as: null, last_used_node: null })
     await signed(probe, w.env, post(w.key, BRANCH, '@myra/m-04'))
@@ -388,7 +418,7 @@ describe('last use and networks', () => {
     ])
     expect(nets()).toEqual([{ ip_prefix: '198.51.100.0/24', first_seen: at(T0), last_seen: at(T0), alerted_at: at(T0), held_at: null }])
 
-    // the same network again: no mail; its last sighting at most once a minute
+    // the same network again: no mail; its last sighting at most once an hour
     vi.setSystemTime(T0 + 30_000)
     await signed(probe, w.env, { path: '/whoami', key: w.key, ip: '198.51.100.99' })
     expect(nets()[0].last_seen).toBe(at(T0))

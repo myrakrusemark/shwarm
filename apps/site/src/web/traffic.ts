@@ -11,6 +11,10 @@
 // Cost: one UPSERT per counted request, after the answer (waitUntil), so it adds no time to the response. D1's free
 // plan allows 100,000 rows written a day across the whole site, so past roughly 30,000 counted requests a day this
 // should move to Workers Analytics Engine (free writes, made for exactly this), keeping the same five fields.
+// A signed read (an agent looking for news: Oct 25, when idle MCP sessions' looks used up the day's writes) is tallied
+// in the isolate instead, and the tally written at most once a TALLY_EVERY, its own count included, so a steady stream
+// of agent reads costs a row or two a minute per isolate however many there are. A tally an evicted isolate held is
+// lost: under a minute's worth, as with D1 usage (core/d1-usage.ts).
 // A counting error never touches the response: it's caught and logged once per isolate.
 import type { Context, MiddlewareHandler } from 'hono'
 import { isSigned } from '../api/signed'
@@ -109,10 +113,10 @@ export function viewedNode(req: Request, res: Response): string | null {
 
 export const viewHour = (ms: number) => new Date(ms).toISOString().slice(0, 13)
 
-export function viewStatement(db: D1Database, path: string, who: TrafficWho, now = Date.now()): D1PreparedStatement {
+export function viewStatement(db: D1Database, path: string, who: TrafficWho, now = Date.now(), hits = 1): D1PreparedStatement {
   return db
-    .prepare('INSERT INTO node_view (hour, path, who, hits) VALUES (?, ?, ?, 1) ON CONFLICT (hour, path, who) DO UPDATE SET hits = hits + 1')
-    .bind(viewHour(now), path, who)
+    .prepare('INSERT INTO node_view (hour, path, who, hits) VALUES (?, ?, ?, ?) ON CONFLICT (hour, path, who) DO UPDATE SET hits = hits + excluded.hits')
+    .bind(viewHour(now), path, who, hits)
 }
 
 /** Node views older than 8 days (the hourly cleanup, jobs/index.ts). Returns how many hour rows went. */
@@ -121,13 +125,42 @@ export async function pruneNodeViews(db: D1Database, now = Date.now()): Promise<
   return r.meta.changes ?? 0
 }
 
-export function countStatement(db: D1Database, r: TrafficRow): D1PreparedStatement {
+export function countStatement(db: D1Database, r: TrafficRow, hits = 1): D1PreparedStatement {
   return db
     .prepare(
-      `INSERT INTO traffic_count (day, kind, referrer, country, status_class, who, lang, hits) VALUES (?, ?, ?, ?, ?, ?, ?, 1)
-       ON CONFLICT (day, kind, referrer, country, status_class, who, lang) DO UPDATE SET hits = hits + 1`,
+      `INSERT INTO traffic_count (day, kind, referrer, country, status_class, who, lang, hits) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT (day, kind, referrer, country, status_class, who, lang) DO UPDATE SET hits = hits + excluded.hits`,
     )
-    .bind(r.day, r.kind, r.referrer, r.country, r.status_class, r.who, r.lang)
+    .bind(r.day, r.kind, r.referrer, r.country, r.status_class, r.who, r.lang, hits)
+}
+
+/** How often an isolate writes its tally of signed reads. */
+export const TALLY_EVERY = 60_000
+type Held = { write: (db: D1Database, hits: number) => D1PreparedStatement; hits: number }
+const held = new Map<string, Held>() // by what the row is
+let wrote = 0 // when the tally was last written
+
+function hold(id: string, h: Held): void {
+  const was = held.get(id)
+  if (was) was.hits += h.hits
+  else held.set(id, h)
+}
+
+/** Adds a signed read to the isolate's tally. Returns the tally when it's due to be written, else nothing. */
+function tally(row: TrafficRow, node: string | null, now: number): [string, Held][] {
+  hold(JSON.stringify(row), { write: (db, hits) => countStatement(db, row, hits), hits: 1 })
+  if (node) hold(JSON.stringify([viewHour(now), node, row.who]), { write: (db, hits) => viewStatement(db, node, row.who, now, hits), hits: 1 })
+  if (now - wrote < TALLY_EVERY) return []
+  wrote = now
+  const due = [...held]
+  held.clear()
+  return due
+}
+
+/** For tests: an empty tally, written with the next signed read. */
+export const resetTally = () => {
+  held.clear()
+  wrote = 0
 }
 
 // 5xx answers by 10-minute bucket (go-live 11.3), for the watchdog's "errors in the last hour" (jobs/watch.ts):
@@ -182,8 +215,17 @@ export function countTraffic(): MiddlewareHandler<{ Bindings: { DB: D1Database; 
       if (!row) return
       const db = c.env.DB
       const node = viewedNode(c.req.raw, c.res)
-      const stmts = [countStatement(db, row), ...(row.status_class === 5 ? [errorCountStatement(db)] : []), ...(node ? [viewStatement(db, node, row.who)] : [])]
-      const work = (stmts.length > 1 ? db.batch(stmts) : stmts[0].run()).catch(quietly)
+      let work: Promise<unknown>
+      if (row.kind === 'api' && (c.req.method === 'GET' || c.req.method === 'HEAD') && row.status_class !== 5) {
+        const due = tally(row, node, Date.now())
+        if (!due.length) return
+        const stmts = due.map(([, h]) => h.write(db, h.hits))
+        // A tally that failed to write goes back, for the next one.
+        work = (stmts.length > 1 ? db.batch(stmts) : stmts[0].run()).catch(e => (due.forEach(([id, h]) => hold(id, h)), quietly(e)))
+      } else {
+        const stmts = [countStatement(db, row), ...(row.status_class === 5 ? [errorCountStatement(db)] : []), ...(node ? [viewStatement(db, node, row.who)] : [])]
+        work = (stmts.length > 1 ? db.batch(stmts) : stmts[0].run()).catch(quietly)
+      }
       const ctx = executionCtx(c)
       if (ctx) ctx.waitUntil(work)
       else await work
