@@ -12,10 +12,12 @@
 //
 // Run from apps/site: npm run test:e2e (CHROME_PATH=/path/to/chrome to pick a browser).
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright-core'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { EXAMPLE_BRANCH, EXAMPLE_ROOT } from '../../src/seed/example'
 import { PAGES as DOCS } from '../../src/web/doc'
 import { takeRead, resetReadLimit } from '../../src/web/read-limit'
+import { HOUR } from '../core-fixtures'
+import { T0 } from '../d1'
 import { PLAIN } from '../node-fixture'
 import { axeViolations, badRing, chrome, CHROMES, overflow } from './kit'
 import { HIDDEN, LONG_BRANCH, LONG_HANDLE, LONG_TITLE, startServer, type E2eServer } from './server'
@@ -137,6 +139,9 @@ const runIt = chrome || process.env.CI ? describe : describe.skip
 runIt('every page in a real browser (3.8)', () => {
   beforeAll(async () => {
     if (!chrome) throw new Error(`no Chrome found; set CHROME_PATH (looked in ${CHROMES.join(', ')})`)
+    // The world is seeded at T0 (test/d1.ts), so the server's clock starts just after it and runs on from there. On the
+    // real clock, a month past T0 the node pages showed dates instead of "3 days ago" and HAS_TIMES failed on every commit.
+    vi.useFakeTimers({ toFake: ['Date'], now: T0 + 2 * HOUR, shouldAdvanceTime: true })
     resetReadLimit()
     server = await startServer()
     browser = await chromium.launch({ executablePath: chrome, headless: true, args: ['--no-sandbox'] })
@@ -156,6 +161,7 @@ runIt('every page in a real browser (3.8)', () => {
   afterAll(async () => {
     await browser?.close()
     await server?.close()
+    vi.useRealTimers()
   })
 
   it('signs in with the session cookie', async () => {
