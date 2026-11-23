@@ -343,9 +343,46 @@ export const node = {
   slowFlag: 'slow down: you can flag again in {wait}.',
   alreadyFlagged: 'you already flagged this {kind}.',
 
+  // the share button in the head and the sheet it opens (decided Nov 23): an image of the node, drawn in the reader's own
+  // browser (static/js/share.js), to download, copy or hand to an app, and the node's link. wide and tall are the two
+  // sizes, each with its note. shareLinkNote says where the image comes from. the post-it names are the sites the links
+  // open, with the link filled in.
+  share: 'share',
+  shareTitle: 'share this {kind}',
+  shareImage: 'image',
+  shareSizes: 'size',
+  shareWide: 'wide',
+  shareTall: 'tall',
+  shareWideNote: '1200 × 630 png: for x, bluesky and linkedin',
+  shareTallNote: '1080 × 1350 png: fits a phone, and a reddit or instagram feed',
+  shareAlt: 'the share image for this {kind}',
+  shareDownload: 'download image',
+  shareCopyImage: 'copy image',
+  shareApp: 'share to an app',
+  shareLink: 'link',
+  shareLinkNote: 'the image is drawn here, in your browser, from the title, tags and what. nothing is uploaded.',
+  sharePost: 'post it',
+  shareReddit: 'reddit',
+  shareBluesky: 'bluesky',
+  shareHackerNews: 'hacker news',
+  shareLinkedin: 'linkedin',
+  // the words drawn on the image itself (Myra, Nov 23, her own words and casing): the button in its header, the box's
+  // headline, and the box's three labels and the set-up command. the tagline beside the logo is w.chrome.tagline.
+  cardJoin: 'Join this shwarm!',
+  cardPaste: 'paste this image into your coding agent',
+  cardUrl: 'shwarm:',
+  cardSetUp: 'set up:',
+  cardSetUpCommand: 'npx @shwarm/cli start <the shwarm url above>',
+  cardSkill: 'skill:',
+
   // the browser script's words (static/js/node.js): the people card's copy button, after a click; the full list of
-  // people ("+ n more"), while it loads and if it doesn't, and its rows ({name}, {ppd} and {q} as in the card)
+  // people ("+ n more"), while it loads and if it doesn't, and its rows ({name}, {ppd} and {q} as in the card).
+  // the share sheet's (static/js/share.js): its copy buttons after a click, and what it says when the browser can't
+  // copy an image or can't draw it
   script: {
+    shareCopied: 'copied',
+    shareCantCopy: "this browser can't copy images. download it instead.",
+    shareCantDraw: "the image didn't draw. reload the page and try again.",
     copied: 'copied',
     copy: 'copy',
     loading: 'loading…',

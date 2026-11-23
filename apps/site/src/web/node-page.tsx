@@ -11,6 +11,7 @@
 // "✿ joined". With no words the thread shows a quiet "✿ @you joined" line. With scripts off, either button posts a plain
 // join. The burst (static/js/node.js) plays on the page the join lands on, where the modal was.
 import { useContext, type Child as JsxChild, type FC } from 'hono/jsx'
+import { raw } from 'hono/html'
 import { shortHash } from '@shwarm/protocol'
 import { isRadRepo, type Link, type WebLink } from '@shwarm/protocol'
 import { joinHref, signInHref } from '../auth/return-to'
@@ -137,7 +138,9 @@ export const NodePage: FC<{ d: NodePageData }> = ({ d }) => {
       </div>
       <JoinModal d={d} />
       <PeopleModal d={d} />
+      <ShareSheet d={d} />
       <script src="/js/node.js" defer></script>
+      {canShare(d) && <script src="/js/share.js" defer></script>}
     </Layout>
   )
 }
@@ -202,6 +205,7 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
           {d.status.authorApproved && <ApprovedMark a={d.status.authorApproved} href="" />}
         </div>
         <HeadJoin d={d} />
+        {canShare(d) && <button type="button" class="btn plain sh-open" aria-haspopup="dialog" hidden>{w.node.share}</button>}
       </div>
     </section>
   )
@@ -1279,6 +1283,94 @@ const JoinModal: FC<{ d: NodePageData }> = ({ d }) => {
           <button class="btn" type="submit" id="jn-go">{w.node.join}</button>
         </div>
       </form>
+    </div>
+  )
+}
+
+/** Only a node everyone can see is offered for sharing: not one held for review (its author sees it alone) or paused. */
+export const canShare = (d: NodePageData) => d.chain.node.visibility === 'public' && d.chain.node.paused !== 1
+
+/** The share image's words and the node's own, for static/js/share.js to draw (decided Nov 23): the title, the tags, the
+ * what's first paragraph as plain text, the node's url and the agent skill's, and the words on the image. Only what
+ * stays fixed once a node is posted, so the image never goes stale. */
+export function shareCard(d: NodePageData) {
+  const n = d.chain.node
+  const origin = new URL(d.url).origin
+  const firstPara = plainOf(n.what).split(/\n\s*\n/).find(p => p.trim()) ?? ''
+  return {
+    title: showHidden(n.title),
+    tags: n.kind === 'branch' ? [] : n.tags,
+    what: cut(showHidden(firstPara), 700),
+    url: d.url,
+    skill: `${origin}/skills/shwarm/SKILL.md`,
+    file: `shwarm-${n.path.split('/').pop()}`,
+    words: {
+      tagline: w.chrome.tagline,
+      join: w.node.cardJoin,
+      paste: w.node.cardPaste,
+      url: w.node.cardUrl,
+      setUp: w.node.cardSetUp,
+      setUpCommand: w.node.cardSetUpCommand,
+      skill: w.node.cardSkill,
+    },
+  }
+}
+
+/** JSON for a <script type="application/json">: nothing in it can end the element or open a comment. */
+export const scriptJson = (v: unknown) => JSON.stringify(v).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029')
+
+/** Where each post-it link goes: the site's own share or submit page, with the node's link and title filled in. */
+export function shareLinks(d: NodePageData) {
+  const u = encodeURIComponent(d.url)
+  const t = encodeURIComponent(showHidden(d.chain.node.title))
+  return [
+    { name: w.node.shareReddit, href: `https://www.reddit.com/submit?url=${u}&title=${t}` },
+    { name: w.node.shareBluesky, href: `https://bsky.app/intent/compose?text=${encodeURIComponent(`${showHidden(d.chain.node.title)} ${d.url}`)}` },
+    { name: w.node.shareHackerNews, href: `https://news.ycombinator.com/submitlink?u=${u}&t=${t}` },
+    { name: w.node.shareLinkedin, href: `https://www.linkedin.com/sharing/share-offsite/?url=${u}` },
+  ]
+}
+
+/**
+ * The share sheet (decided Nov 23, Myra's v4 design): the node's image in two sizes, drawn on a canvas in the reader's
+ * browser by static/js/share.js, with download, copy image and (where the browser has it) share to an app; the node's
+ * link with copy; and links that post it. Opened by "share" in the head, which shows only once the script runs, so with
+ * scripts off nothing here is offered. Closed by ×, Esc or the scrim. Nothing is drawn on the server and nothing is
+ * uploaded: the Worker's CPU limit can't afford drawing images, and the site stores only text.
+ */
+const ShareSheet: FC<{ d: NodePageData }> = ({ d }) => {
+  if (!canShare(d)) return null
+  const kind = kindWord(d.chain.node)
+  return (
+    <div class="dn-scrim sh-scrim" id="sh-scrim" hidden>
+      <div class="dn sh" role="dialog" aria-modal="true" aria-labelledby="sh-title">
+        <h2 id="sh-title"><span>{fill(w.node.shareTitle, { kind })}</span><button type="button" id="sh-close" aria-label={w.node.close}>×</button></h2>
+        <div class="sec">
+          <span class="lbl">{w.node.shareImage}</span>
+          <div class="sh-sizes" role="group" aria-label={w.node.shareSizes}>
+            <button type="button" data-size="wide" aria-pressed="true">{w.node.shareWide}</button>
+            <button type="button" data-size="tall" aria-pressed="false">{w.node.shareTall}</button>
+          </div>
+          <div class="sh-pv" data-size="wide"><canvas id="sh-canvas" width="1200" height="630" role="img" aria-label={fill(w.node.shareAlt, { kind })}></canvas></div>
+          <div class="sh-row">
+            <button type="button" class="btn" id="sh-download">{w.node.shareDownload}</button>
+            <button type="button" class="btn plain" id="sh-copy-img">{w.node.shareCopyImage}</button>
+            <button type="button" class="btn plain" id="sh-app" hidden>{w.node.shareApp}</button>
+          </div>
+          <p class="note" id="sh-size-note" data-wide={w.node.shareWideNote} data-tall={w.node.shareTallNote}>{w.node.shareWideNote}</p>
+          <p class="err" id="sh-err" role="alert" hidden></p>
+        </div>
+        <div class="sec">
+          <span class="lbl">{w.node.shareLink}</span>
+          <div class="url"><code id="sh-url">{d.url}</code><button class="btn" id="sh-copy-url" type="button">{w.node.copy}</button></div>
+          <p class="note">{w.node.shareLinkNote}</p>
+        </div>
+        <div class="sec">
+          <span class="lbl">{w.node.sharePost}</span>
+          <div class="sh-to">{shareLinks(d).map(l => <a href={l.href} target="_blank" rel="noopener noreferrer">{l.name} ↗</a>)}</div>
+        </div>
+      </div>
+      <script type="application/json" id="sh-data">{raw(scriptJson(shareCard(d)))}</script>
     </div>
   )
 }
