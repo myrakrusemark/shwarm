@@ -20,6 +20,7 @@ import { bump, LIMITS } from './throttle'
 import { consumeToken, peekEmailChange, peekToken } from './tokens'
 import { TURNSTILE_FIELD, turnstileOk } from './turnstile'
 import { w } from '../words'
+import { actsLimited } from '../core/site-mode'
 
 export const auth = new Hono<{ Bindings: AuthEnv }>()
 
@@ -118,7 +119,10 @@ auth.post('/verify', async c => {
   const personId = await consumeToken(c.env.DB, f.t, 'verify')
   if (!personId) return render(c, <ExpiredPage kind="verify" />, 410)
   // Every other session of the account ends: whoever signed in before never proved they hold this inbox.
-  await markVerified(c.env.DB, personId, origin(c), { keepSession: visitor.session?.personId === personId ? visitor.session.id : undefined })
+  await markVerified(c.env.DB, personId, origin(c), {
+    keepSession: visitor.session?.personId === personId ? visitor.session.id : undefined,
+    limited: actsLimited(c.env),
+  })
   const next = await openNext(c.env.CSRF_SECRET, f.n, `verify:${f.t}`)
   return c.redirect(next ? `/verified?n=${await signNext(c.env.CSRF_SECRET, next, 'verified')}` : '/verified', 303)
 })

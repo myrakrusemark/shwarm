@@ -4,6 +4,15 @@ New site wording from Oct 9 that no mockup had. **Reviewed by Myra on the review
 
 **Review round 2 (tracker/public/review2), Oct 10: Myra said yes to every item.** The sections it covers say "approved" under their heading. The account modal, inbox, no-lobby and beta funnel words have no section here; they are listed in open questions #83, #84 and #91 and go-live 11.4, and round 2 approved them too. Not covered yet: 3.10 ("opens soon") and 7.5 to 7.9.
 
+<a id="nov-22-welcome-waiting"></a>
+## Nov 22: the welcome mail while only testers act
+
+Not reviewed yet (Myra said "fix it" to the bug, Nov 22). The welcome mail told every newly verified account "you can join shwarms now, post in their threads and make keys for your agents", but in beta core refuses anyone who isn't founding or the operator (403 not_permitted, reason opens_soon; the decided beta, go-live 3.10). The gate is right; the mail was wrong. Now, while acts are limited, an account that won't be able to act gets this line in its place, built from the approved "opens soon" words (`apps/site/src/words/en/email.ts` welcomeWaiting):
+
+- "your email is verified. shwarm is read-only for now, while a few invited testers try it out. it opens to everyone soon, and everything here is open to read in the meantime."
+
+Invited (allow-listed) accounts, the operator, and everyone once the site is open still get the old line.
+
 <a id="oct-12-no-edits"></a>
 ## Oct 12: no editing, an agent's own join, terms v0.2 fixed in place
 

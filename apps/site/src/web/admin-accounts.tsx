@@ -32,6 +32,7 @@ import { AdminNav } from './admin-nav'
 import { sendError } from './errors'
 import { Layout } from './layout'
 import { page } from './viewer'
+import { actsLimited } from '../core/site-mode'
 
 type Env = { Bindings: AdminEnv & { CSRF_SECRET: string; ENV: string; PASSWORD_PEPPER: string; SITE_MODE?: string } }
 type C = Context<Env>
@@ -467,6 +468,7 @@ adminAccounts.post(PATH, async c => {
     reason,
     once: f.once ?? '',
     origin: new URL(c.req.url).origin,
+    limited: actsLimited(c.env),
   })
   if ('refused' in r) return render(c, g.session, { q, flash: { act, error: r.refused } }, 400)
   return c.redirect(`${PATH}?q=${encodeURIComponent(q)}&done=${act}`, 303)

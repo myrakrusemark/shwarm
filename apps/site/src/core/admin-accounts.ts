@@ -221,6 +221,7 @@ export type ActInput = {
   reason: string // already checked with modReason
   once: string
   origin: string // for the verify link
+  limited?: boolean // only invited accounts act (core/site-mode.ts actsLimited): mark_verified's welcome mail says so
   now?: number
 }
 
@@ -263,7 +264,7 @@ export async function accountAct(db: D1Database, inp: ActInput): Promise<ActResu
       if (!p) return no('look up an account first.')
       if (p.email_verified_at) return no(`@${p.handle} has a verified email already.`)
       if (p.status === 'closed') return no(`@${p.handle} is closed.`)
-      const made = await markVerifiedStatements(db, p.id, inp.origin, { now: ctx.now })
+      const made = await markVerifiedStatements(db, p.id, inp.origin, { now: ctx.now, limited: inp.limited })
       if (!made) return no(`@${p.handle} has a verified email already.`)
       stmts = [...made, log()]
       break

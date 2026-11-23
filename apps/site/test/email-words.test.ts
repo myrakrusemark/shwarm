@@ -30,6 +30,7 @@ describe('every mail people get', () => {
     ['verify', 'verify', { handle: 'myra', link: '/verify?t=tok' }, account],
     ['verify, no handle', 'verify', { link: '/verify?t=tok' }, account],
     ['welcome', 'welcome', { handle: 'myra' }, account],
+    ['welcome, waiting', 'welcome', { handle: 'myra', waiting: true }, account],
     ['reset', 'reset', { handle: 'myra', link: '/reset?t=tok' }, account],
     ['password_changed', 'password_changed', { handle: 'myra' }, account],
     ['email_change_new', 'email_change_new', { handle: 'myra', link: '/email-change?t=tok' }, account],

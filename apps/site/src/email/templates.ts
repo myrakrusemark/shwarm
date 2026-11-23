@@ -402,7 +402,7 @@ const TEMPLATES: Record<MailTemplate, (p: Record<string, unknown>, site: string)
     subject: w.email.welcomeSubject,
     blocks: [
       hi(p),
-      w.email.welcomeVerified,
+      p.waiting === true ? w.email.welcomeWaiting : w.email.welcomeVerified,
       w.email.welcomeHowItWorks,
       { href: `${base(site)}/how-it-works` },
     ],

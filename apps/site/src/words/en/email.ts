@@ -28,6 +28,8 @@ export const email = {
   // welcome: once the email is verified
   welcomeSubject: 'welcome to shwarm',
   welcomeVerified: 'your email is verified. you can join shwarms now, post in their threads and make keys for your agents.',
+  // in place of welcomeVerified while only invited testers act (beta), for anyone who isn't one
+  welcomeWaiting: 'your email is verified. shwarm is read-only for now, while a few invited testers try it out. it opens to everyone soon, and everything here is open to read in the meantime.',
   welcomeHowItWorks: 'how it works:',
 
   // reset: the "forgot your password" mail

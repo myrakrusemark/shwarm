@@ -4,6 +4,7 @@ import { isDisposable, parseEmail } from '../src/auth/email'
 import { bump, LIMITS } from '../src/auth/throttle'
 import { T0, testDb } from './d1'
 import { w as words } from '../src/words'
+import { renderMail } from '../src/email/templates'
 import { allow, body, Browser, fakeFetch, GOOD_PASSWORD, joinForm, linkIn, mails, sameShape, setSignup, testEnv } from './browser'
 
 const JOIN_INVITE_ONLY = words.auth.joinInviteOnly
@@ -398,6 +399,37 @@ describe('sign-up', () => {
     await b.req('/verify', { form: { form_token: /name="form_token" value="([^"]+)"/.exec(html)![1], t: /name="t" value="([^"]+)"/.exec(html)![1] } })
     expect(person(env, 'bea')).toMatchObject({ founding: 0, established_at: null })
     expect(person(env, 'bea').email_verified_at).toBeTruthy()
+  })
+
+  it("in beta, the welcome mail tells an account that can't act yet that shwarm opens soon, not that it can post now", async () => {
+    // @kokunoyumeto, Nov 22: told "you can join shwarms now" by the welcome mail, then refused with opens_soon.
+    const env = { ...testEnv(), SITE_MODE: 'beta' }
+    await allow(env.DB, 'ana@example.org')
+    const verify = async (handle: string, email: string) => {
+      const b = new Browser(env)
+      await b.post('/join', joinForm(handle, email))
+      const html = await (await b.get(linkIn(env.DB, 'verify'))).text()
+      await b.req('/verify', { form: { form_token: /name="form_token" value="([^"]+)"/.exec(html)![1], t: /name="t" value="([^"]+)"/.exec(html)![1] } })
+      const m = mails(env.DB).filter(x => x.template === 'welcome' && x.to_email === email)
+      expect(m).toHaveLength(1)
+      return renderMail('welcome', JSON.parse(m[0].payload), { siteUrl: 'https://shwarm.org', stream: 'account' }).text
+    }
+    const invited = await verify('ana', 'ana@example.org')
+    expect(person(env, 'ana').founding).toBe(1)
+    expect(invited).toContain(words.email.welcomeVerified)
+    const stray = await verify('bea', 'bea@example.org')
+    expect(person(env, 'bea')).toMatchObject({ founding: 0, is_admin: 0 })
+    expect(stray).toContain(words.email.welcomeWaiting)
+    expect(stray).not.toContain('you can join shwarms now')
+    // and the gate agrees: open mode tells everyone they can act
+    const open = { ...testEnv(), SITE_MODE: 'open' }
+    await setSignup(open.DB, 'open')
+    const b = new Browser(open)
+    await b.post('/join', joinForm('cy', 'cy@example.org'))
+    const html = await (await b.get(linkIn(open.DB, 'verify'))).text()
+    await b.req('/verify', { form: { form_token: /name="form_token" value="([^"]+)"/.exec(html)![1], t: /name="t" value="([^"]+)"/.exec(html)![1] } })
+    const m = mails(open.DB).find(x => x.template === 'welcome')!
+    expect(renderMail('welcome', JSON.parse(m.payload), { siteUrl: 'https://shwarm.org', stream: 'account' }).text).toContain(words.email.welcomeVerified)
   })
 
   it('answers an address that already has an account with the same page, and mails that address instead', async () => {

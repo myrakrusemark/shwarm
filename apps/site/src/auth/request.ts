@@ -9,6 +9,7 @@ import { COOKIE, readSession, type Session } from './session'
 export type AuthEnv = {
   DB: D1Database
   ENV: string
+  SITE_MODE?: string
   PASSWORD_PEPPER: string
   CSRF_SECRET: string
   TURNSTILE_SECRET?: string
