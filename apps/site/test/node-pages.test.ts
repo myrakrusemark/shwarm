@@ -15,6 +15,11 @@ import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv }
 import { PLAIN, stagingWorld } from './node-fixture'
 import { OWASP } from './owasp'
 import { schemaErrors } from './contract'
+import { activityNumbers } from '../src/web/activity-numbers'
+// These tests check the activity numbers as they show when the switch is on (web/activity-numbers.ts); the feed's own
+// test checks them off.
+beforeEach(() => { activityNumbers.show = true })
+afterEach(() => { activityNumbers.show = false })
 
 beforeEach(() => {
   vi.stubGlobal('fetch', fakeFetch())
@@ -134,6 +139,17 @@ describe('the shwarm page (3.3)', () => {
     expect(html).toContain('where this pitch comes from:') // the pinned sources post
     // nothing of the lobby or of variants is left
     expect(html).not.toMatch(/lobby|seats|kickoff|variant/)
+  })
+
+  it('activity numbers off (web/activity-numbers.ts, Myra Nov 22): no upvote box in the head, no count by a post\'s ▲', async () => {
+    activityNumbers.show = false
+    const { b } = await world()
+    const html = await body(await b.req(`/w/${PLAIN}`, { headers: HTML }))
+    expect(html).toContain('<section class="head shwarm nonums">')
+    expect(html).not.toContain('class="heat"')
+    expect(html).not.toContain('comment upvotes')
+    expect(html).not.toMatch(/▲ \d/)
+    expect(html).toMatch(/<a class="up" href="\/signin[^"]*"[^>]*>▲<\/a>/) // still there to press
   })
 
   it('sort and show: new, top and humans-only reorder and filter the thread', async () => {

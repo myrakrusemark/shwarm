@@ -121,3 +121,7 @@ body { line-height: 1.45; }
   .tr-list::-webkit-scrollbar { display: none; }
   .tr-list:has(.tr-more[open]) { flex-wrap: wrap; overflow-x: visible; -webkit-mask: none; mask: none; }
 }
+
+/* the count column off (src/web/activity-numbers.ts): the cards close up to the left */
+.feed.nonums li { grid-template-columns: 1fr auto; }
+@media (max-width: 640px) { .feed.nonums li { grid-template-columns: 1fr; } .feed.nonums .right { grid-column: 1; } }

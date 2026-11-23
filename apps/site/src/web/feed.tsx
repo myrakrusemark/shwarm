@@ -7,6 +7,7 @@ import { defaultSort, feedView, loadFeed, parseQuery, queryText, sortsFor, TABS,
 import { loadTrending, shwarmsTagged, type Trending, type TrendingTag } from '../read/trending'
 import { NEEDS_HUMANS } from '../core/tags'
 import { TagLink } from './tags'
+import { activityNumbers } from './activity-numbers'
 import { ago, countNum, exactTime, perDay, shortNum } from '../render/numbers'
 import { LINK_REL, linkParts, Name, Text } from '../render/text'
 import { count, fill, fillx, w } from '../words'
@@ -125,7 +126,7 @@ export const FeedPage: FC<{ feed: Feed; now: number; guide?: boolean; trending?:
         {trending && feed.tab === 'live' && !feed.paged && !feed.query.words.length && feed.query.tags.length <= 1 && <TrendingRow t={trending} feed={feed} />}
         <nav class="order" aria-label={w.feed.sortLabel}>
           {w.feed.sortBy}
-          {sortsFor(feed.tab).map(s => (
+          {sortsFor(feed.tab).filter(s => activityNumbers.show || s !== 'upvotes').map(s => (
             <a class={s === feed.sort ? 'on' : undefined} href={feedHref(feed.tab, q, null, s)} aria-current={s === feed.sort ? 'page' : undefined}>{sortLabel()[s]}</a>
           ))}
         </nav>
@@ -140,7 +141,7 @@ export const FeedPage: FC<{ feed: Feed; now: number; guide?: boolean; trending?:
           </form>
         </nav>
         {feed.cards.length ? (
-          <ol class="feed">
+          <ol class={activityNumbers.show ? 'feed' : 'feed nonums'}>
             {feed.cards.map(card => (
               <Card card={card} now={now} />
             ))}
@@ -329,7 +330,7 @@ const BuildsOn: FC<{ b: NonNullable<FeedCard['buildsOn']> }> = ({ b }) => {
   )
 }
 
-/** Thread upvotes and the impact mark (upvotes per post on its 0–5 scale). */
+/** Thread upvotes and the impact mark (upvotes per post on its 0–5 scale). Hidden while activityNumbers.show is off. */
 const Heat: FC<{ card: FeedCard; mark: boolean }> = ({ card, mark }) => {
   const q = Math.round(impactBar(card.impact) * 10) / 10
   return (
@@ -367,7 +368,7 @@ export const Card: FC<{ card: FeedCard; now: number }> = ({ card, now }) => {
   // unchanged (decided Oct 15, Myra: "its enough that theyre emphasized.").
   return (
     <li class={card.tags.includes(NEEDS_HUMANS) ? 'nh' : undefined}>
-      <Heat card={card} mark={!dead} />
+      {activityNumbers.show && <Heat card={card} mark={!dead} />}
       <div>
         <Title card={card} />
         <div class="what"><Text inline text={blockless(card.what).replace(/\s*\n\s*/g, ' ')} /></div>
@@ -378,7 +379,8 @@ export const Card: FC<{ card: FeedCard; now: number }> = ({ card, now }) => {
             <> · <Name name={card.postedBy} />{card.people > 1 && fill(w.feed.deadOthers, { n: countNum(card.people - 1) })}</>
           ) : (
             <>
-              {card.buildsOn && <BuildsOn b={card.buildsOn} />} · {count(w.feed.people, card.people, { n: countNum(card.people) })} · {fill(w.feed.postsPerDay, { n: perDay(card.postsPerDay) })}
+              {card.buildsOn && <BuildsOn b={card.buildsOn} />} · {count(w.feed.people, card.people, { n: countNum(card.people) })}
+              {(activityNumbers.show || card.postsPerDay > 0) && <> · {fill(w.feed.postsPerDay, { n: perDay(card.postsPerDay) })}</>}
             </>
           )}{' '}
           · <Ago at={card.at} now={now} />

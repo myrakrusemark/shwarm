@@ -14,6 +14,7 @@ import { useContext, type Child as JsxChild, type FC } from 'hono/jsx'
 import { shortHash } from '@shwarm/protocol'
 import { isRadRepo, type Link, type WebLink } from '@shwarm/protocol'
 import { joinHref, signInHref } from '../auth/return-to'
+import { activityNumbers } from './activity-numbers'
 import type { CheckSpec } from '../core/checks'
 import type { BuiltOnBy, BuiltOnLink, Chain, CheckReport, Child, Contributor, JoinLine, NodeEdit, NodeHead, PostEdit, PostRow, Show, Sort, SubmissionRow, Thread } from '../read/node'
 import { EDITS_SHOWN, postsOnPage, QUIET_HOURS, SHOWS, SORTS } from '../read/node'
@@ -161,12 +162,14 @@ const Head: FC<{ d: NodePageData }> = ({ d }) => {
   const isBranch = n.kind === 'branch'
   const s = n.stats
   return (
-    <section class={isBranch ? 'head' : 'head shwarm'}>
-      <div class="heat" title={w.node.heatTitle}>
-        {shortNum(s?.upvotes ?? 0)}
-        <small>{w.node.upvoteHow}</small>
-        <span class="qbar" style={`--q:${q1(s?.impact ?? 0)}`} title={fill(w.node.perPost, { q: q1(s?.impact ?? 0) })}></span>
-      </div>
+    <section class={(isBranch ? 'head' : 'head shwarm') + (activityNumbers.show ? '' : ' nonums')}>
+      {activityNumbers.show && (
+        <div class="heat" title={w.node.heatTitle}>
+          {shortNum(s?.upvotes ?? 0)}
+          <small>{w.node.upvoteHow}</small>
+          <span class="qbar" style={`--q:${q1(s?.impact ?? 0)}`} title={fill(w.node.perPost, { q: q1(s?.impact ?? 0) })}></span>
+        </div>
+      )}
       <div>
         {isBranch && <div class="kicker">{fillx(w.node.branchOf, { parent: <a href={nodeHref(parent.path)}><Plain text={parent.title} /></a> })}</div>}
         <h1 class="title">
@@ -733,9 +736,11 @@ export const makeBranchHref = (path: string, post: string) => `/new?parent=${pat
  * OPEN (#78): the button's title and the "not counted yet" words wait on Myra's yes.
  */
 const Upvote: FC<{ p: PostRow; d: NodePageData }> = ({ p, d }) => {
-  if (useContext(PageContext).opensSoon) return <span class="up" title={OPENS_SOON.upvote}>{count(w.node.upvoteCount, p.ups)}</span>
-  if (!d.me) return <a class="up" href={signInHref(d.here)} title={w.node.signInToUpvote}>▲ {p.ups}</a>
-  if (!d.me.verified || p.person_id === d.me.personId) return <span class="up">{count(w.node.upvoteCount, p.ups)}</span>
+  // While activityNumbers.show is off: a bare ▲ to press, and nothing where the count was only shown.
+  const ups = activityNumbers.show ? ` ${p.ups}` : ''
+  if (useContext(PageContext).opensSoon) return activityNumbers.show ? <span class="up" title={OPENS_SOON.upvote}>{count(w.node.upvoteCount, p.ups)}</span> : null
+  if (!d.me) return <a class="up" href={signInHref(d.here)} title={w.node.signInToUpvote}>▲{ups}</a>
+  if (!d.me.verified || p.person_id === d.me.personId) return activityNumbers.show ? <span class="up">{count(w.node.upvoteCount, p.ups)}</span> : null
   const mine = d.myUps?.get(p.id)
   const on = mine !== undefined
   return (
@@ -750,7 +755,7 @@ const Upvote: FC<{ p: PostRow; d: NodePageData }> = ({ p, d }) => {
         aria-pressed={on ? 'true' : 'false'}
         title={on ? (mine ? w.node.takeBack : w.node.notCounted) : w.node.upvote}
       >
-        ▲ {p.ups}
+        ▲{ups}
       </button>
     </form>
   )

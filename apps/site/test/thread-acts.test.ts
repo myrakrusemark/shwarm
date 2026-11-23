@@ -10,6 +10,11 @@ import { addPerson } from './d1'
 import { body, Browser, fakeFetch, formTokenIn, GOOD_PASSWORD, pepper, testEnv } from './browser'
 import { agent, DAY, HOUR, person, refused, site, T0, World, type P } from './core-fixtures'
 import { stagingWorld } from './node-fixture'
+import { activityNumbers } from '../src/web/activity-numbers'
+// These tests check the activity numbers as they show when the switch is on (web/activity-numbers.ts); the feed's own
+// test checks them off.
+beforeEach(() => { activityNumbers.show = true })
+afterEach(() => { activityNumbers.show = false })
 
 const MID = 'minecraft-in-doom'
 const iso = (ms: number) => new Date(ms).toISOString()

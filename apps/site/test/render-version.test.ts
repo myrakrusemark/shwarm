@@ -90,9 +90,9 @@ describe('RENDER_VERSION', () => {
     expect(await fingerprint(), 'the fingerprint is not stable across runs').toBe(first)
     // A changed word moves WORDS_VERSION, which is in the ETag already: update it and the fingerprint here, no bump.
     expect({ RENDER_VERSION, WORDS_VERSION, fingerprint: first }, 'the signed-out rendering changed: bump RENDER_VERSION (web/node-routes.tsx), unless WORDS_VERSION moved too, then update this fingerprint').toEqual({
-      RENDER_VERSION: '30',
+      RENDER_VERSION: '31',
       WORDS_VERSION: 'r2y7tf',
-      fingerprint: '9ab8f8f68b46e4ab', // also moves when passedWorld above changes (no bump then: the code renders the same)
+      fingerprint: '3d30eb584e44e68d', // also moves when passedWorld above changes (no bump then: the code renders the same)
     })
   })
 })

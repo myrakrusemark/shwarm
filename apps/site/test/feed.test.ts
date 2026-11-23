@@ -13,6 +13,11 @@ import { resetReadLimit } from '../src/web/read-limit'
 import { Browser, testEnv } from './browser'
 import { agent, DAY, HOUR, MIN, person, site, T0, World, type P } from './core-fixtures'
 import { addPerson, testDb } from './d1'
+import { activityNumbers } from '../src/web/activity-numbers'
+// These tests check the activity numbers as they show when the switch is on (web/activity-numbers.ts); the feed's own
+// test checks them off.
+beforeEach(() => { activityNumbers.show = true })
+afterEach(() => { activityNumbers.show = false })
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
@@ -294,6 +299,22 @@ describe('tabs', () => {
     expect(titles(await html(r.db, '/?tab=passed&sort=hot'))).toEqual(['gone', 'won'])
     // a search keeps the sort
     expect(await html(r.db, '/?sort=upvotes&q=zebra')).toContain('<input type="hidden" name="sort" value="upvotes"/>')
+  })
+
+  it('activity numbers off (web/activity-numbers.ts, Myra Nov 22): no upvote column or upvotes sort, no "0 posts/day"; a real posts/day stays', async () => {
+    activityNumbers.show = false
+    const r = await new Rows().init()
+    r.node({ title: 'quiet', upvotes: 0, people: 1, perDay: 0 })
+    r.node({ title: 'liked', upvotes: 7, people: 2, perDay: 3 })
+    const h = await html(r.db, '/?sort=new')
+    expect(h).toContain('<ol class="feed nonums">')
+    expect(h).not.toContain('class="heat"')
+    expect(h).not.toContain('comment upvotes')
+    expect(h).not.toContain('sort=upvotes')
+    expect(card(h, 'quiet')).not.toContain('posts/day')
+    expect(card(h, 'liked')).toContain('3 posts/day')
+    // the sort still answers by URL, for old links and agents
+    expect(titles(await html(r.db, '/?sort=upvotes'))).toEqual(['liked', 'quiet'])
   })
 
   it('passed: shwarms whose status is passed, newest pass first, however busy they are since', async () => {
